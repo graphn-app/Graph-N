@@ -1,0 +1,233 @@
+﻿cmake_minimum_required(VERSION 3.16)
+project(Graph-N)
+
+# ------------------------------------------------------------------------------
+# Global Settings
+# ------------------------------------------------------------------------------
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+# Define the working directory variable
+set(WORK_DIR "${CMAKE_SOURCE_DIR}/work_dir")
+
+# Ensure the work_dir exists
+file(MAKE_DIRECTORY ${WORK_DIR})
+
+# Output directories for standard builds (bin/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
+
+# ------------------------------------------------------------------------------
+# SQLite & SQLiteCpp
+# ------------------------------------------------------------------------------
+# --- SQLite C Library ---
+add_library(sqlite3 STATIC "sqlite/sqlite3.c")
+target_include_directories(sqlite3 PUBLIC "sqlite")
+
+# Suppress warnings for sqlite3
+if(MSVC)
+    target_compile_options(sqlite3 PRIVATE /W0)
+endif()
+
+if(UNIX)
+    target_link_libraries(sqlite3 PRIVATE m dl pthread)
+endif()
+
+# --- SQLiteCpp Wrapper ---
+file(GLOB SQLITECPP_SOURCES "SQLiteCpp/src/*.cpp")
+add_library(SQLiteCpp STATIC ${SQLITECPP_SOURCES})
+target_include_directories(SQLiteCpp PUBLIC 
+    "SQLiteCpp/include"
+    "sqlite"
+)
+target_link_libraries(SQLiteCpp PUBLIC sqlite3)
+
+# Suppress warnings for SQLiteCpp
+if(MSVC)
+    target_compile_options(SQLiteCpp PRIVATE /W0)
+endif()
+
+# ------------------------------------------------------------------------------
+# ImGui (Modern 1.89.9)
+# ------------------------------------------------------------------------------
+set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui_v1.89.9-docking")
+
+set(IMGUI_SOURCES
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+)
+
+# ImGui backend
+if(WIN32)
+    # Windows: DX11 и Win32
+    list(APPEND IMGUI_SOURCES
+        ${IMGUI_DIR}/backends/imgui_impl_win32.cpp
+        ${IMGUI_DIR}/backends/imgui_impl_dx11.cpp
+    )
+    add_definitions(-DIMGUI_IMPL_WIN32_DISABLE_GAMEPAD) # suppress XInput
+else()
+    # Unix: GLFW и OpenGL3
+    list(APPEND IMGUI_SOURCES
+        ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+        ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+    )
+endif()
+
+add_library(ImGuiLib STATIC ${IMGUI_SOURCES})
+
+# Publicly define math operators so it propagates to NodeEditor and Graph-N
+target_compile_definitions(ImGuiLib PUBLIC IMGUI_DEFINE_MATH_OPERATORS)
+
+target_include_directories(ImGuiLib PUBLIC 
+    ${IMGUI_DIR} 
+    ${IMGUI_DIR}/backends
+)
+
+if(UNIX)
+    target_link_libraries(ImGuiLib PRIVATE glfw)
+endif()
+
+# Suppress warnings for ImGui
+if(MSVC)
+    target_compile_options(ImGuiLib PRIVATE /W0)
+endif()
+
+# ------------------------------------------------------------------------------
+# ImGui Node Editor (Thedmd)
+# ------------------------------------------------------------------------------
+set(NODE_EDITOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor")
+
+set(NODE_EDITOR_SOURCES
+    "${NODE_EDITOR_DIR}/Source/imgui_node_editor.cpp"
+    "${NODE_EDITOR_DIR}/Source/imgui_node_editor_api.cpp"
+    "${NODE_EDITOR_DIR}/Source/crude_json.cpp"
+    "${NODE_EDITOR_DIR}/Source/imgui_canvas.cpp"
+    "${NODE_EDITOR_DIR}/Support/imgui_node_editor.natvis"
+)
+
+add_library(NodeEditorLib STATIC ${NODE_EDITOR_SOURCES})
+
+target_include_directories(NodeEditorLib PUBLIC 
+    "${NODE_EDITOR_DIR}/Include" # Public API (imgui_node_editor.h is usually in root or Include)
+    "${IMGUI_DIR}"       		 # Needs access to ImGui headers
+)
+
+target_link_libraries(NodeEditorLib PUBLIC ImGuiLib)
+
+# Suppress warnings for Node Editor
+if(MSVC)
+    target_compile_options(NodeEditorLib PRIVATE /W0)
+endif()
+
+# ------------------------------------------------------------------------------
+# Graph-N App
+# ------------------------------------------------------------------------------
+# Look for sources directly in Graph-N folder (no 'src' subfolder)
+file(GLOB_RECURSE GRAPHN_SOURCES "Graph-N/*.cpp")
+file(GLOB_RECURSE GRAPHN_HEADERS "Graph-N/*.h")
+
+# resources
+set(GRAPHN_RESOURCES "Graph-N/res/graph-n.rc")
+
+# source tree for Visual Studio
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N" PREFIX "Source Files" FILES ${GRAPHN_SOURCES})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N" PREFIX "Header Files" FILES ${GRAPHN_HEADERS})
+
+# app
+add_executable(Graph-N WIN32 ${GRAPHN_SOURCES} ${GRAPHN_HEADERS} ${GRAPHN_RESOURCES})
+
+if(MSVC)
+    # enable /EHa, this will override /EHsc
+    target_compile_options(Graph-N PRIVATE /EHa)
+endif()
+
+# --- PRECOMPILED HEADERS ---
+target_precompile_headers(Graph-N PRIVATE "Graph-N/pch.h")
+
+if(MSVC)
+    # Force main() entry point even for GUI subsystem (fixes linker error in Release)
+    target_link_options(Graph-N PRIVATE "/ENTRY:mainCRTStartup")
+
+    # STRICT MODE: Warnings as Errors (/WX), High Warning Level (/W4)
+    target_compile_options(Graph-N PRIVATE /W4 /WX /utf-8)
+    
+    # Optional: Disable very specific annoying warnings if needed, e.g.:
+    # target_compile_options(Graph-N PRIVATE /wd4100) # Unreferenced formal parameter
+endif()
+
+# --- Include Directories ---
+# SYSTEM flag tells compiler to ignore warnings in these headers
+target_include_directories(Graph-N SYSTEM PRIVATE
+	"Graph-N"
+    "nlohmann/include"
+    "stb"
+    "cpp-httplib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SQLiteCpp/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sqlite"
+    "${NODE_EDITOR_DIR}"
+    "${IMGUI_DIR}" 
+    "${IMGUI_DIR}/backends"
+)
+
+# Your own headers (checked for warnings)
+target_include_directories(Graph-N PRIVATE "Graph-N")
+
+# --- Linking ---
+if(WIN32)
+    target_link_libraries(Graph-N PRIVATE
+        ImGuiLib
+        NodeEditorLib
+        SQLiteCpp
+        sqlite3
+    )
+else()
+    target_link_libraries(Graph-N PRIVATE
+        ImGuiLib
+        NodeEditorLib
+        SQLiteCpp
+        sqlite3
+        opengl32
+    )
+endif()
+
+if(WIN32)
+    # Link system network libs for httplib
+    target_link_libraries(Graph-N PRIVATE ws2_32 crypt32)
+    target_link_libraries(Graph-N PRIVATE d3d11 d3dcompiler dwmapi)
+else()
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(Graph-N PRIVATE glfw OpenGL::GL)
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_libraries(Graph-N PRIVATE dl pthread)
+    endif()
+endif()
+
+# ------------------------------------------------------------------------------
+# Debug Workflow Automation
+# ------------------------------------------------------------------------------
+
+# copying to work_dir
+add_custom_command(TARGET Graph-N POST_BUILD
+    COMMAND $<$<CONFIG:Debug>:${CMAKE_COMMAND}> 
+            $<$<CONFIG:Debug>:-E> 
+            $<$<CONFIG:Debug>:copy_if_different> 
+            $<$<CONFIG:Debug>:$<TARGET_FILE:Graph-N>> 
+            $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>>
+    COMMENT "Copying Debug executable to work_dir..."
+)
+
+# debug run - Visual Studio (F5)
+set_target_properties(Graph-N PROPERTIES 
+    # run from work_dir
+    VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
+    
+    # Debug -> run from work_dir/Graph-N.exe
+    # Release -> run from bin/Graph-N.exe
+    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N>>"
+)

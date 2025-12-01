@@ -1,0 +1,23 @@
+﻿
+required directories:
+
+cpp-httplib\
+	https://github.com/yhirose/cpp-httplib.git
+glfw\
+	https://github.com/glfw/glfw.git	
+nlohmann\
+	https://github.com/nlohmann/json.git
+SQLiteCpp\
+	https://github.com/SRombauts/SQLiteCpp.git
+stb\
+	https://github.com/nothings/stb.git	
+
+
+rmdir /s /q build
+mkdir build
+cd build
+
+cmake -G "Visual Studio 15 2017" -A x64 ..
+
+cmake --build . --config Debug
+cmake --build . --config Release
