@@ -29,15 +29,7 @@ bool MainRoutine_Win32::init()
 	m_wc.hbrBackground = NULL;
 	::RegisterClassExW(&m_wc);
 
-	const int screen_w = GetSystemMetrics(SM_CXSCREEN);
-	const int screen_y = GetSystemMetrics(SM_CYSCREEN);
-
-	constexpr int initial_width = 1024;
-	constexpr int initial_height = 768;
-	const auto initial_left = screen_w / 2 - initial_width / 2;
-	const auto initial_top = screen_y / 2 - initial_height / 2;
-
-	m_hwnd = ::CreateWindowW(m_wc.lpszClassName, APP_CAPTION_W, WS_OVERLAPPEDWINDOW, initial_left, initial_top, initial_width, initial_height, nullptr, nullptr, m_wc.hInstance, nullptr);	
+	m_hwnd = ::CreateWindowW(m_wc.lpszClassName, APP_CAPTION_W, WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, nullptr, nullptr, m_wc.hInstance, nullptr);	
 
 	// Initialize Direct3D
 	if (!create_device_d3d(m_hwnd))
@@ -52,7 +44,7 @@ bool MainRoutine_Win32::init()
 	::SendMessage(m_hwnd, WM_SETICON, ICON_BIG, (LPARAM)m_hicon.get());
 	::SendMessage(m_hwnd, WM_SETICON, ICON_SMALL, (LPARAM)m_hicon.get());
 
-	::ShowWindow(m_hwnd, SW_SHOWDEFAULT);
+	::ShowWindow(m_hwnd, SW_SHOWMAXIMIZED);
 	::UpdateWindow(m_hwnd);
 
 	::SetTimer(m_hwnd, 1, 1000, nullptr);

@@ -28,8 +28,10 @@ struct OptsData
 
 	struct Comfy
 	{
-		std::string address;
+		std::string host;
 		uint16_t port = 0;
+		size_t conn_time = 0;
+		size_t read_time = 0;
 	}
 	comfy;
 };

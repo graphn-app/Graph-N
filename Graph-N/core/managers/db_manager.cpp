@@ -27,13 +27,13 @@ bool b = query.getColumn(2).getInt() > 0;
 );
 */
 
-inline constexpr auto g_val_id				= "id";
-inline constexpr auto g_val_name			= "name";
+inline constexpr auto gdb_val_id				= "id";
+inline constexpr auto gdb_val_name				= "name";
 
-inline constexpr auto g_tbl_opt				= "settings";
+inline constexpr auto gdb_tbl_opt				= "settings";
 
-inline constexpr auto g_opt_val_int			= "value_int";
-inline constexpr auto g_opt_val_str			= "value_str";
+inline constexpr auto gdb_opt_val_int			= "value_int";
+inline constexpr auto gdb_opt_val_str			= "value_str";
 
 bool DbManager::init()
 {
@@ -53,7 +53,7 @@ bool DbManager::init()
 						%s INTEGER,
 						%s TEXT
 					);
-				)", g_tbl_opt, g_val_id, g_val_name, g_opt_val_int, g_opt_val_str));
+				)", gdb_tbl_opt, gdb_val_id, gdb_val_name, gdb_opt_val_int, gdb_opt_val_str));
 
 		//m_db->exec(R"(
 		//		CREATE TABLE IF NOT EXISTS workflows (
@@ -97,7 +97,7 @@ void DbManager::set_option(const std::string& key, const std::string& value)
 	try 
 	{
 		SQLite::Statement query(*m_db, 
-			tools::str::format("INSERT OR REPLACE INTO %s (%s, %s) VALUES (?, ?)", g_tbl_opt, g_val_name, g_opt_val_str));
+			tools::str::format("INSERT OR REPLACE INTO %s (%s, %s) VALUES (?, ?)", gdb_tbl_opt, gdb_val_name, gdb_opt_val_str));
 		query.bind(1, key);
 		query.bind(2, value);
 		query.exec();
@@ -115,7 +115,7 @@ void DbManager::set_option(const std::string& key, __int64 value)
 	try
 	{
 		SQLite::Statement query(*m_db,
-			tools::str::format("INSERT OR REPLACE INTO %s (%s, %s) VALUES (?, ?)", g_tbl_opt, g_val_name, g_opt_val_int));
+			tools::str::format("INSERT OR REPLACE INTO %s (%s, %s) VALUES (?, ?)", gdb_tbl_opt, gdb_val_name, gdb_opt_val_int));
 		query.bind(1, key);
 		query.bind(2, value);
 		query.exec();
@@ -133,7 +133,7 @@ std::optional<std::string> DbManager::get_option_str(const std::string& key)
 	try
 	{
 		SQLite::Statement query(*m_db,
-			tools::str::format("SELECT %s FROM %s WHERE %s=?", g_opt_val_str, g_tbl_opt, g_val_name));
+			tools::str::format("SELECT %s FROM %s WHERE %s=?", gdb_opt_val_str, gdb_tbl_opt, gdb_val_name));
 		query.bind(1, key);
 		if (!query.executeStep())
 			return std::nullopt; 
@@ -153,7 +153,7 @@ std::optional<__int64> DbManager::get_option_int(const std::string& key)
 	try
 	{
 		SQLite::Statement query(*m_db,
-			tools::str::format("SELECT %s FROM %s WHERE %s=?", g_opt_val_int, g_tbl_opt, g_val_name));
+			tools::str::format("SELECT %s FROM %s WHERE %s=?", gdb_opt_val_int, gdb_tbl_opt, gdb_val_name));
 		query.bind(1, key);
 		if (!query.executeStep())
 			return std::nullopt;

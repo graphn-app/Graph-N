@@ -74,19 +74,31 @@ constexpr wchar_t to_wchar(T param)
 }
 
 template <typename T>
-constexpr byte to_8(T param)
+constexpr byte to_u8(T param)
 {
 	return to<T, byte>(param);
 }
 
 template <typename T, typename std::enable_if<!std::is_floating_point<T>::value>::type* = nullptr>
-constexpr uint16_t to_16(T param)
+constexpr int16_t to_i16(T param)
+{
+	return to<T, int16_t>(param);
+}
+
+template <typename T, typename std::enable_if<std::is_floating_point<T>::value>::type* = nullptr>
+constexpr int16_t to_i16(T param)
+{
+	return to<T, int16_t>(param);
+}
+
+template <typename T, typename std::enable_if<!std::is_floating_point<T>::value>::type* = nullptr>
+constexpr uint16_t to_u16(T param)
 {
 	return to<T, uint16_t>(param);
 }
 
 template <typename T, typename std::enable_if<std::is_floating_point<T>::value>::type* = nullptr>
-constexpr uint16_t to_16(T param)
+constexpr uint16_t to_u16(T param)
 {
 	return to<T, uint16_t>(param);
 }

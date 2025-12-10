@@ -55,6 +55,7 @@ private:
 
 private:
 	Flow m_current_flow_step = Flow::init;
+	bool m_comfyui_connected = false;
 
 	std::unique_ptr<ui::GraphN_Flow> m_graphn_flow;
 

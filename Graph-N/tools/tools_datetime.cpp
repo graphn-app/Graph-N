@@ -18,13 +18,13 @@ dt dt::from_current_date()
 
 	dt date = {};
 
-	date.m_year = cast::to_16(ptm.tm_year + 1900);
-	date.m_month = cast::to_8(ptm.tm_mon + 1);
-	date.m_day = cast::to_8(ptm.tm_mday);
+	date.m_year = cast::to_u16(ptm.tm_year + 1900);
+	date.m_month = cast::to_u8(ptm.tm_mon + 1);
+	date.m_day = cast::to_u8(ptm.tm_mday);
 
-	date.m_hour = cast::to_8(ptm.tm_hour);
-	date.m_minute = cast::to_8(ptm.tm_min);
-	date.m_second = cast::to_8(ptm.tm_sec);
+	date.m_hour = cast::to_u8(ptm.tm_hour);
+	date.m_minute = cast::to_u8(ptm.tm_min);
+	date.m_second = cast::to_u8(ptm.tm_sec);
 
 	date.m_time =
 		(time_type(date.m_year) << 48) | (time_type(date.m_month) << 40) | (time_type(date.m_day) << 32) |
@@ -84,9 +84,9 @@ dt dt::from_jdn_as_gregorian_date(uint64_t jdn)
 
 	dt date = {};
 
-	date.m_day = cast::to_8(e - uint64_t(((153 * m) + 2) / 5) + 1);
-	date.m_month = cast::to_8(m + 3 - 12 * uint64_t(m / 10));
-	date.m_year = cast::to_16((100 * b) + d - 4800 + uint64_t(m / 10));
+	date.m_day = cast::to_u8(e - uint64_t(((153 * m) + 2) / 5) + 1);
+	date.m_month = cast::to_u8(m + 3 - 12 * uint64_t(m / 10));
+	date.m_year = cast::to_u16((100 * b) + d - 4800 + uint64_t(m / 10));
 
 	date.m_time =
 		(time_type(date.m_year) << 48) | (time_type(date.m_month) << 40) | (time_type(date.m_day) << 32) |
@@ -109,9 +109,9 @@ dt dt::from_jdn_as_julian_date(uint64_t jdn)
 
 	dt date = {};
 
-	date.m_day = cast::to_8(e - uint64_t(((153 * m) + 2) / 5) + 1);
-	date.m_month = cast::to_8(m + 3 - (12 * uint64_t(m / 10)));
-	date.m_year = cast::to_16(d - 4800 + uint64_t(m / 10));
+	date.m_day = cast::to_u8(e - uint64_t(((153 * m) + 2) / 5) + 1);
+	date.m_month = cast::to_u8(m + 3 - (12 * uint64_t(m / 10)));
+	date.m_year = cast::to_u16(d - 4800 + uint64_t(m / 10));
 	
 	date.m_time =
 		(time_type(date.m_year) << 48) | (time_type(date.m_month) << 40) | (time_type(date.m_day) << 32) |
@@ -220,7 +220,7 @@ bool dt::check_valid(uint16_t y, byte m, byte d, byte h, byte mnt, byte s)
 byte dt::day_of_week(uint16_t y, byte m, byte d)
 {
 	if (!check_valid(y, m, d))
-		return cast::to_8(-1);
+		return cast::to_u8(-1);
 
 	if (0 == y)
 		return d % 7 - 1;

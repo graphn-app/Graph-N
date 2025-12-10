@@ -10,6 +10,8 @@
 #include <filesystem>
 #include <fstream>
 #include <optional>
+#include <future>
+#include <chrono>
 
 // Windows
 #ifdef _WIN32
@@ -53,3 +55,8 @@ namespace tt = tools::time;
 #define GLOBAL_ID_DATE_PICKER_ID_FIRST		0x1000000
 #define GLOBAL_ID_DATE_PICKER_ID_NEXT		0x1000004
 #define GLOBAL_ID_DATE_PICKER_ID_LAST		0x1000054
+
+namespace comfyui
+{
+constexpr const char* object_info = "/object_info";
+}

@@ -50,6 +50,34 @@ std::string format(const char* format, ...)
 	return str;
 }
 
+std::list<std::string> split(const std::string& str, char separator, bool add_empty)
+{
+	size_t sep_count = std::count(str.begin(), str.end(), separator);
+
+	std::list <std::string> out;
+	std::istringstream stream(str.data());
+	for (std::string l; std::getline(stream, l, separator); )
+	{
+		out.emplace_back(std::move(trim(std::move(l))));
+	}
+
+	if (add_empty && sep_count + 1 != out.size())
+		out.push_back("");
+
+	return out;
+}
+
+std::string to_lower_ansi(std::string string)
+{
+	std::transform(string.begin(), string.end(), string.begin(),
+		[](const char c)
+		{
+			return cast::to_char(std::tolower(c));
+		}
+	);
+	return string;
+}
+
 } // namespace str
 
 namespace path

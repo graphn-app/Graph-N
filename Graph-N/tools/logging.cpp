@@ -332,7 +332,7 @@ void log_map(const MAP& cont, std::stringstream& buffer)
 
 LogWriter& LogWriter::operator << (DlgCode code)
 {
-	m_buffer << cast::to_16(code);
+	m_buffer << cast::to_u16(code);
 	switch (code)
 	{
 	case DlgCode::progress:
@@ -358,7 +358,7 @@ LogWriter& LogWriter::operator << (DlgCode code)
 
 LogWriter& LogWriter::operator << (DlgObject dlg)
 {
-	m_buffer << cast::to_16(dlg);
+	m_buffer << cast::to_u16(dlg);
 	switch (dlg)
 	{
 	case DlgObject::GraphN_Flow:

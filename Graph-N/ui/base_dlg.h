@@ -12,8 +12,7 @@ struct DlgData
 	float width = 0;
 	float height = 0;
 
-	std::string title;
-
+	bool open_popup = true;
 	bool set_focus = true;
 	//gid set_focus_id = 0;
 
@@ -81,7 +80,17 @@ protected:
 
 		return exit_code;
 	}
-	//DlgCode cleanup_and_exit_popup(bool end_dlg, bool pop_styles, DlgCode exit_code);
+	
+	DlgCode cleanup_and_exit_popup(bool end_dlg, bool pop_styles, DlgCode exit_code)
+	{
+		if (end_dlg)
+			ImGui::EndPopup();
+
+		if (pop_styles)
+			ImGui::PopDlgTitleStyles();
+
+		return exit_code;
+	}
 
 	void set_focus()
 	{
