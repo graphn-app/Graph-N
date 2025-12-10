@@ -38,6 +38,18 @@ std::string replace(std::string string, const std::string& find, const std::stri
 	return string;
 }
 
+std::string format(const char* format, ...)
+{
+	va_list arglist;
+	va_start(arglist, format);
+	int size = _vscprintf(format, arglist);
+	std::string str;
+	str.resize(size);
+	vsprintf(str.data(), format, arglist);
+	va_end(arglist);
+	return str;
+}
+
 } // namespace str
 
 namespace path
@@ -340,13 +352,13 @@ std::list<std::filesystem::path> enumerate_directory(const std::string& path, bo
 {
 	std::list<std::filesystem::path> out;
 
-	std::string root = str::replace(path, "/", "\\", 0);
+	std::string root = tools::str::replace(path, "/", "\\", 0);
 	add_backslash(root);
 
 	const auto replace_slash = [slash](const std::string& path) -> std::string
 	{
 		if (slash != '\\')
-			return str::replace(path, "\\", std::string(1, slash));
+			return tools::str::replace(path, "\\", std::string(1, slash));
 		return path;
 	};
 

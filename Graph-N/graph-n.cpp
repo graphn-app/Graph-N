@@ -71,6 +71,7 @@ void GraphN::exit_graphn()
 		manager->free();
 	});
 
+	g::pNodesManager = nullptr;
 	g::pOptsManager = nullptr;
 	g::pDataManager = nullptr;
 	g::pDbManager = nullptr;

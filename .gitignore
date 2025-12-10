@@ -4,6 +4,8 @@ stb/
 SQLiteCpp/
 cpp-httplib/
 DB_Browser/
+websocketpp/
+asio/
 
 Debug/
 Release/

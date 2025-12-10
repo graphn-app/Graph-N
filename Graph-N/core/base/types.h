@@ -12,14 +12,12 @@ enum class DlgObject
 	none,
 
 	GraphN_Flow,
+	Options,
 
 	_first				= GraphN_Flow,
-	_last				= GraphN_Flow,
+	_last				= Options,
 	_count = _last,
-	_zero = none,
-
-	_custom_clr_first	= GraphN_Flow,
-	_custom_clr_last	= GraphN_Flow,
+	_zero = none
 };
 
 enum DlgCtrl

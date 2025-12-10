@@ -26,6 +26,15 @@ std::string s = query.getColumn(1).getText();
 bool b = query.getColumn(2).getInt() > 0;
 );
 */
+
+inline constexpr auto g_val_id				= "id";
+inline constexpr auto g_val_name			= "name";
+
+inline constexpr auto g_tbl_opt				= "settings";
+
+inline constexpr auto g_opt_val_int			= "value_int";
+inline constexpr auto g_opt_val_str			= "value_str";
+
 bool DbManager::init()
 {
 	auto path = fs::get_res_directory_path();
@@ -37,38 +46,38 @@ bool DbManager::init()
 		m_db->exec("PRAGMA journal_mode = WAL;");
 		m_db->exec("PRAGMA synchronous = NORMAL;");
 
-		m_db->exec(R"(
-				CREATE TABLE IF NOT EXISTS settings (
-					id INTEGER PRIMARY KEY AUTOINCREMENT,
-					name TEXT NOT NULL,
-					value_str TEXT,
-					value_int INTEGER,
-				);
-			)");
+		m_db->exec(tools::str::format(R"(
+					CREATE TABLE IF NOT EXISTS %s (
+						%s INTEGER PRIMARY KEY AUTOINCREMENT,
+						%s TEXT NOT NULL UNIQUE,
+						%s INTEGER,
+						%s TEXT
+					);
+				)", g_tbl_opt, g_val_id, g_val_name, g_opt_val_int, g_opt_val_str));
 
-		m_db->exec(R"(
-				CREATE TABLE IF NOT EXISTS workflows (
-					id INTEGER PRIMARY KEY AUTOINCREMENT,
-					name TEXT NOT NULL,
-					data TEXT NOT NULL,
-					created DATETIME DEFAULT CURRENT_TIMESTAMP,
-					updated DATETIME DEFAULT CURRENT_TIMESTAMP
-				);
-			)");
+		//m_db->exec(R"(
+		//		CREATE TABLE IF NOT EXISTS workflows (
+		//			id INTEGER PRIMARY KEY AUTOINCREMENT,
+		//			name TEXT NOT NULL,
+		//			data TEXT NOT NULL,
+		//			created DATETIME DEFAULT CURRENT_TIMESTAMP,
+		//			updated DATETIME DEFAULT CURRENT_TIMESTAMP
+		//		);
+		//	)");
 
-		m_db->exec(R"(
-            CREATE TABLE IF NOT EXISTS images (
-                id INTEGER PRIMARY KEY,
-                filename TEXT NOT NULL,
-                workflow TEXT,
-                prompt_pos TEXT,
-				prompt_neg TEXT,
-                seed INTEGER,
-                favorite BOOLEAN DEFAULT 0,
-                created DATETIME DEFAULT CURRENT_TIMESTAMP,
-				updated DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-        )");
+		//m_db->exec(R"(
+  //          CREATE TABLE IF NOT EXISTS images (
+  //              id INTEGER PRIMARY KEY,
+  //              filename TEXT NOT NULL,
+  //              workflow TEXT,
+  //              prompt_pos TEXT,
+		//		prompt_neg TEXT,
+  //              seed INTEGER,
+  //              favorite BOOLEAN DEFAULT 0,
+  //              created DATETIME DEFAULT CURRENT_TIMESTAMP,
+		//		updated DATETIME DEFAULT CURRENT_TIMESTAMP
+  //          );
+  //      )");
 	}
 	catch(const SQLite::Exception& ex)
 	{
@@ -82,5 +91,81 @@ bool DbManager::init()
 
 void DbManager::free()
 {}
+
+void DbManager::set_option(const std::string& key, const std::string& value)
+{
+	try 
+	{
+		SQLite::Statement query(*m_db, 
+			tools::str::format("INSERT OR REPLACE INTO %s (%s, %s) VALUES (?, ?)", g_tbl_opt, g_val_name, g_opt_val_str));
+		query.bind(1, key);
+		query.bind(2, value);
+		query.exec();
+		Log("Opt updated: (" << key << "=" << value << ")");
+	}
+	catch (const SQLite::Exception& ex)
+	{
+		LogExcep("SQLite save opt (" << key << "=" << value << ") error: " << ex.getErrorCode() << ", " << ex.getErrorStr());
+		return;
+	}
+}
+
+void DbManager::set_option(const std::string& key, __int64 value)
+{
+	try
+	{
+		SQLite::Statement query(*m_db,
+			tools::str::format("INSERT OR REPLACE INTO %s (%s, %s) VALUES (?, ?)", g_tbl_opt, g_val_name, g_opt_val_int));
+		query.bind(1, key);
+		query.bind(2, value);
+		query.exec();
+		Log("Opt updated: (" << key << "=" << value << ")");
+	}
+	catch (const SQLite::Exception& ex)
+	{
+		LogExcep("SQLite save opt (" << key << "=" << value << ") error: " << ex.getErrorCode() << ", " << ex.getErrorStr());
+		return;
+	}
+}
+
+std::optional<std::string> DbManager::get_option_str(const std::string& key)
+{
+	try
+	{
+		SQLite::Statement query(*m_db,
+			tools::str::format("SELECT %s FROM %s WHERE %s=?", g_opt_val_str, g_tbl_opt, g_val_name));
+		query.bind(1, key);
+		if (!query.executeStep())
+			return std::nullopt; 
+		if (query.getColumn(0).isNull())
+			return std::nullopt;
+		return query.getColumn(0).getString();
+	}
+	catch (const SQLite::Exception& ex)
+	{
+		LogExcep("SQLite load opt " << key << " error: " << ex.getErrorCode() << ", " << ex.getErrorStr());
+	}
+	return std::nullopt;
+}
+
+std::optional<__int64> DbManager::get_option_int(const std::string& key)
+{
+	try
+	{
+		SQLite::Statement query(*m_db,
+			tools::str::format("SELECT %s FROM %s WHERE %s=?", g_opt_val_int, g_tbl_opt, g_val_name));
+		query.bind(1, key);
+		if (!query.executeStep())
+			return std::nullopt;
+		if (query.getColumn(0).isNull())
+			return std::nullopt;
+		return query.getColumn(0).getInt64();
+	}
+	catch (const SQLite::Exception& ex)
+	{
+		LogExcep("SQLite load opt " << key << " error: " << ex.getErrorCode() << ", " << ex.getErrorStr());
+	}
+	return std::nullopt;
+}
 
 } // namespace mngr

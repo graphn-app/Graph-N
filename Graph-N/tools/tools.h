@@ -8,6 +8,7 @@ namespace str
 
 std::string trim(std::string string, std::string chars = " \r\n\t");
 std::string replace(std::string string, const std::string& find, const std::string& replace, size_t from_pos = 0);
+std::string format(const char* format, ...);
 
 } // namespace str
 

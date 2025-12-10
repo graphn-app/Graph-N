@@ -20,6 +20,7 @@
 
 // 3rd party
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_node_editor.h"
@@ -36,6 +37,7 @@
 #include "tools/tools.h"
 #include "tools/tools_datetime.h"
 #include "tools/logging.h"
+#include "ui/imgui_ex.h"
 
 #include "graph-n.h"
 
@@ -45,3 +47,9 @@
 
 namespace ne = ax::NodeEditor;
 namespace tt = tools::time;
+
+
+// global identifiers
+#define GLOBAL_ID_DATE_PICKER_ID_FIRST		0x1000000
+#define GLOBAL_ID_DATE_PICKER_ID_NEXT		0x1000004
+#define GLOBAL_ID_DATE_PICKER_ID_LAST		0x1000054

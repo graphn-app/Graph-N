@@ -160,6 +160,14 @@ if(MSVC)
     # target_compile_options(Graph-N PRIVATE /wd4100) # Unreferenced formal parameter
 endif()
 
+# WebSocket++ Settings: Use Standalone Asio (No Boost)
+target_compile_definitions(Graph-N PRIVATE 
+    ASIO_STANDALONE 
+    _WEBSOCKETPP_CPP11_STL_
+    _CRT_SECURE_NO_WARNINGS
+    _CRT_NON_CONFORMING_SWPRINTFS
+)
+
 # --- Include Directories ---
 # SYSTEM flag tells compiler to ignore warnings in these headers
 target_include_directories(Graph-N SYSTEM PRIVATE
@@ -167,6 +175,8 @@ target_include_directories(Graph-N SYSTEM PRIVATE
     "nlohmann/include"
     "stb"
     "cpp-httplib"
+    "websocketpp"
+    "asio/asio/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/SQLiteCpp/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/sqlite"
     "${NODE_EDITOR_DIR}"
