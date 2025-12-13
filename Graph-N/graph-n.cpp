@@ -4,6 +4,7 @@
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
+#include "core/managers/connect_manager.h"
 #include "core/base/id.h"
 
 namespace g
@@ -16,6 +17,7 @@ mngr::SettingsManager* pOptsManager = nullptr;
 mngr::DbManager* pDbManager = nullptr;
 mngr::DataManager* pDataManager = nullptr;
 mngr::NodesManager* pNodesManager = nullptr;
+mngr::ConnectManager* pConnectManager = nullptr;
 }
 
 GraphN::GraphN()
@@ -44,6 +46,12 @@ bool GraphN::init()
 	m_managers.emplace_back(std::make_unique<mngr::NodesManager>());
 	g::pNodesManager = (mngr::NodesManager*)m_managers.back().get();
 
+	m_managers.emplace_back(std::make_unique<mngr::NodesManager>());
+	g::pNodesManager = (mngr::NodesManager*)m_managers.back().get();
+
+	m_managers.emplace_back(std::make_unique<mngr::ConnectManager>());
+	g::pConnectManager = (mngr::ConnectManager*)m_managers.back().get();
+
 	bool success = true;
 	std::for_each(m_managers.begin(), m_managers.end(), [&success](std::unique_ptr<mngr::Manager>& manager)
 	{
@@ -68,6 +76,7 @@ void GraphN::exit_graphn()
 
 	std::for_each(m_managers.begin(), m_managers.end(), [](std::unique_ptr<mngr::Manager>& manager)
 	{
+		manager->stop_all_threads();
 		manager->free();
 	});
 
@@ -75,6 +84,7 @@ void GraphN::exit_graphn()
 	g::pOptsManager = nullptr;
 	g::pDataManager = nullptr;
 	g::pDbManager = nullptr;
+	g::pConnectManager = nullptr;
 }
 
 int GraphN::override_exit_code()

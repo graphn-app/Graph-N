@@ -14,6 +14,7 @@ class SettingsManager;
 class DbManager;
 class DataManager;
 class NodesManager;
+class ConnectManager;
 }
 
 namespace ui
@@ -78,4 +79,5 @@ extern mngr::SettingsManager* pOptsManager;
 extern mngr::DbManager* pDbManager;
 extern mngr::DataManager* pDataManager;
 extern mngr::NodesManager* pNodesManager;
+extern mngr::ConnectManager* pConnectManager;
 }

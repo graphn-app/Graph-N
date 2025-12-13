@@ -7,10 +7,10 @@ namespace ui
 
 class OptRightPane;
 
-class OptionsDlgs : public BaseDlg<DlgData>
+class OptionsDlgs : public BaseDlgWithData<DlgData>
 {
 public:
-	OptionsDlgs();
+	OptionsDlgs(OptPane init_opt = OptPane::_none);
 	~OptionsDlgs() override;
 
 	void init() override;
@@ -22,7 +22,7 @@ private:
 
 private:
 	OptsData m_opts_data;
-	std::map<PaneType, std::shared_ptr<OptRightPane>> m_right_panes;
+	std::map<OptPane, std::shared_ptr<OptRightPane>> m_right_panes;
 };
 
 

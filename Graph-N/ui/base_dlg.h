@@ -21,11 +21,10 @@ struct DlgData
 	//GidSet failed_ids;
 };
 
-template <typename DlgDataType>
 class BaseDlg
 {
 public:
-	BaseDlg(DlgObject obj)
+	BaseDlg(VisibleObject obj)
 		: m_obj(obj)
 	{}
 	virtual ~BaseDlg() = 0 {}
@@ -47,15 +46,6 @@ public:
 
 protected:
 	virtual DlgCode show(bool& focused) = 0;
-	DlgDataType* data() { return m_data.get(); }
-
-	virtual void init()
-	{
-		if (m_dlg_initialized)
-			return;
-		m_data = std::make_unique<DlgDataType>();
-		m_dlg_initialized = true;
-	}
 
 	//void update_window_pos()
 	//{
@@ -64,7 +54,7 @@ protected:
 	//	m_data->y = pos.y;
 	//}
 
-	DlgObject get_dlg_obj() const { return m_obj; }
+	VisibleObject get_dlg_obj() const { return m_obj; }
 
 	//void set_exit_code(DlgCode code) { m_exit_code = code; }
 	//void set_exit_code_ok() { m_exit_code = DlgCode::ok; }
@@ -100,11 +90,33 @@ protected:
 	}
 
 private:
-	DlgObject m_obj;
+	VisibleObject m_obj;
 	DlgCode m_exit_code = DlgCode::progress;
-	bool m_dlg_initialized = false;
 	bool m_focused = false;
-	//bool m_close_called = false;
+	bool m_close_called = false;
+};
+
+template <typename DlgDataType>
+class BaseDlgWithData : public BaseDlg
+{
+public:
+	BaseDlgWithData(VisibleObject obj)
+		: BaseDlg(obj)
+	{}
+
+	virtual void init()
+	{
+		if (m_dlg_initialized)
+			return;
+		m_data = std::make_unique<DlgDataType>();
+		m_dlg_initialized = true;
+	}
+
+protected:
+	DlgDataType* data() { return m_data.get(); }
+
+private:
+	bool m_dlg_initialized = false;
 	std::unique_ptr<DlgDataType> m_data;
 };
 

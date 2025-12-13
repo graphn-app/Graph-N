@@ -7,9 +7,11 @@
 namespace ui
 {
 
-OptionsDlgs::OptionsDlgs()
-	: BaseDlg(DlgObject::Options)
-{}
+OptionsDlgs::OptionsDlgs(OptPane init_opt /*= OptPane::_none*/)
+	: BaseDlgWithData(VisibleObject::OptionsDlg)
+{
+	m_opts_data.pane.left_selected_item = init_opt;
+}
 
 OptionsDlgs::~OptionsDlgs()
 {}
@@ -18,7 +20,7 @@ void OptionsDlgs::init()
 {
 	LogF;
 
-	BaseDlg::init();
+	BaseDlgWithData::init();
 
 	const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 	data()->x = main_viewport->WorkSize.x / 2 - 300;
@@ -26,16 +28,16 @@ void OptionsDlgs::init()
 	data()->width = 650;
 	data()->height = 400;
 
-	m_right_panes[PaneType::comfyui] = std::make_shared<OptComfyDlg>();
-	for (size_t i = cast::to_szt(PaneType::_first); i <= cast::to_szt(PaneType::_last); i++)
+	m_right_panes[OptPane::comfyui] = std::make_shared<OptComfyDlg>();
+	for (size_t i = cast::to_szt(OptPane::_first); i <= cast::to_szt(OptPane::_last); i++)
 	{
-		m_right_panes[cast::to_enum<PaneType>(i)]->init(m_opts_data);
+		m_right_panes[cast::to_enum<OptPane>(i)]->init(m_opts_data);
 	}
 }
 
 DlgCode OptionsDlgs::show(bool& focused)
 {
-	const auto colors = g::pOptsManager->get_window_title_color(DlgObject::Options);
+	const auto colors = g::pOptsManager->flow_get_color(VisibleObject::OptionsDlg);
 	ImGui::PushDlgTitleStyles(colors);
 
 	set_focus();
@@ -60,15 +62,15 @@ void OptionsDlgs::show_left_pane()
 	ImGui::SetNextWindowPos(ImVec2(data()->x, data()->y), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(data()->width, data()->height), ImGuiCond_FirstUseEver);
 
-	if (ImGui::Selectable("ComfyUI##LeftPane", PaneType::comfyui == m_opts_data.pane.left_selected_item))
+	if (ImGui::Selectable("ComfyUI##LeftPane", OptPane::comfyui == m_opts_data.pane.left_selected_item))
 	{
-		m_opts_data.pane.left_selected_item = PaneType::comfyui;
+		m_opts_data.pane.left_selected_item = OptPane::comfyui;
 		m_opts_data.pane.height = 450;
 		m_opts_data.pane.width = 370;
 		m_opts_data.pane.show_inner_child = true;
 	}
 
-	if (m_opts_data.pane.left_selected_item != PaneType::_none)
+	if (m_opts_data.pane.left_selected_item != OptPane::_none)
 	{
 		m_opts_data.pane.width = m_opts_data.pane.width + 200 + 50;
 		m_opts_data.pane.height = m_opts_data.pane.height + 70;
@@ -86,7 +88,7 @@ void OptionsDlgs::show_right_pane()
 	if (m_opts_data.pane.show_inner_child)
 		ImGui::BeginChild("right_pane2##Opt", ImVec2(m_opts_data.pane.width, m_opts_data.pane.height), true);
 
-	if (m_opts_data.pane.left_selected_item != PaneType::_none)
+	if (m_opts_data.pane.left_selected_item != OptPane::_none)
 	{
 		try
 		{

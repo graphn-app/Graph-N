@@ -99,7 +99,6 @@ public:
 	LogWriter& operator << (bool b);
 
 	LogWriter& operator << (DlgCode code);
-	LogWriter& operator << (DlgObject dlg);
 
 	LogWriter& operator << (const type_info& type);
 
@@ -120,6 +119,22 @@ struct LogGuard final
 	~LogGuard()
 	{
 		Logger::destroy();
+	}
+};
+
+struct LogLockGuard
+{
+	LogLockGuard()
+	{
+		auto logger = glog::Logger::instance();
+		if (logger)
+			logger->enable_multithreading();
+	}
+	~LogLockGuard()
+	{
+		auto logger = glog::Logger::instance();
+		if (logger)
+			logger->disable_multithreading();
 	}
 };
 
@@ -159,18 +174,6 @@ struct LogGuard final
 #endif
 #define LgHEX(h)					glog::LogHex(h)
 #define LgPTR(p)					glog::LogPtr(p)
-
-#define LogLock															\
-	{ auto logger__ = glog::Logger::instance();							\
-	if (logger__) {														\
-		logger__->enable_multithreading();								\
-	}}
-
-#define LogUnlock														\
-	{ auto logger__ = glog::Logger::instance();							\
-	if (logger__) {														\
-		logger__->disable_multithreading();								\
-	}}
 
 #define LogExcep(message)			Log("[EXCEP] " << message)
 #define LogAndThrow(message)											\

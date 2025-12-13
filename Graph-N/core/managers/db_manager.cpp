@@ -27,13 +27,13 @@ bool b = query.getColumn(2).getInt() > 0;
 );
 */
 
-inline constexpr auto gdb_val_id				= "id";
-inline constexpr auto gdb_val_name				= "name";
+inline constexpr auto gdb_val_id							= "id";
+inline constexpr auto gdb_val_name							= "name";
 
-inline constexpr auto gdb_tbl_opt				= "settings";
+inline constexpr auto gdb_tbl_opt							= "settings";
 
-inline constexpr auto gdb_opt_val_int			= "value_int";
-inline constexpr auto gdb_opt_val_str			= "value_str";
+inline constexpr auto gdb_opt_val_int						= "value_int";
+inline constexpr auto gdb_opt_val_str						= "value_str";
 
 bool DbManager::init()
 {

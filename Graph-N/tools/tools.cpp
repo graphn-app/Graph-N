@@ -67,15 +67,16 @@ std::list<std::string> split(const std::string& str, char separator, bool add_em
 	return out;
 }
 
-std::string to_lower_ansi(std::string string)
+std::string to_lower_ansi(const std::string& string)
 {
-	std::transform(string.begin(), string.end(), string.begin(),
+	std::string lower = string;
+	std::transform(lower.begin(), lower.end(), lower.begin(),
 		[](const char c)
 		{
 			return cast::to_char(std::tolower(c));
 		}
 	);
-	return string;
+	return lower;
 }
 
 } // namespace str

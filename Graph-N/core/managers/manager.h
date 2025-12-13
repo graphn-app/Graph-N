@@ -12,6 +12,7 @@ public:
 
 	virtual bool init() { return true; };
 	virtual void free() {};
+	virtual void stop_all_threads() {}
 };
 
 } // namespace mngr

@@ -356,20 +356,6 @@ LogWriter& LogWriter::operator << (DlgCode code)
 	return *this;
 }
 
-LogWriter& LogWriter::operator << (DlgObject dlg)
-{
-	m_buffer << cast::to_u16(dlg);
-	switch (dlg)
-	{
-	case DlgObject::GraphN_Flow:
-		m_buffer << "=GraphN_Flow";
-		break;
-	default:
-		LogWarn("=unknown DlgObject " << cast::to_u32(dlg));
-	}
-	return *this;
-}
-
 LogWriter& LogWriter::operator << (const type_info& type)
 {
 	m_buffer << type.name() << "/" << type.raw_name();

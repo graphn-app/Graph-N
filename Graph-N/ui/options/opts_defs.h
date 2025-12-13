@@ -1,7 +1,7 @@
 ﻿
 #pragma once
 
-enum class PaneType
+enum class OptPane
 {
 	_none,
 
@@ -22,7 +22,7 @@ struct OptsData
 		float height = 0;
 		float width = 0;
 		bool show_inner_child = false;
-		PaneType left_selected_item = PaneType::_none;
+		OptPane left_selected_item = OptPane::_none;
 	}
 	pane;
 

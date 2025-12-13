@@ -7,22 +7,22 @@ using lid = uint32_t;	// local ID
 using gid = uint64_t;	// global id
 using byte_buff = std::vector<byte>;
 
-enum class DlgObject
+enum class VisibleObject
 {
-	none,
+	DisconnectedMenuBar,
+	DisconnectedText,
+	QueueButton,
+	QueueText,
+	OptionsDlg,
 
-	GraphN_Flow,
-	Options,
-
-	_first				= GraphN_Flow,
-	_last				= Options,
-	_count = _last,
-	_zero = none
+	_first				= DisconnectedMenuBar,
+	_last				= OptionsDlg,
+	_count				= _last + 1
 };
 
 enum DlgCtrl
 {
-	none = 0,
+	//_none = 0,
 
 	btn_ok				= 0x00001,
 	btn_cancel			= 0x00002,
@@ -34,8 +34,8 @@ enum DlgCtrl
 	ico_warn			= 0x40000,
 	ico_ques			= 0x80000,
 
-	_btn_count = 4,
-	_ico_count = 4,
+	//_btn_count = 4,
+	//_ico_count = 4,
 };
 
 // update LogWriter with new elements!
