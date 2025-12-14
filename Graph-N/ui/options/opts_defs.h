@@ -19,8 +19,6 @@ struct OptsData
 
 	struct Pane
 	{
-		float height = 0;
-		float width = 0;
 		bool show_inner_child = false;
 		OptPane left_selected_item = OptPane::_none;
 	}

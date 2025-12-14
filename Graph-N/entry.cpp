@@ -85,6 +85,8 @@ int main(int, char**)
 				request_focus = true;
 			}
 		);
+		if (!instance.is_primary())
+			return 0;
 
 		return do_main(request_focus);
 	}

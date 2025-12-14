@@ -20,7 +20,7 @@ AppInstance::AppInstance(WakeUpCallback on_wake_up)
 
 	if (target_port > 0) 
 	{
-		httplib::Client cli("localhost", target_port);
+		httplib::Client cli("127.0.0.1", target_port);
 		cli.set_connection_timeout(0, 500000); // 0.5 sec
 		const auto res = cli.Get(m_cmd_ping);
 		if (res && 200 == res->status && res->body == m_cmd_pong)
@@ -35,7 +35,7 @@ AppInstance::AppInstance(WakeUpCallback on_wake_up)
 
 	// we're the first nstance
 	// search for available port
-	const int port = m_server->bind_to_any_port("localhost");
+	const int port = m_server->bind_to_any_port("127.0.0.1");
 	if (port > 0) 
 	{
 		m_port = port;
@@ -67,7 +67,7 @@ AppInstance::~AppInstance()
 
 void AppInstance::notify_existing_instance() 
 {
-	httplib::Client cli("localhost", m_port);
+	httplib::Client cli("127.0.0.1", m_port);
 	cli.Post(m_cmd_wakeup, "", "text/plain");
 }
 

@@ -32,7 +32,7 @@ inline constexpr __int64 gopt_def_flow_clrs[cast::to_szt(VisibleObject::_count)]
 														};
 inline constexpr __int64 gopt_def_flow_open_wnds		= ui::ViewOptsComfyUi;
 
-inline constexpr auto gopt_def_comfyui_host				= "localhost";
+inline constexpr auto gopt_def_comfyui_host				= "127.0.0.1";
 inline constexpr __int64 gopt_def_comfyui_port			= 8188;
 inline constexpr __int64 gopt_def_comfyui_conn_time		= 5;
 inline constexpr __int64 gopt_def_comfyui_read_time		= 10;

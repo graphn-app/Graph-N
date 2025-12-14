@@ -29,7 +29,17 @@ bool MainRoutine_Win32::init()
 	m_wc.hbrBackground = NULL;
 	::RegisterClassExW(&m_wc);
 
-	m_hwnd = ::CreateWindowW(m_wc.lpszClassName, APP_CAPTION_W, WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, nullptr, nullptr, m_wc.hInstance, nullptr);	
+	const int screen_w = GetSystemMetrics(SM_CXSCREEN);
+	const int screen_y = GetSystemMetrics(SM_CYSCREEN);
+
+	const auto initial_width = 1024;
+	const auto initial_height = 768;
+	const auto initial_left = screen_w / 2 - initial_width / 2;
+	const auto initial_top = screen_y / 2 - initial_height / 2;
+
+	m_hwnd = ::CreateWindowW(m_wc.lpszClassName, APP_CAPTION_W, WS_OVERLAPPEDWINDOW | WS_MAXIMIZE,
+		initial_left, initial_top, initial_width, initial_height, nullptr, nullptr, 
+		m_wc.hInstance, nullptr);
 
 	// Initialize Direct3D
 	if (!create_device_d3d(m_hwnd))
