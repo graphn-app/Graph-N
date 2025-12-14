@@ -110,7 +110,7 @@ void DbManager::set_option(const std::string& key, const std::string& value)
 	}
 }
 
-void DbManager::set_option(const std::string& key, __int64 value)
+void DbManager::set_option(const std::string& key, int64_t value)
 {
 	try
 	{
@@ -148,7 +148,7 @@ std::optional<std::string> DbManager::get_option_str(const std::string& key)
 	return std::nullopt;
 }
 
-std::optional<__int64> DbManager::get_option_int(const std::string& key)
+std::optional<int64_t> DbManager::get_option_int(const std::string& key)
 {
 	try
 	{

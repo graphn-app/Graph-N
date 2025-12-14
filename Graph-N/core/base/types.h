@@ -6,6 +6,7 @@ using time_type = uint64_t;
 using lid = uint32_t;	// local ID
 using gid = uint64_t;	// global id
 using byte_buff = std::vector<byte>;
+using primitive = std::variant<int64_t, double, std::string, bool, std::monostate>;
 
 enum class VisibleObject
 {

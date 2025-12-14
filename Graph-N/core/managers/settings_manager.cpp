@@ -22,7 +22,7 @@ inline constexpr auto gopt_comfyui_read_time			= "comfyui_read_time";
 ////////       DEFAULTS                  /////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-inline constexpr __int64 gopt_def_flow_clrs[cast::to_szt(VisibleObject::_count)] =
+inline constexpr int64_t gopt_def_flow_clrs[cast::to_szt(VisibleObject::_count)] =
 														{
 															IM_COL32(150, 0, 0, 255),			// DisconnectedMenuBar
 															IM_COL32(255, 255, 255, 255),		// DisconnectedText
@@ -30,12 +30,12 @@ inline constexpr __int64 gopt_def_flow_clrs[cast::to_szt(VisibleObject::_count)]
 															IM_COL32(0, 0, 0, 255),				// QueueText
 															IM_COL32(0, 0, 0, 255),				// OptionsTitle
 														};
-inline constexpr __int64 gopt_def_flow_open_wnds		= ui::ViewOptsComfyUi;
+inline constexpr int64_t gopt_def_flow_open_wnds		= ui::ViewOptsComfyUi;
 
 inline constexpr auto gopt_def_comfyui_host				= "127.0.0.1";
-inline constexpr __int64 gopt_def_comfyui_port			= 8188;
-inline constexpr __int64 gopt_def_comfyui_conn_time		= 5;
-inline constexpr __int64 gopt_def_comfyui_read_time		= 10;
+inline constexpr int64_t gopt_def_comfyui_port			= 8188;
+inline constexpr int64_t gopt_def_comfyui_conn_time		= 5;
+inline constexpr int64_t gopt_def_comfyui_read_time		= 10;
 
 //////////////////////////////////////////////////////////////////////
 ////////       COMMON                    /////////////////////////////
@@ -51,7 +51,7 @@ bool SettingsManager::init()
 	return true;
 }
 
-__int64 SettingsManager::get_opt_int(__int64& opt, const char* name, const __int64 def, const __int64 undef /*= -1*/)
+int64_t SettingsManager::get_opt_int(int64_t& opt, const char* name, const int64_t def, const int64_t undef /*= -1*/)
 {
 	if (undef == opt)
 	{
@@ -81,7 +81,7 @@ const std::string& SettingsManager::get_opt_str(std::string& opt, const char* na
 	return opt;
 }
 
-void SettingsManager::set_opt_int(__int64& opt, const __int64 val, const char* name)
+void SettingsManager::set_opt_int(int64_t& opt, const int64_t val, const char* name)
 {
 	opt = val;
 	g::pDbManager->set_option(name, opt);
@@ -100,8 +100,8 @@ void SettingsManager::set_opt_str(std::string& opt, const std::string& val, cons
 uint32_t SettingsManager::flow_get_color(VisibleObject obj)
 {
 	const std::string name = tools::str::format("%s%u", gopt_flow_clr_prefix, cast::to_szt(obj));
-	__int64& clr = m_flow_colors[cast::to_szt(obj)];
-	__int64 def = gopt_def_flow_clrs[cast::to_szt(obj)];
+	int64_t& clr = m_flow_colors[cast::to_szt(obj)];
+	int64_t def = gopt_def_flow_clrs[cast::to_szt(obj)];
 	return cast::to_u32(get_opt_int(clr, name.c_str(), def));
 }
 

@@ -162,6 +162,9 @@ struct LogLockGuard
 	}
 
 #define LogWarn(message)			Log("[WARN] " << message)
+#define LogInternalWarn(message)	Log("[INTERNAL_LOGIC_ERROR] " << message)
+#define LogUnhandledJson(message)	Log("[JSON_UNHANDLED] " << message)
+#define LogInvalidJson(message)		Log("[JSON_INVALID] " << message)
 
 #define LogF						Log("")
 #define Log2(p1, p2)				Log(p1 << ", " << p2)
@@ -181,6 +184,18 @@ struct LogLockGuard
 		LogExcep(message);												\
 		const std::string location__ = std::string(__FILE__) + std::string("\r\n") + std::string(__FUNCTION__) + std::string(": ") + std::to_string(__LINE__);	\
 		LogExcep(location__);											\
+		auto ex_log_writer__ = new glog::LogWriter;						\
+		(*ex_log_writer__) << message;									\
+		const auto ex_msg__ = ex_log_writer__->get_buffer().str();		\
+		delete ex_log_writer__;											\
+		throw std::runtime_error(ex_msg__);								\
+	}
+
+#define LogAndThrowInternalErr(message)									\
+	{																	\
+		LogInternalWarn(message);												\
+		const std::string location__ = std::string(__FILE__) + std::string("\r\n") + std::string(__FUNCTION__) + std::string(": ") + std::to_string(__LINE__);	\
+		LogInternalWarn(location__);											\
 		auto ex_log_writer__ = new glog::LogWriter;						\
 		(*ex_log_writer__) << message;									\
 		const auto ex_msg__ = ex_log_writer__->get_buffer().str();		\

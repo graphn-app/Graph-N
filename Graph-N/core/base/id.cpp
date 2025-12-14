@@ -63,7 +63,7 @@ std::string GlobalID::get_client_id()
 
 //////////////////////
 
-std::atomic<lid> LocalID::m_last_id;
+std::atomic<lid> LocalID::m_last_id = 0;
 
 LocalID::LocalID()
 {
@@ -85,7 +85,7 @@ void LocalID::set_id(lid id)
 
 lid LocalID::get_next_id()
 {
-	return ++m_last_id;	// start from 1
+	return ++m_last_id;	// starts from 1
 }
 
 }

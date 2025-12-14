@@ -30,9 +30,8 @@ private:
 	std::string m_sz_id;
 };
 
-class LocalID
+struct LocalID
 {
-public:
 	LocalID();
 	LocalID(lid id);
 	virtual ~LocalID() = 0 {};

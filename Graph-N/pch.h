@@ -12,6 +12,8 @@
 #include <optional>
 #include <future>
 #include <chrono>
+#include <variant>
+#include <any>
 
 // Windows
 #ifdef _WIN32

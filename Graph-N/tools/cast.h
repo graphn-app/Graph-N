@@ -3,14 +3,11 @@
 namespace cast
 {
 
-static bool allow_size_cut = false;
+static bool allow_size_cut = true;
 
 template <typename ENUM>
-constexpr ENUM to_enum(uint64_t value, bool allow_zero = false, bool no_throw = false)
+constexpr ENUM to_enum(uint64_t value, bool no_throw = false)
 {
-	if (0 == value && allow_zero)
-		return ENUM::_zero;
-
 	uint64_t first = cast::to_u64(ENUM::_first);
 	uint64_t last = cast::to_u64(ENUM::_last);
 	if (value < first || value > last)
@@ -19,7 +16,7 @@ constexpr ENUM to_enum(uint64_t value, bool allow_zero = false, bool no_throw = 
 		{
 			throw std::runtime_error("Value does not match to enum type ");
 		}
-		return ENUM::_zero;
+		return ENUM::_none;
 	}
 	return static_cast<ENUM>(value);
 }
@@ -31,7 +28,7 @@ constexpr RETURN to(PARAM param)
 	if (PARAM(t) < param)
 	{
 		if (!allow_size_cut)
-			throw std::runtime_error("Size is cutted");
+			throw std::runtime_error("The size was cut off");
 	}
 	return t;
 }
@@ -137,6 +134,12 @@ template <typename T>
 constexpr float to_float(T param)
 {
 	return to<T, float>(param);
+}
+
+template <typename T>
+constexpr double to_double(T param)
+{
+	return to<T, double>(param);
 }
 
 template <typename T>

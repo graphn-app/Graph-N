@@ -192,14 +192,21 @@ void GraphN_Flow::show_menu_bar_connecting()
 	}
 	else if (m_windows & ViewParsingNodes)
 	{
-		std::string status;
-		auto items = m_nodes_parser->check_status(status);
-		text = tools::str::format("Parsing node %u of %u: %s", items.first, items.second, status.c_str());
+		size_t parsed_item = 0, parse_total = 0;
+		m_nodes_parser->check_status(parsed_item, parse_total);
+		text = tools::str::format("Parsing node %u of %u", parsed_item, parse_total);
 
 		if (m_nodes_parser->is_parse_finished())
 		{
-			m_windows &= ~ViewParsingNodes;
-			m_nodes_parser.reset();
+			if (m_nodes_parser->is_parse_failed())
+			{
+				text = "Failed to parse loaded nodes";
+			}
+			else
+			{
+				m_windows &= ~ViewParsingNodes;
+				m_nodes_parser.reset();
+			}
 		}
 	}
 
