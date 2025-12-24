@@ -883,7 +883,7 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
 	// Primitive
 	{
 		auto node = std::make_shared<data::Node>();
-		node->name = "Primitive"; // Важно: внутреннее имя
+		node->name = "Primitive";
 		node->display_name = "Primitive";
 		node->category = "utils";
 		node->description = "Primitive values like numbers, strings, and booleans.";

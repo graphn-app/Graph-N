@@ -1,0 +1,29 @@
+﻿# Top-most EditorConfig file
+root = true
+
+# Settings for ALL files
+[*]
+# The main fix: force Windows line endings (CRLF)
+end_of_line = crlf
+
+# Set default charset to UTF-8
+charset = utf-8
+
+# Remove whitespace at the end of lines on save
+trim_trailing_whitespace = true
+
+# Ensure file ends with a newline (standard practice)
+insert_final_newline = true
+
+# Use spaces instead of tabs (standard for most C++ projects)
+indent_style = space
+indent_size = 4
+
+# C++ specific settings
+[*.{cpp,h,hpp,cc,cxx}]
+indent_style = space
+indent_size = 4
+
+# Settings for data/config files (optional)
+[*.{json,xml,yml}]
+indent_size = 2

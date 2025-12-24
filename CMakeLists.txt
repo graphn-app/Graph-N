@@ -2,6 +2,19 @@
 project(Graph-N)
 
 # ------------------------------------------------------------------------------
+# Google Test (Unit Tests Framework)
+# ------------------------------------------------------------------------------
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/heads/main.zip
+)
+# Force shared CRT for Windows (избегаем конфликтов runtime библиотек)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+enable_testing()
+
+# ------------------------------------------------------------------------------
 # Global Settings
 # ------------------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 17)
@@ -240,4 +253,104 @@ set_target_properties(Graph-N PROPERTIES
     # Debug -> run from work_dir/Graph-N.exe
     # Release -> run from bin/Graph-N.exe
     VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N>>"
+)
+
+# ------------------------------------------------------------------------------
+# UNIT TESTS
+# ------------------------------------------------------------------------------
+
+# create unit tests file, if not exists
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_main.cpp")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_main.cpp" 
+    "#include <gtest/gtest.h>\n\nTEST(SanityCheck, TrueIsTrue) {\n    EXPECT_EQ(true, true);\n}\n")
+endif()
+
+file(GLOB TEST_ONLY_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
+
+# list if files for testing
+set(TEST_SOURCES ${GRAPHN_SOURCES})
+list(APPEND TEST_SOURCES ${TEST_ONLY_SOURCES})
+
+# exclude entry.cpp
+list(REMOVE_ITEM TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N/entry.cpp")
+
+file(GLOB_RECURSE WIN32_MAIN_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N/platform/win32/*.cpp")
+list(REMOVE_ITEM TEST_SOURCES ${WIN32_MAIN_SOURCES})
+
+set(ALL_TEST_FILES ${TEST_ONLY_SOURCES} ${TEST_SOURCES} ${GRAPHN_HEADERS})
+
+# Visual Studio
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/tests" PREFIX "Test Files" FILES ${TEST_ONLY_SOURCES})
+
+# make unit test app
+add_executable(UnitTests ${ALL_TEST_FILES})
+
+target_include_directories(UnitTests SYSTEM PRIVATE
+    "Graph-N"
+    "nlohmann/include"
+    "stb"
+    "cpp-httplib"
+    "websocketpp"
+    "asio/asio/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SQLiteCpp/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sqlite"
+    "${NODE_EDITOR_DIR}/Include"
+    "${IMGUI_DIR}" 
+    "${IMGUI_DIR}/backends"
+)
+
+target_precompile_headers(UnitTests PRIVATE "Graph-N/pch.h")
+
+target_compile_definitions(UnitTests PRIVATE 
+    ASIO_STANDALONE 
+    _WEBSOCKETPP_CPP11_STL_
+    _CRT_SECURE_NO_WARNINGS
+	IMGUI_DEFINE_MATH_OPERATORS
+)
+
+# do not link imgui and DX11
+target_link_libraries(UnitTests PRIVATE 
+    GTest::gtest_main
+    SQLiteCpp
+    sqlite3
+	ImGuiLib
+	NodeEditorLib
+)
+
+if(WIN32)
+    target_link_libraries(UnitTests PRIVATE 
+        ws2_32 
+        crypt32 
+        d3d11 
+        d3dcompiler 
+        dwmapi
+    )
+endif()
+
+include(GoogleTest)
+gtest_discover_tests(UnitTests)
+
+# ------------------------------------------------------------------------------
+# Debug Workflow Automation
+# ------------------------------------------------------------------------------
+
+# copying to work_dir
+add_custom_command(TARGET UnitTests POST_BUILD
+    COMMAND $<$<CONFIG:Debug>:${CMAKE_COMMAND}> 
+            $<$<CONFIG:Debug>:-E> 
+            $<$<CONFIG:Debug>:copy_if_different> 
+            $<$<CONFIG:Debug>:$<TARGET_FILE:UnitTests>> 
+            $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>>
+    COMMENT "Copying Debug executable to work_dir..."
+)
+
+# debug run - Visual Studio (F5)
+set_target_properties(UnitTests PROPERTIES 
+    # run from work_dir
+    VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
+    
+    # Debug -> run from work_dir/UnitTests.exe
+    # Release -> run from bin/UnitTests.exe
+    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:UnitTests>>"
 )
