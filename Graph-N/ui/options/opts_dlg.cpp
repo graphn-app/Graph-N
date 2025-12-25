@@ -47,7 +47,7 @@ DlgCode OptionsDlgs::show(bool& focused)
 	ImGui::SetNextWindowPos(ImVec2(data()->x, data()->y), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(data()->width, data()->height), ImGuiCond_Always);
 
-	ImGui::Begin("Options##Opt", &opened, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+	ImGui::Begin("Options##Opt", &opened, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking);
 	if (!opened)
 		return cleanup_and_exit(true, true, DlgCode::cancel);
 	focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);

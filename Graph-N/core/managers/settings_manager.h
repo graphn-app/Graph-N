@@ -16,8 +16,8 @@ public:
 	// flow
 	uint32_t flow_get_color(VisibleObject obj);
 	
-	uint32_t flow_get_open_wnds();
-	void flow_set_open_wnds(uint32_t windows);
+	uint64_t flow_get_open_wnds();
+	void flow_set_open_wnds(uint64_t windows);
 
 	// comfyui
 	const std::string& comfyui_get_host();

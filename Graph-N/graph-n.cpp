@@ -129,7 +129,8 @@ bool GraphN::flow(Flow& flow_step)
 			result = run_graphn(flow_step);
 			break;
 		case Flow::exit:
-			m_quit = true;
+            if (m_graphn_flow)
+                m_graphn_flow->exit();
 			break;
 		default:
 			LogAndThrow("Unhandler flow step " << cast::to_u32(flow_step));

@@ -1,6 +1,7 @@
 #pragma once
 
 // TODO - remove commented
+// check if we need DlgData as template
 
 namespace ui
 {
@@ -18,7 +19,6 @@ struct DlgData
 
 	//std::map<gid, std::string> buffer;
 	//std::map<gid, tt::dt> date_buffer;
-	//GidSet failed_ids;
 };
 
 class BaseDlg

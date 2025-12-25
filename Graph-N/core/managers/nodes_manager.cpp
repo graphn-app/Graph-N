@@ -125,6 +125,7 @@ NodesManager NodesParser::parse_thread()
 				Log("Parsing thread aborted");
 				return {};
 			}
+            Sleep(500);
 		}
 
 		add_internal_nodes(copy);

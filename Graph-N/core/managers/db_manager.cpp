@@ -37,7 +37,7 @@ inline constexpr auto gdb_opt_val_str						= "value_str";
 
 bool DbManager::init()
 {
-	auto path = fs::get_res_directory_path();
+	auto path = fs::get_root_directory_path();
 	path /= APP_CAPTION_LOW ".db";
 
 	try

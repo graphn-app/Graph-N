@@ -24,6 +24,6 @@ indent_size = 4
 indent_style = space
 indent_size = 4
 
-# Settings for data/config files (optional)
+# Settings for data/config files
 [*.{json,xml,yml}]
 indent_size = 2

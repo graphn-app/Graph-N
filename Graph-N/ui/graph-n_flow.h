@@ -10,15 +10,29 @@ namespace ui
 {
 class BaseDlg;
 class OptionsDlgs;
+class PanelNodes;
 
 enum ViewDialogs
 {
-	ViewNone			= 0x000000,
-	ViewOptions			= 0x000002,
-	ViewOptsComfyUi		= 0x000004,
-	ViewConnect			= 0x000100,
-	ViewParsingNodes	= 0x000200,
-	ViewQueueCtrl		= 0x000400,
+	ViewNone				= 0x00000000,
+	// options
+	ViewOptions				= 0x00000001,
+	ViewOptsComfyUi			= 0x00000002,
+	// status & control bar
+	ViewConnect				= 0x00000100,
+	ViewParsingNodes		= 0x00000200,
+	ViewQueueCtrl			= 0x00000400,
+	// panels
+	ViewPanelsResetAll		= 0x00010000,
+	ViewPanelNodes			= 0x00020000,
+	ViewPanelWorkflows		= 0x00040000,
+    ViewPanelProperties		= 0x00080000,
+    ViewPanelTerminal		= 0x00100000,
+    ViewPanelOutput			= 0x00200000,
+
+	ViewAllOptions			= ViewOptions | ViewOptsComfyUi,
+	ViewAllMenuBar			= ViewConnect | ViewParsingNodes | ViewQueueCtrl,
+    ViewAllPanels			= ViewPanelNodes | ViewPanelWorkflows | ViewPanelProperties | ViewPanelTerminal | ViewPanelOutput
 };
 
 class GraphN_Flow final
@@ -41,6 +55,8 @@ private:
 	void show_menu_bar_connecting();
 	void show_menu_bar_queue_controls();
 	void show_options_dlg();
+    void show_panels();
+    void show_panel_nodes();
 
 	void on_dlg_closed(VisibleObject dlg);
 	void on_menu_quit();
@@ -50,10 +66,12 @@ private:
 	bool m_quit = false;
 	bool m_offline_mode = true;
 	
-	uint32_t m_windows = ViewNone;
+	uint64_t m_windows = ViewNone;
 	BaseDlg* m_focused_wnd = nullptr;
 	std::set<BaseDlg*> m_all_dialogs;
 	std::unique_ptr<OptionsDlgs> m_opts_dlg;
+    std::unique_ptr<PanelNodes> m_nodes_panel;
+
 	std::unique_ptr<mngr::NodesParser> m_nodes_parser;
 };
 }

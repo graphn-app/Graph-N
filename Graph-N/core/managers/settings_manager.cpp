@@ -30,7 +30,7 @@ inline constexpr int64_t gopt_def_flow_clrs[cast::to_szt(VisibleObject::_count)]
 															IM_COL32(0, 0, 0, 255),				// QueueText
 															IM_COL32(0, 0, 0, 255),				// OptionsTitle
 														};
-inline constexpr int64_t gopt_def_flow_open_wnds		= ui::ViewOptsComfyUi;
+inline constexpr int64_t gopt_def_flow_open_wnds = ui::ViewOptsComfyUi | ui::ViewPanelsResetAll;
 
 inline constexpr auto gopt_def_comfyui_host				= "127.0.0.1";
 inline constexpr int64_t gopt_def_comfyui_port			= 8188;
@@ -105,13 +105,18 @@ uint32_t SettingsManager::flow_get_color(VisibleObject obj)
 	return cast::to_u32(get_opt_int(clr, name.c_str(), def));
 }
 
-uint32_t SettingsManager::flow_get_open_wnds()
+uint64_t SettingsManager::flow_get_open_wnds()
 {
-	return cast::to_u32(get_opt_int(m_flow_open_wnds, gopt_flow_open_windows, gopt_def_flow_open_wnds));
+	return get_opt_int(m_flow_open_wnds, gopt_flow_open_windows, gopt_def_flow_open_wnds) | ui::ViewQueueCtrl | ui::ViewConnect
+#ifdef _DEBUG
+        | ui::ViewPanelsResetAll
+#endif
+    ;
 }
 
-void SettingsManager::flow_set_open_wnds(uint32_t windows)
+void SettingsManager::flow_set_open_wnds(uint64_t windows)
 {
+    windows &= ~(ui::ViewAllMenuBar | ui::ViewAllOptions);
 	set_opt_int(m_flow_open_wnds, windows, gopt_flow_open_windows);
 }
 

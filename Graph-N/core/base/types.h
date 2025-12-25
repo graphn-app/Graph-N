@@ -15,6 +15,7 @@ enum class VisibleObject
 	QueueButton,
 	QueueText,
 	OptionsDlg,
+	PanelNodes,
 
 	_first				= DisconnectedMenuBar,
 	_last				= OptionsDlg,
