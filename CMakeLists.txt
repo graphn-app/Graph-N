@@ -8,6 +8,7 @@ include(FetchContent)
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/heads/main.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 # Force shared CRT for Windows (избегаем конфликтов runtime библиотек)
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
