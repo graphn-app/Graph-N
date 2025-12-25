@@ -26,6 +26,12 @@ bool GraphN_Flow::init()
 
     m_offline_mode = true;
     m_windows = g::pOptsManager->flow_get_open_wnds();
+
+    m_nodes_panel = std::make_unique<ui::PanelNodes>();
+    m_nodes_panel->init();
+    m_all_dialogs.insert(m_nodes_panel.get());
+    Log("Nodes panel initialized");
+
     g::pConnectManager->connect();
     return true;
 }
@@ -33,7 +39,7 @@ bool GraphN_Flow::init()
 void GraphN_Flow::exit()
 {
     LogF;
-    m_quit = true;
+    prepare_to_quit();
 }
 
 void GraphN_Flow::stop_all_threads()
@@ -43,20 +49,14 @@ void GraphN_Flow::stop_all_threads()
 
 bool GraphN_Flow::run()
 {
-    if (m_quit)
-    {
-        prepare_to_quit();
-        return false;
-    }
-
-    show_panels();
     show_menu_bar();
 
     if (m_windows & ViewOptions || m_windows & ViewOptsComfyUi)
     {
-        show_options_dlg();
+  //      show_options_dlg();
     }
 
+    show_panels();
     return true;
 }
 
@@ -131,8 +131,6 @@ void GraphN_Flow::on_dlg_closed(VisibleObject dlg)
         break;
     case VisibleObject::PanelNodes:
         m_windows &= ~ViewPanelNodes;
-        m_all_dialogs.erase(m_nodes_panel.get());
-        m_nodes_panel.reset();
         Log("Nones panel closed");
         break;
     default:
@@ -145,7 +143,7 @@ void GraphN_Flow::on_dlg_closed(VisibleObject dlg)
 void GraphN_Flow::on_menu_quit()
 {
     LogF;
-    m_quit = true;
+    g::pGraphN->handle_wnd_on_close();
 }
 
 void GraphN_Flow::on_menu_about()
@@ -178,14 +176,6 @@ void GraphN_Flow::show_options_dlg()
 
 void GraphN_Flow::show_panel_nodes()
 {
-    if (!m_nodes_panel)
-    {
-        m_nodes_panel = std::make_unique<ui::PanelNodes>();
-        m_nodes_panel->init();
-        m_all_dialogs.insert(m_nodes_panel.get());
-        Log("Nodes panel initialized");
-    }
-
     bool focused = false;
     if (m_nodes_panel->show_dialog(focused) != DlgCode::progress)
     {
@@ -256,36 +246,49 @@ void GraphN_Flow::show_menu_bar_connecting()
 void GraphN_Flow::show_menu_bar_queue_controls()
 {}
 
+
 void GraphN_Flow::show_panels()
 {
-    // Use DockSpaceOverViewport - this is the key fix for menu overlap
-    // It automatically attaches to the main viewport and respects menu bars/status bars.
-    const ImGuiID dockspace_id = ImGui::GetID(APP_CAPTION "DockSpace");
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowViewport(viewport->ID);
 
-    // ImGuiDockNodeFlags_PassthruCentralNode makes the background of the central node transparent
-    // so you can see the window background if no windows are docked there.
-    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+    const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
+
+    ImGui::Begin("MainDockSpaceWindow", nullptr, window_flags);
+    ImGui::PopStyleVar(3);
+
+    const ImGuiID dockspace_id = ImGui::GetID(APP_CAPTION "_DockSpace");
+    ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
 
     if (m_windows & ViewPanelsResetAll)
     {
-        m_windows |= ViewAllPanels;
         m_windows &= ~ViewPanelsResetAll;
+        m_windows |= ViewAllPanels;
+        g::pOptsManager->flow_set_open_wnds(m_windows);
 
         ImGui::DockBuilderRemoveNode(dockspace_id);
         ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
-        ImGui::DockBuilderSetNodeSize(dockspace_id, ImGui::GetMainViewport()->Size);
+        ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
 
-        // Create the split hierarchy
-        ImGuiID dock_main_id = dockspace_id;
+        m_main_dock_id = dockspace_id;
 
-        // Split Left
-        const ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
+        const ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.15f, nullptr, &m_main_dock_id);
+    //    const ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.25f, nullptr, &m_main_dock_id);
+     //   const ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.20f, nullptr, &m_main_dock_id);
 
-        // Dock Windows
-        ImGui::DockBuilderDockWindow("Node Library", dock_id_left);
-
+        ImGui::DockBuilderDockWindow(m_nodes_panel->get_panel_name(), dock_id_left);
+        
         ImGui::DockBuilderFinish(dockspace_id);
     }
+
+    ImGui::End();
 
     if (m_windows & ViewPanelNodes)
         show_panel_nodes();

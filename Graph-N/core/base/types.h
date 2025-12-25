@@ -17,9 +17,9 @@ enum class VisibleObject
 	OptionsDlg,
 	PanelNodes,
 
+    _count,
 	_first				= DisconnectedMenuBar,
-	_last				= OptionsDlg,
-	_count				= _last + 1
+	_last				= PanelNodes,
 };
 
 enum DlgCtrl

@@ -30,17 +30,18 @@ public:
 
 	enum class Flow
 	{
+		_none,
 		init,
 		graph_n,
-
-		exit
+		prepare_to_exit,
+		do_exit
 	};
 
-	bool init();
-	bool flow(Flow& flow_step);
+	bool init_graphn();
+    void exit_graphn();
 
+	bool flow();
 	int override_exit_code();
-	void exit_graphn();
 
 public:
 	// main wnd handlers
@@ -51,17 +52,16 @@ public:
 
 private:
 	// flow
-	bool init(Flow& flow_step);
-	bool run_graphn(Flow& flow_step);
+	bool init();
+	bool run_graphn();
 
 private:
-	Flow m_current_flow_step = Flow::init;
+	Flow m_flow_step = Flow::_none;
 	bool m_comfyui_connected = false;
 
 	std::unique_ptr<ui::GraphN_Flow> m_graphn_flow;
 
 	int m_exit_code = 0;
-	bool m_quit = false;
 
 	std::vector<std::unique_ptr<mngr::Manager>> m_managers;
 };

@@ -5,33 +5,27 @@
 namespace ui
 {
 
-enum class PanelClassID
-{
-	_none,
-	left,
-	right,
-	bottom,
-	workflow
-};
-
 struct PanelData final : public DlgData
 {
-    PanelClassID class_id = PanelClassID::_none;
+    std::set<uint32_t> open_items;
 };
 
 class PanelBase : public BaseDlgWithData<PanelData>
 {
-    using BaseDlgWithData<PanelData>::BaseDlgWithData;
-
 public:
+    PanelBase(VisibleObject obj, const char* name, const char* id);
     virtual ~PanelBase() = 0 {};
 
+    const char* get_panel_name() const { return m_panel_name.c_str(); }
+
 protected:
-    bool begin_panel(const char* name, bool& focused, ImU32 bg_color = IM_COL32_BLACK);
+    bool begin_panel(bool& focused, ImU32 bg_color = IM_COL32_BLACK);
     DlgCode end_panel(bool opened);
 
 private:
-    ImGuiWindowClass m_class;
+    std::string m_panel_name;
+
+  //  ImGuiWindowClass m_class;
 };
 
 

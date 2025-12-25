@@ -7,12 +7,20 @@
 
 namespace data
 {
-struct Nodes
+struct Nodes : public base::LocalID
 {
+    Nodes() = default;
+    ~Nodes() override = default;
+
 	std::weak_ptr<Node> node;
 	bool is_node = false;
 	std::string name_or_category;
+    std::string search;
 	std::vector<Nodes> children;
+
+    uint32_t nodes_inside = 0;
+    uint32_t nodes_inside_filtered = 0;
+    bool filtered = false;
 };
 }
 
@@ -31,6 +39,8 @@ public:
 
 	const std::vector<data::Nodes>& get_nodes_tree() const { return m_nodes_tree; }		// must not be saved as class/global member, always do request
 	const std::map<std::string, std::shared_ptr<data::Node>>& get_nodes_sorted() const { return m_nodes_sorted; }	// must not be saved as class/global member, always do request
+
+    void calc_number_inside(const std::string& filter, bool force = false);
 
 	std::shared_ptr<data::Node> find_node(lid id) const;		// returns nullptr if not found
 	std::shared_ptr<data::Pin> find_pin(lid id) const;			// returns nullptr if not found

@@ -15,6 +15,9 @@ struct DlgData
 
 	bool open_popup = true;
 	bool set_focus = true;
+
+	std::vector<std::string> buffer;
+
 	//gid set_focus_id = 0;
 
 	//std::map<gid, std::string> buffer;

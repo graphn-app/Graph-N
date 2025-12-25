@@ -25,14 +25,10 @@ enum ViewDialogs
 	// panels
 	ViewPanelsResetAll		= 0x00010000,
 	ViewPanelNodes			= 0x00020000,
-	ViewPanelWorkflows		= 0x00040000,
-    ViewPanelProperties		= 0x00080000,
-    ViewPanelTerminal		= 0x00100000,
-    ViewPanelOutput			= 0x00200000,
 
 	ViewAllOptions			= ViewOptions | ViewOptsComfyUi,
 	ViewAllMenuBar			= ViewConnect | ViewParsingNodes | ViewQueueCtrl,
-    ViewAllPanels			= ViewPanelNodes | ViewPanelWorkflows | ViewPanelProperties | ViewPanelTerminal | ViewPanelOutput
+    ViewAllPanels			= ViewPanelNodes
 };
 
 class GraphN_Flow final
@@ -63,8 +59,9 @@ private:
 	void on_menu_about();
 
 private:
-	bool m_quit = false;
 	bool m_offline_mode = true;
+
+    ImGuiID m_main_dock_id = 0;
 	
 	uint64_t m_windows = ViewNone;
 	BaseDlg* m_focused_wnd = nullptr;

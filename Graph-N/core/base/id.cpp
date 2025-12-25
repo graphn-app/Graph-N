@@ -17,6 +17,32 @@ GlobalID::GlobalID(gid id)
 	m_sz_id = std::to_string(m_id);
 }
 
+GlobalID::GlobalID(const GlobalID&)
+{
+    m_id = get_next_id();
+    m_sz_id = std::to_string(m_id);
+}
+
+GlobalID::GlobalID(GlobalID&& other)
+{
+    m_id = other.m_id;
+    m_sz_id = other.m_sz_id;
+}
+
+GlobalID& GlobalID::operator= (const GlobalID&)
+{
+    m_id = get_next_id();
+    m_sz_id = std::to_string(m_id);
+    return *this;
+}
+
+GlobalID& GlobalID::operator= (GlobalID&& other)
+{
+    m_id = other.m_id;
+    m_sz_id = other.m_sz_id;
+    return *this;
+}
+
 void GlobalID::set_id(gid id) 
 { 
 	m_id = id; 
@@ -75,6 +101,32 @@ LocalID::LocalID(lid id)
 {
 	m_id = id;
 	m_sz_id = std::to_string(m_id);
+}
+
+LocalID::LocalID(const LocalID&)
+{
+    m_id = get_next_id();
+    m_sz_id = std::to_string(m_id);
+}
+
+LocalID::LocalID(LocalID&& other)
+{
+    m_id = other.m_id;
+    m_sz_id = other.m_sz_id;
+}
+
+LocalID& LocalID::operator= (const LocalID&)
+{
+    m_id = get_next_id();
+    m_sz_id = std::to_string(m_id);
+    return *this;
+}
+
+LocalID& LocalID::operator= (LocalID&& other)
+{
+    m_id = other.m_id;
+    m_sz_id = other.m_sz_id;
+    return *this;
 }
 
 void LocalID::set_id(lid id)

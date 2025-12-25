@@ -28,6 +28,44 @@ void NodesManager::init_from_copy(NodesManager& copy)
 	m_nodes_sorted = std::move(copy.m_nodes_sorted);
 	m_pins = std::move(copy.m_pins);
 	m_nodes_tree = std::move(copy.m_nodes_tree);
+    calc_number_inside("", true);
+}
+
+void NodesManager::calc_number_inside(const std::string& filter, bool force /*= false*/)
+{
+    if (filter.empty() && !force)
+        return;
+
+    std::function<void(std::vector<data::Nodes>&, uint32_t*)> calculator;
+    calculator = [&calculator, &filter](std::vector<data::Nodes>& nodes, uint32_t* count)
+    {
+        for (auto& node : nodes)
+        {
+            if (!node.children.empty())
+            {
+                node.nodes_inside_filtered = 0;
+                calculator(node.children, filter.empty() ? &node.nodes_inside : &node.nodes_inside_filtered);
+                if (count != nullptr)
+                    *count += filter.empty() ? node.nodes_inside : node.nodes_inside_filtered;
+            }
+            else if (node.is_node)
+            {
+                if (filter.empty())
+                {
+                    node.filtered = false;
+                    if (count != nullptr)
+						(*count)++;
+                }
+                else
+                {
+					node.filtered = (node.search.find(filter) == std::string::npos);
+                    if (count != nullptr)
+						*count += node.filtered ? 0 : 1;
+                }
+            }
+        }
+    };
+    calculator(m_nodes_tree, nullptr);
 }
 
 std::shared_ptr<data::Node> NodesManager::find_node(lid id) const
@@ -125,7 +163,6 @@ NodesManager NodesParser::parse_thread()
 				Log("Parsing thread aborted");
 				return {};
 			}
-            Sleep(500);
 		}
 
 		add_internal_nodes(copy);
@@ -149,7 +186,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
 		parse_names(*node.get(), node_class, json_node);		// name, display name, category, description
 
 #ifdef _DEBUG
-		if (node->name == "")
+		if (node->category == "")
 		{
 			__debugbreak();
 		}
@@ -938,6 +975,13 @@ void NodesParser::put_in_tree(NodesManager& manager, std::shared_ptr<data::Node>
 		return items->end();
 	};
 
+#ifdef _DEBUG
+    if (node->category == "")
+    {
+        __debugbreak();
+    }
+#endif
+
 	const auto cats = tools::str::split(node->category, '/', false /*add_empty*/);
 	std::vector<data::Nodes>* root = &manager.m_nodes_tree;
 
@@ -962,7 +1006,8 @@ void NodesParser::put_in_tree(NodesManager& manager, std::shared_ptr<data::Node>
 	root->push_back({});
 	data::Nodes& branch = root->back();
 	branch.is_node = true;
-	branch.name_or_category = node->display_name;
+	branch.name_or_category = (node->display_name.empty() ? node->name : node->display_name);
+    branch.search = tools::str::to_lower_ansi(node->name + " " + node->display_name);
 	branch.node = node;
 
 	manager.m_nodes_sorted[node->name] = node;
@@ -972,12 +1017,16 @@ void NodesParser::sort_nodes_tree(NodesManager& manager)
 {
 	const auto sort_tree_callback = [](const data::Nodes& lhs, const data::Nodes& rhs)
 	{
-		return lhs.name_or_category < rhs.name_or_category;
+        if (!lhs.is_node && rhs.is_node)
+            return true;
+        if (lhs.is_node && !rhs.is_node)
+            return false;
+		return tools::str::to_lower_ansi(lhs.name_or_category) < tools::str::to_lower_ansi(rhs.name_or_category);
 	};
 
 	const auto sort_plain_callback = [](const std::shared_ptr<data::Node>& lhs, const std::shared_ptr<data::Node>& rhs)
 	{
-		return lhs->display_name < rhs->display_name;
+		return tools::str::to_lower_ansi(lhs->display_name) < tools::str::to_lower_ansi(rhs->display_name);
 	};
 
 	std::function<void(std::vector<data::Nodes>& nodes)> sort_tree;

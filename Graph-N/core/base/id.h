@@ -10,10 +10,10 @@ public:
 	GlobalID(gid id);
 	virtual ~GlobalID() = 0 {};
 
-	GlobalID(const GlobalID&) = delete;
-	GlobalID(GlobalID&&) = delete;
-	GlobalID& operator= (const GlobalID&) = delete;
-	GlobalID& operator= (GlobalID&&) = delete;
+	GlobalID(const GlobalID&);
+	GlobalID(GlobalID&&);
+	GlobalID& operator= (const GlobalID&);
+	GlobalID& operator= (GlobalID&&);
 
 	gid get_id() const { return m_id; }
 	const std::string& get_id_str() const { return m_sz_id; }
@@ -36,10 +36,10 @@ struct LocalID
 	LocalID(lid id);
 	virtual ~LocalID() = 0 {};
 
-	LocalID(const LocalID&) = delete;
-	LocalID(LocalID&&) = delete;
-	LocalID& operator= (const LocalID&) = delete;
-	LocalID& operator= (LocalID&&) = delete;
+    LocalID(const LocalID&);
+    LocalID(LocalID&&);
+    LocalID& operator= (const LocalID&);
+    LocalID& operator= (LocalID&&);
 
 	lid get_id() const { return m_id; }
 	const std::string& get_id_str() const { return m_sz_id; }

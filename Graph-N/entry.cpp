@@ -41,13 +41,12 @@ int do_main(std::atomic_bool& request_focus)
 
 	GraphN graphn;
 	g::pGraphN = &graphn;
-	if (!g::pGraphN->init())
+	if (!g::pGraphN->init_graphn())
 		return 1;
 
-	GraphN::Flow flow = GraphN::Flow::init;
-	platform::MainRoutine::flow_callback callback = [&flow](bool do_exit)
+	platform::MainRoutine::flow_callback callback = [](bool do_exit)
 	{
-		const bool res = g::pGraphN->flow(flow);
+		const bool res = g::pGraphN->flow();
 		if (!res || do_exit)
 		{
 			if (g::pGraphN != nullptr)

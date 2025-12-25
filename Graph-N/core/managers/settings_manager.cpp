@@ -28,7 +28,8 @@ inline constexpr int64_t gopt_def_flow_clrs[cast::to_szt(VisibleObject::_count)]
 															IM_COL32(255, 255, 255, 255),		// DisconnectedText
 															IM_COL32(0, 0, 150, 255),			// QueueButton
 															IM_COL32(0, 0, 0, 255),				// QueueText
-															IM_COL32(0, 0, 0, 255),				// OptionsTitle
+															IM_COL32(0, 0, 0, 255),				// Options Title
+                                                            IM_COL32(24, 24, 27, 255),			// PanelNodes bg
 														};
 inline constexpr int64_t gopt_def_flow_open_wnds = ui::ViewOptsComfyUi | ui::ViewPanelsResetAll;
 
@@ -109,7 +110,7 @@ uint64_t SettingsManager::flow_get_open_wnds()
 {
 	return get_opt_int(m_flow_open_wnds, gopt_flow_open_windows, gopt_def_flow_open_wnds) | ui::ViewQueueCtrl | ui::ViewConnect
 #ifdef _DEBUG
-        | ui::ViewPanelsResetAll
+        //| ui::ViewPanelsResetAll
 #endif
     ;
 }

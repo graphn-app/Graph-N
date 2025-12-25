@@ -30,7 +30,7 @@ GraphN::~GraphN()
 	LogF;
 }
 
-bool GraphN::init()
+bool GraphN::init_graphn()
 {
 	base::GlobalID::get_client_id();	// initialize unique client id
 
@@ -62,6 +62,7 @@ bool GraphN::init()
 		return false;
 	Log("Managers ready");
 
+    m_flow_step = Flow::init;
 	return true;
 }
 
@@ -100,40 +101,36 @@ void GraphN::handle_wnd_restored()
 
 void GraphN::handle_wnd_on_close()
 {
-	m_quit = true;
+    m_flow_step = Flow::prepare_to_exit;
 }
 
 void GraphN::handle_1sec_timer()
 {}
 
-bool GraphN::flow(Flow& flow_step)
+bool GraphN::flow()
 {
-	m_current_flow_step = flow_step;
-
-	if (m_quit)
-	{
-		Log("Handle exit by user");
-		flow_step = Flow::exit;
-		return false;
-	}
-
 	bool result = false;
 	try
 	{
-		switch (flow_step)
+		switch (m_flow_step)
 		{
 		case Flow::init:
-			result = init(flow_step);
+			result = init();
 			break;
 		case Flow::graph_n:
-			result = run_graphn(flow_step);
+			result = run_graphn();
 			break;
-		case Flow::exit:
+		case Flow::prepare_to_exit:
             if (m_graphn_flow)
                 m_graphn_flow->exit();
+            m_flow_step = Flow::do_exit;
+            result = true;
+            break;
+		case Flow::do_exit:
+            result = false;
 			break;
 		default:
-			LogAndThrow("Unhandler flow step " << cast::to_u32(flow_step));
+            LogAndThrowInternalErr("Unhandler flow step " << cast::to_u32(m_flow_step));
 		}
 	}
 	catch (const std::exception& ex)
@@ -145,17 +142,17 @@ bool GraphN::flow(Flow& flow_step)
 	return result;
 }
 
-bool GraphN::init(Flow& flow_step)
+bool GraphN::init()
 {
 	LogF;
 
 	_tzset();
 
-	flow_step = Flow::graph_n;
+    m_flow_step = Flow::graph_n;
 	return true;
 }
 
-bool GraphN::run_graphn(Flow& flow_step)
+bool GraphN::run_graphn()
 {
 	if (nullptr == m_graphn_flow)
 	{
@@ -170,7 +167,7 @@ bool GraphN::run_graphn(Flow& flow_step)
 	if (!res)
 	{
 		Log("GraphN flow exited, next flow step: exit");
-		flow_step = Flow::exit;
+        m_flow_step = Flow::do_exit;
 	}
 	return res;
 }
