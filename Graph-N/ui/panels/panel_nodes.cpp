@@ -14,13 +14,16 @@ PanelNodes::PanelNodes()
 void PanelNodes::init()
 {
     PanelBase::init();
-    data()->buffer.resize(2);	// 0 - filter buffer, 1 - lowed
+    data()->buffer.resize(2);	// 0 - filter buffer, 1 - lowered
+
+    data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::PanelNodes);
+    data()->clr_hover_group = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverGroup);
+    data()->clr_hover_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverNode);
 }
 
 DlgCode PanelNodes::show(bool& focused)
 {
-    const auto bg_color = g::pOptsManager->flow_get_color(VisibleObject::PanelNodes);
-    if (!begin_panel(focused, bg_color))
+    if (!begin_panel(focused, data()->clr_bg))
         return end_panel(false);
 
     auto& nodes = g::pNodesManager->get_nodes_tree();
@@ -45,7 +48,8 @@ DlgCode PanelNodes::show(bool& focused)
     const float indent_w = GImGui->Style.IndentSpacing;
     const auto init_pos = ImGui::GetCursorPosX();
 
-    show_tree = [&show_tree, data = data(), indent_w, init_pos, bg_color](const std::vector<data::Nodes>& items, uint32_t indent_level)
+    show_tree = [&show_tree, data = data(), indent_w, init_pos]
+				(const std::vector<data::Nodes>& items, uint32_t indent_level)
     {
         for (auto& node : items)
         {
@@ -59,9 +63,9 @@ DlgCode PanelNodes::show(bool& focused)
                 if (0 == nodes_inside)
                     continue;
 
-                ImGui::PushStyleColor(ImGuiCol_Header, bg_color);
-                ImGui::PushStyleColor(ImGuiCol_HeaderHovered, bg_color);
-                ImGui::PushStyleColor(ImGuiCol_HeaderActive, bg_color);
+                ImGui::PushStyleColor(ImGuiCol_Header, data->clr_bg);
+                ImGui::PushStyleColor(ImGuiCol_HeaderHovered, data->clr_bg);
+                ImGui::PushStyleColor(ImGuiCol_HeaderActive, data->clr_bg);
 
                 if (!data->buffer[1].empty() || data->open_items.count(node.get_id()) > 0)
                     ImGui::SetNextItemOpen(true);
@@ -82,9 +86,9 @@ DlgCode PanelNodes::show(bool& focused)
             }
             else if (!node.filtered)
             {
-                ImGui::PushStyleColor(ImGuiCol_Header, bg_color);
-                ImGui::PushStyleColor(ImGuiCol_HeaderHovered, bg_color);
-                ImGui::PushStyleColor(ImGuiCol_HeaderActive, bg_color);
+                ImGui::PushStyleColor(ImGuiCol_Header, data->clr_bg);
+                ImGui::PushStyleColor(ImGuiCol_HeaderHovered, data->clr_bg);
+                ImGui::PushStyleColor(ImGuiCol_HeaderActive, data->clr_bg);
 
                 if (ImGui::CollapsingHeader((node.name_or_category + "##" + node.get_id_str()).c_str(), ImGuiTreeNodeFlags_Bullet |
                     ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth))
@@ -109,7 +113,7 @@ DlgCode PanelNodes::show(bool& focused)
 	                vMax.x -= ImGui::GetStyle().FramePadding.x * indent_level;
 
                 ImGui::GetWindowDrawList()->AddRect(vMin, vMax,
-                    node.is_node ? IM_COL32(255, 165, 0, 80) : IM_COL32(220, 220, 220, 50),
+                    node.is_node ? data->clr_hover_node : data->clr_hover_group,
                     0.0f, 0, 1.0f
                 );
             }

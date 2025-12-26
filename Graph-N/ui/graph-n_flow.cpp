@@ -25,14 +25,34 @@ bool GraphN_Flow::init()
     LogF;
 
     m_offline_mode = true;
+
+	// menu colors
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    // Background: Dark Grey (Opaque) - Lighter than main window
+    style.Colors[ImGuiCol_PopupBg] = ImColor(IM_COL32(50, 50, 50, 255));
+    style.Colors[ImGuiCol_MenuBarBg] = ImColor(IM_COL32(50, 50, 50, 255));
+
+    // Border: Subtle light outline to separate layers
+  //  style.PopupBorderSize = 1.0f;
+  //  style.Colors[ImGuiCol_Border] = ImVec4(0.30f, 0.30f, 0.35f, 1.00f);
+
+    // Selection color in menu
+  //  style.Colors[ImGuiCol_Header] = ImVec4(0.20f, 0.25f, 0.30f, 1.00f);
+  //  style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
+
+	// open windows
     m_windows = g::pOptsManager->flow_get_open_wnds();
 
+	// create panels
     m_nodes_panel = std::make_unique<ui::PanelNodes>();
     m_nodes_panel->init();
     m_all_dialogs.insert(m_nodes_panel.get());
     Log("Nodes panel initialized");
 
+	// start connect to ComfyUI
     g::pConnectManager->connect();
+
     return true;
 }
 
@@ -53,7 +73,7 @@ bool GraphN_Flow::run()
 
     if (m_windows & ViewOptions || m_windows & ViewOptsComfyUi)
     {
-  //      show_options_dlg();
+        show_options_dlg();
     }
 
     show_panels();
@@ -88,10 +108,31 @@ void GraphN_Flow::show_menu_bar()
     {
         if (ImGui::BeginMenu("File##MainMenuBar"))
         {
+            if (ImGui::MenuItem("Options##FileMenuBar"))
+            {
+                Log("Menu: Options");
+                on_menu_options();
+            }
+            ImGui::Separator();
             if (ImGui::MenuItem("Quit " APP_CAPTION "##FileMenuBar", "Ctrl+Q"))
             {
                 Log("Menu: Quit");
                 on_menu_quit();
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Windows##MainMenuBar"))
+        {
+            if (ImGui::MenuItem("Nodes Library##WindowsMenuBar", nullptr, (m_windows & ViewPanelNodes)))
+            {
+                Log("Menu: Nodes Library");
+                on_menu_panel_window(ViewPanelNodes);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Reset default layout##WindowsMenuBar"))
+            {
+                Log("Menu: Reset default layout");
+                on_menu_panel_window(ViewPanelsResetAll);
             }
             ImGui::EndMenu();
         }
@@ -140,6 +181,12 @@ void GraphN_Flow::on_dlg_closed(VisibleObject dlg)
     g::pOptsManager->flow_set_open_wnds(m_windows);
 }
 
+void GraphN_Flow::on_menu_options()
+{
+    m_windows |= ViewOptions;
+    g::pOptsManager->flow_set_open_wnds(m_windows);
+}
+
 void GraphN_Flow::on_menu_quit()
 {
     LogF;
@@ -149,6 +196,13 @@ void GraphN_Flow::on_menu_quit()
 void GraphN_Flow::on_menu_about()
 {
     LogF;
+}
+
+void GraphN_Flow::on_menu_panel_window(ViewDialogs wnd)
+{
+    m_windows |= wnd;
+    if (wnd != ViewPanelsResetAll)
+        g::pOptsManager->flow_set_open_wnds(m_windows);
 }
 
 void GraphN_Flow::show_options_dlg()
@@ -279,7 +333,7 @@ void GraphN_Flow::show_panels()
 
         m_main_dock_id = dockspace_id;
 
-        const ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.15f, nullptr, &m_main_dock_id);
+        const ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.25f, nullptr, &m_main_dock_id);
     //    const ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.25f, nullptr, &m_main_dock_id);
      //   const ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.20f, nullptr, &m_main_dock_id);
 

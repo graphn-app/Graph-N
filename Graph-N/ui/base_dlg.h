@@ -18,6 +18,9 @@ struct DlgData
 
 	std::vector<std::string> buffer;
 
+    ImU32 clr_bg = 0;
+    ImU32 clr_title = 0;
+
 	//gid set_focus_id = 0;
 
 	//std::map<gid, std::string> buffer;
@@ -63,12 +66,15 @@ protected:
 	//void set_exit_code_ok() { m_exit_code = DlgCode::ok; }
 	//DlgCode exit_code() const { return m_exit_code; }
 
-	DlgCode cleanup_and_exit(bool end_dlg, bool pop_styles, DlgCode exit_code)
+	DlgCode cleanup_and_exit(bool end_dlg, bool pop_title_styles, bool pop_bg_style, DlgCode exit_code)
 	{
 		if (end_dlg)
 			ImGui::End();
 
-		if (pop_styles)
+        if (pop_bg_style)
+            ImGui::PopStyleColor();
+
+		if (pop_title_styles)
 			ImGui::PopDlgTitleStyles();
 
 		return exit_code;

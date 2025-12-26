@@ -8,6 +8,9 @@ namespace ui
 struct PanelData final : public DlgData
 {
     std::set<uint32_t> open_items;
+
+    ImU32 clr_hover_group = 0;			// PanelNodes group frame
+    ImU32 clr_hover_node = 0;			// PanelNodes node frame
 };
 
 class PanelBase : public BaseDlgWithData<PanelData>

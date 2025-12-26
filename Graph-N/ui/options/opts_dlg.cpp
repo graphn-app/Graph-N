@@ -28,6 +28,9 @@ void OptionsDlgs::init()
 	data()->width = 550;
 	data()->height = 450;
 
+	data()->clr_title = g::pOptsManager->flow_get_color(VisibleObject::OptionsDlg);
+    data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::OptionsBg);
+
 	m_opts_data.pane.show_inner_child = (m_opts_data.pane.left_selected_item != OptPane::_none);
 
 	m_right_panes[OptPane::comfyui] = std::make_shared<OptComfyDlg>();
@@ -39,8 +42,8 @@ void OptionsDlgs::init()
 
 DlgCode OptionsDlgs::show(bool& focused)
 {
-	const auto colors = g::pOptsManager->flow_get_color(VisibleObject::OptionsDlg);
-	ImGui::PushDlgTitleStyles(colors);
+	ImGui::PushDlgTitleStyles(data()->clr_title);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, data()->clr_bg);
 
 	set_focus();
 	bool opened = true;
@@ -49,13 +52,13 @@ DlgCode OptionsDlgs::show(bool& focused)
 
 	ImGui::Begin("Options##Opt", &opened, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking);
 	if (!opened)
-		return cleanup_and_exit(true, true, DlgCode::cancel);
+		return cleanup_and_exit(true, true, true, DlgCode::cancel);
 	focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
 
 	show_left_pane();
 	show_right_pane();
 
-	return cleanup_and_exit(true, true, DlgCode::progress);
+	return cleanup_and_exit(true, true, true, DlgCode::progress);
 }
 
 void OptionsDlgs::show_left_pane()

@@ -24,12 +24,16 @@ inline constexpr auto gopt_comfyui_read_time			= "comfyui_read_time";
 
 inline constexpr int64_t gopt_def_flow_clrs[cast::to_szt(VisibleObject::_count)] =
 														{
+															0,
 															IM_COL32(150, 0, 0, 255),			// DisconnectedMenuBar
 															IM_COL32(255, 255, 255, 255),		// DisconnectedText
 															IM_COL32(0, 0, 150, 255),			// QueueButton
 															IM_COL32(0, 0, 0, 255),				// QueueText
-															IM_COL32(0, 0, 0, 255),				// Options Title
+															IM_COL32(0, 128, 128, 255),			// Options Title
+                                                            IM_COL32(0, 0, 0, 255),				// Options bg
                                                             IM_COL32(24, 24, 27, 255),			// PanelNodes bg
+                                                            IM_COL32(220, 220, 220, 50),		// PanelNodesHoverGroup
+                                                            IM_COL32(255, 165, 0, 80),			// PanelNodesHoverNode
 														};
 inline constexpr int64_t gopt_def_flow_open_wnds = ui::ViewOptsComfyUi | ui::ViewPanelsResetAll;
 

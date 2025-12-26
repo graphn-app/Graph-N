@@ -55,8 +55,11 @@ private:
     void show_panel_nodes();
 
 	void on_dlg_closed(VisibleObject dlg);
-	void on_menu_quit();
+	
+    void on_menu_options();
+    void on_menu_quit();
 	void on_menu_about();
+    void on_menu_panel_window(ViewDialogs wnd);
 
 private:
 	bool m_offline_mode = true;

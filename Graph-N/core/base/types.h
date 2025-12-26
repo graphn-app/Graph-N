@@ -10,16 +10,21 @@ using primitive = std::variant<int64_t, double, std::string, bool, std::monostat
 
 enum class VisibleObject
 {
+	_none,
+
 	DisconnectedMenuBar,
 	DisconnectedText,
 	QueueButton,
 	QueueText,
 	OptionsDlg,
+    OptionsBg,
 	PanelNodes,
+    PanelNodesHoverGroup,
+    PanelNodesHoverNode,
 
     _count,
-	_first				= DisconnectedMenuBar,
-	_last				= PanelNodes,
+	_first				= _none + 1,
+	_last				= _count - 1,
 };
 
 enum DlgCtrl
