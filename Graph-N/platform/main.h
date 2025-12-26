@@ -16,7 +16,9 @@ public:
 	using flow_callback = std::function<bool(bool do_exit)>;
 	virtual int run(flow_callback& callback, std::atomic_bool& request_focus) = 0;
 
-	ImFont* get_font() const { return m_font; }
+    ImFont* get_regular_font() const { return m_font_regular; }
+    ImFont* get_bold_font() const { return m_font_bold; }
+    ImFont* get_icons_font() const { return m_font_icons; }
 
 	virtual void wnd_restore() = 0;
 	virtual void wnd_minimize() = 0;
@@ -25,10 +27,12 @@ public:
 	virtual void wnd_hide() = 0;
 
 protected:
-	void draw_app_version(ImDrawList* drawList);
+    void prepare_fonts();
 
-protected:
-	ImFont* m_font = nullptr;
+private:
+    ImFont* m_font_regular = nullptr;
+    ImFont* m_font_bold = nullptr;
+    ImFont* m_font_icons = nullptr;
 };
 
 } // namespace platform

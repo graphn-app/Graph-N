@@ -76,10 +76,10 @@ bool MainRoutine_Win32::init()
 	ImGui_ImplWin32_Init(m_hwnd);
 	ImGui_ImplDX11_Init(m_d3d_device.get(), m_d3d_device_context.get());
 
-	auto font_file = fs::get_res_directory_path();
-	font_file /= "verdana.ttf";
-	m_font = io.Fonts->AddFontFromFileTTF(font_file.string().c_str(), 18.0f);
-
+	// font and icons
+    prepare_fonts();
+	
+	// app obj
 	SetWindowLongPtr(m_hwnd, GWLP_USERDATA, (LONG_PTR)this);
 
 	return true;
@@ -132,8 +132,6 @@ bool MainRoutine_Win32::render_frame(bool done)
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
-
-	//	draw_app_version(ImGui::GetBackgroundDrawList());
 
 	bool ret = true;
 	if (m_callback)

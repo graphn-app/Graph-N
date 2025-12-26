@@ -70,7 +70,7 @@ set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui_v1.89.9-docking")
 
 set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui.cpp
-    ${IMGUI_DIR}/imgui_demo.cpp
+#    ${IMGUI_DIR}/imgui_demo.cpp
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
@@ -95,7 +95,9 @@ endif()
 add_library(ImGuiLib STATIC ${IMGUI_SOURCES})
 
 # Publicly define math operators so it propagates to NodeEditor and Graph-N
-target_compile_definitions(ImGuiLib PUBLIC IMGUI_DEFINE_MATH_OPERATORS)
+target_compile_definitions(ImGuiLib PUBLIC 
+	IMGUI_DEFINE_MATH_OPERATORS
+	IMGUI_USE_WCHAR32)
 
 target_include_directories(ImGuiLib PUBLIC 
     ${IMGUI_DIR} 
@@ -180,6 +182,7 @@ target_compile_definitions(Graph-N PRIVATE
     _WEBSOCKETPP_CPP11_STL_
     _CRT_SECURE_NO_WARNINGS
     _CRT_NON_CONFORMING_SWPRINTFS
+    IMGUI_USE_WCHAR32
 )
 
 # --- Include Directories ---

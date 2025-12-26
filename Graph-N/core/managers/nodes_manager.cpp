@@ -28,14 +28,11 @@ void NodesManager::init_from_copy(NodesManager& copy)
 	m_nodes_sorted = std::move(copy.m_nodes_sorted);
 	m_pins = std::move(copy.m_pins);
 	m_nodes_tree = std::move(copy.m_nodes_tree);
-    calc_number_inside("", true);
+    calc_number_inside("");
 }
 
-void NodesManager::calc_number_inside(const std::string& filter, bool force /*= false*/)
+void NodesManager::calc_number_inside(const std::string& filter)
 {
-    if (filter.empty() && !force)
-        return;
-
     std::function<void(std::vector<data::Nodes>&, uint32_t*)> calculator;
     calculator = [&calculator, &filter](std::vector<data::Nodes>& nodes, uint32_t* count)
     {
@@ -43,10 +40,10 @@ void NodesManager::calc_number_inside(const std::string& filter, bool force /*= 
         {
             if (!node.children.empty())
             {
-                node.nodes_inside_filtered = 0;
-                calculator(node.children, filter.empty() ? &node.nodes_inside : &node.nodes_inside_filtered);
+                node.nodes_inside_unfiltered = 0;
+                calculator(node.children, filter.empty() ? &node.nodes_inside : &node.nodes_inside_unfiltered);
                 if (count != nullptr)
-                    *count += filter.empty() ? node.nodes_inside : node.nodes_inside_filtered;
+                    *count += filter.empty() ? node.nodes_inside : node.nodes_inside_unfiltered;
             }
             else if (node.is_node)
             {

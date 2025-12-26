@@ -1,6 +1,8 @@
 ﻿
 #include "ui/panels/panel_nodes.h"
 #include "ui/graph-n_flow.h"
+#include "ui/font_guard.h"
+#include "platform/main.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
 
@@ -14,11 +16,25 @@ PanelNodes::PanelNodes()
 void PanelNodes::init()
 {
     PanelBase::init();
-    data()->buffer.resize(2);	// 0 - filter buffer, 1 - lowered
+    data()->buffer.resize(PanelData::buff_count);
 
     data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::PanelNodes);
     data()->clr_hover_group = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverGroup);
     data()->clr_hover_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverNode);
+
+    const auto adjust_brightness = [](ImU32 color, float factor)
+    {
+        ImVec4 c = ImGui::ColorConvertU32ToFloat4(color);
+
+        c.x = std::min(c.x * factor, 1.0f); // R
+        c.y = std::min(c.y * factor, 1.0f); // G
+        c.z = std::min(c.z * factor, 1.0f); // B
+
+        return ImGui::ColorConvertFloat4ToU32(c);
+    };
+
+    data()->clr_hover_btn = adjust_brightness(data()->clr_bg, 1.5f);
+    data()->clr_active_btn = adjust_brightness(data()->clr_bg, 1.7f);
 }
 
 DlgCode PanelNodes::show(bool& focused)
@@ -26,77 +42,96 @@ DlgCode PanelNodes::show(bool& focused)
     if (!begin_panel(focused, data()->clr_bg))
         return end_panel(false);
 
-    auto& nodes = g::pNodesManager->get_nodes_tree();
-    if (nodes.empty())
+    if (g::pNodesManager->get_nodes_tree().empty())
     {
         ImGui::Text("Loading...");
         return end_panel(true);
     }
 
+    show_cfg_buttons();
+
     ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[0],
+    if (ImGui::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelData::buff_filter],
         ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
     {
-        data()->buffer[1] = tools::str::to_lower_ansi(data()->buffer[0]);
-        g::pNodesManager->calc_number_inside(data()->buffer[1]);
+        data()->buffer[PanelData::buff_filter_lowered] = tools::str::to_lower_ansi(data()->buffer[PanelData::buff_filter]);
+        g::pNodesManager->calc_number_inside(data()->buffer[PanelData::buff_filter_lowered]);
+        expand_all();
     }
 
     ImGui::Spacing(3);
     ImGui::BeginChild("NodesGroup", ImVec2(ImGui::GetContentRegionAvail().x, 0));
 
+    if (data()->tree_view)
+        show_tree_view();
+    else
+        show_plain_view();
+
+    ImGui::EndChild();
+
+    return end_panel(true);
+}
+
+void PanelNodes::show_tree_view()
+{
+    auto& nodes = g::pNodesManager->get_nodes_tree();
+
     std::function<void(const std::vector<data::Nodes>&, uint32_t)> show_tree;
     const float indent_w = GImGui->Style.IndentSpacing;
     const auto init_pos = ImGui::GetCursorPosX();
 
+    ImGui::PushStyleColor(ImGuiCol_Header, data()->clr_bg);
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, data()->clr_bg);
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, data()->clr_bg);
+
     show_tree = [&show_tree, data = data(), indent_w, init_pos]
-				(const std::vector<data::Nodes>& items, uint32_t indent_level)
+    (const std::vector<data::Nodes>& items, uint32_t indent_level)
     {
         for (auto& node : items)
         {
+            const auto nodes_inside = data->buffer[PanelData::buff_filter_lowered].empty() ? node.nodes_inside : node.nodes_inside_unfiltered;
+            if (!node.is_node && 0 == nodes_inside || node.is_node && node.filtered)
+                continue;
+
             if (indent_level > 0)
                 ImGui::SetCursorPosX(init_pos + indent_w * indent_level);
 
             ImGui::BeginGroup();
             if (!node.is_node)
             {
-                const auto nodes_inside = data->buffer[1].empty() ? node.nodes_inside : node.nodes_inside_filtered;
-                if (0 == nodes_inside)
-                    continue;
-
-                ImGui::PushStyleColor(ImGuiCol_Header, data->clr_bg);
-                ImGui::PushStyleColor(ImGuiCol_HeaderHovered, data->clr_bg);
-                ImGui::PushStyleColor(ImGuiCol_HeaderActive, data->clr_bg);
-
-                if (!data->buffer[1].empty() || data->open_items.count(node.get_id()) > 0)
-                    ImGui::SetNextItemOpen(true);
+                ImGui::SetNextItemOpen(data->open_items.count(node.get_id()) > 0);
 
                 if (ImGui::CollapsingHeader((node.name_or_category + " (" + std::to_string(nodes_inside) + ")##" + node.get_id_str()).c_str(),
                     ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_SpanFullWidth))
                 {
                     show_tree(node.children, indent_level + 1);
-					if (data->buffer[1].empty())
-						data->open_items.insert(node.get_id());
+
+                    data->open_items.insert(node.get_id());
                 }
-                else if (data->buffer[1].empty())
+                else
                 {
                     data->open_items.erase(node.get_id());
                 }
-
-                ImGui::PopStyleColor(3);
             }
-            else if (!node.filtered)
+            else
             {
-                ImGui::PushStyleColor(ImGuiCol_Header, data->clr_bg);
-                ImGui::PushStyleColor(ImGuiCol_HeaderHovered, data->clr_bg);
-                ImGui::PushStyleColor(ImGuiCol_HeaderActive, data->clr_bg);
+                ImGui::SetNextItemOpen(data->open_items.count(node.get_id()) > 0);
 
-                if (ImGui::CollapsingHeader((node.name_or_category + "##" + node.get_id_str()).c_str(), ImGuiTreeNodeFlags_Bullet |
+                if (ImGui::CollapsingHeader((node.name_or_category + "##" + node.get_id_str()).c_str(), 
                     ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth))
                 {
-
+                    data->open_items.insert(node.get_id());
                 }
-
-                ImGui::PopStyleColor(3);
+                else
+                {
+                    data->open_items.erase(node.get_id());
+                }
+                if (ImGui::IsItemHovered())
+                {
+                    auto ptr = node.node.lock();
+                    if (ptr && !ptr->description.empty())
+                        ImGui::SetTooltip(ptr->description.c_str());
+                }
             }
             ImGui::EndGroup();
 
@@ -109,8 +144,8 @@ DlgCode PanelNodes::show(bool& focused)
                 {
                     vMin.x = ImGui::GetCursorScreenPos().x + ImGui::GetStyle().FramePadding.x;
                 }
-				if (indent_level > 0)
-	                vMax.x -= ImGui::GetStyle().FramePadding.x * indent_level;
+                if (indent_level > 0)
+                    vMax.x -= ImGui::GetStyle().FramePadding.x * indent_level;
 
                 ImGui::GetWindowDrawList()->AddRect(vMin, vMax,
                     node.is_node ? data->clr_hover_node : data->clr_hover_group,
@@ -121,9 +156,162 @@ DlgCode PanelNodes::show(bool& focused)
     };
 
     show_tree(nodes, 0);
-    ImGui::EndChild();
 
-    return end_panel(true);
+    ImGui::PopStyleColor(3);
+}
+
+void PanelNodes::show_plain_view()
+{
+    auto& nodes = g::pNodesManager->get_nodes_sorted();
+
+    ImGui::PushStyleColor(ImGuiCol_Header, data()->clr_bg);
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, data()->clr_bg);
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, data()->clr_bg);
+
+    for (auto& [name, node] : nodes)
+    {
+        ImGui::BeginGroup();
+
+        ImGui::SetNextItemOpen(data()->open_items.count(node->get_id()) > 0);
+
+        if (ImGui::CollapsingHeader((name + "##" + node->get_id_str()).c_str(), 
+            ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth))
+        {
+            data()->open_items.insert(node->get_id());
+        }
+        else
+        {
+            data()->open_items.erase(node->get_id());
+        }
+        if (!node->description.empty() && ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip(node->description.c_str());
+        }
+
+        ImGui::EndGroup();
+
+        ImVec2 vMin = ImGui::GetItemRectMin();
+        ImVec2 vMax = ImGui::GetItemRectMax();
+        vMax.x = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x - ImGui::GetStyle().FramePadding.x;
+        if (ImGui::IsMouseHoveringRect(vMin, vMax, true))
+        {
+            ImGui::GetWindowDrawList()->AddRect(vMin, vMax,
+                data()->clr_hover_group,
+                0.0f, 0, 1.0f
+            );
+        }
+    }
+
+    ImGui::PopStyleColor(3);
+}
+
+void PanelNodes::expand_all()
+{
+    std::function<void(const std::vector<data::Nodes>&)> add_id;
+    add_id = [&add_id, data = data()](const std::vector<data::Nodes>& nodes)
+    {
+        for (auto& node : nodes)
+        {
+            if (!node.is_node)
+            {
+                data->open_items.insert(node.get_id());
+                add_id(node.children);
+            }
+        }
+    };
+
+    add_id(g::pNodesManager->get_nodes_tree());
+}
+
+void PanelNodes::collapse_all()
+{
+    data()->open_items.clear();
+}
+
+void PanelNodes::show_cfg_buttons()
+{
+    ImGui::PushStyleColor(ImGuiCol_Button, data()->clr_bg);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, data()->clr_hover_btn);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, data()->clr_active_btn);
+
+    const float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+    const float spacing = ImGui::GetStyle().ItemSpacing.x;
+    const uint32_t button_count = 4;
+    const uint32_t big_spaces = 2;
+    const uint32_t small_spaces = 1;
+    const float start_pos = 
+        window_visible_x2 - 
+        (button_count * data()->button_width) - 
+        (big_spaces * spacing * data()->ungrouped_btn_spacing_x) - 
+        (small_spaces * spacing * data()->grouped_btn_spacing_x) - 
+        spacing * 3;
+
+    ImGui::SameLine(start_pos);
+
+    if (!data()->tree_view)
+        ImGui::BeginDisabled();
+    FontGuard fg(g::pMain->get_icons_font());
+    if (ImGui::Button(ICON_LC_LIST_CHEVRONS_UP_DOWN))
+    {
+        expand_all();
+    }
+    if (ImGui::IsItemHovered())
+    {
+        fg.pop();
+        ImGui::SetTooltip("Expand All");
+    }
+    if (!data()->tree_view)
+        ImGui::EndDisabled();
+
+    ImGui::SameLine(0.0f, spacing * data()->grouped_btn_spacing_x);
+    fg.push();
+    if (ImGui::Button(ICON_LC_LIST_CHEVRONS_DOWN_UP))
+    {
+        collapse_all();
+    }
+    if (ImGui::IsItemHovered()) 
+    {
+        fg.pop();
+        ImGui::SetTooltip("Collapse All");
+    }
+
+    ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
+    fg.push();
+    if (ImGui::Button(data()->tree_view ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE))
+    {
+        data()->tree_view = !data()->tree_view;
+    }
+    if (ImGui::IsItemHovered())
+    {
+        fg.pop();
+        ImGui::SetTooltip("Toggle Flat/Category View");
+    }
+
+    ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
+    fg.push();
+    if (ImGui::Button(ICON_LC_FOLDER_SYNC))
+    {
+        // Handle Refresh
+    }
+    if (ImGui::IsItemHovered())
+    {
+        fg.pop();
+        ImGui::SetTooltip("Refresh Node List");
+    }
+
+    //ImGui::SameLine();
+    //if (ImGui::Button(ICON_LC_COLUMNS_3_COG))
+    //{
+    //    // Handle opts
+    //}
+    //if (ImGui::IsItemHovered())
+    //{
+    //    ImGui::SetWindowFontScale(old_scale);
+    //    ImGui::SetTooltip("View options");
+    //    ImGui::SetWindowFontScale(data()->icon_scale);
+    //}
+
+    ImGui::PopStyleColor(3);
 }
 
 } // namespace ui

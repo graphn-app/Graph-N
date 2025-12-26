@@ -34,6 +34,7 @@
 #include "stb_image.h"
 
 // app global
+#include "icons_lucide.h"
 #include "core/base/types.h"
 #include "tools/cast.h"
 #include "core/base/id.h"
@@ -42,7 +43,6 @@
 #include "tools/tools_datetime.h"
 #include "tools/logging.h"
 #include "ui/imgui_ex.h"
-
 #include "graph-n.h"
 
 #define APP_CAPTION			"Graph-N"

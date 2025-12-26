@@ -5,25 +5,47 @@
 namespace ui
 {
 
-struct PanelData final : public DlgData
+struct PanelCommonData : public DlgData
 {
-    std::set<uint32_t> open_items;
-
-    ImU32 clr_hover_group = 0;			// PanelNodes group frame
-    ImU32 clr_hover_node = 0;			// PanelNodes node frame
+    const float button_width = 30.0f;
+    const float grouped_btn_spacing_x = 1.0f;
+    const float ungrouped_btn_spacing_x = 2.0f;
 };
 
-class PanelBase : public BaseDlgWithData<PanelData>
+template <typename DataType>
+class PanelBase : public BaseDlgWithData<DataType>
 {
 public:
-    PanelBase(VisibleObject obj, const char* name, const char* id);
+    PanelBase(VisibleObject obj, const char* name, const char* id)
+        : BaseDlgWithData(obj)
+    {
+        m_panel_name = tools::str::format("%s##%s", name, id);
+    }
     virtual ~PanelBase() = 0 {};
 
     const char* get_panel_name() const { return m_panel_name.c_str(); }
 
 protected:
-    bool begin_panel(bool& focused, ImU32 bg_color = IM_COL32_BLACK);
-    DlgCode end_panel(bool opened);
+    bool begin_panel(bool& focused, ImU32 bg_color = IM_COL32_BLACK)
+    {
+        // m_class.ClassId = cast::to_u32(data()->class_id);
+        // ImGui::SetNextWindowClass(&m_class);
+
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, bg_color);
+        bool opened = true;
+        focused = false;
+        ImGui::Begin(m_panel_name.c_str(), &opened);
+        if (opened)
+            focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
+        return opened;
+    }
+
+    DlgCode end_panel(bool opened)
+    {
+        ImGui::End();
+        ImGui::PopStyleColor();
+        return opened ? DlgCode::progress : DlgCode::cancel;
+    }
 
 private:
     std::string m_panel_name;
