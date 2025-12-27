@@ -22,7 +22,7 @@ private:
 
 private:
 	OptsData m_opts_data;
-	std::map<OptPane, std::shared_ptr<OptRightPane>> m_right_panes;
+	std::map<OptPane, std::unique_ptr<OptRightPane>> m_right_panes;
 };
 
 
