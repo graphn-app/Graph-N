@@ -16,7 +16,7 @@ public:
 	GlobalID& operator= (GlobalID&&);
 
 	gid get_id() const { return m_id; }
-	const std::string& get_id_str() const { return m_sz_id; }
+	const std::string& get_id_str() const { return m_id_str; }
 	void set_id(gid id);
 
 	static void set_last_id(gid id);
@@ -27,7 +27,7 @@ private:
 	static std::atomic<gid> m_last_id;
 	static std::string m_client_id;
 	gid m_id = 0;
-	std::string m_sz_id;
+	std::string m_id_str;
 };
 
 struct LocalID
@@ -42,7 +42,7 @@ struct LocalID
     LocalID& operator= (LocalID&&);
 
 	lid get_id() const { return m_id; }
-	const std::string& get_id_str() const { return m_sz_id; }
+	const std::string& get_id_str() const { return m_id_str; }
 	void set_id(lid id);
 
 	static lid get_next_id();
@@ -50,7 +50,32 @@ struct LocalID
 private:
 	static std::atomic<lid> m_last_id;
 	lid m_id = 0;
-	std::string m_sz_id;
+	std::string m_id_str;
+};
+
+struct HashID
+{
+    HashID(const char* unique);
+    HashID(const std::string& unique);
+    virtual ~HashID() = 0 {};
+
+    HashID(const HashID&);
+    HashID(HashID&&);
+    HashID& operator= (const HashID&);
+    HashID& operator= (HashID&&);
+
+    hid get_id() const { return m_id; }
+    const std::string& get_id_str() const { return m_id_str; }
+
+    void set_id(hid id);
+
+protected:
+    void generate_id(const char* unique);
+    void generate_id(const std::string& unique);
+
+private:
+    hid m_id = 0;
+    std::string m_id_str;
 };
 
 }

@@ -12,6 +12,12 @@ std::string format(const char* format, ...);
 std::list<std::string> split(const std::string& str, char separator, bool add_empty);
 std::string to_lower_ansi(const std::string& string);
 
+size_t hash_string(const std::string& str);
+size_t hash_fnv1a(const void* data, size_t size);
+size_t hash_fnv1a(const char* data, size_t size);
+size_t hash_fnv1a(size_t data);
+size_t hash_fnv1a(const std::string& data);
+
 } // namespace str
 
 namespace path

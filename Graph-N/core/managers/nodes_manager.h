@@ -44,17 +44,17 @@ public:
 
     void calc_number_inside(const std::string& filter);
 
-	std::shared_ptr<data::Node> find_node(lid id) const;		// returns nullptr if not found
-	std::shared_ptr<data::Pin> find_pin(lid id) const;			// returns nullptr if not found
+	std::shared_ptr<data::Node> find_node(hid id) const;		// returns nullptr if not found
+	std::shared_ptr<data::Pin> find_pin(hid id) const;			// returns nullptr if not found
 
 private:
 	void init_from_copy(NodesManager& copy);
 
 private:
-	std::map<lid, std::shared_ptr<data::Node>> m_nodes_by_id;
+	std::map<hid, std::shared_ptr<data::Node>> m_nodes_by_id;
 	std::map<std::string, std::shared_ptr<data::Node>> m_nodes_by_name;		// map by string key
 	std::map<std::string, std::shared_ptr<data::Node>> m_nodes_sorted;		// sorted by display name
-	std::map<lid, std::shared_ptr<data::Pin>> m_pins;
+	std::map<hid, std::shared_ptr<data::Pin>> m_pins;
 
 	std::vector<data::Nodes> m_nodes_tree;
 	std::vector<data::Nodes> m_dummy_tree;	// always empty

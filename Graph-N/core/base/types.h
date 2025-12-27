@@ -5,6 +5,7 @@ using app_version_type = uint64_t;
 using time_type = uint64_t;
 using lid = uint32_t;	// local ID
 using gid = uint64_t;	// global id
+using hid = size_t;		// hash id
 using byte_buff = std::vector<byte>;
 using primitive = std::variant<int64_t, double, std::string, bool, std::monostate>;
 

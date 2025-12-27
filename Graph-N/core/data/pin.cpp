@@ -26,6 +26,16 @@ inline constexpr const char* ControlAfterGenerateStr[cast::to_szt(ControlAfterGe
 	"fixed", "increment", "decrement", "randomize"
 };
 
+Pin::Pin(const std::string& node_class, const std::string& pin_name)
+    : base::HashID(node_class + "_IN_" + pin_name)
+{
+}
+
+Pin::Pin(const std::string& node_class, size_t pin_index)
+    : base::HashID(node_class + "_OUT_" + std::to_string(pin_index))
+{
+}
+
 bool Pin::can_link(const Pin* other) const
 {
 	if (input == other->input || output == other->output)
@@ -106,7 +116,7 @@ void Pin::initialize(const std::string& type_as_string)
 		type = PinType::CUSTOM;
 	}
 
-	hash = std::hash<std::string>{}(type_str);
+	hash = tools::str::hash_string(type_str);
 
 	init_defaults();
 	generate_pin_color();

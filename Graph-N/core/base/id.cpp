@@ -7,46 +7,40 @@ std::string GlobalID::m_client_id;
 
 GlobalID::GlobalID() 
 { 
-	m_id = get_next_id(); 
-	m_sz_id = std::to_string(m_id);
+    set_id(get_next_id());
 }
 
 GlobalID::GlobalID(gid id)
 {
-	m_id = id;
-	m_sz_id = std::to_string(m_id);
+    set_id(id);
 }
 
 GlobalID::GlobalID(const GlobalID&)
 {
-    m_id = get_next_id();
-    m_sz_id = std::to_string(m_id);
+    set_id(get_next_id());
 }
 
 GlobalID::GlobalID(GlobalID&& other)
 {
-    m_id = other.m_id;
-    m_sz_id = other.m_sz_id;
+    set_id(other.m_id);
 }
 
 GlobalID& GlobalID::operator= (const GlobalID&)
 {
-    m_id = get_next_id();
-    m_sz_id = std::to_string(m_id);
+    set_id(get_next_id());
     return *this;
 }
 
 GlobalID& GlobalID::operator= (GlobalID&& other)
 {
-    m_id = other.m_id;
-    m_sz_id = other.m_sz_id;
+    set_id(other.m_id);
     return *this;
 }
 
 void GlobalID::set_id(gid id) 
 { 
 	m_id = id; 
-	m_sz_id = std::to_string(m_id); 
+	m_id_str = std::to_string(m_id); 
 }
 
 void GlobalID::set_last_id(gid id)
@@ -93,51 +87,85 @@ std::atomic<lid> LocalID::m_last_id = 0;
 
 LocalID::LocalID()
 {
-	m_id = get_next_id();
-	m_sz_id = std::to_string(m_id);
+    set_id(get_next_id());
 }
 
 LocalID::LocalID(lid id)
 {
-	m_id = id;
-	m_sz_id = std::to_string(m_id);
+    set_id(id);
 }
 
 LocalID::LocalID(const LocalID&)
 {
-    m_id = get_next_id();
-    m_sz_id = std::to_string(m_id);
+    set_id(get_next_id());
 }
 
 LocalID::LocalID(LocalID&& other)
 {
-    m_id = other.m_id;
-    m_sz_id = other.m_sz_id;
+    set_id(other.m_id);
 }
 
 LocalID& LocalID::operator= (const LocalID&)
 {
-    m_id = get_next_id();
-    m_sz_id = std::to_string(m_id);
+    set_id(get_next_id());
     return *this;
 }
 
 LocalID& LocalID::operator= (LocalID&& other)
 {
-    m_id = other.m_id;
-    m_sz_id = other.m_sz_id;
+    set_id(other.m_id);
     return *this;
 }
 
 void LocalID::set_id(lid id)
 {
 	m_id = id;
-	m_sz_id = std::to_string(m_id);
+	m_id_str = std::to_string(m_id);
 }
 
 lid LocalID::get_next_id()
 {
 	return ++m_last_id;	// starts from 1
+}
+
+//////////////////////
+
+HashID::HashID(const char* unique)
+{
+    set_id(tools::str::hash_fnv1a(unique));
+}
+
+HashID::HashID(const std::string& unique)
+{
+    set_id(tools::str::hash_fnv1a(unique));
+}
+
+HashID::HashID(const HashID& other)
+{
+    *this = other;
+}
+
+HashID::HashID(HashID&& other)
+{
+    *this = other;
+}
+
+HashID& HashID::operator= (const HashID& other)
+{
+    set_id(other.m_id);
+    return *this;
+}
+
+HashID& HashID::operator= (HashID&& other)
+{
+    *this = other;
+    return *this;
+}
+
+void HashID::set_id(hid id)
+{
+    m_id = id;
+    m_id_str = std::to_string(m_id);
 }
 
 }

@@ -8,9 +8,10 @@
 namespace data
 {
 
-struct Node : public base::LocalID
+struct Node : public base::HashID
 {
-	Node() = default;
+    using base::HashID::HashID;
+	
 	virtual ~Node() override = default;
 
 	bool has_input = false;

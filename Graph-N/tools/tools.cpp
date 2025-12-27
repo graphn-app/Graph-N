@@ -79,6 +79,42 @@ std::string to_lower_ansi(const std::string& string)
 	return lower;
 }
 
+size_t hash_string(const std::string& str)
+{
+    return std::hash<std::string>{}(str);
+}
+
+size_t hash_fnv1a(const void* data, size_t size)
+{
+    // FNV-1a constants for 64-bit
+    constexpr uint64_t FNV_OFFSET_BASIS = 0xcbf29ce484222325;
+    constexpr uint64_t FNV_PRIME = 0x100000001b3;
+
+    size_t hash = FNV_OFFSET_BASIS;
+    const uint8_t* ptr = static_cast<const uint8_t*>(data);
+    for (size_t i = 0; i < size; ++i) 
+    {
+        hash ^= ptr[i];
+        hash *= FNV_PRIME;
+    }
+    return hash;
+}
+
+size_t hash_fnv1a(const char* data, size_t size)
+{
+    return hash_fnv1a((void*)data, size);
+}
+
+size_t hash_fnv1a(size_t data)
+{
+    return hash_fnv1a((void*)&data, sizeof (data));
+}
+
+size_t hash_fnv1a(const std::string& data)
+{
+    return hash_fnv1a((void*)data.c_str(), data.size());
+}
+
 } // namespace str
 
 namespace path

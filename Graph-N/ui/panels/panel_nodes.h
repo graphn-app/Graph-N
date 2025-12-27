@@ -14,7 +14,7 @@ struct PanelData final : public PanelCommonData
         buff_count
     };
 
-    std::set<uint32_t> open_items;
+    std::set<hid> open_items;
 
     ImU32 clr_hover_group = 0;			// hovered group frame
     ImU32 clr_hover_node = 0;			// hovered node frame

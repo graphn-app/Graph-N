@@ -65,7 +65,7 @@ void NodesManager::calc_number_inside(const std::string& filter)
     calculator(m_nodes_tree, nullptr);
 }
 
-std::shared_ptr<data::Node> NodesManager::find_node(lid id) const
+std::shared_ptr<data::Node> NodesManager::find_node(hid id) const
 {
 	const auto it = m_nodes_by_id.find(id);
 	if (it == m_nodes_by_id.end())
@@ -73,7 +73,7 @@ std::shared_ptr<data::Node> NodesManager::find_node(lid id) const
 	return it->second;
 }
 
-std::shared_ptr<data::Pin> NodesManager::find_pin(lid id) const
+std::shared_ptr<data::Pin> NodesManager::find_pin(hid id) const
 {
 	const auto it = m_pins.find(id);
 	if (it == m_pins.end())
@@ -176,10 +176,9 @@ NodesManager NodesParser::parse_thread()
 
 void NodesParser::parse_node(NodesManager& manager, const std::string& node_class, nlohmann::json& json_node)
 {
-	auto node = std::make_shared<data::Node>();
-
 	try
 	{
+        auto node = std::make_shared<data::Node>(node_class);
 		parse_names(*node.get(), node_class, json_node);		// name, display name, category, description
 
 #ifdef _DEBUG
@@ -198,7 +197,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
 	}
 	catch (std::exception& e)
 	{
-		LogExcep("Parse node '" << node->name <<  "' error: " << e.what());
+		LogExcep("Parse node '" << node_class <<  "' error: " << e.what());
 	}
 }
 
@@ -559,7 +558,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
 		auto items = objects.items();
 		for (const auto&[pin_name, pin_info] : items)
 		{
-			auto pin = std::make_shared<data::Pin>();
+			auto pin = std::make_shared<data::Pin>(node.node_class.empty() ? node.name : node.node_class, pin_name);
 			input.pins.push_back(pin);
 			manager.m_pins[pin->get_id()] = pin;
 
@@ -685,9 +684,10 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
 		auto& output = json_node["output"];
 		if (output.is_array())
 		{
+            size_t index = 0;
 			for (const auto& item : output)
 			{
-				auto pin = std::make_shared<data::Pin>();
+				auto pin = std::make_shared<data::Pin>(node.node_class.empty() ? node.name : node.node_class, index++);
 				pin->output = true;
 
 				if (item.is_string())
@@ -887,14 +887,15 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
 {
 	// Reroute
 	{
-		auto node = std::make_shared<data::Node>();
-		node->name = "Reroute";
-		node->display_name = "Reroute";
+        constexpr auto node_class = "Reroute";
+		auto node = std::make_shared<data::Node>(node_class);
+		node->name = node_class;
+		node->display_name = node_class;
 		node->category = "utils";
 		node->description = "Reroute Node Node Purpose: Mainly used to organize the logic of overly long connection lines in the ComfyUI workflow.";
 
 		// Input: ANY (*)
-		auto in = std::make_shared<data::Pin>();
+		auto in = std::make_shared<data::Pin>(node_class, "*");
 		in->name = "*";
 		in->input = true;
 		in->initialize("*");
@@ -902,10 +903,9 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
 		node->required.order.push_back("*");
 
 		// Output: ANY (*)
-		auto out = std::make_shared<data::Pin>();
+		auto out = std::make_shared<data::Pin>(node_class, 0);
 		out->name = "*";
 		out->output = true;
-		in->initialize("*");
 		node->output.push_back(out);
 
 		node->has_input = true;
@@ -917,19 +917,22 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
 	
 	// Primitive
 	{
-		auto node = std::make_shared<data::Node>();
-		node->name = "Primitive";
-		node->display_name = "Primitive";
+        constexpr auto node_class = "Primitive";
+		auto node = std::make_shared<data::Node>(node_class);
+		node->name = node_class;
+		node->display_name = node_class;
 		node->category = "utils";
 		node->description = "Primitive values like numbers, strings, and booleans.";
 
-		auto out = std::make_shared<data::Pin>();
+        // Output: ANY (*)
+		auto out = std::make_shared<data::Pin>(node_class, 0);
 		out->name = "connect to widget input";
 		out->output = true;
 		out->initialize("*");
-
 		node->output.push_back(out);
-		node->has_output = true;
+
+        node->has_input = false;
+        node->has_output = true;
 
 		put_in_tree(manager, node);
 		manager.m_nodes_by_id.emplace(node->get_id(), node);
@@ -937,11 +940,15 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
 
 	// Note
 	{
-		auto node = std::make_shared<data::NodeNote>();
-		node->name = "Note";
-		node->display_name = "Note";
+        constexpr auto node_class = "Note";
+		auto node = std::make_shared<data::NodeNote>(node_class);
+		node->name = node_class;
+		node->display_name = node_class;
 		node->category = "utils";
 		node->description = "Node to add annotations to a workflow.";
+
+        node->has_input = false;
+        node->has_output = false;
 
 		put_in_tree(manager, node);
 		manager.m_nodes_by_id.emplace(node->get_id(), node);
@@ -949,11 +956,15 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
 
 	// Markdown Note
 	{
-		auto node = std::make_shared<data::NodeMarkdownNote>();
-		node->name = "Markdown Note";
-		node->display_name = "Markdown Note";
+        constexpr auto node_class = "Markdown Note";
+		auto node = std::make_shared<data::NodeMarkdownNote>(node_class);
+		node->name = node_class;
+		node->display_name = node_class;
 		node->category = "utils";
 		node->description = "Node to add annotations to a workflow. It supports text formatting using Markdown syntax.";
+
+        node->has_input = false;
+        node->has_output = false;
 
 		put_in_tree(manager, node);
 		manager.m_nodes_by_id.emplace(node->get_id(), node);

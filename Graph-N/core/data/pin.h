@@ -50,10 +50,11 @@ enum class ControlAfterGenerate
 	_count
 };
 
-struct Pin final : public base::LocalID
+struct Pin final : public base::HashID
 {
 public:
-	Pin() = default;
+	Pin(const std::string& node_class, const std::string& pin_name);
+    Pin(const std::string& node_class, size_t pin_index);
 	~Pin() override = default;
 
 	bool can_link(const Pin* other) const;
