@@ -23,6 +23,7 @@ void PanelNodes::init()
     data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::PanelNodes);
     data()->clr_hover_group = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverGroup);
     data()->clr_hover_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverNode);
+    data()->clr_selected_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesSelectedNode);
 
     const auto adjust_brightness = [](ImU32 color, float factor)
     {
@@ -121,7 +122,7 @@ void PanelNodes::show_tree_view()
             else
             {
 				if (node_holder->get_id() == data->selected_node)
-                    ImGui::PushStyleColor(ImGuiCol_Text, data->clr_hover_node);
+                    ImGui::PushStyleColor(ImGuiCol_Text, data->clr_selected_node);
 
                 ImGui::CollapsingHeader((node_holder->name_or_category + "##" + node_holder->get_id_str()).c_str(),
                     ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);
@@ -183,7 +184,7 @@ void PanelNodes::show_plain_view()
         ImGui::BeginGroup();
 
         if (node_holder->get_id() == data()->selected_node)
-            ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_hover_node);
+            ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
 
         ImGui::CollapsingHeader((node_holder->name_or_category + "##" + node_holder->get_id_str()).c_str(),
             ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);

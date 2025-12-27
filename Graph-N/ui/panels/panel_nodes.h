@@ -23,6 +23,7 @@ struct PanelNodesData final : public PanelCommonData
 
     ImU32 clr_hover_group = 0;			// hovered group frame
     ImU32 clr_hover_node = 0;			// hovered node frame
+    ImU32 clr_selected_node = 0;		// selected node text
     ImU32 clr_hover_btn = 0;			// hovered button
     ImU32 clr_active_btn = 0;			// active button
 

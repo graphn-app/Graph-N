@@ -35,7 +35,11 @@ enum ViewDialogs
 
 	ViewAllOptions			= ViewOptions | ViewOptsComfyUi,
 	ViewAllMenuBar			= ViewConnect | ViewParsingNodes | ViewQueueCtrl,
-    ViewAllPanels			= ViewPanelNodes | ViewPanelNodeInpector
+    ViewAllPanels			= ViewPanelNodes | ViewPanelNodeInpector,
+
+#ifdef _DEBUG
+	ViewDebugMetrics		= 0x80000000
+#endif
 };
 
 class GraphN_Flow final

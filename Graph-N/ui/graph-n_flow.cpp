@@ -85,6 +85,17 @@ bool GraphN_Flow::run()
         show_options_dlg();
     }
 
+#ifdef _DEBUG
+    if (m_windows & ViewDebugMetrics)
+    {
+        static bool open_debug_metrics = true;
+        ImGui::ShowMetricsWindow(&open_debug_metrics);
+        if (!open_debug_metrics)
+            m_windows &= ~ViewDebugMetrics;
+        open_debug_metrics = true;
+    }
+#endif
+
     show_panels();
     return true;
 }
@@ -152,6 +163,16 @@ void GraphN_Flow::show_menu_bar()
         }
         if (ImGui::BeginMenu("Help##MainMenuBar"))
         {
+#ifdef _DEBUG
+            if (ImGui::MenuItem("Debug Metrics##HelpMenuBar", nullptr, (m_windows & ViewDebugMetrics)))
+            {
+				if (m_windows & ViewDebugMetrics)
+					m_windows &= ~ViewDebugMetrics;
+                else
+                    m_windows |= ViewDebugMetrics;
+            }
+            ImGui::Separator();
+#endif
             if (ImGui::MenuItem("About " APP_CAPTION "##HelpMenuBar"))
             {
                 Log("Menu: About");

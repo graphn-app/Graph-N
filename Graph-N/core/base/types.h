@@ -23,6 +23,7 @@ enum class VisibleObject
 	PanelNodes,
     PanelNodesHoverGroup,
     PanelNodesHoverNode,
+    PanelNodesSelectedNode,
 
     PanelNodeInspector,
     PanelNodeInspectorDescrFrame,

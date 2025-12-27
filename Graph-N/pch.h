@@ -27,7 +27,6 @@
 #include "imgui_internal.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "imgui_node_editor.h"
 #include "nlohmann/json.hpp"
 #include "SQLiteCpp/SQLiteCpp.h"
 #include "httplib.h"
@@ -49,7 +48,6 @@
 #define APP_CAPTION_LOW		"graph-n"
 #define APP_CAPTION_W		L"Graph-N"
 
-namespace ne = ax::NodeEditor;
 namespace tt = tools::time;
 
 
