@@ -221,45 +221,61 @@ void Pin::generate_pin_color()
 
 	if (is_known_type)	// hardcoded colors for some most used types
 	{
-		switch (type)
-		{
-		case PinType::INT:						pin_color = IM_COL32(40, 200, 40, 255);   break;
-		case PinType::FLOAT:					pin_color = IM_COL32(40, 200, 40, 255);   break; // ?
-		case PinType::STRING:					pin_color = IM_COL32(200, 200, 200, 255); break;
-		case PinType::BOOLEAN:					pin_color = IM_COL32(180, 180, 180, 255); break;
-		case PinType::ANY:						pin_color = IM_COL32_WHITE; break;
+        switch (type)
+        {
+            // --- Primitives ---
+        case PinType::INT:						pin_color = IM_COL32(40, 200, 40, 255);   break;
+        case PinType::FLOAT:					pin_color = IM_COL32(40, 200, 40, 255);   break;
+        case PinType::STRING:					pin_color = IM_COL32(200, 200, 200, 255); break;
+        case PinType::BOOLEAN:					pin_color = IM_COL32(180, 180, 180, 255); break;
+        case PinType::ANY:						pin_color = IM_COL32_WHITE; break;
 
-		case PinType::MODEL:					pin_color = IM_COL32(111, 108, 155, 255); break;
-		case PinType::LATENT:					pin_color = IM_COL32(176, 83, 112, 255);  break;
-		case PinType::VAE:						pin_color = IM_COL32(166, 46, 46, 255);   break;
-		case PinType::CLIP:						pin_color = IM_COL32(227, 184, 54, 255);  break;
-		case PinType::IMAGE:					pin_color = IM_COL32(91, 135, 163, 255);  break;
-		case PinType::MASK:						pin_color = IM_COL32(93, 158, 89, 255);   break;
-		case PinType::CONDITIONING:				pin_color = IM_COL32(195, 134, 52, 255);  break;
+            // --- Core ComfyUI Types ---
+        case PinType::MODEL:					pin_color = IM_COL32(111, 108, 155, 255); break;
+        case PinType::LATENT:					pin_color = IM_COL32(176, 83, 112, 255);  break;
+        case PinType::VAE:						pin_color = IM_COL32(166, 46, 46, 255);   break;
+        case PinType::CLIP:						pin_color = IM_COL32(227, 184, 54, 255);  break;
+        case PinType::IMAGE:					pin_color = IM_COL32(91, 135, 163, 255);  break;
+        case PinType::MASK:						pin_color = IM_COL32(93, 158, 89, 255);   break;
+        case PinType::CONDITIONING:				pin_color = IM_COL32(195, 134, 52, 255);  break;
+        case PinType::CLIP_VISION:				pin_color = IM_COL32(100, 100, 100, 255); break;
+        case PinType::CONTROL_NET:				pin_color = IM_COL32(90, 160, 140, 255);  break;
 
-		case PinType::CLIP_VISION:				pin_color = IM_COL32(100, 100, 100, 255); break;
-		case PinType::CONTROL_NET:				pin_color = IM_COL32(90, 160, 140, 255);  break;
+            // --- Extended Basic Types ---
+        case PinType::COMBO:					pin_color = IM_COL32(200, 200, 200, 255);   break; // Grey (Generic)
+        case PinType::COLOR:					pin_color = IM_COL32(255, 235, 59, 255);    break; // Bright Yellow
+        case PinType::NUMBER:					pin_color = IM_COL32(46, 204, 113, 255);    break; // Green (Int/Num standard)
+        case PinType::FLOATS:					pin_color = IM_COL32(26, 188, 156, 255);    break; // Turquoise (Distinct from Int)
+        case PinType::SEED:						pin_color = IM_COL32(52, 152, 219, 255);    break; // Light Blue (Seed)
 
-			// TODO
-		case PinType::COMBO:					pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::COLOR:					pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::NUMBER:					pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::AUDIO:					pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::FLOATS:					pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::VIDEO:					pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::IPADAPTER:				pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::INSIGHTFACE:				pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::NOISE:					pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::SIGMAS:					pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::SAMPLER:					pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::SEGS:						pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::PIPE_LINE:				pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::LORA_STACK:				pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::LORA_LIST:				pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::CONTROL_NET_STACK:		pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::CLIP_VISION_OUTPUT:		pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::BBOX:						pin_color = IM_COL32(0, 0, 0, 255);   break;
-		case PinType::SEED:						pin_color = IM_COL32(0, 0, 0, 255);   break;
+        // --- Media ---
+        case PinType::AUDIO:					pin_color = IM_COL32(255, 160, 0, 255);     break; // Orange (Waveforms)
+        case PinType::VIDEO:					pin_color = IM_COL32(41, 128, 185, 255);    break; // Dark Blue (Video frames)
+
+        // --- Models & Adapters ---
+        case PinType::IPADAPTER:				pin_color = IM_COL32(215, 189, 226, 255);   break; // Light Purple
+        case PinType::INSIGHTFACE:				pin_color = IM_COL32(231, 76, 60, 255);     break; // Red (FaceID)
+        case PinType::CONTROL_NET_STACK:		pin_color = IM_COL32(39, 174, 96, 255);     break; // Dark Green (ControlNet)
+        case PinType::CLIP_VISION_OUTPUT:		pin_color = IM_COL32(241, 196, 15, 255);    break; // Gold (CLIP related)
+
+        // --- Sampling & Noise ---
+        case PinType::NOISE:					pin_color = IM_COL32(149, 165, 166, 255);   break; // Grey/Concrete (Noise)
+        case PinType::SIGMAS:					pin_color = IM_COL32(140, 100, 80, 255);    break; // Brown (Math/Technical)
+        case PinType::SAMPLER:					pin_color = IM_COL32(230, 126, 34, 255);    break; // Carrot Orange
+
+        // --- Stacks & Bundles ---
+        case PinType::PIPE_LINE:				pin_color = IM_COL32(255, 215, 0, 255);     break; // Gold (Bus/Bundle)
+        case PinType::LORA_STACK:				pin_color = IM_COL32(255, 105, 180, 255);   break; // Pink (LoRA standard)
+        case PinType::LORA_LIST:				pin_color = IM_COL32(219, 112, 147, 255);   break; // Pale Pink
+
+        // --- Vision / Geometry ---
+        case PinType::SEGS:						pin_color = IM_COL32(0, 255, 255, 255);     break; // Cyan (Segmentation)
+        case PinType::BBOX:						pin_color = IM_COL32(127, 255, 0, 255);     break; // Lime (Geometry)
+        
+        default:
+			{
+				LogAndThrowInternalErr("Some predefined colors were not set");
+			}
 		}
 
 		return;
