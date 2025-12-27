@@ -86,7 +86,6 @@ std::pair<ConnectState, std::string> ConnectManager::connect_thread()
 			cli.set_connection_timeout(g::pOptsManager->comfyui_get_connect_timeout());
 			cli.set_read_timeout(g::pOptsManager->comfyui_get_read_timeout());
 
-			//Log("Connecting to ComfyUI on " << host << ":" << port << "...");
 			auto res = cli.Get("/");
 			if (!res)
 			{

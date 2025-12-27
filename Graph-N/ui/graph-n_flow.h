@@ -44,6 +44,8 @@ public:
 	bool get_online() const { return m_online; }
 	void set_online(bool online) { m_online = online; }
 
+    void reconnect();
+
 private:
 	void stop_all_threads();
 	void prepare_to_quit();

@@ -114,7 +114,7 @@ uint32_t SettingsManager::flow_get_color(VisibleObject obj)
 
 uint64_t SettingsManager::flow_get_open_wnds()
 {
-	return get_opt_int(m_flow_open_wnds, gopt_flow_open_windows, gopt_def_flow_open_wnds) | ui::ViewQueueCtrl | ui::ViewConnect
+    return get_opt_int(m_flow_open_wnds, gopt_flow_open_windows, gopt_def_flow_open_wnds) | ui::ViewQueueCtrl;
 #ifdef _DEBUG
         //| ui::ViewPanelsResetAll
 #endif

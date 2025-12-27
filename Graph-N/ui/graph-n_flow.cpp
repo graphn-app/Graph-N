@@ -33,14 +33,6 @@ bool GraphN_Flow::init()
     style.Colors[ImGuiCol_PopupBg] = ImColor(IM_COL32(50, 50, 50, 255));
     style.Colors[ImGuiCol_MenuBarBg] = ImColor(IM_COL32(50, 50, 50, 255));
 
-    // Border: Subtle light outline to separate layers
-  //  style.PopupBorderSize = 1.0f;
-  //  style.Colors[ImGuiCol_Border] = ImVec4(0.30f, 0.30f, 0.35f, 1.00f);
-
-    // Selection color in menu
-  //  style.Colors[ImGuiCol_Header] = ImVec4(0.20f, 0.25f, 0.30f, 1.00f);
-  //  style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
-
 	// open windows
     m_windows = g::pOptsManager->flow_get_open_wnds();
 
@@ -51,9 +43,15 @@ bool GraphN_Flow::init()
     Log("Nodes panel initialized");
 
 	// start connect to ComfyUI
-    g::pConnectManager->connect();
+    reconnect();
 
     return true;
+}
+
+void GraphN_Flow::reconnect()
+{
+    m_windows |= ViewConnect;
+    g::pConnectManager->connect();
 }
 
 void GraphN_Flow::exit()
@@ -100,7 +98,7 @@ void GraphN_Flow::prepare_to_quit()
 
 void GraphN_Flow::show_menu_bar()
 {
-    const bool connecting_mode = (m_windows & (ViewConnect | ViewParsingNodes)) > 0;
+    const bool connecting_mode = (m_windows & (ViewConnect | ViewParsingNodes)) > 0 && !m_online;
     if (connecting_mode)
         ImGui::PushStyleColor(ImGuiCol_MenuBarBg, g::pOptsManager->flow_get_color(VisibleObject::DisconnectedMenuBar));
 

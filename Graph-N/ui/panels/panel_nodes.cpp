@@ -304,7 +304,7 @@ void PanelNodes::show_cfg_buttons()
     fg.push();
     if (ImGui::Button(ICON_LC_FOLDER_SYNC))
     {
-        // Handle Refresh
+        g::pFlow->reconnect();
     }
     if (ImGui::IsItemHovered())
     {
