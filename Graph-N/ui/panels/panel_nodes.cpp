@@ -56,7 +56,8 @@ DlgCode PanelNodes::show(bool& focused)
     {
         data()->buffer[PanelData::buff_filter_lowered] = tools::str::to_lower_ansi(data()->buffer[PanelData::buff_filter]);
         g::pNodesManager->calc_number_inside(data()->buffer[PanelData::buff_filter_lowered]);
-        expand_all();
+		if (!data()->buffer[PanelData::buff_filter_lowered].empty())
+	        expand_all();
     }
 
     ImGui::Spacing(3);
@@ -253,7 +254,8 @@ void PanelNodes::show_cfg_buttons()
 
     ImGui::SameLine(start_pos);
 
-    if (!data()->tree_view)
+    const bool tree_view = data()->tree_view;
+    if (!tree_view)
         ImGui::BeginDisabled();
     FontGuard fg(g::pMain->get_icons_font());
     if (ImGui::Button(ICON_LC_LIST_CHEVRONS_UP_DOWN))
@@ -265,7 +267,7 @@ void PanelNodes::show_cfg_buttons()
         fg.pop();
         ImGui::SetTooltip("Expand All");
     }
-    if (!data()->tree_view)
+    if (!tree_view)
         ImGui::EndDisabled();
 
     ImGui::SameLine(0.0f, spacing * data()->grouped_btn_spacing_x);
@@ -292,6 +294,9 @@ void PanelNodes::show_cfg_buttons()
         ImGui::SetTooltip("Toggle Flat/Category View");
     }
 
+    const bool offline = g::pFlow->is_offline();
+    if (offline)
+        ImGui::BeginDisabled();
     ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
     fg.push();
     if (ImGui::Button(ICON_LC_FOLDER_SYNC))
@@ -303,6 +308,8 @@ void PanelNodes::show_cfg_buttons()
         fg.pop();
         ImGui::SetTooltip("Refresh Node List");
     }
+    if (offline)
+        ImGui::EndDisabled();
 
     //ImGui::SameLine();
     //if (ImGui::Button(ICON_LC_COLUMNS_3_COG))
