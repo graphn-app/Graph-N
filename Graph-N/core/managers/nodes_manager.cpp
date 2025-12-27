@@ -33,21 +33,22 @@ void NodesManager::init_from_copy(NodesManager& copy)
 
 void NodesManager::calc_number_inside(const std::string& filter)
 {
-    std::function<void(std::vector<data::Nodes*>&, uint32_t*)> calculator;
-    calculator = [&calculator, &filter](std::vector<data::Nodes*>& nodes, uint32_t* count)
+    std::function<void(std::vector<data::Nodes*>&, uint32_t*, bool)> calculator;
+    calculator = [&calculator, &filter](std::vector<data::Nodes*>& nodes, uint32_t* count, bool force_unfilter)
     {
         for (auto node : nodes)
         {
             if (!node->children.empty())
             {
+                const bool category_unfiltered = force_unfilter || (!filter.empty() && node->search.find(filter) != std::string::npos);
                 node->nodes_inside_unfiltered = 0;
-                calculator(node->children, filter.empty() ? &node->nodes_inside : &node->nodes_inside_unfiltered);
+                calculator(node->children, filter.empty() ? &node->nodes_inside : &node->nodes_inside_unfiltered, category_unfiltered);
                 if (count != nullptr)
                     *count += filter.empty() ? node->nodes_inside : node->nodes_inside_unfiltered;
             }
             else if (node->is_node)
             {
-                if (filter.empty())
+                if (force_unfilter || filter.empty())
                 {
                     node->filtered = false;
                     if (count != nullptr)
@@ -62,7 +63,7 @@ void NodesManager::calc_number_inside(const std::string& filter)
             }
         }
     };
-    calculator(m_nodes_tree, nullptr);
+    calculator(m_nodes_tree, nullptr, false);
 }
 
 data::Nodes* NodesManager::find_view(lid id) const
@@ -188,13 +189,6 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
 	{
         auto node = std::make_unique<data::Node>(node_class);
 		parse_names(*node.get(), node_class, json_node);		// name, display name, category, description
-
-#ifdef _DEBUG
-		if (node->category == "")
-		{
-			__debugbreak();
-		}
-#endif
 
 		parse_input(manager, *node.get(), json_node);		// input, input_order
 		parse_output(manager, *node.get(), json_node);		// output, output_is_list, output_name, output_node, output_tooltips
@@ -994,13 +988,6 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 		return items->end();
 	};
 
-#ifdef _DEBUG
-    if (node->category == "")
-    {
-        __debugbreak();
-    }
-#endif
-
 	const auto cats = tools::str::split(node->category, '/', false /*add_empty*/);
 	std::vector<data::Nodes*>* root = &manager.m_nodes_tree;
 
@@ -1022,6 +1009,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 		root->push_back(branch);
 		branch->is_node = false;
 		branch->name_or_category = *cat;
+        branch->search = tools::str::to_lower_ansi(branch->name_or_category);
 		root = &branch->children;
 	}
 

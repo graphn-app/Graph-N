@@ -57,7 +57,7 @@ DlgCode PanelNodes::show(bool& focused)
         ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
     {
         data()->buffer[PanelData::buff_filter_lowered] = tools::str::to_lower_ansi(data()->buffer[PanelData::buff_filter]);
-        g::pNodesManager->calc_number_inside(data()->buffer[PanelData::buff_filter_lowered]);
+        g::pNodesManager->calc_number_inside(tools::str::trim(data()->buffer[PanelData::buff_filter_lowered]));
 		if (!data()->buffer[PanelData::buff_filter_lowered].empty())
 	        expand_all();
     }

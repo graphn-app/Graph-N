@@ -62,3 +62,11 @@ namespace comfyui
 {
 constexpr const char* object_info = "/object_info";
 }
+
+
+//#ifdef _DEBUG
+//if ()
+//{
+//    __debugbreak();
+//}
+//#endif
