@@ -16,7 +16,7 @@ PanelNodes::PanelNodes()
 void PanelNodes::init()
 {
     PanelBase::init();
-    data()->buffer.resize(PanelData::buff_count);
+    data()->buffer.resize(PanelNodesData::buff_count);
 
     data()->tree_view = g::pOptsManager->flow_get_nodes_pane_tree_view();
 
@@ -53,12 +53,12 @@ DlgCode PanelNodes::show(bool& focused)
     show_cfg_buttons();
 
     ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelData::buff_filter],
+    if (ImGui::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelNodesData::buff_filter],
         ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
     {
-        data()->buffer[PanelData::buff_filter_lowered] = tools::str::to_lower_ansi(data()->buffer[PanelData::buff_filter]);
-        g::pNodesManager->calc_number_inside(tools::str::trim(data()->buffer[PanelData::buff_filter_lowered]));
-		if (!data()->buffer[PanelData::buff_filter_lowered].empty())
+        data()->buffer[PanelNodesData::buff_filter_lowered] = tools::str::to_lower_ansi(data()->buffer[PanelNodesData::buff_filter]);
+        g::pNodesManager->calc_number_inside(tools::str::trim(data()->buffer[PanelNodesData::buff_filter_lowered]));
+		if (!data()->buffer[PanelNodesData::buff_filter_lowered].empty())
 	        expand_all();
     }
 
@@ -87,7 +87,7 @@ void PanelNodes::show_tree_view()
     ImGui::PushStyleColor(ImGuiCol_HeaderHovered, data()->clr_bg);
     ImGui::PushStyleColor(ImGuiCol_HeaderActive, data()->clr_bg);
 
-    show_tree = [&show_tree, data = data(), indent_w, init_pos]
+    show_tree = [this, &show_tree, data = data(), indent_w, init_pos]
     (const std::vector<data::Nodes*>& items, uint32_t indent_level)
     {
         for (auto node_holder : items)
@@ -95,7 +95,7 @@ void PanelNodes::show_tree_view()
             if (nullptr == node_holder || node_holder->is_node && nullptr == node_holder->node)
                 continue;
 
-            const auto nodes_inside = data->buffer[PanelData::buff_filter_lowered].empty() ? node_holder->nodes_inside : node_holder->nodes_inside_unfiltered;
+            const auto nodes_inside = data->buffer[PanelNodesData::buff_filter_lowered].empty() ? node_holder->nodes_inside : node_holder->nodes_inside_unfiltered;
             if (!node_holder->is_node && 0 == nodes_inside || node_holder->is_node && node_holder->filtered)
                 continue;
 
@@ -111,7 +111,6 @@ void PanelNodes::show_tree_view()
                     ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_SpanFullWidth))
                 {
                     show_tree(node_holder->children, indent_level + 1);
-
                     data->open_items.insert(node_holder->get_id());
                 }
                 else
@@ -121,18 +120,21 @@ void PanelNodes::show_tree_view()
             }
             else
             {
-                ImGui::SetNextItemOpen(data->open_items.count(node_holder->get_id()) > 0);
+				if (node_holder->get_id() == data->selected_node)
+                    ImGui::PushStyleColor(ImGuiCol_Text, data->clr_hover_node);
 
-                if (ImGui::CollapsingHeader((node_holder->name_or_category + "##" + node_holder->get_id_str()).c_str(),
-                    ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth))
+                ImGui::CollapsingHeader((node_holder->name_or_category + "##" + node_holder->get_id_str()).c_str(),
+                    ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);
+
+                if (node_holder->get_id() == data->selected_node)
+                    ImGui::PopStyleColor();
+
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
                 {
-                    data->open_items.insert(node_holder->get_id());
+                    data->selected_node = node_holder->get_id();
+                    show_node(node_holder->node);
                 }
-                else
-                {
-                    data->open_items.erase(node_holder->get_id());
-                }
-                if (!node_holder->node->description.empty() && ImGui::IsItemHovered())
+                else if (!node_holder->node->description.empty() && ImGui::IsItemHovered())
                 {
                     ImGui::SetTooltip(node_holder->node->description.c_str());
                 }
@@ -180,18 +182,21 @@ void PanelNodes::show_plain_view()
 
         ImGui::BeginGroup();
 
-        ImGui::SetNextItemOpen(data()->open_items.count(node->get_id()) > 0);
+        if (node_holder->get_id() == data()->selected_node)
+            ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_hover_node);
 
-        if (ImGui::CollapsingHeader((node_holder->name_or_category + "##" + node_holder->get_id_str()).c_str(),
-            ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth))
+        ImGui::CollapsingHeader((node_holder->name_or_category + "##" + node_holder->get_id_str()).c_str(),
+            ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);
+
+        if (node_holder->get_id() == data()->selected_node)
+            ImGui::PopStyleColor();
+
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
         {
-            data()->open_items.insert(node_holder->get_id());
+            data()->selected_node = node_holder->get_id();
+            show_node(node_holder->node);
         }
-        else
-        {
-            data()->open_items.erase(node_holder->get_id());
-        }
-        if (!node->description.empty() && ImGui::IsItemHovered())
+        else if (!node->description.empty() && ImGui::IsItemHovered())
         {
             ImGui::SetTooltip(node->description.c_str());
         }
@@ -211,6 +216,11 @@ void PanelNodes::show_plain_view()
     }
 
     ImGui::PopStyleColor(3);
+}
+
+void PanelNodes::show_node(data::Node* node)
+{
+    g::pFlow->set_inspecting_node(node);
 }
 
 void PanelNodes::expand_all()
@@ -269,8 +279,6 @@ void PanelNodes::show_cfg_buttons()
         fg.pop();
         ImGui::SetTooltip("Expand All");
     }
-    if (!tree_view)
-        ImGui::EndDisabled();
 
     ImGui::SameLine(0.0f, spacing * data()->grouped_btn_spacing_x);
     fg.push();
@@ -283,6 +291,8 @@ void PanelNodes::show_cfg_buttons()
         fg.pop();
         ImGui::SetTooltip("Collapse All");
     }
+    if (!tree_view)
+        ImGui::EndDisabled();
 
     ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
     fg.push();

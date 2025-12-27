@@ -34,7 +34,9 @@ inline constexpr int64_t gopt_def_flow_clrs[cast::to_szt(VisibleObject::_count)]
                                                             IM_COL32(0, 0, 0, 255),				// Options bg
                                                             IM_COL32(24, 24, 27, 255),			// PanelNodes bg
                                                             IM_COL32(220, 220, 220, 50),		// PanelNodesHoverGroup
-                                                            IM_COL32(255, 165, 0, 80),			// PanelNodesHoverNode
+                                                            IM_COL32(211, 112, 0, 80),			// PanelNodesHoverNode
+                                                            IM_COL32(24, 24, 27, 255),			// PanelNodeInspector bg
+                                                            IM_COL32(220, 220, 220, 50),		// PanelNodeInspectorDescrFrame
 														};
 inline constexpr int64_t gopt_def_flow_open_wnds		= ui::ViewOptsComfyUi | ui::ViewPanelsResetAll;
 inline constexpr int64_t gopt_def_flow_nodes_pane_view	= 1;

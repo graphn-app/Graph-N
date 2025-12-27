@@ -6,11 +6,17 @@ namespace mngr
 class NodesParser;
 }
 
+namespace data
+{
+struct Node;
+}
+
 namespace ui
 {
 class BaseDlg;
 class OptionsDlgs;
 class PanelNodes;
+class PanelNodeInspector;
 
 enum ViewDialogs
 {
@@ -25,10 +31,11 @@ enum ViewDialogs
 	// panels
 	ViewPanelsResetAll		= 0x00010000,
 	ViewPanelNodes			= 0x00020000,
+    ViewPanelNodeInpector	= 0x00040000,
 
 	ViewAllOptions			= ViewOptions | ViewOptsComfyUi,
 	ViewAllMenuBar			= ViewConnect | ViewParsingNodes | ViewQueueCtrl,
-    ViewAllPanels			= ViewPanelNodes
+    ViewAllPanels			= ViewPanelNodes | ViewPanelNodeInpector
 };
 
 class GraphN_Flow final
@@ -46,6 +53,8 @@ public:
 
     void reconnect();
 
+    void set_inspecting_node(data::Node* node);
+
 private:
 	void stop_all_threads();
 	void prepare_to_quit();
@@ -56,6 +65,7 @@ private:
 	void show_options_dlg();
     void show_panels();
     void show_panel_nodes();
+    void show_panel_node_inspector();
 
 	void on_dlg_closed(VisibleObject dlg);
 	
@@ -68,13 +78,15 @@ private:
 	bool m_online = false;
 
     ImGuiID m_main_dock_id = 0;
+
+    std::unique_ptr<mngr::NodesParser> m_nodes_parser;
 	
 	uint64_t m_windows = ViewNone;
 	BaseDlg* m_focused_wnd = nullptr;
 	std::set<BaseDlg*> m_all_dialogs;
 	std::unique_ptr<OptionsDlgs> m_opts_dlg;
-    std::unique_ptr<PanelNodes> m_nodes_panel;
 
-	std::unique_ptr<mngr::NodesParser> m_nodes_parser;
+    std::unique_ptr<PanelNodes> m_nodes_panel;
+    std::unique_ptr<PanelNodeInspector> m_node_inspector;
 };
 }

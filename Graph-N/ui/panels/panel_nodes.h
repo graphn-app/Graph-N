@@ -2,10 +2,15 @@
 #pragma once
 #include "ui/panels/panel_base.h"
 
+namespace data
+{
+struct Node;
+}
+
 namespace ui
 {
 
-struct PanelData final : public PanelCommonData
+struct PanelNodesData final : public PanelCommonData
 {
     enum Buffer
     {
@@ -22,9 +27,10 @@ struct PanelData final : public PanelCommonData
     ImU32 clr_active_btn = 0;			// active button
 
     bool tree_view = true;
+    lid selected_node = 0;
 };
 
-class PanelNodes final : public PanelBase<PanelData>
+class PanelNodes final : public PanelBase<PanelNodesData>
 {
 public:
     PanelNodes();
@@ -36,6 +42,7 @@ private:
     DlgCode show(bool& focused) override;
     void show_tree_view();
     void show_plain_view();
+    void show_node(data::Node* node);
 	
     void show_cfg_buttons();
     void expand_all();

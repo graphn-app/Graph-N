@@ -19,9 +19,13 @@ enum class VisibleObject
 	QueueText,
 	OptionsDlg,
     OptionsBg,
+
 	PanelNodes,
     PanelNodesHoverGroup,
     PanelNodesHoverNode,
+
+    PanelNodeInspector,
+    PanelNodeInspectorDescrFrame,
 
     _count,
 	_first				= _none + 1,

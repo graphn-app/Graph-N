@@ -60,6 +60,13 @@ void MainRoutine::prepare_fonts()
     config.GlyphOffset.y = 1.0f;
     io.Fonts->AddFontFromFileTTF(path_emoji.c_str(), 18.0f, &config, ranges.Data);
 
+    // Merge icons -> Regular
+    config.MergeMode = true;
+    config.PixelSnapH = true;
+    config.GlyphMinAdvanceX = 18.0f;
+    config.GlyphOffset.y = 1.1f;
+    io.Fonts->AddFontFromFileTTF(path_icons.c_str(), 18.0f, &config, ranges_icons);
+
     // ================= BOLD FONT =================
 
     // Base Bold
@@ -75,6 +82,13 @@ void MainRoutine::prepare_fonts()
     config.GlyphMinAdvanceX = 18.0f;
     config.GlyphOffset.y = 1.0f;
     io.Fonts->AddFontFromFileTTF(path_emoji.c_str(), 18.0f, &config, ranges.Data);
+
+    // Merge icons -> Bold
+    config.MergeMode = true;
+    config.PixelSnapH = true;
+    config.GlyphMinAdvanceX = 18.0f;
+    config.GlyphOffset.y = 1.1f;
+    io.Fonts->AddFontFromFileTTF(path_icons.c_str(), 18.0f, &config, ranges_icons);
 
     // ================= ICONS FONT =================
 
