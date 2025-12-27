@@ -18,6 +18,8 @@ void PanelNodes::init()
     PanelBase::init();
     data()->buffer.resize(PanelData::buff_count);
 
+    data()->tree_view = g::pOptsManager->flow_get_nodes_pane_tree_view();
+
     data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::PanelNodes);
     data()->clr_hover_group = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverGroup);
     data()->clr_hover_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverNode);
@@ -287,6 +289,7 @@ void PanelNodes::show_cfg_buttons()
     if (ImGui::Button(data()->tree_view ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE))
     {
         data()->tree_view = !data()->tree_view;
+        g::pOptsManager->flow_set_nodes_pane_tree_view(data()->tree_view);
     }
     if (ImGui::IsItemHovered())
     {
@@ -294,8 +297,8 @@ void PanelNodes::show_cfg_buttons()
         ImGui::SetTooltip("Toggle Flat/Category View");
     }
 
-    const bool offline = g::pFlow->is_offline();
-    if (offline)
+    const bool online = g::pFlow->get_online();
+    if (!online)
         ImGui::BeginDisabled();
     ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
     fg.push();
@@ -308,7 +311,7 @@ void PanelNodes::show_cfg_buttons()
         fg.pop();
         ImGui::SetTooltip("Refresh Node List");
     }
-    if (offline)
+    if (!online)
         ImGui::EndDisabled();
 
     //ImGui::SameLine();

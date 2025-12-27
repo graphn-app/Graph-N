@@ -41,7 +41,8 @@ public:
 	bool run();
 	void exit();
 
-	bool is_offline() const { return m_offline_mode; }
+	bool get_online() const { return m_online; }
+	void set_online(bool online) { m_online = online; }
 
 private:
 	void stop_all_threads();
@@ -62,7 +63,7 @@ private:
     void on_menu_panel_window(ViewDialogs wnd);
 
 private:
-	bool m_offline_mode = true;
+	bool m_online = false;
 
     ImGuiID m_main_dock_id = 0;
 	

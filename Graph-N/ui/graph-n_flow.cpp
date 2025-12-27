@@ -24,7 +24,7 @@ bool GraphN_Flow::init()
 {
     LogF;
 
-    m_offline_mode = true;
+    m_online = false;
 
 	// menu colors
     ImGuiStyle& style = ImGui::GetStyle();
@@ -252,6 +252,7 @@ void GraphN_Flow::show_menu_bar_connecting()
 
             m_nodes_parser = std::make_unique<mngr::NodesParser>();
             m_nodes_parser->parse(std::move(g::pConnectManager->get_nodes_raw()));
+            m_online = true;
             return;
         }
         if (mngr::ConnectState::disconnected == status)

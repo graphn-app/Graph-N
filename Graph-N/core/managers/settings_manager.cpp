@@ -12,6 +12,7 @@ namespace mngr
 
 inline constexpr auto gopt_flow_open_windows			= "flow_open_windows";
 inline constexpr auto gopt_flow_clr_prefix				= "flow_color_";
+inline constexpr auto gopt_flow_nodes_pane_view			= "flow_nodes_pane_view";
 
 inline constexpr auto gopt_comfyui_host					= "comfyui_host";
 inline constexpr auto gopt_comfyui_port					= "comfyui_port";
@@ -35,9 +36,10 @@ inline constexpr int64_t gopt_def_flow_clrs[cast::to_szt(VisibleObject::_count)]
                                                             IM_COL32(220, 220, 220, 50),		// PanelNodesHoverGroup
                                                             IM_COL32(255, 165, 0, 80),			// PanelNodesHoverNode
 														};
-inline constexpr int64_t gopt_def_flow_open_wnds = ui::ViewOptsComfyUi | ui::ViewPanelsResetAll;
+inline constexpr int64_t gopt_def_flow_open_wnds		= ui::ViewOptsComfyUi | ui::ViewPanelsResetAll;
+inline constexpr int64_t gopt_def_flow_nodes_pane_view	= 1;
 
-inline constexpr auto gopt_def_comfyui_host				= "127.0.0.1";
+inline constexpr auto	 gopt_def_comfyui_host			= "127.0.0.1";
 inline constexpr int64_t gopt_def_comfyui_port			= 8188;
 inline constexpr int64_t gopt_def_comfyui_conn_time		= 5;
 inline constexpr int64_t gopt_def_comfyui_read_time		= 10;
@@ -123,6 +125,16 @@ void SettingsManager::flow_set_open_wnds(uint64_t windows)
 {
     windows &= ~(ui::ViewAllMenuBar | ui::ViewAllOptions);
 	set_opt_int(m_flow_open_wnds, windows, gopt_flow_open_windows);
+}
+
+bool SettingsManager::flow_get_nodes_pane_tree_view()
+{
+    return get_opt_int(m_flow_nodes_pane_view, gopt_flow_nodes_pane_view, gopt_def_flow_nodes_pane_view) == 1;
+}
+
+void SettingsManager::flow_set_nodes_pane_tree_view(bool tree_view)
+{
+    set_opt_int(m_flow_nodes_pane_view, tree_view, gopt_flow_nodes_pane_view);
 }
 
 //////////////////////////////////////////////////////////////////////

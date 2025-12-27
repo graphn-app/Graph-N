@@ -19,6 +19,9 @@ public:
 	uint64_t flow_get_open_wnds();
 	void flow_set_open_wnds(uint64_t windows);
 
+    bool flow_get_nodes_pane_tree_view();
+    void flow_set_nodes_pane_tree_view(bool tree_view);
+
 	// comfyui
 	const std::string& comfyui_get_host();
 	void comfyui_set_host(const std::string& host);
@@ -43,6 +46,7 @@ private:
 	// flow
 	int64_t m_flow_open_wnds = -1;
 	int64_t m_flow_colors[cast::to_szt(VisibleObject::_count)];
+    int64_t m_flow_nodes_pane_view = -1;
 
 	// comfyui
 	std::string m_comfyui_host;
