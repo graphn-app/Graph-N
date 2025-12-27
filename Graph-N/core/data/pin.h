@@ -58,9 +58,9 @@ public:
 	~Pin() override = default;
 
 	bool can_link(const Pin* other) const;
-	void link_to(std::shared_ptr<Pin> other);
+	void link_to(Pin* other);
 	void unlink();
-	std::shared_ptr<Pin> get_link() const { return link.lock(); }
+	Pin* get_link() const { return link; }
 
 	static inline bool get_is_null(const primitive& value) { return std::holds_alternative<std::monostate>(value); }
 	static inline int64_t get_int(const primitive& value) { return std::get<int64_t>(value); }
@@ -133,7 +133,7 @@ public:
 	std::string to_string(const std::vector<primitive>::iterator& it) const;
 
 private:
-	std::weak_ptr<Pin> link;
+	Pin* link = nullptr;
 	static const std::unordered_map<std::string, PinType> pin_type_map;
 
 private:

@@ -76,7 +76,7 @@ void PanelNodes::show_tree_view()
 {
     auto& nodes = g::pNodesManager->get_nodes_tree();
 
-    std::function<void(const std::vector<data::Nodes>&, uint32_t)> show_tree;
+    std::function<void(const std::vector<data::Nodes*>&, uint32_t)> show_tree;
     const float indent_w = GImGui->Style.IndentSpacing;
     const auto init_pos = ImGui::GetCursorPosX();
 
@@ -85,52 +85,53 @@ void PanelNodes::show_tree_view()
     ImGui::PushStyleColor(ImGuiCol_HeaderActive, data()->clr_bg);
 
     show_tree = [&show_tree, data = data(), indent_w, init_pos]
-    (const std::vector<data::Nodes>& items, uint32_t indent_level)
+    (const std::vector<data::Nodes*>& items, uint32_t indent_level)
     {
-        for (auto& node : items)
+        for (auto node_holder : items)
         {
-            const auto nodes_inside = data->buffer[PanelData::buff_filter_lowered].empty() ? node.nodes_inside : node.nodes_inside_unfiltered;
-            if (!node.is_node && 0 == nodes_inside || node.is_node && node.filtered)
+            if (nullptr == node_holder || node_holder->is_node && nullptr == node_holder->node)
+                continue;
+
+            const auto nodes_inside = data->buffer[PanelData::buff_filter_lowered].empty() ? node_holder->nodes_inside : node_holder->nodes_inside_unfiltered;
+            if (!node_holder->is_node && 0 == nodes_inside || node_holder->is_node && node_holder->filtered)
                 continue;
 
             if (indent_level > 0)
                 ImGui::SetCursorPosX(init_pos + indent_w * indent_level);
 
             ImGui::BeginGroup();
-            if (!node.is_node)
+            if (!node_holder->is_node)
             {
-                ImGui::SetNextItemOpen(data->open_items.count(node.get_id()) > 0);
+                ImGui::SetNextItemOpen(data->open_items.count(node_holder->get_id()) > 0);
 
-                if (ImGui::CollapsingHeader((node.name_or_category + " (" + std::to_string(nodes_inside) + ")##" + node.get_id_str()).c_str(),
+                if (ImGui::CollapsingHeader((node_holder->name_or_category + " (" + std::to_string(nodes_inside) + ")##" + node_holder->get_id_str()).c_str(),
                     ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_SpanFullWidth))
                 {
-                    show_tree(node.children, indent_level + 1);
+                    show_tree(node_holder->children, indent_level + 1);
 
-                    data->open_items.insert(node.get_id());
+                    data->open_items.insert(node_holder->get_id());
                 }
                 else
                 {
-                    data->open_items.erase(node.get_id());
+                    data->open_items.erase(node_holder->get_id());
                 }
             }
             else
             {
-                ImGui::SetNextItemOpen(data->open_items.count(node.get_id()) > 0);
+                ImGui::SetNextItemOpen(data->open_items.count(node_holder->get_id()) > 0);
 
-                if (ImGui::CollapsingHeader((node.name_or_category + "##" + node.get_id_str()).c_str(), 
+                if (ImGui::CollapsingHeader((node_holder->name_or_category + "##" + node_holder->get_id_str()).c_str(),
                     ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth))
                 {
-                    data->open_items.insert(node.get_id());
+                    data->open_items.insert(node_holder->get_id());
                 }
                 else
                 {
-                    data->open_items.erase(node.get_id());
+                    data->open_items.erase(node_holder->get_id());
                 }
-                if (ImGui::IsItemHovered())
+                if (!node_holder->node->description.empty() && ImGui::IsItemHovered())
                 {
-                    auto ptr = node.node.lock();
-                    if (ptr && !ptr->description.empty())
-                        ImGui::SetTooltip(ptr->description.c_str());
+                    ImGui::SetTooltip(node_holder->node->description.c_str());
                 }
             }
             ImGui::EndGroup();
@@ -140,7 +141,7 @@ void PanelNodes::show_tree_view()
             vMax.x = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x - ImGui::GetStyle().FramePadding.x;
             if (ImGui::IsMouseHoveringRect(vMin, vMax, true))
             {
-                if (node.is_node)
+                if (node_holder->is_node)
                 {
                     vMin.x = ImGui::GetCursorScreenPos().x + ImGui::GetStyle().FramePadding.x;
                 }
@@ -148,7 +149,7 @@ void PanelNodes::show_tree_view()
                     vMax.x -= ImGui::GetStyle().FramePadding.x * indent_level;
 
                 ImGui::GetWindowDrawList()->AddRect(vMin, vMax,
-                    node.is_node ? data->clr_hover_node : data->clr_hover_group,
+                    node_holder->is_node ? data->clr_hover_node : data->clr_hover_group,
                     0.0f, 0, 1.0f
                 );
             }
@@ -162,26 +163,30 @@ void PanelNodes::show_tree_view()
 
 void PanelNodes::show_plain_view()
 {
-    auto& nodes = g::pNodesManager->get_nodes_sorted();
+    auto& nodes = g::pNodesManager->get_nodes_plain();
 
     ImGui::PushStyleColor(ImGuiCol_Header, data()->clr_bg);
     ImGui::PushStyleColor(ImGuiCol_HeaderHovered, data()->clr_bg);
     ImGui::PushStyleColor(ImGuiCol_HeaderActive, data()->clr_bg);
 
-    for (auto& [name, node] : nodes)
+    for (auto node_holder : nodes)
     {
+        if (nullptr == node_holder || nullptr == node_holder->node || !node_holder->is_node || node_holder->filtered)
+            continue;
+        auto node = node_holder->node;
+
         ImGui::BeginGroup();
 
         ImGui::SetNextItemOpen(data()->open_items.count(node->get_id()) > 0);
 
-        if (ImGui::CollapsingHeader((name + "##" + node->get_id_str()).c_str(), 
+        if (ImGui::CollapsingHeader((node_holder->name_or_category + "##" + node_holder->get_id_str()).c_str(),
             ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth))
         {
-            data()->open_items.insert(node->get_id());
+            data()->open_items.insert(node_holder->get_id());
         }
         else
         {
-            data()->open_items.erase(node->get_id());
+            data()->open_items.erase(node_holder->get_id());
         }
         if (!node->description.empty() && ImGui::IsItemHovered())
         {
@@ -207,15 +212,15 @@ void PanelNodes::show_plain_view()
 
 void PanelNodes::expand_all()
 {
-    std::function<void(const std::vector<data::Nodes>&)> add_id;
-    add_id = [&add_id, data = data()](const std::vector<data::Nodes>& nodes)
+    std::function<void(const std::vector<data::Nodes*>&)> add_id;
+    add_id = [&add_id, data = data()](const std::vector<data::Nodes*>& nodes)
     {
-        for (auto& node : nodes)
+        for (auto node : nodes)
         {
-            if (!node.is_node)
+            if (!node->is_node)
             {
-                data->open_items.insert(node.get_id());
-                add_id(node.children);
+                data->open_items.insert(node->get_id());
+                add_id(node->children);
             }
         }
     };

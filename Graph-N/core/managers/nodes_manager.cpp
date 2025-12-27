@@ -13,51 +13,51 @@ namespace mngr
 
 void NodesManager::free()
 {
-	m_nodes_by_id.clear();
-	m_nodes_by_name.clear();
-	m_nodes_sorted.clear();
-	m_pins.clear();
-	m_nodes_tree.clear();
+    m_nodes.clear();
+    m_pins.clear();
+    m_nodes_view.clear();
+    m_nodes_tree.clear();
+    m_nodes_plain.clear();
 }
 
 void NodesManager::init_from_copy(NodesManager& copy)
 {
 	free();
-	m_nodes_by_id = std::move(copy.m_nodes_by_id);
-	m_nodes_by_name = std::move(copy.m_nodes_by_name);
-	m_nodes_sorted = std::move(copy.m_nodes_sorted);
-	m_pins = std::move(copy.m_pins);
-	m_nodes_tree = std::move(copy.m_nodes_tree);
+    m_nodes = std::move(copy.m_nodes);
+    m_pins = std::move(copy.m_pins);
+    m_nodes_view = std::move(copy.m_nodes_view);
+    m_nodes_tree = std::move(copy.m_nodes_tree);
+    m_nodes_plain = std::move(copy.m_nodes_plain);
     calc_number_inside("");
 }
 
 void NodesManager::calc_number_inside(const std::string& filter)
 {
-    std::function<void(std::vector<data::Nodes>&, uint32_t*)> calculator;
-    calculator = [&calculator, &filter](std::vector<data::Nodes>& nodes, uint32_t* count)
+    std::function<void(std::vector<data::Nodes*>&, uint32_t*)> calculator;
+    calculator = [&calculator, &filter](std::vector<data::Nodes*>& nodes, uint32_t* count)
     {
-        for (auto& node : nodes)
+        for (auto node : nodes)
         {
-            if (!node.children.empty())
+            if (!node->children.empty())
             {
-                node.nodes_inside_unfiltered = 0;
-                calculator(node.children, filter.empty() ? &node.nodes_inside : &node.nodes_inside_unfiltered);
+                node->nodes_inside_unfiltered = 0;
+                calculator(node->children, filter.empty() ? &node->nodes_inside : &node->nodes_inside_unfiltered);
                 if (count != nullptr)
-                    *count += filter.empty() ? node.nodes_inside : node.nodes_inside_unfiltered;
+                    *count += filter.empty() ? node->nodes_inside : node->nodes_inside_unfiltered;
             }
-            else if (node.is_node)
+            else if (node->is_node)
             {
                 if (filter.empty())
                 {
-                    node.filtered = false;
+                    node->filtered = false;
                     if (count != nullptr)
 						(*count)++;
                 }
                 else
                 {
-					node.filtered = (node.search.find(filter) == std::string::npos);
+					node->filtered = (node->search.find(filter) == std::string::npos);
                     if (count != nullptr)
-						*count += node.filtered ? 0 : 1;
+						*count += node->filtered ? 0 : 1;
                 }
             }
         }
@@ -65,20 +65,28 @@ void NodesManager::calc_number_inside(const std::string& filter)
     calculator(m_nodes_tree, nullptr);
 }
 
-std::shared_ptr<data::Node> NodesManager::find_node(hid id) const
+data::Nodes* NodesManager::find_view(lid id) const
 {
-	const auto it = m_nodes_by_id.find(id);
-	if (it == m_nodes_by_id.end())
-		return nullptr;
-	return it->second;
+    const auto it = m_nodes_view.find(id);
+    if (it == m_nodes_view.end())
+        return nullptr;
+    return it->second.get();
 }
 
-std::shared_ptr<data::Pin> NodesManager::find_pin(hid id) const
+data::Node* NodesManager::find_node(hid id) const
+{
+	const auto it = m_nodes.find(id);
+	if (it == m_nodes.end())
+		return nullptr;
+	return it->second.get();
+}
+
+data::Pin* NodesManager::find_pin(hid id) const
 {
 	const auto it = m_pins.find(id);
 	if (it == m_pins.end())
 		return nullptr;
-	return it->second;
+	return it->second.get();
 }
 
 //////////////////////////////////////////////////////////////////
@@ -163,7 +171,7 @@ NodesManager NodesParser::parse_thread()
 		}
 
 		add_internal_nodes(copy);
-		sort_nodes_tree(copy);
+		sort_nodes(copy);
 		return copy;
 	}
 	catch (std::exception& e)
@@ -178,7 +186,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
 {
 	try
 	{
-        auto node = std::make_shared<data::Node>(node_class);
+        auto node = std::make_unique<data::Node>(node_class);
 		parse_names(*node.get(), node_class, json_node);		// name, display name, category, description
 
 #ifdef _DEBUG
@@ -192,8 +200,8 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
 		parse_output(manager, *node.get(), json_node);		// output, output_is_list, output_name, output_node, output_tooltips
 		parse_others(*node.get(), json_node);				// python_module, experimental, deprecated, api_node
 
-		put_in_tree(manager, node);
-		manager.m_nodes_by_id.emplace(node->get_id(), node);
+		put_in_tree(manager, node.get());
+		manager.m_nodes.emplace(node->get_id(), std::move(node));
 	}
 	catch (std::exception& e)
 	{
@@ -558,9 +566,8 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
 		auto items = objects.items();
 		for (const auto&[pin_name, pin_info] : items)
 		{
-			auto pin = std::make_shared<data::Pin>(node.node_class.empty() ? node.name : node.node_class, pin_name);
-			input.pins.push_back(pin);
-			manager.m_pins[pin->get_id()] = pin;
+			auto pin = std::make_unique<data::Pin>(node.node_class.empty() ? node.name : node.node_class, pin_name);
+			input.pins.push_back(pin.get());
 
 			pin->input = true;
 			pin->name = pin_name;
@@ -627,6 +634,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
 			}
 
 			pin->finalize();
+            manager.m_pins.emplace(pin->get_id(), std::move(pin));
 		}
 	};
 
@@ -687,7 +695,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
             size_t index = 0;
 			for (const auto& item : output)
 			{
-				auto pin = std::make_shared<data::Pin>(node.node_class.empty() ? node.name : node.node_class, index++);
+				auto pin = std::make_unique<data::Pin>(node.node_class.empty() ? node.name : node.node_class, index++);
 				pin->output = true;
 
 				if (item.is_string())
@@ -717,8 +725,8 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
 					continue;
 				}
 
-				node.output.push_back(pin);
-				manager.m_pins[pin->get_id()] = pin;
+				node.output.push_back(pin.get());
+				manager.m_pins.emplace(pin->get_id(), std::move(pin));
 			}
 		}
 	}
@@ -744,7 +752,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
 
 					auto pin = *out_pins;
 					++out_pins;
-					if (!new_cb(item, pin.get()))
+					if (!new_cb(item, pin))
 					{
 						LogInvalidJson(attr_name << " unknown type. Node=" << node.name);
 					}
@@ -755,7 +763,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
 					LogInvalidJson("number of " << attr_name << " is less than pins count. Node=" << node.name);
 					for ( ; out_pins != node.output.end(); ++out_pins)
 					{
-						def_cb(out_pins->get());
+						def_cb(*out_pins);
 					}
 				}
 			}
@@ -888,60 +896,63 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
 	// Reroute
 	{
         constexpr auto node_class = "Reroute";
-		auto node = std::make_shared<data::Node>(node_class);
+		auto node = std::make_unique<data::Node>(node_class);
 		node->name = node_class;
 		node->display_name = node_class;
 		node->category = "utils";
 		node->description = "Reroute Node Node Purpose: Mainly used to organize the logic of overly long connection lines in the ComfyUI workflow.";
 
 		// Input: ANY (*)
-		auto in = std::make_shared<data::Pin>(node_class, "*");
+		auto in = std::make_unique<data::Pin>(node_class, "*");
 		in->name = "*";
 		in->input = true;
 		in->initialize("*");
-		node->required.pins.push_back(in);
+		node->required.pins.push_back(in.get());
 		node->required.order.push_back("*");
+        manager.m_pins.emplace(in->get_id(), std::move(in));
 
 		// Output: ANY (*)
-		auto out = std::make_shared<data::Pin>(node_class, 0);
+		auto out = std::make_unique<data::Pin>(node_class, 0);
 		out->name = "*";
 		out->output = true;
-		node->output.push_back(out);
+		node->output.push_back(out.get());
+        manager.m_pins.emplace(out->get_id(), std::move(out));
 
 		node->has_input = true;
 		node->has_output = true;
 
-		put_in_tree(manager, node);
-		manager.m_nodes_by_id.emplace(node->get_id(), node);
+		put_in_tree(manager, node.get());
+		manager.m_nodes.emplace(node->get_id(), std::move(node));
 	}
 	
 	// Primitive
 	{
         constexpr auto node_class = "Primitive";
-		auto node = std::make_shared<data::Node>(node_class);
+		auto node = std::make_unique<data::Node>(node_class);
 		node->name = node_class;
 		node->display_name = node_class;
 		node->category = "utils";
 		node->description = "Primitive values like numbers, strings, and booleans.";
 
         // Output: ANY (*)
-		auto out = std::make_shared<data::Pin>(node_class, 0);
+		auto out = std::make_unique<data::Pin>(node_class, 0);
 		out->name = "connect to widget input";
 		out->output = true;
 		out->initialize("*");
-		node->output.push_back(out);
+		node->output.push_back(out.get());
+        manager.m_pins.emplace(out->get_id(), std::move(out));
 
         node->has_input = false;
         node->has_output = true;
 
-		put_in_tree(manager, node);
-		manager.m_nodes_by_id.emplace(node->get_id(), node);
+		put_in_tree(manager, node.get());
+        manager.m_nodes.emplace(node->get_id(), std::move(node));
 	}
 
 	// Note
 	{
         constexpr auto node_class = "Note";
-		auto node = std::make_shared<data::NodeNote>(node_class);
+		auto node = std::make_unique<data::NodeNote>(node_class);
 		node->name = node_class;
 		node->display_name = node_class;
 		node->category = "utils";
@@ -950,14 +961,14 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
         node->has_input = false;
         node->has_output = false;
 
-		put_in_tree(manager, node);
-		manager.m_nodes_by_id.emplace(node->get_id(), node);
+		put_in_tree(manager, node.get());
+        manager.m_nodes.emplace(node->get_id(), std::move(node));
 	}
 
 	// Markdown Note
 	{
         constexpr auto node_class = "Markdown Note";
-		auto node = std::make_shared<data::NodeMarkdownNote>(node_class);
+		auto node = std::make_unique<data::NodeMarkdownNote>(node_class);
 		node->name = node_class;
 		node->display_name = node_class;
 		node->category = "utils";
@@ -966,18 +977,18 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
         node->has_input = false;
         node->has_output = false;
 
-		put_in_tree(manager, node);
-		manager.m_nodes_by_id.emplace(node->get_id(), node);
+		put_in_tree(manager, node.get());
+        manager.m_nodes.emplace(node->get_id(), std::move(node));
 	}
 }
 
-void NodesParser::put_in_tree(NodesManager& manager, std::shared_ptr<data::Node> node)
+void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 {
-	const auto search_branch = [](std::vector<data::Nodes>* items, const std::string& category)
+	const auto search_branch = [](std::vector<data::Nodes*>* items, const std::string& category)
 	{
 		for (auto it = items->begin(); it != items->end(); ++it)
 		{
-			if (!it->is_node && category == it->name_or_category)
+			if (!(*it)->is_node && category == (*it)->name_or_category)
 				return it;
 		}
 		return items->end();
@@ -991,64 +1002,66 @@ void NodesParser::put_in_tree(NodesManager& manager, std::shared_ptr<data::Node>
 #endif
 
 	const auto cats = tools::str::split(node->category, '/', false /*add_empty*/);
-	std::vector<data::Nodes>* root = &manager.m_nodes_tree;
+	std::vector<data::Nodes*>* root = &manager.m_nodes_tree;
 
 	auto cat = cats.begin();
 	for ( ; cat != cats.end(); ++cat)
 	{
 		auto it = search_branch(root, *cat);
 		if (it == root->end())
-			break;
-		root = &(*it).children;
+			break;		
+		root = &(*it)->children;
 	}
 
 	for ( ; cat != cats.end(); ++cat)
 	{
-		root->push_back({});
-		data::Nodes& branch = root->back();
-		branch.is_node = false;
-		branch.name_or_category = *cat;
-		root = &branch.children;
+        auto branch_ptr = std::make_unique<data::Nodes>();
+        auto branch = branch_ptr.get();
+        manager.m_nodes_view.emplace(branch_ptr->get_id(), std::move(branch_ptr));
+
+		root->push_back(branch);
+		branch->is_node = false;
+		branch->name_or_category = *cat;
+		root = &branch->children;
 	}
 
-	root->push_back({});
-	data::Nodes& branch = root->back();
-	branch.is_node = true;
-	branch.name_or_category = (node->display_name.empty() ? node->name : node->display_name);
-    branch.search = tools::str::to_lower_ansi(node->name + " " + node->display_name);
-	branch.node = node;
+    auto branch_ptr = std::make_unique<data::Nodes>();
+    auto branch = branch_ptr.get();
+    manager.m_nodes_view.emplace(branch_ptr->get_id(), std::move(branch_ptr));
 
-	manager.m_nodes_sorted[node->name] = node;
+	root->push_back(branch);
+	branch->is_node = true;
+	branch->name_or_category = (node->display_name.empty() ? node->name : node->display_name);
+    branch->search = tools::str::to_lower_ansi(node->name + " " + node->display_name);
+	branch->node = node;
+
+	manager.m_nodes_plain.push_back(branch);
 }
 
-void NodesParser::sort_nodes_tree(NodesManager& manager)
+void NodesParser::sort_nodes(NodesManager& manager)
 {
-	const auto sort_tree_callback = [](const data::Nodes& lhs, const data::Nodes& rhs)
+	const auto sort_callback = [](const data::Nodes* lhs, const data::Nodes* rhs)
 	{
-        if (!lhs.is_node && rhs.is_node)
+        if (!lhs->is_node && rhs->is_node)
             return true;
-        if (lhs.is_node && !rhs.is_node)
+        if (lhs->is_node && !rhs->is_node)
             return false;
-		return tools::str::to_lower_ansi(lhs.name_or_category) < tools::str::to_lower_ansi(rhs.name_or_category);
+		return tools::str::to_lower_ansi(lhs->name_or_category) < tools::str::to_lower_ansi(rhs->name_or_category);
 	};
 
-	const auto sort_plain_callback = [](const std::shared_ptr<data::Node>& lhs, const std::shared_ptr<data::Node>& rhs)
+	std::function<void(std::vector<data::Nodes*>& nodes)> sort_tree;
+	sort_tree = [&sort_tree, &sort_callback](std::vector<data::Nodes*>& nodes)
 	{
-		return tools::str::to_lower_ansi(lhs->display_name) < tools::str::to_lower_ansi(rhs->display_name);
-	};
+		std::sort(nodes.begin(), nodes.end(), sort_callback);
 
-	std::function<void(std::vector<data::Nodes>& nodes)> sort_tree;
-	sort_tree = [&sort_tree, &sort_tree_callback](std::vector<data::Nodes>& nodes)
-	{
-		std::sort(nodes.begin(), nodes.end(), sort_tree_callback);
-
-		for (auto& node : nodes)
+		for (auto node : nodes)
 		{
-			sort_tree(node.children);
+			sort_tree(node->children);
 		}
 	};
 
 	sort_tree(manager.m_nodes_tree);
+    std::sort(manager.m_nodes_plain.begin(), manager.m_nodes_plain.end(), sort_callback);
 }
 
 } // namespace mngr

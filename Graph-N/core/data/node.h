@@ -12,12 +12,12 @@ struct Node : public base::HashID
 {
     using base::HashID::HashID;
 	
-	virtual ~Node() override = default;
+	~Node() override = default;
 
 	bool has_input = false;
 	struct Input
 	{
-		std::vector<std::shared_ptr<Pin>> pins;
+		std::vector<Pin*> pins;
 		std::vector<std::string> order;
 	};
 	Input required;
@@ -26,7 +26,7 @@ struct Node : public base::HashID
 
 	bool has_output = false;
 	bool output_node = false;
-	std::vector<std::shared_ptr<data::Pin>> output;
+	std::vector<data::Pin*> output;
 
 	std::string name;
 	std::string node_class;		// if empty - matches to name

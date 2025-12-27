@@ -12,13 +12,13 @@ struct Nodes : public base::LocalID
     Nodes() = default;
     ~Nodes() override = default;
 
-	std::weak_ptr<Node> node;
+	Node* node = nullptr;
 	bool is_node = false;
 
 	std::string name_or_category;
     std::string search;
 
-	std::vector<Nodes> children;
+	std::vector<Nodes*> children;
 
     uint32_t nodes_inside = 0;
     uint32_t nodes_inside_unfiltered = 0;
@@ -37,27 +37,32 @@ public:
 	NodesManager() = default;
 	~NodesManager() override = default;
 
+    NodesManager(NodesManager&&) = default;
+    NodesManager& operator=(NodesManager&&) = default;
+    NodesManager(const NodesManager&) = delete;
+    NodesManager& operator=(const NodesManager&) = delete;
+
 	void free() override;
 
-	const std::vector<data::Nodes>& get_nodes_tree() const { return m_nodes_tree; }		// must not be saved as class/global member, always do request
-	const std::map<std::string, std::shared_ptr<data::Node>>& get_nodes_sorted() const { return m_nodes_sorted; }	// must not be saved as class/global member, always do request
+	const std::vector<data::Nodes*>& get_nodes_tree() const { return m_nodes_tree; }		// must not be saved as class/global member, always do request
+	const std::vector<data::Nodes*>& get_nodes_plain() const { return m_nodes_plain; }		// must not be saved as class/global member, always do request
 
     void calc_number_inside(const std::string& filter);
 
-	std::shared_ptr<data::Node> find_node(hid id) const;		// returns nullptr if not found
-	std::shared_ptr<data::Pin> find_pin(hid id) const;			// returns nullptr if not found
+    data::Nodes* find_view(lid id) const;			// returns nullptr if not found
+	data::Node* find_node(hid id) const;		// returns nullptr if not found
+	data::Pin* find_pin(hid id) const;			// returns nullptr if not found
 
 private:
 	void init_from_copy(NodesManager& copy);
 
 private:
-	std::map<hid, std::shared_ptr<data::Node>> m_nodes_by_id;
-	std::map<std::string, std::shared_ptr<data::Node>> m_nodes_by_name;		// map by string key
-	std::map<std::string, std::shared_ptr<data::Node>> m_nodes_sorted;		// sorted by display name
-	std::map<hid, std::shared_ptr<data::Pin>> m_pins;
+	std::map<hid, std::unique_ptr<data::Node>> m_nodes;
+    std::map<hid, std::unique_ptr<data::Pin>> m_pins;
+    std::map<lid, std::unique_ptr<data::Nodes>> m_nodes_view;
 
-	std::vector<data::Nodes> m_nodes_tree;
-	std::vector<data::Nodes> m_dummy_tree;	// always empty
+	std::vector<data::Nodes*> m_nodes_tree;			// tree view
+	std::vector<data::Nodes*> m_nodes_plain;		// plain view: sorted by display name
 };
 
 class NodesParser final
@@ -77,8 +82,8 @@ private:
 	void parse_input(NodesManager& manager, data::Node& node, nlohmann::json& json_node);
 	void parse_output(NodesManager& manager, data::Node& node, nlohmann::json& json_node);
 	void parse_others(data::Node& node, nlohmann::json& json_node);
-	void put_in_tree(NodesManager& manager, std::shared_ptr<data::Node> node);
-	void sort_nodes_tree(NodesManager& manager);
+	void put_in_tree(NodesManager& manager, data::Node* node);
+	void sort_nodes(NodesManager& manager);
 	void prepare_parsers_map();
 	void parse_by_key(const data::Node& node, data::Pin& pin, nlohmann::json& json, const std::string& key);
 	void add_internal_nodes(NodesManager& manager);

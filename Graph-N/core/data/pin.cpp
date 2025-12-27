@@ -58,9 +58,9 @@ bool Pin::can_link(const Pin* other) const
 	);
 }
 
-void Pin::link_to(std::shared_ptr<Pin> other)
+void Pin::link_to(Pin* other)
 {
-	if (!can_link(other.get()))
+	if (!can_link(other))
 	{
 		LogAndThrowInternalErr("Check can link before entablish connection");
 	}
@@ -82,21 +82,20 @@ void Pin::link_to(std::shared_ptr<Pin> other)
 
 void Pin::unlink()
 {
-	auto other = link.lock();
 	if (type_any)
 	{
 		type = PinType::ANY;
 		type_str = "*";
 		pin_color = IM_COL32_WHITE;
 	}
-	else if (other && other->type_any)
+	else if (link && link->type_any)
 	{
-		other->type = PinType::ANY;;
-		other->type_str = "*";
-		other->pin_color = IM_COL32_WHITE;
+        link->type = PinType::ANY;;
+        link->type_str = "*";
+        link->pin_color = IM_COL32_WHITE;
 	}
 
-	link.reset();
+    link = nullptr;
 }
 
 void Pin::initialize(const std::string& type_as_string)
