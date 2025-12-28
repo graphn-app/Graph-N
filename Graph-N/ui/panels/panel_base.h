@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 #include "ui/base_dlg.h"
 
@@ -51,7 +51,7 @@ protected:
 private:
     std::string m_panel_name;
 
-  //  ImGuiWindowClass m_class;
+    //  ImGuiWindowClass m_class;
 };
 
 

@@ -13,16 +13,16 @@ using primitive = std::variant<int64_t, double, std::string, bool, std::monostat
 
 enum class VisibleObject
 {
-	_none,
+    _none,
 
-	DisconnectedMenuBar,
-	DisconnectedText,
-	QueueButton,
-	QueueText,
-	OptionsDlg,
+    DisconnectedMenuBar,
+    DisconnectedText,
+    QueueButton,
+    QueueText,
+    OptionsDlg,
     OptionsBg,
 
-	PanelNodes,
+    PanelNodes,
     PanelNodesHoverGroup,
     PanelNodesHoverNode,
     PanelNodesSelectedNode,
@@ -31,35 +31,35 @@ enum class VisibleObject
     PanelNodeInspectorDescrFrame,
 
     _count,
-	_first				= _none + 1,
-	_last				= _count - 1,
+    _first = _none + 1,
+    _last = _count - 1,
 };
 
 enum DlgCtrl
 {
-	//_none = 0,
+    //_none = 0,
 
-	btn_ok				= 0x00001,
-	btn_cancel			= 0x00002,
-	btn_yes				= 0x00004,
-	btn_no				= 0x00008,
+    btn_ok      = 0x00001,
+    btn_cancel  = 0x00002,
+    btn_yes     = 0x00004,
+    btn_no      = 0x00008,
 
-	ico_err				= 0x10000,
-	ico_info			= 0x20000,
-	ico_warn			= 0x40000,
-	ico_ques			= 0x80000,
+    ico_err     = 0x10000,
+    ico_info    = 0x20000,
+    ico_warn    = 0x40000,
+    ico_ques    = 0x80000,
 
-	//_btn_count = 4,
-	//_ico_count = 4,
+    //_btn_count = 4,
+    //_ico_count = 4,
 };
 
 // update LogWriter with new elements!
 enum class DlgCode
 {
-	progress,
+    progress,
 
-	ok,
-	cancel,
-	yes,
-	no,
+    ok,
+    cancel,
+    yes,
+    no,
 };

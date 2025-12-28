@@ -8,11 +8,11 @@ namespace ui
 class OptComfyDlg final : public OptRightPane
 {
 public:
-	OptComfyDlg() = default;
-	~OptComfyDlg() override = default;
+    OptComfyDlg() = default;
+    ~OptComfyDlg() override = default;
 
-	void init(OptsData& data) override;
-	void show(OptsData& data) override;
+    void init(OptsData& data) override;
+    void show(OptsData& data) override;
 };
 
 

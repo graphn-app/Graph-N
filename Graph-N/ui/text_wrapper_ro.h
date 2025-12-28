@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 namespace ui
@@ -11,11 +11,11 @@ public:
 
     void set_raw_text(const std::string* text);
     void set_font(ImFont* font) { m_font = font; }
-    
+
     void re_calc(ImVec2 rect);
 
     char* get_wrapped_text() { return m_wrapped_text.data(); }
-	size_t get_wrapped_capacity() const { return m_wrapped_text.capacity(); }
+    size_t get_wrapped_capacity() const { return m_wrapped_text.capacity(); }
     float get_wrapped_height() const { return m_wrapped_h; }
 
 private:

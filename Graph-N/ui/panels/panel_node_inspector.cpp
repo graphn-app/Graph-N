@@ -1,4 +1,4 @@
-﻿
+
 #include "ui/panels/panel_node_inspector.h"
 #include "ui/text_wrapper_ro.h"
 #include "ui/workflow/workflow.h"
@@ -35,7 +35,7 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
     Data data;
     data.descr_wrapper = std::make_unique<TextWrapperRO>();
     data.descr_wrapper->set_font(g::pMain->get_regular_font());
-	if (!node->description.empty())
+    if (!node->description.empty())
         data.descr_wrapper->set_raw_text(&node->description);
     data.wf = g::pFlow->create_workflow();
     data.wf->add_node(node->get_id());
@@ -58,24 +58,24 @@ DlgCode PanelNodeInspector::show(bool& focused)
         return end_panel(false);
 
     show_nodes();
-/*
-    if (nullptr == m_inspecting_node)
-    {
-        ImGui::Spacing(3);
-        ImGui::Text(ICON_LC_TANGENT " Select node to inspect");
-        return end_panel(true);
-    }
+    /*
+        if (nullptr == m_inspecting_node)
+        {
+            ImGui::Spacing(3);
+            ImGui::Text(ICON_LC_TANGENT " Select node to inspect");
+            return end_panel(true);
+        }
 
-    ImGui::Spacing();
-    ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
-    ImGui::Text(m_inspecting_node->display_name.empty() ? m_inspecting_node->name.c_str() : m_inspecting_node->display_name.c_str());
-    ImGui::PopStyleColor();
-    ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
+        ImGui::Text(m_inspecting_node->display_name.empty() ? m_inspecting_node->name.c_str() : m_inspecting_node->display_name.c_str());
+        ImGui::PopStyleColor();
+        ImGui::Spacing();
 
-    show_description();
-    show_node_preview();
+        show_description();
+        show_node_preview();
 
-    m_node_changed = false;*/
+        m_node_changed = false;*/
     return end_panel(true);
 }
 
@@ -115,22 +115,22 @@ void PanelNodeInspector::show_nodes()
 
     ImGui::Text(m_inspecting_node->name.c_str());
 */
-    //// Inputs
-    //for (auto& pin : selected_node->inputs) {
-    //    ed::BeginPin(GetPreviewPinID(pin.name), ed::PinKind::Input);
-    //    ImGui::Text(pin.name.c_str());
-    //    ed::EndPin();
-    //}
+//// Inputs
+//for (auto& pin : selected_node->inputs) {
+//    ed::BeginPin(GetPreviewPinID(pin.name), ed::PinKind::Input);
+//    ImGui::Text(pin.name.c_str());
+//    ed::EndPin();
+//}
 
-    // Outputs...
+// Outputs...
 
-   // ed::EndNode();
+// ed::EndNode();
 
-  //  if (m_node_changed) 
-    //    ed::NavigateToContent();
+//  if (m_node_changed) 
+  //    ed::NavigateToContent();
 
-   // ed::End();
-   // ed::SetCurrentEditor(old_editor);
+ // ed::End();
+ // ed::SetCurrentEditor(old_editor);
 //}
 
 } // namespace ui

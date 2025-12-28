@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 #include "core/managers/comfyui_object_validity_listener.h"
 #include "ui/graph-n_flow.h"
@@ -8,17 +8,17 @@ namespace ui
 {
 
 template <typename BaseObj>					// base data::Pin or data::Node
-class Instance : 
-    public base::InstanceID, 
+class Instance :
+    public base::InstanceID,
     public mngr::ComfyUiObjectValidityListener
 {
 public:
     Instance(Workflow* wf)
         : base::InstanceID(wf->get_id())
-		, m_wf(wf)
+        , m_wf(wf)
     {
     }
-    ~Instance() override 
+    ~Instance() override
     {}
 
     iid get_instance_id() const { return get_id(); }	// use this to save/load

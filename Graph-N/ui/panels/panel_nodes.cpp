@@ -1,4 +1,4 @@
-﻿
+
 #include "ui/panels/panel_nodes.h"
 #include "ui/graph-n_flow.h"
 #include "ui/font_guard.h"
@@ -61,8 +61,8 @@ DlgCode PanelNodes::show(bool& focused)
     {
         data()->buffer[PanelNodesData::buff_filter_lowered] = tools::str::to_lower_ansi(data()->buffer[PanelNodesData::buff_filter]);
         g::pNodesManager->calc_number_inside(tools::str::trim(data()->buffer[PanelNodesData::buff_filter_lowered]));
-		if (!data()->buffer[PanelNodesData::buff_filter_lowered].empty())
-	        expand_all();
+        if (!data()->buffer[PanelNodesData::buff_filter_lowered].empty())
+            expand_all();
     }
 
     ImGui::Spacing(3);
@@ -123,7 +123,7 @@ void PanelNodes::show_tree_view()
             }
             else
             {
-				if (node_holder->get_id() == data->selected_node)
+                if (node_holder->get_id() == data->selected_node)
                     ImGui::PushStyleColor(ImGuiCol_Text, data->clr_selected_node);
 
                 ImGui::CollapsingHeader((node_holder->name_or_category + "##" + node_holder->get_id_str()).c_str(),
@@ -260,11 +260,11 @@ void PanelNodes::show_cfg_buttons()
     const uint32_t button_count = 4;
     const uint32_t big_spaces = 2;
     const uint32_t small_spaces = 1;
-    const float start_pos = 
-        window_visible_x2 - 
-        (button_count * data()->button_width) - 
-        (big_spaces * spacing * data()->ungrouped_btn_spacing_x) - 
-        (small_spaces * spacing * data()->grouped_btn_spacing_x) - 
+    const float start_pos =
+        window_visible_x2 -
+        (button_count * data()->button_width) -
+        (big_spaces * spacing * data()->ungrouped_btn_spacing_x) -
+        (small_spaces * spacing * data()->grouped_btn_spacing_x) -
         spacing * 3;
 
     ImGui::SameLine(start_pos);
@@ -289,7 +289,7 @@ void PanelNodes::show_cfg_buttons()
     {
         collapse_all();
     }
-    if (ImGui::IsItemHovered()) 
+    if (ImGui::IsItemHovered())
     {
         fg.pop();
         ImGui::SetTooltip("Collapse All");

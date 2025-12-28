@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 #ifdef _WIN32
 #include "platform/textures.h"
@@ -11,11 +11,11 @@ namespace platform
 class Textures_Win32 final : public Textures
 {
 public:
-	Textures_Win32() = default;
-	~Textures_Win32() override = default;
+    Textures_Win32() = default;
+    ~Textures_Win32() override = default;
 
 private:
-	ID3D11Device* get_device() const;
+    ID3D11Device* get_device() const;
 };
 
 } // namespace platform

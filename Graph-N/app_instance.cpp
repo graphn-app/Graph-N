@@ -1,100 +1,100 @@
-﻿
+
 #include "app_instance.h"
 
 AppInstance::AppInstance(WakeUpCallback on_wake_up)
-	: m_port_file("graph-n.port")
-	, m_cmd_ping("/06EA77DDA7B844A89FE4478B248DB159")
-	, m_cmd_pong("0113EF5A019142758FF784F6AE8AC343")
-	, m_cmd_wakeup("/4EFB863641614642BCAECDE14E1597A5")
-	, m_on_wake_up(on_wake_up)
+    : m_port_file("graph-n.port")
+    , m_cmd_ping("/06EA77DDA7B844A89FE4478B248DB159")
+    , m_cmd_pong("0113EF5A019142758FF784F6AE8AC343")
+    , m_cmd_wakeup("/4EFB863641614642BCAECDE14E1597A5")
+    , m_on_wake_up(on_wake_up)
 {
-	m_server = std::make_unique<httplib::Server>();
+    m_server = std::make_unique<httplib::Server>();
 
-	int target_port = 0;
-	std::ifstream in_file(m_port_file);
-	if (in_file.is_open())
-	{
-		in_file >> target_port;
-		in_file.close();
-	}
+    int target_port = 0;
+    std::ifstream in_file(m_port_file);
+    if (in_file.is_open())
+    {
+        in_file >> target_port;
+        in_file.close();
+    }
 
-	if (target_port > 0) 
-	{
-		httplib::Client cli("127.0.0.1", target_port);
-		cli.set_connection_timeout(0, 500000); // 0.5 sec
-		const auto res = cli.Get(m_cmd_ping);
-		if (res && 200 == res->status && res->body == m_cmd_pong)
-		{
-			// server replied
-			m_port = target_port;
-			m_is_primary = false;
-			notify_existing_instance();
-			return;
-		}
-	}
+    if (target_port > 0)
+    {
+        httplib::Client cli("127.0.0.1", target_port);
+        cli.set_connection_timeout(0, 500000); // 0.5 sec
+        const auto res = cli.Get(m_cmd_ping);
+        if (res && 200 == res->status && res->body == m_cmd_pong)
+        {
+            // server replied
+            m_port = target_port;
+            m_is_primary = false;
+            notify_existing_instance();
+            return;
+        }
+    }
 
-	// we're the first nstance
-	// search for available port
-	const int port = m_server->bind_to_any_port("127.0.0.1");
-	if (port > 0) 
-	{
-		m_port = port;
-		m_is_primary = true;
+    // we're the first nstance
+    // search for available port
+    const int port = m_server->bind_to_any_port("127.0.0.1");
+    if (port > 0)
+    {
+        m_port = port;
+        m_is_primary = true;
 
-		std::ofstream out_file(m_port_file);
-		out_file << m_port;
-		out_file.close();
+        std::ofstream out_file(m_port_file);
+        out_file << m_port;
+        out_file.close();
 
-		start_server();
-	}
-	else 
-	{
-		Log("Http critical: cannot bind to any port");
-	}
+        start_server();
+    }
+    else
+    {
+        Log("Http critical: cannot bind to any port");
+    }
 }
 
 AppInstance::~AppInstance()
 {
-	if (m_server) 
-	{
-		m_server->stop();
-		if (m_server_thread.joinable()) 
-		{
-			m_server_thread.join();
-		}
-	}
+    if (m_server)
+    {
+        m_server->stop();
+        if (m_server_thread.joinable())
+        {
+            m_server_thread.join();
+        }
+    }
 }
 
-void AppInstance::notify_existing_instance() 
+void AppInstance::notify_existing_instance()
 {
-	httplib::Client cli("127.0.0.1", m_port);
-	cli.Post(m_cmd_wakeup, "", "text/plain");
+    httplib::Client cli("127.0.0.1", m_port);
+    cli.Post(m_cmd_wakeup, "", "text/plain");
 }
 
 void AppInstance::start_server()
 {
-	m_server->Get(m_cmd_ping, 
-		[pong = m_cmd_pong](const httplib::Request&, httplib::Response& res)
-		{
-			res.set_content(pong, "text/plain");
-		}
-	);
+    m_server->Get(m_cmd_ping,
+        [pong = m_cmd_pong](const httplib::Request&, httplib::Response& res)
+        {
+            res.set_content(pong, "text/plain");
+        }
+    );
 
-	m_server->Post(m_cmd_wakeup, 
-		[this](const httplib::Request& req, httplib::Response& res) 
-		{
-			if (m_on_wake_up) 
-			{
-				m_on_wake_up(req.body);
-			}
-			res.set_content("OK", "text/plain");
-		}
-	);
+    m_server->Post(m_cmd_wakeup,
+        [this](const httplib::Request& req, httplib::Response& res)
+        {
+            if (m_on_wake_up)
+            {
+                m_on_wake_up(req.body);
+            }
+            res.set_content("OK", "text/plain");
+        }
+    );
 
-	m_server_thread = std::thread(
-		[this]() 
-		{
-			m_server->listen_after_bind();
-		}
-	);
+    m_server_thread = std::thread(
+        [this]()
+        {
+            m_server->listen_after_bind();
+        }
+    );
 }

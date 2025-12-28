@@ -1,4 +1,4 @@
-﻿
+
 #include "ui/graph-n_flow.h"
 #include "ui/base_dlg.h"
 #include "ui/options/opts_dlg.h"
@@ -29,17 +29,17 @@ bool GraphN_Flow::init()
 
     m_online = false;
 
-	// menu colors
+    // menu colors
     ImGuiStyle& style = ImGui::GetStyle();
 
     // Background: Dark Grey (Opaque) - Lighter than main window
     style.Colors[ImGuiCol_PopupBg] = ImColor(IM_COL32(50, 50, 50, 255));
     style.Colors[ImGuiCol_MenuBarBg] = ImColor(IM_COL32(50, 50, 50, 255));
 
-	// open windows
+    // open windows
     m_windows = g::pOptsManager->flow_get_open_wnds();
 
-	// create panels
+    // create panels
     m_nodes_panel = std::make_unique<ui::PanelNodes>();
     m_nodes_panel->init();
     m_all_dialogs.insert(m_nodes_panel.get());
@@ -47,10 +47,10 @@ bool GraphN_Flow::init()
     m_node_inspector = std::make_unique<ui::PanelNodeInspector>();
     m_node_inspector->init();
     m_all_dialogs.insert(m_node_inspector.get());
-    
+
     Log("Panels initialized");
 
-	// start connect to ComfyUI
+    // start connect to ComfyUI
     reconnect();
 
     return true;
@@ -108,7 +108,7 @@ Workflow* GraphN_Flow::find_workflow(lid wf_id)
 }
 
 void GraphN_Flow::subscribe_confyui_validity_state(mngr::ComfyUiObjectValidityListener* listener)
-{ 
+{
     m_comfyui_obj_listeners.push_back(listener);
 }
 
@@ -231,8 +231,8 @@ void GraphN_Flow::show_menu_bar()
 #ifdef _DEBUG
             if (ImGui::MenuItem("Debug Metrics##HelpMenuBar", nullptr, (m_windows & ViewDebugMetrics)))
             {
-				if (m_windows & ViewDebugMetrics)
-					m_windows &= ~ViewDebugMetrics;
+                if (m_windows & ViewDebugMetrics)
+                    m_windows &= ~ViewDebugMetrics;
                 else
                     m_windows |= ViewDebugMetrics;
             }
@@ -449,12 +449,12 @@ void GraphN_Flow::show_panels()
         ImGuiID dock_id_left_btm = ImGui::DockBuilderSplitNode(dock_id_left_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_left_top);
 
 
-    //    const ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.25f, nullptr, &m_main_dock_id);
-     //   const ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.20f, nullptr, &m_main_dock_id);
+        //    const ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.25f, nullptr, &m_main_dock_id);
+         //   const ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.20f, nullptr, &m_main_dock_id);
 
         ImGui::DockBuilderDockWindow(m_nodes_panel->get_panel_name(), dock_id_left_top);
         ImGui::DockBuilderDockWindow(m_node_inspector->get_panel_name(), dock_id_left_btm);
-        
+
         ImGui::DockBuilderFinish(dockspace_id);
     }
 

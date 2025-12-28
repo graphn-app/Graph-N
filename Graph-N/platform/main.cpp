@@ -1,4 +1,4 @@
-﻿
+
 #include "platform/main.h"
 
 namespace platform
@@ -12,25 +12,25 @@ void MainRoutine::prepare_fonts()
     ImFontConfig config;
 
     // prepare diapazones
-    static constexpr ImWchar ranges_latin_ext [] = { 0x0100, 0x024F, 0 };
-    static constexpr ImWchar ranges_emoji     [] = { 0x1F000, 0x1FFFF, 0 };
+    static constexpr ImWchar ranges_latin_ext[] = { 0x0100, 0x024F, 0 };
+    static constexpr ImWchar ranges_emoji[] = { 0x1F000, 0x1FFFF, 0 };
     static constexpr ImWchar ranges_variations[] = { 0xFE00, 0xFE0F, 0 };
-    static constexpr ImWchar ranges_icons     [] = { ICON_MIN_LC, ICON_MAX_LC, 0 };
-    static constexpr ImWchar ranges_symbols   [] =
-    {
-		0x2000, 0x206F, // General Punctuation
-		0x20A0, 0x20CF, // Currency Symbols
-		0x2100, 0x218F, // Letterlike Symbols (™ и т.д.)
-		0x2190, 0x21FF, // Arrows (← ↑ → ↓)
-		0x2200, 0x22FF, // Mathematical Operators
-		0x2300, 0x23FF, // Misc Technical (⌨ ⌚)
-		0x2460, 0x24FF, // Enclosed Alphanumerics (①, ⓐ)
-		0x2500, 0x257F, // Box Drawing (║ ╗)
-		0x2580, 0x259F, // Block Elements (█ ░)
-		0x25A0, 0x25FF, // Geometric Shapes (▶ ▲ ●)
-		0x2600, 0x27BF, // Misc Symbols + Dingbats (⚙️, ⚠, ✨, ✂, ✈)
-		0,
-    };
+    static constexpr ImWchar ranges_icons[] = { ICON_MIN_LC, ICON_MAX_LC, 0 };
+    static constexpr ImWchar ranges_symbols[] =
+                                            {
+                                                0x2000, 0x206F, // General Punctuation
+                                                0x20A0, 0x20CF, // Currency Symbols
+                                                0x2100, 0x218F, // Letterlike Symbols (™ и т.д.)
+                                                0x2190, 0x21FF, // Arrows (← ↑ → ↓)
+                                                0x2200, 0x22FF, // Mathematical Operators
+                                                0x2300, 0x23FF, // Misc Technical (⌨ ⌚)
+                                                0x2460, 0x24FF, // Enclosed Alphanumerics (①, ⓐ)
+                                                0x2500, 0x257F, // Box Drawing (║ ╗)
+                                                0x2580, 0x259F, // Block Elements (█ ░)
+                                                0x25A0, 0x25FF, // Geometric Shapes (▶ ▲ ●)
+                                                0x2600, 0x27BF, // Misc Symbols + Dingbats (⚙️, ⚠, ✨, ✂, ✈)
+                                                0,
+                                            };
 
     ImFontGlyphRangesBuilder builder;
     builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
@@ -42,7 +42,7 @@ void MainRoutine::prepare_fonts()
     ImVector<ImWchar> ranges;
     builder.BuildRanges(&ranges);
 
-	// paths
+    // paths
     const auto res_path = fs::get_res_directory_path();
     const auto path_inter_reg = (res_path / "Inter_18pt-Regular.ttf").string();
     const auto path_inter_bold = (res_path / "Inter_18pt-Bold.ttf").string(); // Твой жирный шрифт

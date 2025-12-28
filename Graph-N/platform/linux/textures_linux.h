@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 #ifdef __linux__
 
@@ -10,8 +10,8 @@ namespace platform
 class Textures_Linux final : public Textures
 {
 public:
-	Textures_Linux() = default;
-	~Textures_Linux() override = default;
+    Textures_Linux() = default;
+    ~Textures_Linux() override = default;
 };
 
 } // namespace platform

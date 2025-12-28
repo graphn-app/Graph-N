@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 #include "ui/panels/panel_base.h"
 
@@ -14,7 +14,7 @@ struct PanelNodesData final : public PanelCommonData
 {
     enum Buffer
     {
-		buff_filter,
+        buff_filter,
         buff_filter_lowered,
         buff_count
     };
@@ -44,7 +44,7 @@ private:
     void show_tree_view();
     void show_plain_view();
     void show_node(data::Node* node);
-	
+
     void show_cfg_buttons();
     void expand_all();
     void collapse_all();

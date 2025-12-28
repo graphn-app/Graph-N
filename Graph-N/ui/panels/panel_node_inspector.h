@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 #include "ui/panels/panel_base.h"
 #include "core/managers/comfyui_object_validity_listener.h"
@@ -31,7 +31,7 @@ public:
     void add_inspecting_node(data::Node* node);
     void remove_inspecting_node(data::Node* node);
 
-	// DataInvalidationHandler
+    // DataInvalidationHandler
     void invalidate_comfyui_objects() override;
     void resolve_comfyui_objects() override;
 

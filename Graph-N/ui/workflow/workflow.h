@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 namespace ax::NodeEditor
@@ -31,7 +31,7 @@ public:
 
 private:
     ax::NodeEditor::EditorContext* m_context = nullptr;
-	std::map<aid, std::unique_ptr<NodeInstance>> m_nodes;
+    std::map<aid, std::unique_ptr<NodeInstance>> m_nodes;
     std::map<aid, std::unique_ptr<PinInstance>> m_pins;
 };
 

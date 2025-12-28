@@ -1,12 +1,12 @@
-﻿
+
 #include "ui/text_wrapper_ro.h"
 
 namespace ui
 {
 
-void TextWrapperRO::set_raw_text(const std::string* text) 
-{ 
-    m_raw_text = text; 
+void TextWrapperRO::set_raw_text(const std::string* text)
+{
+    m_raw_text = text;
     m_calculated_w = 0.0f;
 }
 
