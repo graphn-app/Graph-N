@@ -19,7 +19,7 @@ void OptComfyDlg::show(OptsData& data)
 {
     ImGui::Separator(data.separator_clr, "ComfyUI address");
 
-    ImGui::Text("Host:");
+    ImGui::TextUnformatted("Host:");
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x);
     ImGui::SetNextItemWidth(-FLT_MIN);
@@ -30,7 +30,7 @@ void OptComfyDlg::show(OptsData& data)
 
     ImGui::Spacing();
 
-    ImGui::Text("Port:");
+    ImGui::TextUnformatted("Port:");
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x);
     ImGui::SetNextItemWidth(-FLT_MIN);
@@ -42,7 +42,7 @@ void OptComfyDlg::show(OptsData& data)
 
     ImGui::Separator(data.separator_clr, "ComfyUI server timeouts (in seconds)");
 
-    ImGui::Text("Connection:");
+    ImGui::TextUnformatted("Connection:");
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x);
     ImGui::SetNextItemWidth(-FLT_MIN);
@@ -52,7 +52,7 @@ void OptComfyDlg::show(OptsData& data)
         g::pOptsManager->comfyui_set_connect_timeout(data.comfy.conn_time);
     }
 
-    ImGui::Text("Reading:");
+    ImGui::TextUnformatted("Reading:");
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x);
     ImGui::SetNextItemWidth(-FLT_MIN);

@@ -16,6 +16,7 @@ struct Nodes final : public base::LocalID
     bool is_node = false;
 
     std::string name_or_category;
+    size_t name_or_category_len;
     std::string search;
 
     std::vector<Nodes*> children;

@@ -1,4 +1,4 @@
-﻿
+
 #include "ui/workflow/workflow.h"
 #include "ui/workflow/node_instance.h"
 #include "ui/workflow/pin_instance.h"
@@ -43,6 +43,7 @@ NodeInstance* Workflow::add_node(hid node_id)
     auto ptr = instance.get();
     ptr->init();
     m_nodes[ptr->get_graph_id()] = std::move(instance);
+    Log("Node added id=" << node_id);
     return ptr;
 }
 
@@ -58,18 +59,22 @@ PinInstance* Workflow::add_pin(hid pin_id)
     instance->set_base(pin);
     auto ptr = instance.get();
     m_pins[ptr->get_graph_id()] = std::move(instance);
+    Log("Pin added id=" << pin_id);
     return ptr;
 }
 
 void Workflow::init()
 {
+    LogF;
     ax::NodeEditor::Config config;
     config.SettingsFile = nullptr;
     m_context = ax::NodeEditor::CreateEditor(&config);
 }
 
-void Workflow::remove(hid /*id*/)
-{}
+void Workflow::remove(hid id)
+{
+    Log("Obj to remove id=" << id);
+}
 
 void Workflow::draw() const
 {

@@ -18,6 +18,7 @@ PanelNodeInspector::~PanelNodeInspector() = default;
 
 void PanelNodeInspector::init()
 {
+    LogF;
     PanelBase::init();
 
     data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::PanelNodeInspector);
@@ -32,6 +33,7 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
     if (nullptr == node || m_inspecting.find(node->get_id()) != m_inspecting.end())
         return;
 
+    Log("Add node id=" << node->get_id());
     Data data;
     data.descr_wrapper = std::make_unique<TextWrapperRO>();
     data.descr_wrapper->set_font(g::pMain->get_regular_font());
@@ -43,40 +45,47 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
     m_inspecting.emplace(node->get_id(), std::move(data));
 }
 
-void PanelNodeInspector::remove_inspecting_node(data::Node* /*node*/)
-{}
+void PanelNodeInspector::remove_inspecting_node(data::Node* node)
+{
+    Log("Remove node id=" << node->get_id());
+}
 
 void PanelNodeInspector::invalidate_comfyui_objects()
-{}
+{
+    LogF;
+}
 
 void PanelNodeInspector::resolve_comfyui_objects()
-{}
+{
+    LogF;
+}
 
 DlgCode PanelNodeInspector::show(bool& focused)
 {
-    if (!begin_panel(focused, data()->clr_bg))
-        return end_panel(false);
+    bool opened = true;
+    if (begin_panel(opened, focused, data()->clr_bg))
+    {
+        show_nodes();
+        /*
+            if (nullptr == m_inspecting_node)
+            {
+                ImGui::Spacing(3);
+                ImGui::Text(ICON_LC_TANGENT " Select node to inspect");
+                return end_panel(true);
+            }
 
-    show_nodes();
-    /*
-        if (nullptr == m_inspecting_node)
-        {
-            ImGui::Spacing(3);
-            ImGui::Text(ICON_LC_TANGENT " Select node to inspect");
-            return end_panel(true);
-        }
+            ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
+            ImGui::Text(m_inspecting_node->display_name.empty() ? m_inspecting_node->name.c_str() : m_inspecting_node->display_name.c_str());
+            ImGui::PopStyleColor();
+            ImGui::Spacing();
 
-        ImGui::Spacing();
-        ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
-        ImGui::Text(m_inspecting_node->display_name.empty() ? m_inspecting_node->name.c_str() : m_inspecting_node->display_name.c_str());
-        ImGui::PopStyleColor();
-        ImGui::Spacing();
+            show_description();
+            show_node_preview();
 
-        show_description();
-        show_node_preview();
-
-        m_node_changed = false;*/
-    return end_panel(true);
+            m_node_changed = false;*/
+    }
+    return end_panel(opened);
 }
 
 void PanelNodeInspector::show_nodes()

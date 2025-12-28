@@ -27,18 +27,18 @@ public:
     const char* get_panel_name() const { return m_panel_name.c_str(); }
 
 protected:
-    bool begin_panel(bool& focused, ImU32 bg_color = IM_COL32_BLACK)
+    bool begin_panel(bool& opened, bool& focused, ImU32 bg_color = IM_COL32_BLACK)
     {
         // m_class.ClassId = cast::to_u32(data()->class_id);
         // ImGui::SetNextWindowClass(&m_class);
 
         ImGui::PushStyleColor(ImGuiCol_WindowBg, bg_color);
-        bool opened = true;
+        opened = true;
         focused = false;
-        ImGui::Begin(m_panel_name.c_str(), &opened);
-        if (opened)
+        const bool expanded = ImGui::Begin(m_panel_name.c_str(), &opened);
+        if (expanded)
             focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
-        return opened;
+        return expanded;
     }
 
     DlgCode end_panel(bool opened)

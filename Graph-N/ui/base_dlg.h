@@ -73,7 +73,7 @@ protected:
     //void set_exit_code_ok() { m_exit_code = DlgCode::ok; }
     //DlgCode exit_code() const { return m_exit_code; }
 
-    DlgCode cleanup_and_exit(bool end_dlg, bool pop_title_styles, bool pop_bg_style, DlgCode exit_code)
+    DlgCode cleanup_and_exit(bool in_progress, bool end_dlg = true, bool pop_title_styles = true, bool pop_bg_style = true)
     {
         if (end_dlg)
             ImGui::End();
@@ -84,7 +84,7 @@ protected:
         if (pop_title_styles)
             ImGui::PopDlgTitleStyles();
 
-        return exit_code;
+        return in_progress ? DlgCode::progress : DlgCode::cancel;
     }
 
     DlgCode cleanup_and_exit_popup(bool end_dlg, bool pop_styles, DlgCode exit_code)

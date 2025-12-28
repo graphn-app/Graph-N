@@ -45,31 +45,30 @@ DlgCode OptionsDlgs::show(bool& focused)
     ImGui::PushStyleColor(ImGuiCol_WindowBg, data()->clr_bg);
 
     set_focus();
-    bool opened = true;
     ImGui::SetNextWindowPos(ImVec2(data()->x, data()->y), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(data()->width, data()->height), ImGuiCond_Always);
 
-    ImGui::Begin("Options##Opt", &opened, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking);
-    if (!opened)
-        return cleanup_and_exit(true, true, true, DlgCode::cancel);
-    focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
+    bool opened = true;
+    if (ImGui::Begin("Options##Opt", &opened, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
+    {
+        focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
 
-    show_left_pane();
-    show_right_pane();
-
-    return cleanup_and_exit(true, true, true, DlgCode::progress);
+        show_left_pane();
+        show_right_pane();
+    }
+    return cleanup_and_exit(opened);
 }
 
 void OptionsDlgs::show_left_pane()
 {
-    ImGui::BeginChild("left_pane##Opt", ImVec2(150, -FLT_MIN), true);
-
-    if (ImGui::Selectable("ComfyUI##LeftPane", OptPane::comfyui == m_opts_data.pane.left_selected_item))
+    if (ImGui::BeginChild("left_pane##Opt", ImVec2(150, -FLT_MIN), true))
     {
-        m_opts_data.pane.left_selected_item = OptPane::comfyui;
-        m_opts_data.pane.show_inner_child = true;
+        if (ImGui::Selectable("ComfyUI##LeftPane", OptPane::comfyui == m_opts_data.pane.left_selected_item))
+        {
+            m_opts_data.pane.left_selected_item = OptPane::comfyui;
+            m_opts_data.pane.show_inner_child = true;
+        }
     }
-
     ImGui::EndChild();
 }
 
@@ -77,26 +76,28 @@ void OptionsDlgs::show_right_pane()
 {
     ImGui::SameLine();
     ImGui::BeginGroup();
-    ImGui::BeginChild("right_pane##Opt");
-
-    if (m_opts_data.pane.show_inner_child)
-        ImGui::BeginChild("right_pane2##Opt", ImVec2(-FLT_MIN, -FLT_MIN), true);
-
-    if (m_opts_data.pane.left_selected_item != OptPane::_none)
+    if (ImGui::BeginChild("right_pane##Opt"))
     {
-        try
+        if (m_opts_data.pane.show_inner_child)
         {
-            m_right_panes[m_opts_data.pane.left_selected_item]->show(m_opts_data);
-        }
-        catch (const std::exception& ex)
-        {
-            LogExcep("Options: " << ex.what());
+            if (ImGui::BeginChild("right_pane2##Opt", ImVec2(-FLT_MIN, -FLT_MIN), true))
+            {
+                if (m_opts_data.pane.left_selected_item != OptPane::_none)
+                {
+                    try
+                    {
+                        m_right_panes[m_opts_data.pane.left_selected_item]->show(m_opts_data);
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        LogExcep("Options: " << ex.what());
+                    }
+                }
+
+            }
+            ImGui::EndChild();
         }
     }
-
-    if (m_opts_data.pane.show_inner_child)
-        ImGui::EndChild();
-
     ImGui::EndChild();
     ImGui::EndGroup();
 

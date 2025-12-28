@@ -43,6 +43,10 @@ ConnectState ConnectManager::check_status()
                 Log("Connected");
                 m_nodes_raw = std::move(data.second);
             }
+            else
+            {
+                Log("Connection stopped with status " << cast::to_i32(data.first));
+            }
         }
     }
 
@@ -70,7 +74,7 @@ void ConnectManager::stop_connect()
 
 std::pair<ConnectState, std::string> ConnectManager::connect_thread()
 {
-    glog::LogLockGuard loglock;
+    glog::LogLockGuard ll;
     LogF;
 
     using namespace std::chrono_literals;

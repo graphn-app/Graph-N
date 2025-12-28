@@ -111,6 +111,8 @@ void MainRoutine::prepare_fonts()
             }
         }
     }
+
+    Log("Fonts prepared");
 }
 
 } // namespace platform

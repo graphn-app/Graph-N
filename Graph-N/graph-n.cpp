@@ -54,7 +54,10 @@ bool GraphN::init_graphn()
             success = false;
     });
     if (!success)
+    {
+        Log("Failed to initialize managers");
         return false;
+    }
     Log("Managers ready");
 
     m_flow_step = Flow::init;
@@ -80,6 +83,8 @@ void GraphN::exit_graphn()
     g::pOptsManager = nullptr;
     g::pDbManager = nullptr;
     g::pConnectManager = nullptr;
+
+    LogF;
 }
 
 int GraphN::override_exit_code()
@@ -95,6 +100,7 @@ void GraphN::handle_wnd_restored()
 
 void GraphN::handle_wnd_on_close()
 {
+    LogF;
     m_flow_step = Flow::prepare_to_exit;
 }
 
@@ -150,11 +156,14 @@ bool GraphN::run_graphn()
 {
     if (nullptr == m_graphn_flow)
     {
-        Log("Starting Graph-N flow");
+        Log("Creating Graph-N flow");
         m_graphn_flow = std::make_unique<ui::GraphN_Flow>();
         g::pFlow = m_graphn_flow.get();
         if (!g::pFlow->init())
+        {
+            Log("Graph-N flow initialization failed");
             return false;
+        }
     }
 
     const bool res = m_graphn_flow->run();

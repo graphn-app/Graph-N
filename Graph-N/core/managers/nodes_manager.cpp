@@ -23,6 +23,7 @@ void NodesManager::free()
 
 void NodesManager::init_from_copy(NodesManager& copy)
 {
+    LogF;
     free();
     m_nodes = std::move(copy.m_nodes);
     m_pins = std::move(copy.m_pins);
@@ -44,6 +45,8 @@ void NodesManager::calc_number_inside(const std::string& filter)
                 const bool category_unfiltered = force_unfilter || (!filter.empty() && node->search.find(filter) != std::string::npos);
                 node->nodes_inside_unfiltered = 0;
                 calculator(node->children, filter.empty() ? &node->nodes_inside : &node->nodes_inside_unfiltered, category_unfiltered);
+                node->name_or_category = node->name_or_category.substr(0, node->name_or_category_len) +
+                    " [" + std::to_string(filter.empty() ? node->nodes_inside : node->nodes_inside_unfiltered) + "]";
                 if (count != nullptr)
                     *count += filter.empty() ? node->nodes_inside : node->nodes_inside_unfiltered;
             }
@@ -64,14 +67,20 @@ void NodesManager::calc_number_inside(const std::string& filter)
             }
         }
     };
-    calculator(m_nodes_tree, nullptr, false);
+
+    uint32_t count = 0;
+    calculator(m_nodes_tree, &count, false);
+    Log("Filter = (" << filter << "), count=" << count);
 }
 
 data::Nodes* NodesManager::find_view(lid id) const
 {
     const auto it = m_nodes_view.find(id);
     if (it == m_nodes_view.end())
+    {
+        LogWarn("Nodes id=" << id << " not found");
         return nullptr;
+    }
     return it->second.get();
 }
 
@@ -79,7 +88,10 @@ data::Node* NodesManager::find_node(hid id) const
 {
     const auto it = m_nodes.find(id);
     if (it == m_nodes.end())
+    {
+        LogWarn("Node id=" << id << " not found");
         return nullptr;
+    }
     return it->second.get();
 }
 
@@ -87,7 +99,10 @@ data::Pin* NodesManager::find_pin(hid id) const
 {
     const auto it = m_pins.find(id);
     if (it == m_pins.end())
+    {
+        LogWarn("Pin id=" << id << " not found");
         return nullptr;
+    }
     return it->second.get();
 }
 
@@ -115,8 +130,11 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
                 Log("Parsed: ok");
                 // this is UI thread, so it is safe to recreate on the fly
                 g::pFlow->invalidate_comfyui_objects();
+                Log("ConfyUI listeners notified to invalidate data");
                 g::pNodesManager->init_from_copy(*copy.get());
+                Log("ConfyUI data copied");
                 g::pFlow->resolve_comfyui_objects();
+                Log("ConfyUI listeners notified to resolve data");
             }
         }
         m_stop_thread_flag = false;
@@ -129,6 +147,7 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
 
 void NodesParser::parse(std::string data)
 {
+    Log("To parse: " << data.size() << " bytes")
     stop();
     m_parse_finished = false;
     m_parse_failed = false;
@@ -145,6 +164,7 @@ void NodesParser::parse(std::string data)
 
 void NodesParser::stop()
 {
+    LogF;
     m_stop_thread_flag = true;
 
     if (m_thread.joinable())
@@ -153,6 +173,8 @@ void NodesParser::stop()
 
 std::shared_ptr<NodesManager> NodesParser::parse_thread()
 {
+    glog::LogLockGuard ll;
+    LogF;
     try
     {
         auto nodes = nlohmann::json::parse(m_json_data);
@@ -174,8 +196,10 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
             }
         }
 
+        Log("Parsed: " << m_parsed_item << " item. Adding internal nodes");
         add_internal_nodes(*copy.get());
         sort_nodes(*copy.get());
+        Log("Nodes loading and parsing done");
         return copy;
     }
     catch (std::exception& e)
@@ -190,6 +214,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
 {
     try
     {
+        Log("Node " << node_class << " parse: begin");
         auto node = std::make_unique<data::Node>(node_class);
         parse_names(*node.get(), node_class, json_node);		// name, display name, category, description
 
@@ -199,6 +224,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
 
         put_in_tree(manager, node.get());
         manager.m_nodes.emplace(node->get_id(), std::move(node));
+        Log("Node " << node_class << " parse: end");
     }
     catch (std::exception& e)
     {
@@ -1012,6 +1038,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
         root->push_back(branch);
         branch->is_node = false;
         branch->name_or_category = *cat;
+        branch->name_or_category_len = branch->name_or_category.size();
         branch->search = tools::str::to_lower_ansi(branch->name_or_category);
         root = &branch->children;
     }
@@ -1023,6 +1050,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
     root->push_back(branch);
     branch->is_node = true;
     branch->name_or_category = (node->display_name.empty() ? node->name : node->display_name);
+    branch->name_or_category_len = branch->name_or_category.size();
     branch->search = tools::str::to_lower_ansi(node->name + " " + node->display_name);
     branch->node = node;
 

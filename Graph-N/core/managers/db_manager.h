@@ -12,7 +12,6 @@ public:
     ~DbManager() override = default;
 
     bool init() override;
-    void free() override;
 
     void set_option(const std::string& key, const std::string& value);
     void set_option(const std::string& key, int64_t value);

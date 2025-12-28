@@ -1,4 +1,4 @@
-﻿
+
 #include "ui/workflow/pin_instance.h"
 #include "ui/workflow/workflow.h"
 #include "core/managers/nodes_manager.h"
@@ -13,6 +13,7 @@ void PinInstance::make_graph_id()
     const aid wid = m_wf->get_id();
     const aid nid = get_id();
     m_graph_id = (wid << 48) | (nid << 24);
+    Log("Graph id=" << m_graph_id);
 }
 
 data::Pin* PinInstance::find_obj(hid obj_id)

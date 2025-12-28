@@ -48,7 +48,7 @@ bool GraphN_Flow::init()
     m_node_inspector->init();
     m_all_dialogs.insert(m_node_inspector.get());
 
-    Log("Panels initialized");
+    Log("Panels created");
 
     // start connect to ComfyUI
     reconnect();
@@ -405,7 +405,7 @@ void GraphN_Flow::show_menu_bar_connecting()
 
     ImGui::AlignTextToFramePadding();
     ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->flow_get_color(VisibleObject::DisconnectedText));
-    ImGui::Text(text.c_str());
+    ImGui::TextUnformatted(text.c_str());
     ImGui::PopStyleColor();
 }
 
@@ -427,38 +427,38 @@ void GraphN_Flow::show_panels()
     const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
 
-    ImGui::Begin("MainDockSpaceWindow", nullptr, window_flags);
-    ImGui::PopStyleVar(3);
-
-    const ImGuiID dockspace_id = ImGui::GetID(APP_CAPTION "_DockSpace");
-    ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
-
-    if (m_windows & ViewPanelsResetAll)
+    if (ImGui::Begin("MainDockSpaceWindow", nullptr, window_flags))
     {
-        m_windows &= ~ViewPanelsResetAll;
-        m_windows |= ViewAllPanels;
-        g::pOptsManager->flow_set_open_wnds(m_windows);
+        const ImGuiID dockspace_id = ImGui::GetID(APP_CAPTION "_DockSpace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
 
-        ImGui::DockBuilderRemoveNode(dockspace_id);
-        ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
-        ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
+        if (m_windows & ViewPanelsResetAll)
+        {
+            m_windows &= ~ViewPanelsResetAll;
+            m_windows |= ViewAllPanels;
+            g::pOptsManager->flow_set_open_wnds(m_windows);
 
-        m_main_dock_id = dockspace_id;
+            ImGui::DockBuilderRemoveNode(dockspace_id);
+            ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
+            ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
 
-        ImGuiID dock_id_left_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.25f, nullptr, &m_main_dock_id);
-        ImGuiID dock_id_left_btm = ImGui::DockBuilderSplitNode(dock_id_left_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_left_top);
+            m_main_dock_id = dockspace_id;
+
+            ImGuiID dock_id_left_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.25f, nullptr, &m_main_dock_id);
+            ImGuiID dock_id_left_btm = ImGui::DockBuilderSplitNode(dock_id_left_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_left_top);
 
 
-        //    const ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.25f, nullptr, &m_main_dock_id);
-         //   const ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.20f, nullptr, &m_main_dock_id);
+            //    const ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.25f, nullptr, &m_main_dock_id);
+             //   const ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.20f, nullptr, &m_main_dock_id);
 
-        ImGui::DockBuilderDockWindow(m_nodes_panel->get_panel_name(), dock_id_left_top);
-        ImGui::DockBuilderDockWindow(m_node_inspector->get_panel_name(), dock_id_left_btm);
+            ImGui::DockBuilderDockWindow(m_nodes_panel->get_panel_name(), dock_id_left_top);
+            ImGui::DockBuilderDockWindow(m_node_inspector->get_panel_name(), dock_id_left_btm);
 
-        ImGui::DockBuilderFinish(dockspace_id);
+            ImGui::DockBuilderFinish(dockspace_id);
+        }
     }
-
     ImGui::End();
+    ImGui::PopStyleVar(3);
 
     if (m_windows & ViewPanelNodes)
         show_panel_nodes();

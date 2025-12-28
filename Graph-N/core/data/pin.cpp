@@ -80,6 +80,7 @@ void Pin::link_to(Pin* other)
         other->pin_color = pin_color;
     }
     link = other;
+    Log("Pin " << get_id() << " linked to " << other->get_id());
 }
 
 void Pin::unlink()
@@ -97,6 +98,7 @@ void Pin::unlink()
         link->pin_color = IM_COL32_WHITE;
     }
 
+    Log("Pin " << get_id() << " unlinked from " << (link != nullptr ? link->get_id() : hid(0)));
     link = nullptr;
 }
 

@@ -91,9 +91,6 @@ bool DbManager::init()
     return true;
 }
 
-void DbManager::free()
-{}
-
 void DbManager::set_option(const std::string& key, const std::string& value)
 {
     try

@@ -17,6 +17,7 @@ PanelNodes::~PanelNodes() = default;
 
 void PanelNodes::init()
 {
+    LogF;
     PanelBase::init();
     data()->buffer.resize(PanelNodesData::buff_count);
 
@@ -44,38 +45,39 @@ void PanelNodes::init()
 
 DlgCode PanelNodes::show(bool& focused)
 {
-    if (!begin_panel(focused, data()->clr_bg))
-        return end_panel(false);
-
-    if (g::pNodesManager->get_nodes_tree().empty())
+    bool opened = true;
+    if (begin_panel(opened, focused, data()->clr_bg))
     {
-        ImGui::Text("Loading...");
-        return end_panel(true);
+        if (g::pNodesManager->get_nodes_tree().empty())
+        {
+            ImGui::TextUnformatted("Loading...");
+            return end_panel(true);
+        }
+
+        show_cfg_buttons();
+
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelNodesData::buff_filter],
+            ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
+        {
+            data()->buffer[PanelNodesData::buff_filter_lowered] = tools::str::to_lower_ansi(data()->buffer[PanelNodesData::buff_filter]);
+            Log("Filter by: " << data()->buffer[PanelNodesData::buff_filter_lowered]);
+            g::pNodesManager->calc_number_inside(tools::str::trim(data()->buffer[PanelNodesData::buff_filter_lowered]));
+            if (!data()->buffer[PanelNodesData::buff_filter_lowered].empty())
+                expand_all();
+        }
+
+        ImGui::Spacing(3);
+        if (ImGui::BeginChild("NodesGroup", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+        {
+            if (data()->tree_view)
+                show_tree_view();
+            else
+                show_plain_view();
+        }
+        ImGui::EndChild();
     }
-
-    show_cfg_buttons();
-
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelNodesData::buff_filter],
-        ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
-    {
-        data()->buffer[PanelNodesData::buff_filter_lowered] = tools::str::to_lower_ansi(data()->buffer[PanelNodesData::buff_filter]);
-        g::pNodesManager->calc_number_inside(tools::str::trim(data()->buffer[PanelNodesData::buff_filter_lowered]));
-        if (!data()->buffer[PanelNodesData::buff_filter_lowered].empty())
-            expand_all();
-    }
-
-    ImGui::Spacing(3);
-    ImGui::BeginChild("NodesGroup", ImVec2(ImGui::GetContentRegionAvail().x, 0));
-
-    if (data()->tree_view)
-        show_tree_view();
-    else
-        show_plain_view();
-
-    ImGui::EndChild();
-
-    return end_panel(true);
+    return end_panel(opened);
 }
 
 void PanelNodes::show_tree_view()
@@ -110,7 +112,8 @@ void PanelNodes::show_tree_view()
             {
                 ImGui::SetNextItemOpen(data->open_items.count(node_holder->get_id()) > 0);
 
-                if (ImGui::CollapsingHeader((node_holder->name_or_category + " (" + std::to_string(nodes_inside) + ")##" + node_holder->get_id_str()).c_str(),
+                ImGui::PushID(node_holder->get_id());
+                if (ImGui::CollapsingHeader(node_holder->name_or_category.c_str(),
                     ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_SpanFullWidth))
                 {
                     show_tree(node_holder->children, indent_level + 1);
@@ -120,14 +123,17 @@ void PanelNodes::show_tree_view()
                 {
                     data->open_items.erase(node_holder->get_id());
                 }
+                ImGui::PopID();
             }
             else
             {
                 if (node_holder->get_id() == data->selected_node)
                     ImGui::PushStyleColor(ImGuiCol_Text, data->clr_selected_node);
 
-                ImGui::CollapsingHeader((node_holder->name_or_category + "##" + node_holder->get_id_str()).c_str(),
+                ImGui::PushID(node_holder->get_id());
+                ImGui::CollapsingHeader(node_holder->name_or_category.c_str(),
                     ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);
+                ImGui::PopID();
 
                 if (node_holder->get_id() == data->selected_node)
                     ImGui::PopStyleColor();
@@ -137,9 +143,10 @@ void PanelNodes::show_tree_view()
                     data->selected_node = node_holder->get_id();
                     show_node(node_holder->node);
                 }
-                else if (!node_holder->node->description.empty() && ImGui::IsItemHovered())
+                else if (!node_holder->node->description.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
                 {
-                    ImGui::SetTooltip(node_holder->node->description.c_str());
+                    ImGui::TextUnformatted(node_holder->node->description.c_str());
+                    ImGui::EndTooltip();
                 }
             }
             ImGui::EndGroup();
@@ -188,8 +195,10 @@ void PanelNodes::show_plain_view()
         if (node_holder->get_id() == data()->selected_node)
             ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
 
-        ImGui::CollapsingHeader((node_holder->name_or_category + "##" + node_holder->get_id_str()).c_str(),
+        ImGui::PushID(node_holder->get_id());
+        ImGui::CollapsingHeader(node_holder->name_or_category.c_str(),
             ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);
+        ImGui::PopID();
 
         if (node_holder->get_id() == data()->selected_node)
             ImGui::PopStyleColor();
@@ -199,9 +208,10 @@ void PanelNodes::show_plain_view()
             data()->selected_node = node_holder->get_id();
             show_node(node_holder->node);
         }
-        else if (!node->description.empty() && ImGui::IsItemHovered())
+        else if (!node->description.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
         {
-            ImGui::SetTooltip(node->description.c_str());
+            ImGui::TextUnformatted(node->description.c_str());
+            ImGui::EndTooltip();
         }
 
         ImGui::EndGroup();
@@ -273,15 +283,25 @@ void PanelNodes::show_cfg_buttons()
     if (!tree_view)
         ImGui::BeginDisabled();
     FontGuard fg(g::pMain->get_icons_font());
+
+    const auto tooltip = [&fg](const char* text)
+    {
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+        {
+            fg.pop();
+            if (ImGui::BeginTooltip())
+            {
+                ImGui::TextUnformatted(text);
+                ImGui::EndTooltip();
+            }
+        }
+    };
+
     if (ImGui::Button(ICON_LC_LIST_CHEVRONS_UP_DOWN))
     {
         expand_all();
     }
-    if (ImGui::IsItemHovered())
-    {
-        fg.pop();
-        ImGui::SetTooltip("Expand All");
-    }
+    tooltip("Expand All");
 
     ImGui::SameLine(0.0f, spacing * data()->grouped_btn_spacing_x);
     fg.push();
@@ -289,11 +309,7 @@ void PanelNodes::show_cfg_buttons()
     {
         collapse_all();
     }
-    if (ImGui::IsItemHovered())
-    {
-        fg.pop();
-        ImGui::SetTooltip("Collapse All");
-    }
+    tooltip("Collapse All");
     if (!tree_view)
         ImGui::EndDisabled();
 
@@ -304,11 +320,7 @@ void PanelNodes::show_cfg_buttons()
         data()->tree_view = !data()->tree_view;
         g::pOptsManager->flow_set_nodes_pane_tree_view(data()->tree_view);
     }
-    if (ImGui::IsItemHovered())
-    {
-        fg.pop();
-        ImGui::SetTooltip("Toggle Flat/Category View");
-    }
+    tooltip("Toggle Flat/Category View");
 
     const bool online = g::pFlow->get_online();
     if (!online)
@@ -319,11 +331,7 @@ void PanelNodes::show_cfg_buttons()
     {
         g::pFlow->reconnect();
     }
-    if (ImGui::IsItemHovered())
-    {
-        fg.pop();
-        ImGui::SetTooltip("Refresh Node List");
-    }
+    tooltip("Refresh Node List");
     if (!online)
         ImGui::EndDisabled();
 
@@ -332,11 +340,11 @@ void PanelNodes::show_cfg_buttons()
     //{
     //    // Handle opts
     //}
-    //if (ImGui::IsItemHovered())
+    //if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
     //{
-    //    ImGui::SetWindowFontScale(old_scale);
-    //    ImGui::SetTooltip("View options");
+    //    ImGui::TextUnformatted("View options");
     //    ImGui::SetWindowFontScale(data()->icon_scale);
+    //    ImGui::EndTooltip();
     //}
 
     ImGui::PopStyleColor(3);

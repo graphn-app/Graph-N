@@ -13,9 +13,6 @@ class dt;
 namespace ImGui
 {
 
-void PushGID(gid id);
-void PushLID(lid id);
-
 void Spacing(size_t count);
 
 void Separator(const char* text);
@@ -24,18 +21,10 @@ void Separator(uint32_t color, const char* text = "");
 void PushDlgTitleStyles(const uint32_t color);
 void PopDlgTitleStyles();
 
-void HelpMarkerOnLastControl(const char* desc);
-void HelpMarker(const char* desc, const char* text = "[?]", bool same_line = true);
+void HelpMarkerOnLastControl(const char* tooltip);
+void HelpMarker(const char* tooltip, const char* help_mark = ICON_LC_MESSAGE_CIRCLE_QUESTION_MARK, bool same_line = true);
 
 bool CheckMultiselectControls();
-
-// return -1 if canceled
-// return 0 if in progress
-// return 1 if selected
-int DatePicker(const char* label, tools::time::dt& date, uint16_t min_year, uint16_t max_year, bool& year_enabled, bool allow_disable_year = true);
-int DatePickerRaw(const char* label, tools::time::dt& date, uint16_t min_year, uint16_t max_year, bool& year_enabled, bool allow_disable_year = true);
-
-bool DatePickerText(const std::string& label, const tools::time::dt& date, tools::time::dt& buffer, uint16_t min_year, uint16_t max_year, int month_text_length = 3);
 
 void Label(const char* label, float x_offset, const char* text);
 void Label(const char* label, float x_offset, const std::string& text);

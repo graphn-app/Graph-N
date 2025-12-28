@@ -300,6 +300,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
     {
         if (SIZE_MINIMIZED == wParam)
         {
+            Log("Windows is minimized");
             if (g::pGraphN)
                 g::pGraphN->handle_wnd_minimized();
             return 0;
@@ -317,7 +318,10 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         }
 
         if (SIZE_RESTORED == wParam && g::pGraphN)
+        {
+            Log("Windows is restored");
             g::pGraphN->handle_wnd_restored();
+        }
     }
     return 0;
     case WM_SYSCOMMAND:
@@ -331,6 +335,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         }
         break;
     case WM_DESTROY:
+        Log("WM_DESTROY");
         ::PostQuitMessage(0);
         return 0;
     case WM_TIMER:
@@ -357,7 +362,7 @@ void MainRoutine_Win32::wake_up()
 
 void MainRoutine_Win32::wnd_restore()
 {
-    Log("Window restored");
+    Log("Window restore cmd");
     ::ShowWindow(m_hwnd, SW_RESTORE);
     ::SetForegroundWindow(m_hwnd);
     ::RedrawWindow(m_hwnd, nullptr, nullptr, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_INTERNALPAINT);
@@ -365,13 +370,13 @@ void MainRoutine_Win32::wnd_restore()
 
 void MainRoutine_Win32::wnd_minimize()
 {
-    Log("Window minimized");
+    Log("Window minimize cmd");
     ::ShowWindow(m_hwnd, SW_MINIMIZE);
 }
 
 void MainRoutine_Win32::wnd_maximize()
 {
-    Log("Window maximized");
+    Log("Window maximize cmd");
     WINDOWPLACEMENT pl = {};
     GetWindowPlacement(m_hwnd, &pl);
     pl.showCmd = SW_SHOWMAXIMIZED;
@@ -380,14 +385,14 @@ void MainRoutine_Win32::wnd_maximize()
 
 void MainRoutine_Win32::wnd_show()
 {
-    Log("Window show");
+    Log("Window show cmd");
     ::ShowWindow(m_hwnd, SW_SHOW);
     ::RedrawWindow(m_hwnd, nullptr, nullptr, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_INTERNALPAINT);
 }
 
 void MainRoutine_Win32::wnd_hide()
 {
-    Log("Window hide");
+    Log("Window hide cmd");
     ::ShowWindow(m_hwnd, SW_HIDE);
 }
 
