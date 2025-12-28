@@ -55,7 +55,7 @@ private:
 
 class LogLineEnd { };
 
-struct LogHex
+struct LogHex final
 {
 	long long i = 0;
 	LogHex(long long i_) :
@@ -63,7 +63,7 @@ struct LogHex
 	{ }
 };
 
-struct LogPtr
+struct LogPtr final
 {
 	void* ptr = nullptr;
 	LogPtr(void* ptr_) :
@@ -122,7 +122,7 @@ struct LogGuard final
 	}
 };
 
-struct LogLockGuard
+struct LogLockGuard final
 {
 	LogLockGuard()
 	{

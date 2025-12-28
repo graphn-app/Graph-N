@@ -4,6 +4,8 @@
 namespace platform
 {
 
+MainRoutine::~MainRoutine() = default;
+
 void MainRoutine::prepare_fonts()
 {
     ImGuiIO& io = ImGui::GetIO();

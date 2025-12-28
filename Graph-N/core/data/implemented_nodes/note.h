@@ -7,8 +7,9 @@ namespace data
 
 struct NodeNote final : public Node
 {
+public:
     using Node::Node;
-	~NodeNote() override = default;
+    ~NodeNote() = default;
 };
 
 } // namespace data

@@ -7,6 +7,8 @@
 #include "core/managers/settings_manager.h"
 #include "core/managers/connect_manager.h"
 #include "core/managers/nodes_manager.h"
+#include "core/managers/comfyui_object_validity_listener.h"
+#include "ui/workflow/workflow.h"
 
 namespace ui
 {
@@ -56,13 +58,76 @@ bool GraphN_Flow::init()
 
 void GraphN_Flow::reconnect()
 {
+    LogF;
     m_windows |= ViewConnect;
     g::pConnectManager->connect();
 }
 
-void GraphN_Flow::set_inspecting_node(data::Node* node) 
+void GraphN_Flow::add_inspecting_node(data::Node* node)
+{
+    Log("Name = " << node->name << ", id=" << node->get_id());
+    m_node_inspector->add_inspecting_node(node);
+}
+
+void GraphN_Flow::remove_inspecting_node(data::Node* node)
+{
+    Log("Name = " << node->name << ", id=" << node->get_id());
+    m_node_inspector->remove_inspecting_node(node);
+}
+
+Workflow* GraphN_Flow::create_workflow()
+{
+    auto wf = std::make_unique<Workflow>();
+    auto ptr = wf.get();
+    ptr->init();
+    m_workflows.emplace(ptr->get_id(), std::move(wf));
+    Log("Workflow created, id=" << ptr->get_id());
+    return ptr;
+}
+
+void GraphN_Flow::destroy_workflow(lid wf_id)
+{
+    auto it = m_workflows.find(wf_id);
+    if (it == m_workflows.end())
+    {
+        LogAndThrowInternalErr("Can't destroy workflow id=" << wf_id);
+    }
+    else
+    {
+        m_workflows.erase(it);
+        Log("Workflow destroyed, id=" << wf_id);
+    }
+}
+
+Workflow* GraphN_Flow::find_workflow(lid wf_id)
+{
+    auto it = m_workflows.find(wf_id);
+    if (it != m_workflows.end())
+        return it->second.get();
+    return nullptr;
+}
+
+void GraphN_Flow::subscribe_confyui_validity_state(mngr::ComfyUiObjectValidityListener* listener)
 { 
-    m_node_inspector->set_inspecting_node(node);
+    m_comfyui_obj_listeners.push_back(listener);
+}
+
+void GraphN_Flow::invalidate_comfyui_objects()
+{
+    Log("Notify " << m_comfyui_obj_listeners.size() << " listeners");
+    for (auto* listener : m_comfyui_obj_listeners)
+    {
+        listener->invalidate_comfyui_objects();
+    }
+}
+
+void GraphN_Flow::resolve_comfyui_objects()
+{
+    Log("Notify " << m_comfyui_obj_listeners.size() << " listeners");
+    for (auto* listener : m_comfyui_obj_listeners)
+    {
+        listener->resolve_comfyui_objects();
+    }
 }
 
 void GraphN_Flow::exit()

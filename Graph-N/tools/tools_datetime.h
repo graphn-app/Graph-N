@@ -44,9 +44,6 @@ public:
 
 	// object foo
 public:
-	dt() = default;
-	~dt() = default;
-
 	time_type time() const { return m_time; }
 	byte day() const { return m_day; }
 	byte month() const { return m_month; }

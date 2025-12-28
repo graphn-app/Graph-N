@@ -8,7 +8,9 @@ class MainRoutine
 {
 public:
 	MainRoutine() = default;
-	virtual ~MainRoutine() = 0 {};
+	virtual ~MainRoutine() = 0;
+
+    NO_COPY_MOVE(MainRoutine);
 
 	virtual bool init() = 0;
 	virtual void free() = 0;

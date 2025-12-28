@@ -1,20 +1,18 @@
 ﻿
 #pragma once
 #include "ui/panels/panel_base.h"
-#include "ui/text_wrapper_ro.h"
+#include "core/managers/comfyui_object_validity_listener.h"
 
 namespace data
 {
 struct Node;
 }
 
-namespace ax::NodeEditor
-{
-struct EditorContext;
-}
-
 namespace ui
 {
+
+class Workflow;
+class TextWrapperRO;
 
 struct PanelNodeInspectorData final : public PanelCommonData
 {
@@ -22,27 +20,34 @@ struct PanelNodeInspectorData final : public PanelCommonData
     ImU32 clr_selected_node = 0;		// selected node text
 };
 
-class PanelNodeInspector final : public PanelBase<PanelNodeInspectorData>
+class PanelNodeInspector final : public PanelBase<PanelNodeInspectorData>, public mngr::ComfyUiObjectValidityListener
 {
 public:
     PanelNodeInspector();
-    ~PanelNodeInspector() override = default;
+    ~PanelNodeInspector() override;
 
     void init() override;
 
-    void set_inspecting_node(data::Node* node);
+    void add_inspecting_node(data::Node* node);
+    void remove_inspecting_node(data::Node* node);
+
+	// DataInvalidationHandler
+    void invalidate_comfyui_objects() override;
+    void resolve_comfyui_objects() override;
 
 private:
     DlgCode show(bool& focused) override;
-    void show_description();
-    void show_node_preview();
+    void show_nodes();
 
 private:
-    data::Node* m_inspecting_node = nullptr;
-    bool m_node_changed = false;
-    TextWrapperRO m_descr_wrapper;
-    lid m_preview_node_id = 0;
-    ax::NodeEditor::EditorContext* m_context = nullptr;
+    struct Data final
+    {
+        hid node_id = 0;
+        std::unique_ptr<TextWrapperRO> descr_wrapper;
+        Workflow* wf = nullptr;
+    };
+
+    std::map<hid, Data> m_inspecting;	// key: node id
 };
 
 

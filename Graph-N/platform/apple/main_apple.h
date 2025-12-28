@@ -7,7 +7,7 @@
 namespace platform
 {
 
-class MainRoutine_Apple final : public MainRoutine
+class MainRoutine_Apple final : public MainRoutine_Apple
 {
 	friend class Textures_Apple;
 
@@ -17,7 +17,7 @@ public:
 
 private:
 	/*
-		MainRoutine overrides
+		MainRoutine_Apple overrides
 	*/
 
 	bool init() override;

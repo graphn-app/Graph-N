@@ -21,7 +21,8 @@ public:
     {
         m_panel_name = tools::str::format("%s##%s", name, id);
     }
-    virtual ~PanelBase() = 0 {};
+
+    ~PanelBase() override = default;
 
     const char* get_panel_name() const { return m_panel_name.c_str(); }
 

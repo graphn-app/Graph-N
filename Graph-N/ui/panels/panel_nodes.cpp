@@ -13,6 +13,8 @@ PanelNodes::PanelNodes()
     : PanelBase(VisibleObject::PanelNodes, "Node Library", "0C72C6D56FFC4902A037A187719CA0AC")
 {}
 
+PanelNodes::~PanelNodes() = default;
+
 void PanelNodes::init()
 {
     PanelBase::init();
@@ -221,7 +223,7 @@ void PanelNodes::show_plain_view()
 
 void PanelNodes::show_node(data::Node* node)
 {
-    g::pFlow->set_inspecting_node(node);
+    g::pFlow->add_inspecting_node(node);
 }
 
 void PanelNodes::expand_all()

@@ -36,6 +36,8 @@ Pin::Pin(const std::string& node_class, size_t pin_index)
 {
 }
 
+Pin::~Pin() = default;
+
 bool Pin::can_link(const Pin* other) const
 {
 	if (input == other->input || output == other->output)

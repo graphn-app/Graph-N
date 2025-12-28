@@ -7,7 +7,7 @@
 
 namespace data
 {
-struct Nodes : public base::LocalID
+struct Nodes final : public base::LocalID
 {
     Nodes() = default;
     ~Nodes() override = default;
@@ -36,11 +36,6 @@ class NodesManager final : public Manager
 public:
 	NodesManager() = default;
 	~NodesManager() override = default;
-
-    NodesManager(NodesManager&&) = default;
-    NodesManager& operator=(NodesManager&&) = default;
-    NodesManager(const NodesManager&) = delete;
-    NodesManager& operator=(const NodesManager&) = delete;
 
 	void free() override;
 
@@ -76,7 +71,7 @@ public:
 	void check_status(size_t& parsed_item, size_t& parse_total);
 
 private:
-	NodesManager parse_thread();
+    std::shared_ptr<NodesManager> parse_thread();
 	void parse_node(NodesManager& manager, const std::string& node_class, nlohmann::json& node);
 	void parse_names(data::Node& node, const std::string& node_class, nlohmann::json& json_node);
 	void parse_input(NodesManager& manager, data::Node& node, nlohmann::json& json_node);
@@ -91,7 +86,7 @@ private:
 private:
 	std::string m_json_data;
 
-	std::future<NodesManager> m_future;
+	std::future<std::shared_ptr<NodesManager>> m_future;
 	std::thread m_thread;
 	std::atomic_bool m_stop_thread_flag = false;
 

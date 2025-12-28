@@ -33,6 +33,21 @@
 #include "stb_image.h"
 
 // app global
+
+#define NO_COPY_MOVE(ClassName) \
+    ClassName(const ClassName&) = delete; \
+    ClassName& operator=(const ClassName&) = delete; \
+    ClassName(ClassName&&) = delete; \
+    ClassName& operator=(ClassName&&) = delete;
+
+#define NO_COPY_MOVE_CTORS(ClassName) \
+	ClassName() = default; \
+	~ClassName() = default; \
+    ClassName(const ClassName&) = delete; \
+    ClassName& operator=(const ClassName&) = delete; \
+    ClassName(ClassName&&) = delete; \
+    ClassName& operator=(ClassName&&) = delete;
+
 #include "icons_lucide.h"
 #include "core/base/types.h"
 #include "tools/cast.h"
@@ -60,7 +75,6 @@ namespace comfyui
 {
 constexpr const char* object_info = "/object_info";
 }
-
 
 //#ifdef _DEBUG
 //if ()

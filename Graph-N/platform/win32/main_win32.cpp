@@ -20,6 +20,8 @@ MainRoutine_Win32::MainRoutine_Win32()
 	, m_clear_color(0.45f, 0.55f, 0.60f, 1.00f)
 {}
 
+MainRoutine_Win32::~MainRoutine_Win32() = default;
+
 bool MainRoutine_Win32::init()
 {
 	tools::set_exception_translator();

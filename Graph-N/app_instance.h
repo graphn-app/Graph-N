@@ -12,6 +12,8 @@ public:
 	AppInstance(WakeUpCallback on_wake_up);
 	~AppInstance();
 
+    NO_COPY_MOVE(AppInstance);
+
 	// returns true, if this is first instance
 	// returns false, if main instance already running (we should close)
 	bool is_primary() const { return m_is_primary; }

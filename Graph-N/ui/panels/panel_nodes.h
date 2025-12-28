@@ -35,7 +35,7 @@ class PanelNodes final : public PanelBase<PanelNodesData>
 {
 public:
     PanelNodes();
-    ~PanelNodes() override = default;
+    ~PanelNodes() override;
 
     void init() override;
 

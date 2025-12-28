@@ -14,7 +14,7 @@ class MainRoutine_Win32 final : public MainRoutine
 
 public:
 	MainRoutine_Win32();
-	~MainRoutine_Win32() override = default;
+	~MainRoutine_Win32() override;
 
 private:
 	/*

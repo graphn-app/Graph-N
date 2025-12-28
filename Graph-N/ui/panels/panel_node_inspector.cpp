@@ -1,9 +1,11 @@
 ﻿
 #include "ui/panels/panel_node_inspector.h"
+#include "ui/text_wrapper_ro.h"
+#include "ui/workflow/workflow.h"
+#include "ui/graph-n_flow.h"
 #include "platform/main.h"
 #include "core/managers/settings_manager.h"
 #include "core/data/node.h"
-#include "imgui_node_editor.h"
 
 namespace ui
 {
@@ -11,6 +13,8 @@ namespace ui
 PanelNodeInspector::PanelNodeInspector()
     : PanelBase(VisibleObject::PanelNodeInspector, "Node Inspector", "95E5A1E7883E495E8712FA33A123F3BB")
 {}
+
+PanelNodeInspector::~PanelNodeInspector() = default;
 
 void PanelNodeInspector::init()
 {
@@ -20,30 +24,41 @@ void PanelNodeInspector::init()
     data()->clr_descr_frame = g::pOptsManager->flow_get_color(VisibleObject::PanelNodeInspectorDescrFrame);
     data()->clr_selected_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesSelectedNode);
 
-    m_descr_wrapper.set_font(g::pMain->get_regular_font());
-
-    ax::NodeEditor::Config config;
-    config.SettingsFile = nullptr;
-    m_context = ax::NodeEditor::CreateEditor(&config);
-
-    m_preview_node_id = base::LocalID::get_next_id();
+    g::pFlow->subscribe_confyui_validity_state(this);
 }
 
-void PanelNodeInspector::set_inspecting_node(data::Node* node)
+void PanelNodeInspector::add_inspecting_node(data::Node* node)
 {
-    m_node_changed = true;
-    m_inspecting_node = node;
-    if (nullptr == node || node->description.empty())
-        m_descr_wrapper.set_raw_text(nullptr);
-    else
-        m_descr_wrapper.set_raw_text(&node->description);
+    if (nullptr == node || m_inspecting.find(node->get_id()) != m_inspecting.end())
+        return;
+
+    Data data;
+    data.descr_wrapper = std::make_unique<TextWrapperRO>();
+    data.descr_wrapper->set_font(g::pMain->get_regular_font());
+	if (!node->description.empty())
+        data.descr_wrapper->set_raw_text(&node->description);
+    data.wf = g::pFlow->create_workflow();
+    data.wf->add_node(node->get_id());
+
+    m_inspecting.emplace(node->get_id(), std::move(data));
 }
+
+void PanelNodeInspector::remove_inspecting_node(data::Node* /*node*/)
+{}
+
+void PanelNodeInspector::invalidate_comfyui_objects()
+{}
+
+void PanelNodeInspector::resolve_comfyui_objects()
+{}
 
 DlgCode PanelNodeInspector::show(bool& focused)
 {
     if (!begin_panel(focused, data()->clr_bg))
         return end_panel(false);
 
+    show_nodes();
+/*
     if (nullptr == m_inspecting_node)
     {
         ImGui::Spacing(3);
@@ -60,35 +75,38 @@ DlgCode PanelNodeInspector::show(bool& focused)
     show_description();
     show_node_preview();
 
-    m_node_changed = false;
+    m_node_changed = false;*/
     return end_panel(true);
 }
 
-void PanelNodeInspector::show_description()
-{
-    if (!m_inspecting_node->description.empty())
-    {
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, data()->clr_bg);
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-        ImGui::PushStyleColor(ImGuiCol_Border, data()->clr_descr_frame);
+void PanelNodeInspector::show_nodes()
+{}
 
-        ImGui::InputTextMultiline("##NodeDescription", m_descr_wrapper.get_wrapped_text(), m_descr_wrapper.get_wrapped_capacity() + 1,
-            ImVec2(-FLT_MIN, m_descr_wrapper.get_wrapped_height()),
-            ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
-        m_descr_wrapper.re_calc(ImGui::GetItemRectSize());
-
-        ImGui::PopStyleColor(2);
-        ImGui::PopStyleVar();
-        ImGui::Spacing(3);
-    }
-}
-
-void PanelNodeInspector::show_node_preview()
-{
-    namespace ed = ax::NodeEditor;
-
-    const ImVec2 canvas_size(ImGui::GetContentRegionAvail().x, -FLT_MIN);
-
+//void PanelNodeInspector::show_description()
+//{
+//    if (!m_inspecting_node->description.empty())
+//    {
+//        ImGui::PushStyleColor(ImGuiCol_FrameBg, data()->clr_bg);
+//        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+//        ImGui::PushStyleColor(ImGuiCol_Border, data()->clr_descr_frame);
+//
+//        ImGui::InputTextMultiline("##NodeDescription", m_descr_wrapper.get_wrapped_text(), m_descr_wrapper.get_wrapped_capacity() + 1,
+//            ImVec2(-FLT_MIN, m_descr_wrapper.get_wrapped_height()),
+//            ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+//        m_descr_wrapper.re_calc(ImGui::GetItemRectSize());
+//
+//        ImGui::PopStyleColor(2);
+//        ImGui::PopStyleVar();
+//        ImGui::Spacing(3);
+//    }
+//}
+//
+//void PanelNodeInspector::show_node_preview()
+//{
+//    namespace ed = ax::NodeEditor;
+//
+//    const ImVec2 canvas_size(ImGui::GetContentRegionAvail().x, -FLT_MIN);
+/*
     auto old_editor = ed::GetCurrentEditor();
     ed::SetCurrentEditor(m_context);
 
@@ -96,7 +114,7 @@ void PanelNodeInspector::show_node_preview()
     ed::BeginNode(m_preview_node_id);
 
     ImGui::Text(m_inspecting_node->name.c_str());
-
+*/
     //// Inputs
     //for (auto& pin : selected_node->inputs) {
     //    ed::BeginPin(GetPreviewPinID(pin.name), ed::PinKind::Input);
@@ -106,13 +124,13 @@ void PanelNodeInspector::show_node_preview()
 
     // Outputs...
 
-    ed::EndNode();
+   // ed::EndNode();
 
   //  if (m_node_changed) 
     //    ed::NavigateToContent();
 
-    ed::End();
-    ed::SetCurrentEditor(old_editor);
-}
+   // ed::End();
+   // ed::SetCurrentEditor(old_editor);
+//}
 
 } // namespace ui

@@ -4,7 +4,7 @@
 namespace ui
 {
 
-struct FontGuard
+struct FontGuard final
 {
     bool pushed = false;
     ImFont* font = nullptr;
@@ -18,6 +18,8 @@ struct FontGuard
     {
         pop();
     }
+
+    NO_COPY_MOVE(FontGuard);
 
     void push()
     {

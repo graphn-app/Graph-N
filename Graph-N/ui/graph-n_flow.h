@@ -4,6 +4,7 @@
 namespace mngr
 {
 class NodesParser;
+struct ComfyUiObjectValidityListener;
 }
 
 namespace data
@@ -17,6 +18,8 @@ class BaseDlg;
 class OptionsDlgs;
 class PanelNodes;
 class PanelNodeInspector;
+
+class Workflow;
 
 enum ViewDialogs
 {
@@ -48,6 +51,8 @@ public:
 	GraphN_Flow();
 	~GraphN_Flow();
 
+    NO_COPY_MOVE(GraphN_Flow);
+
 	bool init();
 	bool run();
 	void exit();
@@ -57,7 +62,17 @@ public:
 
     void reconnect();
 
-    void set_inspecting_node(data::Node* node);
+    void add_inspecting_node(data::Node* node);
+    void remove_inspecting_node(data::Node* node);
+
+    Workflow* create_workflow();
+    void destroy_workflow(lid wf_id);
+    Workflow* find_workflow(lid wf_id);
+
+    void subscribe_confyui_validity_state(mngr::ComfyUiObjectValidityListener* listener);
+
+    void invalidate_comfyui_objects();
+    void resolve_comfyui_objects();
 
 private:
 	void stop_all_threads();
@@ -88,9 +103,13 @@ private:
 	uint64_t m_windows = ViewNone;
 	BaseDlg* m_focused_wnd = nullptr;
 	std::set<BaseDlg*> m_all_dialogs;
-	std::unique_ptr<OptionsDlgs> m_opts_dlg;
 
+	std::unique_ptr<OptionsDlgs> m_opts_dlg;
     std::unique_ptr<PanelNodes> m_nodes_panel;
     std::unique_ptr<PanelNodeInspector> m_node_inspector;
+
+	std::map<lid, std::unique_ptr<Workflow>> m_workflows;
+
+    std::list<mngr::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
 };
 }

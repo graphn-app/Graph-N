@@ -612,7 +612,7 @@ void Label(const char* label, float x_offset, const std::string& text)
 	Label(label, x_offset, std::string_view(text));
 }
 
-struct InputTextCallback_UserData
+struct InputTextCallback_UserData final
 {
 	std::string*            Str;
 	ImGuiInputTextCallback  ChainCallback;

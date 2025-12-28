@@ -7,8 +7,9 @@ namespace data
 
 struct NodeMarkdownNote final : public Node
 {
+public:
     using Node::Node;
-	~NodeMarkdownNote() override = default;
+    ~NodeMarkdownNote() = default;
 };
 
 } // namespace data

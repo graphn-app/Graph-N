@@ -6,6 +6,8 @@ using time_type = uint64_t;
 using lid = uint32_t;	// local ID
 using gid = uint64_t;	// global id
 using hid = size_t;		// hash id
+using iid = uint32_t;	// instance id, to save in json
+using aid = uint64_t;	// app id, to use in graph
 using byte_buff = std::vector<byte>;
 using primitive = std::variant<int64_t, double, std::string, bool, std::monostate>;
 

@@ -55,7 +55,7 @@ struct Pin final : public base::HashID
 public:
 	Pin(const std::string& node_class, const std::string& pin_name);
     Pin(const std::string& node_class, size_t pin_index);
-	~Pin() override = default;
+    ~Pin() override;
 
 	bool can_link(const Pin* other) const;
 	void link_to(Pin* other);

@@ -12,7 +12,6 @@ namespace mngr
 class Manager;
 class SettingsManager;
 class DbManager;
-class DataManager;
 class NodesManager;
 class ConnectManager;
 }
@@ -27,6 +26,8 @@ class GraphN final
 public:
 	GraphN();
 	~GraphN();
+
+    NO_COPY_MOVE(GraphN);
 
 	enum class Flow
 	{
@@ -77,7 +78,6 @@ extern ui::GraphN_Flow* pFlow;
 
 extern mngr::SettingsManager* pOptsManager;
 extern mngr::DbManager* pDbManager;
-extern mngr::DataManager* pDataManager;
 extern mngr::NodesManager* pNodesManager;
 extern mngr::ConnectManager* pConnectManager;
 }

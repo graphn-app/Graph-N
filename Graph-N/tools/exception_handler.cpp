@@ -11,7 +11,7 @@
 namespace tools
 {
 
-class SehException
+class SehException final
 {
 private:
 	unsigned int nSE = 0;
@@ -21,6 +21,9 @@ public:
 	SehException(unsigned int n) : 
 		nSE(n) 
 	{}
+    
+    NO_COPY_MOVE(SehException);
+
 	unsigned int getSeNumber() { return nSE; }
 };
 

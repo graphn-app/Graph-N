@@ -2,6 +2,10 @@
 namespace base
 {
 
+/////////////////////////////////////////////
+/////   GlobalID        /////////////////////
+/////////////////////////////////////////////
+
 std::atomic<gid> GlobalID::m_last_id;
 std::string GlobalID::m_client_id;
 
@@ -15,27 +19,7 @@ GlobalID::GlobalID(gid id)
     set_id(id);
 }
 
-GlobalID::GlobalID(const GlobalID&)
-{
-    set_id(get_next_id());
-}
-
-GlobalID::GlobalID(GlobalID&& other)
-{
-    set_id(other.m_id);
-}
-
-GlobalID& GlobalID::operator= (const GlobalID&)
-{
-    set_id(get_next_id());
-    return *this;
-}
-
-GlobalID& GlobalID::operator= (GlobalID&& other)
-{
-    set_id(other.m_id);
-    return *this;
-}
+GlobalID::~GlobalID() = default;
 
 void GlobalID::set_id(gid id) 
 { 
@@ -81,7 +65,9 @@ std::string GlobalID::get_client_id()
 	return m_client_id;
 }
 
-//////////////////////
+/////////////////////////////////////////////
+/////   LocalID         /////////////////////
+/////////////////////////////////////////////
 
 std::atomic<lid> LocalID::m_last_id = 0;
 
@@ -95,27 +81,7 @@ LocalID::LocalID(lid id)
     set_id(id);
 }
 
-LocalID::LocalID(const LocalID&)
-{
-    set_id(get_next_id());
-}
-
-LocalID::LocalID(LocalID&& other)
-{
-    set_id(other.m_id);
-}
-
-LocalID& LocalID::operator= (const LocalID&)
-{
-    set_id(get_next_id());
-    return *this;
-}
-
-LocalID& LocalID::operator= (LocalID&& other)
-{
-    set_id(other.m_id);
-    return *this;
-}
+LocalID::~LocalID() = default;
 
 void LocalID::set_id(lid id)
 {
@@ -128,44 +94,70 @@ lid LocalID::get_next_id()
 	return ++m_last_id;	// starts from 1
 }
 
-//////////////////////
+/////////////////////////////////////////////
+/////   HashID          /////////////////////
+/////////////////////////////////////////////
 
 HashID::HashID(const char* unique)
 {
     set_id(tools::str::hash_fnv1a(unique));
+    Log("HashID: " << unique << "=" << m_id);
 }
 
 HashID::HashID(const std::string& unique)
 {
     set_id(tools::str::hash_fnv1a(unique));
+    Log("HashID: " << unique << "=" << m_id);
 }
 
-HashID::HashID(const HashID& other)
-{
-    *this = other;
-}
-
-HashID::HashID(HashID&& other)
-{
-    *this = other;
-}
-
-HashID& HashID::operator= (const HashID& other)
-{
-    set_id(other.m_id);
-    return *this;
-}
-
-HashID& HashID::operator= (HashID&& other)
-{
-    *this = other;
-    return *this;
-}
+HashID::~HashID() = default;
 
 void HashID::set_id(hid id)
 {
     m_id = id;
     m_id_str = std::to_string(m_id);
+}
+
+/////////////////////////////////////////////
+/////   InstanceID      /////////////////////
+/////////////////////////////////////////////
+
+std::map<lid, std::set<iid>> InstanceID::m_ids;
+
+InstanceID::InstanceID(lid workflow_id)
+    : m_workflow_id(workflow_id)
+{
+    m_workflow_id_str = std::to_string(m_workflow_id);
+    generate_id();
+    Log("InstanceID: Wf=" << m_workflow_id << ", iid=" << m_id);
+}
+
+InstanceID::~InstanceID() = default;
+
+void InstanceID::erase_key(lid workflow_id)
+{
+    m_ids.erase(workflow_id);
+}
+
+void InstanceID::generate_id()
+{
+    auto& ids = m_ids[m_workflow_id];
+	if (ids.empty())
+    {
+        m_ids[m_workflow_id].insert(1);
+    }
+    else
+    {
+        auto last = *ids.rbegin();
+        m_ids[m_workflow_id].insert(++last);
+    }
+}
+
+void InstanceID::set_id(iid id)
+{
+    m_id = id;
+    m_id_str = std::to_string(m_id);
+    m_ids[m_workflow_id].insert(m_id);
 }
 
 }

@@ -7,7 +7,7 @@ namespace ui
 
 class OptRightPane;
 
-class OptionsDlgs : public BaseDlgWithData<DlgData>
+class OptionsDlgs final : public BaseDlgWithData<DlgData>
 {
 public:
 	OptionsDlgs(OptPane init_opt = OptPane::_none);

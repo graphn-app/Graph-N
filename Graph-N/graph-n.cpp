@@ -1,6 +1,5 @@
 ﻿
 #include "ui/graph-n_flow.h"
-#include "core/managers/data_manager.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
@@ -15,7 +14,6 @@ GraphN* pGraphN = nullptr;
 ui::GraphN_Flow* pFlow = nullptr;
 mngr::SettingsManager* pOptsManager = nullptr;
 mngr::DbManager* pDbManager = nullptr;
-mngr::DataManager* pDataManager = nullptr;
 mngr::NodesManager* pNodesManager = nullptr;
 mngr::ConnectManager* pConnectManager = nullptr;
 }
@@ -36,9 +34,6 @@ bool GraphN::init_graphn()
 
 	m_managers.emplace_back(std::make_unique<mngr::DbManager>());
 	g::pDbManager = (mngr::DbManager*)m_managers.back().get();
-
-	m_managers.emplace_back(std::make_unique<mngr::DataManager>());
-	g::pDataManager = (mngr::DataManager*)m_managers.back().get();
 
 	m_managers.emplace_back(std::make_unique<mngr::SettingsManager>());
 	g::pOptsManager = (mngr::SettingsManager*)m_managers.back().get();
@@ -83,7 +78,6 @@ void GraphN::exit_graphn()
 
 	g::pNodesManager = nullptr;
 	g::pOptsManager = nullptr;
-	g::pDataManager = nullptr;
 	g::pDbManager = nullptr;
 	g::pConnectManager = nullptr;
 }

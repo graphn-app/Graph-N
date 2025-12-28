@@ -8,6 +8,11 @@ namespace ui
 
 struct DlgData
 {
+    DlgData() = default;
+    virtual ~DlgData() = default;
+
+    NO_COPY_MOVE(DlgData);
+
 	float x = 0;
 	float y = 0;
 	float width = 0;
@@ -33,7 +38,9 @@ public:
 	BaseDlg(VisibleObject obj)
 		: m_obj(obj)
 	{}
-	virtual ~BaseDlg() = 0 {}
+    virtual ~BaseDlg() = 0;
+
+    NO_COPY_MOVE(BaseDlg);
 
 	void set_focused() { m_focused = true; }
 
@@ -105,13 +112,14 @@ private:
 	bool m_close_called = false;
 };
 
+inline BaseDlg::~BaseDlg() = default;
+
 template <typename DlgDataType>
 class BaseDlgWithData : public BaseDlg
 {
-public:
-	BaseDlgWithData(VisibleObject obj)
-		: BaseDlg(obj)
-	{}
+public:	
+    using BaseDlg::BaseDlg;
+    ~BaseDlgWithData() override = default;
 
 	virtual void init()
 	{

@@ -11,11 +11,10 @@ namespace data
 struct Node : public base::HashID
 {
     using base::HashID::HashID;
-	
-	~Node() override = default;
+    ~Node() override;
 
 	bool has_input = false;
-	struct Input
+	struct Input final
 	{
 		std::vector<Pin*> pins;
 		std::vector<std::string> order;

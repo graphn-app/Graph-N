@@ -3,6 +3,7 @@
 #include "core/data/node.h"
 #include "core/data/implemented_nodes/note.h"
 #include "core/data/implemented_nodes/markdown_note.h"
+#include "ui/graph-n_flow.h"
 
 namespace mngr
 {
@@ -111,9 +112,11 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
 			}
 			else
 			{
+                Log("Parsed: ok");
 				// this is UI thread, so it is safe to recreate on the fly
-				g::pNodesManager->init_from_copy(copy);
-				Log("Parsed: ok");
+                g::pFlow->invalidate_comfyui_objects();
+				g::pNodesManager->init_from_copy(*copy.get());
+                g::pFlow->resolve_comfyui_objects();
 			}
 		}
 		m_stop_thread_flag = false;
@@ -135,7 +138,7 @@ void NodesParser::parse(std::string data)
 	m_parsed_item = 0;
 	m_parsed_items_total = 0;
 
-	std::packaged_task<NodesManager()> task(std::bind(&NodesParser::parse_thread, this));
+	std::packaged_task<std::shared_ptr<NodesManager>()> task(std::bind(&NodesParser::parse_thread, this));
 	m_future = task.get_future();
 	m_thread = std::thread(std::move(task));
 }
@@ -148,21 +151,21 @@ void NodesParser::stop()
 		m_thread.join();
 }
 
-NodesManager NodesParser::parse_thread()
+std::shared_ptr<NodesManager> NodesParser::parse_thread()
 {
 	try
 	{
 		auto nodes = nlohmann::json::parse(m_json_data);
 		m_parsed_items_total = nodes.size();
 
-		NodesManager copy;
+		auto copy = std::make_shared<NodesManager>();
 		prepare_parsers_map();
 
 		const auto items = nodes.items();
 		for (auto& [node_class, node_info] : items)
 		{
 			m_parsed_item++;
-			parse_node(copy, node_class, node_info);
+			parse_node(*copy.get(), node_class, node_info);
 
 			if (m_stop_thread_flag)
 			{
@@ -171,8 +174,8 @@ NodesManager NodesParser::parse_thread()
 			}
 		}
 
-		add_internal_nodes(copy);
-		sort_nodes(copy);
+		add_internal_nodes(*copy.get());
+		sort_nodes(*copy.get());
 		return copy;
 	}
 	catch (std::exception& e)

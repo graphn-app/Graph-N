@@ -13,8 +13,7 @@ OptionsDlgs::OptionsDlgs(OptPane init_opt /*= OptPane::_none*/)
 	m_opts_data.pane.left_selected_item = init_opt;
 }
 
-OptionsDlgs::~OptionsDlgs()
-{}
+OptionsDlgs::~OptionsDlgs() = default;
 
 void OptionsDlgs::init()
 {
