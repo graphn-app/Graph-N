@@ -64,7 +64,7 @@ private:
 class NodesParser final
 {
 public:
-    void parse(std::string data);
+    void parse(std::string&& data);
     void stop();
 
     bool is_parse_failed() const { return m_parse_failed; };

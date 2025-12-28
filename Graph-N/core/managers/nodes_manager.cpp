@@ -145,7 +145,7 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
     parse_total = m_parsed_items_total;
 }
 
-void NodesParser::parse(std::string data)
+void NodesParser::parse(std::string&& data)
 {
     Log("To parse: " << data.size() << " bytes")
     stop();
