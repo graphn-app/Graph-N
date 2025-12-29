@@ -413,11 +413,11 @@ std::string& remove_backslash(std::string& path)
     return path;
 }
 
-std::list<std::filesystem::path> enumerate_directory(const std::string& path, bool recursively, bool include_dirs, bool include_files, bool relative_pathes, char slash /*= '\\'*/)
+std::list<std::filesystem::path> enumerate_directory(const std::filesystem::path& path, bool recursively, bool include_dirs, bool include_files, bool relative_pathes, char slash /*= '\\'*/)
 {
     std::list<std::filesystem::path> out;
 
-    std::string root = tools::str::replace(path, "/", "\\", 0);
+    std::string root = tools::str::replace(path.string(), "/", "\\", 0);
     add_backslash(root);
 
     const auto replace_slash = [slash](const std::string& path) -> std::string

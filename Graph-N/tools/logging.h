@@ -23,6 +23,7 @@ private:
     ~Logger();
     NO_COPY_MOVE(Logger);
 
+    static void cleanup();
     static bool check_log_file_mark();
 
 	void log_start();

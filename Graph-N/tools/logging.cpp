@@ -9,6 +9,33 @@ std::atomic_bool Logger::m_enabled = false;
 
 /////////////////////////////////////////////////////////////////
 
+void Logger::cleanup()
+{
+    auto path = fs::get_log_directory_path();
+    auto list = tools::path::enumerate_directory(path, false, false, true, false);
+
+    constexpr int32_t to_save = 5;
+    int32_t to_delete = cast::to_i32(list.size()) - to_save;
+    if (to_delete <= 0)
+        return;
+
+    const auto sort_callback = [](const std::filesystem::path& lhs, const std::filesystem::path& rhs)
+    {
+        return lhs.wstring() < rhs.wstring();
+    };
+    list.sort(sort_callback);
+
+    for (const auto& file : list)
+    {
+        if (file.filename() == m_log_file_mark)
+            continue;
+
+        tools::path::remove(file);
+        if (--to_delete <= 0)
+            break;
+    }
+}
+
 bool Logger::check_log_file_mark()
 {
     auto path = fs::get_log_directory_path();
@@ -70,6 +97,7 @@ void Logger::force_flush()
 
 void Logger::log_start()
 {
+    cleanup();
     if (get_log_enabled())
         return;
 
