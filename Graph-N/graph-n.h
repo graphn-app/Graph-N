@@ -80,4 +80,6 @@ extern mngr::SettingsManager* pOptsManager;
 extern mngr::DbManager* pDbManager;
 extern mngr::NodesManager* pNodesManager;
 extern mngr::ConnectManager* pConnectManager;
+
+void save_exception(ExcepCategory category, const std::string& message, const char* file, int line);
 }

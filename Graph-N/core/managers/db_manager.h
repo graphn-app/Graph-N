@@ -13,6 +13,8 @@ public:
 
     bool init() override;
 
+    void save_exception(ExcepCategory category, const std::string& message, const char* file, int line);
+
     void set_option(const std::string& key, const std::string& value);
     void set_option(const std::string& key, int64_t value);
 
@@ -24,6 +26,7 @@ private:
 
 private:
     std::unique_ptr<SQLite::Database> m_db;
+    std::mutex m_lock;
 };
 
 } // namespace mngr

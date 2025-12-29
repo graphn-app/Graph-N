@@ -69,7 +69,7 @@ AppInstance::~AppInstance()
 
 void AppInstance::notify_existing_instance()
 {
-    Log2("127.0.0.1", m_port);
+    LogV("127.0.0.1", m_port);
     httplib::Client cli("127.0.0.1", m_port);
     cli.Post(m_cmd_wakeup, "", "text/plain");
 }

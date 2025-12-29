@@ -90,7 +90,7 @@ void OptionsDlgs::show_right_pane()
                     }
                     catch (const std::exception& ex)
                     {
-                        LogExcep("Options: " << ex.what());
+                        LogExcep(ExcepCategory::ui, "Options: " << ex.what());
                     }
                 }
 

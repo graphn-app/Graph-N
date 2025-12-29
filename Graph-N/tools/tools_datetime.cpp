@@ -292,7 +292,7 @@ const char* dt::week_day_name(byte d, int length /*= 0*/)
         return (1 == length ? "S" : (3 == length ? "Sat" : "Saturday"));
     }
 
-    LogAndThrow("=Undefined day " << d);
+    LogAndThrow(ExcepCategory::logic, "=Undefined day " << d);
 }
 
 const char* dt::month_name(byte m, int length /*= 0*/)
@@ -326,7 +326,7 @@ const char* dt::month_name(byte m, int length /*= 0*/)
     }
 
     return "";
-    //	LogAndThrow("=Undefined month " << m);
+    //	LogAndThrow(ExcepCategory::logic, "=Undefined month " << m);
 }
 
 const char* dt::month_name(int length /*= 5*/, const char* def /*= ""*/) const

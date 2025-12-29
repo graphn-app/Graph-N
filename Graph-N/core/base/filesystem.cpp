@@ -14,7 +14,7 @@ std::filesystem::path get_this_app_filepath()
     while (GetLastError() == ERROR_INSUFFICIENT_BUFFER);
     return std::filesystem::path(buff.data());
 
-#elif defined(__linux__)
+#elif defined __linux__
 #include <unistd.h>
 #include <limits.h>	
     char result[PATH_MAX];
@@ -23,7 +23,7 @@ std::filesystem::path get_this_app_filepath()
         return std::filesystem::path(std::string(result, (count > 0) ? count : 0));
     return {};
 
-#elif defined(__APPLE__)
+#elif defined __APPLE__
 #include <mach-o/dyld.h>
     uint32_t size = 0;
     _NSGetExecutablePath(nullptr, &size);

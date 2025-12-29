@@ -91,11 +91,13 @@ int main(int, char**)
     }
     catch (const std::exception& ex)
     {
-        LogAndReThrow("Main routine, err " << ex.what());
+        LogExcep(ExcepCategory::main, "Main routine, err " << ex.what());
+        throw;
     }
     catch (...)
     {
-        LogAndReThrow("Main routine unknown exception");
+        LogExcep(ExcepCategory::main, "Main routine unknown exception");
+        throw;
     }
 
     return 1;

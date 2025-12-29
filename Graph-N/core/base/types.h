@@ -35,6 +35,23 @@ enum class VisibleObject
     _last = _count - 1,
 };
 
+enum class ExcepCategory
+{
+    _none,
+    inconsistent_map,
+    inconsistent_ptr,
+    directx,
+    filesystem,
+    switch_enum,
+    comfyui,
+    sqlite,
+    ui,
+    main,
+    logic,
+    logger,
+    flow,
+};
+
 enum DlgCtrl
 {
     //_none = 0,

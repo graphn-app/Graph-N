@@ -101,13 +101,13 @@ lid LocalID::get_next_id()
 HashID::HashID(const char* unique)
 {
     set_id(tools::str::hash_fnv1a(unique));
-    Log("HashID: " << unique << "=" << m_id);
+//    Log("HashID: " << unique << "=" << m_id);
 }
 
 HashID::HashID(const std::string& unique)
 {
     set_id(tools::str::hash_fnv1a(unique));
-    Log("HashID: " << unique << "=" << m_id);
+//    Log("HashID: " << unique << "=" << m_id);
 }
 
 HashID::~HashID() = default;
@@ -129,7 +129,7 @@ InstanceID::InstanceID(lid workflow_id)
 {
     m_workflow_id_str = std::to_string(m_workflow_id);
     generate_id();
-    Log("InstanceID: Wf=" << m_workflow_id << ", iid=" << m_id);
+//    Log("InstanceID: Wf=" << m_workflow_id << ", iid=" << m_id);
 }
 
 InstanceID::~InstanceID() = default;

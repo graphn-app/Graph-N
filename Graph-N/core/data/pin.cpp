@@ -13,7 +13,7 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
     { "IMAGE", PinType::IMAGE },			{ "MODEL", PinType::MODEL },				{ "MASK", PinType::MASK },
     { "LATENT", PinType::LATENT },			{ "VAE", PinType::VAE },					{ "CONDITIONING", PinType::CONDITIONING },
     { "CLIP", PinType::CLIP },				{ "NOISE", PinType::NOISE },				{ "CONTROL_NET", PinType::CONTROL_NET },
-    { "SIGMAS", PinType::SIGMAS },			{ "BUS", PinType::BUS },					{ "IPADAPTER", PinType::IPADAPTER },
+    { "SIGMAS", PinType::SIGMAS },			/*{ "BUS", PinType::BUS },*/					{ "IPADAPTER", PinType::IPADAPTER },
     { "SAMPLER", PinType::SAMPLER },		{ "AUDIO", PinType::AUDIO },				{ "SEED", PinType::SEED },
     { "SEGS", PinType::SEGS },				{ "CLIP_VISION", PinType::CLIP_VISION },	{ "CONTROL_NET_STACK", PinType::CONTROL_NET_STACK },
     { "PIPE_LINE", PinType::PIPE_LINE },	{ "VIDEO", PinType::VIDEO },				{ "LORA_STACK", PinType::LORA_STACK },
@@ -64,7 +64,7 @@ void Pin::link_to(Pin* other)
 {
     if (!can_link(other))
     {
-        LogAndThrowInternalErr("Check can link before entablish connection");
+        LogAndThrowInternalError(ExcepCategory::logic, "Check can link before entablish connection");
     }
 
     if (type_any)
@@ -131,14 +131,14 @@ void Pin::finalize()
     {
         display_as_color = display_as_slider = false;
         LogInvalidJson("Both display_as_color and display_as_slider can't be set");
-        LogAndThrowInternalErr("Both display_as_color and display_as_slider can't be set");
+        LogAndThrowInternalError(ExcepCategory::logic, "Both display_as_color and display_as_slider can't be set");
     }
 
     display_as_number = !(display_as_color || display_as_slider);
 
     if (input == output)
     {
-        LogAndThrowInternalErr("Pin can't be input and output at the same time");
+        LogAndThrowInternalError(ExcepCategory::logic, "Pin can't be input and output at the same time");
     }
 
     if (PinType::FLOAT == type)
@@ -220,7 +220,7 @@ void Pin::generate_pin_color()
 {
     if (0 == hash)
     {
-        LogAndThrowInternalErr("Hash wasn't generated. id=" << get_id());
+        LogAndThrowInternalError(ExcepCategory::logic, "Hash wasn't generated. id=" << get_id());
     }
 
     if (is_known_type)	// hardcoded colors for some most used types
@@ -277,9 +277,9 @@ void Pin::generate_pin_color()
         case PinType::BBOX:						pin_color = IM_COL32(127, 255, 0, 255);     break; // Lime (Geometry)
 
         default:
-        {
-            LogAndThrowInternalErr("Some predefined colors were not set");
-        }
+            {
+                LogAndThrowInternalError(ExcepCategory::logic, "Some predefined colors were not set");
+            }
         }
 
         return;

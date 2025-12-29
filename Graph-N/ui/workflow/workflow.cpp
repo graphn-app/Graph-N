@@ -35,7 +35,7 @@ NodeInstance* Workflow::add_node(hid node_id)
     auto node = g::pNodesManager->find_node(node_id);
     if (nullptr == node)
     {
-        LogAndThrowInternalErr("Can't find node=" << node_id);
+        LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Can't find node=" << node_id);
     }
 
     auto instance = std::make_unique<NodeInstance>(this);
@@ -52,7 +52,7 @@ PinInstance* Workflow::add_pin(hid pin_id)
     auto pin = g::pNodesManager->find_pin(pin_id);
     if (nullptr == pin)
     {
-        LogAndThrowInternalErr("Can't find pin=" << pin_id);
+        LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Can't find pin=" << pin_id);
     }
 
     auto instance = std::make_unique<PinInstance>(this);

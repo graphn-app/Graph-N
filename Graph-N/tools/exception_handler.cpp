@@ -67,6 +67,8 @@ int __cdecl record_exception_info(PEXCEPTION_POINTERS pExceptPtrs, wchar_t* /*me
         pRec = pRec->ExceptionRecord;
     }
 
+    glog::Logger::instance().force_flush();
+
     auto crash_dump_path = fs::get_crash_dump_directory_path();
     tools::path::make_folder(crash_dump_path);
     crash_dump_path /= APP_CAPTION "_" + tt::dt::from_current_date().as_filename() + ".dmp";

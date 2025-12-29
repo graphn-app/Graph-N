@@ -16,6 +16,12 @@ mngr::SettingsManager* pOptsManager = nullptr;
 mngr::DbManager* pDbManager = nullptr;
 mngr::NodesManager* pNodesManager = nullptr;
 mngr::ConnectManager* pConnectManager = nullptr;
+
+void save_exception(ExcepCategory category, const std::string& message, const char* file, int line)
+{
+    if (g::pDbManager != nullptr && category != ExcepCategory::sqlite)
+        g::pDbManager->save_exception(category, message, file, line);
+}
 }
 
 GraphN::GraphN()
@@ -130,13 +136,14 @@ bool GraphN::flow()
             result = false;
             break;
         default:
-            LogAndThrowInternalErr("Unhandler flow step " << cast::to_u32(m_flow_step));
+            LogAndThrowInternalError(ExcepCategory::switch_enum, "Unhandler flow step " << cast::to_u32(m_flow_step));
         }
     }
     catch (const std::exception& ex)
     {
         result = false;
-        LogAndReThrow(ex.what());
+        LogExcep(ExcepCategory::flow, ex.what());
+        throw;
     }
 
     return result;

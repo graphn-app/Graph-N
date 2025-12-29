@@ -44,7 +44,7 @@ public:
         m_obj_id = 0;
         if (nullptr == m_base)
         {
-            LogAndThrowInternalErr("Can't prepare to invalidation - no object")
+            LogAndThrowInternalError(ExcepCategory::inconsistent_ptr, "Can't prepare to invalidation - no object")
         }
         m_obj_id = m_base->get_id();
         m_base = nullptr;
@@ -57,12 +57,12 @@ public:
         m_base = nullptr;
         if (0 == m_obj_id)
         {
-            LogAndThrowInternalErr("No saved data to invalidate object");
+            "LIVE POINTERS", ("LIVE POINTERS", "No saved data to invalidate object");
         }
         m_base = find_obj(m_obj_id);
         if (nullptr == m_base)
         {
-            LogWarn("Invalidate err: Wf id = " << get_workflow_id() << ", Inst id=" << get_instance_id() << ", Graph id=" << get_graph_id() << ", Obj id=" << m_obj_id);
+            Log("Invalidate ptr: Wf id = " << get_workflow_id() << ", Inst id=" << get_instance_id() << ", Graph id=" << get_graph_id() << ", Obj id=" << m_obj_id);
             m_wf->remove(m_obj_id);
             m_obj_id = 0;
         }

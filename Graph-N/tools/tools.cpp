@@ -134,7 +134,7 @@ bool exists(const std::filesystem::path& path)
 
 std::optional<std::string> copy(const std::filesystem::path& from, const std::filesystem::path& to, bool overwrite, bool rename)
 {
-    Log4(from, to, overwrite, rename);
+    LogV(from, to, overwrite, rename);
 
     try
     {
@@ -162,7 +162,7 @@ std::optional<std::string> copy(const std::filesystem::path& from, const std::fi
         std::filesystem::copy_file(from, dest, std::filesystem::copy_options::overwrite_existing, err);
         if (!std::filesystem::exists(dest))
         {
-            LogWarn("Can't copy file '" << from << "' to '" << dest << "' error " << err.value() << ": " << err.message());
+            LogError(ExcepCategory::filesystem, "Can't copy file '" << from << "' to '" << dest << "' error " << err.value() << ": " << err.message());
             return {};
         }
 
@@ -171,14 +171,14 @@ std::optional<std::string> copy(const std::filesystem::path& from, const std::fi
     }
     catch (...)
     {
-        LogWarn("Copy exp: Can't move file from '" << from << "' to '" << to);
+        LogError(ExcepCategory::filesystem, "Copy exp: Can't move file from '" << from << "' to '" << to);
     }
     return {};
 }
 
 std::optional<std::string> move(const std::filesystem::path& from, const std::filesystem::path& to, bool overwrite, bool rename)
 {
-    Log4(from, to, overwrite, rename);
+    LogV(from, to, overwrite, rename);
 
     try
     {
@@ -206,7 +206,7 @@ std::optional<std::string> move(const std::filesystem::path& from, const std::fi
         std::filesystem::rename(from, dest, err);
         if (!std::filesystem::exists(dest))
         {
-            LogWarn("Can't move file '" << from << "' to '" << dest << "' error " << err.value() << ": " << err.message());
+            LogError(ExcepCategory::filesystem, "Can't move file '" << from << "' to '" << dest << "' error " << err.value() << ": " << err.message());
             return {};
         }
 
@@ -215,7 +215,7 @@ std::optional<std::string> move(const std::filesystem::path& from, const std::fi
     }
     catch (...)
     {
-        LogWarn("Move exp: Can't move file from '" << from << "' to '" << to);
+        LogError(ExcepCategory::filesystem, "Move exp: Can't move file from '" << from << "' to '" << to);
     }
     return {};
 }
@@ -249,7 +249,7 @@ bool make_folder(const std::filesystem::path& dirpath)
         std::filesystem::create_directories(dirpath, err);
         if (!std::filesystem::exists(dirpath))
         {
-            LogWarn("Can't create dir '" << dirpath << "' error " << err.value() << ": " << err.message());
+            LogError(ExcepCategory::filesystem, "Can't create dir '" << dirpath << "' error " << err.value() << ": " << err.message());
             return false;
         }
 
@@ -258,14 +258,14 @@ bool make_folder(const std::filesystem::path& dirpath)
     }
     catch (...)
     {
-        LogWarn("Can't create directory " << dirpath);
+        LogError(ExcepCategory::filesystem, "Can't create directory " << dirpath);
     }
     return false;
 }
 
 bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write /*= ""*/)
 {
-    Log2(filepath, overwrite);
+    LogV(filepath, overwrite);
 
     if (filepath.empty())
         return false;
@@ -291,7 +291,7 @@ bool make_file(const std::filesystem::path& filepath, bool overwrite, const std:
     }
     catch (const std::ios_base::failure& e)
     {
-        LogWarn("Can't create/write file " << filepath << ", err: " << e.what() << ", code: " << e.code().value());
+        LogError(ExcepCategory::filesystem, "Can't create/write file " << filepath << ", err: " << e.what() << ", code: " << e.code().value());
     }
     return false;
 }
@@ -326,7 +326,7 @@ std::vector<char> read_file(const std::filesystem::path& filepath)
     }
     catch (const std::ios_base::failure& e)
     {
-        LogWarn("Can't open/read file " << filepath << ", err: " << e.what() << ", code: " << e.code().value());
+        LogError(ExcepCategory::filesystem, "Can't open/read file " << filepath << ", err: " << e.what() << ", code: " << e.code().value());
     }
     return {};
 }
@@ -342,7 +342,7 @@ bool remove(const std::filesystem::path& filepath)
     std::filesystem::remove_all(filepath, err);
     if (tools::path::exists(filepath))
     {
-        LogWarn("Can't remove file " << filepath << ", err " << err.value() << ", " << err.message());
+        LogError(ExcepCategory::filesystem, "Can't remove file " << filepath << ", err " << err.value() << ", " << err.message());
         return false;
     }
 
@@ -352,7 +352,7 @@ bool remove(const std::filesystem::path& filepath)
 
 bool rename(const std::filesystem::path& from, const std::filesystem::path& to)
 {
-    Log2(from, to);
+    LogV(from, to);
 
     if (from.empty() || to.empty())
         return false;
@@ -367,7 +367,7 @@ bool rename(const std::filesystem::path& from, const std::filesystem::path& to)
     std::filesystem::rename(from, to, err);
     if (tools::path::exists(from) || !tools::path::exists(to))
     {
-        LogWarn("Can't rename, error " << err.value() << ": " << err.message());
+        LogError(ExcepCategory::filesystem, "Can't rename, error " << err.value() << ": " << err.message());
         return false;
     }
 

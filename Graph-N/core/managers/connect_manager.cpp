@@ -74,7 +74,6 @@ void ConnectManager::stop_connect()
 
 std::pair<ConnectState, std::string> ConnectManager::connect_thread()
 {
-    glog::LogLockGuard ll;
     LogF;
 
     using namespace std::chrono_literals;
@@ -119,7 +118,7 @@ std::pair<ConnectState, std::string> ConnectManager::connect_thread()
         }
         catch (const std::exception& e)
         {
-            LogExcep("Connection failed with err " << e.what());
+            LogExcep(ExcepCategory::comfyui, "Connection failed with err " << e.what());
         }
     }
 
@@ -129,7 +128,7 @@ std::pair<ConnectState, std::string> ConnectManager::connect_thread()
         return std::make_pair(ConnectState::disconnected, "");
     }
 
-    LogAndThrow("Unexpected exit flow");
+    LogAndThrow(ExcepCategory::logic, "Unexpected exit flow");
 }
 
 } // namespace mngr

@@ -30,9 +30,15 @@ bool b = query.getColumn(2).getInt() > 0;
 */
 
 inline constexpr auto gdb_val_id = "id";
+inline constexpr auto gdb_val_file = "file";
+inline constexpr auto gdb_val_line = "line";
+inline constexpr auto gdb_val_category = "category";
+inline constexpr auto gdb_val_message = "message";
 inline constexpr auto gdb_val_name = "name";
+inline constexpr auto gdb_val_when = "at";
 
-inline constexpr auto gdb_tbl_opt = "settings";
+inline constexpr auto gdb_tbl_err = "ERRORS";
+inline constexpr auto gdb_tbl_opt = "SETTINGS";
 
 inline constexpr auto gdb_opt_val_int = "value_int";
 inline constexpr auto gdb_opt_val_str = "value_str";
@@ -51,11 +57,23 @@ bool DbManager::init()
         m_db->exec(tools::str::format(R"(
 					CREATE TABLE IF NOT EXISTS %s (
 						%s INTEGER PRIMARY KEY AUTOINCREMENT,
+						%s TEXT,
+						%s INTEGER,
+						%s TEXT,
+						%s TEXT,
+                        %s DATETIME DEFAULT CURRENT_TIMESTAMP
+					);
+				)", gdb_tbl_err, gdb_val_id, gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message, gdb_val_when));
+
+        m_db->exec(tools::str::format(R"(
+					CREATE TABLE IF NOT EXISTS %s (
+						%s INTEGER PRIMARY KEY AUTOINCREMENT,
 						%s TEXT NOT NULL UNIQUE,
 						%s INTEGER,
-						%s TEXT
+						%s TEXT,
+                        %s DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
-				)", gdb_tbl_opt, gdb_val_id, gdb_val_name, gdb_opt_val_int, gdb_opt_val_str));
+				)", gdb_tbl_opt, gdb_val_id, gdb_val_name, gdb_opt_val_int, gdb_opt_val_str, gdb_val_when));
 
         //m_db->exec(R"(
         //		CREATE TABLE IF NOT EXISTS workflows (
@@ -83,12 +101,33 @@ bool DbManager::init()
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep("SQLite initialization error: " << ex.getErrorCode() << ", " << ex.getErrorStr());
+        LogExcep(ExcepCategory::sqlite, "SQLite initialization error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
         return false;
     }
 
     Log("Database initialized: " << path);
     return true;
+}
+
+void DbManager::save_exception(ExcepCategory category, const std::string& message, const char* file, int line)
+{
+    std::lock_guard<std::mutex> lock(m_lock);
+
+    try
+    {
+        SQLite::Statement query(*m_db,
+            tools::str::format("INSERT INTO %s (%s, %s, %s, %s) VALUES (?, ?, ?, ?)", gdb_tbl_err, gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message));
+        query.bind(1, file);
+        query.bind(2, line);
+        query.bind(3, cast::to_i32(category));
+        query.bind(4, message);
+        query.exec();
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::sqlite, "SQLite save err error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
+        return;
+    }
 }
 
 void DbManager::set_option(const std::string& key, const std::string& value)
@@ -104,7 +143,7 @@ void DbManager::set_option(const std::string& key, const std::string& value)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep("SQLite save opt (" << key << "=" << value << ") error: " << ex.getErrorCode() << ", " << ex.getErrorStr());
+        LogExcep(ExcepCategory::sqlite, "SQLite save opt (" << key << "=" << value << ") error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
         return;
     }
 }
@@ -122,7 +161,7 @@ void DbManager::set_option(const std::string& key, int64_t value)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep("SQLite save opt (" << key << "=" << value << ") error: " << ex.getErrorCode() << ", " << ex.getErrorStr());
+        LogExcep(ExcepCategory::sqlite, "SQLite save opt (" << key << "=" << value << ") error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
         return;
     }
 }
@@ -142,7 +181,7 @@ std::optional<std::string> DbManager::get_option_str(const std::string& key)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep("SQLite load opt " << key << " error: " << ex.getErrorCode() << ", " << ex.getErrorStr());
+        LogExcep(ExcepCategory::sqlite, "SQLite load opt " << key << " error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
     }
     return std::nullopt;
 }
@@ -162,7 +201,7 @@ std::optional<int64_t> DbManager::get_option_int(const std::string& key)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep("SQLite load opt " << key << " error: " << ex.getErrorCode() << ", " << ex.getErrorStr());
+        LogExcep(ExcepCategory::sqlite, "SQLite load opt " << key << " error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
     }
     return std::nullopt;
 }

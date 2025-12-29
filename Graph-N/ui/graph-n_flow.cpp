@@ -90,7 +90,7 @@ void GraphN_Flow::destroy_workflow(lid wf_id)
     auto it = m_workflows.find(wf_id);
     if (it == m_workflows.end())
     {
-        LogAndThrowInternalErr("Can't destroy workflow id=" << wf_id);
+        LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Can't destroy workflow id=" << wf_id);
     }
     else
     {
@@ -275,7 +275,7 @@ void GraphN_Flow::on_dlg_closed(VisibleObject dlg)
         Log("Nones panel closed");
         break;
     default:
-        LogWarn("Unregistered dialog is trying to be closed " << cast::to_szt(dlg));
+        LogError(ExcepCategory::switch_enum, "Unregistered dialog is trying to be closed " << cast::to_szt(dlg));
     }
 
     g::pOptsManager->flow_set_open_wnds(m_windows);

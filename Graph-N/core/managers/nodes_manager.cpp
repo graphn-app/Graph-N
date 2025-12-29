@@ -78,7 +78,7 @@ data::Nodes* NodesManager::find_view(lid id) const
     const auto it = m_nodes_view.find(id);
     if (it == m_nodes_view.end())
     {
-        LogWarn("Nodes id=" << id << " not found");
+        LogInternalError(ExcepCategory::inconsistent_map, "Nodes id=" << id << " not found");
         return nullptr;
     }
     return it->second.get();
@@ -89,7 +89,7 @@ data::Node* NodesManager::find_node(hid id) const
     const auto it = m_nodes.find(id);
     if (it == m_nodes.end())
     {
-        LogWarn("Node id=" << id << " not found");
+        LogInternalError(ExcepCategory::inconsistent_map, "Node id=" << id << " not found");
         return nullptr;
     }
     return it->second.get();
@@ -100,7 +100,7 @@ data::Pin* NodesManager::find_pin(hid id) const
     const auto it = m_pins.find(id);
     if (it == m_pins.end())
     {
-        LogWarn("Pin id=" << id << " not found");
+        LogInternalError(ExcepCategory::inconsistent_map, "Pin id=" << id << " not found");
         return nullptr;
     }
     return it->second.get();
@@ -173,7 +173,6 @@ void NodesParser::stop()
 
 std::shared_ptr<NodesManager> NodesParser::parse_thread()
 {
-    glog::LogLockGuard ll;
     LogF;
     try
     {
@@ -204,7 +203,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
     }
     catch (std::exception& e)
     {
-        LogExcep("Parse error: " << e.what());
+        LogExcep(ExcepCategory::comfyui, "Parse error: " << e.what());
         m_parse_failed = true;
     }
     return {};
@@ -228,7 +227,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
     }
     catch (std::exception& e)
     {
-        LogExcep("Parse node '" << node_class << "' error: " << e.what());
+        LogExcep(ExcepCategory::comfyui, "Parse node '" << node_class << "' error: " << e.what());
     }
 }
 
@@ -290,7 +289,7 @@ static TYPE json_to_number(nlohmann::json& data)
         return {};
     }
 
-    LogInternalWarn("json data unknown type " << data.type_name() << " (number expected)");
+    LogInternalError(ExcepCategory::logic, "json data unknown type " << data.type_name() << " (number expected)");
     return {};
 }
 
@@ -317,7 +316,7 @@ static std::string json_to_string(nlohmann::json& data)
         return {};
     }
 
-    LogInternalWarn("json data unknown type " << data.type_name() << " (string expected)");
+    LogInternalError(ExcepCategory::logic, "json data unknown type " << data.type_name() << " (string expected)");
     return {};
 }
 
@@ -341,7 +340,7 @@ static bool json_to_bool(nlohmann::json& data)
         return false;
     }
 
-    LogInternalWarn("json data unknown type " << data.type_name() << " (bool expected)");
+    LogInternalError(ExcepCategory::logic, "json data unknown type " << data.type_name() << " (bool expected)");
     return false;
 }
 
