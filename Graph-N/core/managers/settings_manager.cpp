@@ -109,7 +109,7 @@ void SettingsManager::set_opt_str(std::string& opt, const std::string& val, cons
 
 uint32_t SettingsManager::flow_get_color(VisibleObject obj)
 {
-    const std::string name = tools::str::format("%s%u", gopt_flow_clr_prefix, cast::to_szt(obj));
+    const std::string name = fmt::format(FMT_COMPILE("{}{}"), gopt_flow_clr_prefix, cast::to_szt(obj));
     int64_t& clr = m_flow_colors[cast::to_szt(obj)];
     int64_t def = gopt_def_flow_clrs[cast::to_szt(obj)];
     return cast::to_u32(get_opt_int(clr, name.c_str(), def));

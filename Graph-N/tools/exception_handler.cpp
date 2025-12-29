@@ -117,7 +117,7 @@ void set_exception_translator()
 {
     auto crash_dump_path = fs::get_crash_dump_directory_path();
     tools::path::make_folder(crash_dump_path);
-    crash_dump_path /= APP_CAPTION "_" + tt::dt::get_app_start_time().as_filename() + ".dmp";
+    crash_dump_path /= APP_CAPTION "_" + tools::dt::get_app_start_time().as_filename() + ".dmp";
     wcscpy_s(SehException::dump_path, MAX_PATH * 2, crash_dump_path.wstring().c_str());
 
     // Handle C++ try/catch for SEH

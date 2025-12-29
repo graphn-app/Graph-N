@@ -90,12 +90,11 @@ public:
 
 	LogWriter& operator << (const char* str);
 	LogWriter& operator << (const std::string& str);
-	LogWriter& operator << (const std::stringstream& str);
 	LogWriter& operator << (std::string_view str);
 	LogWriter& operator << (const std::filesystem::path& path);
 
 	LogWriter& operator << (const byte_buff& buff);
-	LogWriter& operator << (const tools::time::dt& dt);
+	LogWriter& operator << (const tools::dt& dt);
 
 	LogWriter& operator << (int32_t i32);
 	LogWriter& operator << (uint32_t ui32);
@@ -113,18 +112,6 @@ public:
 	LogWriter& operator << (const LogPtr& ptr);
 
 private:
-    template<typename T>
-    std::string& append_int(T val)
-    {
-        char buff[64] = {};
-        auto[ptr, ec] = std::to_chars(buff, buff + sizeof(buff), val);
-        if (ec == std::errc())
-        {
-            m_buffer.append(buff, ptr - buff);
-        }
-        return m_buffer;
-    }
-
 	std::string m_buffer;
 };
 
@@ -237,27 +224,53 @@ struct LogGuard final
 
 #define LogF						Log("")
 
-template <typename Arg>
-void format_helper(std::stringstream& ss, Arg&& arg)
-{
-    ss << std::forward<Arg>(arg);
-}
 
-template <typename Arg, typename... Args>
-void format_helper(std::stringstream& ss, Arg&& arg, Args&&... args)
+// Helper to convert types that fmt doesn't handle by default (like enums)
+template <typename T>
+void append_arg_to_buf(fmt::memory_buffer& out, const T& arg)
 {
-    ss << std::forward<Arg>(arg) << ", ";
-    format_helper(ss, std::forward<Args>(args)...);
+    // If it's an enum, cast to underlying integer type (mimics stringstream behavior)
+    if constexpr (std::is_enum_v<T>)
+    {
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}"), static_cast<std::underlying_type_t<T>>(arg));
+    }
+
+    // If it's a filesystem path, convert to generic string
+    else if constexpr (std::is_same_v<T, std::filesystem::path>)
+    {
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}"), arg.string());
+    }
+    // Standard types (int, string, float, etc.)
+    else
+    {
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}"), arg);
+    }
 }
 
 template <typename... Args>
 std::string format_log_msg(Args&&... args)
 {
-    std::stringstream ss;
-    format_helper(ss, std::forward<Args>(args)...);
-    return ss.str();
-}
+    // Use memory_buffer for performance (avoids heap allocations for small strings)
+    fmt::memory_buffer out;
+    std::string_view sep = "";
 
+    // C++17 fold expression to iterate over arguments
+    // Appends separator only after the first element
+    const auto append = [&](auto&& arg)
+    {
+        // separator
+        if (!sep.empty())
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}"), sep);
+
+        // use the helper to print the argument
+        append_arg_to_buf(out, arg);
+
+        sep = ", ";
+    };
+    (append(std::forward<Args>(args)), ...);
+
+    return fmt::to_string(out);
+}
 #define LogV(...)				    Log(format_log_msg(__VA_ARGS__))
 
 #ifdef _WIN32

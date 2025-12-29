@@ -43,6 +43,8 @@ target_include_directories(sqlite3 PUBLIC "sqlite")
 # Suppress warnings for sqlite3
 if(MSVC)
     target_compile_options(sqlite3 PRIVATE /W0)
+else()
+    target_compile_options(sqlite3 PRIVATE -w)	
 endif()
 
 if(UNIX)
@@ -61,7 +63,28 @@ target_link_libraries(SQLiteCpp PUBLIC sqlite3)
 # Suppress warnings for SQLiteCpp
 if(MSVC)
     target_compile_options(SQLiteCpp PRIVATE /W0)
+else()
+    target_compile_options(SQLiteCpp PRIVATE -w)	
 endif()
+
+# ------------------------------------------------------------------------------
+# fmt
+# ------------------------------------------------------------------------------
+
+# remove test, docs, install
+option(FMT_INSTALL "Generate the install target" OFF)
+option(FMT_TEST "Build the test suite" OFF)
+option(FMT_DOC "Build the documentation" OFF)
+
+add_subdirectory(fmt)
+
+if(MSVC)
+    target_compile_options(fmt PRIVATE /W0)
+else()
+    target_compile_options(fmt PRIVATE -w)
+endif()
+
+set_target_properties(fmt PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES $<TARGET_PROPERTY:fmt,INTERFACE_INCLUDE_DIRECTORIES>)
 
 # ------------------------------------------------------------------------------
 # ImGui (Modern 1.89.9)
@@ -111,6 +134,8 @@ endif()
 # Suppress warnings for ImGui
 if(MSVC)
     target_compile_options(ImGuiLib PRIVATE /W0)
+else()
+    target_compile_options(ImGuiLib PRIVATE -w)	
 endif()
 
 # ------------------------------------------------------------------------------
@@ -138,6 +163,8 @@ target_link_libraries(NodeEditorLib PUBLIC ImGuiLib)
 # Suppress warnings for Node Editor
 if(MSVC)
     target_compile_options(NodeEditorLib PRIVATE /W0)
+else()
+    target_compile_options(NodeEditorLib PRIVATE -w)	
 endif()
 
 # ------------------------------------------------------------------------------
@@ -219,6 +246,7 @@ if(WIN32)
         NodeEditorLib
         SQLiteCpp
         sqlite3
+		fmt::fmt
     )
 else()
     target_link_libraries(Graph-N PRIVATE
@@ -227,6 +255,7 @@ else()
         SQLiteCpp
         sqlite3
         opengl32
+		fmt::fmt
     )
 endif()
 

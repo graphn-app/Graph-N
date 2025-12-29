@@ -379,7 +379,7 @@ void GraphN_Flow::show_menu_bar_connecting()
     {
         size_t parsed_item = 0, parse_total = 0;
         m_nodes_parser->check_status(parsed_item, parse_total);
-        text = tools::str::format("Parsing node %u of %u", parsed_item, parse_total);
+        text = fmt::format(FMT_COMPILE("Parsing node {} of {}"), parsed_item, parse_total);
 
         if (m_nodes_parser->is_parse_finished())
         {

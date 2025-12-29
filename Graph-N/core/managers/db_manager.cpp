@@ -54,24 +54,24 @@ bool DbManager::init()
         m_db->exec("PRAGMA journal_mode = WAL;");
         m_db->exec("PRAGMA synchronous = NORMAL;");
 
-        m_db->exec(tools::str::format(R"(
-					CREATE TABLE IF NOT EXISTS %s (
-						%s INTEGER PRIMARY KEY AUTOINCREMENT,
-						%s TEXT,
-						%s INTEGER,
-						%s TEXT,
-						%s TEXT,
-                        %s DATETIME DEFAULT CURRENT_TIMESTAMP
+        m_db->exec(fmt::format(R"(
+					CREATE TABLE IF NOT EXISTS {} (
+						{} INTEGER PRIMARY KEY AUTOINCREMENT,
+						{} TEXT,
+						{} INTEGER,
+						{} TEXT,
+						{} TEXT,
+                        {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
 				)", gdb_tbl_err, gdb_val_id, gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message, gdb_val_when));
 
-        m_db->exec(tools::str::format(R"(
-					CREATE TABLE IF NOT EXISTS %s (
-						%s INTEGER PRIMARY KEY AUTOINCREMENT,
-						%s TEXT NOT NULL UNIQUE,
-						%s INTEGER,
-						%s TEXT,
-                        %s DATETIME DEFAULT CURRENT_TIMESTAMP
+        m_db->exec(fmt::format(R"(
+					CREATE TABLE IF NOT EXISTS {} (
+						{} INTEGER PRIMARY KEY AUTOINCREMENT,
+						{} TEXT NOT NULL UNIQUE,
+						{} INTEGER,
+						{} TEXT,
+                        {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
 				)", gdb_tbl_opt, gdb_val_id, gdb_val_name, gdb_opt_val_int, gdb_opt_val_str, gdb_val_when));
 
@@ -116,7 +116,8 @@ void DbManager::save_exception(ExcepCategory category, const std::string& messag
     try
     {
         SQLite::Statement query(*m_db,
-            tools::str::format("INSERT INTO %s (%s, %s, %s, %s) VALUES (?, ?, ?, ?)", gdb_tbl_err, gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message));
+            fmt::format("INSERT INTO {} ({}, {}, {}, {}) VALUES (?, ?, ?, ?)",
+                gdb_tbl_err, gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message));
         query.bind(1, file);
         query.bind(2, line);
         query.bind(3, cast::to_i32(category));
@@ -135,7 +136,8 @@ void DbManager::set_option(const std::string& key, const std::string& value)
     try
     {
         SQLite::Statement query(*m_db,
-            tools::str::format("INSERT OR REPLACE INTO %s (%s, %s) VALUES (?, ?)", gdb_tbl_opt, gdb_val_name, gdb_opt_val_str));
+            fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}) VALUES (?, ?)"),
+                gdb_tbl_opt, gdb_val_name, gdb_opt_val_str));
         query.bind(1, key);
         query.bind(2, value);
         query.exec();
@@ -153,7 +155,8 @@ void DbManager::set_option(const std::string& key, int64_t value)
     try
     {
         SQLite::Statement query(*m_db,
-            tools::str::format("INSERT OR REPLACE INTO %s (%s, %s) VALUES (?, ?)", gdb_tbl_opt, gdb_val_name, gdb_opt_val_int));
+            fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}) VALUES (?, ?)"),
+                gdb_tbl_opt, gdb_val_name, gdb_opt_val_int));
         query.bind(1, key);
         query.bind(2, value);
         query.exec();
@@ -171,7 +174,8 @@ std::optional<std::string> DbManager::get_option_str(const std::string& key)
     try
     {
         SQLite::Statement query(*m_db,
-            tools::str::format("SELECT %s FROM %s WHERE %s=?", gdb_opt_val_str, gdb_tbl_opt, gdb_val_name));
+            fmt::format(FMT_COMPILE("SELECT {} FROM {} WHERE {}=?"),
+                gdb_opt_val_str, gdb_tbl_opt, gdb_val_name));
         query.bind(1, key);
         if (!query.executeStep())
             return std::nullopt;
@@ -191,7 +195,8 @@ std::optional<int64_t> DbManager::get_option_int(const std::string& key)
     try
     {
         SQLite::Statement query(*m_db,
-            tools::str::format("SELECT %s FROM %s WHERE %s=?", gdb_opt_val_int, gdb_tbl_opt, gdb_val_name));
+            fmt::format(FMT_COMPILE("SELECT {} FROM {} WHERE {}=?"),
+                gdb_opt_val_int, gdb_tbl_opt, gdb_val_name));
         query.bind(1, key);
         if (!query.executeStep())
             return std::nullopt;

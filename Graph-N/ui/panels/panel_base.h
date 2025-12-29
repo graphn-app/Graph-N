@@ -19,7 +19,7 @@ public:
     PanelBase(VisibleObject obj, const char* name, const char* id)
         : BaseDlgWithData(obj)
     {
-        m_panel_name = tools::str::format("%s##%s", name, id);
+        m_panel_name = fmt::format("{}##{}", name, id);
     }
 
     ~PanelBase() override = default;

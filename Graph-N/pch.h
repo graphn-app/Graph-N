@@ -1,22 +1,20 @@
 #pragma once
 
-// std
-#include <vector>
-#include <string>
-#include <map>
+// stl
 #include <algorithm>
-#include <memory>
-#include <functional>
+#include <chrono>
+#include <condition_variable>
 #include <filesystem>
 #include <fstream>
-#include <optional>
+#include <functional>
 #include <future>
-#include <chrono>
-#include <variant>
-#include <any>
-#include <condition_variable>
+#include <map>
+#include <memory>
+#include <optional>
 #include <queue>
-#include <charconv>
+#include <string>
+#include <variant>
+#include <vector>
 
 // Windows
 #ifdef _WIN32
@@ -26,14 +24,19 @@
 #endif
 
 // 3rd party
-#include "imgui.h"
-#include "imgui_internal.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include "nlohmann/json.hpp"
-#include "SQLiteCpp/SQLiteCpp.h"
-#include "httplib.h"
-#include "stb_image.h"
+#include <imgui.h>
+#include <imgui_internal.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+#include <nlohmann/json.hpp>
+#include <SQLiteCpp/SQLiteCpp.h>
+#include <httplib.h>
+#include <stb_image.h>
+#pragma warning(push, 0)
+#include <fmt/core.h>
+#include <fmt/format.h>
+#include <fmt/compile.h>
+#pragma warning(pop)
 
 // app global
 

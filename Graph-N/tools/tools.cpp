@@ -38,18 +38,6 @@ std::string replace(std::string string, const std::string& find, const std::stri
     return string;
 }
 
-std::string format(const char* format, ...)
-{
-    va_list arglist;
-    va_start(arglist, format);
-    int size = _vscprintf(format, arglist);
-    std::string str;
-    str.resize(size);
-    vsprintf(str.data(), format, arglist);
-    va_end(arglist);
-    return str;
-}
-
 std::list<std::string> split(const std::string& str, char separator, bool add_empty)
 {
     size_t sep_count = std::count(str.begin(), str.end(), separator);

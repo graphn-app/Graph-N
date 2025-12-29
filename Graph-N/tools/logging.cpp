@@ -106,7 +106,7 @@ void Logger::log_start()
         return;
 
     auto path = fs::get_log_directory_path();
-    path /= tt::dt::get_app_start_time().as_filename() + ".log";
+    path /= tools::dt::get_app_start_time().as_filename() + ".log";
     m_log_path = path.string();
 
     // _tzset();
@@ -138,7 +138,7 @@ void Logger::log_start()
         LogWriter writer;
         writer
             << "trylock__\n"
-            << m_proc_id << "Log started: " << tt::dt::get_app_start_time().as_string(true, true, true) << "\n"
+            << m_proc_id << "Log started: " << tools::dt::get_app_start_time().as_log_line() << "\n"
             << m_proc_id << "App version: " << ver::ver_as_string() << "\n"
 #ifdef _WIN32
             << m_proc_id << "Command line: " << " " << GetCommandLineA() << "\n"
@@ -161,7 +161,7 @@ void Logger::log_stop()
         return;
 
     LogWriter writer;
-    writer << "Log ended: " << tt::dt::from_current_date().as_string(true, true, true) << "\n\n";
+    writer << "Log ended: " << tools::dt::from_current_date().as_log_line() << "\n\n";
     write(writer);
 
     m_do_close = true;
@@ -251,15 +251,15 @@ void LogWriter::log_line_start_file(const char * file, int line)
     if (nullptr == file)
     {
 #ifdef _WIN32
-        m_buffer.append("[");
-        append_int(::GetThreadId(::GetCurrentThread()));
+        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{}] {} [ln:{}]  "),
+            ::GetThreadId(::GetCurrentThread()),
+            tools::dt::from_current_date().as_log_line(),
+            line);
+#else
+        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{} [ln:{}]  "),
+            tools::dt::from_current_date().as_log_line(),
+            line);
 #endif
-        m_buffer.
-            append("] ").
-            append(tt::dt::from_current_date().as_string(false, true, true)).
-            append(" [ln:");
-        append_int(line).
-            append("]  ");
     }
     else
     {
@@ -269,17 +269,15 @@ void LogWriter::log_line_start_file(const char * file, int line)
             file += app_dir.size() + 1;
 
 #ifdef _WIN32
-        m_buffer.append("[");
-        append_int(::GetThreadId(::GetCurrentThread()));
+        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{}] {} [{}:{}]  "),
+            ::GetThreadId(::GetCurrentThread()),
+            tools::dt::from_current_date().as_log_line(),
+            file, line);
+#else
+        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{} [{}:{}]  "),
+            tools::dt::from_current_date().as_log_line(),
+            file, line);
 #endif
-        m_buffer.
-            append("] ").
-            append(tt::dt::from_current_date().as_string(false, true, true)).
-            append(" [").
-            append(file).
-            append(":");
-        append_int(line).
-            append("]  ");
     }
 }
 
@@ -288,136 +286,123 @@ void LogWriter::log_line_start_foo(const char * foo, int line)
     if (nullptr == foo)
     {
 #ifdef _WIN32
-        m_buffer.append("[");
-        append_int(::GetThreadId(::GetCurrentThread()));
+        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{}] {} [ln:{}]  "),
+            ::GetThreadId(::GetCurrentThread()),
+            tools::dt::from_current_date().as_log_line(),
+            line);
+#else
+        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{} [ln:{}]  "),
+            tools::dt::from_current_date().as_log_line(),
+            line);
 #endif
-        m_buffer.
-            append("] ").
-            append(tt::dt::from_current_date().as_string(false, true, true)).
-            append(" [ln:");
-        append_int(line).
-            append("]  ");
     }
     else
     {
 #ifdef _WIN32
-        m_buffer.append("[");
-        append_int(::GetThreadId(::GetCurrentThread()));
+        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{}] {} [{}:{}]  "),
+            ::GetThreadId(::GetCurrentThread()),
+            tools::dt::from_current_date().as_log_line(),
+            foo, line);
+#else
+        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{} [{}:{}]  "),
+            tools::dt::from_current_date().as_log_line(),
+            foo, line);
 #endif
-        m_buffer.
-            append("] ").
-            append(tt::dt::from_current_date().as_string(false, true, true)).
-            append(" [").
-            append(foo).
-            append(":");
-        append_int(line).
-            append("]  ");
     }
 }
 
 LogWriter& LogWriter::operator << (const char* str)
 {
     if (str != nullptr)
-        m_buffer.append(str);
+        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), str);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const std::string& str)
 {
-    m_buffer.append(str);
-    return *this;
-}
-
-LogWriter& LogWriter::operator << (const std::stringstream& str)
-{
-    m_buffer.append(str.str());
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), str);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (std::string_view str)
 {
-    m_buffer.append(str);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), str.data());
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const std::filesystem::path& path)
 {
-    m_buffer.append(path.string());
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), path.string());
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const byte_buff& buff)
 {
-    m_buffer.append("buff sz=");
-    append_int(buff.size());
+    fmt::format_to(std::back_inserter(m_buffer), "buff sz={}", buff.size());
     return *this;
 }
 
-LogWriter& LogWriter::operator << (const tools::time::dt& dt)
+LogWriter& LogWriter::operator << (const tools::dt& dt)
 {
-    m_buffer.
-        append("time=").
-        append(dt.as_string(true/*add_day*/, true /*add_time*/, true /*month_as_name*/));
+    fmt::format_to(std::back_inserter(m_buffer), "time={}", dt.as_full_date());
     return *this;
 }
 
 LogWriter& LogWriter::operator << (int32_t i32)
 {
-    append_int(i32);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), i32);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (uint32_t ui32)
 {
-    append_int(ui32);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), ui32);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (int64_t i64)
 {
-    append_int(i64);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), i64);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (uint64_t ui64)
 {
-    append_int(ui64);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), ui64);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (float f)
 {
-    char buff[64] = {};
-    const int len = snprintf(buff, sizeof(buff), "%.8f", f);
-    m_buffer.append(buff, len);
+    fmt::format_to(std::back_inserter(m_buffer), "{:.8f", f);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (bool b)
 {
-    m_buffer.append(b ? "yes" : "no");
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), (b ? "yes" : "no"));
     return *this;
 }
 
 LogWriter& LogWriter::operator << (DlgCode code)
 {
-    append_int(cast::to_u16(code));
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), cast::to_u16(code));
     switch (code)
     {
     case DlgCode::progress:
-        m_buffer.append("=progress");
+        fmt::format_to(std::back_inserter(m_buffer), "=progress");
         break;
     case DlgCode::ok:
-        m_buffer.append("=ok");
+        fmt::format_to(std::back_inserter(m_buffer), "=ok");
         break;
     case DlgCode::yes:
-        m_buffer.append("=yes");
+        fmt::format_to(std::back_inserter(m_buffer), "=yes");
         break;
     case DlgCode::no:
-        m_buffer.append("=no");
+        fmt::format_to(std::back_inserter(m_buffer), "=no");
         break;
     case DlgCode::cancel:
-        m_buffer.append("=cancel");
+        fmt::format_to(std::back_inserter(m_buffer), "=cancel");
         break;
     default:
         LogError(ExcepCategory::switch_enum, "=unknown DlgCode " << cast::to_u32(code));
@@ -427,29 +412,25 @@ LogWriter& LogWriter::operator << (DlgCode code)
 
 LogWriter& LogWriter::operator << (const type_info& type)
 {
-    m_buffer.append(type.name()).append("/").append(type.raw_name());
+    fmt::format_to(std::back_inserter(m_buffer), "{}/{}", type.name(), type.raw_name());
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const LogLineEnd&)
 {
-    m_buffer.append("\n");
+    fmt::format_to(std::back_inserter(m_buffer), "\n");
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const LogHex& hex_item)
 {
-    char buff[32] = {};
-    int len = snprintf(buff, sizeof(buff), "0x%llX", hex_item.i);
-    m_buffer.append(buff, len);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), hex_item.i);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const LogPtr& ptr)
 {
-    char buff[32] = {};
-    int len = snprintf(buff, sizeof(buff), "%p", ptr.ptr);
-    m_buffer.append(buff, len);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), ptr.ptr);
     return *this;
 }
 

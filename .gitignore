@@ -6,6 +6,7 @@ cpp-httplib/
 DB_Browser/
 websocketpp/
 asio/
+fmt/
 
 bin/
 lib/

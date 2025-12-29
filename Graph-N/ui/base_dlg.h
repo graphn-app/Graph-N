@@ -29,7 +29,7 @@ struct DlgData
     //gid set_focus_id = 0;
 
     //std::map<gid, std::string> buffer;
-    //std::map<gid, tt::dt> date_buffer;
+    //std::map<gid, tools::dt> date_buffer;
 };
 
 class BaseDlg

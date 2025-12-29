@@ -72,7 +72,7 @@ int main(int, char**)
 {
     // ::MessageBoxW(nullptr, L"Attach", APP_CAPTION_W, MB_ICONEXCLAMATION);
 
-    tt::dt::freeze_app_start_time();
+    tools::dt::save_app_start_time();
     glog::LogGuard logger;    
 
     try
