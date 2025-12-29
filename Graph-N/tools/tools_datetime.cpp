@@ -4,6 +4,8 @@ namespace tools
 namespace time
 {
 
+dt dt::m_start_time;
+
 uint16_t dt::current_year()
 {
     return from_current_date().year();

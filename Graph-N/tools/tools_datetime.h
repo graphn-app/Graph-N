@@ -10,6 +10,9 @@ class dt final
 {
 	// static foo
 public:
+    static void freeze_app_start_time() { m_start_time = from_current_date(); }
+    static const dt& get_app_start_time() { return m_start_time; }
+
 	static uint16_t current_year();
 
 	static dt from_current_date();
@@ -104,6 +107,8 @@ private:
 	byte m_second = 0;
 
 	time_type m_time = 0;
+
+    static dt m_start_time;
 };
 
 }	// namespace time

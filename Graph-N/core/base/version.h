@@ -6,7 +6,11 @@ namespace ver
 1.0.0.0
 	- initial release
 
-!!	update version in resource file	!!
+!!
+    - update version in resource file
+    - build with RelWithDebInfo
+    - save release .exe/.pdb files
+!!
 */
 
 /* main APP version */

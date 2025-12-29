@@ -1,107 +1,135 @@
+#pragma once
 
 #ifdef _WIN32
 
 #include <eh.h>
 #include <Shlwapi.h>
 #include <dbghelp.h>
+#include <atomic>
 #pragma comment(lib, "dbghelp.lib")
+#pragma comment(lib, "Shlwapi.lib")
 
-#include "tools/exception_handler.h"
+// Assuming proper includes for logging and file system exists
+#include "tools/exception_handler.h" 
 
 namespace tools
 {
 
-class SehException final
+// Inheriting from std::exception is standard practice, even for SEH wrappers
+class SehException : public std::exception
 {
 private:
     unsigned int nSE = 0;
 
 public:
     SehException() {}
-    SehException(unsigned int n) :
-        nSE(n)
-    {}
+    SehException(unsigned int n) : nSE(n) {}
 
-    NO_COPY_MOVE(SehException);
+    // No need for NO_COPY_MOVE usually, exception needs to be copyable mostly
+    unsigned int getSeNumber() const { return nSE; }
 
-    unsigned int getSeNumber() { return nSE; }
+    const char* what() const override { return "SEH Exception (Access Violation, etc.)"; }
+
+    static wchar_t dump_path[MAX_PATH * 2 + 1];
 };
+
+wchar_t SehException::dump_path[MAX_PATH * 2 + 1];
 
 static void dump_mini_dump(HANDLE hdumpfile, PEXCEPTION_POINTERS excp_info)
 {
-    if (nullptr == excp_info)
-    {
-        // Generate exception to get proper context in dump
-        __try
-        {
-            RaiseException(EXCEPTION_BREAKPOINT, 0, 0, nullptr);
-        }
-        __except (dump_mini_dump(hdumpfile, GetExceptionInformation()), EXCEPTION_CONTINUE_EXECUTION)
-        {
-        }
-    }
-    else
-    {
-        MINIDUMP_EXCEPTION_INFORMATION eInfo;
-        eInfo.ThreadId = GetCurrentThreadId();
-        eInfo.ExceptionPointers = excp_info;
-        eInfo.ClientPointers = FALSE;
+    MINIDUMP_EXCEPTION_INFORMATION eInfo;
+    eInfo.ThreadId = GetCurrentThreadId();
+    eInfo.ExceptionPointers = excp_info;
+    eInfo.ClientPointers = FALSE;
 
-        MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hdumpfile,
-            MINIDUMP_TYPE(MiniDumpNormal | MiniDumpWithDataSegs | MiniDumpWithHandleData | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithProcessThreadData),
-            &eInfo, nullptr, nullptr);
-    }
+    // Use nullptr for eInfo if excp_info is null, don't raise new exception
+    PMINIDUMP_EXCEPTION_INFORMATION peInfo = excp_info ? &eInfo : nullptr;
+
+    MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hdumpfile,
+        MINIDUMP_TYPE(MiniDumpNormal | MiniDumpWithDataSegs | MiniDumpWithHandleData | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithProcessThreadData),
+        peInfo, nullptr, nullptr);
 }
 
-int __cdecl record_exception_info(PEXCEPTION_POINTERS pExceptPtrs, wchar_t* /*message*/)
+// Helper to construct path without heap allocation if possible (simplified here)
+// In a real strict handler, use wchar_t buffer[MAX_PATH] and GetModuleFileName
+int __cdecl record_exception_info(PEXCEPTION_POINTERS pExceptPtrs)
 {
     static std::atomic_flag bFirstTime = ATOMIC_FLAG_INIT;
-    if (bFirstTime.test_and_set(std::memory_order_acquire))	// Going recursive! That must mean this routine crashed!
-        return EXCEPTION_CONTINUE_SEARCH;
+    if (bFirstTime.test_and_set(std::memory_order_acquire))
+        return EXCEPTION_CONTINUE_SEARCH; // Prevent recursive crashes
 
-    PEXCEPTION_RECORD pRec = pExceptPtrs->ExceptionRecord;
-    while (pRec)
+    if (pExceptPtrs && pExceptPtrs->ExceptionRecord)
     {
-        if (pRec->ExceptionCode == STATUS_SINGLE_STEP)
+        if (pExceptPtrs->ExceptionRecord->ExceptionCode == STATUS_SINGLE_STEP)
             return EXCEPTION_CONTINUE_EXECUTION;
-        pRec = pRec->ExceptionRecord;
     }
 
-    glog::Logger::instance().force_flush();
+    // Attempt to flush logs. Wrap in try-catch because logger might use heap.
+    try {
+        glog::Logger::instance().force_flush();
+    }
+    catch (...) {}
 
-    auto crash_dump_path = fs::get_crash_dump_directory_path();
-    tools::path::make_folder(crash_dump_path);
-    crash_dump_path /= APP_CAPTION "_" + tt::dt::from_current_date().as_filename() + ".dmp";
+    // Prepare path. 
+    // WARNING: If Heap is corrupted, fs:: calls might hang. 
+    // Ideally, pre-allocate dump folder path at startup and store in a static buffer.
 
-    HANDLE hdump = CreateFileW(crash_dump_path.wstring().c_str(),
-        GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH, NULL);
-    if (hdump != INVALID_HANDLE_VALUE)
+    // Fallback logic for demo purposes (assuming your fs logic works):
+    try
     {
-        dump_mini_dump(hdump, pExceptPtrs);
-        CloseHandle(hdump);
+        HANDLE hdump = CreateFileW(SehException::dump_path,
+            GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH, NULL);
+
+        if (hdump != INVALID_HANDLE_VALUE)
+        {
+            dump_mini_dump(hdump, pExceptPtrs);
+            CloseHandle(hdump);
+        }
+    }
+    catch (...)
+    {
+        // Failed to create dump file
     }
 
-    return EXCEPTION_CONTINUE_SEARCH;
-}
-
-LONG WINAPI SEHFilter(EXCEPTION_POINTERS* pExp)
-{
-    record_exception_info(pExp, L"SEHFilter");
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
-void SEHTranslator(unsigned int, EXCEPTION_POINTERS * pExp)
+// 1. Unhandled Exception Filter (Top-level catch)
+LONG WINAPI SEHFilter(EXCEPTION_POINTERS* pExp)
 {
-    record_exception_info(pExp, L"SEHTranslator");
-    throw SehException();
+    record_exception_info(pExp);
+
+    // Terminate process explicitly after dumping
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+// 2. Translator for converting SEH to C++ Exceptions (requires /EHa)
+void SEHTranslator(unsigned int u, EXCEPTION_POINTERS* pExp)
+{
+    // Optional: You can record dump here too, OR wait until it hits the catch(...) block
+    // Recording here is safer because stack is closer to the error.
+    record_exception_info(pExp);
+
+    throw SehException(u);
 }
 
 void set_exception_translator()
 {
+    auto crash_dump_path = fs::get_crash_dump_directory_path();
+    tools::path::make_folder(crash_dump_path);
+    crash_dump_path /= APP_CAPTION "_" + tt::dt::get_app_start_time().as_filename() + ".dmp";
+    wcscpy_s(SehException::dump_path, MAX_PATH * 2, crash_dump_path.wstring().c_str());
+
+    // Handle C++ try/catch for SEH
     _set_se_translator(SEHTranslator);
+
+    // Handle crashes outside any try/catch
     SetUnhandledExceptionFilter(SEHFilter);
+
+    // Prevent CRT from showing "Debug Error" dialogs in release
+    _set_abort_behavior(0, _WRITE_ABORT_MSG);
 }
 
-}	// namespace tools
+} // namespace tools
 
-#endif	// #ifdef _WIN32
+#endif // _WIN32

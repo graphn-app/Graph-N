@@ -6,13 +6,15 @@ cpp-httplib/
 DB_Browser/
 websocketpp/
 asio/
-copy/
 
+bin/
+lib/
 Debug/
 Release/
 x64/
 build/
 work_dir/
+copy/
 
 *.vcxproj*
 *.user
@@ -22,6 +24,7 @@ work_dir/
 CMakeCache.txt
 .vs
 
-graphene.ini
-graphene.db
+graph-n.ini
+graph-n.db
+graph-n.port
 todo.txt

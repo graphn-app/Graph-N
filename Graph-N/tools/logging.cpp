@@ -78,7 +78,7 @@ void Logger::log_start()
         return;
 
     auto path = fs::get_log_directory_path();
-    path /= tt::dt::from_current_date().as_filename() + ".log";
+    path /= tt::dt::get_app_start_time().as_filename() + ".log";
     m_log_path = path.string();
 
     // _tzset();

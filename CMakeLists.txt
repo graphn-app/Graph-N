@@ -158,6 +158,14 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N" PREFIX "Header Files" FI
 add_executable(Graph-N WIN32 ${GRAPHN_SOURCES} ${GRAPHN_HEADERS} ${GRAPHN_RESOURCES})
 
 if(MSVC)
+    # /INCREMENTAL:NO
+    # /OPT:REF
+    # /OPT:ICF    
+    string(APPEND CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO " /INCREMENTAL:NO /OPT:REF /OPT:ICF")
+    string(APPEND CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO " /INCREMENTAL:NO /OPT:REF /OPT:ICF")
+endif()
+
+if(MSVC)
     # enable /EHa, this will override /EHsc
     target_compile_options(Graph-N PRIVATE /EHa)
 endif()
