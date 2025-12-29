@@ -14,7 +14,7 @@ void Logger::cleanup()
     auto path = fs::get_log_directory_path();
     auto list = tools::path::enumerate_directory(path, false, false, true, false);
 
-    constexpr int32_t to_save = 5;
+    constexpr int32_t to_save = 5 + 1;
     int32_t to_delete = cast::to_i32(list.size()) - to_save;
     if (to_delete <= 0)
         return;
@@ -137,7 +137,8 @@ void Logger::log_start()
 
         LogWriter writer;
         writer
-            << m_proc_id << "Log started: " << tt::dt::from_current_date().as_string(true /*add_day*/, true /*add_time*/) << "\n"
+            << "trylock__\n"
+            << m_proc_id << "Log started: " << tt::dt::get_app_start_time().as_string(true, true, true) << "\n"
             << m_proc_id << "App version: " << ver::ver_as_string() << "\n"
 #ifdef _WIN32
             << m_proc_id << "Command line: " << " " << GetCommandLineA() << "\n"
@@ -160,7 +161,7 @@ void Logger::log_stop()
         return;
 
     LogWriter writer;
-    writer << "Log ended: " << tt::dt::from_current_date().as_string(true /*add_day*/, true /*add_time*/) << "\n\n";
+    writer << "Log ended: " << tt::dt::from_current_date().as_string(true, true, true) << "\n\n";
     write(writer);
 
     m_do_close = true;
@@ -249,11 +250,16 @@ void LogWriter::log_line_start_file(const char * file, int line)
 {
     if (nullptr == file)
     {
+#ifdef _WIN32
+        m_buffer.append("[");
+        append_int(::GetThreadId(::GetCurrentThread()));
+#endif
         m_buffer.
-            append(tt::dt::from_current_date().as_string(false /*add_day*/, true /*add_time*/)).
-            append(" ln:");
+            append("] ").
+            append(tt::dt::from_current_date().as_string(false, true, true)).
+            append(" [ln:");
         append_int(line).
-            append("\t>> ");
+            append("]  ");
     }
     else
     {
@@ -262,13 +268,18 @@ void LogWriter::log_line_start_file(const char * file, int line)
         if (strlen(file) > app_dir.size() + 1)  // cut directory/
             file += app_dir.size() + 1;
 
+#ifdef _WIN32
+        m_buffer.append("[");
+        append_int(::GetThreadId(::GetCurrentThread()));
+#endif
         m_buffer.
-            append(tt::dt::from_current_date().as_string(false /*add_day*/, true /*add_time*/)).
-            append(" ").
+            append("] ").
+            append(tt::dt::from_current_date().as_string(false, true, true)).
+            append(" [").
             append(file).
             append(":");
         append_int(line).
-            append("\t>> ");
+            append("]  ");
     }
 }
 
@@ -276,21 +287,31 @@ void LogWriter::log_line_start_foo(const char * foo, int line)
 {
     if (nullptr == foo)
     {
+#ifdef _WIN32
+        m_buffer.append("[");
+        append_int(::GetThreadId(::GetCurrentThread()));
+#endif
         m_buffer.
-            append(tt::dt::from_current_date().as_string(false /*add_day*/, true /*add_time*/)).
-            append(" ln:");
+            append("] ").
+            append(tt::dt::from_current_date().as_string(false, true, true)).
+            append(" [ln:");
         append_int(line).
-            append("\t>> ");
+            append("]  ");
     }
     else
     {
+#ifdef _WIN32
+        m_buffer.append("[");
+        append_int(::GetThreadId(::GetCurrentThread()));
+#endif
         m_buffer.
-            append(tt::dt::from_current_date().as_string(false /*add_day*/, true /*add_time*/)).
-            append(" ").
+            append("] ").
+            append(tt::dt::from_current_date().as_string(false, true, true)).
+            append(" [").
             append(foo).
             append(":");
         append_int(line).
-            append("\t>> ");
+            append("]  ");
     }
 }
 

@@ -26,7 +26,7 @@ public:
 
     void set_base(BaseObj* obj)
     {
-        g::pFlow->subscribe_confyui_validity_state(this);
+        g::pFlow->subscribe_comfyui_validity_state(this);
         m_base = obj;
         m_obj_id = 0;	// not null only in validation period
         make_graph_id();

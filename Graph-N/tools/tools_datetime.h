@@ -54,11 +54,12 @@ public:
 	byte hour() const { return m_hour; }
 	byte minute() const { return m_minute; }
 	byte second() const { return m_second; }
+    uint16_t millisecond() const { return m_millisecond; }
 
 	bool is_valid() const { return m_time != 0; }
 	void clear();
 
-	std::string as_string(bool add_day, bool add_time, bool month_as_name = false) const;
+	std::string as_string(bool add_day, bool add_time, bool add_millis, bool month_as_name = false) const;
 	std::string as_filename() const;
 
 	/* length can be 1 (first char), 3 (first 3 chars), any other length will be full name*/
@@ -105,6 +106,7 @@ private:
 	byte m_hour = 0;
 	byte m_minute = 0;
 	byte m_second = 0;
+    uint16_t m_millisecond = 0;
 
 	time_type m_time = 0;
 

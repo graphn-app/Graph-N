@@ -69,7 +69,7 @@ public:
     void destroy_workflow(lid wf_id);
     Workflow* find_workflow(lid wf_id);
 
-    void subscribe_confyui_validity_state(mngr::ComfyUiObjectValidityListener* listener);
+    void subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener);
 
     void invalidate_comfyui_objects();
     void resolve_comfyui_objects();

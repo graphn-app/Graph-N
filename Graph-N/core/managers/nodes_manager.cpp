@@ -130,11 +130,11 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
                 Log("Parsed: ok");
                 // this is UI thread, so it is safe to recreate on the fly
                 g::pFlow->invalidate_comfyui_objects();
-                Log("ConfyUI listeners notified to invalidate data");
+                Log("ComfyUI listeners notified to invalidate data");
                 g::pNodesManager->init_from_copy(*copy.get());
-                Log("ConfyUI data copied");
+                Log("ComfyUI data copied");
                 g::pFlow->resolve_comfyui_objects();
-                Log("ConfyUI listeners notified to resolve data");
+                Log("ComfyUI listeners notified to resolve data");
             }
         }
         m_stop_thread_flag = false;

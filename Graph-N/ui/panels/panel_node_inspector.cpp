@@ -25,7 +25,7 @@ void PanelNodeInspector::init()
     data()->clr_descr_frame = g::pOptsManager->flow_get_color(VisibleObject::PanelNodeInspectorDescrFrame);
     data()->clr_selected_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesSelectedNode);
 
-    g::pFlow->subscribe_confyui_validity_state(this);
+    g::pFlow->subscribe_comfyui_validity_state(this);
 }
 
 void PanelNodeInspector::add_inspecting_node(data::Node* node)

@@ -13,10 +13,13 @@ uint16_t dt::current_year()
 
 dt dt::from_current_date()
 {
-    __time64_t t = 0;
-    _time64(&t);
-    tm ptm = {};
-    _localtime64_s(&ptm, &t);
+    const auto now = std::chrono::system_clock::now();
+    const std::time_t t = std::chrono::system_clock::to_time_t(now);
+    std::tm ptm;
+    localtime_s(&ptm, &t);
+
+    const auto duration = now.time_since_epoch();
+    const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() % 1000;
 
     dt date = {};
 
@@ -27,6 +30,7 @@ dt dt::from_current_date()
     date.m_hour = cast::to_u8(ptm.tm_hour);
     date.m_minute = cast::to_u8(ptm.tm_min);
     date.m_second = cast::to_u8(ptm.tm_sec);
+    date.m_millisecond = cast::to_u16(millis);
 
     date.m_time =
         (time_type(date.m_year) << 48) | (time_type(date.m_month) << 40) | (time_type(date.m_day) << 32) |
@@ -568,7 +572,7 @@ bool dt::is_greater_than_date_time(const dt& other) const
     return (m_second > other.m_second);
 }
 
-std::string dt::as_string(bool add_day, bool add_time, bool month_as_name /*= false*/) const
+std::string dt::as_string(bool add_day, bool add_time, bool add_millis, bool month_as_name /*= false*/) const
 {
     if (0 == m_time)
         return "";
@@ -597,7 +601,9 @@ std::string dt::as_string(bool add_day, bool add_time, bool month_as_name /*= fa
         << std::setw(2) << std::setfill('0') << std::to_string(m_hour) << ":"
         << std::setw(2) << std::setfill('0') << std::to_string(m_minute) << ":"
         << std::setw(2) << std::setfill('0') << std::to_string(m_second)
-        ;
+    ;
+    if (add_millis)
+        as_time << "." << std::setw(3) << std::setfill('0') << m_millisecond;
 
     auto ret = (add_day ? as_day.str() : "");
     if (add_day && add_time)

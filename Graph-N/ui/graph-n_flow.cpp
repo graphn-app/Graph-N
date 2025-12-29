@@ -107,7 +107,7 @@ Workflow* GraphN_Flow::find_workflow(lid wf_id)
     return nullptr;
 }
 
-void GraphN_Flow::subscribe_confyui_validity_state(mngr::ComfyUiObjectValidityListener* listener)
+void GraphN_Flow::subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener)
 {
     m_comfyui_obj_listeners.push_back(listener);
 }
