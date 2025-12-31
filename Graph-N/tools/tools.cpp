@@ -1,69 +1,104 @@
 
-// TODO: make tests
-
 namespace tools
 {
 namespace str
 {
 
-std::string trim(std::string string, std::string chars /*= " \r\n\t"*/)
+std::string& trim_this(std::string& str, const std::string& chars /*= " \r\n\t"*/)
 {
-    if (string.empty())
-        return string;
+    if (str.empty())
+        return str;
 
-    std::string::size_type _off = string.find_first_not_of(chars);
-    if (_off != std::string::npos)
+    const auto first = str.find_first_not_of(chars);
+    if (first == std::string::npos)
     {
-        if (_off != 0)
-            string.erase(0, _off);
-
-        _off = string.find_last_not_of(chars);
-        if (_off != std::string::npos && _off != string.size() - 1)
-            string.erase(++_off);
+        str.clear();
+        return str;
     }
-    else
-        string.clear();
 
-    return string;
+    const auto last = str.find_last_not_of(chars);
+    const auto count = last - first + 1;
+    if (first == 0 && count == str.size())
+        return str;
+
+    str = str.substr(first, count);
+    return str;
 }
 
-std::string replace(std::string string, const std::string& find, const std::string& replace, size_t from_pos /*= 0*/)
+std::string trim_their(const std::string& str, const std::string& chars /*= " \r\n\t"*/)
 {
+    if (str.empty())
+        return {};
+
+    const auto first = str.find_first_not_of(chars);
+    if (first == std::string::npos)
+        return {};
+
+    const auto last = str.find_last_not_of(chars);
+    const auto count = last - first + 1;
+    if (first == 0 && count == str.size())
+        return str;
+
+    return str.substr(first, count);
+}
+
+std::string& replace_this(std::string& str, const std::string& find, const std::string& replace, size_t from_pos /*= 0*/)
+{
+    if (find.empty())
+        return str;
+
     std::string::size_type pos = from_pos;
-    while ((pos = string.find(find, pos)) != std::string::npos)
+    while ((pos = str.find(find, pos)) != std::string::npos)
     {
-        string.replace(pos, find.size(), replace);
+        str.replace(pos, find.size(), replace);
         pos += replace.length();
     }
-    return string;
+    return str;
 }
 
-std::list<std::string> split(const std::string& str, char separator, bool add_empty)
+std::string replace_their(const std::string& str, const std::string& find, const std::string& replace, size_t from_pos /*= 0*/)
 {
-    size_t sep_count = std::count(str.begin(), str.end(), separator);
+    if (find.empty())
+        return str;
 
-    std::list <std::string> out;
-    std::istringstream stream(str.data());
-    for (std::string l; std::getline(stream, l, separator); )
+    std::string copy = str;
+    replace_this(copy, find, replace, from_pos);
+    return copy;
+}
+
+std::vector<std::string> split(const std::string& str, char separator)
+{
+    std::vector<std::string> out;
+    if (!str.empty())
+        out.reserve(str.size() / 8);
+
+    size_t start = 0;
+    size_t end = str.find(separator);
+
+    while (end != std::string::npos)
     {
-        out.emplace_back(std::move(trim(std::move(l))));
+        std::string token = str.substr(start, end - start);
+        out.emplace_back(std::move(trim_this(token)));
+
+        start = end + 1;
+        end = str.find(separator, start);
     }
 
-    if (add_empty && sep_count + 1 != out.size())
-        out.push_back("");
+    std::string last_token = str.substr(start);
+    out.emplace_back(std::move(trim_this(last_token)));
 
     return out;
 }
 
-std::string to_lower_ansi(const std::string& string)
+std::string to_lower_ascii(const std::string& str)
 {
-    std::string lower = string;
-    std::transform(lower.begin(), lower.end(), lower.begin(),
-        [](const char c)
-    {
-        return cast::to_char(std::tolower(c));
-    }
-    );
+    std::string lower;
+    lower.reserve(str.size());
+    std::transform(str.begin(), str.end(), std::back_inserter(lower),
+        [](unsigned char c)
+        {
+            return cast::to_char(std::tolower(c));
+        });
     return lower;
 }
 
@@ -72,13 +107,13 @@ size_t hash_string(const std::string& str)
     return std::hash<std::string>{}(str);
 }
 
-size_t hash_fnv1a(const void* data, size_t size)
+uint64_t hash_fnv1a(const void* data, size_t size)
 {
     // FNV-1a constants for 64-bit
     constexpr uint64_t FNV_OFFSET_BASIS = 0xcbf29ce484222325;
     constexpr uint64_t FNV_PRIME = 0x100000001b3;
 
-    size_t hash = FNV_OFFSET_BASIS;
+    uint64_t hash = FNV_OFFSET_BASIS;
     const uint8_t* ptr = static_cast<const uint8_t*>(data);
     for (size_t i = 0; i < size; ++i)
     {
@@ -88,19 +123,19 @@ size_t hash_fnv1a(const void* data, size_t size)
     return hash;
 }
 
-size_t hash_fnv1a(const char* data, size_t size)
+uint64_t hash_fnv1a(const char* data, size_t size)
 {
-    return hash_fnv1a((void*)data, size);
+    return hash_fnv1a((const void*)data, size);
 }
 
-size_t hash_fnv1a(size_t data)
+uint64_t hash_fnv1a(size_t data)
 {
-    return hash_fnv1a((void*)&data, sizeof(data));
+    return hash_fnv1a((const void*)&data, sizeof(data));
 }
 
-size_t hash_fnv1a(const std::string& data)
+uint64_t hash_fnv1a(const std::string& data)
 {
-    return hash_fnv1a((void*)data.c_str(), data.size());
+    return hash_fnv1a((const void*)data.c_str(), data.size());
 }
 
 } // namespace str
@@ -108,229 +143,244 @@ size_t hash_fnv1a(const std::string& data)
 namespace path
 {
 
+// --- HELPERS FOR UTF-8 ---
+inline std::filesystem::path from_utf8(const std::string& u8str)
+{
+    return std::filesystem::u8path(u8str);
+}
+
+inline std::string to_utf8(const std::filesystem::path& p)
+{
+    return p.u8string();
+}
+
+// -------------------------
+
+std::filesystem::path find_next_name(const std::filesystem::path& path); // forward decl
+
 bool exists(const std::filesystem::path& path)
 {
-    try
-    {
-        return !path.empty() && std::filesystem::exists(path);
-    }
-    catch (...)
-    {
-    }
-    return false;
+    std::error_code ec;
+    return !path.empty() && std::filesystem::exists(path, ec);
 }
 
-std::optional<std::string> copy(const std::filesystem::path& from, const std::filesystem::path& to, bool overwrite, bool rename)
+std::optional<std::filesystem::path> copy(const std::filesystem::path& from, const std::filesystem::path& to, bool overwrite, bool rename)
 {
     LogV(from, to, overwrite, rename);
 
-    try
+    if (from.empty() || to.empty())
+        return {};
+
+    std::error_code ec;
+    if (!std::filesystem::exists(from, ec))
     {
-        if (from.empty() || to.empty())
-            return {};
-
-        if (!std::filesystem::exists(from))
-        {
-            Log("Can't copy file from '" << from << "' - source not exists");
-            return {};
-        }
-
-        const bool exists = std::filesystem::exists(to);
-        if (exists && !overwrite && !rename)
-        {
-            Log("Can't copy file from '" << from << "' to '" << to << "' - dest file exists");
-            return {};
-        }
-
-        std::string dest = to.string();
-        if (exists && !overwrite && rename)
-            dest = find_next_name(to.string());
-
-        std::error_code err;
-        std::filesystem::copy_file(from, dest, std::filesystem::copy_options::overwrite_existing, err);
-        if (!std::filesystem::exists(dest))
-        {
-            LogError(ExcepCategory::filesystem, "Can't copy file '" << from << "' to '" << dest << "' error " << err.value() << ": " << err.message());
-            return {};
-        }
-
-        Log("File copied from '" << from << "' to '" << dest << "'");
-        return dest;
+        Log("Can't copy file from '" << from << "' - source not exists, err " << ec.value() << ": " << ec.message());
+        return std::nullopt;
     }
-    catch (...)
+
+    const bool exists = std::filesystem::exists(to);
+    if (exists && !overwrite && !rename)
     {
-        LogError(ExcepCategory::filesystem, "Copy exp: Can't move file from '" << from << "' to '" << to);
+        Log("Can't copy file from '" << from << "' to '" << to << "' - dest file exists");
+        return std::nullopt;
     }
-    return {};
+
+    std::optional<std::filesystem::path> dest;
+    auto options = std::filesystem::copy_options::none;
+
+    if (exists && !overwrite && rename)
+    {
+        dest = std::move(find_next_name(to));
+    }
+    else
+    {
+        dest = to;
+        options = std::filesystem::copy_options::overwrite_existing;
+    }
+
+    if (!std::filesystem::copy_file(from, dest.value(), options, ec))
+    {
+        LogError(ExcepCategory::filesystem, "Can't copy file '" << from << "' to '" << dest.value() << "' error " << ec.value() << ": " << ec.message());
+        return std::nullopt;
+    }
+
+    Log("File copied from '" << from << "' to '" << dest.value() << "'");
+    return dest;
 }
 
-std::optional<std::string> move(const std::filesystem::path& from, const std::filesystem::path& to, bool overwrite, bool rename)
+std::optional<std::filesystem::path> move(const std::filesystem::path& from, const std::filesystem::path& to, bool overwrite, bool rename)
 {
     LogV(from, to, overwrite, rename);
 
-    try
+    if (from.empty() || to.empty())
+        return {};
+
+    std::error_code ec;
+    if (!std::filesystem::exists(from, ec))
     {
-        if (from.empty() || to.empty())
-            return {};
-
-        if (!std::filesystem::exists(from))
-        {
-            Log("Can't move file from '" << from << "' - source not exists");
-            return {};
-        }
-
-        const bool exists = std::filesystem::exists(to);
-        if (exists && !overwrite && !rename)
-        {
-            Log("Can't move file from '" << from << "' to '" << to << "' - dest file exists");
-            return {};
-        }
-
-        std::string dest = to.string();
-        if (exists && !overwrite && rename)
-            dest = find_next_name(to.string());
-
-        std::error_code err;
-        std::filesystem::rename(from, dest, err);
-        if (!std::filesystem::exists(dest))
-        {
-            LogError(ExcepCategory::filesystem, "Can't move file '" << from << "' to '" << dest << "' error " << err.value() << ": " << err.message());
-            return {};
-        }
-
-        Log("File moved from '" << from << "' to '" << dest << "'");
-        return dest;
+        Log("Can't move file from '" << from << "' - source not exists, err " << ec.value() << ": " << ec.message());
+        return std::nullopt;
     }
-    catch (...)
+
+    const bool exists = std::filesystem::exists(to);
+    if (exists && !overwrite && !rename)
     {
-        LogError(ExcepCategory::filesystem, "Move exp: Can't move file from '" << from << "' to '" << to);
+        Log("Can't move file from '" << from << "' to '" << to << "' - dest file exists");
+        return std::nullopt;
     }
-    return {};
+
+    std::optional<std::filesystem::path> dest;
+    if (exists && !overwrite && rename)
+    {
+        dest = std::move(find_next_name(to));
+    }
+    else
+    {
+        dest = to;
+    }
+
+    std::filesystem::rename(from, dest.value(), ec);
+    if (ec)
+    {
+        if (!tools::path::copy(from, dest.value(), true, false))
+        {
+            LogError(ExcepCategory::filesystem, "Can't move file '" << from << "' to '" << dest.value() << "' error " << ec.value() << ": " << ec.message());
+            return std::nullopt;
+        }
+        tools::path::remove(from);
+    }
+
+    Log("File moved from '" << from << "' to '" << dest.value() << "'");
+    return dest;
 }
 
-std::string find_next_name(std::filesystem::path path)
+std::filesystem::path find_next_name(const std::filesystem::path& path)
 {
-    std::string ext = path.extension().string();
-    std::string path_no_ext = path.replace_extension().string();
-    std::string next;
-    for (size_t idx = 2; ; idx++)
-    {
-        next = path_no_ext + " (" + std::to_string(idx) + ")" + ext;
-        if (!tools::path::exists(next))
-            break;
+    const auto ext = path.extension().u8string();
+    const auto parent = path.parent_path();
+    const auto stem = path.stem().u8string();
+
+    size_t idx = 2;
+    std::filesystem::path next_path;
+    std::error_code ec;
+
+    do {
+        const std::string new_name = stem + " (" + std::to_string(idx++) + ")" + ext;
+        next_path = parent / std::filesystem::u8path(new_name);
     }
-    return next;
+    while (std::filesystem::exists(next_path, ec));
+
+    return next_path;
 }
 
 bool make_folder(const std::filesystem::path& dirpath)
 {
     Log(dirpath);
 
-    try
-    {
-        if (dirpath.empty())
-            return false;
-        if (std::filesystem::exists(dirpath))
-            return true;
+    if (dirpath.empty())
+        return false;
 
-        std::error_code err;
-        std::filesystem::create_directories(dirpath, err);
-        if (!std::filesystem::exists(dirpath))
-        {
-            LogError(ExcepCategory::filesystem, "Can't create dir '" << dirpath << "' error " << err.value() << ": " << err.message());
-            return false;
-        }
-
-        Log("Created directory '" << dirpath << "'");
-        return true;
-    }
-    catch (...)
+    std::error_code ec;
+    std::filesystem::create_directories(dirpath, ec);
+    if (ec)
     {
-        LogError(ExcepCategory::filesystem, "Can't create directory " << dirpath);
+        LogError(ExcepCategory::filesystem, "Can't create dir '" << dirpath << "' error " << ec.value() << ": " << ec.message());
+        return false;
     }
-    return false;
+
+    Log("Created directory '" << dirpath << "'");
+    return true;
 }
 
 bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write /*= ""*/)
 {
-    LogV(filepath, overwrite);
+    LogV(filepath, overwrite, data_to_write.size());
 
     if (filepath.empty())
         return false;
 
-    if (tools::path::exists(filepath) && !overwrite)
+    std::error_code ec;
+    if (!overwrite && std::filesystem::exists(filepath, ec))
     {
         Log("Can't create file '" << filepath << "' - file already exists");
         return false;
     }
 
-    try
+    std::ofstream file(filepath, std::ios::out | std::ios::trunc | std::ios::binary);
+    if (!file.is_open())
     {
-        std::ofstream file;
-        file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-
-        file.open(filepath.c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
-
-        if (!data_to_write.empty())
-            file << data_to_write;
-
-        Log("Created file " << filepath);
-        return true;
+        LogError(ExcepCategory::filesystem, "Can't create file " << filepath);
+        return false;
     }
-    catch (const std::ios_base::failure& e)
+
+    if (!data_to_write.empty())
     {
-        LogError(ExcepCategory::filesystem, "Can't create/write file " << filepath << ", err: " << e.what() << ", code: " << e.code().value());
+        file.write(data_to_write.data(), data_to_write.size());
+        if (file.fail())
+        {
+            LogError(ExcepCategory::filesystem, "Write failed " << filepath);
+            return false;
+        }
     }
-    return false;
+
+    Log("Created file " << filepath << " and written " << data_to_write.size() << " bytes");
+    return true;
 }
 
-bool make_file_path(const std::filesystem::path& filepath, bool overwrite)
+bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write /*= ""*/)
 {
-    auto dir = filepath;
-    if (!make_folder(dir.remove_filename()))
+    if (!make_folder(filepath.parent_path()))
         return false;
-    return make_file(filepath, overwrite);
+    return make_file(filepath, overwrite, data_to_write);
 }
 
 std::vector<char> read_file(const std::filesystem::path& filepath)
 {
     Log(filepath);
 
-    if (!tools::path::exists(filepath))
-        return {};
-
-    std::ifstream file;
-    file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-
-    try {
-        file.open(filepath, std::ios::binary | std::ios::ate);
-
-        std::streamsize size = file.tellg();
-        file.seekg(0, std::ios::beg);
-
-        std::vector<char> buffer(size);
-        if (file.read(buffer.data(), size))
-            return buffer;
-    }
-    catch (const std::ios_base::failure& e)
+    std::error_code ec;
+    const auto fsize = std::filesystem::file_size(filepath, ec);
+    if (ec)
     {
-        LogError(ExcepCategory::filesystem, "Can't open/read file " << filepath << ", err: " << e.what() << ", code: " << e.code().value());
+        LogError(ExcepCategory::filesystem, "Can't read file " << filepath << ", error " << ec.value() << ": " << ec.message());
+        return {};
     }
-    return {};
+
+    std::ifstream file(filepath, std::ios::binary);
+    if (!file.is_open())
+    {
+        LogError(ExcepCategory::filesystem, "Can't open file " << filepath);
+        return {};
+    }
+
+    try
+    {
+        std::vector<char> buffer;
+        buffer.resize(cast::to_szt(fsize));
+
+        file.read(buffer.data(), fsize);
+        if (!file)
+        {
+            buffer.resize(file.gcount());
+        }
+        return buffer;
+    }
+    catch (...)
+    {
+        LogError(ExcepCategory::filesystem, "Can't read file " << filepath);
+        return {};
+    }
 }
 
 bool remove(const std::filesystem::path& filepath)
 {
     Log(filepath);
 
-    if (!tools::path::exists(filepath))
-        return true;
-
-    std::error_code err;
-    std::filesystem::remove_all(filepath, err);
-    if (tools::path::exists(filepath))
+    std::error_code ec;
+    std::filesystem::remove_all(filepath, ec);
+    if (ec)
     {
-        LogError(ExcepCategory::filesystem, "Can't remove file " << filepath << ", err " << err.value() << ", " << err.message());
+        LogError(ExcepCategory::filesystem, "Can't remove file " << filepath << ", err " << ec.value() << ", " << ec.message());
         return false;
     }
 
@@ -342,109 +392,100 @@ bool rename(const std::filesystem::path& from, const std::filesystem::path& to)
 {
     LogV(from, to);
 
-    if (from.empty() || to.empty())
-        return false;
-
-    if (!tools::path::exists(from))
-    {
-        Log("Can't rename file, source not exists");
-        return true;
-    }
-
-    std::error_code err;
-    std::filesystem::rename(from, to, err);
-    if (tools::path::exists(from) || !tools::path::exists(to))
-    {
-        LogError(ExcepCategory::filesystem, "Can't rename, error " << err.value() << ": " << err.message());
-        return false;
-    }
-
-    Log("Renamed from " << from << " to " << to);
-    return true;
+    return tools::path::move(from, to, false, false).has_value();
 }
 
 bool is_file(const std::filesystem::path& path)
 {
-    if (path.empty())
+    std::error_code ec;
+    if (!std::filesystem::exists(path, ec))
         return false;
-    return !is_dir(path);
+    return std::filesystem::is_regular_file(path, ec);
 }
 
 bool is_dir(const std::filesystem::path& path)
 {
-    if (path.empty())
+    std::error_code ec;
+    if (!std::filesystem::exists(path, ec))
         return false;
-    return std::filesystem::is_directory(path);
+    return std::filesystem::is_directory(path, ec);
 }
 
 bool is_empty(const std::filesystem::path& path)
 {
-    std::error_code err;
-    return std::filesystem::is_empty(path, err);
+    std::error_code ec;
+    return std::filesystem::is_empty(path, ec);
 }
 
-std::string& add_backslash(std::string& path)
+std::vector<std::filesystem::path> enumerate_directory(
+    const std::filesystem::path& path,
+    bool recursively, bool include_dirs, bool include_files, bool relative_pathes)
 {
-    if (path.empty() || path[path.size() - 1] != '\\')
-        path += "\\";
-    return path;
-}
+    std::error_code ec;
+    if (!std::filesystem::exists(path, ec) || !std::filesystem::is_directory(path, ec))
+        return {};
 
-std::string& remove_backslash(std::string& path)
-{
-    if (path.empty())
-        return path;
-    while ('\\' == path[path.size() - 1])
+    std::vector<std::filesystem::path> out;
+    out.reserve(100);
+
+    const auto process_entry = [&](const std::filesystem::directory_entry& entry)
     {
-        path.erase(path.size() - 1);
-    }
-    return path;
-}
+        const bool is_dir = entry.is_directory();
+        if ((is_dir && !include_dirs) || (!is_dir && !include_files))
+            return;
 
-std::list<std::filesystem::path> enumerate_directory(const std::filesystem::path& path, bool recursively, bool include_dirs, bool include_files, bool relative_pathes, char slash /*= '\\'*/)
-{
-    std::list<std::filesystem::path> out;
-
-    std::string root = tools::str::replace(path.string(), "/", "\\", 0);
-    add_backslash(root);
-
-    const auto replace_slash = [slash](const std::string& path) -> std::string
-    {
-        if (slash != '\\')
-            return tools::str::replace(path, "\\", std::string(1, slash));
-        return path;
+        // relative vs absolute
+        std::filesystem::path current_path;
+        if (relative_pathes)
+        {
+            current_path = entry.path().lexically_relative(path);
+        }
+        else
+        {
+            current_path = entry.path();
+        }
+        out.emplace_back(std::move(current_path));
     };
 
-    const auto relative_path = [&root, relative_pathes, &replace_slash](const std::string& path) -> std::string
+    try
     {
-        if (!relative_pathes)
-            return replace_slash(path);
-
-        const auto pos = path.find(root);
-        if (0 == pos)
-            return replace_slash(path.substr(root.size()));
-        return replace_slash(path);
-    };
-
-    if (recursively)
-    {
-        for (auto const& dir_entry : std::filesystem::recursive_directory_iterator(root))
+        const auto opts = std::filesystem::directory_options::skip_permission_denied;
+        if (recursively)
         {
-            if (dir_entry.is_directory() && include_dirs)
-                out.push_back(relative_path(dir_entry.path().string()));
-            else if (!dir_entry.is_directory() && include_files)
-                out.push_back(relative_path(dir_entry.path().string()));
+            for (auto const& dir_entry : std::filesystem::recursive_directory_iterator(path, opts))
+            {
+                process_entry(dir_entry);
+            }
+        }
+        else
+        {
+            for (auto const& dir_entry : std::filesystem::directory_iterator(path, opts))
+            {
+                process_entry(dir_entry);
+            }
         }
     }
-    else
+    catch (...)
     {
-        for (auto const& dir_entry : std::filesystem::directory_iterator(root))
-        {
-            if (dir_entry.is_directory() && include_dirs)
-                out.push_back(relative_path(dir_entry.path().string()));
-            else if (!dir_entry.is_directory() && include_files)
-                out.push_back(relative_path(dir_entry.path().string()));
-        }
+        LogError(ExcepCategory::filesystem, "Error enumerating directory " << path);
+    }
+
+    return out;
+}
+
+std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::path& path,
+    bool recursively, bool include_dirs, bool include_files, bool relative_pathes, char slash)
+{
+    const auto paths = enumerate_directory(path, recursively, include_dirs, include_files, relative_pathes);
+    std::vector<std::string> out;
+    out.reserve(paths.size());
+
+    for (auto& p : paths)
+    {
+        auto str = p.generic_u8string();
+        if (slash != '/')
+            std::replace(str.begin(), str.end(), '/', slash);
+        out.emplace_back(std::move(str));
     }
     return out;
 }

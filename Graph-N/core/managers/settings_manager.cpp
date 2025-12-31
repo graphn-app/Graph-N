@@ -23,7 +23,7 @@ inline constexpr auto gopt_comfyui_read_time            = "comfyui_read_time";
 ////////       DEFAULTS                  /////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-inline constexpr int64_t gopt_def_flow_clrs[cast::to_szt(VisibleObject::_count)] =
+inline constexpr int64_t gopt_def_flow_clrs[cast::to_u64(VisibleObject::_count)] =
                                                             {
                                                                 0,
                                                                 IM_COL32(150, 0, 0, 255),			// DisconnectedMenuBar
@@ -109,9 +109,9 @@ void SettingsManager::set_opt_str(std::string& opt, const std::string& val, cons
 
 uint32_t SettingsManager::flow_get_color(VisibleObject obj)
 {
-    const std::string name = fmt::format(FMT_COMPILE("{}{}"), gopt_flow_clr_prefix, cast::to_szt(obj));
-    int64_t& clr = m_flow_colors[cast::to_szt(obj)];
-    int64_t def = gopt_def_flow_clrs[cast::to_szt(obj)];
+    const std::string name = fmt::format(FMT_COMPILE("{}{}"), gopt_flow_clr_prefix, cast::to_u64(obj));
+    int64_t& clr = m_flow_colors[cast::to_u64(obj)];
+    int64_t def = gopt_def_flow_clrs[cast::to_u64(obj)];
     return cast::to_u32(get_opt_int(clr, name.c_str(), def));
 }
 

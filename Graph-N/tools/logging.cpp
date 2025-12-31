@@ -23,7 +23,7 @@ void Logger::cleanup()
     {
         return lhs.wstring() < rhs.wstring();
     };
-    list.sort(sort_callback);
+    std::sort(list.begin(), list.end(), sort_callback);
 
     for (const auto& file : list)
     {
@@ -386,7 +386,7 @@ LogWriter& LogWriter::operator << (bool b)
 
 LogWriter& LogWriter::operator << (DlgCode code)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), cast::to_u16(code));
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), cast::to_u64(code));
     switch (code)
     {
     case DlgCode::progress:
@@ -405,7 +405,7 @@ LogWriter& LogWriter::operator << (DlgCode code)
         fmt::format_to(std::back_inserter(m_buffer), "=cancel");
         break;
     default:
-        LogError(ExcepCategory::switch_enum, "=unknown DlgCode " << cast::to_u32(code));
+        LogError(ExcepCategory::switch_enum, "=unknown DlgCode " << cast::to_u64(code));
     }
     return *this;
 }

@@ -45,7 +45,7 @@ private:
 private:
     // flow
     int64_t m_flow_open_wnds = -1;
-    int64_t m_flow_colors[cast::to_szt(VisibleObject::_count)];
+    int64_t m_flow_colors[cast::to_u64(VisibleObject::_count)];
     int64_t m_flow_nodes_pane_view = -1;
 
     // comfyui

@@ -33,7 +33,7 @@ void OptionsDlgs::init()
     m_opts_data.pane.show_inner_child = (m_opts_data.pane.left_selected_item != OptPane::_none);
 
     m_right_panes[OptPane::comfyui] = std::make_unique<OptComfyDlg>();
-    for (size_t i = cast::to_szt(OptPane::_first); i <= cast::to_szt(OptPane::_last); i++)
+    for (uint64_t i = cast::to_u64(OptPane::_first); i <= cast::to_u64(OptPane::_last); i++)
     {
         m_right_panes[cast::to_enum<OptPane>(i)]->init(m_opts_data);
     }

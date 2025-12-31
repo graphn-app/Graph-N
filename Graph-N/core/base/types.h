@@ -50,6 +50,7 @@ enum class ExcepCategory
     logic,
     logger,
     flow,
+    api
 };
 
 enum DlgCtrl

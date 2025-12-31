@@ -45,7 +45,7 @@ ConnectState ConnectManager::check_status()
             }
             else
             {
-                Log("Connection stopped with status " << cast::to_i32(data.first));
+                Log("Connection stopped with status " << cast::to_u64(data.first));
             }
         }
     }

@@ -9,9 +9,11 @@ AppInstance::AppInstance(WakeUpCallback on_wake_up)
     , m_on_wake_up(on_wake_up)
 {
     m_server = std::make_unique<httplib::Server>();
+    auto port_path = fs::get_root_directory_path();
+    port_path /= m_port_file;
 
     int target_port = 0;
-    std::ifstream in_file(m_port_file);
+    std::ifstream in_file(port_path);
     if (in_file.is_open())
     {
         in_file >> target_port;
@@ -43,7 +45,7 @@ AppInstance::AppInstance(WakeUpCallback on_wake_up)
         m_port = port;
         m_is_primary = true;
 
-        std::ofstream out_file(m_port_file);
+        std::ofstream out_file(port_path);
         out_file << m_port;
         out_file.close();
 

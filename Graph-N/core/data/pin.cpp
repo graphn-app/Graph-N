@@ -21,7 +21,7 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
     { "FLOATS", PinType::FLOATS },
 };
 
-inline constexpr const char* ControlAfterGenerateStr[cast::to_szt(ControlAfterGenerate::_count)] =
+inline constexpr const char* ControlAfterGenerateStr[cast::to_u64(ControlAfterGenerate::_count)] =
 {
     "fixed", "increment", "decrement", "randomize"
 };
@@ -213,7 +213,7 @@ void Pin::init_defaults()
 
 const char* Pin::control_after_generate_to_string() const
 {
-    return ControlAfterGenerateStr[cast::to_szt(control_after_generate_value)];
+    return ControlAfterGenerateStr[cast::to_u64(control_after_generate_value)];
 }
 
 void Pin::generate_pin_color()

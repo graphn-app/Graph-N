@@ -275,7 +275,7 @@ static TYPE json_to_number(nlohmann::json& data)
     }
     if (data.is_boolean())
     {
-        return cast::to<int64_t, TYPE>(cast::to_i64(data.get<bool>() != 0));
+        return data.get<bool>() ? 1 : 0;
     }
     if (data.is_string())
     {
@@ -1016,7 +1016,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
         return items->end();
     };
 
-    const auto cats = tools::str::split(node->category, '/', false /*add_empty*/);
+    const auto cats = tools::str::split(node->category, '/');
     std::vector<data::Nodes*>* root = &manager.m_nodes_tree;
 
     auto cat = cats.begin();
@@ -1038,7 +1038,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
         branch->is_node = false;
         branch->name_or_category = *cat;
         branch->name_or_category_len = branch->name_or_category.size();
-        branch->search = tools::str::to_lower_ansi(branch->name_or_category);
+        branch->search = tools::str::to_lower_ascii(branch->name_or_category);
         root = &branch->children;
     }
 
@@ -1050,7 +1050,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
     branch->is_node = true;
     branch->name_or_category = (node->display_name.empty() ? node->name : node->display_name);
     branch->name_or_category_len = branch->name_or_category.size();
-    branch->search = tools::str::to_lower_ansi(node->name + " " + node->display_name);
+    branch->search = tools::str::to_lower_ascii(node->name + " " + node->display_name);
     branch->node = node;
 
     manager.m_nodes_plain.push_back(branch);
@@ -1064,7 +1064,7 @@ void NodesParser::sort_nodes(NodesManager& manager)
             return true;
         if (lhs->is_node && !rhs->is_node)
             return false;
-        return tools::str::to_lower_ansi(lhs->name_or_category) < tools::str::to_lower_ansi(rhs->name_or_category);
+        return tools::str::to_lower_ascii(lhs->name_or_category) < tools::str::to_lower_ascii(rhs->name_or_category);
     };
 
     std::function<void(std::vector<data::Nodes*>& nodes)> sort_tree;

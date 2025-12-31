@@ -40,6 +40,10 @@
 
 // app global
 
+#define APP_CAPTION			"Graph-N"
+#define APP_CAPTION_LOW		"graph-n"
+#define APP_CAPTION_W		L"Graph-N"
+
 #define NO_COPY_MOVE(ClassName) \
     ClassName(const ClassName&) = delete; \
     ClassName& operator=(const ClassName&) = delete; \
@@ -54,23 +58,35 @@
     ClassName(ClassName&&) = delete; \
     ClassName& operator=(ClassName&&) = delete;
 
+#ifdef _DEBUG
+#define DEBUG_CATCH \
+    { \
+        switch (::MessageBoxA(nullptr, \
+            "Some error happened\nTo exit app - press 'Abort'\nAttach debugger and press 'Retry' to debug app\nTo continue execution press 'Ignore')", \
+            APP_CAPTION, MB_ABORTRETRYIGNORE | MB_ICONWARNING | MB_TASKMODAL | MB_TOPMOST)) \
+        { \
+        case IDABORT: \
+            ::exit(1); \
+            break; \
+        case IDRETRY: \
+            __debugbreak(); \
+            break; \
+        } \
+    }
+#else
+#define DEBUG_CATCH
+#endif
+
 #include "icons_lucide.h"
 #include "core/base/types.h"
-#include "tools/cast.h"
 #include "core/base/id.h"
+#include "tools/cast.h"
 #include "core/base/filesystem.h"
 #include "tools/tools.h"
 #include "tools/tools_datetime.h"
 #include "tools/logging.h"
 #include "ui/imgui_ex.h"
 #include "graph-n.h"
-
-#define APP_CAPTION			"Graph-N"
-#define APP_CAPTION_LOW		"graph-n"
-#define APP_CAPTION_W		L"Graph-N"
-
-namespace tt = tools::time;
-
 
 // global identifiers
 #define GLOBAL_ID_DATE_PICKER_ID_FIRST		0x1000000

@@ -5,32 +5,33 @@ namespace fs
 std::filesystem::path get_this_app_filepath()
 {
 #ifdef _WIN32
-    std::vector<wchar_t> buff(10);
-    DWORD copied = 0;
-    do {
-        buff.resize(buff.size() * 2);
-        copied = GetModuleFileNameW(NULL, buff.data(), static_cast<DWORD>(buff.size()));
-    }
-    while (GetLastError() == ERROR_INSUFFICIENT_BUFFER);
-    return std::filesystem::path(buff.data());
+    std::vector<wchar_t> buff(MAX_PATH);
 
-#elif defined __linux__
+    while (true)
+    {
+        const DWORD length = GetModuleFileNameW(NULL, buff.data(), cast::to_u32(buff.size()));
+        if (0 == length)
+        {
+            LogAndThrow(ExcepCategory::api, "Failed to call WinAPI");
+        }
+
+        if (length < buff.size())
+            return std::filesystem::path(buff.data());
+
+        buff.resize(buff.size() * 2);
+    }
+    return {};
+
+#elif defined __linux__ || defined __APPLE__
 #include <unistd.h>
 #include <limits.h>	
-    char result[PATH_MAX];
-    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
-    if (count != -1)
-        return std::filesystem::path(std::string(result, (count > 0) ? count : 0));
-    return {};
-
-#elif defined __APPLE__
-#include <mach-o/dyld.h>
-    uint32_t size = 0;
-    _NSGetExecutablePath(nullptr, &size);
-    std::vector<char> buffer(size);
-    if (_NSGetExecutablePath(buffer.data(), &size) == 0)
-        return std::filesystem::path(buffer.data());
-    return {};
+    std::error_code ec;
+    std::filesystem::path p = std::filesystem::read_symlink("/proc/self/exe", ec);
+    if (ec)
+    {
+        LogAndThrow(ExcepCategory::api, "Failed to call Unix API");
+    }
+    return p;
 #endif
 }
 

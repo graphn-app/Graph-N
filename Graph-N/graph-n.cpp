@@ -136,7 +136,7 @@ bool GraphN::flow()
             result = false;
             break;
         default:
-            LogAndThrowInternalError(ExcepCategory::switch_enum, "Unhandler flow step " << cast::to_u32(m_flow_step));
+            LogAndThrowInternalError(ExcepCategory::switch_enum, "Unhandler flow step " << cast::to_u64(m_flow_step));
         }
     }
     catch (const std::exception& ex)

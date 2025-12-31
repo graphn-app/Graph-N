@@ -60,9 +60,9 @@ DlgCode PanelNodes::show(bool& focused)
         if (ImGui::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelNodesData::buff_filter],
             ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
         {
-            data()->buffer[PanelNodesData::buff_filter_lowered] = tools::str::to_lower_ansi(data()->buffer[PanelNodesData::buff_filter]);
+            data()->buffer[PanelNodesData::buff_filter_lowered] = tools::str::to_lower_ascii(data()->buffer[PanelNodesData::buff_filter]);
             Log("Filter by: " << data()->buffer[PanelNodesData::buff_filter_lowered]);
-            g::pNodesManager->calc_number_inside(tools::str::trim(data()->buffer[PanelNodesData::buff_filter_lowered]));
+            g::pNodesManager->calc_number_inside(tools::str::trim_this(data()->buffer[PanelNodesData::buff_filter_lowered]));
             if (!data()->buffer[PanelNodesData::buff_filter_lowered].empty())
                 expand_all();
         }

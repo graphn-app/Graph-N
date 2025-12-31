@@ -275,7 +275,7 @@ void GraphN_Flow::on_dlg_closed(VisibleObject dlg)
         Log("Nones panel closed");
         break;
     default:
-        LogError(ExcepCategory::switch_enum, "Unregistered dialog is trying to be closed " << cast::to_szt(dlg));
+        LogError(ExcepCategory::switch_enum, "Unregistered dialog is trying to be closed " << cast::to_u64(dlg));
     }
 
     g::pOptsManager->flow_set_open_wnds(m_windows);

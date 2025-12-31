@@ -47,10 +47,11 @@ bool DbManager::init()
 {
     auto path = fs::get_root_directory_path();
     path /= APP_CAPTION_LOW ".db";
+    const auto u8 = path.u8string();
 
     try
     {
-        m_db = std::make_unique<SQLite::Database>(path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
+        m_db = std::make_unique<SQLite::Database>(u8, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
         m_db->exec("PRAGMA journal_mode = WAL;");
         m_db->exec("PRAGMA synchronous = NORMAL;");
 
@@ -120,7 +121,7 @@ void DbManager::save_exception(ExcepCategory category, const std::string& messag
                 gdb_tbl_err, gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message));
         query.bind(1, file);
         query.bind(2, line);
-        query.bind(3, cast::to_i32(category));
+        query.bind(3, cast::to_i64(category));
         query.bind(4, message);
         query.exec();
     }

@@ -138,20 +138,6 @@ struct LogGuard final
 #ifdef _DEBUG
 // #define SAVE_EXCEPTION(category, message)     { (void)category; void(message); }
 #define SAVE_EXCEPTION(category, message)     g::save_exception(category, message, __FILE__, __LINE__)
-#define DEBUG_CATCH \
-    { \
-        switch (::MessageBoxA(nullptr, \
-            "Some error happened\nTo exit app - press 'Abort'\nAttach debugger and press 'Retry' to debug app\nTo continue execution press 'Ignore')", \
-            APP_CAPTION, MB_ABORTRETRYIGNORE | MB_ICONWARNING | MB_TASKMODAL | MB_TOPMOST)) \
-        { \
-        case IDABORT: \
-            ::exit(1); \
-            break; \
-        case IDRETRY: \
-            __debugbreak(); \
-            break; \
-        } \
-    }
 
 #else
 #define SAVE_EXCEPTION(category, message)     g::save_exception(category, message, __FILE__, __LINE__)
