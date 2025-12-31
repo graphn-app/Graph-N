@@ -25,7 +25,7 @@ struct Node : public base::HashID
 
     bool has_output = false;
     bool output_node = false;
-    std::vector<data::Pin*> output;
+    std::vector<Pin*> output;
 
     std::string name;
     std::string node_class;		// if empty - matches to name

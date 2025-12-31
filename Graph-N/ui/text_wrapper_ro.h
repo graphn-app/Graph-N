@@ -14,7 +14,9 @@ public:
 
     void re_calc(ImVec2 rect);
 
+    const char* get_raw_text() const { return m_raw_text->c_str(); }
     char* get_wrapped_text() { return m_wrapped_text.data(); }
+
     size_t get_wrapped_capacity() const { return m_wrapped_text.capacity(); }
     float get_wrapped_height() const { return m_wrapped_h; }
 

@@ -18,10 +18,10 @@ enum class PinType		// primitives and predefined colors only
     BOOLEAN,
     COMBO,
     STRING,
+    NUMBER,	// TODO
+    COLOR,	// TODO
 
     ANY,	// TODO
-    COLOR,	// TODO
-    NUMBER,	// TODO
     IMAGE,	// TODO
 
     MODEL, MASK, LATENT, AUDIO, FLOATS, CONDITIONING, CLIP, VAE, VIDEO, CONTROL_NET, IPADAPTER, INSIGHTFACE, NOISE, SIGMAS, SAMPLER,
@@ -36,6 +36,9 @@ enum class PinType		// primitives and predefined colors only
     // PHOTOMAKER, PIXVERSE_TEMPLATE, UPSCALER_HOOK
 
     _count,
+
+    _first_widget = INT,
+    _last_widget = COLOR,
 
     CUSTOM,
 
@@ -57,10 +60,7 @@ public:
     Pin(const std::string& node_class, size_t pin_index);
     ~Pin() override;
 
-    bool can_link(const Pin* other) const;
-    void link_to(Pin* other);
-    void unlink();
-    Pin* get_link() const { return link; }
+    bool is_widget() const;
 
     static inline bool get_is_null(const primitive& value) { return std::holds_alternative<std::monostate>(value); }
     static inline int64_t get_int(const primitive& value) { return std::get<int64_t>(value); }
@@ -73,13 +73,20 @@ public:
 
     static uint32_t color_to_val(const std::string& clr);
 
+    int32_t links = 0;
+    void reset_to_default();
+
     bool input = false;
     bool output = false;
+
+    bool required = false;
+    bool optional = false;
+    bool hidden = false;
+    bool advanced = false;
 
     bool output_is_list = false;
     bool force_input = false;
     bool def_input = false;
-    bool advanced = false;
     bool lazy = false; // TODO
 
     bool image_upload = false;
@@ -130,10 +137,9 @@ public:
     // combo
     bool multiselect = false;
     std::vector<primitive> list;
-    std::string to_string(const std::vector<primitive>::iterator& it) const;
+    static std::string to_string(const std::vector<primitive>::iterator& it);
 
 private:
-    Pin* link = nullptr;
     static const std::unordered_map<std::string, PinType> pin_type_map;
 
 private:

@@ -62,9 +62,6 @@ public:
 
     void reconnect();
 
-    void add_inspecting_node(data::Node* node);
-    void remove_inspecting_node(data::Node* node);
-
     Workflow* create_workflow();
     void destroy_workflow(lid wf_id);
     Workflow* find_workflow(lid wf_id);

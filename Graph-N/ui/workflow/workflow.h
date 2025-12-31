@@ -6,6 +6,12 @@ namespace ax::NodeEditor
 struct EditorContext;
 }
 
+namespace data
+{
+struct Node;
+struct Pin;
+}
+
 namespace ui
 {
 
@@ -19,20 +25,21 @@ public:
     ~Workflow() override;
 
     void init();
-    void draw() const;
+    void draw();
 
     NodeInstance* find_node(aid node_id) const;
     PinInstance* find_pin(aid pin_id) const;
 
-    NodeInstance* add_node(hid node_id);
-    PinInstance* add_pin(hid pin_id);
+    NodeInstance* add_node(data::Node* node);
+    PinInstance* add_pin(data::Pin* pin);
 
-    void remove(hid id);
+    void remove_invalid(hid id);
 
 private:
     ax::NodeEditor::EditorContext* m_context = nullptr;
     std::map<aid, std::unique_ptr<NodeInstance>> m_nodes;
     std::map<aid, std::unique_ptr<PinInstance>> m_pins;
+    std::set<hid> m_invalid_items;
 };
 
 } // namespace ui

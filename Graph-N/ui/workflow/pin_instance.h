@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 #include "ui/workflow/instance.h"
 #include "core/data/pin.h"
@@ -17,13 +17,12 @@ public:
     using Instance<data::Pin>::Instance;
     ~PinInstance() override;
 
-    void draw() const override;
+    void draw() override;
+    void init() override;
 
 protected:
     void make_graph_id() override;
     data::Pin* find_obj(hid obj_id) override;
-
-private:
 };
 
 } // namespace ui

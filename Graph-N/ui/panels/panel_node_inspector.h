@@ -20,7 +20,7 @@ struct PanelNodeInspectorData final : public PanelCommonData
     ImU32 clr_selected_node = 0;		// selected node text
 };
 
-class PanelNodeInspector final : public PanelBase<PanelNodeInspectorData>, public mngr::ComfyUiObjectValidityListener
+class PanelNodeInspector final : public PanelBase<PanelNodeInspectorData>
 {
 public:
     PanelNodeInspector();
@@ -30,19 +30,18 @@ public:
 
     void add_inspecting_node(data::Node* node);
     void remove_inspecting_node(data::Node* node);
-
-    // DataInvalidationHandler
-    void invalidate_comfyui_objects() override;
-    void resolve_comfyui_objects() override;
+    void reset_inspecting_nodes();
 
 private:
     DlgCode show(bool& focused) override;
     void show_nodes();
+    void show_description(TextWrapperRO* descr_wrapper);
+    void show_preview(Workflow* wf);
 
 private:
     struct Data final
     {
-        hid node_id = 0;
+        std::string node_name;
         std::unique_ptr<TextWrapperRO> descr_wrapper;
         Workflow* wf = nullptr;
     };

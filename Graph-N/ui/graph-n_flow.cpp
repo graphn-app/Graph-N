@@ -40,13 +40,13 @@ bool GraphN_Flow::init()
     m_windows = g::pOptsManager->flow_get_open_wnds();
 
     // create panels
-    m_nodes_panel = std::make_unique<ui::PanelNodes>();
-    m_nodes_panel->init();
-    m_all_dialogs.insert(m_nodes_panel.get());
-
     m_node_inspector = std::make_unique<ui::PanelNodeInspector>();
     m_node_inspector->init();
     m_all_dialogs.insert(m_node_inspector.get());
+
+    m_nodes_panel = std::make_unique<ui::PanelNodes>(m_node_inspector.get());
+    m_nodes_panel->init();
+    m_all_dialogs.insert(m_nodes_panel.get());
 
     Log("Panels created");
 
@@ -61,18 +61,6 @@ void GraphN_Flow::reconnect()
     LogF;
     m_windows |= ViewConnect;
     g::pConnectManager->connect();
-}
-
-void GraphN_Flow::add_inspecting_node(data::Node* node)
-{
-    Log("Name = " << node->name << ", id=" << node->get_id());
-    m_node_inspector->add_inspecting_node(node);
-}
-
-void GraphN_Flow::remove_inspecting_node(data::Node* node)
-{
-    Log("Name = " << node->name << ", id=" << node->get_id());
-    m_node_inspector->remove_inspecting_node(node);
 }
 
 Workflow* GraphN_Flow::create_workflow()

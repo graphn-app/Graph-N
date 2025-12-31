@@ -583,7 +583,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
 
     using json = nlohmann::json;
 
-    const auto parse_input = [&node, &manager, this](data::Node::Input& input, json& objects)
+    const auto parse_input = [&node, &manager, this](data::Node::Input& input, json& objects, bool is_required, bool is_optional, bool is_hidden)
     {
         auto items = objects.items();
         for (const auto&[pin_name, pin_info] : items)
@@ -592,6 +592,9 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
             input.pins.push_back(pin.get());
 
             pin->input = true;
+            pin->required = is_required;
+            pin->optional = is_optional;
+            pin->hidden = is_hidden;
             pin->name = pin_name;
 
             //Log("Node: " << node.name << ", Pin: " << pin_name);
@@ -666,15 +669,15 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
 
         if (input.contains("required") && input["required"].is_object())
         {
-            parse_input(node.required, input["required"]);
+            parse_input(node.required, input["required"], true, false, false);
         }
         if (input.contains("optional") && input["optional"].is_object())
         {
-            parse_input(node.optional, input["optional"]);
+            parse_input(node.optional, input["optional"], false, true, false);
         }
         //if (input.contains("hidden") && input["hidden"].is_object())
         //{
-        //	parse_input(node.hidden, input["hidden"]);
+        //	parse_input(node.hidden, input["hidden"], false, false, true);
         //}
     }
 
@@ -691,15 +694,48 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
         }
     };
 
+    const auto sort_by_order = [](data::Node::Input& input)
+    {
+        if (input.order.size() != input.pins.size())
+            return;
+
+        std::vector<data::Pin*> sorted;
+        sorted.reserve(input.pins.size());
+
+        for (const auto& name : input.order)
+        {
+            for (auto& pin : input.pins)
+            {
+                if (pin->name == name)
+                {
+                    sorted.push_back(pin);
+                    break;
+                }
+            }
+        }
+
+        input.pins = std::move(sorted);
+        input.order.clear();
+    };
+
     if (json_node.contains("input_order"))
     {
         auto& order = json_node["input_order"];
         if (order.contains("required") && order["required"].is_array())
+        {
             parse_order(node.required, order["required"]);
+            sort_by_order(node.required);
+        }
         if (order.contains("optional") && order["optional"].is_array())
+        {
             parse_order(node.optional, order["optional"]);
+            sort_by_order(node.optional);
+        }
         //if (order.contains("hidden") && order["hidden"].is_array())
-        //	parse_order(node.hidden, order["hidden"]);
+        //{
+        //    parse_order(node.hidden, order["hidden"]);
+        //    sort_by_order(node.hidden);
+        //}
     }
 
     node.has_input = !node.required.pins.empty() || !node.optional.pins.empty() /*|| !node.hidden.pins.empty()*/;

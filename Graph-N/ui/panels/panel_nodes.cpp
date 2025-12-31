@@ -1,5 +1,6 @@
 
 #include "ui/panels/panel_nodes.h"
+#include "ui/panels/panel_node_inspector.h"
 #include "ui/graph-n_flow.h"
 #include "ui/font_guard.h"
 #include "platform/main.h"
@@ -9,8 +10,9 @@
 namespace ui
 {
 
-PanelNodes::PanelNodes()
+PanelNodes::PanelNodes(PanelNodeInspector* inspector)
     : PanelBase(VisibleObject::PanelNodes, "Node Library", "0C72C6D56FFC4902A037A187719CA0AC")
+    , m_inspector(inspector)
 {}
 
 PanelNodes::~PanelNodes() = default;
@@ -127,7 +129,7 @@ void PanelNodes::show_tree_view()
             }
             else
             {
-                if (node_holder->get_id() == data->selected_node)
+                if (data->selected_nodes.count(node_holder->get_id() > 0))
                     ImGui::PushStyleColor(ImGuiCol_Text, data->clr_selected_node);
 
                 ImGui::PushID(node_holder->get_id());
@@ -135,15 +137,11 @@ void PanelNodes::show_tree_view()
                     ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);
                 ImGui::PopID();
 
-                if (node_holder->get_id() == data->selected_node)
+                if (data->selected_nodes.count(node_holder->get_id() > 0))
                     ImGui::PopStyleColor();
 
-                if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
-                {
-                    data->selected_node = node_holder->get_id();
-                    show_node(node_holder->node);
-                }
-                else if (!node_holder->node->description.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
+                else if (!test_node_clicked(node_holder) &&
+                    !node_holder->node->description.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
                 {
                     ImGui::TextUnformatted(node_holder->node->description.c_str());
                     ImGui::EndTooltip();
@@ -192,7 +190,7 @@ void PanelNodes::show_plain_view()
 
         ImGui::BeginGroup();
 
-        if (node_holder->get_id() == data()->selected_node)
+        if (data()->selected_nodes.count(node_holder->get_id() > 0))
             ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
 
         ImGui::PushID(node_holder->get_id());
@@ -200,15 +198,11 @@ void PanelNodes::show_plain_view()
             ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);
         ImGui::PopID();
 
-        if (node_holder->get_id() == data()->selected_node)
+        if (data()->selected_nodes.count(node_holder->get_id() > 0))
             ImGui::PopStyleColor();
 
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
-        {
-            data()->selected_node = node_holder->get_id();
-            show_node(node_holder->node);
-        }
-        else if (!node->description.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
+        if (!test_node_clicked(node_holder) &&
+            !node->description.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
         {
             ImGui::TextUnformatted(node->description.c_str());
             ImGui::EndTooltip();
@@ -231,9 +225,21 @@ void PanelNodes::show_plain_view()
     ImGui::PopStyleColor(3);
 }
 
-void PanelNodes::show_node(data::Node* node)
+bool PanelNodes::test_node_clicked(data::Nodes* holder)
 {
-    g::pFlow->add_inspecting_node(node);
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+    {
+        if (!ImGui::IsKeyDown(ImGuiMod_Ctrl) && !ImGui::IsKeyDown(ImGuiMod_Shift))
+        {
+            data()->selected_nodes.clear();
+            m_inspector->reset_inspecting_nodes();
+        }
+
+        data()->selected_nodes.insert(holder->get_id());
+        m_inspector->add_inspecting_node(holder->node);
+        return true;
+    }
+    return false;
 }
 
 void PanelNodes::expand_all()

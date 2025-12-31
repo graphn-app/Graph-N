@@ -5,10 +5,13 @@
 namespace data
 {
 struct Node;
+struct Nodes;
 }
 
 namespace ui
 {
+
+class PanelNodeInspector;
 
 struct PanelNodesData final : public PanelCommonData
 {
@@ -28,13 +31,13 @@ struct PanelNodesData final : public PanelCommonData
     ImU32 clr_active_btn = 0;			// active button
 
     bool tree_view = true;
-    lid selected_node = 0;
+    std::set<lid> selected_nodes;
 };
 
 class PanelNodes final : public PanelBase<PanelNodesData>
 {
 public:
-    PanelNodes();
+    PanelNodes(PanelNodeInspector* inspector);
     ~PanelNodes() override;
 
     void init() override;
@@ -43,11 +46,14 @@ private:
     DlgCode show(bool& focused) override;
     void show_tree_view();
     void show_plain_view();
-    void show_node(data::Node* node);
 
     void show_cfg_buttons();
     void expand_all();
     void collapse_all();
+    bool test_node_clicked(data::Nodes* holder);
+
+private:
+    PanelNodeInspector* m_inspector = nullptr;
 };
 
 
