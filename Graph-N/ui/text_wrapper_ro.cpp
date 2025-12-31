@@ -4,6 +4,26 @@
 namespace ui
 {
 
+TextWrapperRO::TextWrapperRO(TextWrapperRO&& other)
+{
+    *this = std::move(other);
+}
+
+TextWrapperRO& TextWrapperRO::operator=(TextWrapperRO&& other)
+{
+    if (this == &other)
+        return *this;
+
+    m_font = other.m_font;
+    m_raw_text = other.m_raw_text;
+    other.m_raw_text = nullptr;
+    m_wrapped_text = std::move(other.m_wrapped_text);
+    other.m_wrapped_text.clear();
+    m_wrapped_h = other.m_wrapped_h;
+    m_calculated_w = other.m_calculated_w;
+    return *this;
+}
+
 void TextWrapperRO::set_raw_text(const std::string* text)
 {
     m_raw_text = text;

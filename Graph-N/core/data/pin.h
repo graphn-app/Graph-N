@@ -11,6 +11,8 @@
 namespace data
 {
 
+struct Node;
+
 enum class PinType		// primitives and predefined colors only
 {
     INT,
@@ -53,11 +55,24 @@ enum class ControlAfterGenerate
     _count
 };
 
+struct PinState final
+{
+    int32_t links = 0;          // number of pin links
+    bool advanced = false;      // is visible on node
+    
+    uint32_t pin_color = 0;     // will change if ANY pin
+    PinType type = PinType::_none;  // will change if ANY pin
+    std::string type_str;       // will change if ANY pin
+
+    primitive value;         // current value, if widget
+    ControlAfterGenerate control_after_generate_value = ControlAfterGenerate::randomize; // current seed state
+};
+
 struct Pin final : public base::HashID
 {
 public:
-    Pin(const std::string& node_class, const std::string& pin_name);
-    Pin(const std::string& node_class, size_t pin_index);
+    Pin(const Node* node, const std::string& pin_name);
+    Pin(const Node* node, size_t pin_index);
     ~Pin() override;
 
     bool is_widget() const;
@@ -73,8 +88,7 @@ public:
 
     static uint32_t color_to_val(const std::string& clr);
 
-    int32_t links = 0;
-    void reset_to_default();
+    hid parent_node = 0;
 
     bool input = false;
     bool output = false;
@@ -82,7 +96,6 @@ public:
     bool required = false;
     bool optional = false;
     bool hidden = false;
-    bool advanced = false;
 
     bool output_is_list = false;
     bool force_input = false;
@@ -97,18 +110,16 @@ public:
 
     bool is_known_type = false;
 
-    uint32_t pin_color = 0;
     size_t hash = 0;
     std::string name;
     std::string tooltip;
 
-    PinType type = PinType::_none;
     bool type_any = false;
-    std::string type_str;
+
+    PinState def_state;
 
     // all
     primitive def;
-    primitive val;
 
     // string
     bool multiline = false;
@@ -127,8 +138,7 @@ public:
     bool display_as_color = false;
     bool display_as_slider = false;
     bool control_after_generate = false;
-    ControlAfterGenerate control_after_generate_value = ControlAfterGenerate::randomize;
-    const char* control_after_generate_to_string() const;
+    static const char* control_after_generate_to_string(ControlAfterGenerate val);
 
     // double
     std::optional<double> round;

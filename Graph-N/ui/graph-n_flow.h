@@ -10,6 +10,7 @@ struct ComfyUiObjectValidityListener;
 namespace data
 {
 struct Node;
+class Workflow;
 }
 
 namespace ui
@@ -18,8 +19,8 @@ class BaseDlg;
 class OptionsDlgs;
 class PanelNodes;
 class PanelNodeInspector;
+class WorkflowDrawer;
 
-class Workflow;
 
 enum ViewDialogs
 {
@@ -62,9 +63,10 @@ public:
 
     void reconnect();
 
-    Workflow* create_workflow();
+    WorkflowDrawer* create_workflow();
     void destroy_workflow(lid wf_id);
-    Workflow* find_workflow(lid wf_id);
+    data::Workflow* find_workflow(lid wf_id);
+    WorkflowDrawer* find_workflow_drawer(lid wf_id);
 
     void subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener);
 
@@ -105,7 +107,8 @@ private:
     std::unique_ptr<PanelNodes> m_nodes_panel;
     std::unique_ptr<PanelNodeInspector> m_node_inspector;
 
-    std::map<lid, std::unique_ptr<Workflow>> m_workflows;
+    std::map<lid, std::unique_ptr<data::Workflow>> m_workflows;
+    std::map<lid, std::unique_ptr<WorkflowDrawer>> m_workflow_drawers;  // by wf id
 
     std::list<mngr::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
 };

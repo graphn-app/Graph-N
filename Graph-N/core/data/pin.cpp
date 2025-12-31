@@ -1,5 +1,6 @@
 
 #include "core/data/pin.h"
+#include "core/data/node.h"
 
 namespace data
 {
@@ -26,13 +27,15 @@ inline constexpr const char* ControlAfterGenerateStr[cast::to_u64(ControlAfterGe
     "fixed", "increment", "decrement", "randomize"
 };
 
-Pin::Pin(const std::string& node_class, const std::string& pin_name)
-    : base::HashID(node_class + "_IN_" + pin_name)
+Pin::Pin(const Node* node, const std::string& pin_name)
+    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_IN_" + pin_name)
+    , parent_node(node->get_id())
 {
 }
 
-Pin::Pin(const std::string& node_class, size_t pin_index)
-    : base::HashID(node_class + "_OUT_" + std::to_string(pin_index))
+Pin::Pin(const Node* node, size_t pin_index)
+    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_OUT_" + std::to_string(pin_index))
+    , parent_node(node->get_id())
 {
 }
 
@@ -40,27 +43,27 @@ Pin::~Pin() = default;
 
 bool Pin::is_widget() const
 {
-    return cast::to_i64(type) >= cast::to_i64(PinType::_first_widget) && cast::to_i64(type) <= cast::to_i64(PinType::_last_widget);
+    return cast::to_i64(def_state.type) >= cast::to_i64(PinType::_first_widget) && cast::to_i64(def_state.type) <= cast::to_i64(PinType::_last_widget);
 }
 
 void Pin::initialize(const std::string& type_as_string)
 {
-    type_str = type_as_string;
-    type = PinType::_none;
+    def_state.type_str = type_as_string;
+    def_state.type = PinType::_none;
     auto map_it = pin_type_map.find(type_as_string);
     if (map_it != pin_type_map.end())
     {
-        type = map_it->second;
-        type_any = (PinType::ANY == type);
+        def_state.type = map_it->second;
+        type_any = (PinType::ANY == def_state.type);
         is_known_type = true;
     }
     else
     {
         is_known_type = false;
-        type = PinType::CUSTOM;
+        def_state.type = PinType::CUSTOM;
     }
 
-    hash = tools::str::hash_string(type_str);
+    hash = tools::str::hash_string(def_state.type_str);
 
     init_defaults();
     generate_pin_color();
@@ -87,13 +90,13 @@ void Pin::finalize()
         LogAndThrowInternalError(ExcepCategory::logic, "Unknown pin visibility");
     }
 
-    if (output && advanced)
+    if (output && def_state.advanced)
     {
         LogInvalidJson("Output pin can't be advanced");
         LogAndThrowInternalError(ExcepCategory::logic, "Output pin can't be advanced");
     }
 
-    if (PinType::FLOAT == type)
+    if (PinType::FLOAT == def_state.type)
     {
         if (!std::holds_alternative<double>(step))
         {
@@ -117,12 +120,12 @@ void Pin::finalize()
         }
     }
 
-    else if (PinType::INT == type && (!std::holds_alternative<int64_t>(step) || 0 == get_int(step)))
+    else if (PinType::INT == def_state.type && (!std::holds_alternative<int64_t>(step) || 0 == get_int(step)))
     {
         step = int64_t(1);
     }
 
-    else if (PinType::COLOR == type && std::holds_alternative<std::string>(def))
+    else if (PinType::COLOR == def_state.type && std::holds_alternative<std::string>(def))
     {
         def = int64_t(color_to_val(std::get<std::string>(def)));
     }
@@ -130,42 +133,42 @@ void Pin::finalize()
 
 void Pin::init_defaults()
 {
-    if (PinType::FLOAT == type)
+    if (PinType::FLOAT == def_state.type)
     {
-        val = double(0.0f);
+        def_state.value = double(0.0f);
         def = double(0.0f);
         min = double(FLT_MIN);
         max = double(FLT_MAX);
     }
-    else if (PinType::INT == type)
+    else if (PinType::INT == def_state.type)
     {
-        val = int64_t(0);
+        def_state.value = int64_t(0);
         def = int64_t(0);
         min = int64_t(LLONG_MIN);
         max = int64_t(LLONG_MAX);
     }
-    else if (PinType::COLOR == type)
+    else if (PinType::COLOR == def_state.type)
     {
-        val = int64_t(IM_COL32_WHITE);
+        def_state.value = int64_t(IM_COL32_WHITE);
         def = int64_t(IM_COL32_WHITE);
         min = int64_t(IM_COL32(0, 0, 0, 255));
         max = int64_t(IM_COL32(255, 255, 255, 255));
     }
-    else if (PinType::BOOLEAN == type)
+    else if (PinType::BOOLEAN == def_state.type)
     {
-        val = bool(false);
+        def_state.value = bool(false);
         def = bool(false);
     }
-    else if (PinType::STRING == type)
+    else if (PinType::STRING == def_state.type)
     {
-        val = "";
+        def_state.value = "";
         def = "";
     }
 }
 
-const char* Pin::control_after_generate_to_string() const
+const char* Pin::control_after_generate_to_string(ControlAfterGenerate val)
 {
-    return ControlAfterGenerateStr[cast::to_u64(control_after_generate_value)];
+    return ControlAfterGenerateStr[cast::to_u64(val)];
 }
 
 void Pin::generate_pin_color()
@@ -177,44 +180,44 @@ void Pin::generate_pin_color()
 
     if (is_known_type)	// hardcoded colors for some most used types
     {
-        switch (type)
+        switch (def_state.type)
         {
             // --- Primitives ---
-        case PinType::INT:						pin_color = IM_COL32(40, 200, 40, 255);   break;
-        case PinType::FLOAT:					pin_color = IM_COL32(40, 200, 40, 255);   break;
-        case PinType::STRING:					pin_color = IM_COL32(200, 200, 200, 255); break;
-        case PinType::BOOLEAN:					pin_color = IM_COL32(180, 180, 180, 255); break;
-        case PinType::ANY:						pin_color = IM_COL32_WHITE; break;
-        case PinType::COMBO:					pin_color = IM_COL32(200, 200, 200, 255);   break;
-        case PinType::COLOR:					pin_color = IM_COL32(255, 235, 59, 255);    break;
-        case PinType::NUMBER:					pin_color = IM_COL32(46, 204, 113, 255);    break;
+        case PinType::INT:						def_state.pin_color = IM_COL32(40, 200, 40, 255);   break;
+        case PinType::FLOAT:					def_state.pin_color = IM_COL32(40, 200, 40, 255);   break;
+        case PinType::STRING:					def_state.pin_color = IM_COL32(200, 200, 200, 255); break;
+        case PinType::BOOLEAN:					def_state.pin_color = IM_COL32(180, 180, 180, 255); break;
+        case PinType::ANY:						def_state.pin_color = IM_COL32_WHITE; break;
+        case PinType::COMBO:					def_state.pin_color = IM_COL32(200, 200, 200, 255);   break;
+        case PinType::COLOR:					def_state.pin_color = IM_COL32(255, 235, 59, 255);    break;
+        case PinType::NUMBER:					def_state.pin_color = IM_COL32(46, 204, 113, 255);    break;
 
-        case PinType::FLOATS:					pin_color = IM_COL32(26, 188, 156, 255);    break;
-        case PinType::SEED:						pin_color = IM_COL32(52, 152, 219, 255);    break;
-        case PinType::MODEL:					pin_color = IM_COL32(111, 108, 155, 255); break;
-        case PinType::LATENT:					pin_color = IM_COL32(176, 83, 112, 255);  break;
-        case PinType::VAE:						pin_color = IM_COL32(166, 46, 46, 255);   break;
-        case PinType::CLIP:						pin_color = IM_COL32(227, 184, 54, 255);  break;
-        case PinType::IMAGE:					pin_color = IM_COL32(91, 135, 163, 255);  break;
-        case PinType::MASK:						pin_color = IM_COL32(93, 158, 89, 255);   break;
-        case PinType::CONDITIONING:				pin_color = IM_COL32(195, 134, 52, 255);  break;
-        case PinType::CLIP_VISION:				pin_color = IM_COL32(100, 100, 100, 255); break;
-        case PinType::CONTROL_NET:				pin_color = IM_COL32(90, 160, 140, 255);  break;
-        case PinType::AUDIO:					pin_color = IM_COL32(255, 160, 0, 255);     break;
-        case PinType::VIDEO:					pin_color = IM_COL32(41, 128, 185, 255);    break;
-        case PinType::IPADAPTER:				pin_color = IM_COL32(215, 189, 226, 255);   break;
-        case PinType::INSIGHTFACE:				pin_color = IM_COL32(231, 76, 60, 255);     break;
-        case PinType::CONTROL_NET_STACK:		pin_color = IM_COL32(39, 174, 96, 255);     break;
-        case PinType::CLIP_VISION_OUTPUT:		pin_color = IM_COL32(241, 196, 15, 255);    break;
-        case PinType::NOISE:					pin_color = IM_COL32(149, 165, 166, 255);   break;
-        case PinType::SIGMAS:					pin_color = IM_COL32(140, 100, 80, 255);    break;
-        case PinType::SAMPLER:					pin_color = IM_COL32(230, 126, 34, 255);    break;
-        case PinType::PIPE_LINE:				pin_color = IM_COL32(255, 215, 0, 255);     break;
-        case PinType::LORA_STACK:				pin_color = IM_COL32(255, 105, 180, 255);   break;
-        case PinType::LORA_LIST:				pin_color = IM_COL32(219, 112, 147, 255);   break;
-        case PinType::SEGS:						pin_color = IM_COL32(0, 255, 255, 255);     break;
-        case PinType::BBOX:						pin_color = IM_COL32(127, 255, 0, 255);     break;
-        case PinType::BUS:						pin_color = IM_COL32(255, 215, 0, 255);     break;
+        case PinType::FLOATS:					def_state.pin_color = IM_COL32(26, 188, 156, 255);    break;
+        case PinType::SEED:						def_state.pin_color = IM_COL32(52, 152, 219, 255);    break;
+        case PinType::MODEL:					def_state.pin_color = IM_COL32(111, 108, 155, 255); break;
+        case PinType::LATENT:					def_state.pin_color = IM_COL32(176, 83, 112, 255);  break;
+        case PinType::VAE:						def_state.pin_color = IM_COL32(166, 46, 46, 255);   break;
+        case PinType::CLIP:						def_state.pin_color = IM_COL32(227, 184, 54, 255);  break;
+        case PinType::IMAGE:					def_state.pin_color = IM_COL32(91, 135, 163, 255);  break;
+        case PinType::MASK:						def_state.pin_color = IM_COL32(93, 158, 89, 255);   break;
+        case PinType::CONDITIONING:				def_state.pin_color = IM_COL32(195, 134, 52, 255);  break;
+        case PinType::CLIP_VISION:				def_state.pin_color = IM_COL32(100, 100, 100, 255); break;
+        case PinType::CONTROL_NET:				def_state.pin_color = IM_COL32(90, 160, 140, 255);  break;
+        case PinType::AUDIO:					def_state.pin_color = IM_COL32(255, 160, 0, 255);     break;
+        case PinType::VIDEO:					def_state.pin_color = IM_COL32(41, 128, 185, 255);    break;
+        case PinType::IPADAPTER:				def_state.pin_color = IM_COL32(215, 189, 226, 255);   break;
+        case PinType::INSIGHTFACE:				def_state.pin_color = IM_COL32(231, 76, 60, 255);     break;
+        case PinType::CONTROL_NET_STACK:		def_state.pin_color = IM_COL32(39, 174, 96, 255);     break;
+        case PinType::CLIP_VISION_OUTPUT:		def_state.pin_color = IM_COL32(241, 196, 15, 255);    break;
+        case PinType::NOISE:					def_state.pin_color = IM_COL32(149, 165, 166, 255);   break;
+        case PinType::SIGMAS:					def_state.pin_color = IM_COL32(140, 100, 80, 255);    break;
+        case PinType::SAMPLER:					def_state.pin_color = IM_COL32(230, 126, 34, 255);    break;
+        case PinType::PIPE_LINE:				def_state.pin_color = IM_COL32(255, 215, 0, 255);     break;
+        case PinType::LORA_STACK:				def_state.pin_color = IM_COL32(255, 105, 180, 255);   break;
+        case PinType::LORA_LIST:				def_state.pin_color = IM_COL32(219, 112, 147, 255);   break;
+        case PinType::SEGS:						def_state.pin_color = IM_COL32(0, 255, 255, 255);     break;
+        case PinType::BBOX:						def_state.pin_color = IM_COL32(127, 255, 0, 255);     break;
+        case PinType::BUS:						def_state.pin_color = IM_COL32(255, 215, 0, 255);     break;
 
         default:
             {
@@ -253,7 +256,7 @@ void Pin::generate_pin_color()
     default: r = v; g = p; b = q; break;
     }
 
-    pin_color = IM_COL32(cast::to_u32(r * 255), cast::to_u32(g * 255), cast::to_u32(b * 255), 255);
+    def_state.pin_color = IM_COL32(cast::to_u32(r * 255), cast::to_u32(g * 255), cast::to_u32(b * 255), 255);
 }
 
 std::string Pin::to_string(const std::vector<primitive>::iterator& it)

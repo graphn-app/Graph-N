@@ -4,11 +4,13 @@
 #include "ui/options/opts_dlg.h"
 #include "ui/panels/panel_nodes.h"
 #include "ui/panels/panel_node_inspector.h"
+#include "ui/workflow/workflow_drawer.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/connect_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/comfyui_object_validity_listener.h"
-#include "ui/workflow/workflow.h"
+#include "core/managers/nodes_parser.h"
+#include "core/workflow/workflow.h"
 
 namespace ui
 {
@@ -63,34 +65,59 @@ void GraphN_Flow::reconnect()
     g::pConnectManager->connect();
 }
 
-Workflow* GraphN_Flow::create_workflow()
+WorkflowDrawer* GraphN_Flow::create_workflow()
 {
-    auto wf = std::make_unique<Workflow>();
-    auto ptr = wf.get();
-    ptr->init();
-    m_workflows.emplace(ptr->get_id(), std::move(wf));
-    Log("Workflow created, id=" << ptr->get_id());
-    return ptr;
+    auto wf = std::make_unique<data::Workflow>();
+    auto wf_ptr = wf.get();
+    wf_ptr->init();
+    m_workflows.emplace(wf_ptr->get_id(), std::move(wf));
+
+    auto drawer = std::make_unique<WorkflowDrawer>();
+    auto drawer_ptr = drawer.get();
+    drawer_ptr->init(wf_ptr);
+    m_workflow_drawers.emplace(wf_ptr->get_id(), std::move(drawer));
+
+    Log("Workflow created, id=" << wf_ptr->get_id());
+    return drawer_ptr;
 }
 
 void GraphN_Flow::destroy_workflow(lid wf_id)
 {
-    auto it = m_workflows.find(wf_id);
-    if (it == m_workflows.end())
+    auto dr_it = m_workflow_drawers.find(wf_id);
+    if (dr_it == m_workflow_drawers.end())
+    {
+        LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Can't destroy workflow drawer id=" << wf_id);
+    }
+    else
+    {
+        m_workflow_drawers.erase(dr_it);
+        Log("Workflow destroyed, id=" << wf_id);
+    }
+
+    auto wf_it = m_workflows.find(wf_id);
+    if (wf_it == m_workflows.end())
     {
         LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Can't destroy workflow id=" << wf_id);
     }
     else
     {
-        m_workflows.erase(it);
+        m_workflows.erase(wf_it);
         Log("Workflow destroyed, id=" << wf_id);
     }
 }
 
-Workflow* GraphN_Flow::find_workflow(lid wf_id)
+data::Workflow* GraphN_Flow::find_workflow(lid wf_id)
 {
     auto it = m_workflows.find(wf_id);
     if (it != m_workflows.end())
+        return it->second.get();
+    return nullptr;
+}
+
+WorkflowDrawer* GraphN_Flow::find_workflow_drawer(lid wf_id)
+{
+    auto it = m_workflow_drawers.find(wf_id);
+    if (it != m_workflow_drawers.end())
         return it->second.get();
     return nullptr;
 }
@@ -114,7 +141,11 @@ void GraphN_Flow::resolve_comfyui_objects()
     Log("Notify " << m_comfyui_obj_listeners.size() << " listeners");
     for (auto* listener : m_comfyui_obj_listeners)
     {
-        listener->resolve_comfyui_objects();
+        listener->begin_resolve_comfyui_objects();
+    }
+    for (auto* listener : m_comfyui_obj_listeners)
+    {
+        listener->finalize_resolve_comfyui_objects();
     }
 }
 

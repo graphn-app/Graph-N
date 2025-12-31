@@ -6,7 +6,7 @@ namespace base
 /////   GlobalID        /////////////////////
 /////////////////////////////////////////////
 
-std::atomic<gid> GlobalID::m_last_id;
+std::atomic<rid> GlobalID::m_last_id;
 std::string GlobalID::m_client_id;
 
 GlobalID::GlobalID()
@@ -14,20 +14,20 @@ GlobalID::GlobalID()
     set_id(get_next_id());
 }
 
-GlobalID::GlobalID(gid id)
+GlobalID::GlobalID(rid id)
 {
     set_id(id);
 }
 
 GlobalID::~GlobalID() = default;
 
-void GlobalID::set_id(gid id)
+void GlobalID::set_id(rid id)
 {
     m_id = id;
     m_id_str = std::to_string(m_id);
 }
 
-void GlobalID::set_last_id(gid id)
+void GlobalID::set_last_id(rid id)
 {
     if (id > 0 && std::to_string(id) != m_client_id)
     {
@@ -36,7 +36,7 @@ void GlobalID::set_last_id(gid id)
     }
 }
 
-gid GlobalID::get_next_id()
+rid GlobalID::get_next_id()
 {
     if (0 == m_last_id)
     {

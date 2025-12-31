@@ -1,11 +1,11 @@
 
 #include "ui/panels/panel_node_inspector.h"
-#include "ui/text_wrapper_ro.h"
-#include "ui/workflow/workflow.h"
-#include "ui/graph-n_flow.h"
-#include "platform/main.h"
+#include "core/workflow/workflow.h"
 #include "core/managers/settings_manager.h"
 #include "core/data/node.h"
+#include "ui/graph-n_flow.h"
+#include "ui/workflow/workflow_drawer.h"
+#include "platform/main.h"
 
 namespace ui
 {
@@ -34,12 +34,11 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
 
     Data data;
     data.node_name = node->display_name.empty() ? node->name.c_str() : node->display_name.c_str();
-    data.descr_wrapper = std::make_unique<TextWrapperRO>();
-    data.descr_wrapper->set_font(g::pMain->get_regular_font());
+    data.descr_wrapper.set_font(g::pMain->get_regular_font());
     if (!node->description.empty())
-        data.descr_wrapper->set_raw_text(&node->description);
+        data.descr_wrapper.set_raw_text(&node->description);
     data.wf = g::pFlow->create_workflow();
-    data.wf->add_node(node);
+    data.wf->get_wf()->add_node(node);
 
     m_inspecting.emplace(node->get_id(), std::move(data));
 }
@@ -55,7 +54,7 @@ void PanelNodeInspector::remove_inspecting_node(data::Node* node)
     }
     else
     {
-        g::pFlow->destroy_workflow(it->second.wf->get_id());
+        g::pFlow->destroy_workflow(it->second.wf->get_wf()->get_id());
         m_inspecting.erase(it);
     }
 }
@@ -65,7 +64,7 @@ void PanelNodeInspector::reset_inspecting_nodes()
     Log("Remove all nodes");
     for (const auto& [key, value] : m_inspecting)
     {
-        g::pFlow->destroy_workflow(value.wf->get_id());
+        g::pFlow->destroy_workflow(value.wf->get_wf()->get_id());
     }
     m_inspecting.clear();
 }
@@ -99,24 +98,24 @@ void PanelNodeInspector::show_nodes()
         ImGui::PopStyleColor();
         ImGui::Spacing();
 
-        show_description(node.second.descr_wrapper.get());
+        show_description(node.second.descr_wrapper);
         show_preview(node.second.wf);
     }
 }
 
-void PanelNodeInspector::show_description(TextWrapperRO* descr_wrapper)
+void PanelNodeInspector::show_description(TextWrapperRO& descr_wrapper)
 {
-    auto raw = descr_wrapper->get_raw_text();
+    auto raw = descr_wrapper.get_raw_text();
     if (raw != nullptr && *raw != 0)
     {
         ImGui::PushStyleColor(ImGuiCol_FrameBg, data()->clr_bg);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
         ImGui::PushStyleColor(ImGuiCol_Border, data()->clr_descr_frame);
 
-        ImGui::InputTextMultiline("##NodeDescription", descr_wrapper->get_wrapped_text(), descr_wrapper->get_wrapped_capacity() + 1,
-            ImVec2(-FLT_MIN, descr_wrapper->get_wrapped_height()),
+        ImGui::InputTextMultiline("##NodeDescription", descr_wrapper.get_wrapped_text(), descr_wrapper.get_wrapped_capacity() + 1,
+            ImVec2(-FLT_MIN, descr_wrapper.get_wrapped_height()),
             ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
-        descr_wrapper->re_calc(ImGui::GetItemRectSize());
+        descr_wrapper.re_calc(ImGui::GetItemRectSize());
 
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar();
@@ -124,9 +123,9 @@ void PanelNodeInspector::show_description(TextWrapperRO* descr_wrapper)
     }
 }
 
-void PanelNodeInspector::show_preview(Workflow* wf)
+void PanelNodeInspector::show_preview(WorkflowDrawer* wf)
 {
-    if (ImGui::BeginChild(wf->get_id(), ImVec2(ImGui::GetContentRegionAvail().x, std::min(ImGui::GetContentRegionAvail().x, 300.0f))))
+    if (ImGui::BeginChild(wf->get_wf()->get_id(), ImVec2(ImGui::GetContentRegionAvail().x, std::min(ImGui::GetContentRegionAvail().x, 300.0f))))
     {
         wf->draw();
     }

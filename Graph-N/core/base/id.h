@@ -7,27 +7,29 @@ namespace base
 /////   GlobalID        /////////////////////
 /////////////////////////////////////////////
 
+// TODO: needed ?
+
 class GlobalID
 {
 public:
     GlobalID();
-    GlobalID(gid id);
+    GlobalID(rid id);
     virtual ~GlobalID() = 0;
 
     NO_COPY_MOVE(GlobalID);
 
-    gid get_id() const { return m_id; }
+    rid get_id() const { return m_id; }
     const std::string& get_id_str() const { return m_id_str; }
-    void set_id(gid id);
+    void set_id(rid id);
 
-    static void set_last_id(gid id);
-    static gid get_next_id();
+    static void set_last_id(rid id);
+    static rid get_next_id();
     static std::string get_client_id();
 
 private:
-    static std::atomic<gid> m_last_id;
+    static std::atomic<rid> m_last_id;
     static std::string m_client_id;
-    gid m_id = 0;
+    rid m_id = 0;
     std::string m_id_str;
 };
 
@@ -81,6 +83,8 @@ private:
 /////////////////////////////////////////////
 /////   InstanceID      /////////////////////
 /////////////////////////////////////////////
+
+// TODO: needed ?
 
 struct InstanceID
 {

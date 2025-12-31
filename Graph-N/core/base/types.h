@@ -4,10 +4,10 @@ using byte = uint8_t;
 using app_version_type = uint64_t;
 using time_type = uint64_t;
 using lid = uint32_t;	// local ID
-using gid = uint64_t;	// global id
-using hid = size_t;		// hash id
-using iid = uint32_t;	// instance id, to save in json
-using aid = uint64_t;	// app id, to use in graph
+using rid = uint64_t;	// unique id based on random
+using hid = size_t;		// hash id, based on unique node/pin name
+using iid = lid;	    // instance id, to save in json
+using gid = uint64_t;	// app global id, to use in graph, based on workflow id
 using byte_buff = std::vector<byte>;
 using primitive = std::variant<int64_t, double, std::string, bool, std::monostate>;
 

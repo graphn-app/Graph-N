@@ -1,6 +1,7 @@
 
 #pragma once
 #include "ui/panels/panel_base.h"
+#include "ui/text_wrapper_ro.h"
 #include "core/managers/comfyui_object_validity_listener.h"
 
 namespace data
@@ -10,9 +11,7 @@ struct Node;
 
 namespace ui
 {
-
-class Workflow;
-class TextWrapperRO;
+class WorkflowDrawer;
 
 struct PanelNodeInspectorData final : public PanelCommonData
 {
@@ -35,17 +34,16 @@ public:
 private:
     DlgCode show(bool& focused) override;
     void show_nodes();
-    void show_description(TextWrapperRO* descr_wrapper);
-    void show_preview(Workflow* wf);
+    void show_description(TextWrapperRO& descr_wrapper);
+    void show_preview(WorkflowDrawer* wf);
 
 private:
     struct Data final
-    {
+    { 
         std::string node_name;
-        std::unique_ptr<TextWrapperRO> descr_wrapper;
-        Workflow* wf = nullptr;
+        TextWrapperRO descr_wrapper;
+        WorkflowDrawer* wf = nullptr;
     };
-
     std::map<hid, Data> m_inspecting;	// key: node id
 };
 

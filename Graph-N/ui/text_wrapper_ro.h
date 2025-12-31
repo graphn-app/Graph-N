@@ -7,7 +7,14 @@ namespace ui
 class TextWrapperRO final
 {
 public:
-    NO_COPY_MOVE_CTORS(TextWrapperRO);
+    TextWrapperRO() = default;
+    ~TextWrapperRO() = default;
+
+    TextWrapperRO(const TextWrapperRO&) = delete;
+    TextWrapperRO& operator=(const TextWrapperRO&) = delete;
+
+    TextWrapperRO(TextWrapperRO&&);
+    TextWrapperRO& operator=(TextWrapperRO&&);
 
     void set_raw_text(const std::string* text);
     void set_font(ImFont* font) { m_font = font; }
