@@ -1652,6 +1652,7 @@ ed::Node* ed::EditorContext::CreateNode(NodeId id)
     auto node = new Node(this, id);
     m_Nodes.push_back({id, node});
     //std::sort(Nodes.begin(), Nodes.end());
+    std::sort(m_Nodes.begin(), m_Nodes.end());  // FIX: GRAPH-N
 
     auto settings = m_Settings.FindNode(id);
     if (!settings)
@@ -1734,7 +1735,8 @@ static inline auto FindItemIn(C& container, Id id)
 
 ed::Node* ed::EditorContext::FindNode(NodeId id)
 {
-    return FindItemInLinear(m_Nodes, id);
+    return FindItemIn(m_Nodes, id); // FIX: GRAPH-N
+//    return FindItemInLinear(m_Nodes, id);
 }
 
 ed::Pin* ed::EditorContext::FindPin(PinId id)

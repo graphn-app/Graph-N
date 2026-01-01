@@ -256,7 +256,8 @@ void EndGroupHint();
 // TODO: Add a way to manage node background channels
 ImDrawList* GetNodeBackgroundDrawList(NodeId nodeId);
 
-bool Link(LinkId id, PinId startPinId, PinId endPinId, const ImVec4& color = ImVec4(1, 1, 1, 1), float thickness = 1.0f);
+//bool Link(LinkId id, PinId startPinId, PinId endPinId, const ImVec4& color, float thickness = 1.0f);
+bool Link(LinkId id, PinId startPinId, PinId endPinId, ImU32 color, float thickness = 1.0f);
 
 void Flow(LinkId linkId);
 
