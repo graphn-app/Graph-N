@@ -92,6 +92,7 @@ std::vector<std::string> split(const std::string& str, char separator)
 
 std::string to_lower_ascii(const std::string& str)
 {
+    cast::skip_check = true;
     std::string lower;
     lower.reserve(str.size());
     std::transform(str.begin(), str.end(), std::back_inserter(lower),
@@ -99,6 +100,7 @@ std::string to_lower_ascii(const std::string& str)
         {
             return cast::to_char(std::tolower(c));
         });
+    cast::skip_check = false;
     return lower;
 }
 

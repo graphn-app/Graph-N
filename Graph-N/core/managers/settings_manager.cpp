@@ -38,6 +38,12 @@ inline constexpr int64_t gopt_def_flow_clrs[cast::to_u64(VisibleObject::_count)]
                                                                 IM_COL32(255, 165, 0, 250),			// PanelNodesSelectedNode
                                                                 IM_COL32(24, 24, 27, 255),			// PanelNodeInspector bg
                                                                 IM_COL32(220, 220, 220, 50),		// PanelNodeInspectorDescrFrame
+                                                                IM_COL32(45, 50, 60, 255),	    	// WfNodeHeaderBg
+                                                                IM_COL32(255, 176, 50, 255),		// WfNodeHeaderText
+                                                                IM_COL32(30, 30, 30, 200),  		// WfNodeBodyBg
+                                                                IM_COL32(10, 10, 10, 250),  		// WfNodeWidgetPin
+                                                                IM_COL32(0, 167, 192, 255),		    // WfNodePinText
+                                                                IM_COL32(100, 100, 100, 255),		// WfNodeBorder
                                                             };
 inline constexpr int64_t gopt_def_flow_open_wnds            = ui::ViewOptsComfyUi | ui::ViewPanelsResetAll;
 inline constexpr int64_t gopt_def_flow_nodes_pane_view      = 1;

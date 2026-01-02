@@ -10,6 +10,8 @@
 namespace ui
 {
 
+inline constexpr float g_def_preview_width = 340.0f;
+
 PanelNodeInspector::PanelNodeInspector()
     : PanelBase(VisibleObject::PanelNodeInspector, "Node Inspector", "95E5A1E7883E495E8712FA33A123F3BB")
 {}
@@ -20,6 +22,8 @@ void PanelNodeInspector::init()
 {
     LogF;
     PanelBase::init();
+
+    g::pFlow->subscribe_comfyui_validity_state(this);
 
     data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::PanelNodeInspector);
     data()->clr_descr_frame = g::pOptsManager->flow_get_color(VisibleObject::PanelNodeInspectorDescrFrame);
@@ -33,12 +37,11 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
         return;
 
     Data data;
-    data.id = node->get_id_str();
-    data.node_name = node->display_name.empty() ? node->name.c_str() : node->display_name.c_str();
+    data.node = node;
     data.descr_wrapper.set_font(g::pMain->get_regular_font());
     if (!node->description.empty())
         data.descr_wrapper.set_raw_text(&node->description);
-    data.wf = g::pFlow->create_workflow();
+    data.wf = g::pFlow->create_workflow(true);
     data.wf->get_wf()->add_node(node);
 
     m_inspecting.emplace(node->get_id(), std::move(data));
@@ -70,6 +73,11 @@ void PanelNodeInspector::reset_inspecting_nodes()
     m_inspecting.clear();
 }
 
+void PanelNodeInspector::invalidate_comfyui_objects()
+{
+    reset_inspecting_nodes();
+}
+
 DlgCode PanelNodeInspector::show(bool& focused)
 {
     bool opened = true;
@@ -94,14 +102,14 @@ void PanelNodeInspector::show_nodes()
     for (auto& node : m_inspecting)
     {
         ImGui::BeginGroup();
-        ImGui::PushID(node.second.id.c_str());
+        ImGui::PushID(node.second.node->get_id_str().c_str());
         ImGui::Spacing();
         ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
-        ImGui::TextUnformatted(node.second.node_name.c_str());
+        ImGui::TextUnformatted(node.second.node->display_name.empty() ? node.second.node->name.c_str() : node.second.node->display_name.c_str());
         ImGui::PopStyleColor();
         ImGui::Spacing();
         show_description(node.second.descr_wrapper);
-        show_preview(node.second.wf);
+        show_preview(node.second);
         ImGui::PopID();
         ImGui::EndGroup();
     }
@@ -127,13 +135,12 @@ void PanelNodeInspector::show_description(TextWrapperRO& descr_wrapper)
     }
 }
 
-void PanelNodeInspector::show_preview(WorkflowDrawer* wf)
+void PanelNodeInspector::show_preview(Data& data)
 {
-    if (ImGui::BeginChild(wf->get_wf()->get_id(), ImVec2(ImGui::GetContentRegionAvail().x, std::min(ImGui::GetContentRegionAvail().x, 300.0f))))
-    {
-        wf->draw();
-    }
-    ImGui::EndChild();
+    ImGui::BeginGroup();
+    ImGui::Dummy(ImVec2(std::max(g_def_preview_width, data.node->node_width + 10), 0.0f));
+    data.wf->draw();
+    ImGui::EndGroup();
 }
 
 } // namespace ui

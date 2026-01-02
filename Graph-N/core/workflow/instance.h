@@ -8,7 +8,9 @@ namespace data
 {
 
 template <typename BaseObj>                    // base data::Pin or data::Node
-class Instance : public mngr::ComfyUiObjectValidityListener
+class Instance :
+    public base::LocalID,
+    public mngr::ComfyUiObjectValidityListener
 {
 public:
     Instance(Workflow* wf, BaseObj* obj, iid instance_id, gid graph_id)
@@ -17,6 +19,7 @@ public:
         , m_graph_id(graph_id)
         , m_instance_id(instance_id)
     {
+        m_graph_id_str = std::to_string(m_graph_id);
     }
     ~Instance() override
     {}
@@ -29,6 +32,7 @@ public:
 
     iid get_instance_id() const { return m_instance_id; }    // use this to save/load
     gid get_graph_id() const { return m_graph_id; }     // use this on graph
+    const std::string& get_graph_id_str() const { return m_graph_id_str; }
     hid get_object_id() const { return m_obj_id; }      // raw node/pin id
 
     Workflow* get_workflow() const
@@ -84,6 +88,7 @@ protected:
     BaseObj* m_object = nullptr;     // base node/pin
     hid m_obj_id = 0;                // unique hash-id of base node/pin. Not null only in validation period
     gid m_graph_id = 0;              // Unique ID across all graphs
+    std::string m_graph_id_str;
     iid m_instance_id = 0;
 };
 

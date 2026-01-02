@@ -65,14 +65,14 @@ void GraphN_Flow::reconnect()
     g::pConnectManager->connect();
 }
 
-WorkflowDrawer* GraphN_Flow::create_workflow()
+WorkflowDrawer* GraphN_Flow::create_workflow(bool ro_mode)
 {
     auto wf = std::make_unique<data::Workflow>();
     auto wf_ptr = wf.get();
     wf_ptr->init();
     m_workflows.emplace(wf_ptr->get_id(), std::move(wf));
 
-    auto drawer = std::make_unique<WorkflowDrawer>();
+    auto drawer = std::make_unique<WorkflowDrawer>(ro_mode);
     auto drawer_ptr = drawer.get();
     drawer_ptr->init(wf_ptr);
     m_workflow_drawers.emplace(wf_ptr->get_id(), std::move(drawer));
@@ -178,6 +178,14 @@ bool GraphN_Flow::run()
             m_windows &= ~ViewDebugMetrics;
         open_debug_metrics = true;
     }
+    if (m_windows & ViewDebugDemo)
+    {
+        static bool open_debug_demo = true;
+        ImGui::ShowDemoWindow(&open_debug_demo);
+        if (!open_debug_demo)
+            m_windows &= ~ViewDebugDemo;
+        open_debug_demo = true;
+    }
 #endif
 
     show_panels();
@@ -254,6 +262,13 @@ void GraphN_Flow::show_menu_bar()
                     m_windows &= ~ViewDebugMetrics;
                 else
                     m_windows |= ViewDebugMetrics;
+            }
+            if (ImGui::MenuItem("Demo##HelpMenuBar", nullptr, (m_windows & ViewDebugDemo)))
+            {
+                if (m_windows & ViewDebugDemo)
+                    m_windows &= ~ViewDebugDemo;
+                else
+                    m_windows |= ViewDebugDemo;
             }
             ImGui::Separator();
 #endif

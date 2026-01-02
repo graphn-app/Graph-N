@@ -58,7 +58,7 @@
     ClassName(ClassName&&) = delete; \
     ClassName& operator=(ClassName&&) = delete;
 
-#ifdef _DEBUG
+#if defined _DEBUG && defined _WIN32
 #define DEBUG_CATCH \
     { \
         switch (::MessageBoxA(nullptr, \
@@ -73,6 +73,7 @@
             break; \
         } \
     }
+
 #else
 #define DEBUG_CATCH
 #endif

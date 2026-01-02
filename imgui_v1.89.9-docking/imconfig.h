@@ -127,3 +127,13 @@ namespace ImGui
     void MyFunction(const char* name, MyMatrix44* mtx);
 }
 */
+
+#if defined _DEBUG && defined _WIN32
+#define IM_ASSERT(_EXPR)  do { if (!(_EXPR)) { __debugbreak(); } } while(0)
+#elif defined(__GNUC__) || defined(__clang__)
+#define IM_ASSERT(_EXPR)  do { if (!(_EXPR)) { __builtin_trap(); } } while(0)
+// Fallback just in case
+#else
+#include <assert.h>
+#define IM_ASSERT(_EXPR)  assert(_EXPR)
+#endif

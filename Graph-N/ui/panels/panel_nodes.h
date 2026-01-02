@@ -1,6 +1,7 @@
 
 #pragma once
 #include "ui/panels/panel_base.h"
+#include "core/managers/comfyui_object_validity_listener.h"
 
 namespace data
 {
@@ -34,13 +35,18 @@ struct PanelNodesData final : public PanelCommonData
     std::set<lid> selected_nodes;
 };
 
-class PanelNodes final : public PanelBase<PanelNodesData>
+class PanelNodes final :
+    public PanelBase<PanelNodesData>,
+    public mngr::ComfyUiObjectValidityListener
 {
 public:
     PanelNodes(PanelNodeInspector* inspector);
     ~PanelNodes() override;
 
     void init() override;
+
+    //ComfyUiObjectValidityListener
+    void invalidate_comfyui_objects() override;
 
 private:
     DlgCode show(bool& focused) override;

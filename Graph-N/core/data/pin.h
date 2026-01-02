@@ -59,6 +59,7 @@ struct PinState final
 {
     int32_t links = 0;          // number of pin links
     bool advanced = false;      // is visible on node
+    bool converted = false;     // input pin converted to widget
     
     uint32_t pin_color = 0;     // will change if ANY pin
     PinType type = PinType::_none;  // will change if ANY pin
@@ -77,11 +78,11 @@ public:
 
     bool is_widget() const;
 
-    static inline bool get_is_null(const primitive& value) { return std::holds_alternative<std::monostate>(value); }
-    static inline int64_t get_int(const primitive& value) { return std::get<int64_t>(value); }
-    static inline double get_float(const primitive& value) { return std::get<double>(value); }
-    static inline bool get_bool(const primitive& value) { return std::get<bool>(value); }
-    static inline const std::string& get_string(const primitive& value) { return std::get<std::string>(value); }
+    static inline bool get_is_null(primitive& value) { return std::holds_alternative<std::monostate>(value); }
+    static inline int64_t& get_int(primitive& value) { return std::get<int64_t>(value); }
+    static inline double& get_float(primitive& value) { return std::get<double>(value); }
+    static inline bool& get_bool(primitive& value) { return std::get<bool>(value); }
+    static inline std::string& get_string(primitive& value) { return std::get<std::string>(value); }
 
     void initialize(const std::string& type_as_string);
     void finalize();
@@ -99,7 +100,7 @@ public:
 
     bool output_is_list = false;
     bool force_input = false;
-    bool def_input = false;
+    bool def_input = false; // TODO
     bool lazy = false; // TODO
 
     bool image_upload = false;
@@ -112,6 +113,7 @@ public:
 
     size_t hash = 0;
     std::string name;
+    float name_width = 0.0f;
     std::string tooltip;
 
     bool type_any = false;

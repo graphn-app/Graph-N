@@ -93,7 +93,7 @@ set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui_v1.89.9-docking")
 
 set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui.cpp
-#    ${IMGUI_DIR}/imgui_demo.cpp
+	$<$<CONFIG:Debug>:${IMGUI_DIR}/imgui_demo.cpp>
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp

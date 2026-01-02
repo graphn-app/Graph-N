@@ -37,6 +37,12 @@ struct Node : public base::HashID
     bool experimental = false;
     bool deprecated = false;
     bool api_node = false;
+
+    bool node_width_ready = false;
+    float node_width = 0.0f;
+    float node_name_width = 0.0f;
+    float left_group_width = 0.0f;
+    float right_group_width = 0.0f;
 };
 
 } // namespace data

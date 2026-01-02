@@ -23,6 +23,8 @@ void PanelNodes::init()
     PanelBase::init();
     data()->buffer.resize(PanelNodesData::buff_count);
 
+    g::pFlow->subscribe_comfyui_validity_state(this);
+
     data()->tree_view = g::pOptsManager->flow_get_nodes_pane_tree_view();
 
     data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::PanelNodes);
@@ -43,6 +45,12 @@ void PanelNodes::init()
 
     data()->clr_hover_btn = adjust_brightness(data()->clr_bg, 1.5f);
     data()->clr_active_btn = adjust_brightness(data()->clr_bg, 1.7f);
+}
+
+void PanelNodes::invalidate_comfyui_objects()
+{
+    data()->open_items.clear();
+    data()->selected_nodes.clear();
 }
 
 DlgCode PanelNodes::show(bool& focused)
@@ -149,19 +157,19 @@ void PanelNodes::show_tree_view()
             }
             ImGui::EndGroup();
 
-            ImVec2 vMin = ImGui::GetItemRectMin();
-            ImVec2 vMax = ImGui::GetItemRectMax();
-            vMax.x = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x - ImGui::GetStyle().FramePadding.x;
-            if (ImGui::IsMouseHoveringRect(vMin, vMax, true))
+            ImVec2 v_min = ImGui::GetItemRectMin();
+            ImVec2 v_max = ImGui::GetItemRectMax();
+            v_max.x = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x - ImGui::GetStyle().FramePadding.x;
+            if (ImGui::IsMouseHoveringRect(v_min, v_max, true))
             {
                 if (node_holder->is_node)
                 {
-                    vMin.x = ImGui::GetCursorScreenPos().x + ImGui::GetStyle().FramePadding.x;
+                    v_min.x = ImGui::GetCursorScreenPos().x + ImGui::GetStyle().FramePadding.x;
                 }
                 if (indent_level > 0)
-                    vMax.x -= ImGui::GetStyle().FramePadding.x * indent_level;
+                    v_max.x -= ImGui::GetStyle().FramePadding.x * indent_level;
 
-                ImGui::GetWindowDrawList()->AddRect(vMin, vMax,
+                ImGui::GetWindowDrawList()->AddRect(v_min, v_max,
                     node_holder->is_node ? data->clr_hover_node : data->clr_hover_group,
                     0.0f, 0, 1.0f
                 );
@@ -210,12 +218,12 @@ void PanelNodes::show_plain_view()
 
         ImGui::EndGroup();
 
-        ImVec2 vMin = ImGui::GetItemRectMin();
-        ImVec2 vMax = ImGui::GetItemRectMax();
-        vMax.x = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x - ImGui::GetStyle().FramePadding.x;
-        if (ImGui::IsMouseHoveringRect(vMin, vMax, true))
+        ImVec2 v_min = ImGui::GetItemRectMin();
+        ImVec2 v_max = ImGui::GetItemRectMax();
+        v_max.x = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x - ImGui::GetStyle().FramePadding.x;
+        if (ImGui::IsMouseHoveringRect(v_min, v_max, true))
         {
-            ImGui::GetWindowDrawList()->AddRect(vMin, vMax,
+            ImGui::GetWindowDrawList()->AddRect(v_min, v_max,
                 data()->clr_hover_group,
                 0.0f, 0, 1.0f
             );

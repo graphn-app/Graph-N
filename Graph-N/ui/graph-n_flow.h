@@ -24,25 +24,26 @@ class WorkflowDrawer;
 
 enum ViewDialogs
 {
-    ViewNone = 0x00000000,
+    ViewNone                    = 0x00000000,
     // options
-    ViewOptions = 0x00000001,
-    ViewOptsComfyUi = 0x00000002,
+    ViewOptions                 = 0x00000001,
+    ViewOptsComfyUi             = 0x00000002,
     // status & control bar
-    ViewConnect = 0x00000100,
-    ViewParsingNodes = 0x00000200,
-    ViewQueueCtrl = 0x00000400,
+    ViewConnect                 = 0x00000100,
+    ViewParsingNodes            = 0x00000200,
+    ViewQueueCtrl               = 0x00000400,
     // panels
-    ViewPanelsResetAll = 0x00010000,
-    ViewPanelNodes = 0x00020000,
-    ViewPanelNodeInpector = 0x00040000,
+    ViewPanelsResetAll          = 0x00010000,
+    ViewPanelNodes              = 0x00020000,
+    ViewPanelNodeInpector       = 0x00040000,
 
-    ViewAllOptions = ViewOptions | ViewOptsComfyUi,
-    ViewAllMenuBar = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
-    ViewAllPanels = ViewPanelNodes | ViewPanelNodeInpector,
+    ViewAllOptions              = ViewOptions | ViewOptsComfyUi,
+    ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
+    ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector,
 
 #ifdef _DEBUG
-    ViewDebugMetrics = 0x80000000
+    ViewDebugMetrics            = 0x40000000,
+    ViewDebugDemo               = 0x80000000,
 #endif
 };
 
@@ -63,7 +64,7 @@ public:
 
     void reconnect();
 
-    WorkflowDrawer* create_workflow();
+    WorkflowDrawer* create_workflow(bool ro_mode);
     void destroy_workflow(lid wf_id);
     data::Workflow* find_workflow(lid wf_id);
     WorkflowDrawer* find_workflow_drawer(lid wf_id);

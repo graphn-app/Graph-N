@@ -30,6 +30,13 @@ enum class VisibleObject
     PanelNodeInspector,
     PanelNodeInspectorDescrFrame,
 
+    WfNodeHeaderBg,
+    WfNodeHeaderText,
+    WfNodeBodyBg,
+    WfNodeWidgetPin,
+    WfNodePinText,
+    WfNodeBorder,
+
     _count,
     _first = _none + 1,
     _last = _count - 1,

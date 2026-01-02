@@ -43,7 +43,8 @@ Pin::~Pin() = default;
 
 bool Pin::is_widget() const
 {
-    return cast::to_i64(def_state.type) >= cast::to_i64(PinType::_first_widget) && cast::to_i64(def_state.type) <= cast::to_i64(PinType::_last_widget);
+    return !force_input &&
+        cast::to_i64(def_state.type) >= cast::to_i64(PinType::_first_widget) && cast::to_i64(def_state.type) <= cast::to_i64(PinType::_last_widget);
 }
 
 void Pin::initialize(const std::string& type_as_string)
@@ -261,7 +262,7 @@ void Pin::generate_pin_color()
 
 std::string Pin::to_string(const std::vector<primitive>::iterator& it)
 {
-    const auto& value = *it;
+    auto& value = *it;
 
     if (std::holds_alternative<std::monostate>(value))
         return "";

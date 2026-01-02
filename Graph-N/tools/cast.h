@@ -3,9 +3,14 @@
 namespace cast
 {
 
+inline bool skip_check = false;
+
 template <typename DEST, typename SOURCE>
 constexpr bool can_fit(SOURCE arg)
 {
+    if (skip_check)
+        return true;
+
     if constexpr (std::is_same_v<DEST, SOURCE>)
     {
         (void)arg;
