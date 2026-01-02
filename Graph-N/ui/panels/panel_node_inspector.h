@@ -39,7 +39,8 @@ private:
 
 private:
     struct Data final
-    { 
+    {
+        std::string id;
         std::string node_name;
         TextWrapperRO descr_wrapper;
         WorkflowDrawer* wf = nullptr;

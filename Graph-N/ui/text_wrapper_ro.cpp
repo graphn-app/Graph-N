@@ -27,6 +27,7 @@ TextWrapperRO& TextWrapperRO::operator=(TextWrapperRO&& other)
 void TextWrapperRO::set_raw_text(const std::string* text)
 {
     m_raw_text = text;
+    m_wrapped_text.reserve(text->size() * 2);
     m_calculated_w = 0.0f;
 }
 

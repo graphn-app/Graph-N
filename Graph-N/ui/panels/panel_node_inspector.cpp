@@ -33,6 +33,7 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
         return;
 
     Data data;
+    data.id = node->get_id_str();
     data.node_name = node->display_name.empty() ? node->name.c_str() : node->display_name.c_str();
     data.descr_wrapper.set_font(g::pMain->get_regular_font());
     if (!node->description.empty())
@@ -92,14 +93,17 @@ void PanelNodeInspector::show_nodes()
 {
     for (auto& node : m_inspecting)
     {
+        ImGui::BeginGroup();
+        ImGui::PushID(node.second.id.c_str());
         ImGui::Spacing();
         ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
         ImGui::TextUnformatted(node.second.node_name.c_str());
         ImGui::PopStyleColor();
         ImGui::Spacing();
-
         show_description(node.second.descr_wrapper);
         show_preview(node.second.wf);
+        ImGui::PopID();
+        ImGui::EndGroup();
     }
 }
 
@@ -112,7 +116,7 @@ void PanelNodeInspector::show_description(TextWrapperRO& descr_wrapper)
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
         ImGui::PushStyleColor(ImGuiCol_Border, data()->clr_descr_frame);
 
-        ImGui::InputTextMultiline("##NodeDescription", descr_wrapper.get_wrapped_text(), descr_wrapper.get_wrapped_capacity() + 1,
+        ImGui::InputTextMultiline("##NodeDescription", descr_wrapper.get_wrapped_text(),
             ImVec2(-FLT_MIN, descr_wrapper.get_wrapped_height()),
             ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
         descr_wrapper.re_calc(ImGui::GetItemRectSize());

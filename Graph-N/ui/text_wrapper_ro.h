@@ -21,10 +21,9 @@ public:
 
     void re_calc(ImVec2 rect);
 
-    const char* get_raw_text() const { return m_raw_text->c_str(); }
-    char* get_wrapped_text() { return m_wrapped_text.data(); }
-
-    size_t get_wrapped_capacity() const { return m_wrapped_text.capacity(); }
+    const char* get_raw_text() const { return (nullptr == m_raw_text ? nullptr : m_raw_text->c_str()); }
+    std::string* get_wrapped_text() { return &m_wrapped_text; }
+    size_t get_wrapped_size() const { return m_wrapped_text.size(); }
     float get_wrapped_height() const { return m_wrapped_h; }
 
 private:

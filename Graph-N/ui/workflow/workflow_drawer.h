@@ -36,6 +36,8 @@ private:
     void draw_input_widget(const data::PinInstance* pin);
     void draw_output_pin(const data::PinInstance* pin);
     void draw_link(const data::Link* link);
+    void draw_pin_icon(ImU32 color, bool connected);
+    void calc_node_width(const data::NodeInstance* node);
 
 private:
     ax::NodeEditor::EditorContext* m_context = nullptr;

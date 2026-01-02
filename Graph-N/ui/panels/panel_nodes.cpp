@@ -129,7 +129,7 @@ void PanelNodes::show_tree_view()
             }
             else
             {
-                if (data->selected_nodes.count(node_holder->get_id() > 0))
+                if (data->selected_nodes.count(node_holder->get_id()) > 0)
                     ImGui::PushStyleColor(ImGuiCol_Text, data->clr_selected_node);
 
                 ImGui::PushID(node_holder->get_id());
@@ -137,10 +137,10 @@ void PanelNodes::show_tree_view()
                     ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);
                 ImGui::PopID();
 
-                if (data->selected_nodes.count(node_holder->get_id() > 0))
+                if (data->selected_nodes.count(node_holder->get_id()) > 0)
                     ImGui::PopStyleColor();
 
-                else if (!test_node_clicked(node_holder) &&
+                if (!test_node_clicked(node_holder) &&
                     !node_holder->node->description.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
                 {
                     ImGui::TextUnformatted(node_holder->node->description.c_str());
@@ -190,7 +190,7 @@ void PanelNodes::show_plain_view()
 
         ImGui::BeginGroup();
 
-        if (data()->selected_nodes.count(node_holder->get_id() > 0))
+        if (data()->selected_nodes.count(node_holder->get_id()) > 0)
             ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
 
         ImGui::PushID(node_holder->get_id());
@@ -198,7 +198,7 @@ void PanelNodes::show_plain_view()
             ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);
         ImGui::PopID();
 
-        if (data()->selected_nodes.count(node_holder->get_id() > 0))
+        if (data()->selected_nodes.count(node_holder->get_id()) > 0)
             ImGui::PopStyleColor();
 
         if (!test_node_clicked(node_holder) &&
@@ -229,14 +229,27 @@ bool PanelNodes::test_node_clicked(data::Nodes* holder)
 {
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
-        if (!ImGui::IsKeyDown(ImGuiMod_Ctrl) && !ImGui::IsKeyDown(ImGuiMod_Shift))
+        if (ImGui::IsKeyDown(ImGuiMod_Ctrl) || ImGui::IsKeyDown(ImGuiMod_Shift))
+        {
+            if (data()->selected_nodes.count(holder->get_id()) > 0)
+            {
+                data()->selected_nodes.erase(holder->get_id());
+                m_inspector->remove_inspecting_node(holder->node);
+            }
+            else
+            {
+                data()->selected_nodes.insert(holder->get_id());
+                m_inspector->add_inspecting_node(holder->node);
+            }
+        }
+        else
         {
             data()->selected_nodes.clear();
             m_inspector->reset_inspecting_nodes();
-        }
 
-        data()->selected_nodes.insert(holder->get_id());
-        m_inspector->add_inspecting_node(holder->node);
+            data()->selected_nodes.insert(holder->get_id());
+            m_inspector->add_inspecting_node(holder->node);
+        }
         return true;
     }
     return false;
