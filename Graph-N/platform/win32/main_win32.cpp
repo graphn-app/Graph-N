@@ -70,6 +70,7 @@ bool MainRoutine_Win32::init()
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;			// Enabled docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;			// Enable multiple viewports
     io.IniFilename = APP_CAPTION_LOW ".ini";
+    io.LogFilename = nullptr;
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();

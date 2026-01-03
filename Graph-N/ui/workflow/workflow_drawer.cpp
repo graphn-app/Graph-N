@@ -475,10 +475,11 @@ void WorkflowDrawer::draw_widget_int(data::PinInstance* pin)
     data::PinState* state = pin->get_state();
 
     int64_t& val = data::Pin::get_int(state->value);
-    int64_t min = data::Pin::get_int(obj->min);
-    int64_t max = data::Pin::get_int(obj->max);
+    int64_t step = data::Pin::get_int(obj->step);
+  //  int64_t min = data::Pin::get_int(obj->min);
+  //  int64_t max = data::Pin::get_int(obj->max);
 
-    ImGui::SliderScalar("", ImGuiDataType_S64, &val, &min, &max, "int = %lld");
+    ImGui::InputScalar("", ImGuiDataType_S64, &val, &step, nullptr, "int = %lld");
 }
 
 void WorkflowDrawer::draw_widget_float(data::PinInstance* pin)
