@@ -56,7 +56,7 @@ void PanelNodes::invalidate_comfyui_objects()
 DlgCode PanelNodes::show(bool& focused)
 {
     bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg))
+    if (begin_panel(opened, focused, data()->clr_bg) && opened)
     {
         if (g::pNodesManager->get_nodes_tree().empty())
         {

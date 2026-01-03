@@ -41,10 +41,8 @@ enum ViewDialogs
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector,
 
-#ifdef _DEBUG
     ViewDebugMetrics            = 0x40000000,
     ViewDebugDemo               = 0x80000000,
-#endif
 };
 
 class GraphN_Flow final

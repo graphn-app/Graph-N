@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <queue>
+#include <stack>
 #include <string>
 #include <variant>
 #include <vector>
@@ -20,7 +21,14 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
+#include <sys/stat.h>
 #include <windows.h>
+#include <shellapi.h>
+#include <lmcons.h>
+#pragma comment(lib, "Shell32.lib")
+#else
+#include <unistd.h>
+#include <pwd.h>
 #endif
 
 // 3rd party
@@ -43,6 +51,7 @@
 #define APP_CAPTION			"Graph-N"
 #define APP_CAPTION_LOW		"graph-n"
 #define APP_CAPTION_W		L"Graph-N"
+#define APP_COMFYUI			"ComfyUI"
 
 #define NO_COPY_MOVE(ClassName) \
     ClassName(const ClassName&) = delete; \

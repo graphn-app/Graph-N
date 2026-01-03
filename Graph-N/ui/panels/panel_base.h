@@ -32,9 +32,9 @@ protected:
         // m_class.ClassId = cast::to_u32(data()->class_id);
         // ImGui::SetNextWindowClass(&m_class);
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, bg_color);
         opened = true;
         focused = false;
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, bg_color);
         const bool expanded = ImGui::Begin(m_panel_name.c_str(), &opened);
         if (expanded)
             focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);

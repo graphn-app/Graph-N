@@ -28,11 +28,11 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
                 Log("Parsed: ok");
                 // this is UI thread, so it is safe to recreate on the fly
                 g::pFlow->invalidate_comfyui_objects();
-                Log("ComfyUI listeners notified to invalidate data");
+                Log(APP_COMFYUI " listeners notified to invalidate data");
                 g::pNodesManager->init_from_copy(*copy.get());
-                Log("ComfyUI data copied");
+                Log(APP_COMFYUI " data copied");
                 g::pFlow->resolve_comfyui_objects();
-                Log("ComfyUI listeners notified to resolve data");
+                Log(APP_COMFYUI " listeners notified to resolve data");
             }
         }
         m_stop_thread_flag = false;
@@ -856,7 +856,7 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
         node->name = node_class;
         node->display_name = node_class;
         node->category = "utils";
-        node->description = "Reroute Node Node Purpose: Mainly used to organize the logic of overly long connection lines in the ComfyUI workflow.";
+        node->description = "Reroute Node Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
 
         // Input: ANY (*)
         auto in = std::make_unique<data::Pin>(node.get(), "*");

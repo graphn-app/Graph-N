@@ -24,8 +24,8 @@ void OptionsDlgs::init()
     const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
     data()->x = main_viewport->WorkSize.x / 2 - 300;
     data()->y = main_viewport->WorkSize.y / 2 - 300;
-    data()->width = 550;
-    data()->height = 450;
+    data()->width = 650;
+    data()->height = 650;
 
     data()->clr_title = g::pOptsManager->flow_get_color(VisibleObject::OptionsDlg);
     data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::OptionsBg);
@@ -63,7 +63,7 @@ void OptionsDlgs::show_left_pane()
 {
     if (ImGui::BeginChild("left_pane##Opt", ImVec2(150, -FLT_MIN), true))
     {
-        if (ImGui::Selectable("ComfyUI##LeftPane", OptPane::comfyui == m_opts_data.pane.left_selected_item))
+        if (ImGui::Selectable(APP_COMFYUI "##LeftPane", OptPane::comfyui == m_opts_data.pane.left_selected_item))
         {
             m_opts_data.pane.left_selected_item = OptPane::comfyui;
             m_opts_data.pane.show_inner_child = true;

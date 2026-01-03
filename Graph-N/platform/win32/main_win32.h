@@ -39,6 +39,7 @@ private:
     void cleanup_device_d3d();
     bool create_render_target();
     void cleanup_render_target();
+    void init_imgui_diloag_texture();
 
     static LRESULT WINAPI wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 

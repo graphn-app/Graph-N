@@ -308,6 +308,10 @@ void GraphN_Flow::on_dlg_closed(VisibleObject dlg)
         m_windows &= ~ViewPanelNodes;
         Log("Nones panel closed");
         break;
+    case VisibleObject::PanelNodeInspector:
+        m_windows &= ~ViewPanelNodeInpector;
+        Log("Nones Inspector panel closed");
+        break;
     default:
         LogError(ExcepCategory::switch_enum, "Unregistered dialog is trying to be closed " << cast::to_u64(dlg));
     }
@@ -402,11 +406,11 @@ void GraphN_Flow::show_menu_bar_connecting()
         }
         if (mngr::ConnectState::disconnected == status)
         {
-            text = "ComfyUI disconnected";
+            text = APP_COMFYUI " disconnected";
         }
         else if (mngr::ConnectState::connecting == status)
         {
-            text = "Connecting to ComfyUI on " + g::pOptsManager->comfyui_get_host() + ":" + std::to_string(g::pOptsManager->comfyui_get_port());
+            text = "Connecting to " APP_COMFYUI " on " + g::pOptsManager->comfyui_get_host() + ":" + std::to_string(g::pOptsManager->comfyui_get_port());
         }
     }
     else if (m_windows & ViewParsingNodes)

@@ -81,7 +81,7 @@ void PanelNodeInspector::invalidate_comfyui_objects()
 DlgCode PanelNodeInspector::show(bool& focused)
 {
     bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg))
+    if (begin_panel(opened, focused, data()->clr_bg) && opened)
     {
         if (m_inspecting.empty())
         {

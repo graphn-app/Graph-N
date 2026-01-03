@@ -4,6 +4,8 @@
 #include "tools/exception_handler.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
+#include <d3d11.h>
+#include "ui/ImFileDialog.h"
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -78,6 +80,9 @@ bool MainRoutine_Win32::init()
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(m_hwnd);
     ImGui_ImplDX11_Init(m_d3d_device.get(), m_d3d_device_context.get());
+
+    // imguid dialogs
+    init_imgui_diloag_texture();
 
     // font and icons
     prepare_fonts();
@@ -269,6 +274,68 @@ bool MainRoutine_Win32::create_render_target()
     }
     m_main_render_target_view.reset(targetView);
     return true;
+}
+
+void MainRoutine_Win32::init_imgui_diloag_texture()
+{
+    ifd::FileDialog::Instance().CreateTexture =
+        [d3d_device = m_d3d_device.get()](uint8_t* data, int w, int h, char fmt) -> void*
+    {
+        D3D11_TEXTURE2D_DESC desc;
+        ZeroMemory(&desc, sizeof(desc));
+        desc.Width = w;
+        desc.Height = h;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = (fmt == 0) ? DXGI_FORMAT_B8G8R8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.SampleDesc.Count = 1;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        desc.CPUAccessFlags = 0;
+
+        D3D11_SUBRESOURCE_DATA subResource;
+        subResource.pSysMem = data;
+        subResource.SysMemPitch = w * 4; 
+        subResource.SysMemSlicePitch = 0;
+
+        ID3D11Texture2D* pTexture = nullptr;
+        HRESULT hr = d3d_device->CreateTexture2D(&desc, &subResource, &pTexture);
+        if (FAILED(hr))
+        {
+            LogError(ExcepCategory::directx, "CreateTexture2D failed: " << LogHEX(hr));
+            ::PostQuitMessage(1);
+            return nullptr;
+        }
+
+        ID3D11ShaderResourceView* pSRV = nullptr;
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+        ZeroMemory(&srvDesc, sizeof(srvDesc));
+        srvDesc.Format = desc.Format;
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = desc.MipLevels;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+
+        hr = d3d_device->CreateShaderResourceView(pTexture, &srvDesc, &pSRV);
+        if (FAILED(hr))
+        {
+            LogError(ExcepCategory::directx, "CreateShaderResourceView failed: " << LogHEX(hr));
+            ::PostQuitMessage(1);
+            return nullptr;
+        }
+
+        pTexture->Release();
+        return (void*)pSRV;
+    };
+
+    ifd::FileDialog::Instance().DeleteTexture =
+        [](void* texture)
+    {
+        if (texture != nullptr)
+        {
+            ID3D11ShaderResourceView* pSRV = (ID3D11ShaderResourceView*)texture;
+            pSRV->Release();
+        }
+    };
 }
 
 // Win32 message handler

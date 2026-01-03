@@ -18,6 +18,13 @@ inline constexpr auto gopt_comfyui_host                 = "comfyui_host";
 inline constexpr auto gopt_comfyui_port                 = "comfyui_port";
 inline constexpr auto gopt_comfyui_conn_time            = "comfyui_conn_time";
 inline constexpr auto gopt_comfyui_read_time            = "comfyui_read_time";
+inline constexpr auto gopt_comfyui_start_server         = "comfyui_start_server";
+inline constexpr auto gopt_comfyui_parse_address        = "comfyui_parse_address";
+inline constexpr auto gopt_comfyui_kill_server          = "comfyui_kill_server";
+inline constexpr auto gopt_comfyui_hide_console         = "comfyui_hide_console";
+inline constexpr auto gopt_comfyui_capture_output       = "comfyui_capture_output";
+inline constexpr auto gopt_comfyui_main_py              = "comfyui_main_py";
+inline constexpr auto gopt_comfyui_command              = "comfyui_command";
 
 //////////////////////////////////////////////////////////////////////
 ////////       DEFAULTS                  /////////////////////////////
@@ -50,8 +57,13 @@ inline constexpr int64_t gopt_def_flow_nodes_pane_view      = 1;
 
 inline constexpr auto	 gopt_def_comfyui_host              = "127.0.0.1";
 inline constexpr int64_t gopt_def_comfyui_port              = 8188;
-inline constexpr int64_t gopt_def_comfyui_conn_time         = 5;
-inline constexpr int64_t gopt_def_comfyui_read_time         = 10;
+inline constexpr int64_t gopt_def_comfyui_conn_time         = 1;
+inline constexpr int64_t gopt_def_comfyui_read_time         = 5;
+inline constexpr int64_t gopt_def_comfyui_start_server      = 0;
+inline constexpr int64_t gopt_def_comfyui_parse_address     = 0;
+inline constexpr int64_t gopt_def_comfyui_hide_console      = 0;
+inline constexpr int64_t gopt_def_comfyui_capture_output    = 0;
+inline constexpr int64_t gopt_def_comfyui_kill_server       = 0;
 
 //////////////////////////////////////////////////////////////////////
 ////////       COMMON                    /////////////////////////////
@@ -67,46 +79,46 @@ bool SettingsManager::init()
     return true;
 }
 
-int64_t SettingsManager::get_opt_int(int64_t& opt, const char* name, const int64_t def, const int64_t undef /*= -1*/)
+int64_t SettingsManager::get_opt_int(int64_t& out_option, const char* db_name, const int64_t def_value, const int64_t undef_example /*= -1*/)
 {
-    if (undef == opt)
+    if (undef_example == out_option)
     {
-        const auto val = g::pDbManager->get_option_int(name);
+        const auto val = g::pDbManager->get_option_int(db_name);
         if (!val.has_value())
         {
-            set_opt_int(opt, def, name);
-            return get_opt_int(opt, name, def, undef);
+            set_opt_int(out_option, def_value, db_name);
+            return get_opt_int(out_option, db_name, def_value, undef_example);
         }
-        opt = val.value();
+        out_option = val.value();
     }
-    return opt;
+    return out_option;
 }
 
-const std::string& SettingsManager::get_opt_str(std::string& opt, const char* name, const char* def)
+std::string& SettingsManager::get_opt_str(std::string& out_option, const char* db_name, const char* def_value)
 {
-    if (opt.empty())
+    if (out_option.empty())
     {
-        const auto val = g::pDbManager->get_option_str(name);
+        const auto val = g::pDbManager->get_option_str(db_name);
         if (!val.has_value())
         {
-            set_opt_str(opt, def, name);
-            return get_opt_str(opt, name, def);
+            set_opt_str(out_option, def_value, db_name);
+            return get_opt_str(out_option, db_name, def_value);
         }
-        opt = val.value();
+        out_option = val.value();
     }
-    return opt;
+    return out_option;
 }
 
-void SettingsManager::set_opt_int(int64_t& opt, const int64_t val, const char* name)
+void SettingsManager::set_opt_int(int64_t& opt_param, const int64_t opt_value, const char* db_name)
 {
-    opt = val;
-    g::pDbManager->set_option(name, opt);
+    opt_param = opt_value;
+    g::pDbManager->set_option(db_name, opt_param);
 }
 
-void SettingsManager::set_opt_str(std::string& opt, const std::string& val, const char* name)
+void SettingsManager::set_opt_str(std::string& opt_param, const std::string& opt_value, const char* db_name)
 {
-    opt = val;
-    g::pDbManager->set_option(name, opt);
+    opt_param = opt_value;
+    g::pDbManager->set_option(db_name, opt_param);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -132,7 +144,7 @@ uint64_t SettingsManager::flow_get_open_wnds()
 
 void SettingsManager::flow_set_open_wnds(uint64_t windows)
 {
-    windows &= ~(ui::ViewAllMenuBar | ui::ViewAllOptions);
+    windows &= ~(ui::ViewAllMenuBar | ui::ViewAllOptions | ui::ViewDebugMetrics | ui::ViewDebugDemo);
     set_opt_int(m_flow_open_wnds, windows, gopt_flow_open_windows);
 }
 
@@ -170,24 +182,100 @@ void SettingsManager::comfyui_set_port(uint16_t port)
     set_opt_int(m_comfyui_port, port, gopt_comfyui_port);
 }
 
-size_t SettingsManager::comfyui_get_connect_timeout()
+uint64_t SettingsManager::comfyui_get_connect_timeout()
 {
     return cast::to_szt(get_opt_int(m_comfyui_conn_time, gopt_comfyui_conn_time, gopt_def_comfyui_conn_time));
 }
 
-void SettingsManager::comfyui_set_connect_timeout(size_t timeout)
+void SettingsManager::comfyui_set_connect_timeout(uint64_t timeout)
 {
     set_opt_int(m_comfyui_conn_time, timeout, gopt_comfyui_conn_time);
 }
 
-size_t SettingsManager::comfyui_get_read_timeout()
+uint64_t SettingsManager::comfyui_get_read_timeout()
 {
     return cast::to_szt(get_opt_int(m_comfyui_read_time, gopt_comfyui_read_time, gopt_def_comfyui_read_time));
 }
 
-void SettingsManager::comfyui_set_read_timeout(size_t timeout)
+void SettingsManager::comfyui_set_read_timeout(uint64_t timeout)
 {
     set_opt_int(m_comfyui_read_time, timeout, gopt_comfyui_read_time);
+}
+
+bool SettingsManager::comfyui_get_start_server()
+{
+    return get_opt_int(m_comfyui_start_server, gopt_comfyui_start_server, gopt_def_comfyui_start_server) == 1;
+}
+
+void SettingsManager::comfyui_set_start_server(bool start)
+{
+    set_opt_int(m_comfyui_start_server, start ? 1 : 0, gopt_comfyui_start_server);
+}
+
+bool SettingsManager::comfyui_get_kill_server()
+{
+    return get_opt_int(m_comfyui_kill_server, gopt_comfyui_kill_server, gopt_def_comfyui_kill_server) == 1;
+}
+
+void SettingsManager::comfyui_set_kill_server(bool kill)
+{
+    set_opt_int(m_comfyui_kill_server, kill ? 1 : 0, gopt_comfyui_kill_server);
+}
+
+bool SettingsManager::comfyui_get_hide_console()
+{
+    return get_opt_int(m_comfyui_hide_console, gopt_comfyui_hide_console, gopt_def_comfyui_hide_console) == 1;
+}
+
+void SettingsManager::comfyui_set_hide_console(bool hide)
+{
+    set_opt_int(m_comfyui_hide_console, hide ? 1 : 0, gopt_comfyui_hide_console);
+}
+
+bool SettingsManager::comfyui_get_capture_output()
+{
+    return get_opt_int(m_comfyui_capture_output, gopt_comfyui_capture_output, gopt_def_comfyui_capture_output) == 1;
+}
+
+void SettingsManager::comfyui_set_capture_output(bool capture)
+{
+    set_opt_int(m_comfyui_capture_output, capture ? 1 : 0, gopt_comfyui_capture_output);
+}
+
+bool SettingsManager::comfyui_get_parse_address()
+{
+    return get_opt_int(m_comfyui_parse_address, gopt_comfyui_parse_address, gopt_def_comfyui_parse_address) == 1;
+}
+
+void SettingsManager::comfyui_set_parse_address(bool parse)
+{
+    set_opt_int(m_comfyui_parse_address, parse ? 1 : 0, gopt_comfyui_parse_address);
+}
+
+const std::filesystem::path& SettingsManager::comfyui_get_main_py()
+{
+    std::string main = m_comfy_main_py.u8string();
+    get_opt_str(main, gopt_comfyui_main_py, "");
+    m_comfy_main_py = std::filesystem::u8path(main);
+    return m_comfy_main_py;
+}
+
+void SettingsManager::comfyui_set_main_py(const std::filesystem::path& main)
+{
+    std::string opt_saved = m_comfy_main_py.u8string();
+    std::string opt_to_save = main.u8string();
+    set_opt_str(opt_saved, opt_to_save, gopt_comfyui_main_py);
+    m_comfy_main_py = main;
+}
+
+const std::string& SettingsManager::comfyui_get_command()
+{
+    return get_opt_str(m_comfy_command, gopt_comfyui_command, "");
+}
+
+void SettingsManager::comfyui_set_command(const std::string& cmd)
+{
+    set_opt_str(m_comfy_command, cmd, gopt_comfyui_command);
 }
 
 //////////////////////////////////////////////////////////////////////

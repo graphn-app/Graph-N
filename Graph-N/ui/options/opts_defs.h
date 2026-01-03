@@ -17,7 +17,9 @@ struct OptsData final
     NO_COPY_MOVE_CTORS(OptsData);
 
     const uint32_t separator_clr = IM_COL32(0, 180, 180, 255);
-    const float input_offset_x = 150;
+    const float input_offset_x = 130;
+    int64_t step = 1;
+    std::vector<bool> help_marks;
 
     struct Pane final
     {
@@ -33,9 +35,16 @@ struct OptsData final
         NO_COPY_MOVE_CTORS(Comfy);
 
         std::string host;
-        uint16_t port = 0;
-        size_t conn_time = 0;
-        size_t read_time = 0;
+        int64_t port = 0;
+        int64_t conn_time = 0;
+        int64_t read_time = 0;
+        std::string path;
+        std::string cmd;
+        bool start = false;
+        bool stop = false;
+        bool hide = false;
+        bool capture = false;
+        bool parse = false;
     }
     comfy;
 };
