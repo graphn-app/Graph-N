@@ -6,9 +6,11 @@ enum class OptPane
     _none,
 
     comfyui,
+    workflow,
 
-    _first = comfyui,
-    _last = comfyui,
+    _count,
+    _first = _none + 1,
+    _last = _count - 1,
     _zero = _none
 };
 
@@ -19,7 +21,6 @@ struct OptsData final
     const uint32_t separator_clr = IM_COL32(0, 180, 180, 255);
     const float input_offset_x = 130;
     int64_t step = 1;
-    std::vector<bool> help_marks;
 
     struct Pane final
     {
@@ -30,9 +31,9 @@ struct OptsData final
     }
     pane;
 
-    struct Comfy final
+    struct ComfyUI final
     {
-        NO_COPY_MOVE_CTORS(Comfy);
+        NO_COPY_MOVE_CTORS(ComfyUI);
 
         std::string host;
         int64_t port = 0;
@@ -46,5 +47,12 @@ struct OptsData final
         bool capture = false;
         bool parse = false;
     }
-    comfy;
+    comfyui;
+
+
+    struct Workflow final
+    {
+        NO_COPY_MOVE_CTORS(Workflow);
+    }
+    wf;
 };
