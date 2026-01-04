@@ -221,4 +221,104 @@ bool InputDoubleSmart(
     //return ImGui::InputDouble(label_id, value, step, 0.0f, buffer.c_str());
 }
 
+bool ToggleBoolean(const char* label, bool* value, ImVec2 size_arg /*= ImVec2(0, 0)*/)
+{
+    bool state_changed = false;
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+
+     // Calculate Size
+     // If width is 0, use all available content region.
+    float width = size_arg.x;
+    if (0.0f == width)
+        width = ImGui::GetContentRegionAvail().x;
+
+    // Use default button height if not specified
+    float height = size_arg.y;
+    if (0.0f == height)
+        height = ImGui::GetFrameHeight();
+
+    const ImVec2 button_size(width * 0.5f, height);
+
+    // Prepare Colors from Style
+    // Active side uses the "ButtonActive" color (usually the accent color of the theme)
+    // Inactive side uses the standard "Button" color
+    const ImVec4 color_active = style.Colors[ImGuiCol_ButtonActive];
+    const ImVec4 color_inactive = style.Colors[ImGuiCol_Button];
+
+    // 3. Setup Layout
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, style.FrameRounding); // Keep theme rounding
+
+    // ---------------------------------------------------------
+    // LEFT BUTTON ("OFF")
+    // ---------------------------------------------------------
+    const bool is_off = !(*value);
+
+    // Logic: If OFF is the current state (is_off == true), it gets the Active Color.
+    ImGui::PushStyleColor(ImGuiCol_Button, is_off ? color_active : color_inactive);
+
+    // Prevent hover/active visual feedback if it's already the active selection
+    if (is_off)
+    {
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color_active);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, color_active);
+    }
+
+    // Use "##" to hide label, but keep ID unique
+    if (ImGui::Button(fmt::format("ON##Left{}", label).c_str(), button_size))
+    {
+        if (*value) // Only change if it was ON
+        { 
+            *value = false;
+            state_changed = true;
+        }
+    }
+
+    if (is_off)
+        ImGui::PopStyleColor(2);
+    ImGui::PopStyleColor(1);
+
+    ImGui::SameLine();
+
+    // ---------------------------------------------------------
+    // RIGHT BUTTON ("ON")
+    // ---------------------------------------------------------
+    const bool is_on = *value;
+
+    ImGui::PushStyleColor(ImGuiCol_Button, is_on ? color_active : color_inactive);
+    if (is_on)
+    {
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color_active);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, color_active);
+    }
+
+    if (ImGui::Button(fmt::format("ON##Right{}", label).c_str(), button_size))
+    {
+        if (!(*value))  // Only change if it was OFF
+        { 
+            *value = true;
+            state_changed = true;
+        }
+    }
+
+    if (is_on)
+        ImGui::PopStyleColor(2);
+    ImGui::PopStyleColor(1);
+
+    ImGui::PopStyleVar(2); // Pop Spacing and Rounding
+
+    // Draw Label (Optional)
+    // Standard ImGui widgets draw the label to the right. 
+    // We only draw it if the label is not empty and doesn't start with "##"
+    //if (label && label[0] != '#' && width < ImGui::GetContentRegionAvail().x)
+    //{
+    //    ImGui::SameLine();
+    //    ImGui::TextUnformatted(label);
+    //}
+
+    return state_changed;
+}
+
 } // namespace ImGui

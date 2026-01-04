@@ -43,4 +43,6 @@ bool InputDoubleSmart(const char* label_id,
     double* value, double step, double min, double max,
     const std::string& format_named, const std::string& format_unnamed);
 
+bool ToggleBoolean(const char* label, bool* value, ImVec2 size_arg = ImVec2(0, 0));
+
 } // namespace ImGui
