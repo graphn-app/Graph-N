@@ -9,7 +9,7 @@ using hid = size_t;		// hash id, based on unique node/pin name
 using iid = lid;	    // instance id, to save in json
 using gid = uint64_t;	// app global id, to use in graph, based on workflow id
 using byte_buff = std::vector<byte>;
-using primitive = std::variant<int64_t, double, std::string, bool, std::monostate>;
+using primitive = std::variant<int64_t, uint64_t, double, std::string, bool, std::monostate>;
 
 enum class VisibleObject
 {
@@ -93,7 +93,7 @@ enum class WidgetInput
 {
     _none,
 
-    direct = _none,
+    direct,
     slider,
     checkbox,
     combo,

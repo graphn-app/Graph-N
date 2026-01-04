@@ -55,6 +55,11 @@ enum class ControlAfterGenerate
     _count
 };
 
+inline constexpr const char* ControlAfterGenerateStr[cast::to_u64(ControlAfterGenerate::_count)] =
+{
+    "fixed", "increment", "decrement", "randomize"
+};
+
 struct PinState final
 {
     int32_t links = 0;          // number of pin links
@@ -80,6 +85,7 @@ public:
 
     static inline bool get_is_null(primitive& value) { return std::holds_alternative<std::monostate>(value); }
     static inline int64_t& get_int(primitive& value) { return std::get<int64_t>(value); }
+    static inline uint64_t& get_uint(primitive& value) { return std::get<uint64_t>(value); }
     static inline double& get_float(primitive& value) { return std::get<double>(value); }
     static inline bool& get_bool(primitive& value) { return std::get<bool>(value); }
     static inline std::string& get_string(primitive& value) { return std::get<std::string>(value); }
@@ -130,7 +136,12 @@ public:
 
     // boolean
     std::string label_on;
+    std::string label_on_named;
     std::string label_off;
+    std::string label_off_named;
+
+    // int
+    bool is_unsigned = false;
 
     // int, double
     primitive min;

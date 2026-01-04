@@ -186,6 +186,29 @@ bool InputIntSmart(
     return true;
 }
 
+bool InputUIntSmart(
+    const char* label_id,
+    uint64_t* value, uint64_t step, uint64_t min, uint64_t max,
+    const std::string& format_named, const std::string& format_unnamed)
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems)
+        return false;
+
+    if ((ImGui::GetActiveID() != window->GetID(label_id)))
+    {
+        ImGui::InputScalar(label_id, ImGuiDataType_U64, value, &step, nullptr, format_named.c_str());
+        return false;
+    }
+
+    if (!ImGui::InputScalar(label_id, ImGuiDataType_U64, value, &step, nullptr, format_unnamed.c_str()))
+        return false;
+
+    if (*value < min) *value = min;
+    if (*value > max) *value = max;
+    return true;
+}
+
 bool InputDoubleSmart(
     const char* label_id, 
     double* value, double step, double min, double max,

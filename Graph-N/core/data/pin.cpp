@@ -22,11 +22,6 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
     { "FLOATS", PinType::FLOATS },
 };
 
-inline constexpr const char* ControlAfterGenerateStr[cast::to_u64(ControlAfterGenerate::_count)] =
-{
-    "fixed", "increment", "decrement", "randomize"
-};
-
 Pin::Pin(const Node* node, const std::string& pin_name)
     : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_IN_" + pin_name)
     , parent_node(node->get_id())
@@ -123,15 +118,45 @@ void Pin::finalize()
         precision_to_string();
     }
 
-    else if (PinType::INT == def_state.type && (!std::holds_alternative<int64_t>(step) || 0 == get_int(step)))
+    else if (PinType::INT == def_state.type)
     {
-        step = int64_t(1);
+        if (!std::holds_alternative<int64_t>(step) || 0 == get_int(step))
+            step = int64_t(1);
+
+        precision = fmt::format(FMT_COMPILE("%lld"));
+        precision_named = fmt::format(FMT_COMPILE("{}: %lld"), name);
+
+        const bool seed = (tools::str::to_lower_ascii(name).find("seed") != std::string::npos);
+        if (seed)
+        {
+            control_after_generate = true;
+            def_state.control_after_generate_value = ControlAfterGenerate::randomize;
+        }
+
+        if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int
+        {
+            is_unsigned = true;
+            precision = fmt::format(FMT_COMPILE("%llu"));
+            precision_named = fmt::format(FMT_COMPILE("{}: %llu"), name);
+            step = uint64_t(get_int(step));
+            def = uint64_t(get_int(def));
+            min = uint64_t(get_int(min));
+            max = uint64_t(ULLONG_MAX);
+        }
+    }
+
+    else if (PinType::BOOLEAN == def_state.type)
+    {
+        label_on_named = fmt::format(FMT_COMPILE("{}: {}"), name, (label_on.empty() ? "on" : label_on));
+        label_off_named = fmt::format(FMT_COMPILE("{}: {}"), name, (label_off.empty() ? "off" : label_off));
     }
 
     else if (PinType::COLOR == def_state.type && std::holds_alternative<std::string>(def))
     {
         def = int64_t(color_to_val(std::get<std::string>(def)));
     }
+
+    def_state.value = def;
 }
 
 void Pin::init_defaults()

@@ -16,6 +16,7 @@ namespace ed = ax::NodeEditor;
 
 inline constexpr float g_pin_center_x_offset = 10.0f;
 inline constexpr float g_pin_radius = 5.0f;
+inline constexpr float g_pin_indent = 4.0f;
 inline constexpr float g_pin_width = g_pin_radius * 2;
 inline constexpr float g_node_def_width = 150.0f;
 
@@ -94,7 +95,7 @@ void WorkflowDrawer::draw()
             draw_list->ChannelsSplit(2);
             draw_list->ChannelsSetCurrent(1);
             ImGui::BeginGroup();
-            ImGui::Dummy(ImVec2(node->node_width, 4.0f));
+            ImGui::Dummy(ImVec2(node->node_width, g_pin_indent));
         }
         else
         {
@@ -155,7 +156,7 @@ void WorkflowDrawer::draw()
 
         // --- PINS - OUTPUT ---
         ImGui::BeginGroup();
-        const float group_start_x = ImGui::GetCursorPosX();
+        //const float group_start_x = ImGui::GetCursorPosX();
 
         ImGui::Dummy(ImVec2(node->right_group_width, 0.0f));
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y);
@@ -169,13 +170,16 @@ void WorkflowDrawer::draw()
             else
             {
                 ImGui::PushID(pin->get_graph_id_str().c_str());
-                const float content_w = pin->get_object()->name_width + ImGui::GetStyle().ItemSpacing.x + g_pin_width;
 
-                float shift = node->right_group_width - content_w;
-                if (m_ro_mode)
-                    shift -= 4.0f;
+                const float start_pos = node->node_width - g_pin_indent - g_pin_width - /*ImGui::GetStyle().ItemSpacing.x - */pin->get_object()->name_width;
+                ImGui::SetCursorPosX(start_pos);
 
-                ImGui::SetCursorPosX(group_start_x + std::max(0.0f, shift));
+                //const float content_w = pin->get_object()->name_width + ImGui::GetStyle().ItemSpacing.x + g_pin_width;
+                //const float shift = node->right_group_width - content_w;
+                //if (m_ro_mode)
+                //    shift -= g_node_indent;
+
+                //ImGui::SetCursorPosX(group_start_x + std::max(0.0f, shift));
 
                 if (!m_ro_mode)
                     ed::BeginPin(pin->get_graph_id(), ed::PinKind::Output);
@@ -189,20 +193,23 @@ void WorkflowDrawer::draw()
 
         ImGui::PopStyleColor();
 
-        ImGui::Dummy(ImVec2(0.0f, section_spacing));
+        ImGui::Dummy(ImVec2(0.0f, section_spacing * 2));
 
         // --- WIDGETS ---
         ImGui::BeginGroup();
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, ImGui::GetStyle().ItemSpacing.y * 2));
         for (auto pin : input)
         {
             if (!pin->get_state()->advanced && pin->get_object()->is_widget())
             {
                 ImGui::PushID(pin->get_graph_id_str().c_str());
-                draw_input_widget(pin);
+                draw_input_widget(pin, node->node_width);
                 ImGui::PopID(); // widget id
             }
         }
+        ImGui::PopStyleVar();
         ImGui::EndGroup();
+        ImGui::Dummy(ImVec2(0, 30.0f));
 
         // --- FINALIZE ---
         if (!m_ro_mode)
@@ -211,7 +218,6 @@ void WorkflowDrawer::draw()
         }
         else
         {
-            ImGui::Dummy(ImVec2(0, 4.0f));
             ImGui::EndGroup();
 
             // Channel 0
@@ -269,6 +275,8 @@ void WorkflowDrawer::draw()
 
 void WorkflowDrawer::calc_node_width(data::NodeInstance* node)
 {
+    auto node_obj = node->get_object();
+
     float max_in = 0.0f;
     float max_out = 0.0f;
     
@@ -298,12 +306,24 @@ void WorkflowDrawer::calc_node_width(data::NodeInstance* node)
     max_in += g_pin_width + item_spacing_x;
     max_out += g_pin_width + item_spacing_x;
 
-    auto node_obj = node->get_object();
     node_obj->node_name_width = ImGui::CalcTextSize(node_obj->display_name.empty() ? node_obj->name.c_str() : node_obj->display_name.c_str()).x;
     node_obj->node_width = std::max(g_node_def_width, node_obj->node_name_width);
 
     const float center_width = (g_pin_center_x_offset * 2) + (item_spacing_x * 2);
     float total_width = max_in + center_width + max_out;
+
+    for (auto pin : in)
+    {
+        auto obj = pin->get_object();
+        if (obj->is_widget())
+        {
+            const float value_width = ImGui::CalcTextSize("18446744073709551615").x;
+            const float name_width = ImGui::CalcTextSize(obj->name.c_str()).x;
+            obj->name_width = name_width + 30.0f + value_width;
+            if (obj->name_width + center_width > total_width)
+                total_width = obj->name_width + center_width;
+        }
+    }
 
     node_obj->node_width = std::max(total_width, node_obj->node_width);
     total_width = node_obj->node_width;
@@ -316,15 +336,6 @@ void WorkflowDrawer::calc_node_width(data::NodeInstance* node)
     {
         node_obj->right_group_width = max_out;
         node_obj->node_width = node_obj->left_group_width + center_width + node_obj->right_group_width;
-    }
-
-    for (auto pin : in)
-    {
-        auto obj = pin->get_object();
-        if (obj->is_widget())
-        {
-            obj->name_width = node_obj->node_width - (g_pin_width * 2);
-        }
     }
 
     if (m_ro_mode)
@@ -378,15 +389,16 @@ void WorkflowDrawer::draw_node(data::NodeInstance* node)
 void WorkflowDrawer::draw_input_pin(data::PinInstance* pin)
 {
     if (m_ro_mode)
-        ImGui::Indent(4.0f);
+        ImGui::Indent(g_pin_indent);
 
     auto obj = pin->get_object();
     draw_pin_icon(pin->get_state()->pin_color, !m_ro_mode && pin->get_state()->links > 0);
+    ImGui::Dummy(ImVec2(g_pin_width, 0));
     ImGui::SameLine();
     ImGui::TextUnformatted(obj->name.c_str());
 
     if (m_ro_mode)
-        ImGui::Unindent(4.0f);
+        ImGui::Unindent(g_pin_indent);
 }
 
 void WorkflowDrawer::draw_output_pin(data::PinInstance* pin)
@@ -394,6 +406,7 @@ void WorkflowDrawer::draw_output_pin(data::PinInstance* pin)
     ImGui::TextUnformatted(pin->get_object()->name.c_str());
     ImGui::SameLine();
     draw_pin_icon(pin->get_state()->pin_color, !m_ro_mode && pin->get_state()->links > 0);
+    ImGui::NewLine();
 }
 
 void WorkflowDrawer::draw_link(const data::Link* link)
@@ -405,84 +418,144 @@ void WorkflowDrawer::draw_pin_icon(ImU32 color, bool connected)
 {
     const auto draw_list = ImGui::GetWindowDrawList();
     const auto cursorPos = ImGui::GetCursorScreenPos();
-
     const ImVec2 center = ImVec2(cursorPos.x + g_pin_radius, cursorPos.y + ImGui::GetTextLineHeight() / 2);
 
     if (connected)
         draw_list->AddCircleFilled(center, g_pin_radius, color);
     else
         draw_list->AddCircle(center, g_pin_radius, color, 0, 1.0f);
-
-    ImGui::Dummy(ImVec2(g_pin_width, 0));
 }
 
-void WorkflowDrawer::draw_input_widget(data::PinInstance* pin)
+void WorkflowDrawer::draw_input_widget(data::PinInstance* pin, float max_w)
 {
     if (m_ro_mode)
     {
-        ImGui::Indent(4.0f);
+        ImGui::Indent(g_pin_indent);
         ImGui::Dummy(ImVec2(g_pin_width, 0));
     }
     else
     {
         draw_pin_icon(pin->get_state()->converted ? pin->get_state()->pin_color : m_clr_node_widget_pin, false);
+        ImGui::Dummy(ImVec2(g_pin_width, 0));
     }
-    
+
     ImGui::SameLine();
-    draw_widget(pin);
+    draw_widget(pin, max_w - g_pin_indent * 2 - g_pin_width * 2 - ImGui::GetStyle().ItemSpacing.x * 2);
 
     if (m_ro_mode)
-        ImGui::Unindent(4.0f);
+        ImGui::Unindent(g_pin_indent);
 }
 
-void WorkflowDrawer::draw_widget(data::PinInstance* pin)
+void WorkflowDrawer::draw_widget(data::PinInstance* pin, float max_w)
 {
     auto obj = pin->get_object();
     auto state = pin->get_state();
+    bool control_after_generate = false;
 
     switch (state->type)
     {
     case data::PinType::INT:
-        draw_widget_int(pin);
+        if (obj->is_unsigned)
+            draw_widget_uint(pin, max_w);
+        else
+            draw_widget_int(pin, max_w);
+        control_after_generate = obj->control_after_generate;
         break;
     case data::PinType::FLOAT:
-        draw_widget_float(pin);
+        draw_widget_float(pin, max_w);
+        control_after_generate = obj->control_after_generate;
         break;
     case data::PinType::BOOLEAN:
-        draw_widget_bool(pin);
+        draw_widget_bool(pin, max_w);
         break;
     case data::PinType::STRING:
         if (obj->multiline)
-            draw_widget_str_ml(pin);
+            draw_widget_str_ml(pin, max_w);
         else
-            draw_widget_str(pin);        
+            draw_widget_str(pin, max_w);
         break;
     case data::PinType::NUMBER:
-        draw_widget_num(pin);
+        draw_widget_num(pin, max_w);
         break;
     case data::PinType::COMBO:
-        draw_widget_combo(pin);
+        draw_widget_combo(pin, max_w);
         break;
     case data::PinType::COLOR:
-        draw_widget_color(pin);
+        draw_widget_color(pin, max_w);
         break;
     }
+
+    if (control_after_generate)
+    { }
 }
 
-void WorkflowDrawer::draw_widget_int(data::PinInstance* pin)
+void WorkflowDrawer::draw_widget_int(data::PinInstance* pin, float max_w)
 {
     auto obj = pin->get_object();
     data::PinState* state = pin->get_state();
 
     int64_t& val = data::Pin::get_int(state->value);
     int64_t step = data::Pin::get_int(obj->step);
-  //  int64_t min = data::Pin::get_int(obj->min);
-  //  int64_t max = data::Pin::get_int(obj->max);
+    int64_t min = data::Pin::get_int(obj->min);
+    int64_t max = data::Pin::get_int(obj->max);
 
-    ImGui::InputScalar("", ImGuiDataType_S64, &val, &step, nullptr, "int = %lld");
+    ImGui::SetNextItemWidth(max_w);
+    bool changed = false;
+
+    switch (g::pOptsManager->wf_get_widget_input_numbers())
+    {
+    case WidgetInput::direct:
+        changed = ImGui::InputIntSmart("", &val, step, min, max, obj->precision_named, obj->precision);
+        break;
+    case WidgetInput::drag:
+        changed = ImGui::DragScalar("", ImGuiDataType_S64, &val, 1.0f, &min, &max, obj->precision_named.c_str());
+        break;
+    case WidgetInput::slider:
+    default:
+        changed = ImGui::SliderScalar("", ImGuiDataType_S64, &val, &min, &max, obj->precision_named.c_str());
+        break;
+    }
+
+    if (changed)
+    {
+        if (val < min) val = min;
+        if (val > max) val = max;
+    }
 }
 
-void WorkflowDrawer::draw_widget_float(data::PinInstance* pin)
+void WorkflowDrawer::draw_widget_uint(data::PinInstance* pin, float max_w)
+{
+    auto obj = pin->get_object();
+    data::PinState* state = pin->get_state();
+
+    uint64_t& val = data::Pin::get_uint(state->value);
+    uint64_t step = data::Pin::get_uint(obj->step);
+    uint64_t min = data::Pin::get_uint(obj->min);
+    uint64_t max = data::Pin::get_uint(obj->max);
+
+    ImGui::SetNextItemWidth(max_w);
+    bool changed = false;
+
+    switch (g::pOptsManager->wf_get_widget_input_numbers())
+    {
+    case WidgetInput::direct:
+        changed = ImGui::InputUIntSmart("", &val, step, min, max, obj->precision_named, obj->precision);
+        break;
+    case WidgetInput::slider:
+    case WidgetInput::drag:
+    default:
+        changed = ImGui::DragScalar("", ImGuiDataType_U64, &val, INT_MAX, &min, &max, obj->precision_named.c_str());
+        break;
+    }
+
+    if (changed)
+    {
+        if (val < min) val = min;
+        if (val > max) val = max;
+    }
+}
+
+void WorkflowDrawer::draw_widget_float(data::PinInstance* pin, float max_w)
 {
     auto obj = pin->get_object();
     data::PinState* state = pin->get_state();
@@ -490,21 +563,91 @@ void WorkflowDrawer::draw_widget_float(data::PinInstance* pin)
     double& val = data::Pin::get_float(state->value);
     double min = data::Pin::get_float(obj->min);
     double max = data::Pin::get_float(obj->max);
+    double step = data::Pin::get_float(obj->step);
 
-    ImGui::SliderScalar("", ImGuiDataType_Double, &val, &min, &max, "float = %.4f");
+    ImGui::SetNextItemWidth(max_w);
+    bool changed = false;
+
+    switch (g::pOptsManager->wf_get_widget_input_numbers())
+    {
+    case WidgetInput::direct:
+        changed = ImGui::InputDoubleSmart("", &val, step, min, max, obj->precision_named, obj->precision);
+        break;
+    case WidgetInput::drag:
+        changed = ImGui::DragScalar("", ImGuiDataType_Double, &val, 1.0f, &min, &max, obj->precision_named.c_str());
+        break;
+    case WidgetInput::slider:
+    default:
+        changed = ImGui::SliderScalar("", ImGuiDataType_Double, &val, &min, &max, obj->precision_named.c_str());
+        break;
+    }
+
+    if (changed)
+    {
+        if (val < min) val = min;
+        if (val > max) val = max;
+    }
 }
 
-void WorkflowDrawer::draw_widget_bool(data::PinInstance* /*pin*/)
+void WorkflowDrawer::draw_widget_bool(data::PinInstance* pin, float max_w)
+{
+    auto obj = pin->get_object();
+    data::PinState* state = pin->get_state();
+
+    bool& val = data::Pin::get_bool(state->value);
+
+    ImGui::SetNextItemWidth(max_w);
+    bool changed = false;
+
+    switch (g::pOptsManager->wf_get_widget_input_bools())
+    {
+    case WidgetInput::radio:
+        {
+            const auto pos = ImGui::GetCursorPosX();
+            const bool changed1 = ImGui::RadioButton(obj->label_off_named.c_str(), !val);
+            ImGui::SetCursorPosX(pos);
+            const bool changed2 = ImGui::RadioButton(obj->label_on_named.c_str(), val);
+            changed = changed1 || changed2;
+        }
+        break;
+    case WidgetInput::combo:
+        {
+            const char* items[] = { obj->label_off_named.c_str(), obj->label_on_named.c_str() };
+            int current = val ? 1 : 0;
+            changed = ImGui::Combo("", &current, items, 2);
+        }
+        break;
+    case WidgetInput::checkbox:
+        {
+            bool temp = val;
+            changed = ImGui::Checkbox(val ? obj->label_on_named.c_str() : obj->label_off_named.c_str(), &temp);
+        }
+        break;
+    case WidgetInput::slider:
+    default:
+        {
+            uint8_t uval = val ? 1 : 0;
+            uint8_t min = 0, max = 1;
+            changed = ImGui::SliderScalar("", ImGuiDataType_U8, &uval, &min, &max, val ? obj->label_on_named.c_str() : obj->label_off_named.c_str(), ImGuiSliderFlags_NoInput);
+        }
+        break;
+    }
+
+    if (changed)
+    {
+        val = !val;
+    }
+}
+
+void WorkflowDrawer::draw_widget_str(data::PinInstance* /*pin*/, float /*max_w*/)
 {}
-void WorkflowDrawer::draw_widget_str(data::PinInstance* /*pin*/)
+void WorkflowDrawer::draw_widget_str_ml(data::PinInstance* /*pin*/, float /*max_w*/)
 {}
-void WorkflowDrawer::draw_widget_str_ml(data::PinInstance* /*pin*/)
+void WorkflowDrawer::draw_widget_num(data::PinInstance* /*pin*/, float /*max_w*/)
 {}
-void WorkflowDrawer::draw_widget_num(data::PinInstance* /*pin*/)
+void WorkflowDrawer::draw_widget_combo(data::PinInstance* /*pin*/, float /*max_w*/)
 {}
-void WorkflowDrawer::draw_widget_combo(data::PinInstance* /*pin*/)
-{}
-void WorkflowDrawer::draw_widget_color(data::PinInstance* /*pin*/)
+void WorkflowDrawer::draw_widget_color(data::PinInstance* /*pin*/, float /*max_w*/)
 {}
 
 } // namespace ui

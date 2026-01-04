@@ -39,6 +39,10 @@ bool InputIntSmart(const char* label_id,
     int64_t* value, int64_t step, int64_t min, int64_t max,
     const std::string& format_named, const std::string& format_unnamed);
 
+bool InputUIntSmart(const char* label_id,
+    uint64_t* value, uint64_t step, uint64_t min, uint64_t max,
+    const std::string& format_named, const std::string& format_unnamed);
+
 bool InputDoubleSmart(const char* label_id, 
     double* value, double step, double min, double max,
     const std::string& format_named, const std::string& format_unnamed);
