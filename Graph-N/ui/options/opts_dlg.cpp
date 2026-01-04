@@ -26,7 +26,7 @@ void OptionsDlgs::init()
     data()->x = main_viewport->WorkSize.x / 2 - 300;
     data()->y = main_viewport->WorkSize.y / 2 - 300;
     data()->width = 650;
-    data()->height = 650;
+    data()->height = 680;
 
     data()->clr_title = g::pOptsManager->flow_get_color(VisibleObject::OptionsDlg);
     data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::OptionsBg);

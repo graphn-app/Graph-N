@@ -145,6 +145,8 @@ public:
     // double
     std::optional<double> round;
     std::optional<bool> do_round;
+    std::string precision;
+    std::string precision_named;
 
     // combo
     bool multiselect = false;
@@ -157,6 +159,7 @@ private:
 private:
     void generate_pin_color();
     void init_defaults();
+    void precision_to_string();
 };
 
 } // namespace data

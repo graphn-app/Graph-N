@@ -104,7 +104,7 @@ void Pin::finalize()
             if (round.has_value())
                 step = round.value();
             else
-                step = double(0.1f);
+                step = double(0.01);
         }
 
         if (!do_round.has_value())
@@ -115,10 +115,12 @@ void Pin::finalize()
         if (!round.has_value())
         {
             if (do_round.value())
-                round = 1.0f;
+                round = 1.0;
             else
-                round = 0.f;
+                round = 0.01;
         }
+
+        precision_to_string();
     }
 
     else if (PinType::INT == def_state.type && (!std::holds_alternative<int64_t>(step) || 0 == get_int(step)))
@@ -165,6 +167,23 @@ void Pin::init_defaults()
         def_state.value = "";
         def = "";
     }
+}
+
+void Pin::precision_to_string()
+{
+    if (!round.has_value())
+        return;
+
+    int32_t decimals = 2;
+    if (round.value() > 0.0 && round.value() < 1.0)
+    {
+        decimals = static_cast<int>(std::ceil(-std::log10(round.value())));
+        if (decimals > 6)
+            decimals = 6;
+    }
+
+    precision = fmt::format(FMT_COMPILE("%.{}f"), decimals);
+    precision_named = fmt::format(FMT_COMPILE("{}: %.{}f"), name, decimals);
 }
 
 const char* Pin::control_after_generate_to_string(ControlAfterGenerate val)

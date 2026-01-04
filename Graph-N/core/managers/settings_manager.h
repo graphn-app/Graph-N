@@ -56,6 +56,14 @@ public:
     const std::string& comfyui_get_command();
     void comfyui_set_command(const std::string& cmd);
 
+    // wf
+    WidgetInput wf_get_widget_input_numbers();
+    void wf_set_widget_input_numbers(WidgetInput numbers);
+
+    WidgetInput wf_get_widget_input_bools();
+    void wf_set_widget_input_bools(WidgetInput bools);
+
+
 private:
     int64_t get_opt_int(int64_t& out_option, const char* db_name, const int64_t def_value, const int64_t undef_example = -1);
     std::string& get_opt_str(std::string& out_option, const char* db_name, const char* def_value);
@@ -81,6 +89,10 @@ private:
     int64_t m_comfyui_capture_output = -1;
     std::filesystem::path m_comfy_main_py;
     std::string m_comfy_command;
+
+    // wf
+    int64_t m_wf_widget_input_numbers = -1;
+    int64_t m_wf_widget_input_bools = -1;
 };
 
 } // namespace mngr

@@ -163,4 +163,62 @@ void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button
         ImGui::SetScrollY(window, window->Scroll.y + delta.y);
 }
 
+bool InputIntSmart(
+    const char* label_id, 
+    int64_t* value, int64_t step, int64_t min, int64_t max,
+    const std::string& format_named, const std::string& format_unnamed)
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems)
+        return false;
+
+    if ((ImGui::GetActiveID() != window->GetID(label_id)))
+    {
+        ImGui::InputScalar(label_id, ImGuiDataType_S64, value, &step, nullptr, format_named.c_str());
+        return false;
+    }
+
+    if (!ImGui::InputScalar(label_id, ImGuiDataType_S64, value, &step, nullptr, format_unnamed.c_str()))
+        return false;
+
+    if (*value < min) *value = min;
+    if (*value > max) *value = max;
+    return true;
+}
+
+bool InputDoubleSmart(
+    const char* label_id, 
+    double* value, double step, double min, double max,
+    const std::string& format_named, const std::string& format_unnamed)
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems)
+        return false;
+
+    if ((ImGui::GetActiveID() != window->GetID(label_id)))
+    {
+        ImGui::InputScalar(label_id, ImGuiDataType_Double, value, &step, nullptr, format_named.c_str());
+        return false;
+    }
+
+    if (!ImGui::InputScalar(label_id, ImGuiDataType_Double, value, &step, nullptr, format_unnamed.c_str()))
+        return false;
+
+    if (*value < min) *value = min;
+    if (*value > max) *value = max;
+    return true;
+
+    // Select format based on state
+    // If editing -> show clean number "%.4f"
+    // If idle -> show "prefix %.4f"
+    //if (is_editing)
+    //    buffer = fmt::format(FMT_COMPILE("%.{}f"), *value);
+    //else
+    //    buffer = fmt::format(FMT_COMPILE("{} %.{}f"), display_prefix, *value);
+
+    // Draw the input
+    // Note: We assume 'step' > 0 to show the +/- buttons as in your screenshot
+    //return ImGui::InputDouble(label_id, value, step, 0.0f, buffer.c_str());
+}
+
 } // namespace ImGui

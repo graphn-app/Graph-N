@@ -66,7 +66,7 @@ void MainRoutine::prepare_fonts()
     config.MergeMode = true;
     config.PixelSnapH = true;
     config.GlyphMinAdvanceX = 18.0f;
-    config.GlyphOffset.y = 1.1f;
+    config.GlyphOffset.y = 4.0f;
     io.Fonts->AddFontFromFileTTF(path_icons.c_str(), 18.0f, &config, ranges_icons);
 
     // ================= BOLD FONT =================
@@ -89,11 +89,15 @@ void MainRoutine::prepare_fonts()
     config.MergeMode = true;
     config.PixelSnapH = true;
     config.GlyphMinAdvanceX = 18.0f;
-    config.GlyphOffset.y = 1.1f;
+    config.GlyphOffset.y = 4.0f;
     io.Fonts->AddFontFromFileTTF(path_icons.c_str(), 18.0f, &config, ranges_icons);
 
     // ================= ICONS FONT =================
 
+    config.MergeMode = false;
+    config.PixelSnapH = false;
+    config.GlyphMinAdvanceX = 0.0f;
+    config.GlyphOffset.y = 4.0f;
     m_font_icons = io.Fonts->AddFontFromFileTTF(path_icons.c_str(), 24.0f, &config, ranges_icons);
 
     // build

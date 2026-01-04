@@ -35,4 +35,12 @@ bool InputTextWithHint(const char* label, const char* hint, std::string* str, Im
 
 void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button);
 
+bool InputIntSmart(const char* label_id, 
+    int64_t* value, int64_t step, int64_t min, int64_t max,
+    const std::string& format_named, const std::string& format_unnamed);
+
+bool InputDoubleSmart(const char* label_id, 
+    double* value, double step, double min, double max,
+    const std::string& format_named, const std::string& format_unnamed);
+
 } // namespace ImGui

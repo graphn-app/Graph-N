@@ -28,7 +28,8 @@ void OptComfyDlg::show(OptsData& data)
     const char* help_text = nullptr;
 
     /////////////       ComfyUI address
-    ImGui::Separator(data.separator_clr, APP_COMFYUI " address");
+    ImGui::Separator(data.separator_clr, APP_COMFYUI " Address");
+    ImGui::Spacing();
 
 
     /////////////       host
@@ -55,7 +56,8 @@ void OptComfyDlg::show(OptsData& data)
 
 
     /////////////       timeouts
-    ImGui::Separator(data.separator_clr, APP_COMFYUI " server timeouts");
+    ImGui::Separator(data.separator_clr, APP_COMFYUI " Server Timeouts");
+    ImGui::Spacing();
 
 
     /////////////       connection timeout
@@ -84,6 +86,7 @@ void OptComfyDlg::show(OptsData& data)
 
     /////////////       comfyui interaction
     ImGui::Separator(data.separator_clr, APP_COMFYUI " Server Interaction");
+    ImGui::Spacing();
 
 
     /////////////       comfyui main.py path
@@ -198,6 +201,8 @@ void OptComfyDlg::show(OptsData& data)
     ImGui::Separator(data.separator_clr);
     ImGui::Button("Restart " APP_COMFYUI " server");
 
+
+    ///////////// help
     ImGui::Dummy(ImVec2(0.0f, 50.0f));
     show_help_text(help_text);
 }

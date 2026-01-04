@@ -21,6 +21,7 @@ struct OptsData final
     const uint32_t separator_clr = IM_COL32(0, 180, 180, 255);
     const float input_offset_x = 130;
     int64_t step = 1;
+    std::string buffer;
 
     struct Pane final
     {
@@ -53,6 +54,13 @@ struct OptsData final
     struct Workflow final
     {
         NO_COPY_MOVE_CTORS(Workflow);
+
+        double d_sample = 42.001;
+        uint8_t b_sample = 1;
+        WidgetInput numbers = WidgetInput::slider;
+        WidgetInput booleans = WidgetInput::slider;
+
+        std::deque<bool> hovered_items;
     }
     wf;
 };

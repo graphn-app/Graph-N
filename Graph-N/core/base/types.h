@@ -88,3 +88,18 @@ enum class DlgCode
     yes,
     no,
 };
+
+enum class WidgetInput
+{
+    _none,
+
+    direct = _none,
+    slider,
+    checkbox,
+    combo,
+    radio,
+
+    _count,
+    _first = _none + 1,
+    _last = _count - 1,
+};

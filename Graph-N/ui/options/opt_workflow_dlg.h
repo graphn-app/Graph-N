@@ -13,7 +13,11 @@ public:
 
     void init(OptsData& data) override;
     void show(OptsData& data) override;
+
+private:
+    void show_input_styles(OptsData& data);
 };
 
+// показывать сетку
 
 }

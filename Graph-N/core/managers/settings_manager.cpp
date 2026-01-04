@@ -26,6 +26,9 @@ inline constexpr auto gopt_comfyui_capture_output       = "comfyui_capture_outpu
 inline constexpr auto gopt_comfyui_main_py              = "comfyui_main_py";
 inline constexpr auto gopt_comfyui_command              = "comfyui_command";
 
+inline constexpr auto gopt_wf_widget_input_number       = "wf_widget_input_numbers";
+inline constexpr auto gopt_wf_widget_input_bools        = "wf_widget_input_bools";
+
 //////////////////////////////////////////////////////////////////////
 ////////       DEFAULTS                  /////////////////////////////
 //////////////////////////////////////////////////////////////////////
@@ -64,6 +67,9 @@ inline constexpr int64_t gopt_def_comfyui_parse_address     = 0;
 inline constexpr int64_t gopt_def_comfyui_hide_console      = 0;
 inline constexpr int64_t gopt_def_comfyui_capture_output    = 0;
 inline constexpr int64_t gopt_def_comfyui_kill_server       = 0;
+ 
+inline constexpr int64_t gopt_def_wf_widget_input_number    = cast::to_i64(WidgetInput::slider);
+inline constexpr int64_t gopt_def_wf_widget_input_bools     = cast::to_i64(WidgetInput::slider);
 
 //////////////////////////////////////////////////////////////////////
 ////////       COMMON                    /////////////////////////////
@@ -119,6 +125,14 @@ void SettingsManager::set_opt_str(std::string& opt_param, const std::string& opt
 {
     opt_param = opt_value;
     g::pDbManager->set_option(db_name, opt_param);
+}
+
+template<typename ENUM>
+ENUM get_opt_int_e(int64_t value, ENUM def)
+{
+    if (value < cast::to_i64(ENUM::_first) || value > cast::to_i64(ENUM::_last))
+        return def;
+    return cast::to_enum<ENUM>(value);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -276,6 +290,26 @@ const std::string& SettingsManager::comfyui_get_command()
 void SettingsManager::comfyui_set_command(const std::string& cmd)
 {
     set_opt_str(m_comfy_command, cmd, gopt_comfyui_command);
+}
+
+WidgetInput SettingsManager::wf_get_widget_input_numbers()
+{
+    return get_opt_int_e(get_opt_int(m_wf_widget_input_numbers, gopt_wf_widget_input_number, gopt_def_wf_widget_input_number), WidgetInput::slider);
+}
+
+void SettingsManager::wf_set_widget_input_numbers(WidgetInput numbers)
+{
+    set_opt_int(m_wf_widget_input_numbers, cast::to_i64(numbers), gopt_wf_widget_input_number);
+}
+
+WidgetInput SettingsManager::wf_get_widget_input_bools()
+{
+    return get_opt_int_e(get_opt_int(m_wf_widget_input_bools, gopt_wf_widget_input_bools, gopt_def_wf_widget_input_bools), WidgetInput::slider);
+}
+
+void SettingsManager::wf_set_widget_input_bools(WidgetInput bools)
+{
+    set_opt_int(m_wf_widget_input_bools, cast::to_i64(bools), gopt_wf_widget_input_bools);
 }
 
 //////////////////////////////////////////////////////////////////////
