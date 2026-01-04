@@ -98,6 +98,7 @@ enum class WidgetInput
     checkbox,
     combo,
     radio,
+    drag,
 
     _count,
     _first = _none + 1,
