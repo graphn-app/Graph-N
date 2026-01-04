@@ -44,7 +44,7 @@ void OptionsDlgs::init()
 
 DlgCode OptionsDlgs::show(bool& focused)
 {
-    ImGui::PushDlgTitleStyles(data()->clr_title);
+    ImGuiEx::PushDlgTitleStyles(data()->clr_title);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, data()->clr_bg);
 
     set_focus();

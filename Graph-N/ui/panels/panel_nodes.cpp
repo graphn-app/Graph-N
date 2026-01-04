@@ -67,7 +67,7 @@ DlgCode PanelNodes::show(bool& focused)
         show_cfg_buttons();
 
         ImGui::SetNextItemWidth(-FLT_MIN);
-        if (ImGui::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelNodesData::buff_filter],
+        if (ImGuiEx::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelNodesData::buff_filter],
             ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
         {
             data()->buffer[PanelNodesData::buff_filter_lowered] = tools::str::to_lower_ascii(data()->buffer[PanelNodesData::buff_filter]);
@@ -77,7 +77,7 @@ DlgCode PanelNodes::show(bool& focused)
                 expand_all();
         }
 
-        ImGui::Spacing(3);
+        ImGuiEx::Spacing(3);
         if (ImGui::BeginChild("NodesGroup", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
         {
             if (data()->tree_view)

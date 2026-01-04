@@ -28,7 +28,7 @@ void OptComfyDlg::show(OptsData& data)
     const char* help_text = nullptr;
 
     /////////////       ComfyUI address
-    ImGui::Separator(data.separator_clr, APP_COMFYUI " Address");
+    ImGuiEx::Separator(data.separator_clr, APP_COMFYUI " Address");
     ImGui::Spacing();
 
 
@@ -37,7 +37,7 @@ void OptComfyDlg::show(OptsData& data)
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
     ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::InputText("##ComfyUIHost", &data.comfyui.host, ImGuiInputTextFlags_AutoSelectAll))
+    if (ImGuiEx::InputText("##ComfyUIHost", &data.comfyui.host, ImGuiInputTextFlags_AutoSelectAll))
     {
         g::pOptsManager->comfyui_set_host(data.comfyui.host);
     }
@@ -56,7 +56,7 @@ void OptComfyDlg::show(OptsData& data)
 
 
     /////////////       timeouts
-    ImGui::Separator(data.separator_clr, APP_COMFYUI " Server Timeouts");
+    ImGuiEx::Separator(data.separator_clr, APP_COMFYUI " Server Timeouts");
     ImGui::Spacing();
 
 
@@ -85,7 +85,7 @@ void OptComfyDlg::show(OptsData& data)
 
 
     /////////////       comfyui interaction
-    ImGui::Separator(data.separator_clr, APP_COMFYUI " Server Interaction");
+    ImGuiEx::Separator(data.separator_clr, APP_COMFYUI " Server Interaction");
     ImGui::Spacing();
 
 
@@ -94,7 +94,7 @@ void OptComfyDlg::show(OptsData& data)
     show_help_mark(help_text, data.input_offset_x, true, "Full path to main.py or the " APP_COMFYUI " root directory.\n" APP_CAPTION " uses this to launch and manage the server process.");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 28.0f - ImGui::GetStyle().ItemSpacing.x);
-    ImGui::InputText("##ComfyUIPath", &data.comfyui.path, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##ComfyUIPath", &data.comfyui.path, ImGuiInputTextFlags_ReadOnly);
     ImGui::SameLine();
     ImGui::PushStyleColor(ImGuiCol_PopupBg, IM_COL32(0, 0, 0, 255));
     if (ImGui::Button("...##ComfyUIPathSelect", ImVec2(28.0f, 0.0f)))
@@ -118,7 +118,7 @@ void OptComfyDlg::show(OptsData& data)
     show_help_mark(help_text, data.input_offset_x, true, "Additional command line arguments (e.g., --cpu, --lowvram, --fast).\n\nCheck your .bat files for recommended flags.");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::InputText("##ComfyUICmd", &data.comfyui.cmd, ImGuiInputTextFlags_AlwaysOverwrite | ImGuiInputTextFlags_EscapeClearsAll))
+    if (ImGuiEx::InputText("##ComfyUICmd", &data.comfyui.cmd, ImGuiInputTextFlags_AlwaysOverwrite | ImGuiInputTextFlags_EscapeClearsAll))
     {
         g::pOptsManager->comfyui_set_command(data.comfyui.cmd);
     }
@@ -198,7 +198,7 @@ void OptComfyDlg::show(OptsData& data)
 
 
     ///////////// restart
-    ImGui::Separator(data.separator_clr);
+    ImGuiEx::Separator(data.separator_clr);
     ImGui::Button("Restart " APP_COMFYUI " server");
 
 

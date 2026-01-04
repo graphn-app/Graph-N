@@ -10,7 +10,7 @@ void OptWorkflowDlg::init(OptsData& data)
 {
     LogF;
 
-    data.wf.hovered_items.resize(10);
+    data.wf.hovered_items.resize(20);
 
     data.wf.numbers = g::pOptsManager->wf_get_widget_input_numbers();
     data.wf.booleans = g::pOptsManager->wf_get_widget_input_bools();
@@ -62,7 +62,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     ImGui::Spacing();
 
     ///////////////       numbers
-    ImGui::Separator(data.separator_clr, "Numbers");
+    ImGuiEx::Separator(data.separator_clr, "Numbers");
     ImGui::Spacing();
 
     double d_min = 5.0;
@@ -77,7 +77,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
     ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGui::InputDoubleSmart("##WfNumbers0", &data.wf.d_sample, 0.01, d_min, d_max, "Value: %.4f", "%.4f");
+    ImGuiEx::InputDoubleSmart("##WfNumbers0", &data.wf.d_sample, 0.01, d_min, d_max, " Value: %.4f", "%.4f");
 
 
     if (draw_selected(WidgetInput::slider == data.wf.numbers, data.wf.hovered_items[idx], idx + 1, "Slider:"))
@@ -109,67 +109,50 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     ImGui::Spacing();
 
     ///////////////       booleans
-    ImGui::Separator(data.separator_clr, "Booleans");
+    ImGuiEx::Separator(data.separator_clr, "Booleans");
     ImGui::Spacing();
 
 
-    uint8_t b_min = 0;
-    uint8_t b_max = 1;
     bool b_val = !!data.wf.b_sample;
-    const char* b_items[] = { "Value: off", "Value: on" };
 
-    if (draw_selected(WidgetInput::slider == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Toggle switch:"))
+
+    if (draw_selected(WidgetInput::switcher == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Switch:"))
     {
-        data.wf.booleans = WidgetInput::slider;
+        data.wf.booleans = WidgetInput::switcher;
         g::pOptsManager->wf_set_widget_input_bools(data.wf.booleans);
     }
     idx++;
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
     ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGui::SliderScalar("##WfBool0", ImGuiDataType_U8, &data.wf.b_sample, &b_min, &b_max, data.wf.b_sample ? "Value: on" : "Value: off", ImGuiSliderFlags_NoInput);
-
-    if (draw_selected(WidgetInput::checkbox == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Checkbox:"))
-    {
-        data.wf.booleans = WidgetInput::checkbox;
-        g::pOptsManager->wf_set_widget_input_bools(data.wf.booleans);
-    }
-    idx++;
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::Checkbox(data.wf.b_sample ? "Value: on##WfBool1" : "Value: off##WfBool1", &b_val))
+    if (ImGuiEx::BooleanSwitch("##WfBool0", b_val ? "Value: on" : "Value: off", &b_val))
         data.wf.b_sample = b_val;
 
 
-    if (draw_selected(WidgetInput::radio == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Radio group:"))
+    if (draw_selected(WidgetInput::select == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Selectable:"))
     {
-        data.wf.booleans = WidgetInput::radio;
-        g::pOptsManager->wf_set_widget_input_bools(data.wf.booleans);
-    }
-    idx++;
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
-    const float second_radio = (ImGui::GetContentRegionAvail().x / 2);
-    if (ImGui::RadioButton("Value: on##WfBool2", b_val))
-        data.wf.b_sample = 1;
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + 29.0f + second_radio);
-    if (ImGui::RadioButton("Value: off##WfBool2", !b_val))
-        data.wf.b_sample = 0;
-
-    if (draw_selected(WidgetInput::combo == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Dropdown:"))
-    {
-        data.wf.booleans = WidgetInput::combo;
+        data.wf.booleans = WidgetInput::select;
         g::pOptsManager->wf_set_widget_input_bools(data.wf.booleans);
     }
     idx++;
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
     ImGui::SetNextItemWidth(-FLT_MIN);
-    int current = (b_val ? 1 : 0);
-    if (ImGui::Combo("##WfBool3", &current, b_items, 2))
-        data.wf.b_sample = current ? 1 : 0;
+    if (ImGuiEx::BooleanToggleLED(b_val ? "Value: on##WfBool1" : "Value: off##WfBool1", &b_val))
+        data.wf.b_sample = b_val;
+
+
+    if (draw_selected(WidgetInput::toggle == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Toggle Button:"))
+    {
+        data.wf.booleans = WidgetInput::toggle;
+        g::pOptsManager->wf_set_widget_input_bools(data.wf.booleans);
+    }
+    idx++;
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (ImGuiEx::BooleanButtons2("##WfBool2", b_val ? "Value: on" : "Value: off", &b_val))
+        data.wf.b_sample = b_val;
 
 
     ///////////////       help

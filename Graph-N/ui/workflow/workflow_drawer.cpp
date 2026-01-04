@@ -505,7 +505,7 @@ void WorkflowDrawer::draw_widget_int(data::PinInstance* pin, float max_w)
     switch (g::pOptsManager->wf_get_widget_input_numbers())
     {
     case WidgetInput::direct:
-        changed = ImGui::InputIntSmart("", &val, step, min, max, obj->precision_named, obj->precision);
+        changed = ImGuiEx::InputIntSmart("", &val, step, min, max, obj->precision_named, obj->precision);
         break;
     case WidgetInput::drag:
         changed = ImGui::DragScalar("", ImGuiDataType_S64, &val, 1.0f, &min, &max, obj->precision_named.c_str());
@@ -539,12 +539,12 @@ void WorkflowDrawer::draw_widget_uint(data::PinInstance* pin, float max_w)
     switch (g::pOptsManager->wf_get_widget_input_numbers())
     {
     case WidgetInput::direct:
-        changed = ImGui::InputUIntSmart("", &val, step, min, max, obj->precision_named, obj->precision);
+        changed = ImGuiEx::InputUIntSmart("", &val, step, min, max, obj->precision_named, obj->precision);
         break;
     case WidgetInput::slider:
     case WidgetInput::drag:
     default:
-        changed = ImGui::DragScalar("", ImGuiDataType_U64, &val, INT_MAX, &min, &max, obj->precision_named.c_str());
+        changed = ImGui::DragScalar("", ImGuiDataType_U64, &val, float(INT_MAX), &min, &max, obj->precision_named.c_str());
         break;
     }
 
@@ -571,7 +571,7 @@ void WorkflowDrawer::draw_widget_float(data::PinInstance* pin, float max_w)
     switch (g::pOptsManager->wf_get_widget_input_numbers())
     {
     case WidgetInput::direct:
-        changed = ImGui::InputDoubleSmart("", &val, step, min, max, obj->precision_named, obj->precision);
+        changed = ImGuiEx::InputDoubleSmart("", &val, step, min, max, obj->precision_named, obj->precision);
         break;
     case WidgetInput::drag:
         changed = ImGui::DragScalar("", ImGuiDataType_Double, &val, 1.0f, &min, &max, obj->precision_named.c_str());
@@ -591,14 +591,14 @@ void WorkflowDrawer::draw_widget_float(data::PinInstance* pin, float max_w)
 
 void WorkflowDrawer::draw_widget_bool(data::PinInstance* pin, float max_w)
 {
-    auto obj = pin->get_object();
+    //auto obj = pin->get_object();
     data::PinState* state = pin->get_state();
 
     bool& val = data::Pin::get_bool(state->value);
 
     ImGui::SetNextItemWidth(max_w);
     bool changed = false;
-
+/*
     switch (g::pOptsManager->wf_get_widget_input_bools())
     {
     case WidgetInput::radio:
@@ -632,7 +632,7 @@ void WorkflowDrawer::draw_widget_bool(data::PinInstance* pin, float max_w)
         }
         break;
     }
-
+*/
     if (changed)
     {
         val = !val;

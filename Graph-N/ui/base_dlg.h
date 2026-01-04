@@ -82,7 +82,7 @@ protected:
             ImGui::PopStyleColor();
 
         if (pop_title_styles)
-            ImGui::PopDlgTitleStyles();
+            ImGuiEx::PopDlgTitleStyles();
 
         return in_progress ? DlgCode::progress : DlgCode::cancel;
     }
@@ -93,7 +93,7 @@ protected:
             ImGui::EndPopup();
 
         if (pop_styles)
-            ImGui::PopDlgTitleStyles();
+            ImGuiEx::PopDlgTitleStyles();
 
         return exit_code;
     }

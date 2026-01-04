@@ -68,8 +68,8 @@ inline constexpr int64_t gopt_def_comfyui_hide_console      = 0;
 inline constexpr int64_t gopt_def_comfyui_capture_output    = 0;
 inline constexpr int64_t gopt_def_comfyui_kill_server       = 0;
  
-inline constexpr int64_t gopt_def_wf_widget_input_number    = cast::to_i64(WidgetInput::direct);
-inline constexpr int64_t gopt_def_wf_widget_input_bools     = cast::to_i64(WidgetInput::slider);
+inline constexpr int64_t gopt_def_wf_widget_input_number    = cast::to_i64(WidgetInput::slider);
+inline constexpr int64_t gopt_def_wf_widget_input_bools     = cast::to_i64(WidgetInput::select);
 
 //////////////////////////////////////////////////////////////////////
 ////////       COMMON                    /////////////////////////////

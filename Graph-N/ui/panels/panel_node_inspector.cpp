@@ -85,7 +85,7 @@ DlgCode PanelNodeInspector::show(bool& focused)
     {
         if (m_inspecting.empty())
         {
-            ImGui::Spacing(3);
+            ImGuiEx::Spacing(3);
             ImGui::Text(ICON_LC_TANGENT " Select node(s) to inspect");
             return end_panel(true);
         }
@@ -124,14 +124,14 @@ void PanelNodeInspector::show_description(TextWrapperRO& descr_wrapper)
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
         ImGui::PushStyleColor(ImGuiCol_Border, data()->clr_descr_frame);
 
-        ImGui::InputTextMultiline("##NodeDescription", descr_wrapper.get_wrapped_text(),
+        ImGuiEx::InputTextMultiline("##NodeDescription", descr_wrapper.get_wrapped_text(),
             ImVec2(-FLT_MIN, descr_wrapper.get_wrapped_height()),
             ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
         descr_wrapper.re_calc(ImGui::GetItemRectSize());
 
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar();
-        ImGui::Spacing(3);
+        ImGuiEx::Spacing(3);
     }
 }
 

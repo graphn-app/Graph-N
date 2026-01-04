@@ -93,12 +93,12 @@ enum class WidgetInput
 {
     _none,
 
-    direct,
-    slider,
-    checkbox,
-    combo,
-    radio,
-    drag,
+    direct,     // int
+    slider,     // int - def
+    drag,       // int
+    toggle,     // bool
+    switcher,   // bool
+    select,     // bool - def
 
     _count,
     _first = _none + 1,

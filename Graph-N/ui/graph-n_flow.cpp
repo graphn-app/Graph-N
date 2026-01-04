@@ -53,7 +53,7 @@ bool GraphN_Flow::init()
     Log("Panels created");
 
     // start connect to ComfyUI
-    reconnect();
+    //reconnect();
 
     return true;
 }

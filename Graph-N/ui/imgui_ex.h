@@ -2,15 +2,7 @@
 
 // TODO: remove not needd
 
-namespace tools
-{
-namespace time
-{
-class dt;
-}
-}
-
-namespace ImGui
+namespace ImGuiEx
 {
 
 void Spacing(size_t count);
@@ -22,7 +14,7 @@ void PushDlgTitleStyles(const uint32_t color);
 void PopDlgTitleStyles();
 
 void HelpMarkerOnLastControl(const char* tooltip);
-void HelpMarker(const char* tooltip, const char* help_mark = ICON_LC_MESSAGE_CIRCLE_QUESTION_MARK, bool same_line = true);
+void HelpMarker(const char* tooltip, const char* help_mark, bool same_line = true);
 
 bool CheckMultiselectControls();
 
@@ -47,6 +39,16 @@ bool InputDoubleSmart(const char* label_id,
     double* value, double step, double min, double max,
     const std::string& format_named, const std::string& format_unnamed);
 
-bool ToggleBoolean(const char* label, bool* value, ImVec2 size_arg = ImVec2(0, 0));
+// two regular left/right buttons
+bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* value, ImVec2 size_arg = ImVec2(0, 0));
 
-} // namespace ImGui
+// two regular left/right buttons, but single centered text
+bool BooleanButtons2(const char* id_label, const char* label, bool* value);
+
+// text at the left, oval-switcher at the right
+bool BooleanSwitch(const char* id_label, const char* label, bool* value, float width = 0.0f);
+
+// bounded circle at the right
+bool BooleanToggleLED(const char* id_label, bool* value, float width = 0.0f);
+
+} // namespace ImGuiEx
