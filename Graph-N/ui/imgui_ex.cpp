@@ -167,9 +167,9 @@ void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button
         ImGui::SetScrollY(window, window->Scroll.y + delta.y);
 }
 
-bool InputIntSmart(
-    const char* label_id, 
-    int64_t* value, int64_t step, int64_t min, int64_t max,
+template <typename TYPE>
+bool InputTypeSmart(const char* label_id,
+    TYPE* value, TYPE step, TYPE min, TYPE max, ImGuiDataType_ type,
     const std::string& format_named, const std::string& format_unnamed)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -178,57 +178,10 @@ bool InputIntSmart(
 
     if ((ImGui::GetActiveID() != window->GetID(label_id)))
     {
-        ImGui::InputScalar(label_id, ImGuiDataType_S64, value, &step, nullptr, format_named.c_str());
-        return false;
+        if (!ImGui::InputScalar(label_id, type, value, &step, nullptr, format_named.c_str()))
+            return false;
     }
-
-    if (!ImGui::InputScalar(label_id, ImGuiDataType_S64, value, &step, nullptr, format_unnamed.c_str()))
-        return false;
-
-    if (*value < min) *value = min;
-    if (*value > max) *value = max;
-    return true;
-}
-
-bool InputUIntSmart(
-    const char* label_id,
-    uint64_t* value, uint64_t step, uint64_t min, uint64_t max,
-    const std::string& format_named, const std::string& format_unnamed)
-{
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    if (window->SkipItems)
-        return false;
-
-    if ((ImGui::GetActiveID() != window->GetID(label_id)))
-    {
-        ImGui::InputScalar(label_id, ImGuiDataType_U64, value, &step, nullptr, format_named.c_str());
-        return false;
-    }
-
-    if (!ImGui::InputScalar(label_id, ImGuiDataType_U64, value, &step, nullptr, format_unnamed.c_str()))
-        return false;
-
-    if (*value < min) *value = min;
-    if (*value > max) *value = max;
-    return true;
-}
-
-bool InputDoubleSmart(
-    const char* label_id, 
-    double* value, double step, double min, double max,
-    const std::string& format_named, const std::string& format_unnamed)
-{
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    if (window->SkipItems)
-        return false;
-
-    if ((ImGui::GetActiveID() != window->GetID(label_id)))
-    {
-        ImGui::InputScalar(label_id, ImGuiDataType_Double, value, &step, nullptr, format_named.c_str());
-        return false;
-    }
-
-    if (!ImGui::InputScalar(label_id, ImGuiDataType_Double, value, &step, nullptr, format_unnamed.c_str()))
+    else if (!ImGui::InputScalar(label_id, type, value, &step, nullptr, format_unnamed.c_str()))
         return false;
 
     if (*value < min) *value = min;
@@ -246,6 +199,104 @@ bool InputDoubleSmart(
     // Draw the input
     // Note: We assume 'step' > 0 to show the +/- buttons as in your screenshot
     //return ImGui::InputDouble(label_id, value, step, 0.0f, buffer.c_str());
+}
+
+bool InputIntSmart(
+    const char* label_id, 
+    int64_t* value, int64_t step, int64_t min, int64_t max,
+    const std::string& format_named, const std::string& format_unnamed)
+{
+    return InputTypeSmart(label_id, value, step, min, max, ImGuiDataType_S64, format_named, format_unnamed);
+}
+
+bool InputUIntSmart(
+    const char* label_id,
+    uint64_t* value, uint64_t step, uint64_t min, uint64_t max,
+    const std::string& format_named, const std::string& format_unnamed)
+{
+    return InputTypeSmart(label_id, value, step, min, max, ImGuiDataType_U64, format_named, format_unnamed);
+}
+
+bool InputDoubleSmart(
+    const char* label_id, 
+    double* value, double step, double min, double max,
+    const std::string& format_named, const std::string& format_unnamed)
+{
+    return InputTypeSmart(label_id, value, step, min, max, ImGuiDataType_Double, format_named, format_unnamed);
+}
+
+template <typename TYPE>
+bool DragTypeSmart(const char* label, TYPE* value, TYPE min, TYPE max, ImGuiDataType_ type, const char* format)
+{
+    // Calculate the full range
+    const TYPE range = max - min;
+
+    // Define sensitivity.
+    // This means: "It takes 200 pixels of mouse dragging to go from Min to Max"
+    constexpr float drag_pixel_span = 200.0f;
+
+    // Calculate dynamic speed
+    float speed = cast::to_float(range / drag_pixel_span);
+
+    // Safety clamp for very small ranges (optional)
+    // Ensures we don't get stuck with 0 speed if range is tiny
+    if (speed <= 0.001f)
+        speed = 0.01f;
+
+    else if (ImGui::IsKeyDown(ImGuiMod_Shift))
+        speed = 1.0f;
+
+    // Draw the control
+    // Assuming 'ImGui::DragFloat' or similar API
+    if (ImGui::DragScalar(label, type, value, speed, &min, &max, format))
+    {
+        if (*value < min) *value = min;
+        if (*value > max) *value = max;
+        return true;
+    }
+    return false;
+}
+
+bool DragDoubleSmart(const char* label, double* value, double min, double max, const char* format)
+{
+    return DragTypeSmart(label, value, min, max, ImGuiDataType_Double, format);
+}
+
+bool DragIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format)
+{
+    return DragTypeSmart(label, value, min, max, ImGuiDataType_S64, format);
+}
+
+bool DragUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format)
+{
+    return DragTypeSmart(label, value, min, max, ImGuiDataType_U64, format);
+}
+
+template <typename TYPE>
+bool SliderTypeSmart(const char* label, TYPE* value, TYPE min, TYPE max, ImGuiDataType_ type, const char* format)
+{
+    if (ImGui::SliderScalar(label, type, value, &min, &max, format))
+    {
+        if (*value < min) *value = min;
+        if (*value > max) *value = max;
+        return true;
+    }
+    return false;
+}
+
+bool SliderDoubleSmart(const char* label, double* value, double min, double max, const char* format)
+{
+    return SliderTypeSmart(label, value, min, max, ImGuiDataType_Double, format);
+}
+
+bool SliderIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format)
+{
+    return SliderTypeSmart(label, value, min, max, ImGuiDataType_S64, format);
+}
+
+bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format)
+{
+    return SliderTypeSmart(label, value, min, max, ImGuiDataType_U64, format);
 }
 
 bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* value, ImVec2 size_arg /*= ImVec2(0, 0)*/)
@@ -470,7 +521,6 @@ bool BooleanToggleLED(const char* id_label, bool* value, float width /*= 0.0f*/)
 
     return pressed;
 }
-
 
 //
 //// 2. Switch Toggle (Oval Frame, Integrated Track)

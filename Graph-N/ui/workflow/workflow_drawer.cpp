@@ -450,7 +450,6 @@ void WorkflowDrawer::draw_widget(data::PinInstance* pin, float max_w)
 {
     auto obj = pin->get_object();
     auto state = pin->get_state();
-    bool control_after_generate = false;
 
     switch (state->type)
     {
@@ -459,11 +458,9 @@ void WorkflowDrawer::draw_widget(data::PinInstance* pin, float max_w)
             draw_widget_uint(pin, max_w);
         else
             draw_widget_int(pin, max_w);
-        control_after_generate = obj->control_after_generate;
         break;
     case data::PinType::FLOAT:
         draw_widget_float(pin, max_w);
-        control_after_generate = obj->control_after_generate;
         break;
     case data::PinType::BOOLEAN:
         draw_widget_bool(pin, max_w);
@@ -485,7 +482,7 @@ void WorkflowDrawer::draw_widget(data::PinInstance* pin, float max_w)
         break;
     }
 
-    if (control_after_generate)
+    if (obj->control_after_generate && (data::PinType::INT == state->type || data::PinType::FLOAT == state->type || data::PinType::NUMBER == state->type))
     { }
 }
 
@@ -500,27 +497,21 @@ void WorkflowDrawer::draw_widget_int(data::PinInstance* pin, float max_w)
     int64_t max = data::Pin::get_int(obj->max);
 
     ImGui::SetNextItemWidth(max_w);
-    bool changed = false;
 
     switch (g::pOptsManager->wf_get_widget_input_numbers())
     {
     case WidgetInput::direct:
-        changed = ImGuiEx::InputIntSmart("", &val, step, min, max, obj->precision_named, obj->precision);
+        ImGuiEx::InputIntSmart("", &val, step, min, max, obj->precision_named, obj->precision);
         break;
     case WidgetInput::drag:
-        changed = ImGui::DragScalar("", ImGuiDataType_S64, &val, 1.0f, &min, &max, obj->precision_named.c_str());
+        ImGuiEx::DragIntSmart("", &val, min, max, obj->precision_named.c_str());
         break;
     case WidgetInput::slider:
     default:
-        changed = ImGui::SliderScalar("", ImGuiDataType_S64, &val, &min, &max, obj->precision_named.c_str());
+        ImGuiEx::SliderIntSmart("", &val, min, max, obj->precision_named.c_str());
         break;
     }
 
-    if (changed)
-    {
-        if (val < min) val = min;
-        if (val > max) val = max;
-    }
 }
 
 void WorkflowDrawer::draw_widget_uint(data::PinInstance* pin, float max_w)
@@ -534,25 +525,19 @@ void WorkflowDrawer::draw_widget_uint(data::PinInstance* pin, float max_w)
     uint64_t max = data::Pin::get_uint(obj->max);
 
     ImGui::SetNextItemWidth(max_w);
-    bool changed = false;
 
     switch (g::pOptsManager->wf_get_widget_input_numbers())
     {
     case WidgetInput::direct:
-        changed = ImGuiEx::InputUIntSmart("", &val, step, min, max, obj->precision_named, obj->precision);
+        ImGuiEx::InputUIntSmart("", &val, step, min, max, obj->precision_named, obj->precision);
         break;
     case WidgetInput::slider:
     case WidgetInput::drag:
     default:
-        changed = ImGui::DragScalar("", ImGuiDataType_U64, &val, float(INT_MAX), &min, &max, obj->precision_named.c_str());
+        ImGuiEx::DragUIntSmart("", &val, min, max, obj->precision_named.c_str());
         break;
     }
 
-    if (changed)
-    {
-        if (val < min) val = min;
-        if (val > max) val = max;
-    }
 }
 
 void WorkflowDrawer::draw_widget_float(data::PinInstance* pin, float max_w)
@@ -566,76 +551,43 @@ void WorkflowDrawer::draw_widget_float(data::PinInstance* pin, float max_w)
     double step = data::Pin::get_float(obj->step);
 
     ImGui::SetNextItemWidth(max_w);
-    bool changed = false;
 
     switch (g::pOptsManager->wf_get_widget_input_numbers())
     {
     case WidgetInput::direct:
-        changed = ImGuiEx::InputDoubleSmart("", &val, step, min, max, obj->precision_named, obj->precision);
+        ImGuiEx::InputDoubleSmart("", &val, step, min, max, obj->precision_named, obj->precision);
         break;
     case WidgetInput::drag:
-        changed = ImGui::DragScalar("", ImGuiDataType_Double, &val, 1.0f, &min, &max, obj->precision_named.c_str());
+        ImGuiEx::DragDoubleSmart("", &val, min, max, obj->precision_named.c_str());
         break;
     case WidgetInput::slider:
     default:
-        changed = ImGui::SliderScalar("", ImGuiDataType_Double, &val, &min, &max, obj->precision_named.c_str());
+        ImGuiEx::SliderDoubleSmart("", &val, min, max, obj->precision_named.c_str());
         break;
     }
 
-    if (changed)
-    {
-        if (val < min) val = min;
-        if (val > max) val = max;
-    }
 }
 
 void WorkflowDrawer::draw_widget_bool(data::PinInstance* pin, float max_w)
 {
-    //auto obj = pin->get_object();
+    auto obj = pin->get_object();
     data::PinState* state = pin->get_state();
 
     bool& val = data::Pin::get_bool(state->value);
 
-    ImGui::SetNextItemWidth(max_w);
-    bool changed = false;
-/*
     switch (g::pOptsManager->wf_get_widget_input_bools())
     {
-    case WidgetInput::radio:
-        {
-            const auto pos = ImGui::GetCursorPosX();
-            const bool changed1 = ImGui::RadioButton(obj->label_off_named.c_str(), !val);
-            ImGui::SetCursorPosX(pos);
-            const bool changed2 = ImGui::RadioButton(obj->label_on_named.c_str(), val);
-            changed = changed1 || changed2;
-        }
+    case WidgetInput::switcher:
+        ImGuiEx::BooleanSwitch("", val ? obj->label_on_named.c_str() : obj->label_off_named.c_str(), &val, max_w);
         break;
-    case WidgetInput::combo:
-        {
-            const char* items[] = { obj->label_off_named.c_str(), obj->label_on_named.c_str() };
-            int current = val ? 1 : 0;
-            changed = ImGui::Combo("", &current, items, 2);
-        }
+    case WidgetInput::toggle:
+        ImGui::SetNextItemWidth(max_w);
+        ImGuiEx::BooleanButtons2("", val ? obj->label_on_named.c_str() : obj->label_off_named.c_str(), &val);
         break;
-    case WidgetInput::checkbox:
-        {
-            bool temp = val;
-            changed = ImGui::Checkbox(val ? obj->label_on_named.c_str() : obj->label_off_named.c_str(), &temp);
-        }
-        break;
-    case WidgetInput::slider:
+    case WidgetInput::select:
     default:
-        {
-            uint8_t uval = val ? 1 : 0;
-            uint8_t min = 0, max = 1;
-            changed = ImGui::SliderScalar("", ImGuiDataType_U8, &uval, &min, &max, val ? obj->label_on_named.c_str() : obj->label_off_named.c_str(), ImGuiSliderFlags_NoInput);
-        }
+        ImGuiEx::BooleanToggleLED(val ? obj->label_on_named.c_str() : obj->label_off_named.c_str(), &val, max_w);
         break;
-    }
-*/
-    if (changed)
-    {
-        val = !val;
     }
 }
 

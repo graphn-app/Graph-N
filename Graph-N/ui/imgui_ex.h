@@ -27,17 +27,17 @@ bool InputTextWithHint(const char* label, const char* hint, std::string* str, Im
 
 void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button);
 
-bool InputIntSmart(const char* label_id, 
-    int64_t* value, int64_t step, int64_t min, int64_t max,
-    const std::string& format_named, const std::string& format_unnamed);
+bool InputIntSmart(const char* label_id, int64_t* value, int64_t step, int64_t min, int64_t max, const std::string& format_named, const std::string& format_unnamed);
+bool InputUIntSmart(const char* label_id, uint64_t* value, uint64_t step, uint64_t min, uint64_t max, const std::string& format_named, const std::string& format_unnamed);
+bool InputDoubleSmart(const char* label_id,  double* value, double step, double min, double max, const std::string& format_named, const std::string& format_unnamed);
 
-bool InputUIntSmart(const char* label_id,
-    uint64_t* value, uint64_t step, uint64_t min, uint64_t max,
-    const std::string& format_named, const std::string& format_unnamed);
+bool DragDoubleSmart(const char* label, double* value, double min, double max, const char* format);
+bool DragIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format);
+bool DragUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format);
 
-bool InputDoubleSmart(const char* label_id, 
-    double* value, double step, double min, double max,
-    const std::string& format_named, const std::string& format_unnamed);
+bool SliderDoubleSmart(const char* label, double* value, double min, double max, const char* format);
+bool SliderIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format);
+bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format);
 
 // two regular left/right buttons
 bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* value, ImVec2 size_arg = ImVec2(0, 0));

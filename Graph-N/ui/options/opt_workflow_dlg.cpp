@@ -89,8 +89,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     show_help_mark(help_text, data.input_offset_x, true, "Ctrl+Click to type value.");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::SliderScalar("##WfNumbers1", ImGuiDataType_Double, &data.wf.d_sample, &d_min, &d_max, "Value: %.4f") && data.wf.d_sample > d_max)
-        data.wf.d_sample = d_max;
+    ImGuiEx::SliderDoubleSmart("##WfNumbers1", &data.wf.d_sample, d_min, d_max, "Value: %.4f");
 
 
     if (draw_selected(WidgetInput::drag == data.wf.numbers, data.wf.hovered_items[idx], idx + 1, "Scrubber:"))
@@ -102,8 +101,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     show_help_mark(help_text, data.input_offset_x, true, "Ctrl+Click or Double Click to type value.");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::DragScalar("##WfNumbers2", ImGuiDataType_Double, &data.wf.d_sample, 1.0f, &d_min, &d_max, "Value: %.4f") && data.wf.d_sample > d_max)
-        data.wf.d_sample = d_max;
+    ImGuiEx::DragDoubleSmart("##WfNumbers2", &data.wf.d_sample, d_min, d_max, "Value: %.4f");
 
 
     ImGui::Spacing();
