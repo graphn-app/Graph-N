@@ -4,6 +4,27 @@
 namespace ImGuiEx
 {
 
+bool TooltipOnLastControl(const char* tt, ImGuiHoveredFlags_ delay /*= ImGuiHoveredFlags_DelayShort*/,
+    bool only_if_modifier_pressed /*= false*/, ImGuiKey modifier /*= ImGuiMod_Ctrl*/)
+{
+    if (nullptr == tt || 0 == *tt)
+        return false;
+
+    bool show_tt = (only_if_modifier_pressed && ImGui::IsKeyDown(modifier) && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone));
+    if (!show_tt && !only_if_modifier_pressed && ImGui::IsItemHovered(delay))
+        show_tt = true;
+
+    if (show_tt && ImGui::BeginTooltip())
+    {
+        ImGui::PushTextWrapPos(300.0f);
+        ImGui::TextUnformatted(tt);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+        return true;
+    }
+    return false;
+}
+
 void Spacing(size_t count)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -126,18 +147,6 @@ bool InputText(const char* label, std::string* str, ImGuiInputTextFlags flags, I
     return ImGui::InputText(label, (char*)str->c_str(), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
 }
 
-bool InputTextMultiline(const char* label, std::string* str, const ImVec2& size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
-{
-    IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
-    flags |= ImGuiInputTextFlags_CallbackResize;
-
-    InputTextCallback_UserData cb_user_data;
-    cb_user_data.Str = str;
-    cb_user_data.ChainCallback = callback;
-    cb_user_data.ChainCallbackUserData = user_data;
-    return ImGui::InputTextMultiline(label, (char*)str->c_str(), str->capacity() + 1, size, flags, InputTextCallback, &cb_user_data);
-}
-
 bool InputTextWithHint(const char* label, const char* hint, std::string* str, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
 {
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
@@ -148,6 +157,30 @@ bool InputTextWithHint(const char* label, const char* hint, std::string* str, Im
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
     return ImGui::InputTextWithHint(label, hint, (char*)str->c_str(), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
+}
+
+bool InputTextMultiline(const char* label, std::string* str, const ImVec2& size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
+{
+    IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+    flags |= ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_Multiline;
+
+    InputTextCallback_UserData cb_user_data;
+    cb_user_data.Str = str;
+    cb_user_data.ChainCallback = callback;
+    cb_user_data.ChainCallbackUserData = user_data;
+    return ImGui::InputTextEx(label, nullptr, (char*)str->c_str(), cast::to_i32(str->capacity() + 1), size, flags, InputTextCallback, &cb_user_data);
+}
+
+bool InputTextMultilineWithHint(const char* label, const char* hint, std::string* str, const ImVec2& size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
+{
+    IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+    flags |= ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_Multiline;
+
+    InputTextCallback_UserData cb_user_data;
+    cb_user_data.Str = str;
+    cb_user_data.ChainCallback = callback;
+    cb_user_data.ChainCallbackUserData = user_data;
+    return ImGui::InputTextEx(label, hint, (char*)str->c_str(), cast::to_i32(str->capacity() + 1), size, flags, InputTextCallback, &cb_user_data);
 }
 
 void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button)
@@ -467,7 +500,7 @@ bool BooleanSwitch(const char* id_label, const char* label, bool* value, float w
     return pressed;
 }
 
-bool BooleanToggleLED(const char* id_label, bool* value, float width /*= 0.0f*/)
+bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool left_rounded, float width /*= 0.0f*/)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
@@ -501,10 +534,13 @@ bool BooleanToggleLED(const char* id_label, bool* value, float width /*= 0.0f*/)
     const ImU32 col_frame_bg = ImGui::GetColorU32(hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
 
     // Draw background and border manually to ensure perfect Oval shape
-    window->DrawList->AddRectFilled(total_bb.Min, total_bb.Max, col_frame_bg, rounding);
+    window->DrawList->AddRectFilled(total_bb.Min, total_bb.Max, col_frame_bg, rounding, left_rounded ? 0 : ImDrawFlags_RoundCornersRight);
 
-    // Draw border (ImGuiCol_Border)
-    window->DrawList->AddRect(total_bb.Min, total_bb.Max, ImGui::GetColorU32(ImGuiCol_Border), rounding, 0, 1.0f);
+    if (draw_frame)
+    {
+        // Draw border (ImGuiCol_Border)
+        window->DrawList->AddRect(total_bb.Min, total_bb.Max, ImGui::GetColorU32(ImGuiCol_Border), rounding, 0, 1.0f);
+    }
 
     // Draw LED
     // Full height logic requested, minus minimal padding to not overlap border
@@ -517,7 +553,7 @@ bool BooleanToggleLED(const char* id_label, bool* value, float width /*= 0.0f*/)
     window->DrawList->AddCircleFilled(center, radius, col_led);
 
     // Draw Label
-    ImGui::RenderText(ImVec2(cursor.x + style.FramePadding.x + rounding * 0.5f, cursor.y + style.FramePadding.y), id_label);
+    ImGui::RenderText(ImVec2(cursor.x + style.FramePadding.x /*+ rounding * 0.5f*/, cursor.y + style.FramePadding.y), id_label);
 
     return pressed;
 }

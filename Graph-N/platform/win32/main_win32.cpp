@@ -76,6 +76,7 @@ bool MainRoutine_Win32::init()
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
+    ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = ImGui::GetStyle().Colors[ImGuiCol_TitleBg];
 
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(m_hwnd);

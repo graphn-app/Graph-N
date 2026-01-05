@@ -107,7 +107,14 @@ constexpr uint32_t to_u32(T param)
 template <typename T>
 constexpr int32_t to_i32(T param)
 {
-	return to<T, int32_t>(param);
+    if constexpr (std::is_enum_v<T>)
+    {
+        return static_cast<int32_t>(param);
+    }
+    else
+    {
+        return to<T, int32_t>(param);
+    }
 }
 
 template <typename T>

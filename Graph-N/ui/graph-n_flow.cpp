@@ -15,6 +15,249 @@
 namespace ui
 {
 
+#if 1
+inline constexpr const char* test_json =
+R"(
+    {
+	    "ImpactKSamplerAdvancedBasicPipe": {
+		    "input": {
+			    "required": {
+				    "basic_pipe": [
+					    "IMAGE",
+					    {
+						    "tooltip": "basic_pipe input for sampling"
+					    }
+				    ],
+				    "add_noise": [
+					    "BOOLEAN",
+					    {
+						    "default": true,
+						    "label_on": "enable",
+						    "label_off": "disable",
+						    "tooltip": "Whether to add noise"
+					    }
+				    ],
+				    "noise_seed": [
+					    "INT",
+					    {
+						    "default": 0,
+						    "min": 0,
+						    "max": 18446744073709551615,
+						    "tooltip": "Random seed to use for generating CPU noise for sampling."
+					    }
+				    ],
+				    "steps": [
+					    "INT",
+					    {
+						    "default": 20,
+						    "min": 1,
+						    "max": 10000,
+						    "tooltip": "total sampling steps"
+					    }
+				    ],
+				    "labels": [
+					    "STRING",
+					    {
+						    "multiline": true,
+						    "placeholder": "List the types of segments to be allowed, separated by commas"
+					    }
+				    ],
+				    "cfg": [
+					    "FLOAT",
+					    {
+						    "default": 8.0,
+						    "min": 0.0,
+						    "max": 100.0,
+						    "tooltip": "classifier free guidance value"
+					    }
+				    ],
+				    "constant_color": [
+					    "COLOR",
+					    {
+						    "default": "#123456"
+					    }
+				    ],
+				    "constant_color_alpha": [
+					    "COLOR",
+					    {
+						    "default": "#12345678",
+						    "tooltip": "RGBA"
+					    }
+				    ],
+				    "folder_path": [
+					    "STRING",
+					    {
+						    "default": "",
+						    "tooltip": "Path to the folder containing images. Relative paths are resolved to the ComfyUI output directory."
+					    }
+				    ],
+				    "sampler_name": [
+					    [
+						    "euler",
+						    "euler_cfg_pp",
+						    "euler_ancestral",
+						    "euler_ancestral_cfg_pp",
+						    "heun",
+						    "heunpp2",
+						    "dpm_2",
+						    "dpm_2_ancestral",
+						    "lms",
+						    "dpm_fast",
+						    "dpm_adaptive",
+						    "dpmpp_2s_ancestral",
+						    "dpmpp_2s_ancestral_cfg_pp",
+						    "dpmpp_sde",
+						    "dpmpp_sde_gpu",
+						    "dpmpp_2m",
+						    "dpmpp_2m_cfg_pp",
+						    "dpmpp_2m_sde",
+						    "dpmpp_2m_sde_gpu",
+						    "dpmpp_2m_sde_heun",
+						    "dpmpp_2m_sde_heun_gpu",
+						    "dpmpp_3m_sde",
+						    "dpmpp_3m_sde_gpu",
+						    "ddpm",
+						    "lcm",
+						    "ipndm",
+						    "ipndm_v",
+						    "deis",
+						    "res_multistep",
+						    "res_multistep_cfg_pp",
+						    "res_multistep_ancestral",
+						    "res_multistep_ancestral_cfg_pp",
+						    "gradient_estimation",
+						    "gradient_estimation_cfg_pp",
+						    "er_sde",
+						    "seeds_2",
+						    "seeds_3",
+						    "sa_solver",
+						    "sa_solver_pece",
+						    "ddim",
+						    "uni_pc",
+						    "uni_pc_bh2"
+					    ],
+					    {
+						    "tooltip": "sampler"
+					    }
+				    ],
+				    "scheduler": [
+					    [
+						    "simple",
+						    "sgm_uniform",
+						    "karras",
+						    "exponential",
+						    "ddim_uniform",
+						    "beta",
+						    "normal",
+						    "linear_quadratic",
+						    "kl_optimal",
+						    "AYS SDXL",
+						    "AYS SD1",
+						    "AYS SVD",
+						    "GITS[coeff=1.2]",
+						    "LTXV[default]",
+						    "OSS FLUX",
+						    "OSS Wan",
+						    "OSS Chroma"
+					    ],
+					    {
+						    "tooltip": "noise schedule"
+					    }
+				    ],
+				    "latent_image": [
+					    "MASK",
+					    {
+						    "tooltip": "input latent image"
+					    }
+				    ],
+				    "start_at_step": [
+					    "INT",
+					    {
+						    "default": 0,
+						    "min": 0,
+						    "max": 10000,
+						    "tooltip": "The starting step of the sampling to be applied at this node within the range of 'steps'."
+					    }
+				    ],
+				    "end_at_step": [
+					    "INT",
+					    {
+						    "default": 10000,
+						    "min": 0,
+						    "max": 10000,
+						    "tooltip": "The step at which sampling applied at this node will stop within the range of steps (if greater than steps, sampling will continue only up to steps)."
+					    }
+				    ],
+				    "return_with_leftover_noise": [
+					    "BOOLEAN",
+					    {
+						    "default": false,
+						    "label_on": "enable",
+						    "label_off": "disable",
+						    "tooltip": "Whether to return the latent with noise remaining if the noise has not been completely removed according to the noise schedule, or to completely remove the noise before returning it."
+					    }
+				    ]
+			    },
+			    "optional": {
+				    "scheduler_func_opt": [
+					    "SCHEDULER_FUNC",
+					    {
+						    "tooltip": "[OPTIONAL] Noise schedule generation function. If this is set, the scheduler widget will be ignored."
+					    }
+				    ]
+			    }
+		    },
+		    "input_order": {
+			    "required": [
+				    "basic_pipe",
+				    "add_noise",
+				    "noise_seed",
+				    "steps",
+				    "cfg",
+				    "sampler_name",
+				    "scheduler",
+				    "latent_image",
+				    "start_at_step",
+				    "end_at_step",
+				    "return_with_leftover_noise"
+			    ],
+			    "optional": [
+				    "scheduler_func_opt"
+			    ]
+		    },
+		    "output": [
+			    "CLIP",
+			    "LATENT",
+			    "CONDITIONING",
+			    "MODEL"
+		    ],
+		    "output_is_list": [
+			    false,
+			    false,
+			    false,
+			    false
+		    ],
+		    "output_name": [
+			    "CLIP",
+			    "LATENT",
+			    "CONDITIONING",
+			    "MODEL"
+		    ],
+		    "name": "ImpactKSamplerAdvancedBasicPipe",
+		    "display_name": "KSampler",
+            "description": "",
+            "python_module" : "custom_nodes.ComfyUI-Impact-Pack",
+            "category" : "sampling",
+            "output_node" : false,
+            "output_tooltips" : [
+            "passthrough input basic_pipe",
+            "result latent",
+            "VAE in basic_pipe"
+        ]
+    }
+})";
+#endif
+
 GraphN_Flow::GraphN_Flow()
 {
     LogF;
@@ -400,7 +643,11 @@ void GraphN_Flow::show_menu_bar_connecting()
             m_windows |= ViewParsingNodes;
 
             m_nodes_parser = std::make_unique<mngr::NodesParser>();
+#if 1
+            m_nodes_parser->parse(test_json);
+#else
             m_nodes_parser->parse(std::move(g::pConnectManager->get_nodes_raw()));
+#endif
             m_online = true;
             return;
         }

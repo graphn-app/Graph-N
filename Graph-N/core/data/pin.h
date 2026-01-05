@@ -51,8 +51,17 @@ enum class PinType		// primitives and predefined colors only
 
 enum class ControlAfterGenerate
 {
-    fixed, increment, decrement, randomize,
-    _count
+    _none,
+
+    fixed = _none,
+    increment,
+    decrement,
+    randomize,
+
+    _count,
+    _first = _none,
+    _last = _count - 1,
+    _zero = _none
 };
 
 inline constexpr const char* ControlAfterGenerateStr[cast::to_u64(ControlAfterGenerate::_count)] =
@@ -70,7 +79,9 @@ struct PinState final
     PinType type = PinType::_none;  // will change if ANY pin
     std::string type_str;       // will change if ANY pin
 
-    primitive value;         // current value, if widget
+    primitive value;            // current value, if widget
+    int combo_index = 0;        // combo-list current selection
+    float colors[4];            // for color widget
     ControlAfterGenerate control_after_generate_value = ControlAfterGenerate::randomize; // current seed state
 };
 
@@ -93,9 +104,10 @@ public:
     void initialize(const std::string& type_as_string);
     void finalize();
 
-    static uint32_t color_to_val(const std::string& clr);
+    static uint32_t color_to_val(const std::string& clr, bool& alpha_in_string);
+    static int64_t colors_to_int(const float colors[4]);
 
-    hid parent_node = 0;
+    const Node* parent_node = nullptr;
 
     bool input = false;
     bool output = false;
@@ -120,6 +132,7 @@ public:
     size_t hash = 0;
     std::string name;
     float name_width = 0.0f;
+    float value_width = 0.0f;
     std::string tooltip;
 
     bool type_any = false;
@@ -151,7 +164,6 @@ public:
     bool display_as_color = false;
     bool display_as_slider = false;
     bool control_after_generate = false;
-    static const char* control_after_generate_to_string(ControlAfterGenerate val);
 
     // double
     std::optional<double> round;
@@ -162,12 +174,17 @@ public:
     // combo
     bool multiselect = false;
     std::vector<primitive> list;
-    static std::string to_string(const std::vector<primitive>::iterator& it);
+    std::vector<const char*> combo_items_ptr;
+    std::vector<std::string> combo_items_str;
+
+    // color
+    bool alpha_enabled = true;
 
 private:
     static const std::unordered_map<std::string, PinType> pin_type_map;
 
 private:
+    static std::string primitive_to_string(primitive& item);
     void generate_pin_color();
     void init_defaults();
     void precision_to_string();

@@ -125,7 +125,7 @@ void OptComfyDlg::show(OptsData& data)
 
 
     ///////////// disable if no path
-    if (data.comfyui.path.empty() || data.comfyui.cmd.empty())
+    if (data.comfyui.path.empty())
         ImGui::BeginDisabled();
 
 
@@ -193,7 +193,7 @@ void OptComfyDlg::show(OptsData& data)
         ImGui::EndDisabled();
 
     ///////////// disable if no path
-    if (data.comfyui.path.empty() || data.comfyui.cmd.empty())
+    if (data.comfyui.path.empty())
         ImGui::EndDisabled();
 
 

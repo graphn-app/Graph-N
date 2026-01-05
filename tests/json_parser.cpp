@@ -1,4 +1,4 @@
-﻿#include <gtest/gtest.h>
+#include <gtest/gtest.h>
 #include "core/managers/nodes_manager.h"
 
 class ParserTest : public ::testing::Test
@@ -45,7 +45,7 @@ TEST_F(ParserTest, HandlesEmptyJson)
 TEST_F(ParserTest, HandlesCrazyInput)
 {
     const std::string test_json =
-        R"({
+    R"({
         "CrazyNode_v1": {
             "name": "CrazyNode",
             "display_name": "🤪 Node With Emojis",

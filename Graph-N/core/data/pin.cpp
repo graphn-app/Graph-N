@@ -24,13 +24,13 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
 
 Pin::Pin(const Node* node, const std::string& pin_name)
     : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_IN_" + pin_name)
-    , parent_node(node->get_id())
+    , parent_node(node)
 {
 }
 
 Pin::Pin(const Node* node, size_t pin_index)
     : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_OUT_" + std::to_string(pin_index))
-    , parent_node(node->get_id())
+    , parent_node(node)
 {
 }
 
@@ -153,7 +153,37 @@ void Pin::finalize()
 
     else if (PinType::COLOR == def_state.type && std::holds_alternative<std::string>(def))
     {
-        def = int64_t(color_to_val(std::get<std::string>(def)));
+        const ImU32 clr_im = color_to_val(std::get<std::string>(def), alpha_enabled);
+        def = int64_t(clr_im);
+        const ImVec4 clr_vec = ImColor(clr_im);
+        def_state.colors[0] = clr_vec.x;
+        def_state.colors[1] = clr_vec.y;
+        def_state.colors[2] = clr_vec.z;
+        def_state.colors[3] = clr_vec.w;
+    }
+
+    else if (PinType::COMBO == def_state.type)
+    {
+        combo_items_ptr.resize(list.size());
+        combo_items_str.resize(list.size());
+        
+        for (size_t idx = 0; idx < list.size(); idx++)
+        {
+            auto& item = list[idx];
+            if (item == def)
+                def_state.combo_index = cast::to_i32(idx);
+
+            if (std::holds_alternative<std::string>(item))
+            {
+                std::string& val = data::Pin::get_string(item);
+                combo_items_ptr[idx] = val.c_str();
+            }
+            else
+            {
+                combo_items_str[idx] = primitive_to_string(item);
+                combo_items_ptr[idx] = combo_items_str[idx].c_str();
+            }
+        }
     }
 
     def_state.value = def;
@@ -189,8 +219,8 @@ void Pin::init_defaults()
     }
     else if (PinType::STRING == def_state.type)
     {
-        def_state.value = "";
-        def = "";
+        def_state.value = std::string("");
+        def = std::string("");
     }
 }
 
@@ -209,11 +239,6 @@ void Pin::precision_to_string()
 
     precision = fmt::format(FMT_COMPILE("%.{}f"), decimals);
     precision_named = fmt::format(FMT_COMPILE("{}: %.{}f"), name, decimals);
-}
-
-const char* Pin::control_after_generate_to_string(ControlAfterGenerate val)
-{
-    return ControlAfterGenerateStr[cast::to_u64(val)];
 }
 
 void Pin::generate_pin_color()
@@ -304,26 +329,31 @@ void Pin::generate_pin_color()
     def_state.pin_color = IM_COL32(cast::to_u32(r * 255), cast::to_u32(g * 255), cast::to_u32(b * 255), 255);
 }
 
-std::string Pin::to_string(const std::vector<primitive>::iterator& it)
+std::string Pin::primitive_to_string(primitive& item)
 {
-    auto& value = *it;
-
-    if (std::holds_alternative<std::monostate>(value))
+    if (std::holds_alternative<std::monostate>(item))
         return "";
 
-    if (std::holds_alternative<int64_t>(value))
-        return std::to_string(Pin::get_int(value));
+    if (std::holds_alternative<int64_t>(item))
+        return std::to_string(Pin::get_int(item));
 
-    if (std::holds_alternative<double>(value))
-        return std::to_string(Pin::get_float(value));
+    if (std::holds_alternative<double>(item))
+        return std::to_string(Pin::get_float(item));
 
-    if (std::holds_alternative<bool>(value))
-        return (Pin::get_bool(value) ? "true" : "false");
+    if (std::holds_alternative<bool>(item))
+        return (Pin::get_bool(item) ? "true" : "false");
 
-    return Pin::get_string(value);
+    return Pin::get_string(item);
 }
 
-uint32_t Pin::color_to_val(const std::string& clr)
+int64_t Pin::colors_to_int(const float colors[4])
+{
+    ImVec4 vec(colors[0], colors[1], colors[2], colors[3]);
+    ImColor clr(vec);
+    return ImU32(clr);
+}
+
+uint32_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string)
 {
     if (clr.empty())
         return IM_COL32_WHITE;
@@ -332,9 +362,15 @@ uint32_t Pin::color_to_val(const std::string& clr)
     {
         uint32_t r = 0, g = 0, b = 0, a = 255;
         if (clr.size() == 7)
+        {
+            alpha_in_string = false;
             sscanf_s(clr.c_str(), "#%02x%02x%02x", &r, &g, &b);
+        }
         else
+        {
+            alpha_in_string = true;
             sscanf_s(clr.c_str(), "#%02x%02x%02x%02x", &r, &g, &b, &a);
+        }
         return IM_COL32(r, g, b, a);
     }
 

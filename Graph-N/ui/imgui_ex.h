@@ -5,6 +5,9 @@
 namespace ImGuiEx
 {
 
+bool TooltipOnLastControl(const char* tt, ImGuiHoveredFlags_ delay = ImGuiHoveredFlags_DelayShort,
+    bool only_if_modifier_pressed = false, ImGuiKey modifier = ImGuiMod_Ctrl);
+
 void Spacing(size_t count);
 
 void Separator(const char* text);
@@ -22,8 +25,9 @@ void Label(const char* label, float x_offset, const char* text);
 void Label(const char* label, float x_offset, const std::string& text);
 
 bool InputText(const char* label, std::string* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
-bool InputTextMultiline(const char* label, std::string* str, const ImVec2& size = ImVec2(0, 0), ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
 bool InputTextWithHint(const char* label, const char* hint, std::string* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
+bool InputTextMultiline(const char* label, std::string* str, const ImVec2& size = ImVec2(0, 0), ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
+bool InputTextMultilineWithHint(const char* label, const char* hint, std::string* str, const ImVec2& size = ImVec2(0, 0), ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
 
 void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button);
 
@@ -49,6 +53,6 @@ bool BooleanButtons2(const char* id_label, const char* label, bool* value);
 bool BooleanSwitch(const char* id_label, const char* label, bool* value, float width = 0.0f);
 
 // bounded circle at the right
-bool BooleanToggleLED(const char* id_label, bool* value, float width = 0.0f);
+bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool left_rounded, float width = 0.0f);
 
 } // namespace ImGuiEx

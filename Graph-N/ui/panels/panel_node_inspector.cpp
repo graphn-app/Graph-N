@@ -94,6 +94,7 @@ DlgCode PanelNodeInspector::show(bool& focused)
             show_nodes();
         }
     }
+
     return end_panel(opened);
 }
 
