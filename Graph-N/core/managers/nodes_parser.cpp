@@ -119,6 +119,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
         parse_output(manager, *node.get(), json_node);        // output, output_is_list, output_name, output_node, output_tooltips
         parse_others(*node.get(), json_node);                // python_module, experimental, deprecated, api_node
 
+        node->finalize();
         put_in_tree(manager, node.get());
         manager.m_nodes.emplace(node->get_id(), std::move(node));
         Log("Node " << node_class << " parse: end");
@@ -861,13 +862,15 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
         node->name = node_class;
         node->display_name = node_class;
         node->category = "utils";
-        node->description = "Reroute Node Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
+        node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
 
         // Input: ANY (*)
         auto in = std::make_unique<data::Pin>(node.get(), "*");
         in->name = "*";
         in->input = true;
+        in->required = true;
         in->initialize("*");
+        in->finalize();
         node->required.pins.push_back(in.get());
         node->required.order.push_back("*");
         manager.m_pins.emplace(in->get_id(), std::move(in));
@@ -876,11 +879,14 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
         auto out = std::make_unique<data::Pin>(node.get(), 0);
         out->name = "*";
         out->output = true;
+        out->initialize("*");
+        out->finalize();
         node->output.push_back(out.get());
         manager.m_pins.emplace(out->get_id(), std::move(out));
 
         node->has_input = true;
         node->has_output = true;
+        node->finalize();
 
         put_in_tree(manager, node.get());
         manager.m_nodes.emplace(node->get_id(), std::move(node));
@@ -900,11 +906,13 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
         out->name = "connect to widget input";
         out->output = true;
         out->initialize("*");
+        out->finalize();
         node->output.push_back(out.get());
         manager.m_pins.emplace(out->get_id(), std::move(out));
 
         node->has_input = false;
         node->has_output = true;
+        node->finalize();
 
         put_in_tree(manager, node.get());
         manager.m_nodes.emplace(node->get_id(), std::move(node));
@@ -919,8 +927,21 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
         node->category = "utils";
         node->description = "Node to add annotations to a workflow.";
 
-        node->has_input = false;
+        auto in = std::make_unique<data::Pin>(node.get(), "Note");
+        in->name = "Note";
+        in->input = true;
+        in->required = true;
+        in->multiline = true;
+        in->placeholder = "Put note here";
+        in->initialize("STRING");
+        in->finalize();
+        node->required.pins.push_back(in.get());
+        node->required.order.push_back("STRING");
+        manager.m_pins.emplace(in->get_id(), std::move(in));
+
+        node->has_input = true;
         node->has_output = false;
+        node->finalize();
 
         put_in_tree(manager, node.get());
         manager.m_nodes.emplace(node->get_id(), std::move(node));
@@ -935,8 +956,21 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
         node->category = "utils";
         node->description = "Node to add annotations to a workflow. It supports text formatting using Markdown syntax.";
 
-        node->has_input = false;
+        auto in = std::make_unique<data::Pin>(node.get(), "Markdown Note");
+        in->name = "Markdown Note";
+        in->input = true;
+        in->required = true;
+        in->multiline = true;
+        in->placeholder = "Put markdown note here";
+        in->initialize("STRING");
+        in->finalize();
+        node->required.pins.push_back(in.get());
+        node->required.order.push_back("STRING");
+        manager.m_pins.emplace(in->get_id(), std::move(in));
+
+        node->has_input = true;
         node->has_output = false;
+        node->finalize();
 
         put_in_tree(manager, node.get());
         manager.m_nodes.emplace(node->get_id(), std::move(node));

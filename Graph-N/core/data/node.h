@@ -13,6 +13,8 @@ struct Node : public base::HashID
     using base::HashID::HashID;
     ~Node() override;
 
+    void finalize();
+
     bool has_input = false;
     struct Input final
     {
@@ -38,11 +40,13 @@ struct Node : public base::HashID
     bool deprecated = false;
     bool api_node = false;
 
-    bool node_width_ready = false;
-    float node_width = 0.0f;
-    float node_name_width = 0.0f;
-    float left_group_width = 0.0f;
-    float right_group_width = 0.0f;
+  //  bool w_ready = false;
+    float w_name = 0.0f;
+    float w_pin_in_max = 0.0f;
+    float w_pin_out_max = 0.0f;
+    float w_widget_name_max = 0.0f;
+    float w_widget_value_max = 0.0f;
+    float w_fit = 0.0f;
 };
 
 } // namespace data

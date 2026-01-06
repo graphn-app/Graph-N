@@ -81,7 +81,7 @@ public:
     }
 
 protected:
-    virtual BaseObj* find_obj(hid obj_id) = 0;
+    virtual BaseObj* find_obj(hid obj_id) const = 0;
 
 protected:
     Workflow* m_wf = nullptr;

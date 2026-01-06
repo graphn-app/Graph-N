@@ -34,8 +34,8 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     if (p1->parent_node == p2->parent_node)
         return false;
 
-    const auto s1 = i1->get_state();
-    const auto s2 = i2->get_state();
+    const auto& s1 = i1->m_state;
+    const auto& s2 = i2->m_state;
 
     if (p1->input == p2->input || p1->output == p2->output)
         return false;
@@ -72,8 +72,8 @@ Link* Link::link(PinInstance* i1, PinInstance* i2)
     auto p1 = i1->get_object();
     auto p2 = i2->get_object();
 
-    auto s1 = i1->get_state();
-    auto s2 = i2->get_state();
+    auto& s1 = i1->m_state;
+    auto& s2 = i2->m_state;
 
     if (p1->type_any)
     {
@@ -111,8 +111,8 @@ void Link::unlink()
     auto p1 = m_input->get_object();
     auto p2 = m_output->get_object();
 
-    auto s1 = m_input->get_state();
-    auto s2 = m_output->get_state();
+    auto& s1 = m_input->m_state;
+    auto& s2 = m_output->m_state;
 
     s1->links--;
     s2->links--;

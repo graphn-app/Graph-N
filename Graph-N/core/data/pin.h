@@ -131,8 +131,8 @@ public:
 
     size_t hash = 0;
     std::string name;
-    float name_width = 0.0f;
-    float value_width = 0.0f;
+    float w_name = 0.0f;
+    float w_value = 0.0f;
     std::string tooltip;
 
     bool type_any = false;

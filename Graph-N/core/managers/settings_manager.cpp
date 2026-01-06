@@ -158,7 +158,7 @@ uint64_t SettingsManager::flow_get_open_wnds()
 
 void SettingsManager::flow_set_open_wnds(uint64_t windows)
 {
-    windows &= ~(ui::ViewAllMenuBar | ui::ViewAllOptions | ui::ViewDebugMetrics | ui::ViewDebugDemo);
+    windows &= ~(ui::ViewAllMenuBar | ui::ViewAllOptions | ui::ViewAllDebug);
     set_opt_int(m_flow_open_wnds, windows, gopt_flow_open_windows);
 }
 

@@ -17,22 +17,40 @@ public:
 
     void init() override;
 
-    void set_node_width(float node_width, bool allow_unlimited_w);
+    float calc_node_width();
+    float recalc_node_widths(float avail_width, bool allow_extend, bool allow_compress, bool use_big_pin_icon);
 
-    float get_node_width() const { return m_node_w; }
-    float get_right_group_width() const { return m_right_group_w; }
+    const std::string& get_name() const;
+    void set_name(std::string name);
 
-    static inline float get_node_min_width() { return 150.0f; }
+    // reroute
+    void add_pin();
+    void remove_pin();
 
-    Node* find_obj(hid obj_id);
-    const std::vector<PinInstance*>& get_input() const { return m_input; }
-    const std::vector<PinInstance*>& get_output() const { return m_output; }
+protected:
+    Node* find_obj(hid obj_id) const override;
 
-private:
+public:
     std::vector<PinInstance*> m_input;
     std::vector<PinInstance*> m_output;
-    float m_node_w = 0.0f;
-    float m_right_group_w = 0.0f;
+
+    float w_node = 0.0f;
+    float w_node_name_off = 0.0f;
+    float w_name = -1.0f;
+    float w_widget_name = 0.0f;
+    float w_widget_value = 0.0f;
+    float w_center = 0.0f;
+    float w_pin_in = 0.0f;
+    float w_pin_out = 0.0f;
+    float w_separator = 0.0f;
+
+    bool m_has_in_pins = false;
+    bool m_has_out_pins = false;
+    bool m_has_widgets = false;
+
+private:
+    float m_saved_width = 0.0f;
+    std::string m_name;
 };
 
 } // namespace data

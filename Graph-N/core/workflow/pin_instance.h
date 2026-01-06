@@ -15,13 +15,10 @@ public:
 
     void init() override;
 
-    PinState* get_state() { return m_state.get(); }
-    const PinState* get_state() const { return m_state.get(); }
-
 protected:
-    data::Pin* find_obj(hid obj_id) override;
+    data::Pin* find_obj(hid obj_id) const override;
 
-private:
+public:
     std::unique_ptr<PinState> m_state;
 };
 

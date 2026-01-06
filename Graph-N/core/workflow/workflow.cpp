@@ -22,6 +22,7 @@ Workflow::~Workflow()
 void Workflow::init()
 {
     LogF;
+
     g::pFlow->subscribe_comfyui_validity_state(this);
 }
 //
@@ -129,8 +130,8 @@ void Workflow::remove_node(const NodeInstance* node)
         }
     };
 
-    remove_pins(node->get_input());
-    remove_pins(node->get_output());
+    remove_pins(node->m_input);
+    remove_pins(node->m_output);
 
     if (!m_invalidation_state)
         m_nodes.erase(n_it);
@@ -161,7 +162,7 @@ void Workflow::remove_pin(const PinInstance* pin)
                 link->unlink();
                 l_it = m_links.erase(l_it);
 
-                if (pin->get_state()->links == 0)
+                if (pin->m_state->links == 0)
                     break;
             }
             else
@@ -169,7 +170,7 @@ void Workflow::remove_pin(const PinInstance* pin)
         }
     };
 
-    if (pin->get_state()->links > 0)
+    if (pin->m_state->links > 0)
         remove_links(pin);
 
     if (!m_invalidation_state)

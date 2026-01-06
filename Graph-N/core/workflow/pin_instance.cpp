@@ -16,7 +16,7 @@ void PinInstance::init()
     *m_state = m_object->def_state;
 }
 
-data::Pin* PinInstance::find_obj(hid obj_id)
+data::Pin* PinInstance::find_obj(hid obj_id) const
 {
     return g::pNodesManager->find_pin(obj_id);
 }

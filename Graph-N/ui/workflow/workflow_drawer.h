@@ -20,13 +20,13 @@ namespace ui
 class WorkflowDrawer final
 {
 public:
-    WorkflowDrawer(bool ro_mode);
+    WorkflowDrawer();
     ~WorkflowDrawer();
 
     NO_COPY_MOVE(WorkflowDrawer);
 
     void init(data::Workflow* wf);
-    void draw(float max_w, bool allow_unlimited_w);
+    void draw(float max_w);
 
     data::Workflow* get_wf() { return m_wf; }
 
@@ -37,7 +37,6 @@ private:
     void draw_output_pin(data::PinInstance* pin);
     void draw_link(const data::Link* link);
     void draw_pin_icon(ImU32 color, bool connected, bool for_widget);
-    void calc_node_width(data::NodeInstance* node);
     void draw_widget(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
     void draw_widget_int(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
     void draw_widget_uint(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
@@ -53,7 +52,6 @@ private:
 private:
     ax::NodeEditor::EditorContext* m_context = nullptr;
     data::Workflow* m_wf = nullptr;
-    bool m_ro_mode = false;
     const ImU32 m_clr_node_header_bg;
     const ImU32 m_clr_node_header_text;
     const ImU32 m_clr_node_body_bg;

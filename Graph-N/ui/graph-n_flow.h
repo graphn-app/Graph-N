@@ -29,20 +29,28 @@ enum ViewDialogs
     ViewOptions                 = 0x00000001,
     ViewOptsComfyUi             = 0x00000002,
     // status & control bar
-    ViewConnect                 = 0x00000100,
-    ViewParsingNodes            = 0x00000200,
-    ViewQueueCtrl               = 0x00000400,
+    ViewConnect                 = 0x00000004,
+    ViewParsingNodes            = 0x00000008,
+    ViewQueueCtrl               = 0x00000010,
     // panels
-    ViewPanelsResetAll          = 0x00010000,
-    ViewPanelNodes              = 0x00020000,
-    ViewPanelNodeInpector       = 0x00040000,
+    ViewPanelsResetAll          = 0x00000020,
+    ViewPanelNodes              = 0x00000040,
+    ViewPanelNodeInpector       = 0x00000080,
+
+    ViewDebugMetrics            = 0x01000000,
+    ViewDebugDemo               = 0x02000000,
+    ViewDebugLogs               = 0x04000000,
+    ViewStackTool               = 0x08000000,
+    ViewStyleEditor             = 0x10000000,
+    ViewStyleSelector           = 0x20000000,
+    ViewFontSelector            = 0x40000000,
+
+    ViewNextAvail               = 0x00000100,
 
     ViewAllOptions              = ViewOptions | ViewOptsComfyUi,
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector,
-
-    ViewDebugMetrics            = 0x40000000,
-    ViewDebugDemo               = 0x80000000,
+    ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector
 };
 
 class GraphN_Flow final
@@ -62,8 +70,11 @@ public:
 
     void reconnect();
 
-    WorkflowDrawer* create_workflow(bool ro_mode);
+    data::Workflow* create_workflow();
     void destroy_workflow(lid wf_id);
+
+    WorkflowDrawer* create_workflow_drawer(data::Workflow* wf);
+
     data::Workflow* find_workflow(lid wf_id);
     WorkflowDrawer* find_workflow_drawer(lid wf_id);
 
@@ -112,3 +123,22 @@ private:
     std::list<mngr::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
 };
 }
+
+namespace w
+{
+extern float pin_l_offset;
+extern float pin_r_offset;
+extern float ico_circle;
+extern float ico_eye;
+extern float ico_max;
+extern float v_spacing;
+extern std::string hidden_widgets;
+extern float hidden_widgets_len;
+}
+
+#if 1
+namespace debug
+{
+extern const char* test_json;
+}
+#endif

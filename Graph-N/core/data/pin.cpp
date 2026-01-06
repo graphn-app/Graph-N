@@ -189,8 +189,14 @@ void Pin::finalize()
         }
     }
 
+    if (!is_widget() && def_state.advanced)
+    {
+        LogInvalidJson("Non-widget pin can't be advanced");
+        LogAndThrowInternalError(ExcepCategory::logic, "Non-widget pin can't be advanced");
+    }
+
     def_state.value = def;
-    name_width = ImGui::CalcTextSize(name.c_str()).x;
+    w_name = ImGui::CalcTextSize(name.c_str()).x;
 
     if (input && is_widget())
     {
@@ -199,26 +205,28 @@ void Pin::finalize()
         case data::PinType::INT:
         case data::PinType::NUMBER:
         case data::PinType::FLOAT:
-            value_width = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
+            w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
             break;
         case data::PinType::COLOR:
-            value_width = (alpha_enabled ? 250.0f : 200.0f);
+            w_value = (alpha_enabled ? 250.0f : 200.0f);
             break;
         case data::PinType::STRING:
-            value_width = 250.0f;
+            w_value = 300.0f;
+            w_name = 0.0f;
             break;
         case data::PinType::COMBO:
-            value_width = 100.0f;
+            w_value = 100.0f;
             for (auto& item : list)
             {
                 const auto w = ImGui::CalcTextSize(primitive_to_string(item).c_str()).x;
-                if (value_width < w + 30)
-                    value_width = w + 30;
+                w_value = std::max(w_value, w + 30);
+                if (w_value < w + 30)
+                    w_value = w + 30;
             }
             break;
         case data::PinType::BOOLEAN:
         default:
-            value_width = 100.0f;
+            w_value = 100.0f;
             break;
         }
     }

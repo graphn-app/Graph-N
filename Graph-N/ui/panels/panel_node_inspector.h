@@ -7,11 +7,13 @@
 namespace data
 {
 struct Node;
+class NodeInstance;
+class PinInstance;
+class Workflow;
 }
 
 namespace ui
 {
-class WorkflowDrawer;
 
 struct PanelNodeInspectorData final : public PanelCommonData
 {
@@ -40,19 +42,44 @@ private:
     DlgCode show(bool& focused) override;
     void show_nodes();
     void show_description(TextWrapperRO& descr_wrapper, float max_w);
+    void show_preview(data::NodeInstance* node_inst, float max_w);
 
-    struct Data;
-    void show_preview(Data& data, float max_w);
+    void draw_node_header(data::NodeInstance* node);
+    void draw_input_pin(data::PinInstance* pin);
+    void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width, bool draw_control_after_generate = false);
+    void draw_output_pin(data::PinInstance* pin);
+    void draw_pin_icon(ImU32 color);
+    void draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
+    void draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width);
+    void draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width);
+    void draw_widget_float(data::PinInstance* pin, float widget_name_width, float widget_value_width);
+    void draw_widget_bool(data::PinInstance* pin, float widget_name_width, float widget_value_width);
+    void draw_widget_str(data::PinInstance* pin, float widget_name_width, float widget_value_width);
+    void draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width);
+    void draw_widget_num(data::PinInstance* pin, float widget_name_width, float widget_value_width);
+    void draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width);
+    void draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width);
+    void draw_widget_control_after_generate(data::PinInstance* pin, float widget_name_width, float widget_value_width);
+    void draw_widget_separator(float offset, float width);
 
 private:
+    const ImU32 m_clr_node_header_bg;
+    const ImU32 m_clr_node_header_text;
+    const ImU32 m_clr_node_body_bg;
+    const ImU32 m_clr_node_widget_pin;
+    const ImU32 m_clr_node_pin_text;
+    const ImU32 m_clr_node_border;
+
+    data::Workflow* m_wf = nullptr;
+
     struct Data final
     {
-        data::Node* node = nullptr;
+        data::NodeInstance* node = nullptr;
+        float ideal_size = 0.0f;
         TextWrapperRO descr_wrapper;
-        WorkflowDrawer* wf = nullptr;
     };
-    std::map<hid, Data> m_inspecting;	// key: node id
-    float m_wnd_size = 0.0f;
+    std::vector<Data> m_inspecting;	// key: node id
+    float m_curr_node_left_offset = 0.0f;
 };
 
 

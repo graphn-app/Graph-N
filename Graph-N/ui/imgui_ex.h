@@ -5,6 +5,8 @@
 namespace ImGuiEx
 {
 
+void PushID(gid id);
+
 bool TooltipOnLastControl(const char* tt, ImGuiHoveredFlags_ delay = ImGuiHoveredFlags_DelayShort,
     bool only_if_modifier_pressed = false, ImGuiKey modifier = ImGuiMod_Ctrl);
 
@@ -12,6 +14,7 @@ void Spacing(size_t count);
 
 void Separator(const char* text);
 void Separator(uint32_t color, const char* text = "");
+void Separator(uint32_t color, float width, const char* text, size_t text_len = 0, float text_width = 0.0f);
 
 void PushDlgTitleStyles(const uint32_t color);
 void PopDlgTitleStyles();

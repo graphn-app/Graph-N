@@ -63,6 +63,10 @@ public:
     WidgetInput wf_get_widget_input_bools();
     void wf_set_widget_input_bools(WidgetInput bools);
 
+    static inline float wf_get_pin_center_x_offset() { return 10.0f; }
+    static inline float wf_get_pin_radius() { return 5.0f; }
+    static inline float wf_get_pin_indent() { return 4.0f; }
+    static inline float wf_get_pin_width() { return 10.0f; }
 
 private:
     int64_t get_opt_int(int64_t& out_option, const char* db_name, const int64_t def_value, const int64_t undef_example = -1);

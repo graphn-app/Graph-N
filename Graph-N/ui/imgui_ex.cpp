@@ -4,6 +4,11 @@
 namespace ImGuiEx
 {
 
+void PushID(gid id)
+{
+    ImGui::PushID((void*)id);
+}
+
 bool TooltipOnLastControl(const char* tt, ImGuiHoveredFlags_ delay /*= ImGuiHoveredFlags_DelayShort*/,
     bool only_if_modifier_pressed /*= false*/, ImGuiKey modifier /*= ImGuiMod_Ctrl*/)
 {
@@ -49,6 +54,44 @@ void Separator(uint32_t color, const char* text /*= ""*/)
     ImGui::PushStyleColor(ImGuiCol_Text, color);
     ImGui::SeparatorText(text);
     ImGui::PopStyleColor();
+}
+
+void Separator(uint32_t color, float width, const char* text, size_t text_len /*= 0*/, float text_width /*= 0.0f*/)
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems)
+        return;
+
+    if (0.0f == text_width)
+        text_width = ImGui::CalcTextSize(text).x;
+    if (0 == text_len)
+        text_len = strlen(text);
+
+    const auto font_size = ImGui::GetFontSize() / 2;
+
+    // Calculate positions
+    const ImVec2 sep1_p1(window->DC.CursorPos.x, window->DC.CursorPos.y + font_size);
+    ImVec2 sep1_p2(0.0f, sep1_p1.y);
+    if (text_width + ImGui::GetStyle().ItemSpacing.x * 2 + 10.0f > width) // skip text
+    {
+        sep1_p2.x = sep1_p1.x + width;
+        window->DrawList->AddLine(sep1_p1, sep1_p2, color, 1.0);
+    }
+    else
+    {
+        sep1_p2.x = sep1_p1.x + width / 6;
+        const ImVec2 txt_p(sep1_p2.x + ImGui::GetStyle().ItemSpacing.x, sep1_p1.y - font_size);
+        const ImVec2 sep2_p1(sep1_p2.x + text_width + ImGui::GetStyle().ItemSpacing.x * 2, sep1_p1.y);
+        const ImVec2 sep2_p2(sep1_p1.x + width, sep1_p1.y);
+
+        window->DrawList->AddLine(sep1_p1, sep1_p2, color, 1.0);
+        window->DrawList->AddText(txt_p, color, text, text + text_len);
+        window->DrawList->AddLine(sep2_p1, sep2_p2, color, 1.0);
+    }
+
+    // Advance the cursor (ItemSize handles layout spacing automatically)
+    // We use a dummy rect with height = thickness + spacing
+    ImGui::ItemSize(ImVec2(width, font_size * 2.0f));
 }
 
 void PushDlgTitleStyles(const uint32_t color)
