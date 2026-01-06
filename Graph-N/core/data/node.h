@@ -43,8 +43,6 @@ struct Node : public base::HashID
     float node_name_width = 0.0f;
     float left_group_width = 0.0f;
     float right_group_width = 0.0f;
-    float max_node_widget_name_width = 0.0f;
-    float max_node_widget_value_width = 0.0f;
 };
 
 } // namespace data

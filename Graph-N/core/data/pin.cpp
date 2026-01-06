@@ -67,23 +67,9 @@ void Pin::initialize(const std::string& type_as_string)
 
 void Pin::finalize()
 {
-    if (display_as_color && display_as_slider)
-    {
-        display_as_color = display_as_slider = false;
-        LogInvalidJson("Both display_as_color and display_as_slider can't be set");
-        LogAndThrowInternalError(ExcepCategory::logic, "Both display_as_color and display_as_slider can't be set");
-    }
-    display_as_number = !(display_as_color || display_as_slider);
-
     if (input == output)
     {
         LogAndThrowInternalError(ExcepCategory::logic, "Pin can't be input and output at the same time");
-    }
-
-    if (!required && !optional && !hidden)
-    {
-        LogInvalidJson("Unknown pin visibility");
-        LogAndThrowInternalError(ExcepCategory::logic, "Unknown pin visibility");
     }
 
     if (output && def_state.advanced)
@@ -92,101 +78,151 @@ void Pin::finalize()
         LogAndThrowInternalError(ExcepCategory::logic, "Output pin can't be advanced");
     }
 
-    if (PinType::FLOAT == def_state.type)
+    else if (input)
     {
-        if (!std::holds_alternative<double>(step))
+        if (display_as_color && display_as_slider)
         {
-            if (round.has_value())
-                step = round.value();
-            else
-                step = double(0.01);
+            display_as_color = display_as_slider = false;
+            LogInvalidJson("Both display_as_color and display_as_slider can't be set");
+            LogAndThrowInternalError(ExcepCategory::logic, "Both display_as_color and display_as_slider can't be set");
+        }
+        display_as_number = !(display_as_color || display_as_slider);
+
+        if (!required && !optional && !hidden)
+        {
+            LogInvalidJson("Unknown pin visibility");
+            LogAndThrowInternalError(ExcepCategory::logic, "Unknown pin visibility");
         }
 
-        if (!do_round.has_value())
+        if (PinType::FLOAT == def_state.type)
         {
-            do_round = true;
-        }
-
-        if (!round.has_value())
-        {
-            if (do_round.value())
-                round = 1.0;
-            else
-                round = 0.01;
-        }
-
-        precision_to_string();
-    }
-
-    else if (PinType::INT == def_state.type)
-    {
-        if (!std::holds_alternative<int64_t>(step) || 0 == get_int(step))
-            step = int64_t(1);
-
-        precision = fmt::format(FMT_COMPILE("%lld"));
-        precision_named = fmt::format(FMT_COMPILE("{}: %lld"), name);
-
-        const bool seed = (tools::str::to_lower_ascii(name).find("seed") != std::string::npos);
-        if (seed)
-        {
-            control_after_generate = true;
-            def_state.control_after_generate_value = ControlAfterGenerate::randomize;
-        }
-
-        if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int
-        {
-            is_unsigned = true;
-            precision = fmt::format(FMT_COMPILE("%llu"));
-            precision_named = fmt::format(FMT_COMPILE("{}: %llu"), name);
-            step = uint64_t(get_int(step));
-            def = uint64_t(get_int(def));
-            min = uint64_t(get_int(min));
-            max = uint64_t(ULLONG_MAX);
-        }
-    }
-
-    else if (PinType::BOOLEAN == def_state.type)
-    {
-        label_on_named = fmt::format(FMT_COMPILE("{}: {}"), name, (label_on.empty() ? "on" : label_on));
-        label_off_named = fmt::format(FMT_COMPILE("{}: {}"), name, (label_off.empty() ? "off" : label_off));
-    }
-
-    else if (PinType::COLOR == def_state.type && std::holds_alternative<std::string>(def))
-    {
-        const ImU32 clr_im = color_to_val(std::get<std::string>(def), alpha_enabled);
-        def = int64_t(clr_im);
-        const ImVec4 clr_vec = ImColor(clr_im);
-        def_state.colors[0] = clr_vec.x;
-        def_state.colors[1] = clr_vec.y;
-        def_state.colors[2] = clr_vec.z;
-        def_state.colors[3] = clr_vec.w;
-    }
-
-    else if (PinType::COMBO == def_state.type)
-    {
-        combo_items_ptr.resize(list.size());
-        combo_items_str.resize(list.size());
-        
-        for (size_t idx = 0; idx < list.size(); idx++)
-        {
-            auto& item = list[idx];
-            if (item == def)
-                def_state.combo_index = cast::to_i32(idx);
-
-            if (std::holds_alternative<std::string>(item))
+            if (!std::holds_alternative<double>(step))
             {
-                std::string& val = data::Pin::get_string(item);
-                combo_items_ptr[idx] = val.c_str();
+                if (round.has_value())
+                    step = round.value();
+                else
+                    step = double(0.01);
             }
-            else
+
+            if (!do_round.has_value())
             {
-                combo_items_str[idx] = primitive_to_string(item);
-                combo_items_ptr[idx] = combo_items_str[idx].c_str();
+                do_round = true;
+            }
+
+            if (!round.has_value())
+            {
+                if (do_round.value())
+                    round = 1.0;
+                else
+                    round = 0.01;
+            }
+
+            precision_to_string();
+        }
+
+        else if (PinType::INT == def_state.type)
+        {
+            if (!std::holds_alternative<int64_t>(step) || 0 == get_int(step))
+                step = int64_t(1);
+
+            precision = fmt::format(FMT_COMPILE("%lld"));
+            precision_named = fmt::format(FMT_COMPILE("{}: %lld"), name);
+
+            const bool seed = (tools::str::to_lower_ascii(name).find("seed") != std::string::npos);
+            if (seed)
+            {
+                control_after_generate = true;
+                def_state.control_after_generate_value = ControlAfterGenerate::randomize;
+            }
+
+            if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int
+            {
+                is_unsigned = true;
+                precision = fmt::format(FMT_COMPILE("%llu"));
+                precision_named = fmt::format(FMT_COMPILE("{}: %llu"), name);
+                step = uint64_t(get_int(step));
+                def = uint64_t(get_int(def));
+                min = uint64_t(get_int(min));
+                max = uint64_t(ULLONG_MAX);
+            }
+        }
+
+        else if (PinType::BOOLEAN == def_state.type)
+        {
+            label_on_named = fmt::format(FMT_COMPILE("{}: {}"), name, (label_on.empty() ? "on" : label_on));
+            label_off_named = fmt::format(FMT_COMPILE("{}: {}"), name, (label_off.empty() ? "off" : label_off));
+        }
+
+        else if (PinType::COLOR == def_state.type && std::holds_alternative<std::string>(def))
+        {
+            const ImU32 clr_im = color_to_val(std::get<std::string>(def), alpha_enabled);
+            def = int64_t(clr_im);
+            const ImVec4 clr_vec = ImColor(clr_im);
+            def_state.colors[0] = clr_vec.x;
+            def_state.colors[1] = clr_vec.y;
+            def_state.colors[2] = clr_vec.z;
+            def_state.colors[3] = clr_vec.w;
+        }
+
+        else if (PinType::COMBO == def_state.type)
+        {
+            combo_items_ptr.resize(list.size());
+            combo_items_str.resize(list.size());
+
+            for (size_t idx = 0; idx < list.size(); idx++)
+            {
+                auto& item = list[idx];
+                if (item == def)
+                    def_state.combo_index = cast::to_i32(idx);
+
+                if (std::holds_alternative<std::string>(item))
+                {
+                    std::string& val = data::Pin::get_string(item);
+                    combo_items_ptr[idx] = val.c_str();
+                }
+                else
+                {
+                    combo_items_str[idx] = primitive_to_string(item);
+                    combo_items_ptr[idx] = combo_items_str[idx].c_str();
+                }
             }
         }
     }
 
     def_state.value = def;
+    name_width = ImGui::CalcTextSize(name.c_str()).x;
+
+    if (input && is_widget())
+    {
+        switch (def_state.type)
+        {
+        case data::PinType::INT:
+        case data::PinType::NUMBER:
+        case data::PinType::FLOAT:
+            value_width = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
+            break;
+        case data::PinType::COLOR:
+            value_width = (alpha_enabled ? 250.0f : 200.0f);
+            break;
+        case data::PinType::STRING:
+            value_width = 250.0f;
+            break;
+        case data::PinType::COMBO:
+            value_width = 100.0f;
+            for (auto& item : list)
+            {
+                const auto w = ImGui::CalcTextSize(primitive_to_string(item).c_str()).x;
+                if (value_width < w + 30)
+                    value_width = w + 30;
+            }
+            break;
+        case data::PinType::BOOLEAN:
+        default:
+            value_width = 100.0f;
+            break;
+        }
+    }
+
 }
 
 void Pin::init_defaults()

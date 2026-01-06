@@ -732,43 +732,43 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
 
     parse_output_attr("output_is_list",
         [](const nlohmann::json& item, data::Pin* pin)
-    {
-        if (item.is_boolean())
         {
-            pin->output_is_list = item;
-            return true;
-        }
-        return false;
-    },
+            if (item.is_boolean())
+            {
+                pin->output_is_list = item;
+                return true;
+            }
+            return false;
+        },
         [](data::Pin* pin)
-    {
-        pin->output_is_list = false;
-    }
+        {
+            pin->output_is_list = false;
+        }
     );
 
     parse_output_attr("output_name",
         [](const nlohmann::json& item, data::Pin* pin)
-    {
-        if (item.is_string())
         {
-            pin->name = item;
-            return true;
-        }
-        return false;
-    },
+            if (item.is_string())
+            {
+                pin->name = item;
+                return true;
+            }
+            return false;
+        },
         [](data::Pin*) {}
     );
 
     parse_output_attr("output_tooltips",
         [](const nlohmann::json& item, data::Pin* pin)
-    {
-        if (item.is_string())
         {
-            pin->tooltip = item;
-            return true;
-        }
-        return item.is_null();
-    },
+            if (item.is_string())
+            {
+                pin->tooltip = item;
+                return true;
+            }
+            return item.is_null();
+        },
         [](data::Pin*) {}
     );
 
@@ -781,6 +781,11 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
         {
             LogInvalidJson("output_node not a bool. Node=" << node.name);
         }
+    }
+
+    for (const auto& pin : node.output)
+    {
+        pin->finalize();
     }
 
     node.has_output = !node.output.empty();

@@ -18,7 +18,6 @@ inline constexpr float g_pin_center_x_offset = 10.0f;
 inline constexpr float g_pin_radius = 5.0f;
 inline constexpr float g_pin_indent = 4.0f;
 inline constexpr float g_pin_width = g_pin_radius * 2;
-inline constexpr float g_node_def_width = 150.0f;
 
 WorkflowDrawer::WorkflowDrawer(bool ro_mode)
     : m_ro_mode(ro_mode)
@@ -50,7 +49,8 @@ void WorkflowDrawer::init(data::Workflow* wf)
     }
     m_wf = wf;
 }
-void WorkflowDrawer::draw()
+
+void WorkflowDrawer::draw(float max_w, bool allow_unlimited_w)
 {
     ax::NodeEditor::EditorContext* old_context = nullptr;
     ImGuiConfigFlags old_flags = 0;
@@ -82,10 +82,10 @@ void WorkflowDrawer::draw()
         }
 
         auto node = node_inst->get_object();
-
         if (!node->node_width_ready) 
             calc_node_width(node_inst.get());
 
+        node_inst->set_node_width(max_w, allow_unlimited_w);
         ImGui::PushID(node_inst->get_graph_id_str().c_str());
 
         // --- NODE FRAME ---
@@ -124,12 +124,11 @@ void WorkflowDrawer::draw()
         ImGui::Dummy(ImVec2(0.0f, section_spacing));
 
         // --- PINS - INPUT ---
-        const auto& input = node_inst->get_input();
-        const auto& output = node_inst->get_output();
 
         ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_pin_text);
-
         ImGui::BeginGroup();
+
+        const auto& input = node_inst->get_input();
         for (auto pin : input)
         {
             if (nullptr == pin || !pin->is_valid())
@@ -156,11 +155,11 @@ void WorkflowDrawer::draw()
 
         // --- PINS - OUTPUT ---
         ImGui::BeginGroup();
-        //const float group_start_x = ImGui::GetCursorPosX();
 
         ImGui::Dummy(ImVec2(node->right_group_width, 0.0f));
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y);
 
+        const auto& output = node_inst->get_output();
         for (auto pin : output)
         {
             if (nullptr == pin || !pin->is_valid())
@@ -171,15 +170,8 @@ void WorkflowDrawer::draw()
             {
                 ImGui::PushID(pin->get_graph_id_str().c_str());
 
-                const float start_pos = node->node_width - g_pin_indent - g_pin_width - /*ImGui::GetStyle().ItemSpacing.x - */pin->get_object()->name_width;
+                const float start_pos = node_inst->get_node_width() - g_pin_indent - g_pin_width - pin->get_object()->name_width - ImGui::GetStyle().ItemSpacing.x;
                 ImGui::SetCursorPosX(start_pos);
-
-                //const float content_w = pin->get_object()->name_width + ImGui::GetStyle().ItemSpacing.x + g_pin_width;
-                //const float shift = node->right_group_width - content_w;
-                //if (m_ro_mode)
-                //    shift -= g_node_indent;
-
-                //ImGui::SetCursorPosX(group_start_x + std::max(0.0f, shift));
 
                 if (!m_ro_mode)
                     ed::BeginPin(pin->get_graph_id(), ed::PinKind::Output);
@@ -203,13 +195,13 @@ void WorkflowDrawer::draw()
             if (!pin->get_state()->advanced && pin->get_object()->is_widget())
             {
                 ImGui::PushID(pin->get_graph_id_str().c_str());
-                draw_input_widget(pin, node->node_width, false);
+                draw_input_widget(pin, node_inst->get_right_group_width(), node_inst->get_node_width(), false);
                 ImGui::PopID(); // widget id
 
                 if (pin->get_object()->control_after_generate)
                 {
                     ImGui::PushID(pin->get_graph_id_str().c_str());
-                    draw_input_widget(pin, node->node_width, true);
+                    draw_input_widget(pin, node_inst->get_right_group_width(), node_inst->get_node_width(), true);
                     ImGui::PopID(); // widget id
                 }
             }
@@ -282,99 +274,41 @@ void WorkflowDrawer::draw()
 
 void WorkflowDrawer::calc_node_width(data::NodeInstance* node)
 {
+    // calc node ideal size to fit all the elements
+
     auto node_obj = node->get_object();
 
-    float max_in = 0.0f;
-    float max_out = 0.0f;
-    
     const float item_spacing_x = ImGui::GetStyle().ItemSpacing.x;
+    const float center_w = (g_pin_center_x_offset * 2) + (item_spacing_x * 2);
+
+    float pin_w = g_pin_width + item_spacing_x;
+    if (m_ro_mode)
+        pin_w += g_pin_indent;
+
+    node_obj->left_group_width = 0.0f;
+    node_obj->right_group_width = 0.0f;
 
     auto& in = node->get_input();
     for (auto pin : in)
     {
         auto obj = pin->get_object();
-        if (!obj->is_widget())
-        {
-            obj->name_width = ImGui::CalcTextSize(obj->name.c_str()).x;
-            if (obj->name_width > max_in)
-                max_in = obj->name_width;
-        }
+        node_obj->left_group_width = std::max(node_obj->left_group_width, obj->name_width);
+
+        if (obj->is_widget())
+            node_obj->right_group_width = std::max(node_obj->right_group_width, obj->value_width);
     }
 
     auto& out = node->get_output();
     for (auto pin : out)
     {
-        auto obj = pin->get_object();
-        obj->name_width = ImGui::CalcTextSize(obj->name.c_str()).x;
-        if (obj->name_width > max_out)
-            max_out = obj->name_width;
+        node_obj->right_group_width = std::max(node_obj->right_group_width, pin->get_object()->name_width);
     }
-
-    max_in += g_pin_width + item_spacing_x;
-    max_out += g_pin_width + item_spacing_x;
 
     node_obj->node_name_width = ImGui::CalcTextSize(node_obj->display_name.empty() ? node_obj->name.c_str() : node_obj->display_name.c_str()).x;
-    node_obj->node_width = std::max(g_node_def_width, node_obj->node_name_width);
 
-    const float center_width = (g_pin_center_x_offset * 2) + (item_spacing_x * 2);
-    float total_width = max_in + center_width + max_out;
-
-    for (auto pin : in)
-    {
-        auto obj = pin->get_object();
-        if (obj->is_widget())
-        {
-            switch (obj->def_state.type)
-            {
-            case data::PinType::INT:
-            case data::PinType::NUMBER:
-            case data::PinType::FLOAT:
-                obj->value_width = ImGui::CalcTextSize("1234567890123456789012345").x + item_spacing_x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
-                break;
-            case data::PinType::COLOR:
-                obj->value_width = 4 * 50.0f + item_spacing_x * 4 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2);
-                break;
-            case data::PinType::STRING:
-            case data::PinType::COMBO:
-            case data::PinType::BOOLEAN:
-            default:
-                obj->value_width = 200.0f;
-                break;
-            }
-
-            obj->name_width = ImGui::CalcTextSize(obj->name.c_str()).x;            
-            if (obj->name_width + obj->value_width + item_spacing_x + center_width > total_width)
-                total_width = obj->name_width + obj->value_width + item_spacing_x + center_width;
-
-            if (obj->name_width > node_obj->max_node_widget_name_width)
-                node_obj->max_node_widget_name_width = obj->name_width;
-            if (obj->value_width > node_obj->max_node_widget_value_width)
-                node_obj->max_node_widget_value_width = obj->value_width;
-        }
-    }
-    node_obj->max_node_widget_name_width += 10.0f;
-    node_obj->max_node_widget_value_width += 10.0f;
-    if (node_obj->max_node_widget_name_width + node_obj->max_node_widget_value_width > total_width)
-        total_width = node_obj->max_node_widget_name_width + node_obj->max_node_widget_value_width;
-
-    node_obj->node_width = std::max(total_width, node_obj->node_width);
-    total_width = node_obj->node_width;
-
-    const float available = total_width - center_width;
-    node_obj->left_group_width = std::max(max_in, available / 2.0f);
-    node_obj->right_group_width = total_width - node_obj->left_group_width - center_width;
-
-    if (node_obj->right_group_width < max_out)
-    {
-        node_obj->right_group_width = max_out;
-        node_obj->node_width = node_obj->left_group_width + center_width + node_obj->right_group_width;
-    }
-
-    if (m_ro_mode)
-    {
-        node_obj->node_width += 16.0f;
-        node_obj->right_group_width += 8.0f;
-    }
+    node_obj->node_width = pin_w + node_obj->left_group_width + center_w + node_obj->right_group_width + pin_w;
+    node_obj->node_width = std::max(node_obj->node_width, node_obj->node_name_width);
+    node_obj->node_width = std::max(node_obj->node_width, data::NodeInstance::get_node_min_width());
 
     node_obj->node_width_ready = true;
 }
@@ -407,7 +341,7 @@ void WorkflowDrawer::draw_node(data::NodeInstance* node)
         );
     }
 
-    float spacer = (obj->node_width - obj->node_name_width) * 0.5f;
+    float spacer = (node->get_node_width() - obj->node_name_width) * 0.5f;
     if (!m_ro_mode)
         spacer -= ed::GetStyle().NodePadding.x;
     if (spacer > 0.0f)
@@ -462,29 +396,32 @@ void WorkflowDrawer::draw_pin_icon(ImU32 color, bool connected, bool for_widget)
         draw_list->AddCircle(center, g_pin_radius, color, 0, 1.0f);
 }
 
-void WorkflowDrawer::draw_input_widget(data::PinInstance* pin, float max_w, bool draw_control_after_generate /*= false*/)
+void WorkflowDrawer::draw_input_widget(data::PinInstance* pin, float r_group_width, float max_widget_width, bool draw_control_after_generate /*= false*/)
 {
     const auto pos = ImGui::GetCursorPosX();
     const auto spacing = ImGui::GetStyle().ItemSpacing.x;
+    const auto l_offset = pos + g_pin_indent + g_pin_width + spacing;
+    const auto max_width = max_widget_width - l_offset - g_pin_width - g_pin_indent - spacing;
+    const auto l_width = max_width - r_group_width;
+    const auto r_offset = pos + l_offset + l_width - spacing;
 
-    if (m_ro_mode)
+    if (m_ro_mode || draw_control_after_generate)
         ImGui::Indent(g_pin_indent);
-
-    if (!draw_control_after_generate)
+    else
         draw_pin_icon(pin->get_state()->converted ? pin->get_state()->pin_color : m_clr_node_widget_pin, pin->get_state()->links > 0, true);
     ImGui::Dummy(ImVec2(g_pin_width, 0));
 
     ImGui::SameLine();
     if (!draw_control_after_generate)
-        draw_widget(pin, pos + spacing + g_pin_indent + g_pin_width, max_w - g_pin_indent * 2 - g_pin_width * 2 - spacing * 2);
+        draw_widget(pin, l_width, r_offset, r_group_width, max_width);
     else
-        draw_widget_control_after_generate(pin, pos + spacing + g_pin_indent + g_pin_width, max_w - g_pin_indent * 2 - g_pin_width * 2 - spacing * 2);
+        draw_widget_control_after_generate(pin, l_width, r_offset, r_group_width, max_width);
 
-    if (m_ro_mode)
+    if (m_ro_mode || draw_control_after_generate)
         ImGui::Unindent(g_pin_indent);
 }
 
-void WorkflowDrawer::draw_widget(data::PinInstance* pin, float offset, float max_w)
+void WorkflowDrawer::draw_widget(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width)
 {
     auto obj = pin->get_object();
     auto state = pin->get_state();
@@ -493,35 +430,35 @@ void WorkflowDrawer::draw_widget(data::PinInstance* pin, float offset, float max
     {
     case data::PinType::INT:
         if (obj->is_unsigned)
-            draw_widget_uint(pin, offset, max_w);
+            draw_widget_uint(pin, l_group_width, r_offset, r_group_width, max_widget_width);
         else
-            draw_widget_int(pin, offset, max_w);
+            draw_widget_int(pin, l_group_width, r_offset, r_group_width, max_widget_width);
         break;
     case data::PinType::FLOAT:
-        draw_widget_float(pin, offset, max_w);
+        draw_widget_float(pin, l_group_width, r_offset, r_group_width, max_widget_width);
         break;
     case data::PinType::BOOLEAN:
-        draw_widget_bool(pin, offset, max_w);
+        draw_widget_bool(pin, l_group_width, r_offset, r_group_width, max_widget_width);
         break;
     case data::PinType::STRING:
         if (obj->multiline)
-            draw_widget_str_ml(pin, offset, max_w);
+            draw_widget_str_ml(pin, l_group_width, r_offset, r_group_width, max_widget_width);
         else
-            draw_widget_str(pin, offset, max_w);
+            draw_widget_str(pin, l_group_width, r_offset, r_group_width, max_widget_width);
         break;
     case data::PinType::NUMBER:
-        draw_widget_num(pin, offset, max_w);
+        draw_widget_num(pin, l_group_width, r_offset, r_group_width, max_widget_width);
         break;
     case data::PinType::COMBO:
-        draw_widget_combo(pin, offset, max_w);
+        draw_widget_combo(pin, l_group_width, r_offset, r_group_width, max_widget_width);
         break;
     case data::PinType::COLOR:
-        draw_widget_color(pin, offset, max_w);
+        draw_widget_color(pin, l_group_width, r_offset, r_group_width, max_widget_width);
         break;
     }
 }
 
-void WorkflowDrawer::draw_widget_int(data::PinInstance* pin, float offset, float max_w)
+void WorkflowDrawer::draw_widget_int(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float /*max_widget_width*/)
 {
     auto obj = pin->get_object();
     data::PinState* state = pin->get_state();
@@ -531,14 +468,14 @@ void WorkflowDrawer::draw_widget_int(data::PinInstance* pin, float offset, float
     int64_t min = data::Pin::get_int(obj->min);
     int64_t max = data::Pin::get_int(obj->max);
 
-    ImGui::SetNextItemWidth(obj->parent_node->max_node_widget_name_width); 
+    ImGui::SetNextItemWidth(l_group_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
 
     ImGui::SameLine();
-    ImGui::SetCursorPosX(offset + obj->parent_node->max_node_widget_name_width);
-    ImGui::SetNextItemWidth(max_w - obj->parent_node->max_node_widget_name_width);
+    ImGui::SetCursorPosX(r_offset);
+    ImGui::SetNextItemWidth(r_group_width);
 
     switch (g::pOptsManager->wf_get_widget_input_numbers())
     {
@@ -557,7 +494,7 @@ void WorkflowDrawer::draw_widget_int(data::PinInstance* pin, float offset, float
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
 }
 
-void WorkflowDrawer::draw_widget_uint(data::PinInstance* pin, float offset, float max_w)
+void WorkflowDrawer::draw_widget_uint(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float /*max_widget_width*/)
 {
     auto obj = pin->get_object();
     data::PinState* state = pin->get_state();
@@ -567,14 +504,14 @@ void WorkflowDrawer::draw_widget_uint(data::PinInstance* pin, float offset, floa
     uint64_t min = data::Pin::get_uint(obj->min);
     uint64_t max = data::Pin::get_uint(obj->max);
 
-    ImGui::SetNextItemWidth(obj->parent_node->max_node_widget_name_width);
+    ImGui::SetNextItemWidth(l_group_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
 
     ImGui::SameLine();
-    ImGui::SetCursorPosX(offset + obj->parent_node->max_node_widget_name_width);
-    ImGui::SetNextItemWidth(max_w - obj->parent_node->max_node_widget_name_width);
+    ImGui::SetCursorPosX(r_offset);
+    ImGui::SetNextItemWidth(r_group_width);
 
     switch (g::pOptsManager->wf_get_widget_input_numbers())
     {
@@ -591,7 +528,7 @@ void WorkflowDrawer::draw_widget_uint(data::PinInstance* pin, float offset, floa
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
 }
 
-void WorkflowDrawer::draw_widget_float(data::PinInstance* pin, float offset, float max_w)
+void WorkflowDrawer::draw_widget_float(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float /*max_widget_width*/)
 {
     auto obj = pin->get_object();
     data::PinState* state = pin->get_state();
@@ -601,14 +538,14 @@ void WorkflowDrawer::draw_widget_float(data::PinInstance* pin, float offset, flo
     double max = data::Pin::get_float(obj->max);
     double step = data::Pin::get_float(obj->step);
 
-    ImGui::SetNextItemWidth(obj->parent_node->max_node_widget_name_width);
+    ImGui::SetNextItemWidth(l_group_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
 
     ImGui::SameLine();
-    ImGui::SetCursorPosX(offset + obj->parent_node->max_node_widget_name_width);
-    ImGui::SetNextItemWidth(max_w - obj->parent_node->max_node_widget_name_width);
+    ImGui::SetCursorPosX(r_offset);
+    ImGui::SetNextItemWidth(r_group_width);
 
     switch (g::pOptsManager->wf_get_widget_input_numbers())
     {
@@ -627,19 +564,19 @@ void WorkflowDrawer::draw_widget_float(data::PinInstance* pin, float offset, flo
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
 }
 
-void WorkflowDrawer::draw_widget_bool(data::PinInstance* pin, float offset, float max_w)
+void WorkflowDrawer::draw_widget_bool(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float /*max_widget_width*/)
 {
     auto obj = pin->get_object();
     data::PinState* state = pin->get_state();
     bool& val = data::Pin::get_bool(state->value);
 
-    ImGui::SetNextItemWidth(obj->parent_node->max_node_widget_name_width);
+    ImGui::SetNextItemWidth(l_group_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
 
     ImGui::SameLine();
-    ImGui::SetCursorPosX(offset + obj->parent_node->max_node_widget_name_width);
+    ImGui::SetCursorPosX(r_offset);
 
     switch (g::pOptsManager->wf_get_widget_input_bools())
     {
@@ -647,31 +584,27 @@ void WorkflowDrawer::draw_widget_bool(data::PinInstance* pin, float offset, floa
     //    ImGuiEx::BooleanSwitch("", val ? obj->label_on.c_str() : obj->label_off.c_str(), &val, max_w);
     //    break;
     case WidgetInput::toggle:
-        ImGui::SetNextItemWidth(max_w - obj->parent_node->max_node_widget_name_width);
+        ImGui::SetNextItemWidth(r_group_width);
         ImGuiEx::BooleanButtons2("", val ? obj->label_on.c_str() : obj->label_off.c_str(), &val);
         break;
     case WidgetInput::select:
     default:
-        ImGuiEx::BooleanToggleLED(val ? obj->label_on.c_str() : obj->label_off.c_str(), &val, false, false, max_w - obj->parent_node->max_node_widget_name_width);
+        ImGuiEx::BooleanToggleLED(val ? obj->label_on.c_str() : obj->label_off.c_str(), &val, false, false, r_group_width);
         break;
     }
 
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
 }
 
-void WorkflowDrawer::draw_widget_str(data::PinInstance* pin, float /*offset*/, float max_w)
+void WorkflowDrawer::draw_widget_str(data::PinInstance* pin, float /*l_group_width*/, float /*r_offset*/, float /*r_group_width*/, float max_widget_width)
 {
     auto obj = pin->get_object();
 
     auto& placeholder = (obj->placeholder.empty() ? obj->name : obj->placeholder);
     std::string& val = data::Pin::get_string(pin->get_state()->value);
 
-    if (m_ro_mode)
-        ImGui::BeginDisabled();
-    ImGui::SetNextItemWidth(max_w);
+    ImGui::SetNextItemWidth(max_widget_width);
     ImGuiEx::InputTextWithHint("", placeholder.c_str(), &val);
-    if (m_ro_mode)
-        ImGui::EndDisabled();
 
     bool tt_mod = false;
     if (!val.empty())
@@ -681,20 +614,15 @@ void WorkflowDrawer::draw_widget_str(data::PinInstance* pin, float /*offset*/, f
         ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
 }
 
-void WorkflowDrawer::draw_widget_str_ml(data::PinInstance* pin, float /*offset*/, float max_w)
+void WorkflowDrawer::draw_widget_str_ml(data::PinInstance* pin, float /*l_group_width*/, float /*r_offset*/, float /*r_group_width*/, float max_widget_width)
 {
     auto obj = pin->get_object();
 
     auto& placeholder = (obj->placeholder.empty() ? obj->name : obj->placeholder);
     std::string& val = data::Pin::get_string(pin->get_state()->value);
 
-    if (m_ro_mode)
-        ImGui::BeginDisabled();
-    ImGui::SetNextItemWidth(max_w);
+    ImGui::SetNextItemWidth(max_widget_width);
     ImGuiEx::InputTextMultilineWithHint("", placeholder.c_str(), &val);
-    if (m_ro_mode)
-        ImGui::EndDisabled();
-
 
     bool tt_mod = false;
     if (!val.empty())
@@ -704,23 +632,23 @@ void WorkflowDrawer::draw_widget_str_ml(data::PinInstance* pin, float /*offset*/
         ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
 }
 
-void WorkflowDrawer::draw_widget_num(data::PinInstance* pin, float offset, float max_w)
+void WorkflowDrawer::draw_widget_num(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width)
 {
-    draw_widget_int(pin, offset, max_w);
+    draw_widget_int(pin, l_group_width, r_offset, r_group_width, max_widget_width);
 }
 
-void WorkflowDrawer::draw_widget_combo(data::PinInstance* pin, float offset, float max_w)
+void WorkflowDrawer::draw_widget_combo(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float /*max_widget_width*/)
 {
     auto obj = pin->get_object();
 
-    ImGui::SetNextItemWidth(obj->parent_node->max_node_widget_name_width);
+    ImGui::SetNextItemWidth(l_group_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
 
     ImGui::SameLine();
-    ImGui::SetCursorPosX(offset + obj->parent_node->max_node_widget_name_width);
-    ImGui::SetNextItemWidth(max_w - obj->parent_node->max_node_widget_name_width);
+    ImGui::SetCursorPosX(r_offset);
+    ImGui::SetNextItemWidth(r_group_width);
 
     if (ImGui::Combo("", &pin->get_state()->combo_index, obj->combo_items_ptr.data(), cast::to_i32(obj->combo_items_ptr.size())))
     {
@@ -730,19 +658,19 @@ void WorkflowDrawer::draw_widget_combo(data::PinInstance* pin, float offset, flo
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
 }
 
-void WorkflowDrawer::draw_widget_color(data::PinInstance* pin, float offset, float max_w)
+void WorkflowDrawer::draw_widget_color(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float /*max_widget_width*/)
 {
     auto obj = pin->get_object();
     data::PinState* state = pin->get_state();
 
-    ImGui::SetNextItemWidth(obj->parent_node->max_node_widget_name_width);
+    ImGui::SetNextItemWidth(l_group_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
 
     ImGui::SameLine();
-    ImGui::SetCursorPosX(offset + obj->parent_node->max_node_widget_name_width);
-    ImGui::SetNextItemWidth(max_w - obj->parent_node->max_node_widget_name_width);
+    ImGui::SetCursorPosX(r_offset);
+    ImGui::SetNextItemWidth(r_group_width);
 
     if (ImGui::ColorEdit4("", state->colors,
         ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop |
@@ -754,7 +682,7 @@ void WorkflowDrawer::draw_widget_color(data::PinInstance* pin, float offset, flo
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
 }
 
-void WorkflowDrawer::draw_widget_control_after_generate(data::PinInstance* pin, float offset, float max_w)
+void WorkflowDrawer::draw_widget_control_after_generate(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float /*max_widget_width*/)
 {
     auto obj = pin->get_object();
     if (obj->control_after_generate)
@@ -762,14 +690,14 @@ void WorkflowDrawer::draw_widget_control_after_generate(data::PinInstance* pin, 
         data::PinState* state = pin->get_state();
         if (data::PinType::INT == state->type || data::PinType::FLOAT == state->type || data::PinType::NUMBER == state->type)
         {
-            ImGui::SetNextItemWidth(obj->parent_node->max_node_widget_name_width);
+            ImGui::SetNextItemWidth(l_group_width);
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
             ImGui::InputText("##CAGControl", "control", ImGuiInputTextFlags_ReadOnly);
             ImGui::PopStyleColor();
             ImGui::SameLine();
 
-            ImGui::SetCursorPosX(offset + obj->parent_node->max_node_widget_name_width);
-            ImGui::SetNextItemWidth(max_w - obj->parent_node->max_node_widget_name_width);
+            ImGui::SetCursorPosX(r_offset);
+            ImGui::SetNextItemWidth(r_group_width);
 
             int curr = cast::to_i32(state->control_after_generate_value);            
             if (ImGui::Combo("##CAGCombo", &curr, data::ControlAfterGenerateStr, sizeof(data::ControlAfterGenerateStr) / sizeof(data::ControlAfterGenerateStr[0])))

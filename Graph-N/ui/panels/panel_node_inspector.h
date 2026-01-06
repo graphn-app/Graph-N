@@ -39,10 +39,10 @@ public:
 private:
     DlgCode show(bool& focused) override;
     void show_nodes();
-    void show_description(TextWrapperRO& descr_wrapper);
+    void show_description(TextWrapperRO& descr_wrapper, float max_w);
 
     struct Data;
-    void show_preview(Data& data);
+    void show_preview(Data& data, float max_w);
 
 private:
     struct Data final
@@ -52,6 +52,7 @@ private:
         WorkflowDrawer* wf = nullptr;
     };
     std::map<hid, Data> m_inspecting;	// key: node id
+    float m_wnd_size = 0.0f;
 };
 
 
