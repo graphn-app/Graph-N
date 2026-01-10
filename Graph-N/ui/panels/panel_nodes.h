@@ -56,7 +56,9 @@ private:
     void show_cfg_buttons();
     void expand_all();
     void collapse_all();
-    bool test_node_clicked(data::Nodes* holder);
+    void test_node_clicks(data::Nodes* holder);
+    void add_node_to_wf(data::Nodes* holder);
+    void show_tooltip(data::Nodes* holder);
 
 private:
     PanelNodeInspector* m_inspector = nullptr;

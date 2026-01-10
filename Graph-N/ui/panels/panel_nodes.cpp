@@ -148,12 +148,7 @@ void PanelNodes::show_tree_view()
                 if (data->selected_nodes.count(node_holder->get_id()) > 0)
                     ImGui::PopStyleColor();
 
-                if (!test_node_clicked(node_holder) &&
-                    !node_holder->node->description.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
-                {
-                    ImGui::TextUnformatted(node_holder->node->description.c_str());
-                    ImGui::EndTooltip();
-                }
+                test_node_clicks(node_holder);
             }
             ImGui::EndGroup();
 
@@ -194,7 +189,6 @@ void PanelNodes::show_plain_view()
     {
         if (nullptr == node_holder || nullptr == node_holder->node || !node_holder->is_node || node_holder->filtered)
             continue;
-        auto node = node_holder->node;
 
         ImGui::BeginGroup();
 
@@ -209,12 +203,7 @@ void PanelNodes::show_plain_view()
         if (data()->selected_nodes.count(node_holder->get_id()) > 0)
             ImGui::PopStyleColor();
 
-        if (!test_node_clicked(node_holder) &&
-            !node->description.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
-        {
-            ImGui::TextUnformatted(node->description.c_str());
-            ImGui::EndTooltip();
-        }
+        test_node_clicks(node_holder);
 
         ImGui::EndGroup();
 
@@ -233,9 +222,13 @@ void PanelNodes::show_plain_view()
     ImGui::PopStyleColor(3);
 }
 
-bool PanelNodes::test_node_clicked(data::Nodes* holder)
+void PanelNodes::test_node_clicks(data::Nodes* holder)
 {
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+    {
+        add_node_to_wf(holder);
+    }
+    else if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
     {
         if (ImGui::IsKeyDown(ImGuiMod_Ctrl) || ImGui::IsKeyDown(ImGuiMod_Shift))
         {
@@ -258,10 +251,25 @@ bool PanelNodes::test_node_clicked(data::Nodes* holder)
             data()->selected_nodes.insert(holder->get_id());
             m_inspector->add_inspecting_node(holder->node);
         }
-        return true;
     }
-    return false;
+    else if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+    {
+        show_tooltip(holder);
+    }
 }
+
+void PanelNodes::show_tooltip(data::Nodes* /*holder*/)
+{
+    //if (!test_node_clicked(node_holder) &&
+    //    !node->description.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal) && ImGui::BeginTooltip())
+    //{
+    //    ImGui::TextUnformatted(node->description.c_str());
+    //    ImGui::EndTooltip();
+    //}
+}
+
+void PanelNodes::add_node_to_wf(data::Nodes* /*holder*/)
+{}
 
 void PanelNodes::expand_all()
 {
