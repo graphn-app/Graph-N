@@ -2,11 +2,14 @@
 #pragma once
 #include "ui/panels/panel_base.h"
 #include "core/managers/comfyui_object_validity_listener.h"
+#include "ui/panels/ro_node_drawer.h"
 
 namespace data
 {
 struct Node;
 struct Nodes;
+class NodeInstance;
+class Workflow;
 }
 
 namespace ui
@@ -62,6 +65,10 @@ private:
 
 private:
     PanelNodeInspector* m_inspector = nullptr;
+    data::Workflow* m_wf = nullptr;
+    data::NodeInstance* m_tt_node = nullptr;
+    float m_tt_width = 0.0f;
+    RoNodeDrawer m_tt_node_drawer;
 };
 
 

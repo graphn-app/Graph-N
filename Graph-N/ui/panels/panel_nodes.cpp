@@ -6,6 +6,9 @@
 #include "platform/main.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
+#include "core/data/node.h"
+#include "core/workflow/node_instance.h"
+#include "core/workflow/workflow.h"
 
 namespace ui
 {
@@ -22,6 +25,8 @@ void PanelNodes::init()
     LogF;
     PanelBase::init();
     data()->buffer.resize(PanelNodesData::buff_count);
+
+    m_wf = g::pFlow->create_workflow();
 
     g::pFlow->subscribe_comfyui_validity_state(this);
 
@@ -256,16 +261,30 @@ void PanelNodes::test_node_clicks(data::Nodes* holder)
     {
         show_tooltip(holder);
     }
+    else if (m_tt_node != nullptr)
+    {
+        m_wf->remove_node(m_tt_node);
+        m_tt_node = nullptr;
+    }
 }
 
-void PanelNodes::show_tooltip(data::Nodes* /*holder*/)
+void PanelNodes::show_tooltip(data::Nodes* holder)
 {
-    //if (!test_node_clicked(node_holder) &&
-    //    !node->description.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal) && ImGui::BeginTooltip())
-    //{
-    //    ImGui::TextUnformatted(node->description.c_str());
-    //    ImGui::EndTooltip();
-    //}
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
+
+    if (ImGui::BeginTooltip())
+    {
+        if (nullptr == m_tt_node)
+        {
+            m_tt_node = m_wf->add_node(holder->node);
+            m_tt_width = m_tt_node->calc_node_width();
+        }
+        m_tt_node_drawer.draw(m_tt_node, true, m_tt_width);
+        ImGui::EndTooltip();
+    }
+
+    ImGui::PopStyleColor(2);
 }
 
 void PanelNodes::add_node_to_wf(data::Nodes* /*holder*/)
