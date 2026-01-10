@@ -101,6 +101,9 @@ int MainRoutine_Win32::run(flow_callback& callback, std::atomic_bool& request_fo
     bool done = false;
     while (!done)
     {
+        // wait for evert or timer, but not longer than 20ms
+        MsgWaitForMultipleObjectsEx(0, NULL, 20, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+
         // Poll and handle messages (inputs, window resize, etc.)
         // See the wnd_proc() function below for our to dispatch events to the Win32 backend.
         MSG msg;
