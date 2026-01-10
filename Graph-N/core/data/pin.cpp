@@ -1,6 +1,7 @@
 
 #include "core/data/pin.h"
 #include "core/data/node.h"
+#include "core/managers/settings_manager.h"
 
 namespace data
 {
@@ -72,7 +73,7 @@ void Pin::finalize()
         LogAndThrowInternalError(ExcepCategory::logic, "Pin can't be input and output at the same time");
     }
 
-    if (output && def_state.advanced)
+    if (output && advanced)
     {
         LogInvalidJson("Output pin can't be advanced");
         LogAndThrowInternalError(ExcepCategory::logic, "Output pin can't be advanced");
@@ -189,7 +190,7 @@ void Pin::finalize()
         }
     }
 
-    if (!is_widget() && def_state.advanced)
+    if (!is_widget() && advanced)
     {
         LogInvalidJson("Non-widget pin can't be advanced");
         LogAndThrowInternalError(ExcepCategory::logic, "Non-widget pin can't be advanced");
@@ -231,6 +232,10 @@ void Pin::finalize()
         }
     }
 
+    // load options
+    auto opt_adv = g::pOptsManager->nd_get_pin_advanced(get_id());
+    if (opt_adv.has_value())
+        advanced = opt_adv.value();
 }
 
 void Pin::init_defaults()

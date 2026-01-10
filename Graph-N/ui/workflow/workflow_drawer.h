@@ -32,22 +32,7 @@ public:
 
 private:
     void draw_node(data::NodeInstance* node);
-    void draw_input_pin(data::PinInstance* pin);
-    void draw_input_widget(data::PinInstance* pin, float r_group_width, float max_widget_width, bool draw_control_after_generate = false);
-    void draw_output_pin(data::PinInstance* pin);
     void draw_link(const data::Link* link);
-    void draw_pin_icon(ImU32 color, bool connected, bool for_widget);
-    void draw_widget(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
-    void draw_widget_int(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
-    void draw_widget_uint(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
-    void draw_widget_float(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
-    void draw_widget_bool(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
-    void draw_widget_str(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
-    void draw_widget_str_ml(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
-    void draw_widget_num(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
-    void draw_widget_combo(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
-    void draw_widget_color(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
-    void draw_widget_control_after_generate(data::PinInstance* pin, float l_group_width, float r_offset, float r_group_width, float max_widget_width);
 
 private:
     ax::NodeEditor::EditorContext* m_context = nullptr;

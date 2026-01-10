@@ -36,12 +36,21 @@ inline constexpr auto gdb_val_category = "category";
 inline constexpr auto gdb_val_message = "message";
 inline constexpr auto gdb_val_name = "name";
 inline constexpr auto gdb_val_when = "at";
+inline constexpr auto gdb_val_hash = "hash";
+inline constexpr auto gdb_val_int = "value_int";
+inline constexpr auto gdb_val_str = "value_str";
+inline constexpr auto gdb_val_opt = "option";
 
 inline constexpr auto gdb_tbl_err = "ERRORS";
 inline constexpr auto gdb_tbl_opt = "SETTINGS";
+inline constexpr auto gdb_tbl_nodes = "NODES";
 
-inline constexpr auto gdb_opt_val_int = "value_int";
-inline constexpr auto gdb_opt_val_str = "value_str";
+#define LOG_VALUE(v)                   "(" << v.ival << ", " << v.sval << ")"
+#define LOG_KEY(k)                     "opt: '" << k << "'"
+#define LOG_KEY_VAL(k, v)              LOG_KEY(k) << " = " << LOG_VALUE(v)
+#define LOG_NOPT_KEY(h, k)             "id=" << h << ", opt: '" << cast::to_i32(k)
+#define LOG_NOPT_KEY_VAL(h, k, v)      LOG_NOPT_KEY(h, k) << "' = " << LOG_VALUE(v)
+#define LOG_EXP(e)                     "err: (" << e.getErrorCode() << ", " << e.getErrorStr() << ", " << ex.what()
 
 bool DbManager::init()
 {
@@ -74,35 +83,23 @@ bool DbManager::init()
 						{} TEXT,
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
-				)", gdb_tbl_opt, gdb_val_id, gdb_val_name, gdb_opt_val_int, gdb_opt_val_str, gdb_val_when));
+				)", gdb_tbl_opt, gdb_val_id, gdb_val_name, gdb_val_int, gdb_val_str, gdb_val_when));
 
-        //m_db->exec(R"(
-        //		CREATE TABLE IF NOT EXISTS workflows (
-        //			id INTEGER PRIMARY KEY AUTOINCREMENT,
-        //			name TEXT NOT NULL,
-        //			data TEXT NOT NULL,
-        //			created DATETIME DEFAULT CURRENT_TIMESTAMP,
-        //			updated DATETIME DEFAULT CURRENT_TIMESTAMP
-        //		);
-        //	)");
-
-        //m_db->exec(R"(
-  //          CREATE TABLE IF NOT EXISTS images (
-  //              id INTEGER PRIMARY KEY,
-  //              filename TEXT NOT NULL,
-  //              workflow TEXT,
-  //              prompt_pos TEXT,
-        //		prompt_neg TEXT,
-  //              seed INTEGER,
-  //              favorite BOOLEAN DEFAULT 0,
-  //              created DATETIME DEFAULT CURRENT_TIMESTAMP,
-        //		updated DATETIME DEFAULT CURRENT_TIMESTAMP
-  //          );
-  //      )");
+        m_db->exec(fmt::format(R"(
+					CREATE TABLE IF NOT EXISTS {} (
+						{} INTEGER PRIMARY KEY AUTOINCREMENT,
+						{} TEXT,
+						{} INTEGER,
+						{} INTEGER,
+						{} TEXT,
+                        {} DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE({}, {}) ON CONFLICT REPLACE
+					);
+				)", gdb_tbl_nodes, gdb_val_id, gdb_val_hash, gdb_val_opt, gdb_val_int, gdb_val_str, gdb_val_when, gdb_val_hash, gdb_val_opt));
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite initialization error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
+        LogExcep(ExcepCategory::sqlite, "SQLite initialization " << LOG_EXP(ex));
         return false;
     }
 
@@ -127,89 +124,126 @@ void DbManager::save_exception(ExcepCategory category, const std::string& messag
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite save err error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
+        LogExcep(ExcepCategory::sqlite, "SQLite save " << LOG_EXP(ex));
         return;
     }
 }
 
-void DbManager::set_option(const std::string& key, const std::string& value)
+void DbManager::set_option(const std::string& key, const Value& value)
 {
     try
     {
         SQLite::Statement query(*m_db,
-            fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}) VALUES (?, ?)"),
-                gdb_tbl_opt, gdb_val_name, gdb_opt_val_str));
+            fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}, {}) VALUES (?, ?, ?)"),
+                gdb_tbl_opt, gdb_val_name, gdb_val_int, gdb_val_str));
         query.bind(1, key);
-        query.bind(2, value);
+        query.bind(2, value.ival);
+        query.bind(3, value.sval);
         query.exec();
-        Log("Opt updated: (" << key << "=" << value << ")");
+        Log("Upd " << LOG_KEY_VAL(key, value));
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite save opt (" << key << "=" << value << ") error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
+        LogExcep(ExcepCategory::sqlite, "SQLite save " << LOG_KEY_VAL(key, value) << ", " << LOG_EXP(ex));
         return;
     }
 }
 
-void DbManager::set_option(const std::string& key, int64_t value)
+std::optional<Value> DbManager::get_option(const std::string& key)
 {
     try
     {
         SQLite::Statement query(*m_db,
-            fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}) VALUES (?, ?)"),
-                gdb_tbl_opt, gdb_val_name, gdb_opt_val_int));
-        query.bind(1, key);
-        query.bind(2, value);
-        query.exec();
-        Log("Opt updated: (" << key << "=" << value << ")");
-    }
-    catch (const SQLite::Exception& ex)
-    {
-        LogExcep(ExcepCategory::sqlite, "SQLite save opt (" << key << "=" << value << ") error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
-        return;
-    }
-}
-
-std::optional<std::string> DbManager::get_option_str(const std::string& key)
-{
-    try
-    {
-        SQLite::Statement query(*m_db,
-            fmt::format(FMT_COMPILE("SELECT {} FROM {} WHERE {}=?"),
-                gdb_opt_val_str, gdb_tbl_opt, gdb_val_name));
+            fmt::format(FMT_COMPILE("SELECT {}, {} FROM {} WHERE {}=?"),
+                gdb_val_str, gdb_val_int, gdb_tbl_opt, gdb_val_name));
         query.bind(1, key);
         if (!query.executeStep())
             return std::nullopt;
-        if (query.getColumn(0).isNull())
+        if (query.getColumn(0).isNull() && query.getColumn(1).isNull())
             return std::nullopt;
-        return query.getColumn(0).getString();
+        std::optional<Value> v;
+        v.emplace(query.getColumn(0).getString(), query.getColumn(1).getInt64());
+        return v;
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite load opt " << key << " error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
+        LogExcep(ExcepCategory::sqlite, "SQLite load " << LOG_KEY(key) << ", " << LOG_EXP(ex));
     }
     return std::nullopt;
 }
 
-std::optional<int64_t> DbManager::get_option_int(const std::string& key)
+void DbManager::set_node_option(hid node_hash, NodeOption opt, const Value& value)
 {
     try
     {
         SQLite::Statement query(*m_db,
-            fmt::format(FMT_COMPILE("SELECT {} FROM {} WHERE {}=?"),
-                gdb_opt_val_int, gdb_tbl_opt, gdb_val_name));
-        query.bind(1, key);
-        if (!query.executeStep())
-            return std::nullopt;
-        if (query.getColumn(0).isNull())
-            return std::nullopt;
-        return query.getColumn(0).getInt64();
+            fmt::format(FMT_COMPILE("INSERT INTO {} ({}, {}, {}, {}) VALUES (?, ?, ?, ?)"),
+                gdb_tbl_nodes, gdb_val_hash, gdb_val_opt, gdb_val_int, gdb_val_str));
+        query.bind(1, std::to_string(node_hash));
+        query.bind(2, cast::to_i32(opt));
+        query.bind(3, value.ival);
+        query.bind(4, value.sval);
+        query.exec();
+        Log("Upd " << LOG_NOPT_KEY_VAL(node_hash, opt, value));
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite load opt " << key << " error: " << ex.getErrorCode() << ", " << ex.getErrorStr() << ", " << ex.what());
+        LogExcep(ExcepCategory::sqlite, "SQLite save " << LOG_NOPT_KEY_VAL(node_hash, opt, value) << ", " << LOG_EXP(ex));
+        return;
+    }
+}
+
+std::optional<Value> DbManager::get_node_option(hid node_hash, NodeOption opt)
+{
+    try
+    {
+        SQLite::Statement query(*m_db,
+            fmt::format(FMT_COMPILE("SELECT {}, {} FROM {} WHERE {}=? AND {}=?"),
+                gdb_val_str, gdb_val_int, gdb_tbl_nodes, gdb_val_hash, gdb_val_opt));
+        query.bind(1, std::to_string(node_hash));
+        query.bind(2, cast::to_i32(opt));
+        if (!query.executeStep())
+            return std::nullopt;
+        if (query.getColumn(0).isNull() && query.getColumn(1).isNull())
+            return std::nullopt;
+        std::optional<Value> v;
+        v.emplace(query.getColumn(0).getString(), query.getColumn(1).getInt64());
+        return v;
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::sqlite, "SQLite load " << LOG_NOPT_KEY(node_hash, opt) << ", " << LOG_EXP(ex));
     }
     return std::nullopt;
+}
+
+std::vector<std::pair<hid, Value>> DbManager::get_all_node_options(NodeOption opt)
+{
+    try
+    {
+        SQLite::Statement query(*m_db,
+            fmt::format(FMT_COMPILE("SELECT {}, {}, {} FROM {} WHERE {}=? ORDER BY {}"),
+                gdb_val_hash, gdb_val_str, gdb_val_int, gdb_tbl_nodes, gdb_val_opt, gdb_val_hash));
+        query.bind(1, cast::to_i32(opt));
+
+        std::vector<std::pair<hid, Value>> ret;
+        while(query.executeStep())
+        {
+            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull())
+                continue;
+
+            const std::string hash = query.getColumn(0).getString();
+            Value v(query.getColumn(1).getString(), query.getColumn(2).getInt64());
+            ret.emplace_back(std::strtoull(hash.c_str(), nullptr, 10), std::move(v));
+        }
+
+        return ret;
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::sqlite, "SQLite load all " << LOG_NOPT_KEY(0, opt) << ", " << LOG_EXP(ex));
+    }
+    return {};
 }
 
 } // namespace mngr

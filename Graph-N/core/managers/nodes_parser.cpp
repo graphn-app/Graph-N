@@ -286,7 +286,7 @@ void NodesParser::prepare_parsers_map()
     m_parsers["advanced"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
     {
-        if (json.is_boolean()) pin.def_state.advanced = json;
+        if (json.is_boolean()) pin.advanced = json;
         else log_err_type(node, pin, json, "advanced");
     };
     m_parsers["audio_upload"] =

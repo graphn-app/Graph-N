@@ -122,7 +122,7 @@ void HashID::set_id(hid id)
 /////   InstanceID      /////////////////////
 /////////////////////////////////////////////
 
-std::map<lid, std::set<iid>> InstanceID::m_ids;
+std::unordered_map<lid, std::set<iid>> InstanceID::m_ids;
 
 InstanceID::InstanceID(lid workflow_id)
     : m_workflow_id(workflow_id)

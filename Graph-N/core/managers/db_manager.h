@@ -5,6 +5,32 @@
 namespace mngr
 {
 
+enum class NodeOption
+{
+    advanced = 1
+};
+
+struct Value final
+{
+    std::string sval;
+    int64_t ival = 0;
+
+    Value(const std::string& s, int64_t i)
+        : sval(s)
+        , ival(i)
+    {}
+    Value(int64_t i, const std::string& s)
+        : sval(s)
+        , ival(i)
+    {}
+    Value(int64_t i)
+        : ival(i)
+    {}
+    Value(const std::string& s)
+        : sval(s)
+    {}
+};
+
 class DbManager final : public Manager
 {
 public:
@@ -15,14 +41,14 @@ public:
 
     void save_exception(ExcepCategory category, const std::string& message, const char* file, int line);
 
-    void set_option(const std::string& key, const std::string& value);
-    void set_option(const std::string& key, int64_t value);
+    void set_option(const std::string& key, const Value& value);
+    std::optional<Value> get_option(const std::string& key);
 
-    std::optional<std::string> get_option_str(const std::string& key);
-    std::optional<int64_t> get_option_int(const std::string& key);
+    void set_node_option(hid node_hash, NodeOption opt, const Value& value);
+    std::optional<Value> get_node_option(hid node_hash, NodeOption opt);
+    std::vector<std::pair<hid, Value>> get_all_node_options(NodeOption opt);
 
 private:
-    void set(const std::string& query);
 
 private:
     std::unique_ptr<SQLite::Database> m_db;

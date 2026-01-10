@@ -89,13 +89,13 @@ int64_t SettingsManager::get_opt_int(int64_t& out_option, const char* db_name, c
 {
     if (undef_example == out_option)
     {
-        const auto val = g::pDbManager->get_option_int(db_name);
+        const auto val = g::pDbManager->get_option(db_name);
         if (!val.has_value())
         {
             set_opt_int(out_option, def_value, db_name);
             return get_opt_int(out_option, db_name, def_value, undef_example);
         }
-        out_option = val.value();
+        out_option = val.value().ival;
     }
     return out_option;
 }
@@ -104,13 +104,13 @@ std::string& SettingsManager::get_opt_str(std::string& out_option, const char* d
 {
     if (out_option.empty())
     {
-        const auto val = g::pDbManager->get_option_str(db_name);
+        const auto val = g::pDbManager->get_option(db_name);
         if (!val.has_value())
         {
             set_opt_str(out_option, def_value, db_name);
             return get_opt_str(out_option, db_name, def_value);
         }
-        out_option = val.value();
+        out_option = val.value().sval;
     }
     return out_option;
 }
@@ -118,13 +118,13 @@ std::string& SettingsManager::get_opt_str(std::string& out_option, const char* d
 void SettingsManager::set_opt_int(int64_t& opt_param, const int64_t opt_value, const char* db_name)
 {
     opt_param = opt_value;
-    g::pDbManager->set_option(db_name, opt_param);
+    g::pDbManager->set_option(db_name, { opt_param });
 }
 
 void SettingsManager::set_opt_str(std::string& opt_param, const std::string& opt_value, const char* db_name)
 {
     opt_param = opt_value;
-    g::pDbManager->set_option(db_name, opt_param);
+    g::pDbManager->set_option(db_name, { opt_param });
 }
 
 template<typename ENUM>
@@ -313,7 +313,35 @@ void SettingsManager::wf_set_widget_input_bools(WidgetInput bools)
 }
 
 //////////////////////////////////////////////////////////////////////
-////////       .                         /////////////////////////////
+////////       Nodes                     /////////////////////////////
 //////////////////////////////////////////////////////////////////////
+
+void SettingsManager::nd_preload_node_options()
+{
+    nd_release_node_options();
+    const auto res = g::pDbManager->get_all_node_options(mngr::NodeOption::advanced);
+    for (auto& [id, value] : res)
+    {
+        m_hashed_pin_advanced[id] = value.ival == 1;
+    }
+}
+
+void SettingsManager::nd_release_node_options()
+{
+    m_hashed_pin_advanced.clear();
+}
+
+std::optional<bool> SettingsManager::nd_get_pin_advanced(hid pin_id)
+{
+    auto it = m_hashed_pin_advanced.find(pin_id);
+    if (it == m_hashed_pin_advanced.end())
+        return std::nullopt;
+    return it->second;
+}
+
+void SettingsManager::nd_set_pin_advanced(hid pin_id, bool advanced)
+{
+    g::pDbManager->set_node_option(pin_id, mngr::NodeOption::advanced, { advanced ? 1 : 0 });
+}
 
 } // namespace mngr

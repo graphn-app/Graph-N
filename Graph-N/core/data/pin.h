@@ -72,7 +72,6 @@ inline constexpr const char* ControlAfterGenerateStr[cast::to_u64(ControlAfterGe
 struct PinState final
 {
     int32_t links = 0;          // number of pin links
-    bool advanced = false;      // is visible on node
     bool converted = false;     // input pin converted to widget
     
     uint32_t pin_color = 0;     // will change if ANY pin
@@ -120,6 +119,7 @@ public:
     bool force_input = false;
     bool def_input = false; // TODO
     bool lazy = false; // TODO
+    bool advanced = false;      // is visible on node
 
     bool image_upload = false;
     bool audio_upload = false;

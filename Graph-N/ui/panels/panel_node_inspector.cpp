@@ -114,7 +114,8 @@ void PanelNodeInspector::show_nodes()
         auto& node = m_inspecting[i];
         auto node_obj = node.node->get_object();
 
-        const float col_w = std::max(node.ideal_size, min_descr_w);
+        float col_w = std::max(node.ideal_size, min_descr_w);
+        col_w = std::min(col_w, avail_w);
 
         ImGui::PushID(node_obj->get_id_str().c_str());
         ImGui::BeginGroup();
@@ -169,7 +170,7 @@ void PanelNodeInspector::show_description(TextWrapperRO& descr_wrapper, float ma
 
 void PanelNodeInspector::show_preview(data::NodeInstance* node_inst, float max_w)
 {
-    max_w = node_inst->recalc_node_widths(max_w, false /*allow_extend*/, false /*allow_compress*/, true /*use_big_pin_icon*/);
+    max_w = node_inst->recalc_node_widths(max_w, false /*allow_extend*/, true /*allow_compress*/, true /*use_big_pin_icon*/);
     m_curr_node_left_offset = ImGui::GetCursorPosX();
 
     ImGuiEx::PushID(node_inst->get_graph_id());
@@ -254,14 +255,15 @@ void PanelNodeInspector::show_preview(data::NodeInstance* node_inst, float max_w
         size_t advanced = 0;
         for (auto pin : input)
         {
-            if (pin->m_state->advanced)
+            auto obj = pin->get_object();
+            if (obj->advanced)
                 advanced++;
-            else if (pin->get_object()->is_widget())
+            else if (obj->is_widget())
             {
                 ImGuiEx::PushID(pin->get_graph_id());
                 draw_input_widget(pin, node_inst->w_widget_name, node_inst->w_widget_value, false);
 
-                if (pin->get_object()->control_after_generate)
+                if (obj->control_after_generate)
                 {
                     draw_input_widget(pin, node_inst->w_widget_name, node_inst->w_widget_value, true);
                 }
@@ -273,12 +275,13 @@ void PanelNodeInspector::show_preview(data::NodeInstance* node_inst, float max_w
             draw_widget_separator(w::pin_l_offset + w::ico_max + w::pin_r_offset, node_inst->w_separator);
             for (auto pin : input)
             {
-                if (pin->m_state->advanced)
+                auto obj = pin->get_object();
+                if (obj->advanced)
                 {
                     ImGuiEx::PushID(pin->get_graph_id());
                     draw_input_widget(pin, node_inst->w_widget_name, node_inst->w_widget_value, false);
 
-                    if (pin->get_object()->control_after_generate)
+                    if (obj->control_after_generate)
                     {
                         draw_input_widget(pin, node_inst->w_widget_name, node_inst->w_widget_value, true);
                     }
@@ -372,14 +375,19 @@ void PanelNodeInspector::draw_input_widget(data::PinInstance* pin, float widget_
     }
     else
     {
+        auto obj = pin->get_object();
+
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
-        ImGui::TextUnformatted(pin->m_state->advanced ? ICON_LC_EYE_CLOSED : ICON_LC_EYE);
+        ImGui::TextUnformatted(obj->advanced ? ICON_LC_EYE_CLOSED : ICON_LC_EYE);
 
         const ImVec2 size = ImGui::GetItemRectSize();
         ImGui::SameLine();
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
         if (ImGui::InvisibleButton("##pin", size))
-            pin->m_state->advanced = !pin->m_state->advanced;
+        {
+            obj->advanced = !obj->advanced;
+            g::pOptsManager->nd_set_pin_advanced(obj->get_id(), obj->advanced);
+        }
 
         ImGui::SameLine(0, w::pin_r_offset);
         draw_widget(pin, widget_name_width, widget_value_width);

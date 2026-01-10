@@ -108,7 +108,7 @@ private:
     void generate_id();
 
 private:
-    static std::map<lid, std::set<iid>> m_ids;
+    static std::unordered_map<lid, std::set<iid>> m_ids;
     lid m_workflow_id = 0;
     iid m_id = 0;
     std::string m_id_str;

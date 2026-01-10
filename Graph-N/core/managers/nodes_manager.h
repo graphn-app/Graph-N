@@ -51,9 +51,9 @@ private:
     void init_from_copy(NodesManager& copy);
 
 private:
-    std::map<hid, std::unique_ptr<data::Node>> m_nodes;
-    std::map<hid, std::unique_ptr<data::Pin>> m_pins;
-    std::map<lid, std::unique_ptr<data::Nodes>> m_node_holders;
+    std::unordered_map<hid, std::unique_ptr<data::Node>> m_nodes;
+    std::unordered_map<hid, std::unique_ptr<data::Pin>> m_pins;
+    std::unordered_map<lid, std::unique_ptr<data::Nodes>> m_node_holders;
 
     std::vector<data::Nodes*> m_nodes_tree;			// tree view
     std::vector<data::Nodes*> m_nodes_plain;		// plain view: sorted by display name

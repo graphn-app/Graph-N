@@ -560,6 +560,7 @@ void GraphN_Flow::show_menu_bar_connecting()
             m_windows &= ~ViewConnect;
             m_windows |= ViewParsingNodes;
 
+            g::pOptsManager->nd_preload_node_options();
             m_nodes_parser = std::make_unique<mngr::NodesParser>();
 #if 1
             m_nodes_parser->parse(debug::test_json);
@@ -586,6 +587,7 @@ void GraphN_Flow::show_menu_bar_connecting()
 
         if (m_nodes_parser->is_parse_finished())
         {
+            g::pOptsManager->nd_release_node_options();
             if (m_nodes_parser->is_parse_failed())
             {
                 text = "Failed to parse loaded nodes";

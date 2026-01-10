@@ -25,11 +25,6 @@ struct DlgData
 
     ImU32 clr_bg = 0;
     ImU32 clr_title = 0;
-
-    //rid set_focus_id = 0;
-
-    //std::map<rid, std::string> buffer;
-    //std::map<rid, tools::dt> date_buffer;
 };
 
 class BaseDlg
