@@ -4,6 +4,7 @@
 #include "ui/options/opts_dlg.h"
 #include "ui/panels/panel_nodes.h"
 #include "ui/panels/panel_node_inspector.h"
+#include "ui/panels/panel_stats.h"
 #include "ui/workflow/workflow_drawer.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/connect_manager.h"
@@ -135,13 +136,17 @@ bool GraphN_Flow::init()
     m_windows = g::pOptsManager->flow_get_open_wnds();
 
     // create panels
-    m_node_inspector = std::make_unique<ui::PanelNodeInspector>();
-    m_node_inspector->init();
-    m_all_dialogs.insert(m_node_inspector.get());
+    m_panel_node_inspector = std::make_unique<ui::PanelNodeInspector>();
+    m_panel_node_inspector->init();
+    m_all_dialogs.insert(m_panel_node_inspector.get());
 
-    m_nodes_panel = std::make_unique<ui::PanelNodes>(m_node_inspector.get());
-    m_nodes_panel->init();
-    m_all_dialogs.insert(m_nodes_panel.get());
+    m_panel_nodes = std::make_unique<ui::PanelNodes>(m_panel_node_inspector.get());
+    m_panel_nodes->init();
+    m_all_dialogs.insert(m_panel_nodes.get());
+
+    m_panel_stats = std::make_unique<ui::PanelStats>();
+    m_panel_stats->init();
+    m_all_dialogs.insert(m_panel_stats.get());
 
     Log("Panels created");
 
@@ -371,6 +376,11 @@ void GraphN_Flow::show_menu_bar()
                 Log("Menu: Node Inspector");
                 on_menu_panel_window(ViewPanelNodeInpector);
             }
+            if (ImGui::MenuItem("Stats##WindowsMenuBar", nullptr, (m_windows & ViewPanelStats)))
+            {
+                Log("Menu: stats panel");
+                on_menu_panel_window(ViewPanelStats);
+            }
             ImGui::Separator();
             if (ImGui::MenuItem("Reset default layout##WindowsMenuBar"))
             {
@@ -473,6 +483,10 @@ void GraphN_Flow::on_dlg_closed(VisibleObject dlg)
         m_windows &= ~ViewPanelNodeInpector;
         Log("Nones Inspector panel closed");
         break;
+    case VisibleObject::PanelStats:
+        m_windows &= ~ViewPanelStats;
+        Log("Stats panel closed");
+        break;
     default:
         LogError(ExcepCategory::switch_enum, "Unregistered dialog is trying to be closed " << cast::to_u64(dlg));
     }
@@ -530,23 +544,34 @@ void GraphN_Flow::show_options_dlg()
 void GraphN_Flow::show_panel_nodes()
 {
     bool focused = false;
-    if (m_nodes_panel->show_dialog(focused) != DlgCode::progress)
+    if (m_panel_nodes->show_dialog(focused) != DlgCode::progress)
     {
         on_dlg_closed(VisibleObject::PanelNodes);
     }
     else if (focused)
-        m_focused_wnd = m_nodes_panel.get();
+        m_focused_wnd = m_panel_nodes.get();
 }
 
 void GraphN_Flow::show_panel_node_inspector()
 {
     bool focused = false;
-    if (m_node_inspector->show_dialog(focused) != DlgCode::progress)
+    if (m_panel_node_inspector->show_dialog(focused) != DlgCode::progress)
     {
         on_dlg_closed(VisibleObject::PanelNodeInspector);
     }
     else if (focused)
-        m_focused_wnd = m_node_inspector.get();
+        m_focused_wnd = m_panel_node_inspector.get();
+}
+
+void GraphN_Flow::show_panel_stats()
+{
+    bool focused = false;
+    if (m_panel_stats->show_dialog(focused) != DlgCode::progress)
+    {
+        on_dlg_closed(VisibleObject::PanelStats);
+    }
+    else if (focused)
+        m_focused_wnd = m_panel_stats.get();
 }
 
 void GraphN_Flow::show_menu_bar_connecting()
@@ -652,12 +677,15 @@ void GraphN_Flow::show_panels()
             ImGuiID dock_id_left_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.25f, nullptr, &m_main_dock_id);
             ImGuiID dock_id_left_btm = ImGui::DockBuilderSplitNode(dock_id_left_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_left_top);
 
+            ImGuiID dock_id_right_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.25f, nullptr, &m_main_dock_id);
+            ImGuiID dock_id_right_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right_top);
 
             //    const ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.25f, nullptr, &m_main_dock_id);
              //   const ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.20f, nullptr, &m_main_dock_id);
 
-            ImGui::DockBuilderDockWindow(m_nodes_panel->get_panel_name(), dock_id_left_top);
-            ImGui::DockBuilderDockWindow(m_node_inspector->get_panel_name(), dock_id_left_btm);
+            ImGui::DockBuilderDockWindow(m_panel_nodes->get_panel_name(), dock_id_left_top);
+            ImGui::DockBuilderDockWindow(m_panel_node_inspector->get_panel_name(), dock_id_left_btm);
+            ImGui::DockBuilderDockWindow(m_panel_stats->get_panel_name(), dock_id_right_bottom);
 
             ImGui::DockBuilderFinish(dockspace_id);
         }
@@ -669,6 +697,8 @@ void GraphN_Flow::show_panels()
         show_panel_nodes();
     if (m_windows & ViewPanelNodeInpector)
         show_panel_node_inspector();
+    if (m_windows & ViewPanelStats)
+        show_panel_stats();
 }
 
 }

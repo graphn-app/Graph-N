@@ -19,6 +19,7 @@ class BaseDlg;
 class OptionsDlgs;
 class PanelNodes;
 class PanelNodeInspector;
+class PanelStats;
 class WorkflowDrawer;
 
 
@@ -36,6 +37,7 @@ enum ViewDialogs
     ViewPanelsResetAll          = 0x00000020,
     ViewPanelNodes              = 0x00000040,
     ViewPanelNodeInpector       = 0x00000080,
+    ViewPanelStats              = 0x00000100,
 
     ViewDebugMetrics            = 0x01000000,
     ViewDebugDemo               = 0x02000000,
@@ -49,7 +51,7 @@ enum ViewDialogs
 
     ViewAllOptions              = ViewOptions | ViewOptsComfyUi,
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
-    ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector,
+    ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats,
     ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector
 };
 
@@ -94,6 +96,7 @@ private:
     void show_panels();
     void show_panel_nodes();
     void show_panel_node_inspector();
+    void show_panel_stats();
 
     void on_dlg_closed(VisibleObject dlg);
 
@@ -114,8 +117,9 @@ private:
     std::set<BaseDlg*> m_all_dialogs;
 
     std::unique_ptr<OptionsDlgs> m_opts_dlg;
-    std::unique_ptr<PanelNodes> m_nodes_panel;
-    std::unique_ptr<PanelNodeInspector> m_node_inspector;
+    std::unique_ptr<PanelNodes> m_panel_nodes;
+    std::unique_ptr<PanelNodeInspector> m_panel_node_inspector;
+    std::unique_ptr<PanelStats> m_panel_stats;
 
     std::map<lid, std::unique_ptr<data::Workflow>> m_workflows;
     std::map<lid, std::unique_ptr<WorkflowDrawer>> m_workflow_drawers;  // by wf id

@@ -29,6 +29,7 @@ enum class VisibleObject
 
     PanelNodeInspector,
     PanelNodeInspectorDescrFrame,
+    PanelStats,
 
     WfNodeHeaderBg,
     WfNodeHeaderText,
