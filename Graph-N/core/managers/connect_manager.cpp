@@ -90,12 +90,6 @@ std::pair<ConnectState, std::string> ConnectManager::connect_thread()
             cli.set_read_timeout(g::pOptsManager->comfyui_get_read_timeout());
 
             auto res = cli.Get("/");
-            if (!res)
-            {
-                //	Log("Connection failed. Error code " << httplib::to_string(res.error()));
-                std::this_thread::sleep_for(1ms);
-                continue;
-            }
 
             if (m_stop_thread_flag)
             {
@@ -103,9 +97,22 @@ std::pair<ConnectState, std::string> ConnectManager::connect_thread()
                 return std::make_pair(ConnectState::disconnected, "");
             }
 
+            if (!res)
+            {
+                std::this_thread::sleep_for(1ms);
+                continue;
+            }
+
             Log("Start reading nodes data");
 
-            res = cli.Get(comfyui::object_info);
+            res = cli.Get(comfyui_api::object_info);
+
+            if (m_stop_thread_flag)
+            {
+                Log("Connection thread aborted");
+                return std::make_pair(ConnectState::disconnected, "");
+            }
+
             if (res && 200 == res->status)
             {
                 Log("Read " << res->body.size() << " bytes");

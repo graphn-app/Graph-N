@@ -15,6 +15,9 @@ public:
     virtual bool init() = 0;
     virtual void free() = 0;
 
+    inline void set_vsync_enabled(bool enable) { m_vsync = enable; }
+    inline bool get_vsync_enabled() { return m_vsync; }
+
     using flow_callback = std::function<bool(bool do_exit)>;
     virtual int run(flow_callback& callback, std::atomic_bool& request_focus) = 0;
 
@@ -32,6 +35,7 @@ protected:
     void prepare_fonts();
 
 private:
+    bool m_vsync = true;
     ImFont* m_font_regular = nullptr;
     ImFont* m_font_bold = nullptr;
     ImFont* m_font_icons = nullptr;

@@ -5,7 +5,6 @@
 #include "core/data/pin.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
-#include "ui/graph-n_flow.h"
 
 namespace ui
 {
@@ -211,7 +210,7 @@ void RoNodeDrawer::draw_node_header(data::NodeInstance* node)
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + node->w_node_name_off);
     ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_header_text);
-    ImGui::TextUnformatted(node->get_name().c_str());
+    ImGui::TextUnformatted(node->get_name().c_str(), node->get_name().c_str() + node->get_name().size());
     ImGui::PopStyleColor();
 }
 
@@ -220,12 +219,12 @@ void RoNodeDrawer::draw_input_pin(data::PinInstance* pin)
     ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
     draw_pin_icon(pin->m_state->pin_color);
     ImGui::SameLine(0.0f, w::pin_r_offset);
-    ImGui::TextUnformatted(pin->get_object()->name.c_str());
+    ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
 }
 
 void RoNodeDrawer::draw_output_pin(data::PinInstance* pin)
 {
-    ImGui::TextUnformatted(pin->get_object()->name.c_str());
+    ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
     ImGui::SameLine(0, w::pin_r_offset);
     draw_pin_icon(pin->m_state->pin_color);
 }

@@ -170,14 +170,14 @@ struct LogGuard final
     { \
         glog::LogWriter log_writer_1__; \
         log_writer_1__ << message; \
-        const std::string& buffer = log_writer_1__.get_buffer(); \
-        SAVE_EXCEPTION(category, buffer); \
+        const std::string& buffer__ = log_writer_1__.get_buffer(); \
+        SAVE_EXCEPTION(category, buffer__); \
 	    if (glog::Logger::get_log_enabled()) \
         { \
             try { \
                 glog::LogWriter log_writer_2__; \
 			    log_writer_2__.log_line_start_foo(__FUNCTION__, __LINE__); \
-			    log_writer_2__ << "[" << log_prefix << "] " << buffer << glog::LogLineEnd(); \
+			    log_writer_2__ << "[" << log_prefix << "] " << buffer__ << glog::LogLineEnd(); \
                 glog::Logger::instance().write(log_writer_2__); \
             } \
             catch (const std::exception& e) { \
@@ -194,7 +194,7 @@ struct LogGuard final
         DEBUG_CATCH; \
         if (do_throw) \
         { \
-            throw std::runtime_error(buffer); \
+            throw std::runtime_error(buffer__); \
         } \
     }
 
@@ -261,8 +261,10 @@ std::string format_log_msg(Args&&... args)
 
 #ifdef _WIN32
 #define LogERR						uint32_t(GetLastError())
-#else
-#define LogERR                      uint32_t(0)
+#elif defined __APPLE__
+#error Not implemented
+#elif defined __linux__
+#error Not implemented
 #endif
 #define LogHEX(h)					glog::LogHex(h)
 #define LogPTR(p)					glog::LogPtr(p)

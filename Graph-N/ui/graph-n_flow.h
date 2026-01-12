@@ -67,8 +67,8 @@ public:
     bool run();
     void exit();
 
-    bool get_online() const { return m_online; }
-    void set_online(bool online) { m_online = online; }
+    inline bool get_online() const { return m_online; }
+    inline void set_online(bool online) { m_online = online; }
 
     void reconnect();
 
@@ -126,18 +126,6 @@ private:
 
     std::list<mngr::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
 };
-}
-
-namespace w
-{
-extern float pin_l_offset;
-extern float pin_r_offset;
-extern float ico_circle;
-extern float ico_eye;
-extern float ico_max;
-extern float v_spacing;
-extern std::string hidden_widgets;
-extern float hidden_widgets_len;
 }
 
 #if 1

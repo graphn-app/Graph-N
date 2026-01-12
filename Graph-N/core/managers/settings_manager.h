@@ -13,6 +13,10 @@ public:
 
     bool init() override;
 
+    // app
+    bool app_get_vsync_enabled();
+    void app_set_vsync_enabled(bool enabled);
+
     // flow
     uint32_t flow_get_color(VisibleObject obj);
 
@@ -69,6 +73,31 @@ public:
 
     std::optional<bool> nd_get_pin_advanced(hid pin_id);
     void nd_set_pin_advanced(hid pin_id, bool advanced);
+
+    // stats
+    void stat_get_lram_threshold(int64_t& warn, int64_t& crit);
+    void stat_set_lram_threshold(int64_t warn, int64_t crit);
+
+    void stat_get_sram_threshold(int64_t& warn, int64_t& crit);
+    void stat_set_sram_threshold(int64_t warn, int64_t crit);
+
+    void stat_get_vram_threshold(int64_t& warn, int64_t& crit);
+    void stat_set_vram_threshold(int64_t warn, int64_t crit);
+
+    void stat_get_pytorch_threshold(int64_t& warn, int64_t& crit);
+    void stat_set_pytorch_threshold(int64_t warn, int64_t crit);
+
+    void stat_get_disk_threshold(int64_t& warn, int64_t& crit);
+    void stat_set_disk_threshold(int64_t warn, int64_t crit);
+
+    std::vector<std::string> stat_get_disks_enabled();
+    void stat_set_disks_enabled(const std::vector<std::string>& disks);
+
+    void stat_get_ping_threshold(int64_t& warn, int64_t& crit);
+    void stat_set_ping_threshold(int64_t warn, int64_t crit);
+
+    void stat_get_fps_threshold(int64_t& warn, int64_t& crit);
+    void stat_set_fps_threshold(int64_t warn, int64_t crit);
 
 private:
     int64_t get_opt_int(int64_t& out_option, const char* db_name, const int64_t def_value, const int64_t undef_example = -1);

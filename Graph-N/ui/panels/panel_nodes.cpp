@@ -32,7 +32,6 @@ void PanelNodes::init()
 
     data()->tree_view = g::pOptsManager->flow_get_nodes_pane_tree_view();
 
-    data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::PanelNodes);
     data()->clr_hover_group = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverGroup);
     data()->clr_hover_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverNode);
     data()->clr_selected_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesSelectedNode);
@@ -65,11 +64,24 @@ DlgCode PanelNodes::show(bool& focused)
     {
         if (g::pNodesManager->get_nodes_tree().empty())
         {
-            ImGui::TextUnformatted("Loading...");
+            show_empty_panel_descr(
+                ICON_LC_BOOK_OPEN " Node Library: Browse, search, and add nodes to your workflow.",
+                {
+                    ICON_LC_UNPLUG,
+                    "Waiting for Connection.",
+                    "Node definitions are unavailable."
+                },
+                {
+                    ICON_LC_SETTINGS " Configuration:",
+                    "Check Address, Port & Timeouts",
+                    "in Settings > ComfyUI."
+                }
+            );
             return end_panel(true);
         }
 
         show_cfg_buttons();
+        ImGui::Spacing();
 
         ImGui::SetNextItemWidth(-FLT_MIN);
         if (ImGuiEx::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelNodesData::buff_filter],
@@ -319,13 +331,12 @@ void PanelNodes::show_cfg_buttons()
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, data()->clr_hover_btn);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, data()->clr_active_btn);
 
-    const float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
     const float spacing = ImGui::GetStyle().ItemSpacing.x;
     const uint32_t button_count = 4;
     const uint32_t big_spaces = 2;
     const uint32_t small_spaces = 1;
     const float start_pos =
-        window_visible_x2 -
+        ImGui::GetContentRegionAvail().x -
         (button_count * data()->button_width) -
         (big_spaces * spacing * data()->ungrouped_btn_spacing_x) -
         (small_spaces * spacing * data()->grouped_btn_spacing_x) -
@@ -340,7 +351,7 @@ void PanelNodes::show_cfg_buttons()
 
     const auto tooltip = [&fg](const char* text)
     {
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
         {
             fg.pop();
             if (ImGui::BeginTooltip())

@@ -78,15 +78,39 @@ std::vector<std::string> split(const std::string& str, char separator)
     while (end != std::string::npos)
     {
         std::string token = str.substr(start, end - start);
-        out.emplace_back(std::move(trim_this(token)));
+        trim_this(token);
+        if (!token.empty())
+            out.emplace_back(std::move(token));
 
         start = end + 1;
         end = str.find(separator, start);
     }
 
     std::string last_token = str.substr(start);
-    out.emplace_back(std::move(trim_this(last_token)));
+    trim_this(last_token);
+    if (!last_token.empty())
+        out.emplace_back(std::move(last_token));
 
+    return out;
+}
+
+std::string merge(const std::vector<std::string>& items, char separator)
+{
+    std::string out;
+    out.reserve(items.size() * 10);
+    bool first = true;
+    for (auto& item : items)
+    {
+        if (first)
+        {
+            out.append(item);
+            first = false;
+        }
+        else
+        {
+            out.append(1, separator).append(item);
+        }
+    }
     return out;
 }
 

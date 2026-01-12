@@ -62,6 +62,8 @@ void Separator(uint32_t color, float width, const char* text, size_t text_len /*
     if (window->SkipItems)
         return;
 
+    if (0.0f == width)
+        width = ImGui::GetContentRegionAvail().x;
     if (0.0f == text_width)
         text_width = ImGui::CalcTextSize(text).x;
     if (0 == text_len)

@@ -25,7 +25,6 @@ void PanelNodeInspector::init()
 
     g::pFlow->subscribe_comfyui_validity_state(this);
 
-    data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::PanelNodeInspector);
     data()->clr_descr_frame = g::pOptsManager->flow_get_color(VisibleObject::PanelNodeInspectorDescrFrame);
     data()->clr_selected_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesSelectedNode);
 
@@ -84,8 +83,18 @@ DlgCode PanelNodeInspector::show(bool& focused)
     {
         if (m_inspecting.empty())
         {
-            ImGuiEx::Spacing(3);
-            ImGui::Text(ICON_LC_TANGENT " Select node(s) to inspect");
+            show_empty_panel_descr(
+                ICON_LC_INFO " Node Inspector: View details of selected nodes, compare parameters, and configure widget visibility.",
+                {
+                    ICON_LC_TANGENT,
+                    "No node selected",
+                },
+                {
+                    "How to use:",
+                    ICON_LC_MOUSE_POINTER_2 " Right-Click: Inspect single node",
+                    ICON_LC_LAYERS " Ctrl + R-Click: Add/Remove nodes"
+                }
+            );
             return end_panel(true);
         }
         else
@@ -117,7 +126,7 @@ void PanelNodeInspector::show_nodes()
 
         ImGui::Spacing();
         ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
-        ImGui::TextUnformatted(node.node->get_name().c_str());
+        ImGui::TextUnformatted(node.node->get_name().c_str(), node.node->get_name().c_str() + node.node->get_name().size());
         ImGui::PopStyleColor();
 
         ImGui::Spacing();

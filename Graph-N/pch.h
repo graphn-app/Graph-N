@@ -98,19 +98,9 @@
 #include "ui/imgui_ex.h"
 #include "graph-n.h"
 
-// global identifiers
-#define GLOBAL_ID_DATE_PICKER_ID_FIRST		0x1000000
-#define GLOBAL_ID_DATE_PICKER_ID_NEXT		0x1000004
-#define GLOBAL_ID_DATE_PICKER_ID_LAST		0x1000054
-
-namespace comfyui
-{
-constexpr const char* object_info = "/object_info";
-}
-
-//#ifdef _DEBUG
-//if ()
-//{
-//    __debugbreak();
-//}
-//#endif
+#ifdef _WIN32
+#elif defined __APPLE__
+#error Not implemented
+#elif defined __linux__
+#error Not implemented
+#endif

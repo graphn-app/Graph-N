@@ -13,6 +13,7 @@ using primitive = std::variant<int64_t, uint64_t, double, std::string, bool, std
 
 enum class VisibleObject
 {
+    // !! update gopt_def_flow_clrs
     _none,
 
     DisconnectedMenuBar,
@@ -105,3 +106,38 @@ enum class WidgetInput
     _first = _none + 1,
     _last = _count - 1,
 };
+
+
+// global identifiers
+//#define GLOBAL_ID_DATE_PICKER_ID_FIRST		0x1000000
+//#define GLOBAL_ID_DATE_PICKER_ID_NEXT		0x1000004
+//#define GLOBAL_ID_DATE_PICKER_ID_LAST		0x1000054
+
+namespace comfyui_api
+{
+constexpr const char* object_info       = "/object_info";           // get
+constexpr const char* embeddings        = "/embeddings";            // get
+constexpr const char* extensions        = "/extensions";            // get
+constexpr const char* history           = "/history";               // get
+constexpr const char* system_stats      = "/system_stats";          // get
+constexpr const char* view              = "/view";                  // get
+constexpr const char* prompt            = "/prompt";                // get, post
+constexpr const char* queue             = "/queue";                 // get, post
+constexpr const char* interrupt         = "/interrupt";             // post
+constexpr const char* free              = "/free";                  // post
+constexpr const char* upload_image      = "/upload/image";          // post
+constexpr const char* upload_mask       = "/upload/mask";           // post
+}
+
+namespace w
+{
+extern float pin_l_offset;
+extern float pin_r_offset;
+extern float ico_circle;
+extern float ico_eye;
+extern float ico_max;
+extern float v_spacing;
+extern std::string hidden_widgets;
+extern float hidden_widgets_len;
+}
+

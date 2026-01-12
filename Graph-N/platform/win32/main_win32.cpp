@@ -169,7 +169,8 @@ bool MainRoutine_Win32::render_frame(bool done)
         ImGui::RenderPlatformWindowsDefault();
     }
 
-    const HRESULT hr = m_swap_chain->Present(m_moving ? 0 : 1, 0); // don't use vsync when moving
+    const UINT32 vsync = (get_vsync_enabled() && !m_moving ? 1 : 0);    // force vsync off when moving
+    const HRESULT hr = m_swap_chain->Present(vsync, 0); 
     if (FAILED(hr))
     {
         LogError(ExcepCategory::directx, "Device lost on Present: " << LogHEX(hr));

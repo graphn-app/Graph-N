@@ -13,6 +13,7 @@ std::string& replace_this(std::string& str, const std::string& find, const std::
 std::string replace_their(const std::string& str, const std::string& find, const std::string& replace, size_t from_pos = 0);
 
 std::vector<std::string> split(const std::string& str, char separator);
+std::string merge(const std::vector<std::string>& items, char separator);
 
 std::string to_lower_ascii(const std::string& str);
 

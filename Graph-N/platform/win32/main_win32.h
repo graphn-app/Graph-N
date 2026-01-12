@@ -20,7 +20,6 @@ private:
     /*
         MainRoutine overrides
     */
-
     bool init() override;
     int run(flow_callback& callback, std::atomic_bool& request_focus) override;
     void free() override;
@@ -51,7 +50,7 @@ private:
     std::unique_ptr<ID3D11DeviceContext, std::function <void(ID3D11DeviceContext*)>> m_d3d_device_context;
     std::unique_ptr<IDXGISwapChain, std::function <void(IDXGISwapChain*)>> m_swap_chain;
     std::unique_ptr<ID3D11RenderTargetView, std::function <void(ID3D11RenderTargetView*)>> m_main_render_target_view;
-
+    
     // win32
     WNDCLASSEXW m_wc = {};
     HWND m_hwnd = nullptr;

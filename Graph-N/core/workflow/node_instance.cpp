@@ -4,7 +4,6 @@
 #include "core/workflow/pin_instance.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/settings_manager.h"
-#include "ui/graph-n_flow.h"
 
 namespace data
 {

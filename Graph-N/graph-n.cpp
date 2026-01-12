@@ -1,5 +1,6 @@
 
 #include "ui/graph-n_flow.h"
+#include "platform/main.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
@@ -65,6 +66,8 @@ bool GraphN::init_graphn()
         return false;
     }
     Log("Managers ready");
+
+    g::pMain->set_vsync_enabled(g::pOptsManager->app_get_vsync_enabled());
 
     m_flow_step = Flow::init;
     return true;

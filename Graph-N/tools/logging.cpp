@@ -127,9 +127,9 @@ void Logger::log_start()
 #ifdef _WIN32
         m_proc_id = "[" + std::to_string(GetCurrentProcessId()) + "] ";
 #elif defined __APPLE__
-        m_proc_id = "[" + ??? + "] ";
+#error Not implemented
 #elif defined __linux__
-        m_proc_id = "[" + ??? + "] ";
+#error Not implemented
 #endif
 
         m_enabled = true;        
@@ -143,9 +143,9 @@ void Logger::log_start()
 #ifdef _WIN32
             << m_proc_id << "Command line: " << " " << GetCommandLineA() << "\n"
 #elif defined __APPLE__
-            << m_proc_id << "Command line: " << " " << ??? << "\n"
+#error Not implemented
 #elif defined __linux__
-            << m_proc_id << "Command line: " << " " << ??? << "\n"
+#error Not implemented
 #endif
             << "\n"
         ;
@@ -255,10 +255,10 @@ void LogWriter::log_line_start_file(const char * file, int line)
             ::GetThreadId(::GetCurrentThread()),
             tools::dt::from_current_date().as_log_line(),
             line);
-#else
-        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{} [ln:{}]  "),
-            tools::dt::from_current_date().as_log_line(),
-            line);
+#elif defined __APPLE__
+#error Not implemented
+#elif defined __linux__
+#error Not implemented
 #endif
     }
     else
@@ -273,10 +273,10 @@ void LogWriter::log_line_start_file(const char * file, int line)
             ::GetThreadId(::GetCurrentThread()),
             tools::dt::from_current_date().as_log_line(),
             file, line);
-#else
-        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{} [{}:{}]  "),
-            tools::dt::from_current_date().as_log_line(),
-            file, line);
+#elif defined __APPLE__
+#error Not implemented
+#elif defined __linux__
+#error Not implemented
 #endif
     }
 }
@@ -290,10 +290,10 @@ void LogWriter::log_line_start_foo(const char * foo, int line)
             ::GetThreadId(::GetCurrentThread()),
             tools::dt::from_current_date().as_log_line(),
             line);
-#else
-        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{} [ln:{}]  "),
-            tools::dt::from_current_date().as_log_line(),
-            line);
+#elif defined __APPLE__
+#error Not implemented
+#elif defined __linux__
+#error Not implemented
 #endif
     }
     else
@@ -303,10 +303,10 @@ void LogWriter::log_line_start_foo(const char * foo, int line)
             ::GetThreadId(::GetCurrentThread()),
             tools::dt::from_current_date().as_log_line(),
             foo, line);
-#else
-        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{} [{}:{}]  "),
-            tools::dt::from_current_date().as_log_line(),
-            foo, line);
+#elif defined __APPLE__
+#error Not implemented
+#elif defined __linux__
+#error Not implemented
 #endif
     }
 }

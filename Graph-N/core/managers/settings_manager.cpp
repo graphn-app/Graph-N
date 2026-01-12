@@ -10,6 +10,8 @@ namespace mngr
 ////////       DB  NAMES                 /////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
+inline constexpr auto gopt_app_vsync                    = "app_vsync_enabled";
+
 inline constexpr auto gopt_flow_open_windows            = "flow_open_windows";
 inline constexpr auto gopt_flow_clr_prefix              = "flow_color_";
 inline constexpr auto gopt_flow_nodes_pane_view         = "flow_nodes_pane_view";
@@ -29,9 +31,27 @@ inline constexpr auto gopt_comfyui_command              = "comfyui_command";
 inline constexpr auto gopt_wf_widget_input_number       = "wf_widget_input_numbers";
 inline constexpr auto gopt_wf_widget_input_bools        = "wf_widget_input_bools";
 
+inline constexpr auto gopt_stat_lram_warn               = "stat_local_ram_warn";
+inline constexpr auto gopt_stat_lram_crit               = "stat_local_ram_crit";
+inline constexpr auto gopt_stat_sram_warn               = "stat_server_ram_warn";
+inline constexpr auto gopt_stat_sram_crit               = "stat_server_ram_crit";
+inline constexpr auto gopt_stat_vram_warn               = "stat_vram_warn";
+inline constexpr auto gopt_stat_vram_crit               = "stat_vram_crit";
+inline constexpr auto gopt_stat_pytorch_warn            = "stat_pytorch_warn";
+inline constexpr auto gopt_stat_pytorch_crit            = "stat_pytorch_crit";
+inline constexpr auto gopt_stat_disk_warn               = "stat_disk_warn";
+inline constexpr auto gopt_stat_disk_crit               = "stat_disk_crit";
+inline constexpr auto gopt_stat_disks_enabled           = "stat_disks_enabled";
+inline constexpr auto gopt_stat_ping_warn               = "stat_ping_warn";
+inline constexpr auto gopt_stat_ping_crit               = "stat_ping_crit";
+inline constexpr auto gopt_stat_fps_warn                = "stat_fps_warn";
+inline constexpr auto gopt_stat_fps_crit                = "stat_fps_crit";
+
 //////////////////////////////////////////////////////////////////////
 ////////       DEFAULTS                  /////////////////////////////
 //////////////////////////////////////////////////////////////////////
+
+inline constexpr int64_t gopt_def_app_vsync                 = 1;
 
 inline constexpr int64_t gopt_def_flow_clrs[cast::to_u64(VisibleObject::_count)] =
                                                             {
@@ -42,12 +62,13 @@ inline constexpr int64_t gopt_def_flow_clrs[cast::to_u64(VisibleObject::_count)]
                                                                 IM_COL32(0, 0, 0, 255),				// QueueText
                                                                 IM_COL32(0, 128, 128, 255),			// Options Title
                                                                 IM_COL32(0, 0, 0, 255),				// Options bg
-                                                                IM_COL32(24, 24, 27, 255),			// PanelNodes bg
+                                                                IM_COL32(24, 24, 27, 255),			// PanelNodes bg -> all panels bg, except specified
                                                                 IM_COL32(220, 220, 220, 50),		// PanelNodesHoverGroup
                                                                 IM_COL32(211, 112, 0, 80),			// PanelNodesHoverNode
                                                                 IM_COL32(255, 165, 0, 250),			// PanelNodesSelectedNode
-                                                                IM_COL32(24, 24, 27, 255),			// PanelNodeInspector bg
+                                                                0,			                        // PanelNodeInspector
                                                                 IM_COL32(220, 220, 220, 50),		// PanelNodeInspectorDescrFrame
+                                                                0,		                            // PanelStats
                                                                 IM_COL32(45, 50, 60, 255),	    	// WfNodeHeaderBg
                                                                 IM_COL32(255, 176, 50, 255),		// WfNodeHeaderText
                                                                 IM_COL32(30, 30, 30, 200),  		// WfNodeBodyBg
@@ -70,6 +91,21 @@ inline constexpr int64_t gopt_def_comfyui_kill_server       = 0;
  
 inline constexpr int64_t gopt_def_wf_widget_input_number    = cast::to_i64(WidgetInput::slider);
 inline constexpr int64_t gopt_def_wf_widget_input_bools     = cast::to_i64(WidgetInput::select);
+
+inline constexpr int64_t gopt_def_stat_lram_warn            = 2147483648;   // 2 gb
+inline constexpr int64_t gopt_def_stat_lram_crit            = 524288000;    // 500 mb
+inline constexpr int64_t gopt_def_stat_sram_warn            = 3221225472;   // 1 gb
+inline constexpr int64_t gopt_def_stat_sram_crit            = 1073741824;   // 3 gb
+inline constexpr int64_t gopt_def_stat_vram_warn            = 1073741824;   // 1 gb
+inline constexpr int64_t gopt_def_stat_vram_crit            = 209715200;    // 200 mb
+inline constexpr int64_t gopt_def_stat_pytorch_warn         = 524288000;    // 500 mb
+inline constexpr int64_t gopt_def_stat_pytorch_crit         = 104857600;    // 200 mb
+inline constexpr int64_t gopt_def_stat_disk_warn            = 10737418240;  // 10 gb
+inline constexpr int64_t gopt_def_stat_disk_crit            = 2147483648;   // 2 gb
+inline constexpr int64_t gopt_def_stat_ping_warn            = 150;
+inline constexpr int64_t gopt_def_stat_ping_crit            = 400;
+inline constexpr int64_t gopt_def_stat_fps_warn             = 30;
+inline constexpr int64_t gopt_def_stat_fps_crit             = 15;
 
 //////////////////////////////////////////////////////////////////////
 ////////       COMMON                    /////////////////////////////
@@ -133,6 +169,22 @@ ENUM get_opt_int_e(int64_t value, ENUM def)
     if (value < cast::to_i64(ENUM::_first) || value > cast::to_i64(ENUM::_last))
         return def;
     return cast::to_enum<ENUM>(value);
+}
+
+//////////////////////////////////////////////////////////////////////
+////////       APP                       /////////////////////////////
+//////////////////////////////////////////////////////////////////////
+
+bool SettingsManager::app_get_vsync_enabled()
+{
+    int64_t vsync = -1;
+    return (get_opt_int(vsync, gopt_app_vsync, gopt_def_app_vsync) != 0);
+}
+
+void SettingsManager::app_set_vsync_enabled(bool enabled)
+{
+    int64_t vsync = enabled ? 1 : 0;
+    set_opt_int(vsync, vsync, gopt_app_vsync);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -342,6 +394,114 @@ std::optional<bool> SettingsManager::nd_get_pin_advanced(hid pin_id)
 void SettingsManager::nd_set_pin_advanced(hid pin_id, bool advanced)
 {
     g::pDbManager->set_node_option(pin_id, mngr::NodeOption::advanced, { advanced ? 1 : 0 });
+}
+
+//////////////////////////////////////////////////////////////////////
+////////       Stats                     /////////////////////////////
+//////////////////////////////////////////////////////////////////////
+
+void SettingsManager::stat_get_lram_threshold(int64_t& warn, int64_t& crit)
+{
+    warn = crit = -1;
+    get_opt_int(warn, gopt_stat_lram_warn, gopt_def_stat_lram_warn);
+    get_opt_int(crit, gopt_stat_lram_crit, gopt_def_stat_lram_crit);
+}
+
+void SettingsManager::stat_set_lram_threshold(int64_t warn, int64_t crit)
+{
+    set_opt_int(warn, warn, gopt_stat_lram_warn);
+    set_opt_int(crit, crit, gopt_stat_lram_crit);
+}
+
+void SettingsManager::stat_get_sram_threshold(int64_t& warn, int64_t& crit)
+{
+    warn = crit = -1;
+    get_opt_int(warn, gopt_stat_sram_warn, gopt_def_stat_sram_warn);
+    get_opt_int(crit, gopt_stat_sram_crit, gopt_def_stat_sram_crit);
+}
+
+void SettingsManager::stat_set_sram_threshold(int64_t warn, int64_t crit)
+{
+    set_opt_int(warn, warn, gopt_stat_sram_warn);
+    set_opt_int(crit, crit, gopt_stat_sram_crit);
+}
+
+void SettingsManager::stat_get_vram_threshold(int64_t& warn, int64_t& crit)
+{
+    warn = crit = -1;
+    get_opt_int(warn, gopt_stat_vram_warn, gopt_def_stat_vram_warn);
+    get_opt_int(crit, gopt_stat_vram_crit, gopt_def_stat_vram_crit);
+}
+
+void SettingsManager::stat_set_vram_threshold(int64_t warn, int64_t crit)
+{
+    set_opt_int(warn, warn, gopt_stat_vram_warn);
+    set_opt_int(crit, crit, gopt_stat_vram_crit);
+}
+
+void SettingsManager::stat_get_pytorch_threshold(int64_t& warn, int64_t& crit)
+{
+    warn = crit = -1;
+    get_opt_int(warn, gopt_stat_pytorch_warn, gopt_def_stat_pytorch_warn);
+    get_opt_int(crit, gopt_stat_pytorch_crit, gopt_def_stat_pytorch_crit);
+}
+
+void SettingsManager::stat_set_pytorch_threshold(int64_t warn, int64_t crit)
+{
+    set_opt_int(warn, warn, gopt_stat_pytorch_warn);
+    set_opt_int(crit, crit, gopt_stat_pytorch_crit);
+}
+
+void SettingsManager::stat_get_disk_threshold(int64_t& warn, int64_t& crit)
+{
+    warn = crit = -1;
+    get_opt_int(warn, gopt_stat_disk_warn, gopt_def_stat_disk_warn);
+    get_opt_int(crit, gopt_stat_disk_crit, gopt_def_stat_disk_crit);
+}
+
+void SettingsManager::stat_set_disk_threshold(int64_t warn, int64_t crit)
+{
+    set_opt_int(warn, warn, gopt_stat_disk_warn);
+    set_opt_int(crit, crit, gopt_stat_disk_crit);
+}
+
+std::vector<std::string> SettingsManager::stat_get_disks_enabled()
+{
+    std::string disks_str;
+    get_opt_str(disks_str, gopt_stat_disks_enabled, "");
+    return tools::str::split(disks_str, '|');
+}
+
+void SettingsManager::stat_set_disks_enabled(const std::vector<std::string>& disks)
+{
+    auto str = tools::str::merge(disks, '|');
+    set_opt_str(str, str, gopt_stat_disks_enabled);
+}
+
+void SettingsManager::stat_get_ping_threshold(int64_t& warn, int64_t& crit)
+{
+    warn = crit = -1;
+    get_opt_int(warn, gopt_stat_ping_warn, gopt_def_stat_ping_warn);
+    get_opt_int(crit, gopt_stat_ping_crit, gopt_def_stat_ping_crit);
+}
+
+void SettingsManager::stat_set_ping_threshold(int64_t warn, int64_t crit)
+{
+    set_opt_int(warn, warn, gopt_stat_ping_warn);
+    set_opt_int(crit, crit, gopt_stat_ping_crit);
+}
+
+void SettingsManager::stat_get_fps_threshold(int64_t& warn, int64_t& crit)
+{
+    warn = crit = -1;
+    get_opt_int(warn, gopt_stat_fps_warn, gopt_def_stat_fps_warn);
+    get_opt_int(crit, gopt_stat_fps_crit, gopt_def_stat_fps_crit);
+}
+
+void SettingsManager::stat_set_fps_threshold(int64_t warn, int64_t crit)
+{
+    set_opt_int(warn, warn, gopt_stat_fps_warn);
+    set_opt_int(crit, crit, gopt_stat_fps_crit);
 }
 
 } // namespace mngr
