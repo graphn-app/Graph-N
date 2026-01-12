@@ -54,7 +54,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
 
 
     ///////////////
-    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 128, 128, 255));
+    ImGui::PushStyleColor(ImGuiCol_Text, data.caption_separator_clr);
     ImGui::TextUnformatted("Default Input Styles");
     ImGui::PopStyleColor();
     ImGui::Separator();

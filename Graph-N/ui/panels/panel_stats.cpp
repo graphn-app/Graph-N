@@ -58,8 +58,10 @@ void PanelStats::init_disks()
             Disks info;
             info.path = drive;
             info.format_path = fmt::format("Disk {}", drive);
-            const auto it = std::find_if(enabled_disks.begin(), enabled_disks.end(), [&info](const std::string& path) { return path == info.path; });
-            info.enabled = enabled_disks.empty() || it != enabled_disks.end();
+            info.enabled = true;
+            const auto it = std::find_if(enabled_disks.begin(), enabled_disks.end(), [&info](const std::pair<std::string, bool>& pair) { return pair.first == info.path; });
+            if (it != enabled_disks.end())
+                info.enabled = it->second;
             m_disks.push_back(info);
         }
         drive += strlen(drive) + 1;
@@ -70,13 +72,15 @@ void PanelStats::init_disks()
 #error Not implemented
 #endif
 
-    if (!enabled_disks.empty())
+    if (enabled_disks.empty())
     {
+        std::vector<std::pair<std::string, bool>> save;
         for (auto& disk : m_disks)
         {
-            const auto it = std::find_if(enabled_disks.begin(), enabled_disks.end(), [&disk](const std::string& path) { return path == disk.path; });
-            disk.enabled = it != enabled_disks.end();
+            save.push_back(std::make_pair(disk.path, true));
         }
+
+        g::pOptsManager->stat_set_disks_enabled(save);
     }
 }
 
@@ -508,86 +512,6 @@ DlgCode PanelStats::show(bool& focused)
         m_pause = true;
 
     return end_panel(opened);
-}
-
-void PanelStats::show_config_menu()
-{
-    constexpr const float sep_w = 200.0f;
-    constexpr const auto sep_clr = IM_COL32(0, 180, 180, 200);
-    constexpr const float slider_w = 120.0f;
-
-    const auto show_thresholds = [sep_w, sep_clr, slider_w](
-        const char* sep_name, const char* table_name, const char* warn_name, const char* crit_name,
-        MetricLimits& lim,
-        float min, float max, const char* format)
-    {
-        bool chnaged = false;
-        ImGuiEx::Separator(sep_clr, sep_w, sep_name);
-        if (ImGui::BeginTable(table_name, 2, ImGuiTableFlags_SizingFixedFit))
-        {
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::AlignTextToFramePadding();
-            ImGui::TextUnformatted("Warn:");
-
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(slider_w);
-            float val = cast::to_float(lim.warning);
-            if (ImGui::SliderFloat(warn_name, &val, min, max, format))
-            {
-                lim.warning = cast::to_i64(val);
-                chnaged = true;
-            }
-
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::AlignTextToFramePadding();
-            ImGui::TextUnformatted("Crit:");
-
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(slider_w);
-            val = cast::to_float(lim.critical);
-            if (ImGui::SliderFloat(crit_name, &val, min, max, format))
-            {
-                lim.critical = cast::to_i64(val);
-                chnaged = true;
-            }
-
-            ImGui::EndTable();
-        }
-
-        return chnaged;
-    };
-
-    if (ImGui::BeginPopupContextItem("##fpsmenu"))
-    {
-        show_thresholds("This PC: FPS thresholds", "##fpstable", "FPS##Warning", "FPS##Critical", m_lim_fps, 5.0f, 60.0f, "%.0f");
-        show_thresholds("This PC: RAM thresholds", "##lramtable", "GB##LRAMWarning", "GB##LRAMCritical", m_lim_lram, 0.5f, 10.0f, "%.1f");
-        show_thresholds("This PC: Disk thresholds", "##diskstable", "GB##DiskWarning", "GB##DiskCritical", m_lim_disk, 1.0f, 40.0f, "%.0f");
-
-        for (auto& disk : m_disks)
-        {
-            if (ImGui::Checkbox(disk.format_path.c_str(), &disk.enabled))
-            {
-                std::vector<std::string> enabled_disks;
-                for (auto& d : m_disks)
-                {
-                    if (d.enabled)
-                        enabled_disks.push_back(d.path);
-                }
-                if (enabled_disks.empty())
-                    enabled_disks.push_back("(.)(.)");
-                g::pOptsManager->stat_set_disks_enabled(enabled_disks);
-            }
-        }
-
-        show_thresholds("Server: RAM thresholds", "##sramtable", "GB##SRAMWarning", "GB##SRAMCritical", m_lim_sram, 1.0f, 10.0f, "%.1f");
-        show_thresholds("Server: VRAM thresholds", "##vramtable", "GB##VRAMWarning", "GB##VRAMCritical", m_lim_vram, 0.1f, 5.0f, "%.1f");
-        show_thresholds("Server: PyTorch VRAM thresholds", "##PyTorchtable", "GB##PyTorchWarning", "GB##PyTorchCritical", m_lim_pytorch, 0.1f, 5.0f, "%.1f");
-        show_thresholds("Server: Ping thresholds", "##Pingtable", "ms##pingWarning", "GB##PingCritical", m_lim_ping, 50.0f, 500.0f, "%.0f");
-
-        ImGui::EndPopup();
-    }
 }
 
 } // namespace ui

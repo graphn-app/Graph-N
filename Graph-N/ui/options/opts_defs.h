@@ -7,6 +7,7 @@ enum class OptPane
 
     comfyui,
     workflow,
+    stats,
 
     _count,
     _first = _none + 1,
@@ -18,6 +19,7 @@ struct OptsData final
 {
     NO_COPY_MOVE_CTORS(OptsData);
 
+    const uint32_t caption_separator_clr = IM_COL32(0, 128, 128, 255);
     const uint32_t separator_clr = IM_COL32(0, 180, 180, 255);
     const float input_offset_x = 130;
     int64_t step = 1;

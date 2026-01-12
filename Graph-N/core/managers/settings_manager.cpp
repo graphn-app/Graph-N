@@ -465,16 +465,33 @@ void SettingsManager::stat_set_disk_threshold(int64_t warn, int64_t crit)
     set_opt_int(crit, crit, gopt_stat_disk_crit);
 }
 
-std::vector<std::string> SettingsManager::stat_get_disks_enabled()
+std::vector<std::pair<std::string, bool>> SettingsManager::stat_get_disks_enabled()
 {
     std::string disks_str;
     get_opt_str(disks_str, gopt_stat_disks_enabled, "");
-    return tools::str::split(disks_str, '|');
+    auto disks = tools::str::split(disks_str, '|');
+
+    std::vector<std::pair<std::string, bool>> ret;
+    for (size_t i = 0; i < disks.size(); i++)
+    {
+        auto pair = std::make_pair(disks[i], true);
+        if (i + 1 < disks.size())
+            pair.second = "+" == disks[++i];
+        ret.push_back(std::move(pair));
+    }
+    return ret;
 }
 
-void SettingsManager::stat_set_disks_enabled(const std::vector<std::string>& disks)
+void SettingsManager::stat_set_disks_enabled(const std::vector<std::pair<std::string, bool>>& disks)
 {
-    auto str = tools::str::merge(disks, '|');
+    std::vector<std::string> full;
+    for (auto& pair : disks)
+    {
+        full.push_back(pair.first);
+        full.push_back(pair.second ? "+" : "-");
+    }
+
+    auto str = tools::str::merge(full, '|');
     set_opt_str(str, str, gopt_stat_disks_enabled);
 }
 

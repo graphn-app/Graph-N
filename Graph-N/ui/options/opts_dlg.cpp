@@ -3,6 +3,7 @@
 #include "ui/options/opts_right_pane.h"
 #include "ui/options/opt_comfyui_dlg.h"
 #include "ui/options/opt_workflow_dlg.h"
+#include "ui/options/opt_stats_dlg.h"
 #include "core/managers/settings_manager.h"
 
 namespace ui
@@ -35,6 +36,7 @@ void OptionsDlgs::init()
 
     m_right_panes[OptPane::comfyui] = std::make_unique<OptComfyDlg>();
     m_right_panes[OptPane::workflow] = std::make_unique<OptWorkflowDlg>();
+    m_right_panes[OptPane::stats] = std::make_unique<OptStatsDlg>();
 
     for (uint64_t i = cast::to_u64(OptPane::_first); i <= cast::to_u64(OptPane::_last); i++)
     {
@@ -74,6 +76,11 @@ void OptionsDlgs::show_left_pane()
         if (ImGui::Selectable("Workflow##LeftPane", OptPane::workflow == m_opts_data.pane.left_selected_item))
         {
             m_opts_data.pane.left_selected_item = OptPane::workflow;
+            m_opts_data.pane.show_inner_child = true;
+        }
+        if (ImGui::Selectable("Stats##LeftPane", OptPane::stats == m_opts_data.pane.left_selected_item))
+        {
+            m_opts_data.pane.left_selected_item = OptPane::stats;
             m_opts_data.pane.show_inner_child = true;
         }
     }

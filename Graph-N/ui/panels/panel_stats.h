@@ -27,8 +27,6 @@ private:
     struct MetricLimits;
     ImU32 get_color(int64_t value, bool& stay_default, const MetricLimits& lim);
 
-    void show_config_menu();
-
 private:
     std::atomic_bool m_stop = false;
     std::atomic_bool m_pause = false;

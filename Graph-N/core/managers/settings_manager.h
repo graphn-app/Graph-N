@@ -90,8 +90,8 @@ public:
     void stat_get_disk_threshold(int64_t& warn, int64_t& crit);
     void stat_set_disk_threshold(int64_t warn, int64_t crit);
 
-    std::vector<std::string> stat_get_disks_enabled();
-    void stat_set_disks_enabled(const std::vector<std::string>& disks);
+    std::vector<std::pair<std::string, bool>> stat_get_disks_enabled();
+    void stat_set_disks_enabled(const std::vector<std::pair<std::string, bool>>& disks);
 
     void stat_get_ping_threshold(int64_t& warn, int64_t& crit);
     void stat_set_ping_threshold(int64_t warn, int64_t crit);
