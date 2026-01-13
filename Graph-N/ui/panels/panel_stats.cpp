@@ -11,7 +11,10 @@ PanelStats::PanelStats()
     : PanelBase(VisibleObject::PanelStats, "Stats", "DFBE846D7B1C49BF8D70C2AF99ADCBEF")
 {}
 
-PanelStats::~PanelStats() = default;
+PanelStats::~PanelStats()
+{
+    LogF;
+}
 
 void PanelStats::init()
 {
@@ -46,11 +49,13 @@ void PanelStats::init_disks()
 
 void PanelStats::stop_all_threads()
 {
+    LogF_In;
     m_pause = false;
     m_stop = true;
     if (m_th_api.joinable())  m_th_api.join();
     if (m_th_comfyui.joinable())  m_th_comfyui.join();
     if (m_th_ws.joinable())  m_th_ws.join();
+    LogF_Out;
 }
 
 void PanelStats::th_api()

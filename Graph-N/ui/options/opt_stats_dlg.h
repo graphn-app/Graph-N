@@ -9,7 +9,7 @@ class OptStatsDlg final : public OptRightPane
 {
 public:
     OptStatsDlg() = default;
-    ~OptStatsDlg() override = default;
+    ~OptStatsDlg() override;
 
     void init(OptsData& data) override;
     void show(OptsData& data) override;

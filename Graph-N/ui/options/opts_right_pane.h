@@ -20,6 +20,4 @@ protected:
     void show_help_text(const char* help_text);
 };
 
-inline OptRightPane::~OptRightPane() = default;
-
 }

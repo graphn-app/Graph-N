@@ -16,7 +16,10 @@ PanelNodeInspector::PanelNodeInspector()
     : PanelBase(VisibleObject::PanelNodeInspector, "Node Inspector", "95E5A1E7883E495E8712FA33A123F3BB")
 {}
 
-PanelNodeInspector::~PanelNodeInspector() = default;
+PanelNodeInspector::~PanelNodeInspector()
+{
+    LogF;
+}
 
 void PanelNodeInspector::init()
 {

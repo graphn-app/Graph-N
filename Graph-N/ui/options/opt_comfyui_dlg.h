@@ -9,7 +9,7 @@ class OptComfyDlg final : public OptRightPane
 {
 public:
     OptComfyDlg() = default;
-    ~OptComfyDlg() override = default;
+    ~OptComfyDlg() override;
 
     void init(OptsData& data) override;
     void show(OptsData& data) override;

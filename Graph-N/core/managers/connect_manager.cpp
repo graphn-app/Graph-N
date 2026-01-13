@@ -5,6 +5,11 @@
 namespace mngr
 {
 
+ConnectManager::~ConnectManager()
+{
+    LogF;
+}
+
 bool ConnectManager::init()
 {
     LogF;
@@ -19,7 +24,7 @@ void ConnectManager::free()
 
 void ConnectManager::stop_all_threads()
 {
-    LogF;
+    LogF_In;
 
     if (m_conn_data)
     {
@@ -30,6 +35,8 @@ void ConnectManager::stop_all_threads()
 
     if (m_thread.joinable())
         m_thread.detach();
+
+    LogF_Out;
 }
 
 ConnectState ConnectManager::check_status()

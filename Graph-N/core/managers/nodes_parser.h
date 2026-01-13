@@ -9,6 +9,11 @@ namespace mngr
 class NodesParser final
 {
 public:
+    NodesParser() = default;
+    ~NodesParser();
+
+    NO_COPY_MOVE(NodesParser);
+
     void parse(std::string&& data);
     void stop();
 

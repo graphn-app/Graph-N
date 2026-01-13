@@ -16,7 +16,7 @@ class ConnectManager final : public Manager
 {
 public:
     ConnectManager() = default;
-    ~ConnectManager() override = default;
+    ~ConnectManager() override;
 
     bool init() override;
     void free() override;

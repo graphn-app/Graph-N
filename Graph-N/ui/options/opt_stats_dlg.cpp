@@ -25,6 +25,11 @@ enum
     _buff_i_count,
 };
 
+OptStatsDlg::~OptStatsDlg()
+{
+    LogF;
+}
+
 void OptStatsDlg::init(OptsData& data)
 {
     LogF;

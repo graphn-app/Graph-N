@@ -6,6 +6,11 @@
 namespace mngr
 {
 
+SettingsManager::~SettingsManager()
+{
+    LogF;
+}
+
 bool SettingsManager::init()
 {
     // app

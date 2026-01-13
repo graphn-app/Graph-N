@@ -25,6 +25,11 @@ enum
     _buff_i_count,
 };
 
+OptComfyDlg::~OptComfyDlg()
+{
+    LogF;
+}
+
 void OptComfyDlg::init(OptsData& data)
 {
     LogF;

@@ -4,6 +4,11 @@
 namespace ui
 {
 
+OptRightPane::~OptRightPane()
+{
+    LogF;
+}
+
 void OptRightPane::show_help_mark(const char*& out, float offset, bool same_line, const char* help_text)
 {
     if (same_line)

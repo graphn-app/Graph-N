@@ -325,8 +325,7 @@ bool GraphN_Flow::run()
 
 void GraphN_Flow::prepare_to_quit()
 {
-    LogF;
-
+    LogF_In;
     for (auto& dlg : m_all_dialogs)
     {
         if (dlg)
@@ -339,6 +338,7 @@ void GraphN_Flow::prepare_to_quit()
     m_nodes_parser.reset();
 
     stop_all_threads();
+    LogF_Out;
 }
 
 void GraphN_Flow::show_menu_bar()

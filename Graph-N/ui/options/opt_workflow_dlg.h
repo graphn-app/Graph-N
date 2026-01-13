@@ -9,7 +9,7 @@ class OptWorkflowDlg final : public OptRightPane
 {
 public:
     OptWorkflowDlg() = default;
-    ~OptWorkflowDlg() override = default;
+    ~OptWorkflowDlg() override;
 
     void init(OptsData& data) override;
     void show(OptsData& data) override;

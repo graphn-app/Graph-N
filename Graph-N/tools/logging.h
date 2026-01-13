@@ -209,6 +209,8 @@ struct LogGuard final
 #define LogAndThrowInternalError(category, message) LOG_SOMETHING_HAPPENED(category, "INTERNAL_LOGIC_ERROR", message, true)
 
 #define LogF						Log("")
+#define LogF_In						Log(" in >")
+#define LogF_Out    				Log(" < out")
 
 
 // Helper to convert types that fmt doesn't handle by default (like enums)

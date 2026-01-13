@@ -18,7 +18,10 @@ PanelNodes::PanelNodes(PanelNodeInspector* inspector)
     , m_inspector(inspector)
 {}
 
-PanelNodes::~PanelNodes() = default;
+PanelNodes::~PanelNodes()
+{
+    LogF;
+}
 
 void PanelNodes::init()
 {

@@ -17,7 +17,10 @@ RoNodeDrawer::RoNodeDrawer()
     , m_clr_node_border(g::pOptsManager->color_load(AppColor::node_border))
 {}
 
-RoNodeDrawer::~RoNodeDrawer() = default;
+RoNodeDrawer::~RoNodeDrawer()
+{
+    LogF;
+}
 
 RoNodeDrawer::RoNodeDrawer(RoNodeDrawer&& other)
     : RoNodeDrawer()

@@ -41,7 +41,7 @@ class DbManager final : public Manager
 {
 public:
     DbManager() = default;
-    ~DbManager() override = default;
+    ~DbManager() override;
 
     bool init() override;
 

@@ -6,6 +6,11 @@
 namespace ui
 {
 
+OptWorkflowDlg::~OptWorkflowDlg()
+{
+    LogF;
+}
+
 void OptWorkflowDlg::init(OptsData& data)
 {
     LogF;

@@ -50,7 +50,7 @@ public:
         m_close_called = true;
     }
 
-    virtual void stop_all_threads() {}
+    virtual void stop_all_threads() { LogF; }
 
 protected:
     virtual DlgCode show(bool& focused) = 0;

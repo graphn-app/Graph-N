@@ -14,7 +14,7 @@ public:
 
     virtual bool init() { return true; };
     virtual void free() {};
-    virtual void stop_all_threads() {}
+    virtual void stop_all_threads() { LogF; }
 };
 
 inline Manager::~Manager() = default;

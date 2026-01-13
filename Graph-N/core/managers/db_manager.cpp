@@ -52,6 +52,11 @@ inline constexpr auto gdb_tbl_nodes = "NODES";
 #define LOG_NOPT_KEY_VAL(h, k, v)      LOG_NOPT_KEY(h, k) << "' = " << LOG_VALUE(v)
 #define LOG_EXP(e)                     "err: (" << e.getErrorCode() << ", " << e.getErrorStr() << ", " << ex.what()
 
+DbManager::~DbManager()
+{
+    LogF;
+}
+
 bool DbManager::init()
 {
     auto path = fs::get_root_directory_path();

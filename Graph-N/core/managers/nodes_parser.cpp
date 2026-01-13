@@ -8,6 +8,11 @@
 namespace mngr
 {
 
+NodesParser::~NodesParser()
+{
+    LogF;
+}
+
 void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
 {
     using namespace std::chrono_literals;

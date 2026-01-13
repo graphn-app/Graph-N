@@ -9,7 +9,7 @@ class SettingsManager final : public Manager
 {
 public:
     SettingsManager() = default;
-    ~SettingsManager() override = default;
+    ~SettingsManager() override;
 
     bool init() override;
 
