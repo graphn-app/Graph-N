@@ -2,6 +2,7 @@
 #include "ui/options/opt_comfyui_dlg.h"
 #include "core/managers/settings_manager.h"
 #include "ui/ImFileDialog.h"
+#include "ui/graph-n_flow.h"
 
 namespace ui
 {
@@ -56,8 +57,6 @@ void OptComfyDlg::show(OptsData& data)
     ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
     ImGui::SetNextItemWidth(-FLT_MIN);
     ImGuiEx::InputText("##ComfyUIHost", &buffer_s[buff_host], ImGuiInputTextFlags_AutoSelectAll);
-    if (ImGui::IsItemDeactivatedAfterEdit())
-        g::pOptsManager->comfyui_host_save(buffer_s[buff_host]);
 
 
     /////////////       port
@@ -66,8 +65,6 @@ void OptComfyDlg::show(OptsData& data)
     ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
     ImGui::SetNextItemWidth(-FLT_MIN);
     ImGuiEx::SliderIntSmart("##ComfyUIPort", &buffer_i[buff_port], 1, 65535, "%u");
-    if (ImGui::IsItemDeactivatedAfterEdit())
-        g::pOptsManager->comfyui_port_save(buffer_i[buff_port]);
 
 
     /////////////       timeouts
@@ -81,8 +78,6 @@ void OptComfyDlg::show(OptsData& data)
     ImGui::SameLine();
     ImGui::SetNextItemWidth(-FLT_MIN);
     ImGuiEx::SliderIntSmart("##ComfyUIConnTime", &buffer_i[buff_conn_tm], 0, 30, "%llu sec");
-    if (ImGui::IsItemDeactivatedAfterEdit())
-        g::pOptsManager->comfyui_connect_timeout_save(buffer_i[buff_conn_tm]);
 
 
     /////////////       read timeout
@@ -91,9 +86,6 @@ void OptComfyDlg::show(OptsData& data)
     ImGui::SameLine();
     ImGui::SetNextItemWidth(-FLT_MIN);
     ImGuiEx::SliderIntSmart("##ComfyUIReadTime", &buffer_i[buff_read_tm], 0, 30, "%llu sec");
-    if (ImGui::IsItemDeactivatedAfterEdit())
-        g::pOptsManager->comfyui_read_timeout_save(buffer_i[buff_read_tm]);
-
 
     /////////////       comfyui interaction
     ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), APP_COMFYUI " Server Interaction");
@@ -202,9 +194,19 @@ void OptComfyDlg::show(OptsData& data)
         ImGui::EndDisabled();
 
 
-    ///////////// restart
+    ///////////// apply connection settings
+    ImGuiEx::Spacing(2);
     ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator));
-    ImGui::Button("Restart " APP_COMFYUI " server");
+    if (ImGui::Button("Save/Apply connection settings##applyconn"))
+    {
+        g::pOptsManager->comfyui_host_save(buffer_s[buff_host]);
+        g::pOptsManager->comfyui_port_save(buffer_i[buff_port]);
+        g::pOptsManager->comfyui_connect_timeout_save(buffer_i[buff_conn_tm]);
+        g::pOptsManager->comfyui_read_timeout_save(buffer_i[buff_read_tm]);
+
+        if (!g::pFlow->get_online())
+            g::pFlow->reconnect();
+    }
 
 
     ///////////// help

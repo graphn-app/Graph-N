@@ -77,6 +77,8 @@ void OptionsDlgs::show_left_pane()
 {
     if (ImGui::BeginChild("left_pane##Opt", ImVec2(150, -FLT_MIN), true))
     {
+        const auto avail_h = ImGui::GetContentRegionAvail().y;
+
         if (ImGui::Selectable(APP_COMFYUI "##LeftPane", OptPane::comfyui == m_opts_data.pane.left_selected_item))
         {
             m_opts_data.pane.left_selected_item = OptPane::comfyui;
@@ -91,6 +93,15 @@ void OptionsDlgs::show_left_pane()
         {
             m_opts_data.pane.left_selected_item = OptPane::stats;
             m_opts_data.pane.show_inner_child = true;
+        }
+        
+        ImGui::SetCursorPosY(avail_h - ImGui::GetTextLineHeight());
+        ImGui::PushStyleColor(ImGuiCol_Button, g::pOptsManager->color_load(AppColor::restart_button));
+        const bool restart = ImGui::Button("Restart " APP_COMFYUI, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
+        ImGui::PopStyleColor();
+        if (restart)
+        {
+            // restart
         }
     }
     ImGui::EndChild();

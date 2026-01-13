@@ -93,6 +93,7 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::pin_color_segs)] =                      { "ui_color_59", int64_t(IM_COL32(0, 255, 255, 255)) };
     m_ui_colors[cast::to_szt(AppColor::pin_color_bbox)] =                      { "ui_color_60", int64_t(IM_COL32(127, 255, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::pin_color_bus)] =                       { "ui_color_61", int64_t(IM_COL32(255, 215, 0, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::restart_button)] =                      { "ui_color_62", int64_t(IM_COL32(120, 0, 0, 255)) };
 
 
     m_stat_enabled_disks =                                                     { "stat_enabled_disks",       std::string("") };

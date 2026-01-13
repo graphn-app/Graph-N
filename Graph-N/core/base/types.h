@@ -184,6 +184,7 @@ enum class AppColor
     pin_color_segs,
     pin_color_bbox,
     pin_color_bus,
+    restart_button,
 
     _count
 };
