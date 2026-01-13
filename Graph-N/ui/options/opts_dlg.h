@@ -2,9 +2,6 @@
 #include "ui/base_dlg.h"
 #include "ui/options/opts_defs.h"
 
-// vsync
-// wf net
-
 namespace ui
 {
 

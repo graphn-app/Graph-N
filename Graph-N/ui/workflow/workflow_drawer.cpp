@@ -15,12 +15,11 @@ namespace ui
 namespace ed = ax::NodeEditor;
 
 WorkflowDrawer::WorkflowDrawer()
-    : m_clr_node_header_bg(g::pOptsManager->flow_get_color(VisibleObject::WfNodeHeaderBg))
-    , m_clr_node_header_text(g::pOptsManager->flow_get_color(VisibleObject::WfNodeHeaderText))
-    , m_clr_node_body_bg(g::pOptsManager->flow_get_color(VisibleObject::WfNodeBodyBg))
-    , m_clr_node_widget_pin(g::pOptsManager->flow_get_color(VisibleObject::WfNodeWidgetPin))
-    , m_clr_node_pin_text(g::pOptsManager->flow_get_color(VisibleObject::WfNodePinText))
-    , m_clr_node_border(g::pOptsManager->flow_get_color(VisibleObject::WfNodeBorder))
+    : m_clr_node_header_bg(g::pOptsManager->color_load(AppColor::node_header_bg))
+    , m_clr_node_header_text(g::pOptsManager->color_load(AppColor::node_header_text))
+    , m_clr_node_body_bg(g::pOptsManager->color_load(AppColor::node_body_bg))
+    , m_clr_node_pin_text(g::pOptsManager->color_load(AppColor::node_pin_text))
+    , m_clr_node_border(g::pOptsManager->color_load(AppColor::node_border))
 {}
 
 WorkflowDrawer::~WorkflowDrawer()

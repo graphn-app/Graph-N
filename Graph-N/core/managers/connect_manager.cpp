@@ -30,7 +30,7 @@ ConnectState ConnectManager::check_status()
     using namespace std::chrono_literals;
     if (ConnectState::connecting == m_state)
     {
-        if (m_future.wait_for(1ms) == std::future_status::ready)
+        if (m_future.wait_for(0ms) == std::future_status::ready)
         {
             if (m_thread.joinable())
                 m_thread.join();
@@ -76,37 +76,19 @@ std::pair<ConnectState, std::string> ConnectManager::connect_thread()
 {
     LogF;
 
+    Log("Connecting to " APP_COMFYUI "...");
     using namespace std::chrono_literals;
     while (!m_stop_thread_flag)
     {
         try
         {
-            const auto host = g::pOptsManager->comfyui_get_host();
-            const auto port = g::pOptsManager->comfyui_get_port();
-
-            httplib::Client cli(host, port);
+            std::this_thread::sleep_for(10s);
+            httplib::Client cli(g::pOptsManager->comfyui_host_load(), cast::to_i32(g::pOptsManager->comfyui_port_load()));
             cli.set_keep_alive(true);
-            cli.set_connection_timeout(g::pOptsManager->comfyui_get_connect_timeout());
-            cli.set_read_timeout(g::pOptsManager->comfyui_get_read_timeout());
+            cli.set_connection_timeout(g::pOptsManager->comfyui_connect_timeout_load());
+            cli.set_read_timeout(g::pOptsManager->comfyui_read_timeout_load());
 
-            auto res = cli.Get("/");
-
-            if (m_stop_thread_flag)
-            {
-                Log("Connection thread aborted");
-                return std::make_pair(ConnectState::disconnected, "");
-            }
-
-            if (!res)
-            {
-                std::this_thread::sleep_for(1ms);
-                continue;
-            }
-
-            Log("Start reading nodes data");
-
-            res = cli.Get(comfyui_api::object_info);
-
+            const auto res = cli.Get(comfyui_api::object_info);
             if (m_stop_thread_flag)
             {
                 Log("Connection thread aborted");
@@ -115,11 +97,11 @@ std::pair<ConnectState, std::string> ConnectManager::connect_thread()
 
             if (res && 200 == res->status)
             {
-                Log("Read " << res->body.size() << " bytes");
+                Log("Start reading nodes: " << res->body.size() << " bytes");
                 return std::make_pair(ConnectState::connected, std::move(res->body));
             }
 
-            Log("Reading failed. Error code " << httplib::to_string(res.error()));
+            Log("Connect on " << g::pOptsManager->comfyui_host_load() << ":" << g::pOptsManager->comfyui_port_load() << " failed. Err: " << httplib::to_string(res.error()));
 
             std::this_thread::sleep_for(1ms);
         }

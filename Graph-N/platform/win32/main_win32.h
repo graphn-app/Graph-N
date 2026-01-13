@@ -16,6 +16,8 @@ public:
     MainRoutine_Win32();
     ~MainRoutine_Win32() override;
 
+    inline double get_frame_render_time() const override { return m_frame_render_time; }
+
 private:
     /*
         MainRoutine overrides
@@ -62,6 +64,9 @@ private:
 
     // Graph-N
     flow_callback* m_callback = nullptr;
+
+    // fps
+    double m_frame_render_time = 0;
 };
 
 } // namespace platform

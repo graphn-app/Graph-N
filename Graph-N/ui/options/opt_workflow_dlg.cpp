@@ -12,8 +12,8 @@ void OptWorkflowDlg::init(OptsData& data)
 
     data.wf.hovered_items.resize(20);
 
-    data.wf.numbers = g::pOptsManager->wf_get_widget_input_numbers();
-    data.wf.booleans = g::pOptsManager->wf_get_widget_input_bools();
+    data.wf.numbers = g::pOptsManager->wf_widget_input_numbers_load();
+    data.wf.booleans = g::pOptsManager->wf_widget_input_bools_load();
 }
 
 void OptWorkflowDlg::show(OptsData& data)
@@ -29,7 +29,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     {
         if (selected)
         {
-            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 165, 0, 255));
+            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::opt_selected_item));
             ImGui::TextUnformatted(ICON_LC_CHECK_CHECK);
             ImGui::SameLine();
             ImGui::TextUnformatted(text);
@@ -39,7 +39,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
         {
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x);
             ImGui::PushID(id);
-            if (hovered)    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 165, 0, 255));
+            if (hovered)    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::opt_selected_item));
             ImGui::TextUnformatted(text);
             if (hovered)    ImGui::PopStyleColor();
             ImGui::PopID();
@@ -52,9 +52,8 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
 
     int32_t idx = 0;
 
-
     ///////////////
-    ImGui::PushStyleColor(ImGuiCol_Text, data.caption_separator_clr);
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::opt_subtitle_sep));
     ImGui::TextUnformatted("Default Input Styles");
     ImGui::PopStyleColor();
     ImGui::Separator();
@@ -62,7 +61,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     ImGui::Spacing();
 
     ///////////////       numbers
-    ImGuiEx::Separator(data.separator_clr, "Numbers");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), "Numbers");
     ImGui::Spacing();
 
     double d_min = 5.0;
@@ -71,7 +70,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     if (draw_selected(WidgetInput::direct == data.wf.numbers, data.wf.hovered_items[idx], idx + 1, "Input Field:"))
     {
         data.wf.numbers = WidgetInput::direct;
-        g::pOptsManager->wf_set_widget_input_numbers(data.wf.numbers);
+        g::pOptsManager->wf_widget_input_numbers_save(data.wf.numbers);
     }
     idx++;
     ImGui::SameLine();
@@ -83,7 +82,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     if (draw_selected(WidgetInput::slider == data.wf.numbers, data.wf.hovered_items[idx], idx + 1, "Slider:"))
     {
         data.wf.numbers = WidgetInput::slider;
-        g::pOptsManager->wf_set_widget_input_numbers(data.wf.numbers);
+        g::pOptsManager->wf_widget_input_numbers_save(data.wf.numbers);
     }
     idx++;
     show_help_mark(help_text, data.input_offset_x, true, "Ctrl+Click to type value.");
@@ -95,7 +94,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     if (draw_selected(WidgetInput::drag == data.wf.numbers, data.wf.hovered_items[idx], idx + 1, "Scrubber:"))
     {
         data.wf.numbers = WidgetInput::drag;
-        g::pOptsManager->wf_set_widget_input_numbers(data.wf.numbers);
+        g::pOptsManager->wf_widget_input_numbers_save(data.wf.numbers);
     }
     idx++;
     show_help_mark(help_text, data.input_offset_x, true, "Ctrl+Click or Double Click to type value.");
@@ -107,7 +106,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     ImGui::Spacing();
 
     ///////////////       booleans
-    ImGuiEx::Separator(data.separator_clr, "Booleans");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), "Booleans");
     ImGui::Spacing();
 
 
@@ -130,7 +129,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     if (draw_selected(WidgetInput::select == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Selectable:"))
     {
         data.wf.booleans = WidgetInput::select;
-        g::pOptsManager->wf_set_widget_input_bools(data.wf.booleans);
+        g::pOptsManager->wf_widget_input_bools_save(data.wf.booleans);
     }
     idx++;
     ImGui::SameLine();
@@ -143,7 +142,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     if (draw_selected(WidgetInput::toggle == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Toggle Button:"))
     {
         data.wf.booleans = WidgetInput::toggle;
-        g::pOptsManager->wf_set_widget_input_bools(data.wf.booleans);
+        g::pOptsManager->wf_widget_input_bools_save(data.wf.booleans);
     }
     idx++;
     ImGui::SameLine();

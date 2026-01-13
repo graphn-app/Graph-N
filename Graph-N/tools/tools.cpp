@@ -518,4 +518,39 @@ std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::pa
 
 }	// namespace path
 
+namespace api
+{
+std::vector<std::string> scan_for_disks()
+{
+    std::vector<std::string> ret;
+#ifdef _WIN32
+    char buffer[512];
+    const DWORD len = GetLogicalDriveStringsA(sizeof(buffer), buffer);
+    if (0 == len)
+    {
+        LogError(ExcepCategory::api, "GetLogicalDriveStringsA failed, err " << LogERR);
+        return ret;
+    }
+
+    const char* drive = buffer;
+    while (*drive)
+    {
+        // Filter: Only fixed drives (HDD/SSD). Ignore USB/Network to avoid lag.
+        if (DRIVE_FIXED == GetDriveTypeA(drive))
+        {
+            ret.push_back(drive);
+        }
+        drive += strlen(drive) + 1;
+    }
+#elif defined __linux__
+#error Not implemented
+#elif defined __APPLE__
+#error Not implemented
+#endif
+
+    return ret;
+}
+
+} // namespace api
+
 }	//	namespace tools

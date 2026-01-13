@@ -146,7 +146,14 @@ constexpr int64_t to_i64(T param)
 template <typename T>
 constexpr size_t to_szt(T param)
 {
-    return to<T, size_t>(param);
+    if constexpr (std::is_enum_v<T>)
+    {
+        return static_cast<size_t>(param);
+    }
+    else
+    {
+        return to<T, size_t>(param);
+    }
 }
 
 template <typename T>

@@ -129,11 +129,11 @@ bool GraphN_Flow::init()
     ImGuiStyle& style = ImGui::GetStyle();
 
     // Background: Dark Grey (Opaque) - Lighter than main window
-    style.Colors[ImGuiCol_PopupBg] = ImColor(IM_COL32(50, 50, 50, 255));
-    style.Colors[ImGuiCol_MenuBarBg] = ImColor(IM_COL32(50, 50, 50, 255));
+    style.Colors[ImGuiCol_PopupBg] = ImColor(g::pOptsManager->color_load(AppColor::popup_bg));
+    style.Colors[ImGuiCol_MenuBarBg] = ImColor(g::pOptsManager->color_load(AppColor::menubar_bg));
 
     // open windows
-    m_windows = g::pOptsManager->flow_get_open_wnds();
+    m_windows = g::pOptsManager->ui_open_wnds_load();
 
     // create panels
     m_panel_node_inspector = std::make_unique<ui::PanelNodeInspector>();
@@ -345,7 +345,7 @@ void GraphN_Flow::show_menu_bar()
 {
     const bool connecting_mode = (m_windows & (ViewConnect | ViewParsingNodes)) > 0 && !m_online;
     if (connecting_mode)
-        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, g::pOptsManager->flow_get_color(VisibleObject::DisconnectedMenuBar));
+        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, g::pOptsManager->color_load(AppColor::disconnected_menubar_bg));
 
     if (ImGui::BeginMainMenuBar())
     {
@@ -491,13 +491,13 @@ void GraphN_Flow::on_dlg_closed(VisibleObject dlg)
         LogError(ExcepCategory::switch_enum, "Unregistered dialog is trying to be closed " << cast::to_u64(dlg));
     }
 
-    g::pOptsManager->flow_set_open_wnds(m_windows);
+    g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
 void GraphN_Flow::on_menu_options()
 {
     m_windows |= ViewOptions;
-    g::pOptsManager->flow_set_open_wnds(m_windows);
+    g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
 void GraphN_Flow::on_menu_quit()
@@ -515,7 +515,7 @@ void GraphN_Flow::on_menu_panel_window(ViewDialogs wnd)
 {
     m_windows |= wnd;
     if (wnd != ViewPanelsResetAll)
-        g::pOptsManager->flow_set_open_wnds(m_windows);
+        g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
 void GraphN_Flow::show_options_dlg()
@@ -585,7 +585,7 @@ void GraphN_Flow::show_menu_bar_connecting()
             m_windows &= ~ViewConnect;
             m_windows |= ViewParsingNodes;
 
-            g::pOptsManager->nd_preload_node_options();
+            g::pOptsManager->nd_node_options_preload();
             m_nodes_parser = std::make_unique<mngr::NodesParser>();
 #if 1
             m_nodes_parser->parse(debug::test_json);
@@ -601,7 +601,7 @@ void GraphN_Flow::show_menu_bar_connecting()
         }
         else if (mngr::ConnectState::connecting == status)
         {
-            text = "Connecting to " APP_COMFYUI " on " + g::pOptsManager->comfyui_get_host() + ":" + std::to_string(g::pOptsManager->comfyui_get_port());
+            text = fmt::format(FMT_COMPILE("Connecting to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
         }
     }
     else if (m_windows & ViewParsingNodes)
@@ -612,7 +612,7 @@ void GraphN_Flow::show_menu_bar_connecting()
 
         if (m_nodes_parser->is_parse_finished())
         {
-            g::pOptsManager->nd_release_node_options();
+            g::pOptsManager->nd_node_options_release();
             if (m_nodes_parser->is_parse_failed())
             {
                 text = "Failed to parse loaded nodes";
@@ -634,7 +634,7 @@ void GraphN_Flow::show_menu_bar_connecting()
     }
 
     ImGui::AlignTextToFramePadding();
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->flow_get_color(VisibleObject::DisconnectedText));
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::disconnected_menubar_text));
     ImGui::TextUnformatted(text.c_str(), text.c_str() + text.size());
     ImGui::PopStyleColor();
 }
@@ -666,7 +666,7 @@ void GraphN_Flow::show_panels()
         {
             m_windows &= ~ViewPanelsResetAll;
             m_windows |= ViewAllPanels;
-            g::pOptsManager->flow_set_open_wnds(m_windows);
+            g::pOptsManager->ui_open_wnds_save(m_windows);
 
             ImGui::DockBuilderRemoveNode(dockspace_id);
             ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);

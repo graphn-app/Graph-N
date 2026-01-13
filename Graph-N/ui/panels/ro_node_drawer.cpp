@@ -10,12 +10,11 @@ namespace ui
 {
 
 RoNodeDrawer::RoNodeDrawer()
-    : m_clr_node_header_bg(g::pOptsManager->flow_get_color(VisibleObject::WfNodeHeaderBg))
-    , m_clr_node_header_text(g::pOptsManager->flow_get_color(VisibleObject::WfNodeHeaderText))
-    , m_clr_node_body_bg(g::pOptsManager->flow_get_color(VisibleObject::WfNodeBodyBg))
-    , m_clr_node_widget_pin(g::pOptsManager->flow_get_color(VisibleObject::WfNodeWidgetPin))
-    , m_clr_node_pin_text(g::pOptsManager->flow_get_color(VisibleObject::WfNodePinText))
-    , m_clr_node_border(g::pOptsManager->flow_get_color(VisibleObject::WfNodeBorder))
+    : m_clr_node_header_bg(g::pOptsManager->color_load(AppColor::node_header_bg))
+    , m_clr_node_header_text(g::pOptsManager->color_load(AppColor::node_header_text))
+    , m_clr_node_body_bg(g::pOptsManager->color_load(AppColor::node_body_bg))
+    , m_clr_node_pin_text(g::pOptsManager->color_load(AppColor::node_pin_text))
+    , m_clr_node_border(g::pOptsManager->color_load(AppColor::node_border))
 {}
 
 RoNodeDrawer::~RoNodeDrawer() = default;
@@ -268,7 +267,7 @@ void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_w
             if (ImGui::InvisibleButton("##pin", size))
             {
                 obj->advanced = !obj->advanced;
-                g::pOptsManager->nd_set_pin_advanced(obj->get_id(), obj->advanced);
+                g::pOptsManager->nd_pin_advanced_save(obj->get_id(), obj->advanced);
             }
             ImGui::SameLine(0, w::pin_r_offset);
         }
@@ -329,7 +328,7 @@ void RoNodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_wid
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::SetNextItemWidth(widget_value_width);
 
-    switch (g::pOptsManager->wf_get_widget_input_numbers())
+    switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::direct:
         ImGuiEx::InputIntSmart("", &val, step, min, max, obj->precision, obj->precision);
@@ -364,7 +363,7 @@ void RoNodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_wi
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::SetNextItemWidth(widget_value_width);
 
-    switch (g::pOptsManager->wf_get_widget_input_numbers())
+    switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::direct:
         ImGuiEx::InputUIntSmart("", &val, step, min, max, obj->precision, obj->precision);
@@ -397,7 +396,7 @@ void RoNodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_w
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::SetNextItemWidth(widget_value_width);
 
-    switch (g::pOptsManager->wf_get_widget_input_numbers())
+    switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::direct:
         ImGuiEx::InputDoubleSmart("", &val, step, min, max, obj->precision, obj->precision);
@@ -426,7 +425,7 @@ void RoNodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_wi
     ImGui::PopStyleColor();
     ImGui::SameLine(0.0f, 0.0f);
 
-    switch (g::pOptsManager->wf_get_widget_input_bools())
+    switch (g::pOptsManager->wf_widget_input_bools_load())
     {
         //case WidgetInput::switcher:
         //    ImGuiEx::BooleanSwitch("", val ? obj->label_on.c_str() : obj->label_off.c_str(), &val, max_w);
@@ -550,7 +549,7 @@ void RoNodeDrawer::draw_widget_control_after_generate(data::PinInstance* pin, fl
 void RoNodeDrawer::draw_widget_separator(float offset, float width)
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + offset);
-    ImGuiEx::Separator(IM_COL32(0, 180, 180, 200), width, w::hidden_widgets.c_str(), w::hidden_widgets.size(), w::hidden_widgets_len);
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::node_widget_hidden_sep), width, w::hidden_widgets.c_str(), w::hidden_widgets.size(), w::hidden_widgets_len);
 }
 
 } // namespace ui

@@ -47,7 +47,7 @@ enum ViewDialogs
     ViewStyleSelector           = 0x20000000,
     ViewFontSelector            = 0x40000000,
 
-    ViewNextAvail               = 0x00000100,
+    _ViewNextAvail              = 0x00000100,
 
     ViewAllOptions              = ViewOptions | ViewOptsComfyUi,
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,

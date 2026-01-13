@@ -1,4 +1,5 @@
 #include "ui/options/opts_right_pane.h"
+#include "core/managers/settings_manager.h"
 
 namespace ui
 {
@@ -8,7 +9,7 @@ void OptRightPane::show_help_mark(const char*& out, float offset, bool same_line
     if (same_line)
         ImGui::SameLine();
     ImGui::SetCursorPosX(offset);
-    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(50, 50, 50, 255));
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::opt_help_mark));
     ImGui::TextUnformatted(" [?]");
     ImGui::PopStyleColor();
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
@@ -20,7 +21,7 @@ void OptRightPane::show_help_text(const char* help_text)
     if (help_text != nullptr)
     {
         ImGui::Separator();
-        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 128, 128, 200));
+        ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::opt_help_text));
         ImGui::PushTextWrapPos(0.0f);
         ImGui::TextUnformatted(help_text);
         ImGui::PopTextWrapPos();

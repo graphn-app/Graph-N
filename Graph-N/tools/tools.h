@@ -56,4 +56,11 @@ std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::pa
     bool recursively, bool include_dirs, bool include_files, bool relative_pathes, char slash);
 
 }	// namespace path
+
+namespace api
+{
+std::vector<std::string> scan_for_disks();
+
+} // namespace api
+
 };	// namespace tools

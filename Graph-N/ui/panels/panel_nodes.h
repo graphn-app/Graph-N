@@ -34,7 +34,6 @@ struct PanelNodesData final : public PanelCommonData
     ImU32 clr_hover_btn = 0;			// hovered button
     ImU32 clr_active_btn = 0;			// active button
 
-    bool tree_view = true;
     std::set<lid> selected_nodes;
 };
 

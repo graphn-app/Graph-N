@@ -25,8 +25,8 @@ void PanelNodeInspector::init()
 
     g::pFlow->subscribe_comfyui_validity_state(this);
 
-    data()->clr_descr_frame = g::pOptsManager->flow_get_color(VisibleObject::PanelNodeInspectorDescrFrame);
-    data()->clr_selected_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesSelectedNode);
+    data()->clr_descr_frame = g::pOptsManager->color_load(AppColor::panel_node_insp_descr_frame);
+    data()->clr_selected_node = g::pOptsManager->color_load(AppColor::panel_nodes_sel_node);
 
     m_wf = g::pFlow->create_workflow();
 }
@@ -84,14 +84,14 @@ DlgCode PanelNodeInspector::show(bool& focused)
         if (m_inspecting.empty())
         {
             show_empty_panel_descr(
-                ICON_LC_INFO " Node Inspector: View details of selected nodes, compare parameters, and configure widget visibility.",
+                ICON_LC_TANGENT " Node Inspector: View details of selected nodes, compare parameters, and configure widget visibility.",
                 {
                     ICON_LC_TANGENT,
                     "No node selected",
                 },
                 {
                     "How to use:",
-                    ICON_LC_MOUSE_POINTER_2 " Right-Click: Inspect single node",
+                    ICON_LC_SPLINE_POINTER " Right-Click: Inspect single node",
                     ICON_LC_LAYERS " Ctrl + R-Click: Add/Remove nodes"
                 }
             );

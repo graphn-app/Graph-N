@@ -13,7 +13,6 @@ using primitive = std::variant<int64_t, uint64_t, double, std::string, bool, std
 
 enum class VisibleObject
 {
-    // !! update gopt_def_flow_clrs
     _none,
 
     DisconnectedMenuBar,
@@ -108,10 +107,86 @@ enum class WidgetInput
 };
 
 
-// global identifiers
-//#define GLOBAL_ID_DATE_PICKER_ID_FIRST		0x1000000
-//#define GLOBAL_ID_DATE_PICKER_ID_NEXT		0x1000004
-//#define GLOBAL_ID_DATE_PICKER_ID_LAST		0x1000054
+enum class MetricLimit
+{
+    local_ram,
+    local_disk,
+    local_fps,
+    server_ram,
+    server_vram,
+    server_pytorch,
+    server_ping,
+
+    _count
+};
+
+enum class AppColor
+{
+    disconnected_menubar_bg,
+    disconnected_menubar_text,
+    queue_button,
+    queue_text,
+    opt_dlg_title_bg,
+    opt_dlg_bg,
+    panel_bg,
+    panel_nodes_hover_group,
+    panel_nodes_hover_node,
+    panel_nodes_sel_node,
+    panel_node_insp_descr_frame,
+    node_header_bg,
+    node_header_text,
+    node_body_bg,
+    node_pin_text,
+    node_border,
+    node_widget_hidden_sep,
+    stat_warn,
+    stat_crit,
+    stat_sep_capt,
+    stat_sep_subtitle,
+    popup_bg,
+    menubar_bg,
+    opt_subtitle_sep,
+    opt_separator,
+    opt_selected_item,
+    opt_help_mark,
+    opt_help_text,
+    pin_color_int,
+    pin_color_float,
+    pin_color_string,
+    pin_color_boolean,
+    pin_color_any,
+    pin_color_combo,
+    pin_color_color,
+    pin_color_number,
+    pin_color_floats,
+    pin_color_seed,
+    pin_color_model,
+    pin_color_latent,
+    pin_color_vae,
+    pin_color_clip,
+    pin_color_image,
+    pin_color_mask,
+    pin_color_conditioning,
+    pin_color_clip_vision,
+    pin_color_control_net,
+    pin_color_audio,
+    pin_color_video,
+    pin_color_ipadapter,
+    pin_color_insightface,
+    pin_color_control_net_stack,
+    pin_color_clip_vision_output,
+    pin_color_noise,
+    pin_color_sigmas,
+    pin_color_sampler,
+    pin_color_pipe_line,
+    pin_color_lora_stack,
+    pin_color_lora_list,
+    pin_color_segs,
+    pin_color_bbox,
+    pin_color_bus,
+
+    _count
+};
 
 namespace comfyui_api
 {

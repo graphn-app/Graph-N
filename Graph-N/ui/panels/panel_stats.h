@@ -21,11 +21,10 @@ private:
     void th_comfyui();
     void th_ws();
 
-    void calc_fps();
+    void show_fps(float val_offset);
     void init_disks();
 
-    struct MetricLimits;
-    ImU32 get_color(int64_t value, bool& stay_default, const MetricLimits& lim);
+    ImU32 get_color(int64_t value, bool& stay_default, int64_t lim_warn, int64_t lim_crit, bool is_lower_better);
 
 private:
     std::atomic_bool m_stop = false;
@@ -52,17 +51,9 @@ private:
 
     struct Disks final
     {
-        bool enabled = true;
-        std::string path;
+        const std::pair<std::string, bool>* disk_opt = nullptr;
         std::string format_path;
         uint64_t free = 0;
-    };
-
-    struct MetricLimits final
-    {
-        int64_t warning = 0;
-        int64_t critical = 0;
-        bool is_lower_better = false; // true for ping, false for others
     };
 
     std::mutex m_lock;
@@ -74,14 +65,6 @@ private:
     std::atomic_uint32_t m_queue_remaining = 0; // comfyui api /prompt
     uint64_t m_fps = 0;                         // imgui
     std::atomic_uint64_t m_ping = 0;            // ws
-
-    MetricLimits m_lim_lram;
-    MetricLimits m_lim_sram;
-    MetricLimits m_lim_vram;    
-    MetricLimits m_lim_pytorch;
-    MetricLimits m_lim_disk;
-    MetricLimits m_lim_ping;
-    MetricLimits m_lim_fps;
 
     fmt::memory_buffer m_buffer;
 };

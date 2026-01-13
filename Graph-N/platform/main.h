@@ -18,6 +18,8 @@ public:
     inline void set_vsync_enabled(bool enable) { m_vsync = enable; }
     inline bool get_vsync_enabled() { return m_vsync; }
 
+    virtual double get_frame_render_time() const = 0;
+
     using flow_callback = std::function<bool(bool do_exit)>;
     virtual int run(flow_callback& callback, std::atomic_bool& request_focus) = 0;
 

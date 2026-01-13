@@ -67,7 +67,7 @@ bool GraphN::init_graphn()
     }
     Log("Managers ready");
 
-    g::pMain->set_vsync_enabled(g::pOptsManager->app_get_vsync_enabled());
+    g::pMain->set_vsync_enabled(g::pOptsManager->app_vsync_load());
 
     m_flow_step = Flow::init;
     return true;

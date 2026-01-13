@@ -18,14 +18,6 @@ void PanelStats::init()
     LogF;
     PanelBase::init();
 
-    g::pOptsManager->stat_get_lram_threshold(m_lim_lram.warning, m_lim_lram.critical);
-    g::pOptsManager->stat_get_sram_threshold(m_lim_sram.warning, m_lim_sram.critical);
-    g::pOptsManager->stat_get_vram_threshold(m_lim_vram.warning, m_lim_vram.critical);
-    g::pOptsManager->stat_get_pytorch_threshold(m_lim_pytorch.warning, m_lim_pytorch.critical);
-    g::pOptsManager->stat_get_disk_threshold(m_lim_disk.warning, m_lim_disk.critical);
-    g::pOptsManager->stat_get_fps_threshold(m_lim_fps.warning, m_lim_fps.critical);
-    g::pOptsManager->stat_get_ping_threshold(m_lim_ping.warning, m_lim_ping.critical);
-    m_lim_ping.is_lower_better = true;
     init_disks();
 
     m_stop = false;
@@ -37,50 +29,18 @@ void PanelStats::init()
 
 void PanelStats::init_disks()
 {
-    const auto enabled_disks = g::pOptsManager->stat_get_disks_enabled();
-
-    // get disks list
+    m_disks.clear();
+    const auto& enabled_disks = g::pOptsManager->stat_disks_enabled_load();
+    for (auto& opt : enabled_disks)
+    {
+        m_disks.push_back({});
+        Disks& d = m_disks.back();
+        d.disk_opt = &opt;
 #ifdef _WIN32
-    char buffer[512];
-    const DWORD len = GetLogicalDriveStringsA(sizeof(buffer), buffer);
-    if (0 == len)
-    {
-        LogError(ExcepCategory::api, "GetLogicalDriveStringsA failed, err " << LogERR);
-        return;
-    }
-
-    const char* drive = buffer;
-    while (*drive)
-    {
-        // Filter: Only fixed drives (HDD/SSD). Ignore USB/Network to avoid lag.
-        if (DRIVE_FIXED == GetDriveTypeA(drive))
-        {
-            Disks info;
-            info.path = drive;
-            info.format_path = fmt::format("Disk {}", drive);
-            info.enabled = true;
-            const auto it = std::find_if(enabled_disks.begin(), enabled_disks.end(), [&info](const std::pair<std::string, bool>& pair) { return pair.first == info.path; });
-            if (it != enabled_disks.end())
-                info.enabled = it->second;
-            m_disks.push_back(info);
-        }
-        drive += strlen(drive) + 1;
-    }
-#elif defined __linux__
-#error Not implemented
-#elif defined __APPLE__
-#error Not implemented
+        d.format_path = fmt::format("Disk {}", d.disk_opt->first);
+#else
+        d.format_path = d.path;
 #endif
-
-    if (enabled_disks.empty())
-    {
-        std::vector<std::pair<std::string, bool>> save;
-        for (auto& disk : m_disks)
-        {
-            save.push_back(std::make_pair(disk.path, true));
-        }
-
-        g::pOptsManager->stat_set_disks_enabled(save);
     }
 }
 
@@ -140,11 +100,11 @@ void PanelStats::th_api()
 #ifdef _WIN32
             for (auto& disk : m_disks)
             {
-                if (!disk.enabled)
+                if (!disk.disk_opt->second)
                     continue;
 
                 ULARGE_INTEGER free_bytes = {}, total_bytes = {}, total_free = {};
-                if (GetDiskFreeSpaceExA(disk.path.c_str(), &free_bytes, &total_bytes, &total_free))
+                if (GetDiskFreeSpaceExA(disk.disk_opt->first.c_str(), &free_bytes, &total_bytes, &total_free))
                 {
                     std::lock_guard<std::mutex> lock(m_lock);
                     disk.free = free_bytes.QuadPart;
@@ -186,10 +146,7 @@ void PanelStats::th_comfyui()
         accumulated_time += sleep_step;
         if (accumulated_time >= check_interval)
         {
-            const auto host = g::pOptsManager->comfyui_get_host();
-            const auto port = g::pOptsManager->comfyui_get_port();
-
-            httplib::Client cli(host, port);
+            httplib::Client cli(g::pOptsManager->comfyui_host_load(), cast::to_i32(g::pOptsManager->comfyui_port_load()));
             auto res = cli.Get(comfyui_api::system_stats);
             if (res && 200 == res->status)
             {
@@ -303,11 +260,29 @@ void PanelStats::th_ws()
     //}
 }
 
-void PanelStats::calc_fps()
+struct FrameSmoother final
+{
+    double values[60] = {};
+    int offset = 0;
+
+    float update(double new_val)
+    {
+        values[offset] = new_val;
+        offset = (offset + 1) % 60;
+
+        double sum = 0;
+        for(double v : values)
+            sum += v;
+        return cast::to_float(sum / 60);
+    }
+};
+
+void PanelStats::show_fps(float val_offset)
 {
     const float instant_fps = ImGui::GetIO().Framerate;
     static float accumulated_time = 0.0f;
     static int32_t frame_counter = 0;
+    static FrameSmoother smoother;
 
     accumulated_time += ImGui::GetIO().DeltaTime;
     frame_counter++;
@@ -318,26 +293,40 @@ void PanelStats::calc_fps()
         accumulated_time = 0.0f;
         frame_counter = 0;
     }
+
+    const auto latency = smoother.update(g::pMain->get_frame_render_time());
+
+    bool def_clr = true;
+    const auto color = get_color(cast::to_i64(latency * 100), def_clr,
+        g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_fps),
+        g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_fps),
+        true);
+
+    if (!def_clr)
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+    ImGui::TextUnformatted("Latency");
+    ImGui::SameLine(val_offset);
+    ImGui::Text("%.1f ms, FPS: %u", latency, m_fps);
+    if (!def_clr)
+        ImGui::PopStyleColor();
+
 }
 
-ImU32 PanelStats::get_color(int64_t value, bool& stay_default, const MetricLimits& lim)
+ImU32 PanelStats::get_color(int64_t value, bool& stay_default, int64_t lim_warn, int64_t lim_crit, bool is_lower_better)
 {
     stay_default = false;
 
     if (value > 0)
     {
-        constexpr ImU32 clr_warn = IM_COL32(255, 200, 50, 255); // Yellow
-        constexpr ImU32 clr_crit = IM_COL32(255, 50, 50, 255);  // Red
-
-        if (lim.is_lower_better)
+        if (is_lower_better)
         {
-            if (value >= lim.critical) return clr_crit;
-            if (value >= lim.warning) return clr_warn;
+            if (value >= lim_crit) return g::pOptsManager->color_load(AppColor::stat_crit);
+            if (value >= lim_warn) return g::pOptsManager->color_load(AppColor::stat_warn);
         }
         else
         {
-            if (value <= lim.critical) return clr_crit;
-            if (value <= lim.warning) return clr_warn;
+            if (value <= lim_crit) return g::pOptsManager->color_load(AppColor::stat_crit);
+            if (value <= lim_warn) return g::pOptsManager->color_load(AppColor::stat_warn);
         }
     }
 
@@ -363,10 +352,13 @@ DlgCode PanelStats::show(bool& focused)
         fmt::format_to(std::back_inserter(m_buffer), "{:.2f} {}", count, suffixes[suffix_index]);
     };
 
-    const auto print_stat = [this, &format_bytes](const char* stat_name, float val_offset, uint64_t value, const MetricLimits& limits, bool do_format_bytes = true)
+    const auto print_stat = [this, &format_bytes](
+        const char* stat_name, float val_offset, uint64_t value,
+        int64_t lim_warn, int64_t lim_crit, bool is_lower_better,
+        bool do_format_bytes)
     {
         bool def_clr = true;
-        const auto color = get_color(value, def_clr, limits);
+        const auto color = get_color(value, def_clr, lim_warn, lim_crit, is_lower_better);
         if (do_format_bytes)
             format_bytes(value);
 
@@ -386,7 +378,6 @@ DlgCode PanelStats::show(bool& focused)
     if (begin_panel(opened, focused, data()->clr_bg) && opened)
     {
         m_pause = false;
-        calc_fps();
 
         static constexpr const std::string_view this_pc = "This PC";
         static const float this_pc_wid = ImGui::CalcTextSize(this_pc.data()).x;
@@ -397,79 +388,58 @@ DlgCode PanelStats::show(bool& focused)
         static constexpr const std::string_view queue = "Queue";
         static const float queue_wid = ImGui::CalcTextSize(queue.data()).x;
 
-        static constexpr const std::string_view ram_local = "RAM";
-        static constexpr const std::string_view ram_server = "RAM";
-        static constexpr const std::string_view vsync = "V-Sync";
-        static constexpr const std::string_view fps = "FPS";
-        static constexpr const std::string_view status = "Status";
-        static constexpr const std::string_view vram_server = "VRAM";
-        static constexpr const std::string_view vram_pytorch_total = "PyTorch total";
-        static constexpr const std::string_view vram_pytorch_free = "PyTorch free";
-        static constexpr const std::string_view ping = "Ping";
+        static const float offset = ImGui::CalcTextSize("PyTorch total").x + ImGui::GetStyle().ItemSpacing.x * 3;
 
-        static float offset = 0.0f;
-        if (0.0f == offset)
-        {
-            offset = std::max(offset, ImGui::CalcTextSize(ram_local.data()).x);
-            offset = std::max(offset, ImGui::CalcTextSize(ram_server.data()).x);
-            offset = std::max(offset, ImGui::CalcTextSize(fps.data()).x);
-            offset = std::max(offset, ImGui::CalcTextSize(status.data()).x);
-            offset = std::max(offset, ImGui::CalcTextSize(vsync.data()).x);
-            offset = std::max(offset, ImGui::CalcTextSize(vram_pytorch_total.data()).x);
-            offset = std::max(offset, ImGui::CalcTextSize(vram_pytorch_free.data()).x);
-            offset = std::max(offset, ImGui::CalcTextSize(ping.data()).x);
+        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_capt), 0.0f, this_pc.data(), this_pc.size(), this_pc_wid);
 
-            for (auto& disk : m_disks)
-            {
-                offset = std::max(offset, cast::to_float(cast::to_i64(disk.format_path.size())));
-            }
-
-            offset += ImGui::GetStyle().ItemSpacing.x * 4;
-        }
-
-        ImGuiEx::Separator(IM_COL32(0, 180, 180, 200), 0.0f, this_pc.data(), this_pc.size(), this_pc_wid);
-
-        ImGui::TextUnformatted(vsync.data(), vsync.data() + vsync.size());
+        ImGui::TextUnformatted("V-Sync");
         ImGui::SameLine(offset);
-        bool vsync_enabled = g::pMain->get_vsync_enabled();
-        if (ImGui::Checkbox(vsync_enabled ? "Enabled##VSync" : "Disabled##VSync", &vsync_enabled))
-        {
-            g::pOptsManager->app_set_vsync_enabled(vsync_enabled);
-            g::pMain->set_vsync_enabled(vsync_enabled);
-        }
+        ImGui::TextUnformatted(g::pOptsManager->app_vsync_load() ? "enabled" : "disabled");
 
-        print_stat(fps.data(), offset, m_fps, m_lim_fps, false);
-        print_stat(ram_local.data(), offset, m_lram, m_lim_lram);
+        show_fps(offset);
+        print_stat("RAM", offset, m_lram,
+            g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_ram),
+            g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_ram),
+            false, true);
 
         for (auto& disk : m_disks)
         {
-            if (disk.enabled)
+            if (disk.disk_opt->second)
             {
-                print_stat(disk.format_path.c_str(), offset, disk.free, m_lim_disk);
+                print_stat(disk.format_path.c_str(), offset, disk.free,
+                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_disk),
+                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_disk),
+                    false, true);
             }
         }
 
-        ImGuiEx::Separator(IM_COL32(0, 180, 180, 200), 0.0f, server.data(), server.size(), server_wid);
+        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_capt), 0.0f, server.data(), server.size(), server_wid);
         if (!g::pFlow->get_online())
         {
-            ImGui::TextUnformatted(status.data(), status.data() + status.size());
+            ImGui::TextUnformatted("Status");
             ImGui::SameLine(offset);
-            ImGui::TextUnformatted("Offline");
+            ImGui::TextUnformatted("offline");
         }
         else
         {
-            ImGui::TextUnformatted(status.data(), status.data() + status.size());
+            ImGui::TextUnformatted("Status");
             ImGui::SameLine(offset);
             ImGui::TextUnformatted(m_queue_remaining > 0 ? "Executing" : "Idle");                
 
             if (m_ping > 0)
             {
-                print_stat(ping.data(), offset, m_ping, m_lim_ping);
+                print_stat("Ping", offset, m_ping,
+                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ping),
+                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ping),
+                    true, false);
             }
 
             if (m_sram > 0)
             {
-                print_stat(ram_server.data(), offset, m_sram, m_lim_sram);
+                print_stat("RAM", offset, m_sram,
+                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ram),
+                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ram),
+                    false, true);
             }
 
             std::list<VideoDevice> devices;
@@ -481,11 +451,11 @@ DlgCode PanelStats::show(bool& focused)
             {
                 if (vd.pytorch_total > 0 || vd.pytorch_free > 0 || vd.vram > 0)
                 {
-                    ImGuiEx::Separator(IM_COL32(255, 255, 255, 200), 0.0f, vd.name.c_str(), vd.name.size(), 0.0f);
+                    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_subtitle), 0.0f, vd.name.c_str(), vd.name.size(), 0.0f);
 
                     if (vd.pytorch_total > 0)
                     {
-                        ImGui::TextUnformatted(vram_pytorch_total.data(), vram_pytorch_total.data() + vram_pytorch_total.size());
+                        ImGui::TextUnformatted("PyTorch total");
                         ImGui::SameLine(offset);
                         format_bytes(vd.pytorch_total);
                         ImGui::TextUnformatted(m_buffer.data(), m_buffer.data() + m_buffer.size());
@@ -493,18 +463,24 @@ DlgCode PanelStats::show(bool& focused)
 
                     if (vd.pytorch_free > 0)
                     {
-                        print_stat(vram_pytorch_free.data(), offset, vd.pytorch_free, m_lim_pytorch);
+                        print_stat("PyTorch free", offset, vd.pytorch_free,
+                            g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_pytorch),
+                            g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_pytorch),
+                            false, true);
                     }
                     if (vd.vram > 0)
                     {
-                        print_stat(vram_server.data(), offset, vd.vram, m_lim_vram);
+                        print_stat("VRAM", offset, vd.vram,
+                            g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_vram),
+                            g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_vram),
+                            false, true);
                     }
                 }
             }
 
             if (m_queue_remaining > 0)
             {
-                ImGuiEx::Separator(IM_COL32(255, 255, 255, 200), 0.0f, queue.data(), queue.size(), queue_wid);
+                ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_subtitle), 0.0f, queue.data(), queue.size(), queue_wid);
             }
         }
     }

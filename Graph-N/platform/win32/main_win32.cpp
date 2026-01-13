@@ -140,6 +140,8 @@ bool MainRoutine_Win32::render_frame(bool done)
         return false;
     }
 
+    const auto start_tick = std::chrono::high_resolution_clock::now();
+
     // Start the Dear ImGui frame
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
@@ -168,6 +170,9 @@ bool MainRoutine_Win32::render_frame(bool done)
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
     }
+
+    const auto end_tick = std::chrono::high_resolution_clock::now();
+    m_frame_render_time = std::chrono::duration<double, std::milli>(end_tick - start_tick).count();
 
     const UINT32 vsync = (get_vsync_enabled() && !m_moving ? 1 : 0);    // force vsync off when moving
     const HRESULT hr = m_swap_chain->Present(vsync, 0); 

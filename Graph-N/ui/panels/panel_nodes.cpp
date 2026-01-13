@@ -30,11 +30,9 @@ void PanelNodes::init()
 
     g::pFlow->subscribe_comfyui_validity_state(this);
 
-    data()->tree_view = g::pOptsManager->flow_get_nodes_pane_tree_view();
-
-    data()->clr_hover_group = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverGroup);
-    data()->clr_hover_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesHoverNode);
-    data()->clr_selected_node = g::pOptsManager->flow_get_color(VisibleObject::PanelNodesSelectedNode);
+    data()->clr_hover_group = g::pOptsManager->color_load(AppColor::panel_nodes_hover_group);
+    data()->clr_hover_node = g::pOptsManager->color_load(AppColor::panel_nodes_hover_node);
+    data()->clr_selected_node = g::pOptsManager->color_load(AppColor::panel_nodes_sel_node);
 
     const auto adjust_brightness = [](ImU32 color, float factor)
     {
@@ -97,7 +95,7 @@ DlgCode PanelNodes::show(bool& focused)
         ImGuiEx::Spacing(3);
         if (ImGui::BeginChild("NodesGroup", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
         {
-            if (data()->tree_view)
+            if (g::pOptsManager->ui_nodes_pane_tree_view_load())
                 show_tree_view();
             else
                 show_plain_view();
@@ -344,7 +342,7 @@ void PanelNodes::show_cfg_buttons()
 
     ImGui::SameLine(start_pos);
 
-    const bool tree_view = data()->tree_view;
+    const bool tree_view = g::pOptsManager->ui_nodes_pane_tree_view_load();
     if (!tree_view)
         ImGui::BeginDisabled();
     FontGuard fg(g::pMain->get_icons_font());
@@ -380,10 +378,9 @@ void PanelNodes::show_cfg_buttons()
 
     ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
     fg.push();
-    if (ImGui::Button(data()->tree_view ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE))
+    if (ImGui::Button(g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE))
     {
-        data()->tree_view = !data()->tree_view;
-        g::pOptsManager->flow_set_nodes_pane_tree_view(data()->tree_view);
+        g::pOptsManager->ui_nodes_pane_tree_view_save(!g::pOptsManager->ui_nodes_pane_tree_view_load());
     }
     tooltip("Toggle Flat/Category View");
 

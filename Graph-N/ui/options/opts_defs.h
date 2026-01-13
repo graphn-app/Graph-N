@@ -19,11 +19,10 @@ struct OptsData final
 {
     NO_COPY_MOVE_CTORS(OptsData);
 
-    const uint32_t caption_separator_clr = IM_COL32(0, 128, 128, 255);
-    const uint32_t separator_clr = IM_COL32(0, 180, 180, 255);
     const float input_offset_x = 130;
-    int64_t step = 1;
-    std::string buffer;
+
+    std::vector<std::vector<std::string>> buffer_s;
+    std::vector<std::vector<int64_t>> buffer_i;
 
     struct Pane final
     {
@@ -34,24 +33,19 @@ struct OptsData final
     }
     pane;
 
-    struct ComfyUI final
+    struct ComfyUi final
     {
-        NO_COPY_MOVE_CTORS(ComfyUI);
-
-        std::string host;
-        int64_t port = 0;
-        int64_t conn_time = 0;
-        int64_t read_time = 0;
-        std::string path;
-        std::string cmd;
-        bool start = false;
-        bool stop = false;
-        bool hide = false;
-        bool capture = false;
-        bool parse = false;
+        std::vector<std::string>* buffer_s;
+        std::vector<int64_t>* buffer_i;
     }
     comfyui;
 
+    struct Stats final
+    {
+        std::vector<std::string>* buffer_s;
+        std::vector<int64_t>* buffer_i;
+    }
+    stats;
 
     struct Workflow final
     {

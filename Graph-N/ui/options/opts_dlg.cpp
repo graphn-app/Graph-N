@@ -29,8 +29,17 @@ void OptionsDlgs::init()
     data()->width = 650;
     data()->height = 680;
 
-    data()->clr_title = g::pOptsManager->flow_get_color(VisibleObject::OptionsDlg);
-    data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::OptionsBg);
+    data()->clr_title = g::pOptsManager->color_load(AppColor::opt_dlg_title_bg);
+    data()->clr_bg = g::pOptsManager->color_load(AppColor::opt_dlg_bg);
+
+    m_opts_data.buffer_i.resize(cast::to_szt(OptPane::_count));
+    m_opts_data.buffer_s.resize(cast::to_szt(OptPane::_count));
+
+    m_opts_data.comfyui.buffer_s = &m_opts_data.buffer_s[cast::to_szt(OptPane::comfyui)];
+    m_opts_data.comfyui.buffer_i = &m_opts_data.buffer_i[cast::to_szt(OptPane::comfyui)];
+
+    m_opts_data.stats.buffer_s = &m_opts_data.buffer_s[cast::to_szt(OptPane::stats)];
+    m_opts_data.stats.buffer_i = &m_opts_data.buffer_i[cast::to_szt(OptPane::stats)];
 
     m_opts_data.pane.show_inner_child = (m_opts_data.pane.left_selected_item != OptPane::_none);
 

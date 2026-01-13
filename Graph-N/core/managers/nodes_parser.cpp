@@ -11,7 +11,7 @@ namespace mngr
 void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
 {
     using namespace std::chrono_literals;
-    if (!m_parse_finished && m_future.wait_for(1ms) == std::future_status::ready)
+    if (!m_parse_finished && m_future.wait_for(0ms) == std::future_status::ready)
     {
         if (m_thread.joinable())
             m_thread.join();

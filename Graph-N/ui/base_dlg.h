@@ -121,7 +121,7 @@ public:
         if (m_dlg_initialized)
             return;
         m_data = std::make_unique<DlgDataType>();
-        data()->clr_bg = g::pOptsManager->flow_get_color(VisibleObject::PanelNodes);
+        data()->clr_bg = g::pOptsManager->color_load(AppColor::panel_bg);
         m_dlg_initialized = true;
     }
 

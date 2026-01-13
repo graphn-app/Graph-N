@@ -233,7 +233,7 @@ void Pin::finalize()
     }
 
     // load options
-    auto opt_adv = g::pOptsManager->nd_get_pin_advanced(get_id());
+    auto opt_adv = g::pOptsManager->nd_pin_advanced_load(get_id());
     if (opt_adv.has_value())
         advanced = opt_adv.value();
 }
@@ -258,8 +258,8 @@ void Pin::init_defaults()
     {
         def_state.value = int64_t(IM_COL32_WHITE);
         def = int64_t(IM_COL32_WHITE);
-        min = int64_t(IM_COL32(0, 0, 0, 255));
-        max = int64_t(IM_COL32(255, 255, 255, 255));
+        min = int64_t(IM_COL32_BLACK);
+        max = int64_t(IM_COL32_WHITE);
     }
     else if (PinType::BOOLEAN == def_state.type)
     {
@@ -301,49 +301,47 @@ void Pin::generate_pin_color()
     {
         switch (def_state.type)
         {
-            // --- Primitives ---
-        case PinType::INT:						def_state.pin_color = IM_COL32(40, 200, 40, 255);   break;
-        case PinType::FLOAT:					def_state.pin_color = IM_COL32(40, 200, 40, 255);   break;
-        case PinType::STRING:					def_state.pin_color = IM_COL32(200, 200, 200, 255); break;
-        case PinType::BOOLEAN:					def_state.pin_color = IM_COL32(180, 180, 180, 255); break;
-        case PinType::ANY:						def_state.pin_color = IM_COL32_WHITE; break;
-        case PinType::COMBO:					def_state.pin_color = IM_COL32(200, 200, 200, 255);   break;
-        case PinType::COLOR:					def_state.pin_color = IM_COL32(255, 235, 59, 255);    break;
-        case PinType::NUMBER:					def_state.pin_color = IM_COL32(46, 204, 113, 255);    break;
+        case PinType::INT:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_int);                 break;
+        case PinType::FLOAT:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_float);               break;
+        case PinType::STRING:               def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_string);              break;
+        case PinType::BOOLEAN:              def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_boolean);             break;
+        case PinType::ANY:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_any);                 break;
+        case PinType::COMBO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_combo);               break;
+        case PinType::COLOR:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_color);               break;
+        case PinType::NUMBER:               def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_number);              break;
 
-        case PinType::FLOATS:					def_state.pin_color = IM_COL32(26, 188, 156, 255);    break;
-        case PinType::SEED:						def_state.pin_color = IM_COL32(52, 152, 219, 255);    break;
-        case PinType::MODEL:					def_state.pin_color = IM_COL32(111, 108, 155, 255); break;
-        case PinType::LATENT:					def_state.pin_color = IM_COL32(176, 83, 112, 255);  break;
-        case PinType::VAE:						def_state.pin_color = IM_COL32(166, 46, 46, 255);   break;
-        case PinType::CLIP:						def_state.pin_color = IM_COL32(227, 184, 54, 255);  break;
-        case PinType::IMAGE:					def_state.pin_color = IM_COL32(91, 135, 163, 255);  break;
-        case PinType::MASK:						def_state.pin_color = IM_COL32(93, 158, 89, 255);   break;
-        case PinType::CONDITIONING:				def_state.pin_color = IM_COL32(195, 134, 52, 255);  break;
-        case PinType::CLIP_VISION:				def_state.pin_color = IM_COL32(100, 100, 100, 255); break;
-        case PinType::CONTROL_NET:				def_state.pin_color = IM_COL32(90, 160, 140, 255);  break;
-        case PinType::AUDIO:					def_state.pin_color = IM_COL32(255, 160, 0, 255);     break;
-        case PinType::VIDEO:					def_state.pin_color = IM_COL32(41, 128, 185, 255);    break;
-        case PinType::IPADAPTER:				def_state.pin_color = IM_COL32(215, 189, 226, 255);   break;
-        case PinType::INSIGHTFACE:				def_state.pin_color = IM_COL32(231, 76, 60, 255);     break;
-        case PinType::CONTROL_NET_STACK:		def_state.pin_color = IM_COL32(39, 174, 96, 255);     break;
-        case PinType::CLIP_VISION_OUTPUT:		def_state.pin_color = IM_COL32(241, 196, 15, 255);    break;
-        case PinType::NOISE:					def_state.pin_color = IM_COL32(149, 165, 166, 255);   break;
-        case PinType::SIGMAS:					def_state.pin_color = IM_COL32(140, 100, 80, 255);    break;
-        case PinType::SAMPLER:					def_state.pin_color = IM_COL32(230, 126, 34, 255);    break;
-        case PinType::PIPE_LINE:				def_state.pin_color = IM_COL32(255, 215, 0, 255);     break;
-        case PinType::LORA_STACK:				def_state.pin_color = IM_COL32(255, 105, 180, 255);   break;
-        case PinType::LORA_LIST:				def_state.pin_color = IM_COL32(219, 112, 147, 255);   break;
-        case PinType::SEGS:						def_state.pin_color = IM_COL32(0, 255, 255, 255);     break;
-        case PinType::BBOX:						def_state.pin_color = IM_COL32(127, 255, 0, 255);     break;
-        case PinType::BUS:						def_state.pin_color = IM_COL32(255, 215, 0, 255);     break;
+        case PinType::FLOATS:               def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_floats);              break;
+        case PinType::SEED:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_seed);                break;
+        case PinType::MODEL:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_model);               break;
+        case PinType::LATENT:               def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_latent);              break;
+        case PinType::VAE:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_vae);                 break;
+        case PinType::CLIP:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_clip);                break;
+        case PinType::IMAGE:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_image);               break;
+        case PinType::MASK:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_mask);                break;
+        case PinType::CONDITIONING:         def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_conditioning);        break;
+        case PinType::CLIP_VISION:          def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_clip_vision);         break;
+        case PinType::CONTROL_NET:          def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_control_net);         break;
+        case PinType::AUDIO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_audio);               break;
+        case PinType::VIDEO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_video);               break;
+        case PinType::IPADAPTER:            def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_ipadapter);           break;
+        case PinType::INSIGHTFACE:          def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_insightface);         break;
+        case PinType::CONTROL_NET_STACK:    def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_control_net_stack);   break;
+        case PinType::CLIP_VISION_OUTPUT:   def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_clip_vision_output);  break;
+        case PinType::NOISE:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_noise);               break;
+        case PinType::SIGMAS:               def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_sigmas);              break;
+        case PinType::SAMPLER:              def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_sampler);             break;
+        case PinType::PIPE_LINE:            def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_pipe_line);           break;
+        case PinType::LORA_STACK:           def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_lora_stack);          break;
+        case PinType::LORA_LIST:            def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_lora_list);           break;
+        case PinType::SEGS:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_segs);                break;
+        case PinType::BBOX:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_bbox);                break;
+        case PinType::BUS:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color_bus);                 break;
 
         default:
-            {
-                LogAndThrowInternalError(ExcepCategory::logic, "Some predefined colors were not set");
-            }
+        {
+            LogAndThrowInternalError(ExcepCategory::logic, "Some predefined colors were not set");
         }
-
+        }
         return;
     }
 

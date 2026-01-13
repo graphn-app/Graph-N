@@ -116,10 +116,10 @@ void DbManager::save_exception(ExcepCategory category, const std::string& messag
         SQLite::Statement query(*m_db,
             fmt::format("INSERT INTO {} ({}, {}, {}, {}) VALUES (?, ?, ?, ?)",
                 gdb_tbl_err, gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message));
-        query.bind(1, file);
+        query.bindNoCopy(1, file);
         query.bind(2, line);
         query.bind(3, cast::to_i64(category));
-        query.bind(4, message);
+        query.bindNoCopy(4, message);
         query.exec();
     }
     catch (const SQLite::Exception& ex)
@@ -129,7 +129,7 @@ void DbManager::save_exception(ExcepCategory category, const std::string& messag
     }
 }
 
-void DbManager::set_option(const std::string& key, const Value& value)
+void DbManager::save_option(const std::string& key, const Value& value)
 {
     try
     {
@@ -138,7 +138,7 @@ void DbManager::set_option(const std::string& key, const Value& value)
                 gdb_tbl_opt, gdb_val_name, gdb_val_int, gdb_val_str));
         query.bind(1, key);
         query.bind(2, value.ival);
-        query.bind(3, value.sval);
+        query.bindNoCopy(3, value.sval);
         query.exec();
         Log("Upd " << LOG_KEY_VAL(key, value));
     }
@@ -149,30 +149,66 @@ void DbManager::set_option(const std::string& key, const Value& value)
     }
 }
 
-std::optional<Value> DbManager::get_option(const std::string& key)
+std::vector<DbOption> DbManager::load_all_options()
 {
     try
     {
         SQLite::Statement query(*m_db,
-            fmt::format(FMT_COMPILE("SELECT {}, {} FROM {} WHERE {}=?"),
-                gdb_val_str, gdb_val_int, gdb_tbl_opt, gdb_val_name));
-        query.bind(1, key);
+            fmt::format(FMT_COMPILE("SELECT {}, {}, {} FROM {}"),
+                gdb_val_name, gdb_val_str, gdb_val_int, gdb_tbl_opt));
         if (!query.executeStep())
-            return std::nullopt;
-        if (query.getColumn(0).isNull() && query.getColumn(1).isNull())
-            return std::nullopt;
-        std::optional<Value> v;
-        v.emplace(query.getColumn(0).getString(), query.getColumn(1).getInt64());
-        return v;
+            return {};
+
+        std::vector<DbOption> ret;
+        ret.reserve(100);
+        while (query.executeStep())
+        {
+            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull())
+                continue;
+
+            ret.push_back({});
+            DbOption& opt = ret.back();
+            opt.name = query.getColumn(0).getString();
+            opt.val = { query.getColumn(1).getString(), query.getColumn(2).getInt64() };            
+        }
+
+        return ret;
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite load " << LOG_KEY(key) << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::sqlite, "SQLite load all options " << LOG_EXP(ex));
     }
-    return std::nullopt;
+    return {};
 }
 
-void DbManager::set_node_option(hid node_hash, NodeOption opt, const Value& value)
+void DbManager::save_all_options(const std::vector<DbOption>& opts)
+{
+    try
+    {
+        SQLite::Statement query(*m_db,
+            fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}, {}) VALUES (?, ?, ?)"),
+                gdb_tbl_opt, gdb_val_name, gdb_val_int, gdb_val_str));
+
+        SQLite::Transaction transaction(*m_db);
+        for (auto& opt : opts)
+        {
+            query.bindNoCopy(1, opt.name);
+            const Value& v = opt.val.value();
+            query.bind(2, v.ival);
+            query.bindNoCopy(3, v.sval);
+
+            query.exec();
+            query.reset();
+        }
+        transaction.commit();
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::sqlite, "SQLite save all options " << LOG_EXP(ex));
+    }
+}
+
+void DbManager::save_node_option(hid node_hash, NodeOption opt, const Value& value)
 {
     try
     {
@@ -182,7 +218,7 @@ void DbManager::set_node_option(hid node_hash, NodeOption opt, const Value& valu
         query.bind(1, std::to_string(node_hash));
         query.bind(2, cast::to_i32(opt));
         query.bind(3, value.ival);
-        query.bind(4, value.sval);
+        query.bindNoCopy(4, value.sval);
         query.exec();
         Log("Upd " << LOG_NOPT_KEY_VAL(node_hash, opt, value));
     }
@@ -193,7 +229,7 @@ void DbManager::set_node_option(hid node_hash, NodeOption opt, const Value& valu
     }
 }
 
-std::optional<Value> DbManager::get_node_option(hid node_hash, NodeOption opt)
+std::optional<Value> DbManager::load_node_option(hid node_hash, NodeOption opt)
 {
     try
     {
@@ -217,7 +253,7 @@ std::optional<Value> DbManager::get_node_option(hid node_hash, NodeOption opt)
     return std::nullopt;
 }
 
-std::vector<std::pair<hid, Value>> DbManager::get_all_node_options(NodeOption opt)
+std::vector<std::pair<hid, Value>> DbManager::load_all_node_options(NodeOption opt)
 {
     try
     {

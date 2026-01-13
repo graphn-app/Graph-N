@@ -31,6 +31,12 @@ struct Value final
     {}
 };
 
+struct DbOption
+{
+    std::string name;
+    std::optional<Value> val;
+};
+
 class DbManager final : public Manager
 {
 public:
@@ -41,12 +47,13 @@ public:
 
     void save_exception(ExcepCategory category, const std::string& message, const char* file, int line);
 
-    void set_option(const std::string& key, const Value& value);
-    std::optional<Value> get_option(const std::string& key);
+    void save_option(const std::string& key, const Value& value);
+    std::vector<DbOption> load_all_options();
+    void save_all_options(const std::vector<DbOption>& opts);
 
-    void set_node_option(hid node_hash, NodeOption opt, const Value& value);
-    std::optional<Value> get_node_option(hid node_hash, NodeOption opt);
-    std::vector<std::pair<hid, Value>> get_all_node_options(NodeOption opt);
+    void save_node_option(hid node_hash, NodeOption opt, const Value& value);
+    std::optional<Value> load_node_option(hid node_hash, NodeOption opt);
+    std::vector<std::pair<hid, Value>> load_all_node_options(NodeOption opt);
 
 private:
 
