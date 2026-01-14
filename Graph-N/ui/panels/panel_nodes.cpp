@@ -14,7 +14,7 @@ namespace ui
 {
 
 PanelNodes::PanelNodes(PanelNodeInspector* inspector)
-    : PanelBase(VisibleObject::PanelNodes, "Node Library", "0C72C6D56FFC4902A037A187719CA0AC")
+    : PanelBase(VisibleObject::PanelNodes, ICON_LC_BOOK_OPEN " Node Library", ICON_LC_BOOK_OPEN, "0C72C6D56FFC4902A037A187719CA0AC")
     , m_inspector(inspector)
 {}
 
@@ -66,7 +66,7 @@ DlgCode PanelNodes::show(bool& focused)
         if (g::pNodesManager->get_nodes_tree().empty())
         {
             show_empty_panel_descr(
-                ICON_LC_BOOK_OPEN " Node Library: Browse, search, and add nodes to your workflow.",
+                ICON_LC_INFO " Node Library: Browse, search, and add nodes to your workflow.",
                 {
                     ICON_LC_UNPLUG,
                     "Waiting for Connection.",
@@ -76,6 +76,11 @@ DlgCode PanelNodes::show(bool& focused)
                     ICON_LC_SETTINGS " Configuration:",
                     "Check Address, Port & Timeouts",
                     "in Settings > ComfyUI."
+                },
+                "Open settings",
+                []()
+                {
+                    g::pFlow->open_settings_dlg(ViewOptsComfyUi);
                 }
             );
             return end_panel(true);

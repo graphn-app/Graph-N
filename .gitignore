@@ -16,6 +16,7 @@ x64/
 build/
 work_dir/
 copy/
+todo/
 
 *.vcxproj*
 *.user

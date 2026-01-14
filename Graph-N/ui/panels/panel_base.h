@@ -16,10 +16,13 @@ template <typename DataType>
 class PanelBase : public BaseDlgWithData<DataType>
 {
 public:
-    PanelBase(VisibleObject obj, const char* name, const char* id)
+    PanelBase(VisibleObject obj, const char* name, const char* shortened, const char* id)
         : BaseDlgWithData(obj)
     {
-        m_panel_name = fmt::format("{}##{}", name, id);
+        m_panel_id = id;
+        m_panel_name = fmt::format("{}###{}", name, id);
+        m_panel_name_w = ImGui::CalcTextSize(name).x;
+        m_panel_name_shortened = fmt::format("{}###{}", shortened, id);
     }
 
     ~PanelBase() override = default;
@@ -32,10 +35,16 @@ protected:
         // m_class.ClassId = cast::to_u32(data()->class_id);
         // ImGui::SetNextWindowClass(&m_class);
 
+        const std::string* name = &m_panel_name;
+        if (m_panel_w > 0 && m_panel_w < m_panel_name_w + 60.0f)
+            name = &m_panel_name_shortened;
+
         opened = true;
         focused = false;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, bg_color);
-        const bool expanded = ImGui::Begin(m_panel_name.c_str(), &opened);
+        const bool expanded = ImGui::Begin(name->c_str(), &opened);
+        m_panel_w = ImGui::GetWindowWidth();
+
         if (expanded)
             focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
         return expanded;
@@ -48,7 +57,8 @@ protected:
         return opened ? DlgCode::progress : DlgCode::cancel;
     }
 
-    void show_empty_panel_descr(const char* header_descr, const std::vector<const char*>& titles, const std::vector<const char*>& subtitles)
+    void show_empty_panel_descr(const char* header_descr, const std::vector<const char*>& titles, const std::vector<const char*>& subtitles,
+        const char* button = nullptr, std::function<void()> button_handler = nullptr)
     {
         ImGui::Spacing();
 
@@ -66,7 +76,7 @@ protected:
         const float line_h = ImGui::GetTextLineHeight();
         const float spacing = ImGui::GetStyle().ItemSpacing.y;
         // Icon + Title + Spacing + Subtitle + Help1 + Help2
-        const float total_h = line_h * 5 + spacing * 4;
+        const float total_h = line_h * 7 + spacing * 4;
 
         const ImVec2 avail = ImGui::GetContentRegionAvail();
         float start_y = (avail.y - total_h) * 0.5f;
@@ -76,21 +86,26 @@ protected:
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + start_y);
 
         // Helper lambda for centered text
-        const auto text_centered = [&](const char* text, bool disabled)
+        const auto text_centered = [&](const char* text, bool disabled, bool as_button)
         {
-            float w = ImGui::CalcTextSize(text).x;
+            bool click = false;
+            const float w = ImGui::CalcTextSize(text).x;
             ImGui::SetCursorPosX((avail.x - w) * 0.5f);
             if (disabled)
                 ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-            ImGui::TextUnformatted(text);
+            if (as_button)
+                click = ImGui::Button(text);
+            else
+                ImGui::TextUnformatted(text);
             if (disabled)
                 ImGui::PopStyleColor();
+            return click;
         };
 
         // Draw Content
         for (auto& title : titles)
         {
-            text_centered(title, false);
+            text_centered(title, false, false);
         }
 
         ImGui::Dummy(ImVec2(0, spacing * 2)); // Extra gap
@@ -98,12 +113,23 @@ protected:
         // Subtitles (Grey)
         for (auto& subtitle : subtitles)
         {
-            text_centered(subtitle, true);
+            text_centered(subtitle, true, false);
+        }
+
+        if (button != nullptr && button_handler != nullptr)
+        {
+            ImGui::Spacing();
+            if (text_centered(button, false, true))
+                button_handler();
         }
     }
 
 private:
+    std::string m_panel_id;
     std::string m_panel_name;
+    std::string m_panel_name_shortened;
+    float m_panel_name_w = 0.0f;
+    float m_panel_w = 0.0f;
 
     //  ImGuiWindowClass m_class;
 };

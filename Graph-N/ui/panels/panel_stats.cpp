@@ -8,7 +8,7 @@ namespace ui
 {
 
 PanelStats::PanelStats()
-    : PanelBase(VisibleObject::PanelStats, "Stats", "DFBE846D7B1C49BF8D70C2AF99ADCBEF")
+    : PanelBase(VisibleObject::PanelStats, ICON_LC_CHART_BAR " Stats", ICON_LC_CHART_BAR, "DFBE846D7B1C49BF8D70C2AF99ADCBEF")
 {}
 
 PanelStats::~PanelStats()

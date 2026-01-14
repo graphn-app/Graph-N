@@ -518,6 +518,11 @@ void GraphN_Flow::on_menu_panel_window(ViewDialogs wnd)
         g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
+void GraphN_Flow::open_settings_dlg(ViewDialogs specific_section /*= ViewNone*/)
+{
+    m_windows |= (ViewOptions | specific_section);
+}
+
 void GraphN_Flow::show_options_dlg()
 {
     if (!m_opts_dlg)

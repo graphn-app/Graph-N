@@ -13,7 +13,7 @@ namespace ui
 {
 
 PanelNodeInspector::PanelNodeInspector()
-    : PanelBase(VisibleObject::PanelNodeInspector, "Node Inspector", "95E5A1E7883E495E8712FA33A123F3BB")
+    : PanelBase(VisibleObject::PanelNodeInspector, ICON_LC_TANGENT " Node Inspector", ICON_LC_TANGENT, "95E5A1E7883E495E8712FA33A123F3BB")
 {}
 
 PanelNodeInspector::~PanelNodeInspector()
@@ -87,14 +87,14 @@ DlgCode PanelNodeInspector::show(bool& focused)
         if (m_inspecting.empty())
         {
             show_empty_panel_descr(
-                ICON_LC_TANGENT " Node Inspector: View details of selected nodes, compare parameters, and configure widget visibility.",
+                ICON_LC_INFO " Node Inspector: View details of selected nodes, compare parameters, and configure widget visibility.",
                 {
-                    ICON_LC_TANGENT,
+                    ICON_LC_SPLINE_POINTER,
                     "No node selected",
                 },
                 {
                     "How to use:",
-                    ICON_LC_SPLINE_POINTER " Right-Click: Inspect single node",
+                    ICON_LC_MOUSE_POINTER_2 " Right-Click: Inspect single node",
                     ICON_LC_LAYERS " Ctrl + R-Click: Add/Remove nodes"
                 }
             );

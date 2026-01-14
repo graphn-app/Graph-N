@@ -29,6 +29,8 @@ enum ViewDialogs
     // options
     ViewOptions                 = 0x00000001,
     ViewOptsComfyUi             = 0x00000002,
+    ViewOptsStats               = 0x00000100,
+    ViewOptsWf                  = 0x00000200,
     // status & control bar
     ViewConnect                 = 0x00000004,
     ViewParsingNodes            = 0x00000008,
@@ -47,9 +49,9 @@ enum ViewDialogs
     ViewStyleSelector           = 0x20000000,
     ViewFontSelector            = 0x40000000,
 
-    _ViewNextAvail              = 0x00000100,
+    _ViewNextAvail              = 0x00000400,
 
-    ViewAllOptions              = ViewOptions | ViewOptsComfyUi,
+    ViewAllOptions              = ViewOptions | ViewOptsComfyUi | ViewOptsStats | ViewOptsWf,
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats,
     ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector
@@ -71,6 +73,8 @@ public:
     inline void set_online(bool online) { m_online = online; }
 
     void reconnect();
+
+    void open_settings_dlg(ViewDialogs specific_section = ViewNone);
 
     data::Workflow* create_workflow();
     void destroy_workflow(lid wf_id);
