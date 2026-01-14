@@ -90,7 +90,8 @@ void PanelStats::th_api()
             info.dwLength = sizeof(MEMORYSTATUSEX);
             if (GlobalMemoryStatusEx(&info))
             {
-                m_lram = info.ullAvailPhys;
+                m_lram_free = info.ullAvailPhys;
+                m_lram_total = info.ullTotalPhys;
             }
 #elif defined __linux__
 #error Not implemented
@@ -113,6 +114,7 @@ void PanelStats::th_api()
                 {
                     std::lock_guard<std::mutex> lock(m_lock);
                     disk.free = free_bytes.QuadPart;
+                    disk.total = total_bytes.QuadPart;
                 }
             }
 #elif defined __APPLE__
@@ -160,7 +162,11 @@ void PanelStats::th_comfyui()
                     const auto data = nlohmann::json::parse(res->body);
                     if (data.contains("system") && data["system"].contains("ram_free") && data["system"]["ram_free"].is_number_integer())
                     {
-                        m_sram = data["system"]["ram_free"];
+                        auto& system = data["system"];
+                        if (system.contains("ram_free") && system["ram_free"].is_number_integer())
+                            m_sram_free = system["ram_free"];
+                        if (system.contains("ram_total") && system["ram_total"].is_number_integer())
+                            m_sram_total = system["ram_total"];
                     }
                     if (data.contains("devices") && data["devices"].is_array())
                     {
@@ -190,7 +196,11 @@ void PanelStats::th_comfyui()
                             }
                             if (device.contains("vram_free") && device["vram_free"].is_number_integer())
                             {
-                                vd.vram = device["vram_free"];
+                                vd.vram_free = device["vram_free"];
+                            }
+                            if (device.contains("vram_total") && device["vram_total"].is_number_integer())
+                            {
+                                vd.vram_total = device["vram_total"];
                             }
                             if (device.contains("torch_vram_total") && device["torch_vram_total"].is_number_integer())
                             {
@@ -314,7 +324,6 @@ void PanelStats::show_fps(float val_offset)
     ImGui::Text("%.1f ms, FPS: %u", latency, m_fps);
     if (!def_clr)
         ImGui::PopStyleColor();
-
 }
 
 ImU32 PanelStats::get_color(int64_t value, bool& stay_default, int64_t lim_warn, int64_t lim_crit, bool is_lower_better)
@@ -402,7 +411,7 @@ DlgCode PanelStats::show(bool& focused)
         ImGui::TextUnformatted(g::pOptsManager->app_vsync_load() ? "enabled" : "disabled");
 
         show_fps(offset);
-        print_stat("RAM", offset, m_lram,
+        print_stat("RAM", offset, m_lram_free,
             g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_ram),
             g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_ram),
             false, true);
@@ -439,9 +448,9 @@ DlgCode PanelStats::show(bool& focused)
                     true, false);
             }
 
-            if (m_sram > 0)
+            if (m_sram_free > 0)
             {
-                print_stat("RAM", offset, m_sram,
+                print_stat("RAM", offset, m_sram_free,
                     g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ram),
                     g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ram),
                     false, true);
@@ -454,7 +463,7 @@ DlgCode PanelStats::show(bool& focused)
             }
             for (auto& vd : devices)
             {
-                if (vd.pytorch_total > 0 || vd.pytorch_free > 0 || vd.vram > 0)
+                if (vd.pytorch_total > 0 || vd.pytorch_free > 0 || vd.vram_free > 0)
                 {
                     ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_subtitle), 0.0f, vd.name.c_str(), vd.name.size(), 0.0f);
 
@@ -473,9 +482,9 @@ DlgCode PanelStats::show(bool& focused)
                             g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_pytorch),
                             false, true);
                     }
-                    if (vd.vram > 0)
+                    if (vd.vram_free > 0)
                     {
-                        print_stat("VRAM", offset, vd.vram,
+                        print_stat("VRAM", offset, vd.vram_free,
                             g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_vram),
                             g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_vram),
                             false, true);

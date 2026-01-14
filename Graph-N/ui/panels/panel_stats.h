@@ -37,7 +37,8 @@ private:
     struct VideoDevice final
     {
         std::string name;
-        uint64_t vram = 0;
+        uint64_t vram_total = 0;
+        uint64_t vram_free = 0;
         uint64_t pytorch_total = 0;
         uint64_t pytorch_free = 0;
     };
@@ -54,17 +55,20 @@ private:
         const std::pair<std::string, bool>* disk_opt = nullptr;
         std::string format_path;
         uint64_t free = 0;
+        uint64_t total = 0;
     };
 
     std::mutex m_lock;
-    std::list<VideoDevice> m_video_devices;     // comfyui api /system_stats
-    Queue m_queue;                              // ws
-    std::vector<Disks> m_disks;                 // os api
-    std::atomic_uint64_t m_lram = 0;            // os api
-    std::atomic_uint64_t m_sram = 0;            // comfyui api /system_stats
-    std::atomic_uint32_t m_queue_remaining = 0; // comfyui api /prompt
-    uint64_t m_fps = 0;                         // imgui
-    std::atomic_uint64_t m_ping = 0;            // ws
+    std::list<VideoDevice> m_video_devices;         // comfyui api /system_stats
+    Queue m_queue;                                  // ws
+    std::vector<Disks> m_disks;                     // os api
+    std::atomic_uint64_t m_lram_free = 0;           // os api
+    std::atomic_uint64_t m_lram_total = 0;          // os api
+    std::atomic_uint64_t m_sram_free = 0;           // comfyui api /system_stats
+    std::atomic_uint64_t m_sram_total = 0;          // comfyui api /system_stats
+    std::atomic_uint32_t m_queue_remaining = 0;     // comfyui api /prompt
+    uint64_t m_fps = 0;                             // imgui
+    std::atomic_uint64_t m_ping = 0;                // ws
 
     fmt::memory_buffer m_buffer;
 };
