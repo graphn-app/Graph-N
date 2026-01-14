@@ -9,7 +9,7 @@ void PushID(gid id)
     ImGui::PushID((void*)id);
 }
 
-bool TooltipOnLastControl(const char* tt, ImGuiHoveredFlags_ delay /*= ImGuiHoveredFlags_DelayShort*/,
+bool TooltipOnLastControl(const char* tt, const char* tt_end, ImGuiHoveredFlags_ delay /*= ImGuiHoveredFlags_DelayShort*/,
     bool only_if_modifier_pressed /*= false*/, ImGuiKey modifier /*= ImGuiMod_Ctrl*/)
 {
     if (nullptr == tt || 0 == *tt)
@@ -22,7 +22,7 @@ bool TooltipOnLastControl(const char* tt, ImGuiHoveredFlags_ delay /*= ImGuiHove
     if (show_tt && ImGui::BeginTooltip())
     {
         ImGui::PushTextWrapPos(300.0f);
-        ImGui::TextUnformatted(tt);
+        ImGui::TextUnformatted(tt, tt_end);
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
         return true;

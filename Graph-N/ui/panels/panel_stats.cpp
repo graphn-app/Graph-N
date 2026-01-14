@@ -292,7 +292,209 @@ struct FrameSmoother final
     }
 };
 
-void PanelStats::show_fps(float val_offset)
+ImU32 PanelStats::get_color(int64_t value, bool& stay_default, int64_t lim_warn, int64_t lim_crit, bool is_lower_better)
+{
+    stay_default = false;
+
+    if (value > 0)
+    {
+        if (is_lower_better)
+        {
+            if (value >= lim_crit) return g::pOptsManager->color_load(AppColor::stat_crit);
+            if (value >= lim_warn) return g::pOptsManager->color_load(AppColor::stat_warn);
+        }
+        else
+        {
+            if (value <= lim_crit) return g::pOptsManager->color_load(AppColor::stat_crit);
+            if (value <= lim_warn) return g::pOptsManager->color_load(AppColor::stat_warn);
+        }
+    }
+
+    stay_default = true;
+    return g::pOptsManager->color_load(AppColor::stat_norm);
+}
+
+void PanelStats::format_bytes(uint64_t bytes)
+{        
+    static constexpr std::string_view suffixes[] = { "B", "KB", "MB", "GB", "TB", "PB" };
+    size_t suffix_index = 0;
+    double count = cast::to_double(cast::to_i64(bytes));
+
+    while (count >= 1024.0 && suffix_index < 5)
+    {
+        count /= 1024.0;
+        suffix_index++;
+    }
+
+    m_buffer.clear();
+    fmt::format_to(std::back_inserter(m_buffer), "{:.2f} {}", count, suffixes[suffix_index]);
+    *(m_buffer.data() + m_buffer.size()) = 0;
+};
+
+DlgCode PanelStats::show(bool& focused)
+{
+    bool opened = true;
+    if (begin_panel(opened, focused, data()->clr_bg) && opened)
+    {
+        m_pause = false;
+
+        static constexpr const std::string_view this_pc = "This PC";
+        static const float this_pc_wid = ImGui::CalcTextSize(this_pc.data()).x;
+
+        static constexpr const std::string_view server = "Server";
+        static const float server_wid = ImGui::CalcTextSize(server.data()).x;
+
+        static constexpr const std::string_view queue = "Queue";
+        static const float queue_wid = ImGui::CalcTextSize(queue.data()).x;
+
+        static constexpr const std::string_view performance = "Performance";
+        static const float performance_wid = ImGui::CalcTextSize(performance.data()).x;
+
+        static const float val_text_offset = ImGui::CalcTextSize("PyTorch total").x + ImGui::GetStyle().ItemSpacing.x * 3;
+
+        const bool show_bar = g::pOptsManager->stat_as_progress_load();
+
+        ImGui::BeginGroup();
+
+        if (m_queue_remaining > 0)
+        {
+            ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_subtitle), 0.0f, queue.data(), queue.size(), queue_wid);
+            show_queue(val_text_offset);            
+        }
+
+        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_capt), 0.0f, server.data(), server.size(), server_wid);
+        if (!g::pFlow->get_online())
+        {
+            ImGui::TextUnformatted("Status");
+            ImGui::SameLine(val_text_offset);
+            ImGui::TextUnformatted("offline");
+        }
+        else
+        {
+            ImGui::TextUnformatted("Status");
+            ImGui::SameLine(val_text_offset);
+            ImGui::TextUnformatted(m_queue_remaining > 0 ? "Executing" : "Idle");
+
+            if (show_bar)
+                show_server_as_bar(val_text_offset);
+            else
+                show_server_as_text(val_text_offset);            
+        }
+
+        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_capt), 0.0f, this_pc.data(), this_pc.size(), this_pc_wid);
+
+        if (show_bar)
+            show_this_pc_as_bar(val_text_offset);
+        else
+            show_this_pc_as_text(val_text_offset);        
+
+        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_capt), 0.0f, performance.data(), performance.size(), performance_wid);
+        show_performance(val_text_offset);
+
+        ImGui::EndGroup();
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+            g::pOptsManager->stat_as_progress_save(!show_bar);
+    }
+    else
+        m_pause = true;
+
+    return end_panel(opened);
+}
+
+void PanelStats::print_text_stat(const char* stat_name, float val_offset, uint64_t value, int64_t lim_warn, int64_t lim_crit, bool is_lower_better, bool do_format_bytes)
+{
+    bool def_clr = true;
+    const auto color = get_color(value, def_clr, lim_warn, lim_crit, is_lower_better);
+    if (do_format_bytes)
+        format_bytes(value);
+
+    if (!def_clr)
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+    ImGui::TextUnformatted(stat_name);
+    ImGui::SameLine(val_offset);
+    if (do_format_bytes)
+        ImGui::TextUnformatted(m_buffer.data(), m_buffer.data() + m_buffer.size());
+    else
+        ImGui::Text("%u", value);
+    if (!def_clr)
+        ImGui::PopStyleColor();
+};
+
+void PanelStats::show_this_pc_as_text(float val_offset)
+{
+    print_text_stat("RAM", val_offset, m_lram_free,
+        g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_ram),
+        g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_ram),
+        false, true);
+
+    for (auto& disk : m_disks)
+    {
+        if (disk.disk_opt->second)
+        {
+            print_text_stat(disk.format_path.c_str(), val_offset, disk.free,
+                g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_disk),
+                g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_disk),
+                false, true);
+        }
+    }
+}
+
+void PanelStats::show_server_as_text(float val_offset)
+{
+    if (m_ping > 0)
+    {
+        print_text_stat("Ping", val_offset, m_ping,
+            g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ping),
+            g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ping),
+            true, false);
+    }
+
+    if (m_sram_free > 0)
+    {
+        print_text_stat("RAM", val_offset, m_sram_free,
+            g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ram),
+            g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ram),
+            false, true);
+    }
+
+    std::list<VideoDevice> devices;
+    {
+        std::lock_guard<std::mutex> lock(m_lock);
+        devices = m_video_devices;
+    }
+    for (auto& vd : devices)
+    {
+        if (vd.pytorch_total > 0 || vd.pytorch_free > 0 || vd.vram_free > 0)
+        {
+            ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_subtitle), 0.0f, vd.name.c_str(), vd.name.size(), 0.0f);
+
+            if (vd.pytorch_total > 0)
+            {
+                ImGui::TextUnformatted("PyTorch total");
+                ImGui::SameLine(val_offset);
+                format_bytes(vd.pytorch_total);
+                ImGui::TextUnformatted(m_buffer.data(), m_buffer.data() + m_buffer.size());
+            }
+
+            if (vd.pytorch_free > 0)
+            {
+                print_text_stat("PyTorch free", val_offset, vd.pytorch_free,
+                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_pytorch),
+                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_pytorch),
+                    false, true);
+            }
+            if (vd.vram_free > 0)
+            {
+                print_text_stat("VRAM", val_offset, vd.vram_free,
+                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_vram),
+                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_vram),
+                    false, true);
+            }
+        }
+    }
+}
+
+void PanelStats::print_fps(float val_offset)
 {
     const float instant_fps = ImGui::GetIO().Framerate;
     static float accumulated_time = 0.0f;
@@ -326,182 +528,103 @@ void PanelStats::show_fps(float val_offset)
         ImGui::PopStyleColor();
 }
 
-ImU32 PanelStats::get_color(int64_t value, bool& stay_default, int64_t lim_warn, int64_t lim_crit, bool is_lower_better)
+void PanelStats::show_performance(float val_offset)
 {
-    stay_default = false;
+    ImGui::TextUnformatted("V-Sync");
+    ImGui::SameLine(val_offset);
+    ImGui::TextUnformatted(g::pOptsManager->app_vsync_load() ? "enabled" : "disabled");
 
-    if (value > 0)
+    print_fps(val_offset);
+
+    if (m_ping > 0)
     {
-        if (is_lower_better)
-        {
-            if (value >= lim_crit) return g::pOptsManager->color_load(AppColor::stat_crit);
-            if (value >= lim_warn) return g::pOptsManager->color_load(AppColor::stat_warn);
-        }
-        else
-        {
-            if (value <= lim_crit) return g::pOptsManager->color_load(AppColor::stat_crit);
-            if (value <= lim_warn) return g::pOptsManager->color_load(AppColor::stat_warn);
-        }
+        print_text_stat("Ping", val_offset, m_ping,
+            g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ping),
+            g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ping),
+            true, false);
     }
 
-    stay_default = true;
-    return 0;
 }
 
-DlgCode PanelStats::show(bool& focused)
+void PanelStats::print_bar_stat(const char* stat_name, float val_offset, uint64_t free, uint64_t total, int64_t lim_warn, int64_t lim_crit, const char* tt)
 {
-    const auto format_bytes = [this](uint64_t bytes)
-    {        
-        static constexpr std::string_view suffixes[] = { "B", "KB", "MB", "GB", "TB", "PB" };
-        size_t suffix_index = 0;
-        double count = cast::to_double(cast::to_i64(bytes));
-
-        while (count >= 1024.0 && suffix_index < 5)
-        {
-            count /= 1024.0;
-            suffix_index++;
-        }
-
-        m_buffer.clear();
-        fmt::format_to(std::back_inserter(m_buffer), "{:.2f} {}", count, suffixes[suffix_index]);
-    };
-
-    const auto print_stat = [this, &format_bytes](
-        const char* stat_name, float val_offset, uint64_t value,
-        int64_t lim_warn, int64_t lim_crit, bool is_lower_better,
-        bool do_format_bytes)
+    if (total > 0)
     {
-        bool def_clr = true;
-        const auto color = get_color(value, def_clr, lim_warn, lim_crit, is_lower_better);
-        if (do_format_bytes)
-            format_bytes(value);
-
-        if (!def_clr)
-            ImGui::PushStyleColor(ImGuiCol_Text, color);
+        ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted(stat_name);
         ImGui::SameLine(val_offset);
-        if (do_format_bytes)
-            ImGui::TextUnformatted(m_buffer.data(), m_buffer.data() + m_buffer.size());
-        else
-            ImGui::Text("%u", value);
-        if (!def_clr)
-            ImGui::PopStyleColor();
-    };
 
-    bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg) && opened)
+        m_buffer.clear();
+        fmt::format_to(std::back_inserter(m_buffer),
+            "{}\n"
+            "Capacity:  {:.2f} GB\n"
+            "Available: {:.2f} GB",
+            tt,
+            cast::to_double(cast::to_i64(total)) / 1024 / 1024 / 1024,
+            cast::to_double(cast::to_i64(free)) / 1024 / 1024 / 1024
+        );
+
+        bool def;
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, get_color(free, def, lim_warn, lim_crit, false));
+        const float fraction = cast::to_float(cast::to_double(cast::to_i64(total - free)) / cast::to_double(cast::to_i64(total)));
+        ImGui::ProgressBar(fraction, ImVec2(-FLT_MIN, 0.0f), "");
+        ImGui::PopStyleColor();
+        ImGuiEx::TooltipOnLastControl(m_buffer.data(), m_buffer.data() + m_buffer.size(), ImGuiHoveredFlags_DelayNormal);
+    }
+}
+
+void PanelStats::show_this_pc_as_bar(float val_offset)
+{
+    print_bar_stat("RAM", val_offset, m_lram_free, m_lram_total,
+        g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_ram),
+        g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_ram),
+        "Local RAM");
+
+    for (auto& disk : m_disks)
     {
-        m_pause = false;
-
-        static constexpr const std::string_view this_pc = "This PC";
-        static const float this_pc_wid = ImGui::CalcTextSize(this_pc.data()).x;
-
-        static constexpr const std::string_view server = "Server";
-        static const float server_wid = ImGui::CalcTextSize(server.data()).x;
-
-        static constexpr const std::string_view queue = "Queue";
-        static const float queue_wid = ImGui::CalcTextSize(queue.data()).x;
-
-        static const float offset = ImGui::CalcTextSize("PyTorch total").x + ImGui::GetStyle().ItemSpacing.x * 3;
-
-        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_capt), 0.0f, this_pc.data(), this_pc.size(), this_pc_wid);
-
-        ImGui::TextUnformatted("V-Sync");
-        ImGui::SameLine(offset);
-        ImGui::TextUnformatted(g::pOptsManager->app_vsync_load() ? "enabled" : "disabled");
-
-        show_fps(offset);
-        print_stat("RAM", offset, m_lram_free,
-            g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_ram),
-            g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_ram),
-            false, true);
-
-        for (auto& disk : m_disks)
+        if (disk.disk_opt->second)
         {
-            if (disk.disk_opt->second)
-            {
-                print_stat(disk.format_path.c_str(), offset, disk.free,
-                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_disk),
-                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_disk),
-                    false, true);
-            }
-        }
-
-        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_capt), 0.0f, server.data(), server.size(), server_wid);
-        if (!g::pFlow->get_online())
-        {
-            ImGui::TextUnformatted("Status");
-            ImGui::SameLine(offset);
-            ImGui::TextUnformatted("offline");
-        }
-        else
-        {
-            ImGui::TextUnformatted("Status");
-            ImGui::SameLine(offset);
-            ImGui::TextUnformatted(m_queue_remaining > 0 ? "Executing" : "Idle");                
-
-            if (m_ping > 0)
-            {
-                print_stat("Ping", offset, m_ping,
-                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ping),
-                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ping),
-                    true, false);
-            }
-
-            if (m_sram_free > 0)
-            {
-                print_stat("RAM", offset, m_sram_free,
-                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ram),
-                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ram),
-                    false, true);
-            }
-
-            std::list<VideoDevice> devices;
-            {
-                std::lock_guard<std::mutex> lock(m_lock);
-                devices = m_video_devices;
-            }
-            for (auto& vd : devices)
-            {
-                if (vd.pytorch_total > 0 || vd.pytorch_free > 0 || vd.vram_free > 0)
-                {
-                    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_subtitle), 0.0f, vd.name.c_str(), vd.name.size(), 0.0f);
-
-                    if (vd.pytorch_total > 0)
-                    {
-                        ImGui::TextUnformatted("PyTorch total");
-                        ImGui::SameLine(offset);
-                        format_bytes(vd.pytorch_total);
-                        ImGui::TextUnformatted(m_buffer.data(), m_buffer.data() + m_buffer.size());
-                    }
-
-                    if (vd.pytorch_free > 0)
-                    {
-                        print_stat("PyTorch free", offset, vd.pytorch_free,
-                            g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_pytorch),
-                            g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_pytorch),
-                            false, true);
-                    }
-                    if (vd.vram_free > 0)
-                    {
-                        print_stat("VRAM", offset, vd.vram_free,
-                            g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_vram),
-                            g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_vram),
-                            false, true);
-                    }
-                }
-            }
-
-            if (m_queue_remaining > 0)
-            {
-                ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_subtitle), 0.0f, queue.data(), queue.size(), queue_wid);
-            }
+            print_bar_stat(disk.format_path.c_str(), val_offset, disk.free, disk.total,
+                g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_disk),
+                g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_disk),
+                disk.format_path.c_str());
         }
     }
-    else
-        m_pause = true;
+}
 
-    return end_panel(opened);
+void PanelStats::show_server_as_bar(float val_offset)
+{
+    print_bar_stat("RAM", val_offset, m_sram_free, m_sram_total,
+        g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ram),
+        g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ram),
+        "Server RAM");
+
+    std::list<VideoDevice> devices;
+    {
+        std::lock_guard<std::mutex> lock(m_lock);
+        devices = m_video_devices;
+    }
+    for (auto& vd : devices)
+    {
+        if (vd.pytorch_total > 0 || vd.pytorch_free > 0 || vd.vram_free > 0)
+        {
+            ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_subtitle), 0.0f, vd.name.c_str(), vd.name.size(), 0.0f);
+
+            print_bar_stat("VRAM", val_offset, vd.vram_free, vd.vram_total,
+                g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_vram),
+                g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_vram),
+                "Video RAM");
+
+            print_bar_stat("PyTorch VRAM", val_offset, vd.pytorch_free, vd.pytorch_total,
+                g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_pytorch),
+                g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_pytorch),
+                "PyTorch Video RAM");
+        }
+    }
+}
+
+void PanelStats::show_queue(float /*val_offset*/)
+{
 }
 
 } // namespace ui

@@ -139,6 +139,7 @@ enum class AppColor
     node_pin_text,
     node_border,
     node_widget_hidden_sep,
+    stat_norm,
     stat_warn,
     stat_crit,
     stat_sep_capt,

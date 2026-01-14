@@ -15,7 +15,7 @@ public:
 
     // app
     inline bool app_vsync_load() const { return *std::get_if<bool>(&m_app_vsync.value); }
-    inline void app_vsync_save(bool enabled) { save_option(m_app_vsync, int64_t(enabled)); }
+    inline void app_vsync_save(bool enabled) { save_option(m_app_vsync, bool(enabled)); }
 
     // ui
     inline ImU32 color_load(AppColor color) const { return cast::to_u32(*std::get_if<int64_t>(&m_ui_colors[cast::to_szt(color)].value)); }
@@ -24,7 +24,7 @@ public:
     void ui_open_wnds_save(int64_t windows);
 
     inline bool ui_nodes_pane_tree_view_load() const { return *std::get_if<bool>(&m_ui_nodes_tree_view.value); }
-    inline void ui_nodes_pane_tree_view_save(bool tree_view) { save_option(m_ui_nodes_tree_view, int64_t(tree_view)); }
+    inline void ui_nodes_pane_tree_view_save(bool tree_view) { save_option(m_ui_nodes_tree_view, bool(tree_view)); }
 
     // comfyui
     inline const std::string& comfyui_host_load() const { return *std::get_if<std::string>(&m_comfyui_host.value); }
@@ -40,19 +40,19 @@ public:
     inline void comfyui_read_timeout_save(int64_t timeout) { save_option(m_comfyui_read_time, int64_t(timeout)); }
 
     inline bool comfyui_start_server_load() const { return *std::get_if<bool>(&m_comfyui_start_server.value); }
-    inline void comfyui_start_server_save(bool start) { save_option(m_comfyui_start_server, int64_t(start)); }
+    inline void comfyui_start_server_save(bool start) { save_option(m_comfyui_start_server, bool(start)); }
 
     inline bool comfyui_kill_server_load() const { return *std::get_if<bool>(&m_comfyui_kill_server.value); }
-    inline void comfyui_kill_server_save(bool kill) { save_option(m_comfyui_kill_server, int64_t(kill)); }
+    inline void comfyui_kill_server_save(bool kill) { save_option(m_comfyui_kill_server, bool(kill)); }
 
     inline bool comfyui_hide_console_load() const { return *std::get_if<bool>(&m_comfyui_hide_console.value); }
-    inline void comfyui_hide_console_save(bool hide) { save_option(m_comfyui_hide_console, int64_t(hide)); }
+    inline void comfyui_hide_console_save(bool hide) { save_option(m_comfyui_hide_console, bool(hide)); }
 
     inline bool comfyui_capture_output_load() const { return *std::get_if<bool>(&m_comfyui_capture_output.value); }
-    inline void comfyui_capture_output_save(bool capture) { save_option(m_comfyui_capture_output, int64_t(capture)); }
+    inline void comfyui_capture_output_save(bool capture) { save_option(m_comfyui_capture_output, bool(capture)); }
 
     inline bool comfyui_get_parse_address_load() const { return *std::get_if<bool>(&m_comfyui_parse_address.value); }
-    inline void comfyui_parse_address_save(bool parse) { save_option(m_comfyui_parse_address, int64_t(parse)); }
+    inline void comfyui_parse_address_save(bool parse) { save_option(m_comfyui_parse_address, bool(parse)); }
 
     inline const std::filesystem::path& comfyui_main_py_load() const { return *std::get_if<std::filesystem::path>(&m_comfy_main_py.value); }
     inline void comfyui_main_py_save(const std::filesystem::path& main) { save_option(m_comfy_main_py, main); }
@@ -88,6 +88,9 @@ public:
     inline std::vector<std::pair<std::string, bool>>& stat_disks_enabled_load() { return m_stat_enabled_disks_parsed; }
     void stat_disks_enabled_save();
 
+    inline bool stat_as_progress_load() const { return *std::get_if<bool>(&m_stat_as_progress.value); }
+    inline void stat_as_progress_save(bool enabled) { save_option(m_stat_as_progress, bool(enabled)); }
+    
 private:
 
     struct OptionValue final
@@ -101,51 +104,10 @@ private:
 
     void save_option(OptionValue& option, const std::string& new_str);
     void save_option(OptionValue& option, int64_t new_int);
+    void save_option(OptionValue& option, bool new_bool);
     void save_option(OptionValue& option, const std::filesystem::path& new_path);
 
 private:
-/*
-    enum class Option
-    {
-        app_vsync,
-
-        flow_open_windows,
-        flow_clr_prefix,
-        flow_nodes_pane_view,
-
-        comfyui_address,
-        comfyui_conn_time,
-        comfyui_read_time,
-        comfyui_start_server,
-        comfyui_parse_address,
-        comfyui_kill_server,
-        comfyui_hide_console,
-        comfyui_capture_output,
-        comfyui_main_py,
-        comfyui_command,
-
-        wf_widget_input_number,
-        wf_widget_input_bools,
-
-        stat_lram_warn,
-        stat_lram_crit,
-        stat_sram_warn,
-        stat_sram_crit,
-        stat_vram_warn,
-        stat_vram_crit,
-        stat_pytorch_warn,
-        stat_pytorch_crit,
-        stat_disk_warn,
-        stat_disk_crit,
-        stat_disk_enabled,
-        stat_ping_warn,
-        stat_ping_crit,
-        stat_fps_warn,
-        stat_fps_crit,
-
-        _count
-    };
-*/
     // app
     OptionValue m_app_vsync; // int
 
@@ -179,6 +141,7 @@ private:
     std::vector<OptionValue> m_stat_limits_crit;
     OptionValue m_stat_enabled_disks;
     std::vector<std::pair<std::string, bool>> m_stat_enabled_disks_parsed;
+    OptionValue m_stat_as_progress;
 };
 
 } // namespace mngr

@@ -29,8 +29,8 @@ enum ViewDialogs
     // options
     ViewOptions                 = 0x00000001,
     ViewOptsComfyUi             = 0x00000002,
-    ViewOptsStats               = 0x00000100,
-    ViewOptsWf                  = 0x00000200,
+    ViewOptsStats               = 0x00000200,
+    ViewOptsWf                  = 0x00000400,
     // status & control bar
     ViewConnect                 = 0x00000004,
     ViewParsingNodes            = 0x00000008,
@@ -49,7 +49,7 @@ enum ViewDialogs
     ViewStyleSelector           = 0x20000000,
     ViewFontSelector            = 0x40000000,
 
-    _ViewNextAvail              = 0x00000400,
+    _ViewNextAvail              = 0x00000800,
 
     ViewAllOptions              = ViewOptions | ViewOptsComfyUi | ViewOptsStats | ViewOptsWf,
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,

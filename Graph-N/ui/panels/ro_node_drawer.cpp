@@ -345,7 +345,7 @@ void RoNodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_wid
         break;
     }
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
+    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
 void RoNodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -378,7 +378,7 @@ void RoNodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_wi
         break;
     }
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
+    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
 void RoNodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -413,7 +413,7 @@ void RoNodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_w
         break;
     }
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
+    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
 void RoNodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -443,7 +443,7 @@ void RoNodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_wi
         break;
     }
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
+    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
 void RoNodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -458,10 +458,10 @@ void RoNodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_wid
 
     bool tt_mod = false;
     if (!val.empty())
-        tt_mod = ImGuiEx::TooltipOnLastControl(placeholder.c_str(), ImGuiHoveredFlags_DelayNone, true);
+        tt_mod = ImGuiEx::TooltipOnLastControl(placeholder.c_str(), placeholder.c_str() + placeholder.size(), ImGuiHoveredFlags_DelayNone, true);
 
     if (!tt_mod)
-        ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
+        ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
 void RoNodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -476,10 +476,10 @@ void RoNodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_
 
     bool tt_mod = false;
     if (!val.empty())
-        tt_mod = ImGuiEx::TooltipOnLastControl(placeholder.c_str(), ImGuiHoveredFlags_DelayNone, true);
+        tt_mod = ImGuiEx::TooltipOnLastControl(placeholder.c_str(), placeholder.c_str() + placeholder.size(), ImGuiHoveredFlags_DelayNone, true);
 
     if (!tt_mod)
-        ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
+        ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
 void RoNodeDrawer::draw_widget_num(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -500,7 +500,7 @@ void RoNodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_w
     ImGui::SetNextItemWidth(widget_value_width);
     ImGui::Combo("", &pin->m_state->combo_index, obj->combo_items_ptr.data(), cast::to_i32(obj->combo_items_ptr.size()));
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
+    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
 void RoNodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -524,7 +524,7 @@ void RoNodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_w
         state->value = data::Pin::colors_to_int(state->colors);
     }
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str());
+    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
 void RoNodeDrawer::draw_widget_control_after_generate(data::PinInstance* pin, float widget_name_width, float widget_value_width)

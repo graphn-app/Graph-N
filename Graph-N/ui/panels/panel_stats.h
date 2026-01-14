@@ -16,14 +16,23 @@ public:
 
 private:
     DlgCode show(bool& focused) override;
+    void show_this_pc_as_text(float val_offset);
+    void show_server_as_text(float val_offset);
+    void show_this_pc_as_bar(float val_offset);
+    void show_server_as_bar(float val_offset);
+    void show_queue(float val_offset);
+    void show_performance(float val_offset);
 
     void th_api();
     void th_comfyui();
     void th_ws();
 
-    void show_fps(float val_offset);
+    void print_fps(float val_offset);
+    void print_text_stat(const char* stat_name, float val_offset, uint64_t value, int64_t lim_warn, int64_t lim_crit, bool is_lower_better, bool do_format_bytes);
+    void print_bar_stat(const char* stat_name, float val_offset, uint64_t free, uint64_t total, int64_t lim_warn, int64_t lim_crit, const char* tooltip);
     void init_disks();
 
+    void format_bytes(uint64_t bytes);
     ImU32 get_color(int64_t value, bool& stay_default, int64_t lim_warn, int64_t lim_crit, bool is_lower_better);
 
 private:
