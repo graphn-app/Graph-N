@@ -185,6 +185,8 @@ enum class AppColor
     pin_color_bbox,
     pin_color_bus,
     restart_button,
+    url_text_default,
+    url_text_hovered,
 
     _count
 };

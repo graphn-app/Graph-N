@@ -603,6 +603,40 @@ bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool l
     return pressed;
 }
 
+bool UrlButton(const char* id_label, ImU32 url_clr_def, ImU32 url_clr_hover, const char* tooltip)
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems)
+        return false;
+
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    const ImVec2 label_size = ImGui::CalcTextSize(id_label);
+
+    const bool clicked = ImGui::InvisibleButton(id_label, label_size);
+    const bool hovered = ImGui::IsItemHovered();
+
+    const ImU32 text_color = hovered ? url_clr_hover : url_clr_def;
+    window->DrawList->AddText(p, text_color, id_label);
+
+    float line_y = p.y + label_size.y /*+- 1.0f*/;
+    window->DrawList->AddLine(ImVec2(p.x, line_y), ImVec2(p.x + label_size.x, line_y), text_color, 1.0f);
+
+    if (hovered)
+    {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+        if (tooltip != nullptr && *tooltip != 0 && ImGui::BeginTooltip())
+        {
+            ImGui::PushTextWrapPos(300.0f);
+            ImGui::TextUnformatted(tooltip);
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+    }
+
+    return clicked;
+}
+
 //
 //// 2. Switch Toggle (Oval Frame, Integrated Track)
 //bool ToggleButton(const char* id_label, const char* label_on, const char* label_off, bool* v, float width = 0.0f)

@@ -58,4 +58,6 @@ bool BooleanSwitch(const char* id_label, const char* label, bool* value, float w
 // bounded circle at the right
 bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool left_rounded, float width = 0.0f);
 
+bool UrlButton(const char* id_label, ImU32 url_clr_def, ImU32 url_clr_hover, const char* tooltip);
+
 } // namespace ImGuiEx

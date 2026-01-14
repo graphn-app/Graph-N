@@ -58,7 +58,7 @@ protected:
     }
 
     void show_empty_panel_descr(const char* header_descr, const std::vector<const char*>& titles, const std::vector<const char*>& subtitles,
-        const char* button = nullptr, std::function<void()> button_handler = nullptr)
+        const char* url = nullptr, std::function<void()> url_handler = nullptr)
     {
         ImGui::Spacing();
 
@@ -86,15 +86,15 @@ protected:
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + start_y);
 
         // Helper lambda for centered text
-        const auto text_centered = [&](const char* text, bool disabled, bool as_button)
+        const auto text_centered = [&](const char* text, bool disabled, bool as_url)
         {
             bool click = false;
             const float w = ImGui::CalcTextSize(text).x;
             ImGui::SetCursorPosX((avail.x - w) * 0.5f);
             if (disabled)
                 ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-            if (as_button)
-                click = ImGui::Button(text);
+            if (as_url)
+                click = ImGuiEx::UrlButton(url, g::pOptsManager->color_load(AppColor::url_text_default), g::pOptsManager->color_load(AppColor::url_text_hovered), nullptr);
             else
                 ImGui::TextUnformatted(text);
             if (disabled)
@@ -116,11 +116,11 @@ protected:
             text_centered(subtitle, true, false);
         }
 
-        if (button != nullptr && button_handler != nullptr)
+        if (url != nullptr && url_handler != nullptr)
         {
             ImGui::Spacing();
-            if (text_centered(button, false, true))
-                button_handler();
+            if (text_centered(url, false, true))
+                url_handler();
         }
     }
 
