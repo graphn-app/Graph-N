@@ -1,6 +1,5 @@
 
 #include "ui/panels/panel_node_inspector.h"
-#include "core/managers/settings_manager.h"
 #include "core/data/node.h"
 #include "core/data/pin.h"
 #include "core/workflow/node_instance.h"
@@ -13,7 +12,7 @@ namespace ui
 {
 
 PanelNodeInspector::PanelNodeInspector()
-    : PanelBase(VisibleObject::PanelNodeInspector, ICON_LC_TANGENT " Node Inspector", ICON_LC_TANGENT, "95E5A1E7883E495E8712FA33A123F3BB")
+    : PanelBase(DlgObj::PanelNodeInspector, ICON_LC_TANGENT " Node Inspector", ICON_LC_TANGENT, "95E5A1E7883E495E8712FA33A123F3BB")
 {}
 
 PanelNodeInspector::~PanelNodeInspector()
@@ -98,7 +97,6 @@ DlgCode PanelNodeInspector::show(bool& focused)
                     ICON_LC_LAYERS " Ctrl + R-Click: Add/Remove nodes"
                 }
             );
-            return end_panel(true);
         }
         else
         {

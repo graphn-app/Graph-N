@@ -4,7 +4,6 @@
 #include "ui/graph-n_flow.h"
 #include "ui/font_guard.h"
 #include "platform/main.h"
-#include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "core/data/node.h"
 #include "core/workflow/node_instance.h"
@@ -14,7 +13,7 @@ namespace ui
 {
 
 PanelNodes::PanelNodes(PanelNodeInspector* inspector)
-    : PanelBase(VisibleObject::PanelNodes, ICON_LC_BOOK_OPEN " Node Library", ICON_LC_BOOK_OPEN, "0C72C6D56FFC4902A037A187719CA0AC")
+    : PanelBase(DlgObj::PanelNodes, ICON_LC_BOOK_OPEN " Node Library", ICON_LC_BOOK_OPEN, "0C72C6D56FFC4902A037A187719CA0AC")
     , m_inspector(inspector)
 {}
 
@@ -75,7 +74,7 @@ DlgCode PanelNodes::show(bool& focused)
                 {
                     ICON_LC_SETTINGS " Configuration:",
                     "Check Address, Port & Timeouts",
-                    "in Settings > ComfyUI."
+                    "in Settings > " APP_COMFYUI
                 },
                 "Open settings",
                 []()

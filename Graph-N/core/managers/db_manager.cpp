@@ -4,31 +4,6 @@
 namespace mngr
 {
 
-/*
-TODO - del
-
-CREATE TABLE items (
-    id INTEGER PRIMARY KEY,      -- int64 / uint64 (careful, will truncate to max signed - 9'223'372'036'854'775'807)
-    name TEXT,                   -- std::string (any length)
-    flags INTEGER,               -- uint32
-    rating REAL,                 -- float / double
-    preview_data BLOB,           -- std::vector<char> (image)
-    is_favorite INTEGER          -- bool
-
-save
----
-query.bind(1, (int64_t)my_uint64_id); // Кастуем к signed, биты те же
-query.bind(2, my_string);
-query.bind(3, my_bool ? 1 : 0);
-
-load
----
-uint64_t id = (uint64_t)query.getColumn(0).getInt64(); // cast to unsigned if required
-std::string s = query.getColumn(1).getText();
-bool b = query.getColumn(2).getInt() > 0;
-);
-*/
-
 inline constexpr auto gdb_val_id = "id";
 inline constexpr auto gdb_val_file = "file";
 inline constexpr auto gdb_val_line = "line";
@@ -40,10 +15,51 @@ inline constexpr auto gdb_val_hash = "hash";
 inline constexpr auto gdb_val_int = "value_int";
 inline constexpr auto gdb_val_str = "value_str";
 inline constexpr auto gdb_val_opt = "option";
+inline constexpr auto gdb_val_open = "open";
+inline constexpr auto gdb_val_fav = "favourite";
+inline constexpr auto gdb_val_json = "json";
 
 inline constexpr auto gdb_tbl_err = "ERRORS";
 inline constexpr auto gdb_tbl_opt = "SETTINGS";
 inline constexpr auto gdb_tbl_nodes = "NODES";
+inline constexpr auto gdb_tbl_wf = "WORKFLOWS";
+
+/*
+_______________________________________________________________________________________________________________________________________________________________
+ERRORS: | id        | file           | line      | category                      | message              | at
+________|------------------------------------------------------------------------------------------------------------------------------------------------------
+        | int       | str            | int       | int                           | str                  | datetime
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        | prim      | message source             | enum ExcepCategory            | err message          | error time
+_______________________________________________________________________________________________________________________________________________________________
+
+
+_______________________________________________________________________________________________________________________________________________________________
+SETTINGS: | id        | name           | value_int      | value_str         | at
+__________|----------------------------------------------------------------------------------------------------------------------------------------------------
+          | int       | str            | int            | str               | datetime
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+          | prim      | option name    | option value, int or str           | create/update time
+_______________________________________________________________________________________________________________________________________________________________
+
+
+_______________________________________________________________________________________________________________________________________________________________
+NODES:    | id        | hash                    | option            | value_int      | value_str    | at
+__________|----------------------------------------------------------------------------------------------------------------------------------------------------
+          | int       | str                     | int               | int            | str          | datetime
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+          | prim      | hid as string           | enum NodeOption   | option value, int or str      | create/update time
+_______________________________________________________________________________________________________________________________________________________________
+
+
+_______________________________________________________________________________________________________________________________________________________________
+WORKFLOWS:    | id        | hash                | name                     | open          | favourite     | json           | at
+______________|------------------------------------------------------------------------------------------------------------------------------------------------
+              | int       | str                 | str                      | int           | int           | str            | datetime
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+              | prim      | rid as string       | name (caption)           | is open       | is favourited | json-view      | create/update time
+_______________________________________________________________________________________________________________________________________________________________
+*/
 
 #define LOG_VALUE(v)                   "(" << v.ival << ", " << v.sval << ")"
 #define LOG_KEY(k)                     "opt: '" << k << "'"
@@ -68,6 +84,13 @@ bool DbManager::init()
         m_db = std::make_unique<SQLite::Database>(u8, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
         m_db->exec("PRAGMA journal_mode = WAL;");
         m_db->exec("PRAGMA synchronous = NORMAL;");
+
+        SQLite::Statement first_time_query(*m_db, 
+            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+        if (first_time_query.executeStep())
+        {
+            m_first_run = (first_time_query.getColumn(0).getInt() == 0);
+        }
 
         m_db->exec(fmt::format(R"(
 					CREATE TABLE IF NOT EXISTS {} (
@@ -100,7 +123,20 @@ bool DbManager::init()
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE({}, {}) ON CONFLICT REPLACE
 					);
-				)", gdb_tbl_nodes, gdb_val_id, gdb_val_hash, gdb_val_opt, gdb_val_int, gdb_val_str, gdb_val_when, gdb_val_hash, gdb_val_opt));
+				)", gdb_tbl_nodes, gdb_val_id, gdb_val_hash, gdb_val_opt, gdb_val_int, gdb_val_str, gdb_val_when,
+                    gdb_val_hash, gdb_val_opt));
+
+        m_db->exec(fmt::format(R"(
+					CREATE TABLE IF NOT EXISTS {} (
+						{} INTEGER PRIMARY KEY AUTOINCREMENT,
+						{} TEXT NOT NULL UNIQUE,
+						{} TEXT,
+						{} INTEGER,
+						{} INTEGER,
+                        {} TEXT,
+                        {} DATETIME DEFAULT CURRENT_TIMESTAMP
+					);
+				)", gdb_tbl_wf, gdb_val_id, gdb_val_hash, gdb_val_name, gdb_val_open, gdb_val_fav, gdb_val_json, gdb_val_when));
     }
     catch (const SQLite::Exception& ex)
     {
@@ -112,7 +148,7 @@ bool DbManager::init()
     return true;
 }
 
-void DbManager::save_exception(ExcepCategory category, const std::string& message, const char* file, int line)
+void DbManager::exception_save(ExcepCategory category, const std::string& message, const char* file, int line)
 {
     std::lock_guard<std::mutex> lock(m_lock);
 
@@ -130,11 +166,10 @@ void DbManager::save_exception(ExcepCategory category, const std::string& messag
     catch (const SQLite::Exception& ex)
     {
         LogExcep(ExcepCategory::sqlite, "SQLite save " << LOG_EXP(ex));
-        return;
     }
 }
 
-void DbManager::save_option(const std::string& key, const Value& value)
+void DbManager::option_save(const std::string& key, const Value& value)
 {
     try
     {
@@ -150,22 +185,19 @@ void DbManager::save_option(const std::string& key, const Value& value)
     catch (const SQLite::Exception& ex)
     {
         LogExcep(ExcepCategory::sqlite, "SQLite save " << LOG_KEY_VAL(key, value) << ", " << LOG_EXP(ex));
-        return;
     }
 }
 
-std::vector<DbOption> DbManager::load_all_options()
+std::vector<DbOption> DbManager::option_load_all()
 {
     try
     {
         SQLite::Statement query(*m_db,
             fmt::format(FMT_COMPILE("SELECT {}, {}, {} FROM {}"),
                 gdb_val_name, gdb_val_str, gdb_val_int, gdb_tbl_opt));
-        if (!query.executeStep())
-            return {};
 
         std::vector<DbOption> ret;
-        ret.reserve(100);
+        ret.reserve(200);
         while (query.executeStep())
         {
             if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull())
@@ -186,7 +218,7 @@ std::vector<DbOption> DbManager::load_all_options()
     return {};
 }
 
-void DbManager::save_all_options(const std::vector<DbOption>& opts)
+void DbManager::option_save_all(const std::vector<DbOption>& opts)
 {
     try
     {
@@ -213,7 +245,7 @@ void DbManager::save_all_options(const std::vector<DbOption>& opts)
     }
 }
 
-void DbManager::save_node_option(hid node_hash, NodeOption opt, const Value& value)
+void DbManager::node_option_save(hid node_hash, NodeOption opt, const Value& value)
 {
     try
     {
@@ -230,11 +262,10 @@ void DbManager::save_node_option(hid node_hash, NodeOption opt, const Value& val
     catch (const SQLite::Exception& ex)
     {
         LogExcep(ExcepCategory::sqlite, "SQLite save " << LOG_NOPT_KEY_VAL(node_hash, opt, value) << ", " << LOG_EXP(ex));
-        return;
     }
 }
 
-std::optional<Value> DbManager::load_node_option(hid node_hash, NodeOption opt)
+std::optional<Value> DbManager::node_option_load(hid node_hash, NodeOption opt)
 {
     try
     {
@@ -258,16 +289,17 @@ std::optional<Value> DbManager::load_node_option(hid node_hash, NodeOption opt)
     return std::nullopt;
 }
 
-std::vector<std::pair<hid, Value>> DbManager::load_all_node_options(NodeOption opt)
+std::vector<std::pair<hid, Value>> DbManager::node_option_load_all(NodeOption opt)
 {
     try
     {
         SQLite::Statement query(*m_db,
-            fmt::format(FMT_COMPILE("SELECT {}, {}, {} FROM {} WHERE {}=? ORDER BY {}"),
-                gdb_val_hash, gdb_val_str, gdb_val_int, gdb_tbl_nodes, gdb_val_opt, gdb_val_hash));
+            fmt::format(FMT_COMPILE("SELECT {}, {}, {} FROM {} WHERE {}=?"),
+                gdb_val_hash, gdb_val_str, gdb_val_int, gdb_tbl_nodes, gdb_val_opt));
         query.bind(1, cast::to_i32(opt));
 
         std::vector<std::pair<hid, Value>> ret;
+        ret.reserve(100);
         while(query.executeStep())
         {
             if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull())
@@ -285,6 +317,104 @@ std::vector<std::pair<hid, Value>> DbManager::load_all_node_options(NodeOption o
         LogExcep(ExcepCategory::sqlite, "SQLite load all " << LOG_NOPT_KEY(0, opt) << ", " << LOG_EXP(ex));
     }
     return {};
+}
+
+void DbManager::wf_delete(const WfData& /*wf*/)
+{
+    // TODO
+}
+
+std::vector<WfData> DbManager::wf_load_meta()
+{
+    try
+    {
+        SQLite::Statement query(*m_db,
+            fmt::format(FMT_COMPILE("SELECT {}, {}, {}, {} FROM {}"),
+                gdb_val_name, gdb_val_hash, gdb_val_open, gdb_val_fav, gdb_tbl_wf));
+
+        std::vector<WfData> wfs;
+        while(query.executeStep())
+        {
+            if (query.getColumn(0).isNull() || query.getColumn(1).isNull())
+                continue;
+
+            wfs.push_back({});
+            WfData& wf = wfs.back();
+            wf.name = query.getColumn(0).getString();
+            wf.id_str = query.getColumn(1).getString();
+            wf.id = std::strtoull(wf.id_str.c_str(), nullptr, 10);
+            wf.open = !query.getColumn(2).isNull() && query.getColumn(2).getInt() == 1;
+            wf.fav = !query.getColumn(3).isNull() && query.getColumn(3).getInt() == 1;
+        }
+
+        return wfs;
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::sqlite, "SQLite load all workflows, " << LOG_EXP(ex));
+    }
+    return {};
+}
+
+void DbManager::wf_update_meta(const WfData& wf)
+{
+    try
+    {
+        SQLite::Statement query(*m_db,
+            fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}, {}, {}) VALUES (?, ?, ?, ?)"),
+                gdb_tbl_wf, gdb_val_hash, gdb_val_name, gdb_val_open, gdb_val_fav));
+
+        query.bindNoCopy(1, wf.id_str);
+        query.bindNoCopy(2, wf.name);
+        query.bind(3, wf.open);
+        query.bind(4, wf.fav);
+        query.exec();
+        Log("Upd workflow " << wf.name << "###" << wf.id);
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::sqlite, "SQLite upd workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
+    }
+}
+
+void DbManager::wf_load_json(WfData& wf)
+{
+    try
+    {
+        SQLite::Statement query(*m_db,
+            fmt::format(FMT_COMPILE("SELECT {} FROM {} WHERE {}=?"),
+                gdb_val_json, gdb_tbl_wf, gdb_val_hash));
+
+        query.bindNoCopy(1, wf.id_str);
+        if (!query.executeStep())
+            return;
+        if (query.getColumn(0).isNull())
+            return;
+        wf.json = query.getColumn(0).getString();
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::sqlite, "SQLite load json workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
+    }
+}
+
+void DbManager::wf_update_json(const WfData& wf)
+{
+    try
+    {
+        SQLite::Statement query(*m_db,
+            fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}) VALUES (?, ?)"),
+                gdb_tbl_wf, gdb_val_hash, gdb_val_json));
+
+        query.bindNoCopy(1, wf.id_str);
+        query.bindNoCopy(2, wf.json);
+        query.exec();
+        Log("Upd json workflow " << wf.name << "###" << wf.id);
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::sqlite, "SQLite upd json workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
+    }
 }
 
 } // namespace mngr

@@ -7,8 +7,6 @@ namespace base
 /////   GlobalID        /////////////////////
 /////////////////////////////////////////////
 
-// TODO: needed ?
-
 class GlobalID
 {
 public:

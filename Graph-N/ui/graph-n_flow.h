@@ -20,7 +20,12 @@ class OptionsDlgs;
 class PanelNodes;
 class PanelNodeInspector;
 class PanelStats;
-class WorkflowDrawer;
+class PanelWorkflow;
+class PanelWfList;
+class PanelTemplates;
+class PanelOutput;
+class PanelNotes;
+class PanelModels;
 
 
 enum ViewDialogs
@@ -40,6 +45,12 @@ enum ViewDialogs
     ViewPanelNodes              = 0x00000040,
     ViewPanelNodeInpector       = 0x00000080,
     ViewPanelStats              = 0x00000100,
+    ViewPanelWf                 = 0x00000800,
+    ViewPanelWfList             = 0x00001000,
+    ViewPanelModels             = 0x00002000,
+    ViewPanelTemplates          = 0x00004000,
+    ViewPanelOutput             = 0x00008000,
+    ViewPanelNotes              = 0x00010000,
 
     ViewDebugMetrics            = 0x01000000,
     ViewDebugDemo               = 0x02000000,
@@ -49,11 +60,12 @@ enum ViewDialogs
     ViewStyleSelector           = 0x20000000,
     ViewFontSelector            = 0x40000000,
 
-    _ViewNextAvail              = 0x00000800,
+    _ViewNextAvail              = 0x00020000,
 
     ViewAllOptions              = ViewOptions | ViewOptsComfyUi | ViewOptsStats | ViewOptsWf,
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
-    ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats,
+    ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWf | ViewPanelWfList | ViewPanelModels |
+                                  ViewPanelTemplates | ViewPanelOutput | ViewPanelNotes,
     ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector
 };
 
@@ -76,13 +88,11 @@ public:
 
     void open_settings_dlg(ViewDialogs specific_section = ViewNone);
 
-    data::Workflow* create_workflow();
-    void destroy_workflow(lid wf_id);
+    data::Workflow* create_workflow(const WfData* wf_data = nullptr);
+    void destroy_workflow(data::Workflow* wf);
+    void delete_workflow(data::Workflow* wf);
 
-    WorkflowDrawer* create_workflow_drawer(data::Workflow* wf);
-
-    data::Workflow* find_workflow(lid wf_id);
-    WorkflowDrawer* find_workflow_drawer(lid wf_id);
+    PanelWorkflow* get_active_wf_or_create_new();
 
     void subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener);
 
@@ -97,36 +107,57 @@ private:
     void show_menu_bar_connecting();
     void show_menu_bar_queue_controls();
     void show_options_dlg();
+
     void show_panels();
+    void show_panel(BaseDlg* panel, DlgObj obj);
     void show_panel_nodes();
     void show_panel_node_inspector();
     void show_panel_stats();
+    void show_panel_wf();
+    void show_panel_wf_list();
+    void show_panel_models();
+    void show_panel_output();
+    void show_panel_templates();
+    void show_panel_notes();
 
-    void on_dlg_closed(VisibleObject dlg);
+    void on_dlg_closed(DlgObj dlg);
 
     void on_menu_options();
     void on_menu_quit();
     void on_menu_about();
     void on_menu_panel_window(ViewDialogs wnd);
+    void on_menu_wf(PanelWorkflow* wf);
+
+    void init_workflow_panels();
+    PanelWorkflow* create_wf_panel(data::Workflow* wf);
+    void cleanup_empty_workflow_panels();
+    void save_workflow(PanelWorkflow* wf, bool last_call);
 
 private:
     bool m_online = false;
 
     ImGuiID m_main_dock_id = 0;
+    bool m_fix_focus = false;
 
     std::unique_ptr<mngr::NodesParser> m_nodes_parser;
 
     uint64_t m_windows = ViewNone;
-    BaseDlg* m_focused_wnd = nullptr;
     std::set<BaseDlg*> m_all_dialogs;
 
     std::unique_ptr<OptionsDlgs> m_opts_dlg;
     std::unique_ptr<PanelNodes> m_panel_nodes;
     std::unique_ptr<PanelNodeInspector> m_panel_node_inspector;
     std::unique_ptr<PanelStats> m_panel_stats;
+    std::unique_ptr<PanelWfList> m_panel_wf_list;
+    std::unique_ptr<PanelTemplates> m_panel_templates;
+    std::unique_ptr<PanelOutput> m_panel_output;
+    std::unique_ptr<PanelNotes> m_panel_notes;
+    std::unique_ptr<PanelModels> m_panel_models;
 
-    std::map<lid, std::unique_ptr<data::Workflow>> m_workflows;
-    std::map<lid, std::unique_ptr<WorkflowDrawer>> m_workflow_drawers;  // by wf id
+    PanelWorkflow* m_wf_focused = nullptr;
+    size_t m_wf_name_counter = 0;
+    std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
+    std::map<rid, std::unique_ptr<data::Workflow>> m_workflows;
 
     std::list<mngr::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
 };

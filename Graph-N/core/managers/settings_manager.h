@@ -67,6 +67,10 @@ public:
     inline WidgetInput wf_widget_input_bools_load() const { return cast::to_enum<WidgetInput>(*std::get_if<int64_t>(&m_wf_widget_input_bools.value)); }
     inline void wf_widget_input_bools_save(WidgetInput bools) { save_option(m_wf_widget_input_bools, cast::to_i64<>(bools)); }
 
+    inline const std::string& wf_active_load() const { return *std::get_if<std::string>(&m_wf_active.value); }
+    inline void wf_active_save(const std::string& active) { save_option(m_wf_active, active); }
+
+
     // nodes
     void nd_node_options_preload();
     inline void nd_node_options_release() { m_hashed_pin_advanced.clear(); }
@@ -132,6 +136,7 @@ private:
     // wf
     OptionValue m_wf_widget_input_numbers; // int
     OptionValue m_wf_widget_input_bools; // int
+    OptionValue m_wf_active; // str
 
     // nodes
     std::unordered_map<hid, bool> m_hashed_pin_advanced;

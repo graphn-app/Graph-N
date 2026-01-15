@@ -44,6 +44,9 @@ public:
     bool flow();
     int override_exit_code();
 
+    inline void block_db_on_exit() { m_block_db_on_exit = true; }
+    inline void unblock_db_on_exit() { m_block_db_on_exit = false; }
+
 public:
     // main wnd handlers
     void handle_wnd_minimized();
@@ -58,12 +61,11 @@ private:
 
 private:
     Flow m_flow_step = Flow::_none;
-    bool m_comfyui_connected = false;
+    int m_exit_code = 0;
 
     std::unique_ptr<ui::GraphN_Flow> m_graphn_flow;
 
-    int m_exit_code = 0;
-
+    std::atomic_bool m_block_db_on_exit = false;
     std::vector<std::unique_ptr<mngr::Manager>> m_managers;
 };
 

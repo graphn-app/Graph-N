@@ -11,9 +11,19 @@ namespace data
 
 Workflow::Workflow()
 {
+    m_wf_data.id = get_id();
+    m_wf_data.id_str = get_id_str();
+
     m_nodes.reserve(30);
     m_pins.reserve(70);
     m_links.reserve(150);
+}
+
+Workflow::Workflow(const WfData& data)
+    : Workflow()
+{
+    m_wf_data = data;
+    set_id(m_wf_data.id);
 }
 
 Workflow::~Workflow()
@@ -25,6 +35,10 @@ void Workflow::init()
 
     g::pFlow->subscribe_comfyui_validity_state(this);
 }
+
+void Workflow::stop_all_threads()
+{}
+
 //
 //NodeInstance* Workflow::find_node(gid node_id) const
 //{

@@ -1,4 +1,5 @@
 #pragma once
+#include "core/managers/settings_manager.h"
 
 // TODO - remove commented
 // check if we need DlgData as template
@@ -30,7 +31,7 @@ struct DlgData
 class BaseDlg
 {
 public:
-    BaseDlg(VisibleObject obj)
+    BaseDlg(DlgObj obj)
         : m_obj(obj)
     {}
     virtual ~BaseDlg() = 0;
@@ -62,7 +63,7 @@ protected:
     //	m_data->y = pos.y;
     //}
 
-    VisibleObject get_dlg_obj() const { return m_obj; }
+    DlgObj get_dlg_obj() const { return m_obj; }
 
     //void set_exit_code(DlgCode code) { m_exit_code = code; }
     //void set_exit_code_ok() { m_exit_code = DlgCode::ok; }
@@ -101,7 +102,7 @@ protected:
     }
 
 private:
-    VisibleObject m_obj;
+    DlgObj m_obj;
     DlgCode m_exit_code = DlgCode::progress;
     bool m_focused = false;
     bool m_close_called = false;

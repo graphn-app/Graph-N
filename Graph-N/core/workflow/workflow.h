@@ -11,14 +11,18 @@ class PinInstance;
 class Link;
 
 class Workflow final :
-    public base::LocalID,
+    public base::GlobalID,
     public mngr::ComfyUiObjectValidityListener
 {
 public:
     Workflow();
+    Workflow(const WfData& data);
     ~Workflow() override;
 
     void init();
+    void stop_all_threads();
+
+    WfData& get_workflow_data() { return m_wf_data; }
 
     const std::vector<std::unique_ptr<NodeInstance>>& get_nodes() const { return m_nodes; }
     const std::vector<std::unique_ptr<PinInstance>>& get_pins() const { return m_pins; }
@@ -38,6 +42,7 @@ public:
     void finalize_resolve_comfyui_objects() override;
 
 private:
+    WfData m_wf_data;
     std::atomic<lid> m_child_id = 0;    // Unique ID across current graph, starts from 1
     std::vector<std::unique_ptr<NodeInstance>> m_nodes;
     std::vector<std::unique_ptr<PinInstance>> m_pins;

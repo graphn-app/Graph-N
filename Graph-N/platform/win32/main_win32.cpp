@@ -164,12 +164,6 @@ bool MainRoutine_Win32::render_frame(bool done)
     }
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
-    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
-    }
-
     const auto end_tick = std::chrono::high_resolution_clock::now();
     m_frame_render_time = std::chrono::duration<double, std::milli>(end_tick - start_tick).count();
 

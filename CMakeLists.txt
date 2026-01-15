@@ -89,7 +89,7 @@ set_target_properties(fmt PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES $<TARG
 # ------------------------------------------------------------------------------
 # ImGui (Modern 1.89.9)
 # ------------------------------------------------------------------------------
-set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui_v1.89.9-docking")
+set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
 
 set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui.cpp

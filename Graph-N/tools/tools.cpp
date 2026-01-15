@@ -164,6 +164,25 @@ uint64_t hash_fnv1a(const std::string& data)
     return hash_fnv1a((const void*)data.c_str(), data.size());
 }
 
+std::string generate_guid()
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<> dis(0, 15);
+    static std::uniform_int_distribution<> dis2(8, 11);
+
+    std::stringstream ss;
+    int32_t i;
+    ss << std::hex;
+    for (i = 0; i < 12; i++) ss << dis(gen);
+    ss << "4";
+    for (i = 0; i < 3; i++) ss << dis(gen);
+    ss << dis2(gen);
+    for (i = 0; i < 15; i++) ss << dis(gen);
+
+    return ss.str();
+}
+
 } // namespace str
 
 namespace path

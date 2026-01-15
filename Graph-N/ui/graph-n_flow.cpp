@@ -5,12 +5,19 @@
 #include "ui/panels/panel_nodes.h"
 #include "ui/panels/panel_node_inspector.h"
 #include "ui/panels/panel_stats.h"
+#include "ui/panels/panel_wf.h"
+#include "ui/panels/panel_wf_list.h"
+#include "ui/panels/panel_models.h"
+#include "ui/panels/panel_notes.h"
+#include "ui/panels/panel_output.h"
+#include "ui/panels/panel_templates.h"
 #include "ui/workflow/workflow_drawer.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/connect_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/comfyui_object_validity_listener.h"
 #include "core/managers/nodes_parser.h"
+#include "core/managers/db_manager.h"
 #include "core/workflow/workflow.h"
 
 namespace w
@@ -24,79 +31,6 @@ float v_spacing = 0.0f;
 std::string hidden_widgets = "Hidden widgets";
 float hidden_widgets_len;
 }
-
-/*
-|<------------------------------------------------------0------------------------------------------>|
-|<------------------------------------------------------1/21--------------------------------------->|         ---->|
-                                                                                                                   | 19
-|                                     [             node name           ]                           |              |
-|<---------------2------------------->|<--------------3/4-------------->|<-----------2------------->|         ---->| 
-                                                                                                                   | 19
-|     [       pin_ico    ]     [in_pin_name][    center      ][out_pin_name]     [ pin_ico    ]     |              |
-|<-5->|<------6/13------>|<-7->|<---8/9--->|[<-----10------->|<---11/12--->|<-7->|<---6/13--->|<-5->|         ---->|
-                                                                                                                   | 20
-|     [    widget_ico    ]     [  widget_name       ][     widget_value    ]                        |              |
-|<-5->|<------13-------->|<-7->|<-------14/15------>||<---------16/17----->|<-7->|<----6/13-->|<-5->|         ---->|
-
-|     [                                            separator                                  |     |
-|<-5->|<------13-------->|<-7->|<-----------------18-----------------------|<-7->|<----6/13-->|<-5->|
-
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-##  | what                   | equal to                                                         | variable                          | when
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-3   | node name              | CalcTextSize(Node::name)                                         | Node::w_name                      | on parse
-5   | pin left offset        | 4.0                                                              | w::pin_l_offset                   | app start
-6   | icon width             | CalcTextSize(ICON_CIRCLE)                                        | w::ico_circle                     | app start
-7   | pin right offset       | 4.0                                                              | w::pin_r_offset                   | app start
-8   | input pin name         | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
-11  | output pin name        | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
-13  | icon width             | CalcTextSize(ICON_EYE)                                           | w::ico_eye                        | app start
-14  | widget name            | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
-16  | widget value           | CalcTextSize(Pin::value))                                        | Pin::w_value                      | parse
-19  | vertical spacing       | 4.0                                                              | w::v_spacing                      | app start
-20  | vertical spacing       | (19)*2                                                           |                                   | app start
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-9   | max input pin name     | max(!wigdet(8))                                                  | Node::w_pin_in_max                | first instance create
-12  | max output pin name    | max(11)                                                          | Node::w_pin_out_max               | first instance create
-15  | max widget name        | max(widget(14) + 2 * ImGui::GetStyle().ItemSpacing.x)            | Node::w_widget_name_max           | first instance create
-17  | max widget value       | max(16)                                                          | Node::w_widget_value_max          | first instance create
-21  | node ideal fit         | = (1 ideal)                                                      | Node::w_fit                       | first instance create
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-0   | available width        |                                                                  |                                   | every frame
-1   | node width             | (5)*2 + (13)*2 + (7)*2 + (15) + (17)                             | NodeInstance::w_node              | every frame
-2   | node name l/r margins  | (0)/2 - (4)/2                                                    | NodeInstance::w_node_name_off     | every frame
-4   | node name              | CalcTextSize(Node::name)                                         | NodeInstance::w_name              | on node rename
-10  | central zone           | (15) + (17) - (9) - (12)                                         | NodeInstance::w_center            | every frame
-18  | hidden items separator | (0) - (5)*2 + (13)*2 + (7)*2                                     | NodeInstance:::w_separator        | every frame
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-- pin icon (16), widget ico (13) - take max depend on: tooltip, inspection, wf
-
-- empty node:       (no in pins, no out pins, no wdg):     - (1) = (100)
-- widgets only:     (no in pins, no out pins):             - (1) = (5)*2 + (13)*2 + (7)*2 + (15) + (17)
-- input only:       (no out pins, no wdg):                 - (10) = 50, (1) = (5)*2 + (13)*2 + (7)*2 + (9) + (10)
-- output only:      (no in pins, no wdg):                  - (10) = 50, (1) = (5)*2 + (13)*2 + (7)*2 + (10) + (12)
-- wdg and out:      (no in pins):                          - (1) = (5)*2 + (13)*2 + (7)*2 + (15) + (17), (10) = (15) + (17) - (12)
-- wdg and in:       (no out pins):                         - (1) = (5)*2 + (13)*2 + (7)*2 + (15) + (17), (10) = (15) + (17) - (9)
-- in and out:       (no wdg):                              - (10) = 10, (1) = (5)*2 + (13)*2 + (7)*2 + (9) + (10) + (12)
-
-- if (0) < (21):           - (15) = ((0) - (5)*2 - (13)*2 - (7)*2) / 3, but >= 0
-                           - (17) = ((0) - (5)*2 - (13)*2 - (7)*2) / 3 * 2, but >= 0
-                           - (10) = (15) + (17) - (9) - (12), but >= 0
-                           - (9) = ((15) + (17) / 2), but >= 0
-                           - (12) = ((15) + (17) / 2), but >= 0
-                           - (1) = (0)
-- if (0) > (21):           - (15) = fixed
-                           - (17) = (0) - (5)*2 - (13)*2 - (7)*2 - (15)
-                           - (9) = fixed
-                           - (12) = fixed
-                           - (10) = (0) - (5)*2 - (13)*2 - (7)*2 - (9) - (12)
-                           - (1) = (0)
-
-*/
 
 namespace ui
 {
@@ -148,6 +82,28 @@ bool GraphN_Flow::init()
     m_panel_stats->init();
     m_all_dialogs.insert(m_panel_stats.get());
 
+    m_panel_wf_list = std::make_unique<ui::PanelWfList>();
+    m_panel_wf_list->init();
+    m_all_dialogs.insert(m_panel_wf_list.get());
+
+    m_panel_templates = std::make_unique<ui::PanelTemplates>();
+    m_panel_templates->init();
+    m_all_dialogs.insert(m_panel_templates.get());
+
+    m_panel_output = std::make_unique<ui::PanelOutput>();
+    m_panel_output->init();
+    m_all_dialogs.insert(m_panel_output.get());
+
+    m_panel_notes = std::make_unique<ui::PanelNotes>();
+    m_panel_notes->init();
+    m_all_dialogs.insert(m_panel_notes.get());
+
+    m_panel_models = std::make_unique<ui::PanelModels>();
+    m_panel_models->init();
+    m_all_dialogs.insert(m_panel_models.get());
+
+    init_workflow_panels();
+
     Log("Panels created");
 
     // start connect to ComfyUI
@@ -163,9 +119,58 @@ void GraphN_Flow::reconnect()
     g::pConnectManager->connect();
 }
 
-data::Workflow* GraphN_Flow::create_workflow()
+void GraphN_Flow::init_workflow_panels()
 {
-    auto wf = std::make_unique<data::Workflow>();
+    if (g::pDbManager->get_is_first_run())
+    {
+        auto wf = create_workflow();
+        auto& wf_data = wf->get_workflow_data();
+        wf_data.name = ICON_LC_WORKFLOW " Workflow " + std::to_string(++m_wf_name_counter);
+        m_wf_focused = create_wf_panel(wf);
+
+        // cleanup_empty_workflow_panels();
+    }
+    else
+    {
+        auto wfs_data = g::pDbManager->wf_load_meta();
+        for (auto& wf_data : wfs_data)
+        {
+            auto wf = create_workflow(&wf_data);
+            auto panel = create_wf_panel(wf);
+            if (g::pOptsManager->wf_active_load() == wf->get_id_str())
+                m_wf_focused = panel;
+        }
+    }
+}
+
+PanelWorkflow* GraphN_Flow::create_wf_panel(data::Workflow* wf)
+{
+    m_panels_wf.push_back(std::make_unique<ui::PanelWorkflow>(wf, wf->get_workflow_data().name.c_str(), wf->get_workflow_data().id_str.c_str()));
+    auto& panel_wf = m_panels_wf.back();
+    panel_wf->init();
+    m_all_dialogs.insert(panel_wf.get());
+    return m_panels_wf.back().get();
+}
+
+PanelWorkflow* GraphN_Flow::get_active_wf_or_create_new()
+{
+    if (m_wf_focused != nullptr)
+        return m_wf_focused;
+
+    auto wf = create_workflow();
+    auto& wf_data = wf->get_workflow_data();
+    wf_data.name = ICON_LC_WORKFLOW " Workflow " + std::to_string(++m_wf_name_counter);
+    m_wf_focused = create_wf_panel(wf);
+    return m_wf_focused;
+}
+
+data::Workflow* GraphN_Flow::create_workflow(const WfData* wf_data /*= nullptr*/)
+{
+    std::unique_ptr<data::Workflow> wf;
+    if (wf_data != nullptr)
+        wf = std::make_unique<data::Workflow>(*wf_data);
+    else
+        wf = std::make_unique<data::Workflow>();
     auto wf_ptr = wf.get();
     wf_ptr->init();
     m_workflows.emplace(wf_ptr->get_id(), std::move(wf));
@@ -173,55 +178,31 @@ data::Workflow* GraphN_Flow::create_workflow()
     return wf_ptr;
 }
 
-WorkflowDrawer* GraphN_Flow::create_workflow_drawer(data::Workflow* wf)
+void GraphN_Flow::delete_workflow(data::Workflow* wf)
 {
-    auto drawer = std::make_unique<WorkflowDrawer>();
-    auto drawer_ptr = drawer.get();
-    drawer_ptr->init(wf);
-    m_workflow_drawers.emplace(wf->get_id(), std::move(drawer));
-    Log("Workflow drawer created for wf id=" << wf->get_id());
-    return drawer_ptr;
+    for (auto& panel : m_panels_wf)
+    {
+        if (panel->get_workflow()->get_id() == wf->get_id())
+        {
+            wf->get_workflow_data().deleted = true;
+            panel->close_dialog();
+            break;
+        }
+    }
 }
 
-void GraphN_Flow::destroy_workflow(lid wf_id)
+void GraphN_Flow::destroy_workflow(data::Workflow* wf)
 {
-    auto dr_it = m_workflow_drawers.find(wf_id);
-    if (dr_it == m_workflow_drawers.end())
-    {
-        LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Can't destroy workflow drawer id=" << wf_id);
-    }
-    else
-    {
-        m_workflow_drawers.erase(dr_it);
-        Log("Workflow destroyed, id=" << wf_id);
-    }
-
-    auto wf_it = m_workflows.find(wf_id);
+    auto wf_it = m_workflows.find(wf->get_id());
     if (wf_it == m_workflows.end())
     {
-        LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Can't destroy workflow id=" << wf_id);
+        LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Can't destroy workflow id=" << wf->get_id());
     }
     else
     {
         m_workflows.erase(wf_it);
-        Log("Workflow destroyed, id=" << wf_id);
+        Log("Workflow destroyed, id=" << wf->get_id());
     }
-}
-
-data::Workflow* GraphN_Flow::find_workflow(lid wf_id)
-{
-    auto it = m_workflows.find(wf_id);
-    if (it != m_workflows.end())
-        return it->second.get();
-    return nullptr;
-}
-
-WorkflowDrawer* GraphN_Flow::find_workflow_drawer(lid wf_id)
-{
-    auto it = m_workflow_drawers.find(wf_id);
-    if (it != m_workflow_drawers.end())
-        return it->second.get();
-    return nullptr;
 }
 
 void GraphN_Flow::subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener)
@@ -326,6 +307,13 @@ bool GraphN_Flow::run()
 void GraphN_Flow::prepare_to_quit()
 {
     LogF_In;
+
+    // cleanup_empty_workflow_panels();
+    for (auto& panel : m_panels_wf)
+    {
+        save_workflow(panel.get(), true);
+    }
+
     for (auto& dlg : m_all_dialogs)
     {
         if (dlg)
@@ -338,6 +326,7 @@ void GraphN_Flow::prepare_to_quit()
     m_nodes_parser.reset();
 
     stop_all_threads();
+
     LogF_Out;
 }
 
@@ -364,25 +353,69 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Windows##MainMenuBar"))
+        if (ImGui::BeginMenu("Projects##MainMenuBar"))
         {
-            if (ImGui::MenuItem("Nodes Library##WindowsMenuBar", nullptr, (m_windows & ViewPanelNodes)))
+            if (ImGui::MenuItem("Add new Project##WfMenuBar"))
+            {
+                Log("Menu: new wf");
+                on_menu_wf(nullptr);
+            }
+            ImGui::Separator();
+            for (auto& wf : m_panels_wf)
+            {
+                const auto wf_name = fmt::format(FMT_COMPILE("{}##PanelsMenuBar"), wf->get_panel_name());
+                if (ImGui::MenuItem(wf_name.c_str(), nullptr, (m_windows & ViewPanelNodeInpector)))
+                {
+                    Log("Menu: wf " << wf_name);
+                    on_menu_wf(wf.get());
+                }
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Panels##MainMenuBar"))
+        {
+            if (ImGui::MenuItem("Nodes Library##PanelsMenuBar", nullptr, (m_windows & ViewPanelNodes)))
             {
                 Log("Menu: Nodes Library");
                 on_menu_panel_window(ViewPanelNodes);
             }
-            if (ImGui::MenuItem("Node Inspector##WindowsMenuBar", nullptr, (m_windows & ViewPanelNodeInpector)))
+            if (ImGui::MenuItem("Models Library##PanelsMenuBar", nullptr, (m_windows & ViewPanelModels)))
+            {
+                Log("Menu: models panel");
+                on_menu_panel_window(ViewPanelModels);
+            }
+            if (ImGui::MenuItem("Node Inspector##PanelsMenuBar", nullptr, (m_windows & ViewPanelNodeInpector)))
             {
                 Log("Menu: Node Inspector");
                 on_menu_panel_window(ViewPanelNodeInpector);
             }
-            if (ImGui::MenuItem("Stats##WindowsMenuBar", nullptr, (m_windows & ViewPanelStats)))
+            if (ImGui::MenuItem("My Projects##PanelsMenuBar", nullptr, (m_windows & ViewPanelWfList)))
+            {
+                Log("Menu: wf list panel");
+                on_menu_panel_window(ViewPanelWfList);
+            }
+            if (ImGui::MenuItem("Stats##PanelsMenuBar", nullptr, (m_windows & ViewPanelStats)))
             {
                 Log("Menu: stats panel");
                 on_menu_panel_window(ViewPanelStats);
             }
+            if (ImGui::MenuItem("Notes##PanelsMenuBar", nullptr, (m_windows & ViewPanelNotes)))
+            {
+                Log("Menu: notes panel");
+                on_menu_panel_window(ViewPanelNotes);
+            }
+            if (ImGui::MenuItem("Templates##PanelsMenuBar", nullptr, (m_windows & ViewPanelTemplates)))
+            {
+                Log("Menu: templates panel");
+                on_menu_panel_window(ViewPanelTemplates);
+            }
+            if (ImGui::MenuItem("Server Log##PanelsMenuBar", nullptr, (m_windows & ViewPanelOutput)))
+            {
+                Log("Menu: output panel");
+                on_menu_panel_window(ViewPanelOutput);
+            }
             ImGui::Separator();
-            if (ImGui::MenuItem("Reset default layout##WindowsMenuBar"))
+            if (ImGui::MenuItem("Reset default layout##PanelsMenuBar"))
             {
                 Log("Menu: Reset default layout");
                 on_menu_panel_window(ViewPanelsResetAll);
@@ -465,27 +498,50 @@ void GraphN_Flow::show_menu_bar()
         ImGui::PopStyleColor();
 }
 
-void GraphN_Flow::on_dlg_closed(VisibleObject dlg)
+void GraphN_Flow::on_dlg_closed(DlgObj dlg)
 {
     switch (dlg)
     {
-    case VisibleObject::OptionsDlg:
+    case DlgObj::OptionsDlg:
         m_windows &= ~ViewAllOptions;
         m_all_dialogs.erase(m_opts_dlg.get());
         m_opts_dlg.reset();
         Log("Options dlg closed");
         break;
-    case VisibleObject::PanelNodes:
+    case DlgObj::PanelNodes:
         m_windows &= ~ViewPanelNodes;
         Log("Nones panel closed");
         break;
-    case VisibleObject::PanelNodeInspector:
+    case DlgObj::PanelNodeInspector:
         m_windows &= ~ViewPanelNodeInpector;
         Log("Nones Inspector panel closed");
         break;
-    case VisibleObject::PanelStats:
+    case DlgObj::PanelStats:
         m_windows &= ~ViewPanelStats;
         Log("Stats panel closed");
+        break;
+    case DlgObj::PanelWf:
+        Log("Wf panel closed");
+        break;
+    case DlgObj::PanelWfList:
+        m_windows &= ~ViewPanelWfList;
+        Log("Wf list panel closed");
+        break;
+    case DlgObj::PanelTemplates:
+        m_windows &= ~ViewPanelTemplates;
+        Log("Templates panel closed");
+        break;
+    case DlgObj::PanelOutput:
+        m_windows &= ~ViewPanelOutput;
+        Log("Output panel closed");
+        break;
+    case DlgObj::PanelNotes:
+        m_windows &= ~ViewPanelNotes;
+        Log("Notes panel closed");
+        break;
+    case DlgObj::PanelModels:
+        m_windows &= ~ViewPanelModels;
+        Log("Models panel closed");
         break;
     default:
         LogError(ExcepCategory::switch_enum, "Unregistered dialog is trying to be closed " << cast::to_u64(dlg));
@@ -518,6 +574,11 @@ void GraphN_Flow::on_menu_panel_window(ViewDialogs wnd)
         g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
+void GraphN_Flow::on_menu_wf(PanelWorkflow* /*wf*/)
+{
+    LogF;
+}
+    
 void GraphN_Flow::open_settings_dlg(ViewDialogs specific_section /*= ViewNone*/)
 {
     m_windows |= (ViewOptions | specific_section);
@@ -555,43 +616,97 @@ void GraphN_Flow::show_options_dlg()
     bool focused = false;
     if (m_opts_dlg->show_dialog(focused) != DlgCode::progress)
     {
-        on_dlg_closed(VisibleObject::OptionsDlg);
+        on_dlg_closed(DlgObj::OptionsDlg);
     }
-    else if (focused)
-        m_focused_wnd = m_opts_dlg.get();
+}
+
+void GraphN_Flow::show_panel(BaseDlg* panel, DlgObj obj)
+{
+    bool focused = false;
+    if (panel->show_dialog(focused) != DlgCode::progress)
+    {
+        on_dlg_closed(obj);
+    }
 }
 
 void GraphN_Flow::show_panel_nodes()
 {
-    bool focused = false;
-    if (m_panel_nodes->show_dialog(focused) != DlgCode::progress)
-    {
-        on_dlg_closed(VisibleObject::PanelNodes);
-    }
-    else if (focused)
-        m_focused_wnd = m_panel_nodes.get();
+    show_panel(m_panel_nodes.get(), DlgObj::PanelNodes);
 }
 
 void GraphN_Flow::show_panel_node_inspector()
 {
-    bool focused = false;
-    if (m_panel_node_inspector->show_dialog(focused) != DlgCode::progress)
-    {
-        on_dlg_closed(VisibleObject::PanelNodeInspector);
-    }
-    else if (focused)
-        m_focused_wnd = m_panel_node_inspector.get();
+    show_panel(m_panel_node_inspector.get(), DlgObj::PanelNodeInspector);
 }
 
 void GraphN_Flow::show_panel_stats()
 {
-    bool focused = false;
-    if (m_panel_stats->show_dialog(focused) != DlgCode::progress)
+    show_panel(m_panel_stats.get(), DlgObj::PanelStats);
+}
+
+void GraphN_Flow::show_panel_models()
+{
+    show_panel(m_panel_models.get(), DlgObj::PanelModels);
+}
+
+void GraphN_Flow::show_panel_output()
+{
+    show_panel(m_panel_output.get(), DlgObj::PanelOutput);
+}
+
+void GraphN_Flow::show_panel_templates()
+{
+    show_panel(m_panel_templates.get(), DlgObj::PanelTemplates);
+}
+
+void GraphN_Flow::show_panel_notes()
+{
+    show_panel(m_panel_notes.get(), DlgObj::PanelNotes);
+}
+
+void GraphN_Flow::show_panel_wf_list()
+{
+    show_panel(m_panel_wf_list.get(), DlgObj::PanelWfList);
+}
+
+void GraphN_Flow::show_panel_wf()
+{
+    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end();)
     {
-        on_dlg_closed(VisibleObject::PanelStats);
+        auto& panel = *it;
+        bool focused = false;
+        if (panel->show_dialog(focused) != DlgCode::progress)
+        {
+            if (panel.get() == m_wf_focused)
+                m_wf_focused = nullptr;
+
+            auto wf = panel->get_workflow();
+            wf->stop_all_threads();
+
+            if (wf->get_workflow_data().deleted)
+            {
+                g::pDbManager->wf_delete(wf->get_workflow_data());
+            }
+            else
+            {
+                save_workflow(panel.get(), true);
+            }
+
+            panel->stop_all_threads();
+            on_dlg_closed(DlgObj::PanelWf);
+
+            it = m_panels_wf.erase(it);
+            destroy_workflow(wf);
+        }
+        else if (focused)
+        {
+            m_wf_focused = panel.get();
+            g::pOptsManager->wf_active_save(m_wf_focused->get_workflow()->get_id_str());
+            ++it;
+        }
+        else
+            ++it;
     }
-    else if (focused)
-        m_focused_wnd = m_panel_stats.get();
 }
 
 void GraphN_Flow::show_menu_bar_connecting()
@@ -660,8 +775,19 @@ void GraphN_Flow::show_menu_bar_connecting()
 }
 
 void GraphN_Flow::show_menu_bar_queue_controls()
-{}
+{
+    // TODO
+}
 
+void GraphN_Flow::cleanup_empty_workflow_panels()
+{
+    // TODO
+}
+
+void GraphN_Flow::save_workflow(PanelWorkflow* /*wf*/, bool /*last_call*/)
+{
+    // TODO
+}
 
 void GraphN_Flow::show_panels()
 {
@@ -694,20 +820,39 @@ void GraphN_Flow::show_panels()
 
             m_main_dock_id = dockspace_id;
 
-            ImGuiID dock_id_left_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.25f, nullptr, &m_main_dock_id);
+            ImGuiID dock_id_left_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.2f, nullptr, &m_main_dock_id);
             ImGuiID dock_id_left_btm = ImGui::DockBuilderSplitNode(dock_id_left_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_left_top);
-
-            ImGuiID dock_id_right_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.25f, nullptr, &m_main_dock_id);
+            ImGuiID dock_id_right_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.2f, nullptr, &m_main_dock_id);
             ImGuiID dock_id_right_bottom = ImGui::DockBuilderSplitNode(dock_id_right_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right_top);
-
-            //    const ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.25f, nullptr, &m_main_dock_id);
-             //   const ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.20f, nullptr, &m_main_dock_id);
+            ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.2f, nullptr, &m_main_dock_id);
 
             ImGui::DockBuilderDockWindow(m_panel_nodes->get_panel_name(), dock_id_left_top);
+            ImGui::DockBuilderDockWindow(m_panel_models->get_panel_name(), dock_id_left_top);
+
+            ImGui::DockBuilderDockWindow(m_panel_wf_list->get_panel_name(), dock_id_left_btm);
             ImGui::DockBuilderDockWindow(m_panel_node_inspector->get_panel_name(), dock_id_left_btm);
-            ImGui::DockBuilderDockWindow(m_panel_stats->get_panel_name(), dock_id_right_bottom);
+
+            ImGui::DockBuilderDockWindow(m_panel_stats->get_panel_name(), dock_id_right_top);
+
+            ImGui::DockBuilderDockWindow(m_panel_notes->get_panel_name(), dock_id_right_bottom);
+            ImGui::DockBuilderDockWindow(m_panel_templates->get_panel_name(), dock_id_right_bottom);
+
+            ImGui::DockBuilderDockWindow(m_panel_output->get_panel_name(), dock_id_bottom);
+
+            for (auto& wf : m_panels_wf)
+            {
+                ImGui::DockBuilderDockWindow(wf->get_panel_name(), m_main_dock_id);
+            }
 
             ImGui::DockBuilderFinish(dockspace_id);
+            m_fix_focus = true;
+        }
+        else if (m_fix_focus)
+        {
+            m_fix_focus = false;
+            ImGui::SetWindowFocus(m_panel_nodes->get_panel_name());
+            ImGui::SetWindowFocus(m_panel_node_inspector->get_panel_name());
+            ImGui::SetWindowFocus(m_panel_templates->get_panel_name());
         }
     }
     ImGui::End();
@@ -719,6 +864,19 @@ void GraphN_Flow::show_panels()
         show_panel_node_inspector();
     if (m_windows & ViewPanelStats)
         show_panel_stats();
+    if (m_windows & ViewPanelWfList)
+        show_panel_wf_list();
+    if (m_windows & ViewPanelModels)
+        show_panel_models();
+    if (m_windows & ViewPanelNotes)
+        show_panel_notes();
+    if (m_windows & ViewPanelOutput)
+        show_panel_output();
+    if (m_windows & ViewPanelTemplates)
+        show_panel_templates();
+
+    if (m_windows & ViewPanelWf)
+        show_panel_wf();
 }
 
 }

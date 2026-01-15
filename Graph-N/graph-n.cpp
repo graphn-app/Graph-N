@@ -21,7 +21,7 @@ mngr::ConnectManager* pConnectManager = nullptr;
 void save_exception(ExcepCategory category, const std::string& message, const char* file, int line)
 {
     if (g::pDbManager != nullptr && category != ExcepCategory::sqlite)
-        g::pDbManager->save_exception(category, message, file, line);
+        g::pDbManager->exception_save(category, message, file, line);
 }
 }
 
@@ -81,6 +81,9 @@ void GraphN::exit_graphn()
         m_graphn_flow->exit();
     m_graphn_flow.reset();
     g::pFlow = nullptr;
+
+    while (m_block_db_on_exit)
+        ;
 
     std::for_each(m_managers.begin(), m_managers.end(), [](std::unique_ptr<mngr::Manager>& manager)
     {

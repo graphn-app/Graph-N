@@ -23,6 +23,8 @@ uint64_t hash_fnv1a(const char* data, size_t size);
 uint64_t hash_fnv1a(size_t data);
 uint64_t hash_fnv1a(const std::string& data);
 
+std::string generate_guid();
+
 } // namespace str
 
 namespace path

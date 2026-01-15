@@ -16,8 +16,9 @@ template <typename DataType>
 class PanelBase : public BaseDlgWithData<DataType>
 {
 public:
-    PanelBase(VisibleObject obj, const char* name, const char* shortened, const char* id)
+    PanelBase(DlgObj obj, const char* name, const char* shortened, const char* id, bool need_focus = false)
         : BaseDlgWithData(obj)
+        , m_need_focus(need_focus)
     {
         m_panel_id = id;
         m_panel_name = fmt::format("{}###{}", name, id);
@@ -45,7 +46,7 @@ protected:
         const bool expanded = ImGui::Begin(name->c_str(), &opened);
         m_panel_w = ImGui::GetWindowWidth();
 
-        if (expanded)
+        if (expanded && m_need_focus)
             focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
         return expanded;
     }
@@ -130,7 +131,7 @@ private:
     std::string m_panel_name_shortened;
     float m_panel_name_w = 0.0f;
     float m_panel_w = 0.0f;
-
+    bool m_need_focus = false;
     //  ImGuiWindowClass m_class;
 };
 

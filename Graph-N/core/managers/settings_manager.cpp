@@ -17,7 +17,7 @@ bool SettingsManager::init()
     m_app_vsync =                                     { "app_vsync_enabled",        bool(true) };
 
     // ui
-    m_ui_open_wnds =                                  { "flow_open_windows",        int64_t(ui::ViewOptsComfyUi | ui::ViewPanelsResetAll) };
+    m_ui_open_wnds =                                  { "flow_open_windows",        int64_t(ui::ViewPanelsResetAll) };
     m_ui_nodes_tree_view =                            { "flow_nodes_tree_view",     bool(true) };
 
     // comfyui
@@ -34,6 +34,7 @@ bool SettingsManager::init()
     m_comfy_command =                                 { "comfyui_command",          std::string("") };
     m_wf_widget_input_numbers =                       { "wf_widget_input_numbers",  cast::to_i64(WidgetInput::slider) };
     m_wf_widget_input_bools =                         { "wf_widget_input_bools",    cast::to_i64(WidgetInput::select) };
+    m_wf_active =                                     { "wf_active",                std::string("") };
 
     m_ui_colors.resize(cast::to_szt(AppColor::_count));
     m_ui_colors[cast::to_szt(AppColor::disconnected_menubar_bg)] =             { "color_disconnected_menubar_bg",  int64_t(IM_COL32(150, 0, 0, 255)) };
@@ -141,6 +142,7 @@ bool SettingsManager::init()
     values.push_back(&m_comfy_command);
     values.push_back(&m_wf_widget_input_numbers);
     values.push_back(&m_wf_widget_input_bools);
+    values.push_back(&m_wf_active);
     values.push_back(&m_stat_as_progress);
     values.push_back(&m_stat_enabled_disks);
 
@@ -164,7 +166,7 @@ bool SettingsManager::init()
 
 void SettingsManager::init_options(std::vector<OptionValue*>& values)
 {
-    auto db_values = g::pDbManager->load_all_options();
+    auto db_values = g::pDbManager->option_load_all();
     bool do_update = false;
 
     for (auto& val : values)
@@ -207,7 +209,7 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
 
     if (do_update)
     {
-        g::pDbManager->save_all_options(db_values);
+        g::pDbManager->option_save_all(db_values);
     }
 }
 
@@ -241,7 +243,7 @@ void SettingsManager::save_option(OptionValue& option, const std::string& new_st
     else if (*std::get_if<std::string>(&option.value) != new_str)
     {
         *std::get_if<std::string>(&option.value) = new_str;
-        g::pDbManager->save_option(option.db_name, { new_str });
+        g::pDbManager->option_save(option.db_name, { new_str });
     }
 }
 
@@ -254,7 +256,7 @@ void SettingsManager::save_option(OptionValue& option, int64_t new_int)
     else if (*std::get_if<int64_t>(&option.value) != new_int)
     {
         *std::get_if<int64_t>(&option.value) = new_int;
-        g::pDbManager->save_option(option.db_name, { new_int });
+        g::pDbManager->option_save(option.db_name, { new_int });
     }
 }
 
@@ -267,7 +269,7 @@ void SettingsManager::save_option(OptionValue& option, bool new_bool)
     else if (*std::get_if<bool>(&option.value) != new_bool)
     {
         *std::get_if<bool>(&option.value) = new_bool;
-        g::pDbManager->save_option(option.db_name, { new_bool ? 1 : 0 });
+        g::pDbManager->option_save(option.db_name, { new_bool ? 1 : 0 });
     }
 }
 
@@ -280,7 +282,7 @@ void SettingsManager::save_option(OptionValue& option, const std::filesystem::pa
     else if (*std::get_if<std::filesystem::path>(&option.value) != new_path)
     {
         *std::get_if<std::filesystem::path>(&option.value) = new_path;
-        g::pDbManager->save_option(option.db_name, { new_path.u8string() });
+        g::pDbManager->option_save(option.db_name, { new_path.u8string() });
     }
 }
 
@@ -300,7 +302,7 @@ void SettingsManager::ui_open_wnds_save(int64_t windows)
 void SettingsManager::nd_node_options_preload()
 {
     nd_node_options_release();
-    const auto res = g::pDbManager->load_all_node_options(mngr::NodeOption::advanced);
+    const auto res = g::pDbManager->node_option_load_all(mngr::NodeOption::advanced);
     for (auto& [id, value] : res)
     {
         m_hashed_pin_advanced[id] = value.ival == 1;
@@ -309,7 +311,7 @@ void SettingsManager::nd_node_options_preload()
 
 void SettingsManager::nd_pin_advanced_save(hid pin_id, bool advanced) const
 {
-    g::pDbManager->save_node_option(pin_id, mngr::NodeOption::advanced, { advanced ? 1 : 0 });
+    g::pDbManager->node_option_save(pin_id, mngr::NodeOption::advanced, { advanced ? 1 : 0 });
 }
 
 //////////////////////////////////////////////////////////////////////

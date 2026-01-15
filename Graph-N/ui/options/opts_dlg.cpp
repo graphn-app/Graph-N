@@ -10,7 +10,7 @@ namespace ui
 {
 
 OptionsDlgs::OptionsDlgs(OptPane init_opt /*= OptPane::_none*/)
-    : BaseDlgWithData(VisibleObject::OptionsDlg)
+    : BaseDlgWithData(DlgObj::OptionsDlg)
 {
     m_opts_data.pane.left_selected_item = init_opt;
 }
@@ -61,20 +61,17 @@ void OptionsDlgs::select_right_pane(OptPane pane)
     m_opts_data.pane.left_selected_item = pane;
 }
 
-DlgCode OptionsDlgs::show(bool& focused)
+DlgCode OptionsDlgs::show(bool& /*focused*/)
 {
     ImGuiEx::PushDlgTitleStyles(data()->clr_title);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, data()->clr_bg);
 
-    set_focus();
     ImGui::SetNextWindowPos(ImVec2(data()->x, data()->y), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(data()->width, data()->height), ImGuiCond_Always);
 
     bool opened = true;
     if (ImGui::Begin("Options##Opt", &opened, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
     {
-        focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
-
         show_left_pane();
         show_right_pane();
     }

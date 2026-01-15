@@ -1,14 +1,13 @@
 
 #include "ui/panels/panel_stats.h"
 #include "ui/graph-n_flow.h"
-#include "core/managers/settings_manager.h"
 #include "platform/main.h"
 
 namespace ui
 {
 
 PanelStats::PanelStats()
-    : PanelBase(VisibleObject::PanelStats, ICON_LC_CHART_BAR " Stats", ICON_LC_CHART_BAR, "DFBE846D7B1C49BF8D70C2AF99ADCBEF")
+    : PanelBase(DlgObj::PanelStats, ICON_LC_CHART_BAR " Stats", ICON_LC_CHART_BAR, "DFBE846D7B1C49BF8D70C2AF99ADCBEF")
 {}
 
 PanelStats::~PanelStats()
