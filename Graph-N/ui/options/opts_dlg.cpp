@@ -56,6 +56,11 @@ void OptionsDlgs::init()
     }
 }
 
+void OptionsDlgs::select_right_pane(OptPane pane)
+{
+    m_opts_data.pane.left_selected_item = pane;
+}
+
 DlgCode OptionsDlgs::show(bool& focused)
 {
     ImGuiEx::PushDlgTitleStyles(data()->clr_title);

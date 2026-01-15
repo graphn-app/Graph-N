@@ -19,7 +19,8 @@ struct OptsData final
 {
     NO_COPY_MOVE_CTORS(OptsData);
 
-    const float input_offset_x = 130;
+    const float input_offset_x = 150;
+    const float help_mark_w = 29.0f;
 
     std::vector<std::vector<std::string>> buffer_s;
     std::vector<std::vector<int64_t>> buffer_i;

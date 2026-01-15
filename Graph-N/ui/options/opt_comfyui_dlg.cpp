@@ -48,49 +48,115 @@ void OptComfyDlg::init(OptsData& data)
 void OptComfyDlg::show(OptsData& data)
 {
     const char* help_text = nullptr;
+    show_connection_opts(data, help_text);
+    show_interaction_opts(data, help_text);
+
+    ImGui::Dummy(ImVec2(0.0f, 50.0f));
+    show_help_text(help_text);
+}
+
+void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
+{
     auto& buffer_s = *data.comfyui.buffer_s;
     auto& buffer_i = *data.comfyui.buffer_i;
 
-    /////////////       ComfyUI address
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), APP_COMFYUI " Address");
+    constexpr const float padding = 6.0f;
+    const auto avail_x = ImGui::GetContentRegionAvail().x;
+    ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(padding, padding));
+
+    ImGui::BeginGroup();
+
+    ///////////////       ComfyUI address
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), avail_x - padding, APP_COMFYUI " Address");
     ImGui::Spacing();
 
 
-    /////////////       host
+    ///////////////       host
     ImGui::TextUnformatted("Host:");
     ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGuiEx::InputText("##ComfyUIHost", &buffer_s[buff_host], ImGuiInputTextFlags_AutoSelectAll);
+    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
+    ImGui::SetNextItemWidth(avail_x - padding);
+    m_data_changed = ImGuiEx::InputText("##ComfyUIHost", &buffer_s[buff_host], ImGuiInputTextFlags_AutoSelectAll) || m_data_changed;
 
 
-    /////////////       port
+    ///////////////       port
     ImGui::TextUnformatted("Port:");
     ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGuiEx::SliderIntSmart("##ComfyUIPort", &buffer_i[buff_port], 1, 65535, "%u");
+    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
+    ImGui::SetNextItemWidth(avail_x - padding);
+    m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIPort", &buffer_i[buff_port], 1, 65535, "%u") || m_data_changed;
 
 
-    /////////////       timeouts
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), APP_COMFYUI " Server Timeouts");
+    /////////////////       timeouts
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), avail_x - padding, APP_COMFYUI " Server Timeouts");
     ImGui::Spacing();
 
 
-    /////////////       connection timeout
+    ///////////////////       connection timeout
     ImGui::TextUnformatted("Connect Timeout:");
     show_help_mark(help_text, data.input_offset_x, true, "Max time (seconds) to wait for the server to accept a connection.\n\nLocal servers usually connect instantly (1-2s).");
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGuiEx::SliderIntSmart("##ComfyUIConnTime", &buffer_i[buff_conn_tm], 0, 30, "%llu sec");
+    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
+    ImGui::SetNextItemWidth(avail_x - padding);
+    m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIConnTime", &buffer_i[buff_conn_tm], 0, 30, "%llu sec") || m_data_changed;
 
 
-    /////////////       read timeout
+    ///////////////////       read timeout
     ImGui::TextUnformatted("Read Timeout:");
     show_help_mark(help_text, data.input_offset_x, true, "Max time (seconds) to wait for a response (e.g., JSON workflow).\n\nIncrease this if loading large workflows over a slow network.");
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGuiEx::SliderIntSmart("##ComfyUIReadTime", &buffer_i[buff_read_tm], 0, 30, "%llu sec");
+    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
+    ImGui::SetNextItemWidth(avail_x - padding);
+    m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIReadTime", &buffer_i[buff_read_tm], 0, 30, "%llu sec") || m_data_changed;
+
+
+    /////////////// apply
+    ImGuiEx::Spacing(2);
+
+    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
+    if (!m_data_changed)
+        ImGui::BeginDisabled();
+    else
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, g::pOptsManager->color_load(AppColor::opt_btn_normal));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, g::pOptsManager->color_load(AppColor::opt_btn_hover));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  g::pOptsManager->color_load(AppColor::opt_btn_pressed));
+    }
+    const bool click = ImGui::Button("Save/Apply connection settings##applyconn", ImVec2(avail_x - padding, 0));
+    if (!m_data_changed)
+        ImGui::EndDisabled();
+    else
+        ImGui::PopStyleColor(3);
+    if (click)
+    {
+        g::pOptsManager->comfyui_host_save(buffer_s[buff_host]);
+        g::pOptsManager->comfyui_port_save(buffer_i[buff_port]);
+        g::pOptsManager->comfyui_connect_timeout_save(buffer_i[buff_conn_tm]);
+        g::pOptsManager->comfyui_read_timeout_save(buffer_i[buff_read_tm]);
+        m_data_changed = false;
+
+        if (!g::pFlow->get_online())
+            g::pFlow->reconnect();
+    }
+
+    ImGui::EndGroup();
+
+    ImVec2 p_min = ImGui::GetItemRectMin();
+    ImVec2 p_max = ImGui::GetItemRectMax();
+
+    p_min.x -= padding;
+    p_min.y -= padding;
+    p_max.x += padding; 
+    p_max.y += padding;
+
+    ImGui::GetWindowDrawList()->AddRect(p_min, p_max, IM_COL32(100, 100, 100, 255), 4.0f);
+
+    ImGui::Dummy(ImVec2(0, padding));
+}
+
+void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
+{
+    auto& buffer_s = *data.comfyui.buffer_s;
 
     /////////////       comfyui interaction
     ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), APP_COMFYUI " Server Interaction");
@@ -198,25 +264,6 @@ void OptComfyDlg::show(OptsData& data)
     if (buffer_s[buff_path].empty())
         ImGui::EndDisabled();
 
-
-    ///////////// apply connection settings
-    ImGuiEx::Spacing(2);
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator));
-    if (ImGui::Button("Save/Apply connection settings##applyconn"))
-    {
-        g::pOptsManager->comfyui_host_save(buffer_s[buff_host]);
-        g::pOptsManager->comfyui_port_save(buffer_i[buff_port]);
-        g::pOptsManager->comfyui_connect_timeout_save(buffer_i[buff_conn_tm]);
-        g::pOptsManager->comfyui_read_timeout_save(buffer_i[buff_read_tm]);
-
-        if (!g::pFlow->get_online())
-            g::pFlow->reconnect();
-    }
-
-
-    ///////////// help
-    ImGui::Dummy(ImVec2(0.0f, 50.0f));
-    show_help_text(help_text);
 }
 
 }

@@ -14,6 +14,7 @@ public:
     ~OptionsDlgs() override;
 
     void init() override;
+    void select_right_pane(OptPane pane);
 
 private:
     DlgCode show(bool& focused) override;

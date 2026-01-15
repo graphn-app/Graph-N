@@ -13,6 +13,13 @@ public:
 
     void init(OptsData& data) override;
     void show(OptsData& data) override;
+
+private:
+    void show_connection_opts(OptsData& data, const char*& help_text);
+    void show_interaction_opts(OptsData& data, const char*& help_text);
+
+private:
+    bool m_data_changed = false;
 };
 
 

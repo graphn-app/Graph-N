@@ -70,7 +70,6 @@ bool MainRoutine_Win32::init()
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;		// Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;			// Enabled docking
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;			// Enable multiple viewports
     io.IniFilename = APP_CAPTION_LOW ".ini";
     io.LogFilename = nullptr;
 

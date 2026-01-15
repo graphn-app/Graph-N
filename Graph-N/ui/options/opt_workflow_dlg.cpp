@@ -79,7 +79,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     }
     idx++;
     ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
+    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(-FLT_MIN);
     ImGuiEx::InputDoubleSmart("##WfNumbers0", &data.wf.d_sample, 0.01, d_min, d_max, " Value: %.4f", "%.4f");
 
@@ -92,6 +92,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     idx++;
     show_help_mark(help_text, data.input_offset_x, true, "Ctrl+Click to type value.");
     ImGui::SameLine();
+    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(-FLT_MIN);
     ImGuiEx::SliderDoubleSmart("##WfNumbers1", &data.wf.d_sample, d_min, d_max, "Value: %.4f");
 
@@ -104,6 +105,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     idx++;
     show_help_mark(help_text, data.input_offset_x, true, "Ctrl+Click or Double Click to type value.");
     ImGui::SameLine();
+    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(-FLT_MIN);
     ImGuiEx::DragDoubleSmart("##WfNumbers2", &data.wf.d_sample, d_min, d_max, "Value: %.4f");
 
@@ -125,7 +127,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     }
     idx++;
     ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
+    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (ImGuiEx::BooleanSwitch("##WfBool0", b_val ? "Value: on" : "Value: off", &b_val))
         data.wf.b_sample = b_val;
@@ -138,7 +140,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     }
     idx++;
     ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
+    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (ImGuiEx::BooleanToggleLED(b_val ? "Value: on##WfBool1" : "Value: off##WfBool1", &b_val, false, false))
         data.wf.b_sample = b_val;
@@ -151,7 +153,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     }
     idx++;
     ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + 29.0f);
+    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (ImGuiEx::BooleanButtons2("##WfBool2", b_val ? "Value: on" : "Value: off", &b_val))
         data.wf.b_sample = b_val;

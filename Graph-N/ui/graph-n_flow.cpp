@@ -521,6 +521,21 @@ void GraphN_Flow::on_menu_panel_window(ViewDialogs wnd)
 void GraphN_Flow::open_settings_dlg(ViewDialogs specific_section /*= ViewNone*/)
 {
     m_windows |= (ViewOptions | specific_section);
+    if (m_opts_dlg)
+    {
+        switch (specific_section)
+        {
+        case ViewOptsComfyUi:
+            m_opts_dlg->select_right_pane(OptPane::comfyui);
+            break;
+        case ViewOptsStats:
+            m_opts_dlg->select_right_pane(OptPane::stats);
+            break;
+        case ViewOptsWf:
+            m_opts_dlg->select_right_pane(OptPane::workflow);
+            break;
+        }
+    }
 }
 
 void GraphN_Flow::show_options_dlg()
