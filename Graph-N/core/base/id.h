@@ -44,7 +44,7 @@ struct LocalID
 
     NO_COPY_MOVE(LocalID);
 
-    lid get_id() const { return m_id; }
+    virtual lid get_id() const { return m_id; }
     const std::string& get_id_str() const { return m_id_str; }
     void set_id(lid id);
 

@@ -13,7 +13,7 @@ namespace ui
 class PanelWorkflow final : public PanelBase<PanelCommonData>
 {
 public:
-    PanelWorkflow(data::Workflow* wf, const char* name, const char* id);
+    PanelWorkflow(data::Workflow* wf, const char* name, const char* id, ImGuiID& dock);
     ~PanelWorkflow() override;
 
     void init() override;
@@ -26,6 +26,7 @@ private:
 
 private:
     data::Workflow* m_wf = nullptr;
+    const ImGuiID& m_dock;
 };
 
 

@@ -124,8 +124,6 @@ void GraphN_Flow::init_workflow_panels()
     if (g::pDbManager->get_is_first_run())
     {
         auto wf = create_workflow();
-        auto& wf_data = wf->get_workflow_data();
-        wf_data.name = ICON_LC_WORKFLOW " Workflow " + std::to_string(++m_wf_name_counter);
         m_wf_focused = create_wf_panel(wf);
     }
     else
@@ -143,12 +141,17 @@ void GraphN_Flow::init_workflow_panels()
 
 PanelWorkflow* GraphN_Flow::create_wf_panel(data::Workflow* wf)
 {
-    m_panels_wf.push_back(std::make_unique<ui::PanelWorkflow>(wf, wf->get_workflow_data().name.c_str(), wf->get_id().c_str()));
+    auto& wf_data = wf->get_workflow_data();
+    wf_data.name = ICON_LC_WORKFLOW " Workflow " + std::to_string(++m_wf_name_counter);
+
+    m_panels_wf.push_back(std::make_unique<ui::PanelWorkflow>(wf, wf->get_workflow_data().name.c_str(), wf->get_id().c_str(), m_main_dock_id));
     auto& panel_wf = m_panels_wf.back();
     panel_wf->init();
+
+    m_panel_wf_list->add_wf(wf);
+
     m_all_dialogs.insert(panel_wf.get());
-    m_wf_focused = panel_wf.get();
-    return m_panels_wf.back().get();
+    return panel_wf.get();
 }
 
 PanelWorkflow* GraphN_Flow::get_active_wf_or_create_new()
@@ -157,9 +160,7 @@ PanelWorkflow* GraphN_Flow::get_active_wf_or_create_new()
         return m_wf_focused;
 
     auto wf = create_workflow();
-    auto& wf_data = wf->get_workflow_data();
-    wf_data.name = ICON_LC_WORKFLOW " Workflow " + std::to_string(++m_wf_name_counter);
-    create_wf_panel(wf);
+    m_wf_focused = create_wf_panel(wf);
     return m_wf_focused;
 }
 
@@ -170,6 +171,7 @@ data::Workflow* GraphN_Flow::create_workflow(const WfData* wf_data /*= nullptr*/
         wf = std::make_unique<data::Workflow>(*wf_data);
     else
         wf = std::make_unique<data::Workflow>();
+
     auto wf_ptr = wf.get();
     wf_ptr->init();
     wf_data = &wf_ptr->get_workflow_data();
@@ -200,8 +202,9 @@ void GraphN_Flow::destroy_workflow(data::Workflow* wf)
     }
     else
     {
-        m_workflows.erase(wf_it);
         Log("Workflow destroyed, id=" << wf->get_id());
+        m_panel_wf_list->remove_wf(wf);
+        m_workflows.erase(wf_it);
     }
 }
 
@@ -308,7 +311,6 @@ void GraphN_Flow::prepare_to_quit()
 {
     LogF_In;
 
-    // cleanup_empty_workflow_panels();
     for (auto& panel : m_panels_wf)
     {
         save_workflow(panel.get(), true);
@@ -320,6 +322,8 @@ void GraphN_Flow::prepare_to_quit()
             dlg->stop_all_threads();
     }
     m_all_dialogs.clear();
+    m_panels_wf.clear();
+    m_workflows.clear();
 
     if (m_nodes_parser)
         m_nodes_parser->stop();
@@ -574,9 +578,23 @@ void GraphN_Flow::on_menu_panel_window(ViewDialogs wnd)
         g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
-void GraphN_Flow::on_menu_wf(PanelWorkflow* /*wf*/)
+void GraphN_Flow::on_menu_wf(PanelWorkflow* wf_panel)
 {
     LogF;
+    if (wf_panel != nullptr)
+    {
+        auto wnd = ImGui::FindWindowByName(wf_panel->get_panel_name());
+        if (wnd != nullptr)
+        {
+            ImGui::BringWindowToDisplayFront(wnd);
+            m_wf_focused = wf_panel;
+        }
+    }
+    else
+    {
+        auto wf = create_workflow();
+        m_wf_focused = create_wf_panel(wf);
+    }
 }
     
 void GraphN_Flow::open_settings_dlg(OptPane section /*= OptPane::_none*/)
@@ -678,6 +696,7 @@ void GraphN_Flow::show_panel_wf()
             panel->stop_all_threads();
             on_dlg_closed(DlgObj::PanelWf);
 
+            m_all_dialogs.erase(panel.get());
             it = m_panels_wf.erase(it);
             destroy_workflow(wf);
         }
@@ -789,6 +808,8 @@ void GraphN_Flow::show_panels()
     if (ImGui::Begin("MainDockSpaceWindow", nullptr, window_flags))
     {
         const ImGuiID dockspace_id = ImGui::GetID(APP_CAPTION "_DockSpace");
+        m_main_dock_id = dockspace_id;
+
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
 
         if (m_windows & ViewPanelsResetAll)
@@ -800,8 +821,6 @@ void GraphN_Flow::show_panels()
             ImGui::DockBuilderRemoveNode(dockspace_id);
             ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
             ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
-
-            m_main_dock_id = dockspace_id;
 
             ImGuiID dock_id_left_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.2f, nullptr, &m_main_dock_id);
             ImGuiID dock_id_left_btm = ImGui::DockBuilderSplitNode(dock_id_left_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_left_top);

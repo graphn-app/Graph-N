@@ -85,9 +85,7 @@ public:
     void open_settings_dlg(OptPane section = OptPane::_none);
 
     data::Workflow* create_workflow(const WfData* wf_data = nullptr);
-    void destroy_workflow(data::Workflow* wf);
     void delete_workflow(data::Workflow* wf);
-
     PanelWorkflow* get_active_wf_or_create_new();
 
     void subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener);
@@ -122,12 +120,13 @@ private:
     void on_menu_quit();
     void on_menu_about();
     void on_menu_panel_window(ViewDialogs wnd);
-    void on_menu_wf(PanelWorkflow* wf);
+    void on_menu_wf(PanelWorkflow* wf_panel);
 
     void init_workflow_panels();
     PanelWorkflow* create_wf_panel(data::Workflow* wf);
     void cleanup_empty_workflow_panels();
     void save_workflow(PanelWorkflow* wf, bool last_call);
+    void destroy_workflow(data::Workflow* wf);
 
 private:
     bool m_online = false;
