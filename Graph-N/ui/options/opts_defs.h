@@ -1,20 +1,6 @@
 
 #pragma once
 
-enum class OptPane
-{
-    _none,
-
-    comfyui,
-    workflow,
-    stats,
-
-    _count,
-    _first = _none + 1,
-    _last = _count - 1,
-    _zero = _none
-};
-
 struct OptsData final
 {
     NO_COPY_MOVE_CTORS(OptsData);

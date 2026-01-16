@@ -9,10 +9,9 @@
 namespace ui
 {
 
-OptionsDlgs::OptionsDlgs(OptPane init_opt /*= OptPane::_none*/)
+OptionsDlgs::OptionsDlgs()
     : BaseDlgWithData(DlgObj::OptionsDlg)
 {
-    m_opts_data.pane.left_selected_item = init_opt;
 }
 
 OptionsDlgs::~OptionsDlgs()
@@ -28,7 +27,7 @@ void OptionsDlgs::init()
 
     const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
     data()->x = main_viewport->WorkSize.x / 2 - 300;
-    data()->y = main_viewport->WorkSize.y / 2 - 300;
+    data()->y = main_viewport->WorkSize.y / 2 - 400;
     data()->width = 650;
     data()->height = 680;
 
@@ -38,17 +37,17 @@ void OptionsDlgs::init()
     m_opts_data.buffer_i.resize(cast::to_szt(OptPane::_count));
     m_opts_data.buffer_s.resize(cast::to_szt(OptPane::_count));
 
-    m_opts_data.comfyui.buffer_s = &m_opts_data.buffer_s[cast::to_szt(OptPane::comfyui)];
-    m_opts_data.comfyui.buffer_i = &m_opts_data.buffer_i[cast::to_szt(OptPane::comfyui)];
+    m_opts_data.comfyui.buffer_s = &m_opts_data.buffer_s[cast::to_szt(OptPane::ComfyUi)];
+    m_opts_data.comfyui.buffer_i = &m_opts_data.buffer_i[cast::to_szt(OptPane::ComfyUi)];
 
-    m_opts_data.stats.buffer_s = &m_opts_data.buffer_s[cast::to_szt(OptPane::stats)];
-    m_opts_data.stats.buffer_i = &m_opts_data.buffer_i[cast::to_szt(OptPane::stats)];
+    m_opts_data.stats.buffer_s = &m_opts_data.buffer_s[cast::to_szt(OptPane::Stats)];
+    m_opts_data.stats.buffer_i = &m_opts_data.buffer_i[cast::to_szt(OptPane::Stats)];
 
     m_opts_data.pane.show_inner_child = (m_opts_data.pane.left_selected_item != OptPane::_none);
 
-    m_right_panes[OptPane::comfyui] = std::make_unique<OptComfyDlg>();
-    m_right_panes[OptPane::workflow] = std::make_unique<OptWorkflowDlg>();
-    m_right_panes[OptPane::stats] = std::make_unique<OptStatsDlg>();
+    m_right_panes[OptPane::ComfyUi] = std::make_unique<OptComfyDlg>();
+    m_right_panes[OptPane::Wf] = std::make_unique<OptWorkflowDlg>();
+    m_right_panes[OptPane::Stats] = std::make_unique<OptStatsDlg>();
 
     for (uint64_t i = cast::to_u64(OptPane::_first); i <= cast::to_u64(OptPane::_last); i++)
     {
@@ -59,6 +58,7 @@ void OptionsDlgs::init()
 void OptionsDlgs::select_right_pane(OptPane pane)
 {
     m_opts_data.pane.left_selected_item = pane;
+    m_opts_data.pane.show_inner_child = true;
 }
 
 DlgCode OptionsDlgs::show(bool& /*focused*/)
@@ -72,6 +72,8 @@ DlgCode OptionsDlgs::show(bool& /*focused*/)
     bool opened = true;
     if (ImGui::Begin("Options##Opt", &opened, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
     {
+        ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+
         show_left_pane();
         show_right_pane();
     }
@@ -84,19 +86,19 @@ void OptionsDlgs::show_left_pane()
     {
         const auto avail_h = ImGui::GetContentRegionAvail().y;
 
-        if (ImGui::Selectable(APP_COMFYUI "##LeftPane", OptPane::comfyui == m_opts_data.pane.left_selected_item))
+        if (ImGui::Selectable(APP_COMFYUI "##LeftPane", OptPane::ComfyUi == m_opts_data.pane.left_selected_item))
         {
-            m_opts_data.pane.left_selected_item = OptPane::comfyui;
+            m_opts_data.pane.left_selected_item = OptPane::ComfyUi;
             m_opts_data.pane.show_inner_child = true;
         }
-        if (ImGui::Selectable("Workflow##LeftPane", OptPane::workflow == m_opts_data.pane.left_selected_item))
+        if (ImGui::Selectable("Workflow##LeftPane", OptPane::Wf == m_opts_data.pane.left_selected_item))
         {
-            m_opts_data.pane.left_selected_item = OptPane::workflow;
+            m_opts_data.pane.left_selected_item = OptPane::Wf;
             m_opts_data.pane.show_inner_child = true;
         }
-        if (ImGui::Selectable("Stats##LeftPane", OptPane::stats == m_opts_data.pane.left_selected_item))
+        if (ImGui::Selectable("Stats##LeftPane", OptPane::Stats == m_opts_data.pane.left_selected_item))
         {
-            m_opts_data.pane.left_selected_item = OptPane::stats;
+            m_opts_data.pane.left_selected_item = OptPane::Stats;
             m_opts_data.pane.show_inner_child = true;
         }
         
@@ -106,6 +108,7 @@ void OptionsDlgs::show_left_pane()
         ImGui::PopStyleColor();
         if (restart)
         {
+            // TODO
             // restart
         }
     }

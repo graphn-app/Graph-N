@@ -33,9 +33,6 @@ enum ViewDialogs
     ViewNone                    = 0x00000000,
     // options
     ViewOptions                 = 0x00000001,
-    ViewOptsComfyUi             = 0x00000002,
-    ViewOptsStats               = 0x00000200,
-    ViewOptsWf                  = 0x00000400,
     // status & control bar
     ViewConnect                 = 0x00000004,
     ViewParsingNodes            = 0x00000008,
@@ -60,9 +57,8 @@ enum ViewDialogs
     ViewStyleSelector           = 0x20000000,
     ViewFontSelector            = 0x40000000,
 
-    _ViewNextAvail              = 0x00020000,
+    _ViewNextAvail              = 0x00080000,
 
-    ViewAllOptions              = ViewOptions | ViewOptsComfyUi | ViewOptsStats | ViewOptsWf,
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWf | ViewPanelWfList | ViewPanelModels |
                                   ViewPanelTemplates | ViewPanelOutput | ViewPanelNotes,
@@ -86,7 +82,7 @@ public:
 
     void reconnect();
 
-    void open_settings_dlg(ViewDialogs specific_section = ViewNone);
+    void open_settings_dlg(OptPane section = OptPane::_none);
 
     data::Workflow* create_workflow(const WfData* wf_data = nullptr);
     void destroy_workflow(data::Workflow* wf);

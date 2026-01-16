@@ -10,7 +10,7 @@ class OptRightPane;
 class OptionsDlgs final : public BaseDlgWithData<DlgData>
 {
 public:
-    OptionsDlgs(OptPane init_opt = OptPane::_none);
+    OptionsDlgs();
     ~OptionsDlgs() override;
 
     void init() override;

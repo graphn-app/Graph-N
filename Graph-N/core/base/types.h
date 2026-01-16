@@ -50,6 +50,19 @@ enum class DlgObj
     _last = _count - 1,
 };
 
+enum class OptPane
+{
+    _none,
+
+    ComfyUi,
+    Stats,
+    Wf,
+
+    _count,
+    _first = _none + 1,
+    _last = _count - 1
+};
+
 enum DlgCtrl
 {
     //_none = 0,

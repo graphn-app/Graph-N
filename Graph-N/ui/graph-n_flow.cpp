@@ -247,7 +247,7 @@ bool GraphN_Flow::run()
 {
     show_menu_bar();
 
-    if (m_windows & ViewOptions || m_windows & ViewOptsComfyUi)
+    if (m_windows & ViewOptions)
     {
         show_options_dlg();
     }
@@ -503,7 +503,7 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
     switch (dlg)
     {
     case DlgObj::OptionsDlg:
-        m_windows &= ~ViewAllOptions;
+        m_windows &= ~ViewOptions;
         m_all_dialogs.erase(m_opts_dlg.get());
         m_opts_dlg.reset();
         Log("Options dlg closed");
@@ -579,35 +579,18 @@ void GraphN_Flow::on_menu_wf(PanelWorkflow* /*wf*/)
     LogF;
 }
     
-void GraphN_Flow::open_settings_dlg(ViewDialogs specific_section /*= ViewNone*/)
+void GraphN_Flow::open_settings_dlg(OptPane section /*= OptPane::_none*/)
 {
-    m_windows |= (ViewOptions | specific_section);
-    if (m_opts_dlg)
-    {
-        switch (specific_section)
-        {
-        case ViewOptsComfyUi:
-            m_opts_dlg->select_right_pane(OptPane::comfyui);
-            break;
-        case ViewOptsStats:
-            m_opts_dlg->select_right_pane(OptPane::stats);
-            break;
-        case ViewOptsWf:
-            m_opts_dlg->select_right_pane(OptPane::workflow);
-            break;
-        }
-    }
+    m_windows |= ViewOptions;
+    show_options_dlg();
+    m_opts_dlg->select_right_pane(section);
 }
 
 void GraphN_Flow::show_options_dlg()
 {
     if (!m_opts_dlg)
     {
-        OptPane pane = OptPane::_none;
-        if (m_windows & ViewOptsComfyUi)
-            pane = OptPane::comfyui;
-
-        m_opts_dlg = std::make_unique<ui::OptionsDlgs>(pane);
+        m_opts_dlg = std::make_unique<ui::OptionsDlgs>();
         m_opts_dlg->init();
         m_all_dialogs.insert(m_opts_dlg.get());
         Log("OptionsDlg initialized");
