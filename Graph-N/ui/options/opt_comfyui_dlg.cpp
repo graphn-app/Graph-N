@@ -61,29 +61,32 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
     auto& buffer_i = *data.comfyui.buffer_i;
 
     constexpr const float padding = 6.0f;
-    const auto avail_x = ImGui::GetContentRegionAvail().x;
     ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(padding, padding));
 
     ImGui::BeginGroup();
 
+    const auto avail_x = ImGui::GetContentRegionAvail().x;
+    const auto item_w = avail_x - data.input_offset_x - data.help_mark_w;
+    const auto offset = data.input_offset_x + data.help_mark_w;
+
     ///////////////       ComfyUI address
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), avail_x - padding, APP_COMFYUI " Address");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), item_w, APP_COMFYUI " Address");
     ImGui::Spacing();
 
 
     ///////////////       host
     ImGui::TextUnformatted("Host:");
     ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
-    ImGui::SetNextItemWidth(avail_x - padding);
+    ImGui::SetCursorPosX(offset);
+    ImGui::SetNextItemWidth(item_w);
     m_data_changed = ImGuiEx::InputText("##ComfyUIHost", &buffer_s[BuffHost], ImGuiInputTextFlags_AutoSelectAll) || m_data_changed;
 
 
     ///////////////       port
     ImGui::TextUnformatted("Port:");
     ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
-    ImGui::SetNextItemWidth(avail_x - padding);
+    ImGui::SetCursorPosX(offset);
+    ImGui::SetNextItemWidth(item_w);
     m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIPort", &buffer_i[BuffPort], 1, 65535, "%u") || m_data_changed;
 
 
@@ -96,8 +99,8 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
     ImGui::TextUnformatted("Connect Timeout:");
     show_help_mark(help_text, data.input_offset_x, true, "Max time (seconds) to wait for the server to accept a connection.\n\nLocal servers usually connect instantly (1-2s).");
     ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
-    ImGui::SetNextItemWidth(avail_x - padding);
+    ImGui::SetCursorPosX(offset);
+    ImGui::SetNextItemWidth(item_w);
     m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIConnTime", &buffer_i[BuffConnTM], 0, 30, "%llu sec") || m_data_changed;
 
 
@@ -105,15 +108,15 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
     ImGui::TextUnformatted("Read Timeout:");
     show_help_mark(help_text, data.input_offset_x, true, "Max time (seconds) to wait for a response (e.g., JSON workflow).\n\nIncrease this if loading large workflows over a slow network.");
     ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
-    ImGui::SetNextItemWidth(avail_x - padding);
+    ImGui::SetCursorPosX(offset);
+    ImGui::SetNextItemWidth(item_w);
     m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIReadTime", &buffer_i[BuffReadTM], 0, 30, "%llu sec") || m_data_changed;
 
 
     /////////////// apply
     ImGuiEx::Spacing(2);
 
-    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
+    ImGui::SetCursorPosX(offset);
     if (!m_data_changed)
         ImGui::BeginDisabled();
     else
@@ -122,7 +125,7 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, g::pOptsManager->color_load(AppColor::OptBtnHover));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,  g::pOptsManager->color_load(AppColor::OptBtnPressed));
     }
-    const bool click = ImGui::Button("Save/Apply connection settings##applyconn", ImVec2(avail_x - padding, 0));
+    const bool click = ImGui::Button("Save/Apply connection settings##applyconn", ImVec2(item_w, 0));
     if (!m_data_changed)
         ImGui::EndDisabled();
     else
