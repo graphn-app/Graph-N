@@ -22,8 +22,9 @@ uint64_t hash_fnv1a(const void* data, size_t size);
 uint64_t hash_fnv1a(const char* data, size_t size);
 uint64_t hash_fnv1a(size_t data);
 uint64_t hash_fnv1a(const std::string& data);
+uint32_t crc32(const std::string& data);
 
-std::string generate_guid();
+std::string generate_uuid_v4();
 
 } // namespace str
 

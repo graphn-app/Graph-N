@@ -164,21 +164,66 @@ uint64_t hash_fnv1a(const std::string& data)
     return hash_fnv1a((const void*)data.c_str(), data.size());
 }
 
-std::string generate_guid()
+uint32_t crc32(const std::string& data)
 {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    static std::uniform_int_distribution<> dis(0, 15);
-    static std::uniform_int_distribution<> dis2(8, 11);
+    const auto generate_table = []()
+    {
+        std::array<uint32_t, 256> table;
+        uint32_t polynomial = 0xEDB88320;
+
+        for (uint32_t i = 0; i < 256; ++i)
+        {
+            uint32_t crc = i;
+            for (int j = 0; j < 8; ++j)
+            {
+                if (crc & 1)
+                    crc = (crc >> 1) ^ polynomial;
+                else
+                    crc >>= 1;                
+            }
+            table[i] = crc;
+        }
+        return table;
+    };
+    static std::array<uint32_t, 256> table = generate_table();
+
+    const char* pdata = data.c_str();
+    const size_t length = data.size();
+    uint32_t crc = 0xFFFFFFFF;
+
+    for (size_t i = 0; i < length; ++i)
+    {
+        const uint8_t byte = static_cast<uint8_t>(pdata[i]);
+        const uint32_t lookup_index = (crc ^ byte) & 0xFF;
+        crc = (crc >> 8) ^ table[lookup_index];
+    }
+
+    return ~crc;
+}
+
+std::string generate_uuid_v4()
+{
+    static thread_local std::random_device rd;
+    static thread_local std::mt19937_64 gen(rd());
+    static thread_local std::uniform_int_distribution<uint64_t> dis;
+
+    uint64_t part1 = dis(gen); 
+    uint64_t part2 = dis(gen);
+
+    // version
+    part1 = (part1 & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;
+    // variant
+    part2 = (part2 & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
 
     std::stringstream ss;
-    int32_t i;
-    ss << std::hex;
-    for (i = 0; i < 12; i++) ss << dis(gen);
-    ss << "4";
-    for (i = 0; i < 3; i++) ss << dis(gen);
-    ss << dis2(gen);
-    for (i = 0; i < 15; i++) ss << dis(gen);
+    ss << std::hex << std::setfill('0');
+
+    // UUID : 8-4-4-4-12 
+    ss << std::setw(8) << (part1 >> 32) << "-";
+    ss << std::setw(4) << ((part1 >> 16) & 0xFFFF) << "-";
+    ss << std::setw(4) << (part1 & 0xFFFF) << "-";
+    ss << std::setw(4) << (part2 >> 48) << "-";
+    ss << std::setw(12) << (part2 & 0xFFFFFFFFFFFFULL);
 
     return ss.str();
 }

@@ -4,9 +4,8 @@ using byte = uint8_t;
 using app_version_type = uint64_t;
 using time_type = uint64_t;
 using lid = uint32_t;	// local ID
-using rid = uint64_t;	// unique random id
 using hid = size_t;		// hash id, based on unique node/pin name
-using iid = lid;	    // instance id, to save in json
+using iid = uint32_t;	// instance id, to save in json
 using gid = uint64_t;	// app global id, to use in graph, based on workflow id
 using byte_buff = std::vector<byte>;
 using primitive = std::variant<int64_t, uint64_t, double, std::string, bool, std::monostate>;
@@ -195,13 +194,12 @@ enum class AppColor
 
 struct WfData
 {
-    rid id = 0;
-    std::string id_str;
+    std::string uuid;
     std::string name;
     std::string json;
     bool open = false;
     bool fav = false;
-    size_t nodes_inside = 0;
+    uint32_t nodes_inside = 0;
     bool deleted = false;
 };
 

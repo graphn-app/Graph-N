@@ -153,7 +153,7 @@ private:
     PanelWorkflow* m_wf_focused = nullptr;
     size_t m_wf_name_counter = 0;
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
-    std::map<rid, std::unique_ptr<data::Workflow>> m_workflows;
+    std::map<std::string, std::unique_ptr<data::Workflow>> m_workflows;
 
     std::list<mngr::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
 };

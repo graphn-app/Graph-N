@@ -70,8 +70,7 @@ int do_main(std::atomic_bool& request_focus)
 
 int main(int, char**)
 {
-    // ::MessageBoxW(nullptr, L"Attach", APP_CAPTION_W, MB_ICONEXCLAMATION);
-
+    base::GlobalID::client_id();
     tools::dt::save_app_start_time();
     glog::LogGuard logger;    
 

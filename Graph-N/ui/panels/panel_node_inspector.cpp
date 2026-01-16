@@ -12,7 +12,7 @@ namespace ui
 {
 
 PanelNodeInspector::PanelNodeInspector()
-    : PanelBase(DlgObj::PanelNodeInspector, ICON_LC_TANGENT " Node Inspector", ICON_LC_TANGENT, "95E5A1E7883E495E8712FA33A123F3BB")
+    : PanelBase(DlgObj::PanelNodeInspector, ICON_LC_TANGENT " Node Inspector", ICON_LC_TANGENT, "B25FAE70-E031-4C9A-A682-8E182609536E")
 {}
 
 PanelNodeInspector::~PanelNodeInspector()

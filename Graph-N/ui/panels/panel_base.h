@@ -29,9 +29,10 @@ public:
     ~PanelBase() override = default;
 
     const char* get_panel_name() const { return m_panel_name.c_str(); }
+    const char* get_panel_id() const { return m_panel_id.c_str(); }
 
 protected:
-    bool begin_panel(bool& opened, bool& focused, ImU32 bg_color = IM_COL32_BLACK)
+    bool begin_panel(bool& opened, bool& focused, ImU32 bg_color, bool save_pos = true)
     {
         // m_class.ClassId = cast::to_u32(data()->class_id);
         // ImGui::SetNextWindowClass(&m_class);
@@ -43,7 +44,7 @@ protected:
         opened = true;
         focused = false;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, bg_color);
-        const bool expanded = ImGui::Begin(name->c_str(), &opened);
+        const bool expanded = ImGui::Begin(name->c_str(), &opened, save_pos ? ImGuiWindowFlags_None : ImGuiWindowFlags_NoSavedSettings);
         m_panel_w = ImGui::GetWindowWidth();
 
         if (expanded && m_need_focus)

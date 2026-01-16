@@ -7,28 +7,29 @@ namespace base
 /////   GlobalID        /////////////////////
 /////////////////////////////////////////////
 
-class GlobalID
+class GlobalID final
 {
 public:
+    static std::string uuid();
+    static std::string client_id();
+
+private:
     GlobalID();
-    GlobalID(rid id);
-    virtual ~GlobalID() = 0;
+    ~GlobalID() = default;
 
     NO_COPY_MOVE(GlobalID);
 
-    rid get_id() const { return m_id; }
-    const std::string& get_id_str() const { return m_id_str; }
-    void set_id(rid id);
-
-    static void set_last_id(rid id);
-    static rid get_next_id();
-    static std::string get_client_id();
+    static GlobalID& instance()
+    {
+        static GlobalID inst;
+        return inst;
+    }
 
 private:
-    static std::atomic<rid> m_last_id;
-    static std::string m_client_id;
-    rid m_id = 0;
-    std::string m_id_str;
+    std::mt19937_64 m_gen;
+    std::mutex m_lock;
+    std::once_flag m_flag;
+    std::string m_client_id;
 };
 
 /////////////////////////////////////////////

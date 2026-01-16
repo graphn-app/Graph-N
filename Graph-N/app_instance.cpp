@@ -36,7 +36,7 @@ AppInstance::AppInstance(WakeUpCallback on_wake_up)
         }
     }
 
-    // we're the first nstance
+    // we're the first instance
     // search for available port
     const int port = m_server->bind_to_any_port("127.0.0.1");
     if (port > 0)

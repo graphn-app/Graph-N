@@ -13,7 +13,7 @@ namespace ui
 {
 
 PanelNodes::PanelNodes(PanelNodeInspector* inspector)
-    : PanelBase(DlgObj::PanelNodes, ICON_LC_BOOK_OPEN " Node Library", ICON_LC_BOOK_OPEN, "0C72C6D56FFC4902A037A187719CA0AC")
+    : PanelBase(DlgObj::PanelNodes, ICON_LC_BOOK_OPEN " Node Library", ICON_LC_BOOK_OPEN, "02EE3A92-9ED3-44AD-A285-95FD52C78BE3")
     , m_inspector(inspector)
 {}
 

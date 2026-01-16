@@ -11,8 +11,8 @@ namespace data
 
 Workflow::Workflow()
 {
-    m_wf_data.id = get_id();
-    m_wf_data.id_str = get_id_str();
+    m_wf_data.uuid = base::GlobalID::uuid();
+    m_id_crc32 = tools::str::crc32(m_wf_data.uuid);
 
     m_nodes.reserve(30);
     m_pins.reserve(70);
@@ -23,7 +23,7 @@ Workflow::Workflow(const WfData& data)
     : Workflow()
 {
     m_wf_data = data;
-    set_id(m_wf_data.id);
+    m_id_crc32 = tools::str::crc32(m_wf_data.uuid);
 }
 
 Workflow::~Workflow()
@@ -39,84 +39,52 @@ void Workflow::init()
 void Workflow::stop_all_threads()
 {}
 
-//
-//NodeInstance* Workflow::find_node(gid node_id) const
-//{
-//    const auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
-//        [node_id](const std::unique_ptr<NodeInstance>& node)
-//        {
-//            if (!node || !node->get_object())
-//                return false;
-//            return node->get_graph_id() == node_id;
-//        }
-//    );
-//
-//    if (it == m_nodes.end())
-//        return nullptr;
-//    return (*it).get();
-//}
-//
-//PinInstance* Workflow::find_pin(gid Pin_id) const
-//{
-//    const auto it = std::find_if(m_pins.begin(), m_pins.end(),
-//        [Pin_id](const std::unique_ptr<PinInstance>& pin)
-//        {
-//            if (!pin || !pin->get_object())
-//                return false;
-//            return pin->get_graph_id() == Pin_id;
-//        }
-//    );
-//}
-//
-//Link* Workflow::find_link(gid link_id) const
-//{
-//    const auto it = std::find_if(m_links.begin(), m_links.end(),
-//        [link_id](const std::unique_ptr<Link>& link)
-//        {
-//            if (!link)
-//                return false;
-//            return link->get_graph_id() == link_id;
-//        }
-//    );
-//}
+std::pair<gid, iid> Workflow::get_new_child_id()
+{
+    const iid child_id = ++m_child_id;
+    const gid graph_id = (uint64_t(m_id_crc32) << 32) | child_id;
+    return std::make_pair(graph_id, child_id);
+}
+
+uint32_t Workflow::get_wf_id_by_child_gid(gid child_id)
+{
+    return cast::to_u32(child_id >> 32);
+}
+
+uint32_t Workflow::get_child_id_by_child_gid(gid child_id)
+{
+    return cast::to_u32(child_id); // just cut
+}
 
 NodeInstance* Workflow::add_node(data::Node* node)
 {
-    const gid big_id = get_id();
-    const iid instance_id = ++m_child_id;
-    const gid graph_id = (big_id << 32) | instance_id;
-
-    auto instance = std::make_unique<NodeInstance>(this, node, instance_id, graph_id);
+    const auto id = get_new_child_id();
+    auto instance = std::make_unique<NodeInstance>(this, node, id.second, id.first);
     auto ptr = instance.get();
     ptr->init();
     m_nodes.push_back(std::move(instance));
-    Log("Node added hid=" << node->get_id() << ", iid=" << instance_id << ", gid=" << graph_id);
+    Log("Node added hid=" << node->get_id() << ", iid=" << id.second << ", gid=" << id.first);
     return ptr;
 }
 
 PinInstance* Workflow::add_pin(data::Pin* pin)
 {
-    const iid instance_id = ++m_child_id;
-    const gid big_id = get_id();
-    const gid graph_id = (big_id << 32) | instance_id;
-
-    auto instance = std::make_unique<PinInstance>(this, pin, instance_id, graph_id);
+    const auto id = get_new_child_id();
+    auto instance = std::make_unique<PinInstance>(this, pin, id.second, id.first);
     auto ptr = instance.get();
     ptr->init();
     m_pins.push_back(std::move(instance));
-    Log("Pin added hid=" << pin->get_id() << ", iid=" << instance_id << ", gid=" << graph_id);
+    Log("Pin added hid=" << pin->get_id() << ", iid=" << id.second << ", gid=" << id.first);
     return ptr;
 }
 
 Link* Workflow::add_link()
 {
-    const gid big_id = get_id();
-    const gid graph_id = (big_id << 32) | (++m_child_id);
-
-    auto link = std::make_unique<Link>(this, graph_id);
+    const auto id = get_new_child_id();
+    auto link = std::make_unique<Link>(this, id.first);
     auto ptr = link.get();
     m_links.push_back(std::move(link));
-    Log("Link added gid=" << link->get_graph_id());
+    Log("Link added gid=" << id.first);
     return ptr;
 }
 

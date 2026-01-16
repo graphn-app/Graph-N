@@ -37,8 +37,6 @@ GraphN::~GraphN()
 
 bool GraphN::init_graphn()
 {
-    base::GlobalID::get_client_id();	// initialize unique client id
-
     m_managers.emplace_back(std::make_unique<mngr::DbManager>());
     g::pDbManager = (mngr::DbManager*)m_managers.back().get();
 

@@ -6,63 +6,52 @@ namespace base
 /////   GlobalID        /////////////////////
 /////////////////////////////////////////////
 
-std::atomic<rid> GlobalID::m_last_id;
-std::string GlobalID::m_client_id;
-
 GlobalID::GlobalID()
+    : m_gen(std::random_device{}())
 {
-    set_id(get_next_id());
 }
 
-GlobalID::GlobalID(rid id)
+std::string GlobalID::client_id()
 {
-    set_id(id);
-}
-
-GlobalID::~GlobalID() = default;
-
-void GlobalID::set_id(rid id)
-{
-    m_id = id;
-    m_id_str = std::to_string(m_id);
-}
-
-void GlobalID::set_last_id(rid id)
-{
-    if (id > 0 && std::to_string(id) != m_client_id)
+    auto& self = instance();
+    std::call_once(self.m_flag, [&self]()
     {
-        m_last_id = id;
-        Log("GID initial value: " << m_last_id);
-    }
+        std::lock_guard<std::mutex> lock(self.m_lock);
+        std::uniform_int_distribution<uint64_t> dist;
+        const uint64_t id = dist(self.m_gen);
+        self.m_client_id = std::to_string(id);
+    });
+
+    return self.m_client_id;
 }
 
-rid GlobalID::get_next_id()
+std::string GlobalID::uuid()
 {
-    if (0 == m_last_id)
+    uint64_t part1 = 0, part2 = 0;
     {
-        // should never be greater than LLONG_MAX (9'223'372'036'854'775'807)
-
-        const auto now = std::chrono::high_resolution_clock::now();
-        const auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
-        std::mt19937_64 rng(nanos);
-        const std::uniform_int_distribution<uint64_t> dist(1'123'456'789, 9'999'999'999'999);
-        m_last_id = dist(rng);
-        Log("GID initial value: " << m_last_id);
+        auto& self = instance();
+        std::lock_guard<std::mutex> lock(self.m_lock);
+        std::uniform_int_distribution<uint64_t> dist;
+        part1 = dist(self.m_gen);
+        part2 = dist(self.m_gen);
     }
 
-    if (std::to_string(++m_last_id) == m_client_id)
-        return get_next_id();
-    return m_last_id;
-}
+    // version
+    part1 = (part1 & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;
+    // variant
+    part2 = (part2 & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
 
-std::string GlobalID::get_client_id()
-{
-    if (m_client_id.empty())
-    {
-        m_client_id = std::to_string(get_next_id());
-        Log("ClientID initialized: " << m_last_id);
-    }
-    return m_client_id;
+    std::stringstream ss;
+    ss << std::hex << std::setfill('0');
+
+    // UUID : 8-4-4-4-12 
+    ss << std::setw(8) << (part1 >> 32) << "-";
+    ss << std::setw(4) << ((part1 >> 16) & 0xFFFF) << "-";
+    ss << std::setw(4) << (part1 & 0xFFFF) << "-";
+    ss << std::setw(4) << (part2 >> 48) << "-";
+    ss << std::setw(12) << (part2 & 0xFFFFFFFFFFFFULL);
+
+    return ss.str();
 }
 
 /////////////////////////////////////////////

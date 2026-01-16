@@ -127,17 +127,15 @@ void GraphN_Flow::init_workflow_panels()
         auto& wf_data = wf->get_workflow_data();
         wf_data.name = ICON_LC_WORKFLOW " Workflow " + std::to_string(++m_wf_name_counter);
         m_wf_focused = create_wf_panel(wf);
-
-        // cleanup_empty_workflow_panels();
     }
     else
     {
-        auto wfs_data = g::pDbManager->wf_load_meta();
+        auto wfs_data = g::pDbManager->wf_load_meta_delete_empty();
         for (auto& wf_data : wfs_data)
         {
             auto wf = create_workflow(&wf_data);
             auto panel = create_wf_panel(wf);
-            if (g::pOptsManager->wf_active_load() == wf->get_id_str())
+            if (g::pOptsManager->wf_active_load() == wf->get_id())
                 m_wf_focused = panel;
         }
     }
@@ -145,10 +143,11 @@ void GraphN_Flow::init_workflow_panels()
 
 PanelWorkflow* GraphN_Flow::create_wf_panel(data::Workflow* wf)
 {
-    m_panels_wf.push_back(std::make_unique<ui::PanelWorkflow>(wf, wf->get_workflow_data().name.c_str(), wf->get_workflow_data().id_str.c_str()));
+    m_panels_wf.push_back(std::make_unique<ui::PanelWorkflow>(wf, wf->get_workflow_data().name.c_str(), wf->get_id().c_str()));
     auto& panel_wf = m_panels_wf.back();
     panel_wf->init();
     m_all_dialogs.insert(panel_wf.get());
+    m_wf_focused = panel_wf.get();
     return m_panels_wf.back().get();
 }
 
@@ -160,7 +159,7 @@ PanelWorkflow* GraphN_Flow::get_active_wf_or_create_new()
     auto wf = create_workflow();
     auto& wf_data = wf->get_workflow_data();
     wf_data.name = ICON_LC_WORKFLOW " Workflow " + std::to_string(++m_wf_name_counter);
-    m_wf_focused = create_wf_panel(wf);
+    create_wf_panel(wf);
     return m_wf_focused;
 }
 
@@ -173,8 +172,9 @@ data::Workflow* GraphN_Flow::create_workflow(const WfData* wf_data /*= nullptr*/
         wf = std::make_unique<data::Workflow>();
     auto wf_ptr = wf.get();
     wf_ptr->init();
-    m_workflows.emplace(wf_ptr->get_id(), std::move(wf));
-    Log("Workflow created, id=" << wf_ptr->get_id());
+    wf_data = &wf_ptr->get_workflow_data();
+    m_workflows.emplace(wf_data->uuid, std::move(wf));
+    Log("Workflow created, id=" << wf_data->uuid);
     return wf_ptr;
 }
 
@@ -684,7 +684,7 @@ void GraphN_Flow::show_panel_wf()
         else if (focused)
         {
             m_wf_focused = panel.get();
-            g::pOptsManager->wf_active_save(m_wf_focused->get_workflow()->get_id_str());
+            g::pOptsManager->wf_active_save(m_wf_focused->get_workflow()->get_id());
             ++it;
         }
         else

@@ -140,6 +140,7 @@ void Logger::log_start()
             << "trylock__\n"
             << m_proc_id << "Log started: " << tools::dt::get_app_start_time().as_log_line() << "\n"
             << m_proc_id << "App version: " << ver::ver_as_string() << "\n"
+            << m_proc_id << "Generated client id: " << base::GlobalID::client_id() << "\n"
 #ifdef _WIN32
             << m_proc_id << "Command line: " << " " << GetCommandLineA() << "\n"
 #elif defined __APPLE__

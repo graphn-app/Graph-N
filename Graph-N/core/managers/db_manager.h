@@ -58,7 +58,7 @@ public:
     std::vector<std::pair<hid, Value>> node_option_load_all(NodeOption opt);
 
     void wf_delete(const WfData& wf);
-    std::vector<WfData> wf_load_meta();
+    std::vector<WfData> wf_load_meta_delete_empty();
     void wf_update_meta(const WfData& wf);
     void wf_load_json(WfData& wf);
     void wf_update_json(const WfData& wf);    

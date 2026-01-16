@@ -6,7 +6,7 @@ namespace ui
 {
 
 PanelOutput::PanelOutput()
-    : PanelBase(DlgObj::PanelOutput, ICON_LC_TERMINAL " Server Log", ICON_LC_TERMINAL, "C6A08A28C37349F6B3114382D7C9547B")
+    : PanelBase(DlgObj::PanelOutput, ICON_LC_TERMINAL " Server Log", ICON_LC_TERMINAL, "10AAC62E-FEF9-4834-986C-70A5664DE9C4")
 {}
 
 PanelOutput::~PanelOutput()

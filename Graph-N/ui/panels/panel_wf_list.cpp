@@ -5,7 +5,7 @@ namespace ui
 {
 
 PanelWfList::PanelWfList()
-    : PanelBase(DlgObj::PanelWfList, ICON_LC_LIBRARY " Projects", ICON_LC_LIBRARY, "558090508C5B446BB53B6A072EC087E8")
+    : PanelBase(DlgObj::PanelWfList, ICON_LC_LIBRARY " Projects", ICON_LC_LIBRARY, "0EE80880-D72D-48A6-808A-187FE7A17A71")
 {}
 
 PanelWfList::~PanelWfList()
@@ -28,7 +28,7 @@ void PanelWfList::stop_all_threads()
 DlgCode PanelWfList::show(bool& focused)
 {
     bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg) && opened)
+    if (begin_panel(opened, focused, data()->clr_bg, false) && opened)
     {
         show_empty_panel_descr(
             ICON_LC_INFO " My Projects.",

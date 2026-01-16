@@ -18,6 +18,8 @@ inline constexpr auto gdb_val_opt = "option";
 inline constexpr auto gdb_val_open = "open";
 inline constexpr auto gdb_val_fav = "favourite";
 inline constexpr auto gdb_val_json = "json";
+inline constexpr auto gdb_val_uuid = "uuid";
+inline constexpr auto gdb_val_nodes = "nodes";
 
 inline constexpr auto gdb_tbl_err = "ERRORS";
 inline constexpr auto gdb_tbl_opt = "SETTINGS";
@@ -53,11 +55,11 @@ ________________________________________________________________________________
 
 
 _______________________________________________________________________________________________________________________________________________________________
-WORKFLOWS:    | id        | hash                | name                     | open          | favourite     | json           | at
+WORKFLOWS:    | id        | uuid                | name                     | open          | favourite     | json           | nodes         | at
 ______________|------------------------------------------------------------------------------------------------------------------------------------------------
-              | int       | str                 | str                      | int           | int           | str            | datetime
+              | int       | str                 | str                      | int           | int           | str            | int           | datetime
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-              | prim      | rid as string       | name (caption)           | is open       | is favourited | json-view      | create/update time
+              | prim      | id of WF as uuid    | name (caption)           | is open       | is favourited | json-view      | num of nodes  | create/update time
 _______________________________________________________________________________________________________________________________________________________________
 */
 
@@ -134,9 +136,10 @@ bool DbManager::init()
 						{} INTEGER,
 						{} INTEGER,
                         {} TEXT,
+						{} INTEGER,
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
-				)", gdb_tbl_wf, gdb_val_id, gdb_val_hash, gdb_val_name, gdb_val_open, gdb_val_fav, gdb_val_json, gdb_val_when));
+				)", gdb_tbl_wf, gdb_val_id, gdb_val_uuid, gdb_val_name, gdb_val_open, gdb_val_fav, gdb_val_json, gdb_val_nodes, gdb_val_when));
     }
     catch (const SQLite::Exception& ex)
     {
@@ -222,11 +225,11 @@ void DbManager::option_save_all(const std::vector<DbOption>& opts)
 {
     try
     {
+        SQLite::Transaction transaction(*m_db);
         SQLite::Statement query(*m_db,
             fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}, {}) VALUES (?, ?, ?)"),
                 gdb_tbl_opt, gdb_val_name, gdb_val_int, gdb_val_str));
 
-        SQLite::Transaction transaction(*m_db);
         for (auto& opt : opts)
         {
             query.bindNoCopy(1, opt.name);
@@ -319,41 +322,87 @@ std::vector<std::pair<hid, Value>> DbManager::node_option_load_all(NodeOption op
     return {};
 }
 
-void DbManager::wf_delete(const WfData& /*wf*/)
-{
-    // TODO
-}
-
-std::vector<WfData> DbManager::wf_load_meta()
+void DbManager::wf_delete(const WfData& wf)
 {
     try
     {
         SQLite::Statement query(*m_db,
-            fmt::format(FMT_COMPILE("SELECT {}, {}, {}, {} FROM {}"),
-                gdb_val_name, gdb_val_hash, gdb_val_open, gdb_val_fav, gdb_tbl_wf));
+            fmt::format(FMT_COMPILE("DELETE FROM {} WHERE {} = ?"),
+                gdb_tbl_wf, gdb_val_uuid));
 
-        std::vector<WfData> wfs;
+        query.bindNoCopy(1, wf.uuid);
+        query.exec();
+        Log("Del workflow " << wf.name << "###" << wf.uuid << ", o=" << wf.open << ", fv=" << wf.fav << ", n=" << wf.nodes_inside);
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::SQLite, "SQLite upd workflow " << wf.name << "###" << wf.uuid << ", " << LOG_EXP(ex));
+    }
+}
+
+std::vector<WfData> DbManager::wf_load_meta_delete_empty()
+{
+    std::vector<WfData> wfs, del;
+    try
+    {
+        SQLite::Statement query(*m_db,
+            fmt::format(FMT_COMPILE("SELECT {}, {}, {}, {}, {} FROM {}"),
+                gdb_val_name, gdb_val_uuid, gdb_val_open, gdb_val_fav, gdb_val_nodes, gdb_tbl_wf));
+
         while(query.executeStep())
         {
             if (query.getColumn(0).isNull() || query.getColumn(1).isNull())
                 continue;
+            
+            WfData wfd;
+            wfd.name = query.getColumn(0).getString();
+            wfd.uuid = query.getColumn(1).getString();
+            wfd.open = !query.getColumn(2).isNull() && query.getColumn(2).getInt() == 1;
+            wfd.fav = !query.getColumn(3).isNull() && query.getColumn(3).getInt() == 1;
+            wfd.nodes_inside = query.getColumn(4).getInt();
 
-            wfs.push_back({});
-            WfData& wf = wfs.back();
-            wf.name = query.getColumn(0).getString();
-            wf.id_str = query.getColumn(1).getString();
-            wf.id = std::strtoull(wf.id_str.c_str(), nullptr, 10);
-            wf.open = !query.getColumn(2).isNull() && query.getColumn(2).getInt() == 1;
-            wf.fav = !query.getColumn(3).isNull() && query.getColumn(3).getInt() == 1;
+            if (wfd.nodes_inside > 0)
+            {
+                Log("Workflow loaded: " << wfd.name << "###" << wfd.uuid << ", o=" << wfd.open << ", fv=" << wfd.fav << ", n=" << wfd.nodes_inside);
+                wfs.push_back(wfd);
+            }
+            else
+            {
+                del.push_back(wfd);
+                Log("Workflow to delete: " << wfd.name << "###" << wfd.uuid << ", o=" << wfd.open << ", fv=" << wfd.fav);
+            }            
         }
-
-        return wfs;
+        Log("Loaded " << wfs.size() << " workflows");
     }
     catch (const SQLite::Exception& ex)
     {
         LogExcep(ExcepCategory::SQLite, "SQLite load all workflows, " << LOG_EXP(ex));
     }
-    return {};
+
+    try
+    {
+        if (!del.empty())
+        {
+            SQLite::Transaction transaction(*m_db);
+            SQLite::Statement query(*m_db,
+                fmt::format(FMT_COMPILE("DELETE FROM {} WHERE {} = ?"),
+                    gdb_tbl_wf, gdb_val_uuid));
+            for (auto& wfd : del)
+            {
+                query.bindNoCopy(1, wfd.uuid);
+                query.exec();
+                query.reset();
+            }
+            transaction.commit();
+            Log("Deleted " << del.size() << " workflows");
+        }
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::SQLite, "SQLite del empty workflows, " << LOG_EXP(ex));
+    }
+
+    return wfs;
 }
 
 void DbManager::wf_update_meta(const WfData& wf)
@@ -361,19 +410,20 @@ void DbManager::wf_update_meta(const WfData& wf)
     try
     {
         SQLite::Statement query(*m_db,
-            fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}, {}, {}) VALUES (?, ?, ?, ?)"),
-                gdb_tbl_wf, gdb_val_hash, gdb_val_name, gdb_val_open, gdb_val_fav));
+            fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}, {}, {}, {}) VALUES (?, ?, ?, ?, ?)"),
+                gdb_tbl_wf, gdb_val_uuid, gdb_val_name, gdb_val_open, gdb_val_fav, gdb_val_nodes));
 
-        query.bindNoCopy(1, wf.id_str);
+        query.bindNoCopy(1, wf.uuid);
         query.bindNoCopy(2, wf.name);
         query.bind(3, wf.open);
         query.bind(4, wf.fav);
+        query.bind(5, wf.nodes_inside);
         query.exec();
-        Log("Upd workflow " << wf.name << "###" << wf.id);
+        Log("Upd workflow " << wf.name << "###" << wf.uuid << ", o=" << wf.open << ", fv=" << wf.fav << ", n=" << wf.nodes_inside);
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite upd workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite upd workflow " << wf.name << "###" << wf.uuid << ", " << LOG_EXP(ex));
     }
 }
 
@@ -383,18 +433,19 @@ void DbManager::wf_load_json(WfData& wf)
     {
         SQLite::Statement query(*m_db,
             fmt::format(FMT_COMPILE("SELECT {} FROM {} WHERE {}=?"),
-                gdb_val_json, gdb_tbl_wf, gdb_val_hash));
+                gdb_val_json, gdb_tbl_wf, gdb_val_uuid));
 
-        query.bindNoCopy(1, wf.id_str);
+        query.bindNoCopy(1, wf.uuid);
         if (!query.executeStep())
             return;
         if (query.getColumn(0).isNull())
             return;
         wf.json = query.getColumn(0).getString();
+        Log("Workflow loaded: " << wf.name << "###" << wf.uuid << ", j=" << wf.json.size() << ", n=" << wf.nodes_inside);
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite load json workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite load json workflow " << wf.name << "###" << wf.uuid << ", " << LOG_EXP(ex));
     }
 }
 
@@ -404,16 +455,16 @@ void DbManager::wf_update_json(const WfData& wf)
     {
         SQLite::Statement query(*m_db,
             fmt::format(FMT_COMPILE("INSERT OR REPLACE INTO {} ({}, {}) VALUES (?, ?)"),
-                gdb_tbl_wf, gdb_val_hash, gdb_val_json));
+                gdb_tbl_wf, gdb_val_uuid, gdb_val_json));
 
-        query.bindNoCopy(1, wf.id_str);
+        query.bindNoCopy(1, wf.uuid);
         query.bindNoCopy(2, wf.json);
         query.exec();
-        Log("Upd json workflow " << wf.name << "###" << wf.id);
+        Log("Workflow upd: " << wf.name << "###" << wf.uuid << ", j=" << wf.json.size() << ", n=" << wf.nodes_inside);
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite upd json workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite upd json workflow " << wf.name << "###" << wf.uuid << ", " << LOG_EXP(ex));
     }
 }
 
