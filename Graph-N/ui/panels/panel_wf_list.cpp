@@ -28,7 +28,7 @@ void PanelWfList::stop_all_threads()
 DlgCode PanelWfList::show(bool& focused)
 {
     bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg, false) && opened)
+    if (begin_panel(opened, focused, data()->clr_bg) && opened)
     {
         show_empty_panel_descr(
             ICON_LC_INFO " My Projects.",

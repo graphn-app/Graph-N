@@ -29,7 +29,7 @@ void PanelWorkflow::init()
 DlgCode PanelWorkflow::show(bool& focused)
 {
     bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg) && opened)
+    if (begin_panel(opened, focused, data()->clr_bg, false) && opened)
     {
 
         show_empty_panel_descr(
