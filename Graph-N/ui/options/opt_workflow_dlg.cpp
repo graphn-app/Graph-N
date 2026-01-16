@@ -34,7 +34,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     {
         if (selected)
         {
-            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSelectedItem));
+            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
             ImGui::TextUnformatted(ICON_LC_CHECK_CHECK);
             ImGui::SameLine();
             ImGui::TextUnformatted(text);
@@ -44,7 +44,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
         {
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x);
             ImGui::PushID(id);
-            if (hovered)    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSelectedItem));
+            if (hovered)    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
             ImGui::TextUnformatted(text);
             if (hovered)    ImGui::PopStyleColor();
             ImGui::PopID();

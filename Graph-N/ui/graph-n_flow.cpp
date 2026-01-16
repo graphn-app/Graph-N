@@ -125,6 +125,8 @@ void GraphN_Flow::init_workflow_panels()
     {
         auto wf = create_workflow();
         m_wf_focused = create_wf_panel(wf);
+        m_panel_wf_list->add_wf(wf);
+        m_panel_wf_list->set_active(wf);
     }
     else
     {
@@ -133,8 +135,12 @@ void GraphN_Flow::init_workflow_panels()
         {
             auto wf = create_workflow(&wf_data);
             auto panel = create_wf_panel(wf);
+            m_panel_wf_list->add_wf(wf);
             if (g::pOptsManager->wf_active_load() == wf->get_id())
+            {
                 m_wf_focused = panel;
+                m_panel_wf_list->set_active(wf);
+            }
         }
     }
 }
@@ -148,8 +154,6 @@ PanelWorkflow* GraphN_Flow::create_wf_panel(data::Workflow* wf)
     auto& panel_wf = m_panels_wf.back();
     panel_wf->init();
 
-    m_panel_wf_list->add_wf(wf);
-
     m_all_dialogs.insert(panel_wf.get());
     return panel_wf.get();
 }
@@ -161,6 +165,8 @@ PanelWorkflow* GraphN_Flow::get_active_wf_or_create_new()
 
     auto wf = create_workflow();
     m_wf_focused = create_wf_panel(wf);
+    m_panel_wf_list->add_wf(wf);
+    m_panel_wf_list->set_active(wf);
     return m_wf_focused;
 }
 
@@ -311,6 +317,7 @@ void GraphN_Flow::prepare_to_quit()
 {
     LogF_In;
 
+    m_panel_wf_list->remove_all_wf();
     for (auto& panel : m_panels_wf)
     {
         save_workflow(panel.get(), true);
@@ -368,7 +375,7 @@ void GraphN_Flow::show_menu_bar()
             for (auto& wf : m_panels_wf)
             {
                 const auto wf_name = fmt::format(FMT_COMPILE("{}##PanelsMenuBar"), wf->get_panel_name());
-                if (ImGui::MenuItem(wf_name.c_str(), nullptr, (m_windows & ViewPanelNodeInpector)))
+                if (ImGui::MenuItem(wf_name.c_str(), nullptr, wf.get() == m_wf_focused))
                 {
                     Log("Menu: wf " << wf_name);
                     on_menu_wf(wf.get());
@@ -588,12 +595,15 @@ void GraphN_Flow::on_menu_wf(PanelWorkflow* wf_panel)
         {
             ImGui::BringWindowToDisplayFront(wnd);
             m_wf_focused = wf_panel;
+            m_panel_wf_list->set_active(m_wf_focused->get_workflow());
         }
     }
     else
     {
         auto wf = create_workflow();
         m_wf_focused = create_wf_panel(wf);
+        m_panel_wf_list->add_wf(wf);
+        m_panel_wf_list->set_active(wf);
     }
 }
     
@@ -693,6 +703,7 @@ void GraphN_Flow::show_panel_wf()
                 save_workflow(panel.get(), true);
             }
 
+            m_panel_wf_list->remove_wf(wf);
             panel->stop_all_threads();
             on_dlg_closed(DlgObj::PanelWf);
 
@@ -703,7 +714,7 @@ void GraphN_Flow::show_panel_wf()
         else if (focused)
         {
             m_wf_focused = panel.get();
-            g::pOptsManager->wf_active_save(m_wf_focused->get_workflow()->get_id());
+            m_panel_wf_list->set_active(m_wf_focused->get_workflow());
             ++it;
         }
         else

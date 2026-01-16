@@ -146,12 +146,13 @@ enum class AppColor
     MenubarBg,
     OptSubtitleSep,
     OptSeparator,
-    OptSelectedItem,
     OptHelpMark,
     OptHelpText,
+    SelectedItem,
     RestartButton,
     UrlTextDefault,
     UrlTextHovered,
+    Starred,
 
 
     Pin_int,

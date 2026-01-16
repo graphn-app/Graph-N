@@ -10,7 +10,14 @@ class Workflow;
 namespace ui
 {
 
-class PanelWfList final : public PanelBase<PanelCommonData>
+struct PanelWfListData final : public PanelCommonData
+{
+    ImU32 clr_active = 0;
+    ImU32 clr_hover_btn = 0;
+    ImU32 clr_active_btn = 0;
+};
+
+class PanelWfList final : public PanelBase<PanelWfListData>
 {
 public:
     PanelWfList();
@@ -21,13 +28,19 @@ public:
 
     void add_wf(data::Workflow* wf);
     void remove_wf(data::Workflow* wf);
+    void remove_all_wf() { m_wfs.clear(); }
+    void set_active(data::Workflow* wf);
 
 private:
     DlgCode show(bool& focused) override;
     void show_wfs();
+    void show_cfg_buttons();
+    void show_wfs_list();
 
 private:
     std::list<data::Workflow*> m_wfs;
+    data::Workflow* m_active = nullptr;
+    bool m_active_updated = false;
 };
 
 
