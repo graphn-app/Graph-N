@@ -42,7 +42,7 @@ void ConnectManager::stop_all_threads()
 ConnectState ConnectManager::check_status()
 {
     using namespace std::chrono_literals;
-    if (ConnectState::connecting == m_state)
+    if (ConnectState::Connecting == m_state)
     {
         if (m_future.wait_for(0ms) == std::future_status::ready)
         {
@@ -52,11 +52,11 @@ ConnectState ConnectManager::check_status()
             auto data = m_future.get();
             if (data->conn_th_id != m_conn_th_id)
             {
-                LogError(ExcepCategory::logic, "Thread id not equal. Finished " << data->conn_th_id << ", expected: " << m_conn_th_id);
+                LogError(ExcepCategory::Logic, "Thread id not equal. Finished " << data->conn_th_id << ", expected: " << m_conn_th_id);
             }
-            if (ConnectState::connected == data->state)
+            if (ConnectState::Connected == data->state)
             {
-                m_state = ConnectState::connected;
+                m_state = ConnectState::Connected;
                 Log("Connected thread " << data->conn_th_id);
                 m_nodes_raw = std::move(data->data);
             }
@@ -84,7 +84,7 @@ void ConnectManager::connect()
     m_conn_data->conn_th_id = ++m_conn_th_id;
     Log("Starting connection thread " << m_conn_data->conn_th_id);
 
-    m_state = ConnectState::connecting;
+    m_state = ConnectState::Connecting;
     std::packaged_task<std::shared_ptr<ConnectData>()> task(std::bind(&ConnectManager::connect_thread, m_conn_data));
     m_future = task.get_future();
     m_thread = std::thread(std::move(task));
@@ -94,8 +94,8 @@ void ConnectManager::stop_connect()
 {
     LogF;
     stop_all_threads();
-    if (ConnectState::connecting == m_state)
-        m_state = ConnectState::disconnected;
+    if (ConnectState::Connecting == m_state)
+        m_state = ConnectState::Disconnected;
 }
 
 std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std::shared_ptr<ConnectData> data)
@@ -117,14 +117,14 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std:
             if (data->stop_thread_flag)
             {
                 Log("Thread " << data->conn_th_id << ". Connection thread aborted");
-                data->state = ConnectState::disconnected;
+                data->state = ConnectState::Disconnected;
                 return data;
             }
 
             if (res && 200 == res->status)
             {
                 Log("Thread " << data->conn_th_id << "Start reading nodes: " << res->body.size() << " bytes");
-                data->state = ConnectState::connected;
+                data->state = ConnectState::Connected;
                 data->data = std::move(res->body);
                 return data;
             }
@@ -140,18 +140,18 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std:
         }
         catch (const std::exception& e)
         {
-            LogExcep(ExcepCategory::comfyui, "Thread " << data->conn_th_id << ". Connection failed with err " << e.what());
+            LogExcep(ExcepCategory::ComfyUI, "Thread " << data->conn_th_id << ". Connection failed with err " << e.what());
         }
     }
 
     if (data->stop_thread_flag)
     {
         Log("Thread " << data->conn_th_id << ". Connection thread aborted");
-        data->state = ConnectState::disconnected;
+        data->state = ConnectState::Disconnected;
         return data;
     }
 
-    LogAndThrow(ExcepCategory::logic, "Thread " << data->conn_th_id << ". Unexpected exit flow");
+    LogAndThrow(ExcepCategory::Logic, "Thread " << data->conn_th_id << ". Unexpected exit flow");
 }
 
 } // namespace mngr

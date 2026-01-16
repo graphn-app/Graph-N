@@ -6,7 +6,7 @@
 namespace data
 {
 
-const std::unordered_map<std::string, PinType> Pin::pin_type_map =
+const std::unordered_map<std::string, PinType> Pin::Pin_type_map =
 {
     { "INT", PinType::INT },				{ "FLOAT", PinType::FLOAT },				{ "BOOLEAN", PinType::BOOLEAN },
     { "COMBO", PinType::COMBO },			{ "STRING", PinType::STRING },				{ "*", PinType::ANY },
@@ -23,14 +23,14 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
     { "FLOATS", PinType::FLOATS },
 };
 
-Pin::Pin(const Node* node, const std::string& pin_name)
-    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_IN_" + pin_name)
+Pin::Pin(const Node* node, const std::string& Pin_name)
+    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_IN_" + Pin_name)
     , parent_node(node)
 {
 }
 
-Pin::Pin(const Node* node, size_t pin_index)
-    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_OUT_" + std::to_string(pin_index))
+Pin::Pin(const Node* node, size_t Pin_index)
+    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_OUT_" + std::to_string(Pin_index))
     , parent_node(node)
 {
 }
@@ -47,8 +47,8 @@ void Pin::initialize(const std::string& type_as_string)
 {
     def_state.type_str = type_as_string;
     def_state.type = PinType::_none;
-    auto map_it = pin_type_map.find(type_as_string);
-    if (map_it != pin_type_map.end())
+    auto map_it = Pin_type_map.find(type_as_string);
+    if (map_it != Pin_type_map.end())
     {
         def_state.type = map_it->second;
         type_any = (PinType::ANY == def_state.type);
@@ -63,20 +63,20 @@ void Pin::initialize(const std::string& type_as_string)
     hash = tools::str::hash_string(def_state.type_str);
 
     init_defaults();
-    generate_pin_color();
+    generate_Pin_color();
 }
 
 void Pin::finalize()
 {
     if (input == output)
     {
-        LogAndThrowInternalError(ExcepCategory::logic, "Pin can't be input and output at the same time");
+        LogAndThrowInternalError(ExcepCategory::Logic, "Pin can't be input and output at the same time");
     }
 
     if (output && advanced)
     {
         LogInvalidJson("Output pin can't be advanced");
-        LogAndThrowInternalError(ExcepCategory::logic, "Output pin can't be advanced");
+        LogAndThrowInternalError(ExcepCategory::Logic, "Output pin can't be advanced");
     }
 
     else if (input)
@@ -85,14 +85,14 @@ void Pin::finalize()
         {
             display_as_color = display_as_slider = false;
             LogInvalidJson("Both display_as_color and display_as_slider can't be set");
-            LogAndThrowInternalError(ExcepCategory::logic, "Both display_as_color and display_as_slider can't be set");
+            LogAndThrowInternalError(ExcepCategory::Logic, "Both display_as_color and display_as_slider can't be set");
         }
         display_as_number = !(display_as_color || display_as_slider);
 
         if (!required && !optional && !hidden)
         {
             LogInvalidJson("Unknown pin visibility");
-            LogAndThrowInternalError(ExcepCategory::logic, "Unknown pin visibility");
+            LogAndThrowInternalError(ExcepCategory::Logic, "Unknown pin visibility");
         }
 
         if (PinType::FLOAT == def_state.type)
@@ -133,7 +133,7 @@ void Pin::finalize()
             if (seed)
             {
                 control_after_generate = true;
-                def_state.control_after_generate_value = ControlAfterGenerate::randomize;
+                def_state.control_after_generate_value = ControlAfterGenerate::Randomize;
             }
 
             if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int
@@ -193,7 +193,7 @@ void Pin::finalize()
     if (!is_widget() && advanced)
     {
         LogInvalidJson("Non-widget pin can't be advanced");
-        LogAndThrowInternalError(ExcepCategory::logic, "Non-widget pin can't be advanced");
+        LogAndThrowInternalError(ExcepCategory::Logic, "Non-widget pin can't be advanced");
     }
 
     def_state.value = def;
@@ -233,7 +233,7 @@ void Pin::finalize()
     }
 
     // load options
-    auto opt_adv = g::pOptsManager->nd_pin_advanced_load(get_id());
+    auto opt_adv = g::pOptsManager->nd_Pin_advanced_load(get_id());
     if (opt_adv.has_value())
         advanced = opt_adv.value();
 }
@@ -290,56 +290,56 @@ void Pin::precision_to_string()
     precision_named = fmt::format(FMT_COMPILE("{}: %.{}f"), name, decimals);
 }
 
-void Pin::generate_pin_color()
+void Pin::generate_Pin_color()
 {
     if (0 == hash)
     {
-        LogAndThrowInternalError(ExcepCategory::logic, "Hash wasn't generated. id=" << get_id());
+        LogAndThrowInternalError(ExcepCategory::Logic, "Hash wasn't generated. id=" << get_id());
     }
 
     if (is_known_type)	// hardcoded colors for some most used types
     {
         switch (def_state.type)
         {
-        case PinType::INT:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_int);                 break;
-        case PinType::FLOAT:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_float);               break;
-        case PinType::STRING:               def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_string);              break;
-        case PinType::BOOLEAN:              def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_boolean);             break;
-        case PinType::ANY:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_any);                 break;
-        case PinType::COMBO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_combo);               break;
-        case PinType::COLOR:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color);               break;
-        case PinType::NUMBER:               def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_number);              break;
+        case PinType::INT:                  def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_int);                 break;
+        case PinType::FLOAT:                def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_float);               break;
+        case PinType::STRING:               def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_string);              break;
+        case PinType::BOOLEAN:              def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_boolean);             break;
+        case PinType::ANY:                  def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_any);                 break;
+        case PinType::COMBO:                def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_combo);               break;
+        case PinType::COLOR:                def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_color);               break;
+        case PinType::NUMBER:               def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_number);              break;
 
-        case PinType::FLOATS:               def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_floats);              break;
-        case PinType::SEED:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_seed);                break;
-        case PinType::MODEL:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_model);               break;
-        case PinType::LATENT:               def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_latent);              break;
-        case PinType::VAE:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_vae);                 break;
-        case PinType::CLIP:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_clip);                break;
-        case PinType::IMAGE:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_image);               break;
-        case PinType::MASK:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_mask);                break;
-        case PinType::CONDITIONING:         def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_conditioning);        break;
-        case PinType::CLIP_VISION:          def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_clip_vision);         break;
-        case PinType::CONTROL_NET:          def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_control_net);         break;
-        case PinType::AUDIO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_audio);               break;
-        case PinType::VIDEO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_video);               break;
-        case PinType::IPADAPTER:            def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_ipadapter);           break;
-        case PinType::INSIGHTFACE:          def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_insightface);         break;
-        case PinType::CONTROL_NET_STACK:    def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_control_net_stack);   break;
-        case PinType::CLIP_VISION_OUTPUT:   def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_clip_vision_output);  break;
-        case PinType::NOISE:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_noise);               break;
-        case PinType::SIGMAS:               def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_sigmas);              break;
-        case PinType::SAMPLER:              def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_sampler);             break;
-        case PinType::PIPE_LINE:            def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_pipe_line);           break;
-        case PinType::LORA_STACK:           def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_lora_stack);          break;
-        case PinType::LORA_LIST:            def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_lora_list);           break;
-        case PinType::SEGS:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_segs);                break;
-        case PinType::BBOX:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_bbox);                break;
-        case PinType::BUS:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_bus);                 break;
+        case PinType::FLOATS:               def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_floats);              break;
+        case PinType::SEED:                 def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_seed);                break;
+        case PinType::MODEL:                def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_model);               break;
+        case PinType::LATENT:               def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_latent);              break;
+        case PinType::VAE:                  def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_vae);                 break;
+        case PinType::CLIP:                 def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_clip);                break;
+        case PinType::IMAGE:                def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_image);               break;
+        case PinType::MASK:                 def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_mask);                break;
+        case PinType::CONDITIONING:         def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_conditioning);        break;
+        case PinType::CLIP_VISION:          def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_ClipVision);         break;
+        case PinType::CONTROL_NET:          def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_ControlNet);         break;
+        case PinType::AUDIO:                def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_audio);               break;
+        case PinType::VIDEO:                def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_video);               break;
+        case PinType::IPADAPTER:            def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_IPAdapter);           break;
+        case PinType::INSIGHTFACE:          def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_InsightFace);         break;
+        case PinType::CONTROL_NET_STACK:    def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_ControlNetStack);   break;
+        case PinType::CLIP_VISION_OUTPUT:   def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_ClipVisionOutput);  break;
+        case PinType::NOISE:                def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_noise);               break;
+        case PinType::SIGMAS:               def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_sigmas);              break;
+        case PinType::SAMPLER:              def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_sampler);             break;
+        case PinType::PIPE_LINE:            def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_PipeLine);           break;
+        case PinType::LORA_STACK:           def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_LoraStack);          break;
+        case PinType::LORA_LIST:            def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_LoraList);           break;
+        case PinType::SEGS:                 def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_segs);                break;
+        case PinType::BBOX:                 def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_bbox);                break;
+        case PinType::BUS:                  def_state.Pin_color = g::pOptsManager->color_load(AppColor::Pin_bus);                 break;
 
         default:
         {
-            LogAndThrowInternalError(ExcepCategory::logic, "Some predefined colors were not set");
+            LogAndThrowInternalError(ExcepCategory::Logic, "Some predefined colors were not set");
         }
         }
         return;
@@ -373,7 +373,7 @@ void Pin::generate_pin_color()
     default: r = v; g = p; b = q; break;
     }
 
-    def_state.pin_color = IM_COL32(cast::to_u32(r * 255), cast::to_u32(g * 255), cast::to_u32(b * 255), 255);
+    def_state.Pin_color = IM_COL32(cast::to_u32(r * 255), cast::to_u32(g * 255), cast::to_u32(b * 255), 255);
 }
 
 std::string Pin::primitive_to_string(primitive& item)

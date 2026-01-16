@@ -53,10 +53,10 @@ enum class ControlAfterGenerate
 {
     _none,
 
-    fixed = _none,
-    increment,
-    decrement,
-    randomize,
+    Fixed = _none,
+    Increment,
+    Decrement,
+    Randomize,
 
     _count,
     _first = _none,
@@ -74,21 +74,21 @@ struct PinState final
     int32_t links = 0;          // number of pin links
     bool converted = false;     // input pin converted to widget
     
-    uint32_t pin_color = 0;     // will change if ANY pin
+    uint32_t Pin_color = 0;     // will change if ANY pin
     PinType type = PinType::_none;  // will change if ANY pin
     std::string type_str;       // will change if ANY pin
 
     primitive value;            // current value, if widget
     int combo_index = 0;        // combo-list current selection
     float colors[4];            // for color widget
-    ControlAfterGenerate control_after_generate_value = ControlAfterGenerate::randomize; // current seed state
+    ControlAfterGenerate control_after_generate_value = ControlAfterGenerate::Randomize; // current seed state
 };
 
 struct Pin final : public base::HashID
 {
 public:
-    Pin(const Node* node, const std::string& pin_name);
-    Pin(const Node* node, size_t pin_index);
+    Pin(const Node* node, const std::string& Pin_name);
+    Pin(const Node* node, size_t Pin_index);
     ~Pin() override;
 
     bool is_widget() const;
@@ -181,11 +181,11 @@ public:
     bool alpha_enabled = true;
 
 private:
-    static const std::unordered_map<std::string, PinType> pin_type_map;
+    static const std::unordered_map<std::string, PinType> Pin_type_map;
 
 private:
     static std::string primitive_to_string(primitive& item);
-    void generate_pin_color();
+    void generate_Pin_color();
     void init_defaults();
     void precision_to_string();
 };

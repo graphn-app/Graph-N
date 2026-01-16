@@ -12,7 +12,7 @@ std::filesystem::path get_this_app_filepath()
         const DWORD length = GetModuleFileNameW(NULL, buff.data(), cast::to_u32(buff.size()));
         if (0 == length)
         {
-            LogAndThrow(ExcepCategory::api, "Failed to call WinAPI");
+            LogAndThrow(ExcepCategory::API, "Failed to call WinAPI");
         }
 
         if (length < buff.size())
@@ -29,7 +29,7 @@ std::filesystem::path get_this_app_filepath()
     std::filesystem::path p = std::filesystem::read_symlink("/proc/self/exe", ec);
     if (ec)
     {
-        LogAndThrow(ExcepCategory::api, "Failed to call Unix API");
+        LogAndThrow(ExcepCategory::API, "Failed to call Unix API");
     }
     return p;
 #endif

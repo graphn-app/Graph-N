@@ -232,7 +232,7 @@ void Logger::working_thread()
         catch (const std::exception& e)
         {
             disable_logging();
-            SAVE_EXCEPTION(ExcepCategory::logger, e.what());
+            SAVE_EXCEPTION(ExcepCategory::Logger, e.what());
             DEBUG_CATCH;
         }
     }
@@ -389,23 +389,14 @@ LogWriter& LogWriter::operator << (DlgCode code)
     fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), cast::to_u64(code));
     switch (code)
     {
-    case DlgCode::progress:
+    case DlgCode::Progress:
         fmt::format_to(std::back_inserter(m_buffer), "=progress");
         break;
-    case DlgCode::ok:
-        fmt::format_to(std::back_inserter(m_buffer), "=ok");
-        break;
-    case DlgCode::yes:
-        fmt::format_to(std::back_inserter(m_buffer), "=yes");
-        break;
-    case DlgCode::no:
-        fmt::format_to(std::back_inserter(m_buffer), "=no");
-        break;
-    case DlgCode::cancel:
+    case DlgCode::Cancel:
         fmt::format_to(std::back_inserter(m_buffer), "=cancel");
         break;
     default:
-        LogError(ExcepCategory::switch_enum, "=unknown DlgCode " << cast::to_u64(code));
+        LogError(ExcepCategory::SwitchEnum, "=unknown DlgCode " << cast::to_u64(code));
     }
     return *this;
 }

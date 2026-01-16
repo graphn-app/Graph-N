@@ -9,18 +9,18 @@ namespace ui
 
 enum
 {
-    buff_host,
-    buff_cmd,
-    buff_path,
+    BuffHost,
+    BuffCmd,
+    BuffPath,
 
     _buff_s_count,
 };
 
 enum
 {
-    buff_port,
-    buff_conn_tm,
-    buff_read_tm,
+    BuffPort,
+    BuffConnTM,
+    BuffReadTM,
 
     _buff_i_count,
 };
@@ -35,14 +35,14 @@ void OptComfyDlg::init(OptsData& data)
     LogF;
 
     data.comfyui.buffer_s->resize(_buff_s_count);
-    (*data.comfyui.buffer_s)[buff_host] = g::pOptsManager->comfyui_host_load();
-    (*data.comfyui.buffer_s)[buff_path] = g::pOptsManager->comfyui_main_py_load().u8string();
-    (*data.comfyui.buffer_s)[buff_cmd] = g::pOptsManager->comfyui_command_load();
+    (*data.comfyui.buffer_s)[BuffHost] = g::pOptsManager->comfyui_host_load();
+    (*data.comfyui.buffer_s)[BuffPath] = g::pOptsManager->comfyui_main_py_load().u8string();
+    (*data.comfyui.buffer_s)[BuffCmd] = g::pOptsManager->comfyui_command_load();
 
     data.comfyui.buffer_i->resize(_buff_i_count);
-    (*data.comfyui.buffer_i)[buff_port] = g::pOptsManager->comfyui_port_load();
-    (*data.comfyui.buffer_i)[buff_conn_tm] = g::pOptsManager->comfyui_connect_timeout_load();
-    (*data.comfyui.buffer_i)[buff_read_tm] = g::pOptsManager->comfyui_read_timeout_load();
+    (*data.comfyui.buffer_i)[BuffPort] = g::pOptsManager->comfyui_port_load();
+    (*data.comfyui.buffer_i)[BuffConnTM] = g::pOptsManager->comfyui_connect_timeout_load();
+    (*data.comfyui.buffer_i)[BuffReadTM] = g::pOptsManager->comfyui_read_timeout_load();
 }
 
 void OptComfyDlg::show(OptsData& data)
@@ -67,7 +67,7 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
     ImGui::BeginGroup();
 
     ///////////////       ComfyUI address
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), avail_x - padding, APP_COMFYUI " Address");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), avail_x - padding, APP_COMFYUI " Address");
     ImGui::Spacing();
 
 
@@ -76,7 +76,7 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(avail_x - padding);
-    m_data_changed = ImGuiEx::InputText("##ComfyUIHost", &buffer_s[buff_host], ImGuiInputTextFlags_AutoSelectAll) || m_data_changed;
+    m_data_changed = ImGuiEx::InputText("##ComfyUIHost", &buffer_s[BuffHost], ImGuiInputTextFlags_AutoSelectAll) || m_data_changed;
 
 
     ///////////////       port
@@ -84,11 +84,11 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(avail_x - padding);
-    m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIPort", &buffer_i[buff_port], 1, 65535, "%u") || m_data_changed;
+    m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIPort", &buffer_i[BuffPort], 1, 65535, "%u") || m_data_changed;
 
 
     /////////////////       timeouts
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), avail_x - padding, APP_COMFYUI " Server Timeouts");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), avail_x - padding, APP_COMFYUI " Server Timeouts");
     ImGui::Spacing();
 
 
@@ -98,7 +98,7 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(avail_x - padding);
-    m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIConnTime", &buffer_i[buff_conn_tm], 0, 30, "%llu sec") || m_data_changed;
+    m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIConnTime", &buffer_i[BuffConnTM], 0, 30, "%llu sec") || m_data_changed;
 
 
     ///////////////////       read timeout
@@ -107,7 +107,7 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(avail_x - padding);
-    m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIReadTime", &buffer_i[buff_read_tm], 0, 30, "%llu sec") || m_data_changed;
+    m_data_changed = ImGuiEx::SliderIntSmart("##ComfyUIReadTime", &buffer_i[BuffReadTM], 0, 30, "%llu sec") || m_data_changed;
 
 
     /////////////// apply
@@ -118,9 +118,9 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
         ImGui::BeginDisabled();
     else
     {
-        ImGui::PushStyleColor(ImGuiCol_Button, g::pOptsManager->color_load(AppColor::opt_btn_normal));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, g::pOptsManager->color_load(AppColor::opt_btn_hover));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  g::pOptsManager->color_load(AppColor::opt_btn_pressed));
+        ImGui::PushStyleColor(ImGuiCol_Button, g::pOptsManager->color_load(AppColor::OptBtnNormal));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, g::pOptsManager->color_load(AppColor::OptBtnHover));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  g::pOptsManager->color_load(AppColor::OptBtnPressed));
     }
     const bool click = ImGui::Button("Save/Apply connection settings##applyconn", ImVec2(avail_x - padding, 0));
     if (!m_data_changed)
@@ -129,10 +129,10 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
         ImGui::PopStyleColor(3);
     if (click)
     {
-        g::pOptsManager->comfyui_host_save(buffer_s[buff_host]);
-        g::pOptsManager->comfyui_port_save(buffer_i[buff_port]);
-        g::pOptsManager->comfyui_connect_timeout_save(buffer_i[buff_conn_tm]);
-        g::pOptsManager->comfyui_read_timeout_save(buffer_i[buff_read_tm]);
+        g::pOptsManager->comfyui_host_save(buffer_s[BuffHost]);
+        g::pOptsManager->comfyui_port_save(buffer_i[BuffPort]);
+        g::pOptsManager->comfyui_connect_timeout_save(buffer_i[BuffConnTM]);
+        g::pOptsManager->comfyui_read_timeout_save(buffer_i[BuffReadTM]);
         m_data_changed = false;
 
         if (!g::pFlow->get_online())
@@ -159,7 +159,7 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
     auto& buffer_s = *data.comfyui.buffer_s;
 
     /////////////       comfyui interaction
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), APP_COMFYUI " Server Interaction");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), APP_COMFYUI " Server Interaction");
     ImGui::Spacing();
 
 
@@ -168,9 +168,9 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
     show_help_mark(help_text, data.input_offset_x, true, "Full path to main.py or the " APP_COMFYUI " root directory.\n" APP_CAPTION " uses this to launch and manage the server process.");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 28.0f - ImGui::GetStyle().ItemSpacing.x);
-    ImGuiEx::InputText("##ComfyUIPath", &buffer_s[buff_path], ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##ComfyUIPath", &buffer_s[BuffPath], ImGuiInputTextFlags_ReadOnly);
     ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_PopupBg, g::pOptsManager->color_load(AppColor::opt_dlg_bg));
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, g::pOptsManager->color_load(AppColor::OptDlgBg));
     if (ImGui::Button("...##ComfyUIPathSelect", ImVec2(28.0f, 0.0f)))
     {
         ifd::FileDialog::Instance().Open("ComfyuiMainpyPath", APP_COMFYUI " main.py path", "main.py (main.py){main.py}", false);
@@ -180,7 +180,7 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
         if (ifd::FileDialog::Instance().HasResult())
         {
             g::pOptsManager->comfyui_main_py_save(ifd::FileDialog::Instance().GetResult());
-            buffer_s[buff_path] = g::pOptsManager->comfyui_main_py_load().u8string();
+            buffer_s[BuffPath] = g::pOptsManager->comfyui_main_py_load().u8string();
         }
         ifd::FileDialog::Instance().Close();
     }
@@ -192,13 +192,13 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
     show_help_mark(help_text, data.input_offset_x, true, "Additional command line arguments (e.g., --cpu, --lowvram, --fast).\n\nCheck your .bat files for recommended flags.");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGuiEx::InputText("##ComfyUICmd", &buffer_s[buff_cmd], ImGuiInputTextFlags_AlwaysOverwrite | ImGuiInputTextFlags_EscapeClearsAll);
+    ImGuiEx::InputText("##ComfyUICmd", &buffer_s[BuffCmd], ImGuiInputTextFlags_AlwaysOverwrite | ImGuiInputTextFlags_EscapeClearsAll);
     if (ImGui::IsItemDeactivatedAfterEdit())
-        g::pOptsManager->comfyui_command_save(buffer_s[buff_cmd]);
+        g::pOptsManager->comfyui_command_save(buffer_s[BuffCmd]);
 
 
     ///////////// disable if no path
-    if (buffer_s[buff_path].empty())
+    if (buffer_s[BuffPath].empty())
         ImGui::BeginDisabled();
 
 
@@ -261,7 +261,7 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
         ImGui::EndDisabled();
 
     ///////////// disable if no path
-    if (buffer_s[buff_path].empty())
+    if (buffer_s[BuffPath].empty())
         ImGui::EndDisabled();
 
 }

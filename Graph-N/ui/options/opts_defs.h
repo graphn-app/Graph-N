@@ -40,8 +40,8 @@ struct OptsData final
 
         double d_sample = 42.001;
         uint8_t b_sample = 1;
-        WidgetInput numbers = WidgetInput::slider;
-        WidgetInput booleans = WidgetInput::slider;
+        WidgetInput numbers = WidgetInput::Slider;
+        WidgetInput booleans = WidgetInput::Slider;
 
         std::deque<bool> hovered_items;
     }

@@ -7,20 +7,20 @@ namespace ui
 
 enum
 {
-    buff_fps_w,
-    buff_fps_c,
-    buff_lram_w,
-    buff_lram_c,
-    buff_sram_w,
-    buff_sram_c,
-    buff_vram_w,
-    buff_vram_c,
-    buff_disk_w,
-    buff_disk_c,
-    buff_pytorch_w,
-    buff_pytorch_c,
-    buff_ping_w,
-    buff_ping_c,
+    BuffFpsW,
+    BuffFpsC,
+    BuffLRamW,
+    BuffLRamC,
+    BuffSRamW,
+    BuffSRamC,
+    BuffVRamW,
+    BuffVRamC,
+    BuffDiskW,
+    BuffDiskC,
+    BuffPyTorchW,
+    BuffPyTorchC,
+    BuffPingW,
+    BuffPingC,
 
     _buff_i_count,
 };
@@ -35,20 +35,20 @@ void OptStatsDlg::init(OptsData& data)
     LogF;
 
     data.stats.buffer_i->resize(_buff_i_count);
-    (*data.stats.buffer_i)[buff_fps_w] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_fps);
-    (*data.stats.buffer_i)[buff_fps_c] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_fps);
-    (*data.stats.buffer_i)[buff_lram_w] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_ram);
-    (*data.stats.buffer_i)[buff_lram_c] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_ram);
-    (*data.stats.buffer_i)[buff_sram_w] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ram);
-    (*data.stats.buffer_i)[buff_sram_c] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ram);
-    (*data.stats.buffer_i)[buff_vram_w] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_vram);
-    (*data.stats.buffer_i)[buff_vram_c] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_vram);
-    (*data.stats.buffer_i)[buff_disk_w] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_disk);
-    (*data.stats.buffer_i)[buff_disk_c] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_disk);
-    (*data.stats.buffer_i)[buff_pytorch_w] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_pytorch);
-    (*data.stats.buffer_i)[buff_pytorch_c] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_pytorch);
-    (*data.stats.buffer_i)[buff_ping_w] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ping);
-    (*data.stats.buffer_i)[buff_ping_c] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ping);
+    (*data.stats.buffer_i)[BuffFpsW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalFPS);
+    (*data.stats.buffer_i)[BuffFpsC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalFPS);
+    (*data.stats.buffer_i)[BuffLRamW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalRAM);
+    (*data.stats.buffer_i)[BuffLRamC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalRAM);
+    (*data.stats.buffer_i)[BuffSRamW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerRAM);
+    (*data.stats.buffer_i)[BuffSRamC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerRAM);
+    (*data.stats.buffer_i)[BuffVRamW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerVRAM);
+    (*data.stats.buffer_i)[BuffVRamC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerVRAM);
+    (*data.stats.buffer_i)[BuffDiskW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalDisk);
+    (*data.stats.buffer_i)[BuffDiskC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalDisk);
+    (*data.stats.buffer_i)[BuffPyTorchW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPyTorch);
+    (*data.stats.buffer_i)[BuffPyTorchC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPyTorch);
+    (*data.stats.buffer_i)[BuffPingW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPing);
+    (*data.stats.buffer_i)[BuffPingC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPing);
 }
 
 void OptStatsDlg::show(OptsData& data)
@@ -97,24 +97,24 @@ void OptStatsDlg::show(OptsData& data)
         return changed;
     };
 
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::opt_subtitle_sep));
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSubtitleSep));
     ImGui::TextUnformatted("This PC");
     ImGui::PopStyleColor();
     ImGui::Separator();
     ImGui::Spacing();
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), "Render Time Thresholds (Latency)");
-    auto changed = show_thresholds("##LatencyWarning", "##LatencyCritical", buffer_i[buff_fps_w], buffer_i[buff_fps_c], false, true, 0.01f, 20.0f, "%.2f ms");
-    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::local_fps, buffer_i[buff_fps_w]);
-    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::local_fps, buffer_i[buff_fps_c]);
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Render Time Thresholds (Latency)");
+    auto changed = show_thresholds("##LatencyWarning", "##LatencyCritical", buffer_i[BuffFpsW], buffer_i[BuffFpsC], false, true, 0.01f, 20.0f, "%.2f ms");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalFPS, buffer_i[BuffFpsW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalFPS, buffer_i[BuffFpsC]);
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), "RAM thresholds");
-    changed = show_thresholds("##LRAMWarning", "##LRAMCritical", buffer_i[buff_lram_w], buffer_i[buff_lram_c], true, false, 0.5f, 10.0f, "%.1f GB");
-    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::local_ram, buffer_i[buff_lram_w]);
-    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::local_ram, buffer_i[buff_lram_c]);
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "RAM thresholds");
+    changed = show_thresholds("##LRAMWarning", "##LRAMCritical", buffer_i[BuffLRamW], buffer_i[BuffLRamC], true, false, 0.5f, 10.0f, "%.1f GB");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalRAM, buffer_i[BuffLRamW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalRAM, buffer_i[BuffLRamC]);
 
     const auto old_pos = ImGui::GetCursorPosX();
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), "Disks thresholds");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Disks thresholds");
 
     int32_t disks = 1;
     const float avail_x = ImGui::GetContentRegionAvail().x - data.input_offset_x - data.help_mark_w;
@@ -142,36 +142,36 @@ void OptStatsDlg::show(OptsData& data)
     }
 
     ImGui::SetCursorPosX(old_pos);
-    changed = show_thresholds("##DiskWarning", "##DiskCritical", buffer_i[buff_disk_w], buffer_i[buff_disk_c], true, false, 1.0f, 40.0f, "%.0f GB");
-    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::local_disk, buffer_i[buff_disk_w]);
-    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::local_disk, buffer_i[buff_disk_c]);
+    changed = show_thresholds("##DiskWarning", "##DiskCritical", buffer_i[BuffDiskW], buffer_i[BuffDiskC], true, false, 1.0f, 40.0f, "%.0f GB");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalDisk, buffer_i[BuffDiskW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalDisk, buffer_i[BuffDiskC]);
 
     ImGui::Spacing();
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::opt_subtitle_sep));
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSubtitleSep));
     ImGui::TextUnformatted("Server");
     ImGui::PopStyleColor();
     ImGui::Separator();
     ImGui::Spacing();
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), "RAM thresholds");
-    changed = show_thresholds("##SRAMWarning", "##SRAMCritical", buffer_i[buff_sram_w], buffer_i[buff_sram_c], true, false, 1.0f, 10.0f, "%.1f GB");
-    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::server_ram, buffer_i[buff_sram_w]);
-    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::server_ram, buffer_i[buff_sram_c]);
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "RAM thresholds");
+    changed = show_thresholds("##SRAMWarning", "##SRAMCritical", buffer_i[BuffSRamW], buffer_i[BuffSRamC], true, false, 1.0f, 10.0f, "%.1f GB");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerRAM, buffer_i[BuffSRamW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerRAM, buffer_i[BuffSRamC]);
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), "VRAM thresholds");
-    changed = show_thresholds("##VRAMWarning", "##VRAMCritical", buffer_i[buff_vram_w], buffer_i[buff_vram_c], true, false, 0.1f, 5.0f, "%.1f GB");
-    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::server_vram, buffer_i[buff_vram_w]);
-    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::server_vram, buffer_i[buff_vram_c]);
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "VRAM thresholds");
+    changed = show_thresholds("##VRAMWarning", "##VRAMCritical", buffer_i[BuffVRamW], buffer_i[BuffVRamC], true, false, 0.1f, 5.0f, "%.1f GB");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerVRAM, buffer_i[BuffVRamW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerVRAM, buffer_i[BuffVRamC]);
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), "PyTorch VRAM thresholds");
-    changed = show_thresholds("##PyTorchWarning", "##PyTorchCritical", buffer_i[buff_pytorch_w], buffer_i[buff_pytorch_c], true, false, 0.1f, 5.0f, "%.1f GB");
-    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::server_pytorch, buffer_i[buff_pytorch_w]);
-    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::server_pytorch, buffer_i[buff_pytorch_c]);
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "PyTorch VRAM thresholds");
+    changed = show_thresholds("##PyTorchWarning", "##PyTorchCritical", buffer_i[BuffPyTorchW], buffer_i[BuffPyTorchC], true, false, 0.1f, 5.0f, "%.1f GB");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerPyTorch, buffer_i[BuffPyTorchW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerPyTorch, buffer_i[BuffPyTorchC]);
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::opt_separator), "Ping thresholds");
-    changed = show_thresholds("##pingWarning", "##PingCritical", buffer_i[buff_ping_w], buffer_i[buff_ping_c], false, false, 50.0f, 500.0f, "%.0f ms");
-    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::server_ping, buffer_i[buff_ping_w]);
-    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::server_ping, buffer_i[buff_ping_c]);
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Ping thresholds");
+    changed = show_thresholds("##pingWarning", "##PingCritical", buffer_i[BuffPingW], buffer_i[BuffPingC], false, false, 50.0f, 500.0f, "%.0f ms");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerPing, buffer_i[BuffPingW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerPing, buffer_i[BuffPingC]);
 }
 
 } // namespace ui

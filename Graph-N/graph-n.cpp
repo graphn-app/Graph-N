@@ -20,7 +20,7 @@ mngr::ConnectManager* pConnectManager = nullptr;
 
 void save_exception(ExcepCategory category, const std::string& message, const char* file, int line)
 {
-    if (g::pDbManager != nullptr && category != ExcepCategory::sqlite)
+    if (g::pDbManager != nullptr && category != ExcepCategory::SQLite)
         g::pDbManager->exception_save(category, message, file, line);
 }
 }
@@ -69,7 +69,7 @@ bool GraphN::init_graphn()
 
     g::pMain->set_vsync_enabled(g::pOptsManager->app_vsync_load());
 
-    m_flow_step = Flow::init;
+    m_flow_step = Flow::Init;
     return true;
 }
 
@@ -113,7 +113,7 @@ void GraphN::handle_wnd_restored()
 void GraphN::handle_wnd_on_close()
 {
     LogF;
-    m_flow_step = Flow::prepare_to_exit;
+    m_flow_step = Flow::PrepareToExit;
 }
 
 void GraphN::handle_1sec_timer()
@@ -126,29 +126,29 @@ bool GraphN::flow()
     {
         switch (m_flow_step)
         {
-        case Flow::init:
+        case Flow::Init:
             result = init();
             break;
-        case Flow::graph_n:
+        case Flow::GraphN:
             result = run_graphn();
             break;
-        case Flow::prepare_to_exit:
+        case Flow::PrepareToExit:
             if (m_graphn_flow)
                 m_graphn_flow->exit();
-            m_flow_step = Flow::do_exit;
+            m_flow_step = Flow::DoExit;
             result = true;
             break;
-        case Flow::do_exit:
+        case Flow::DoExit:
             result = false;
             break;
         default:
-            LogAndThrowInternalError(ExcepCategory::switch_enum, "Unhandler flow step " << cast::to_u64(m_flow_step));
+            LogAndThrowInternalError(ExcepCategory::SwitchEnum, "Unhandler flow step " << cast::to_u64(m_flow_step));
         }
     }
     catch (const std::exception& ex)
     {
         result = false;
-        LogExcep(ExcepCategory::flow, ex.what());
+        LogExcep(ExcepCategory::Flow, ex.what());
         throw;
     }
 
@@ -161,7 +161,7 @@ bool GraphN::init()
 
     _tzset();
 
-    m_flow_step = Flow::graph_n;
+    m_flow_step = Flow::GraphN;
     return true;
 }
 
@@ -183,7 +183,7 @@ bool GraphN::run_graphn()
     if (!res)
     {
         Log("GraphN flow exited, next flow step: exit");
-        m_flow_step = Flow::do_exit;
+        m_flow_step = Flow::DoExit;
     }
     return res;
 }

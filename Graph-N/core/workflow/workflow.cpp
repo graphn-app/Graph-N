@@ -1,7 +1,7 @@
 
 #include "core/workflow/workflow.h"
 #include "core/workflow/node_instance.h"
-#include "core/workflow/pin_instance.h"
+#include "core/workflow/Pin_instance.h"
 #include "core/workflow/link.h"
 #include "core/managers/nodes_manager.h"
 #include "ui/graph-n_flow.h"
@@ -56,14 +56,14 @@ void Workflow::stop_all_threads()
 //    return (*it).get();
 //}
 //
-//PinInstance* Workflow::find_pin(gid pin_id) const
+//PinInstance* Workflow::find_pin(gid Pin_id) const
 //{
 //    const auto it = std::find_if(m_pins.begin(), m_pins.end(),
-//        [pin_id](const std::unique_ptr<PinInstance>& pin)
+//        [Pin_id](const std::unique_ptr<PinInstance>& pin)
 //        {
 //            if (!pin || !pin->get_object())
 //                return false;
-//            return pin->get_graph_id() == pin_id;
+//            return pin->get_graph_id() == Pin_id;
 //        }
 //    );
 //}
@@ -133,7 +133,7 @@ void Workflow::remove_node(const NodeInstance* node)
 
     if (n_it == m_nodes.end())
     {
-        LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Node " << node->get_graph_id() << " not found");
+        LogAndThrowInternalError(ExcepCategory::InconsistentMap, "Node " << node->get_graph_id() << " not found");
     }
 
     const auto remove_pins = [this](const std::vector<PinInstance*>& pins)
@@ -163,7 +163,7 @@ void Workflow::remove_pin(const PinInstance* pin)
     );
     if (p_it == m_pins.end())
     {
-        LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Pin " << pin->get_graph_id() << " not found");
+        LogAndThrowInternalError(ExcepCategory::InconsistentMap, "Pin " << pin->get_graph_id() << " not found");
     }
 
     const auto remove_links = [this](const PinInstance* pin)
@@ -208,7 +208,7 @@ void Workflow::remove_link(const Link* link)
     }
     else
     {
-        LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Link " << link->get_graph_id() << " not found");
+        LogAndThrowInternalError(ExcepCategory::InconsistentMap, "Link " << link->get_graph_id() << " not found");
     }
 }
 

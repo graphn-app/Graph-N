@@ -43,7 +43,7 @@ public:
     DlgCode show_dialog(bool& focused)
     {
         if (m_close_called)
-            return DlgCode::cancel;
+            return DlgCode::Cancel;
         return show(focused);
     }
     void close_dialog()
@@ -66,7 +66,7 @@ protected:
     DlgObj get_dlg_obj() const { return m_obj; }
 
     //void set_exit_code(DlgCode code) { m_exit_code = code; }
-    //void set_exit_code_ok() { m_exit_code = DlgCode::ok; }
+    //void set_exit_code_ok() { m_exit_code = DlgCode::OK; }
     //DlgCode exit_code() const { return m_exit_code; }
 
     DlgCode cleanup_and_exit(bool in_progress, bool end_dlg = true, bool pop_title_styles = true, bool pop_bg_style = true)
@@ -80,7 +80,7 @@ protected:
         if (pop_title_styles)
             ImGuiEx::PopDlgTitleStyles();
 
-        return in_progress ? DlgCode::progress : DlgCode::cancel;
+        return in_progress ? DlgCode::Progress : DlgCode::Cancel;
     }
 
     DlgCode cleanup_and_exit_popup(bool end_dlg, bool pop_styles, DlgCode exit_code)
@@ -103,7 +103,7 @@ protected:
 
 private:
     DlgObj m_obj;
-    DlgCode m_exit_code = DlgCode::progress;
+    DlgCode m_exit_code = DlgCode::Progress;
     bool m_focused = false;
     bool m_close_called = false;
 };
@@ -122,7 +122,7 @@ public:
         if (m_dlg_initialized)
             return;
         m_data = std::make_unique<DlgDataType>();
-        data()->clr_bg = g::pOptsManager->color_load(AppColor::panel_bg);
+        data()->clr_bg = g::pOptsManager->color_load(AppColor::PanelBg);
         m_dlg_initialized = true;
     }
 

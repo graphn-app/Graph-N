@@ -21,9 +21,9 @@ struct PanelNodesData final : public PanelCommonData
 {
     enum Buffer
     {
-        buff_filter,
-        buff_filter_lowered,
-        buff_count
+        BuffFilter,
+        BuffFilterLowered,
+        BuffCount
     };
 
     std::set<hid> open_items;

@@ -26,15 +26,15 @@ void PanelNodes::init()
 {
     LogF;
     PanelBase::init();
-    data()->buffer.resize(PanelNodesData::buff_count);
+    data()->buffer.resize(PanelNodesData::BuffCount);
 
     m_wf = g::pFlow->create_workflow();
 
     g::pFlow->subscribe_comfyui_validity_state(this);
 
-    data()->clr_hover_group = g::pOptsManager->color_load(AppColor::panel_nodes_hover_group);
-    data()->clr_hover_node = g::pOptsManager->color_load(AppColor::panel_nodes_hover_node);
-    data()->clr_selected_node = g::pOptsManager->color_load(AppColor::panel_nodes_sel_node);
+    data()->clr_hover_group = g::pOptsManager->color_load(AppColor::PanelNodesHoverGroup);
+    data()->clr_hover_node = g::pOptsManager->color_load(AppColor::PanelNodesHoverNode);
+    data()->clr_selected_node = g::pOptsManager->color_load(AppColor::PanelNodesSelNode);
 
     const auto adjust_brightness = [](ImU32 color, float factor)
     {
@@ -89,13 +89,13 @@ DlgCode PanelNodes::show(bool& focused)
         ImGui::Spacing();
 
         ImGui::SetNextItemWidth(-FLT_MIN);
-        if (ImGuiEx::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelNodesData::buff_filter],
+        if (ImGuiEx::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelNodesData::BuffFilter],
             ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
         {
-            data()->buffer[PanelNodesData::buff_filter_lowered] = tools::str::to_lower_ascii(data()->buffer[PanelNodesData::buff_filter]);
-            Log("Filter by: " << data()->buffer[PanelNodesData::buff_filter_lowered]);
-            g::pNodesManager->calc_number_inside(tools::str::trim_this(data()->buffer[PanelNodesData::buff_filter_lowered]));
-            if (!data()->buffer[PanelNodesData::buff_filter_lowered].empty())
+            data()->buffer[PanelNodesData::BuffFilterLowered] = tools::str::to_lower_ascii(data()->buffer[PanelNodesData::BuffFilter]);
+            Log("Filter by: " << data()->buffer[PanelNodesData::BuffFilterLowered]);
+            g::pNodesManager->calc_number_inside(tools::str::trim_this(data()->buffer[PanelNodesData::BuffFilterLowered]));
+            if (!data()->buffer[PanelNodesData::BuffFilterLowered].empty())
                 expand_all();
         }
 
@@ -132,7 +132,7 @@ void PanelNodes::show_tree_view()
             if (nullptr == node_holder || node_holder->is_node && nullptr == node_holder->node)
                 continue;
 
-            const auto nodes_inside = data->buffer[PanelNodesData::buff_filter_lowered].empty() ? node_holder->nodes_inside : node_holder->nodes_inside_unfiltered;
+            const auto nodes_inside = data->buffer[PanelNodesData::BuffFilterLowered].empty() ? node_holder->nodes_inside : node_holder->nodes_inside_unfiltered;
             if (!node_holder->is_node && 0 == nodes_inside || node_holder->is_node && node_holder->filtered)
                 continue;
 

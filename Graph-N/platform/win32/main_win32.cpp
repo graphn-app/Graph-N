@@ -48,7 +48,7 @@ bool MainRoutine_Win32::init()
     // Initialize Direct3D
     if (!create_device_d3d(m_hwnd))
     {
-        LogError(ExcepCategory::directx, "Create_device_d3d failed with err: " << LogERR);
+        LogError(ExcepCategory::DirectX, "Create_device_d3d failed with err: " << LogERR);
         cleanup_device_d3d();
         ::UnregisterClassW(m_wc.lpszClassName, m_wc.hInstance);
         return false;
@@ -134,7 +134,7 @@ bool MainRoutine_Win32::render_frame(bool done)
 {
     if (!m_main_render_target_view)
     {
-        LogError(ExcepCategory::directx, "Render target is null");
+        LogError(ExcepCategory::DirectX, "Render target is null");
         ::PostQuitMessage(1);
         return false;
     }
@@ -171,7 +171,7 @@ bool MainRoutine_Win32::render_frame(bool done)
     const HRESULT hr = m_swap_chain->Present(vsync, 0); 
     if (FAILED(hr))
     {
-        LogError(ExcepCategory::directx, "Device lost on Present: " << LogHEX(hr));
+        LogError(ExcepCategory::DirectX, "Device lost on Present: " << LogHEX(hr));
         ::PostQuitMessage(1);
     }
 
@@ -225,7 +225,7 @@ bool MainRoutine_Win32::create_device_d3d(HWND hWnd)
         res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &pSwapChain, &pd3dDevice, &featureLevel, &pd3dDeviceContext);
     if (res != S_OK)
     {
-        LogError(ExcepCategory::directx, "Failed D3D11CreateDevice with error: " << LogERR);
+        LogError(ExcepCategory::DirectX, "Failed D3D11CreateDevice with error: " << LogERR);
         return false;
     }
     m_d3d_device.reset(pd3dDevice);
@@ -263,7 +263,7 @@ bool MainRoutine_Win32::create_render_target()
     HRESULT hr = m_swap_chain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
     if (hr != S_OK || nullptr == backBuffer)
     {
-        LogError(ExcepCategory::directx, "m_swap_chain->GetBuffer failed: " << LogHEX(hr));
+        LogError(ExcepCategory::DirectX, "m_swap_chain->GetBuffer failed: " << LogHEX(hr));
         return false;
     }
     std::unique_ptr<ID3D11Texture2D, std::function <void(ID3D11Texture2D*)>> pBackBuffer(backBuffer, [](ID3D11Texture2D* p) { p->Release(); });
@@ -272,7 +272,7 @@ bool MainRoutine_Win32::create_render_target()
     hr = m_d3d_device->CreateRenderTargetView(pBackBuffer.get(), nullptr, &targetView);
     if (hr != S_OK || nullptr == targetView)
     {
-        LogError(ExcepCategory::directx, "m_d3d_device->CreateRenderTargetView failed: " << LogHEX(hr));
+        LogError(ExcepCategory::DirectX, "m_d3d_device->CreateRenderTargetView failed: " << LogHEX(hr));
         return false;
     }
     m_main_render_target_view.reset(targetView);
@@ -305,7 +305,7 @@ void MainRoutine_Win32::init_imgui_diloag_texture()
         HRESULT hr = d3d_device->CreateTexture2D(&desc, &subResource, &pTexture);
         if (FAILED(hr))
         {
-            LogError(ExcepCategory::directx, "CreateTexture2D failed: " << LogHEX(hr));
+            LogError(ExcepCategory::DirectX, "CreateTexture2D failed: " << LogHEX(hr));
             ::PostQuitMessage(1);
             return nullptr;
         }
@@ -321,7 +321,7 @@ void MainRoutine_Win32::init_imgui_diloag_texture()
         hr = d3d_device->CreateShaderResourceView(pTexture, &srvDesc, &pSRV);
         if (FAILED(hr))
         {
-            LogError(ExcepCategory::directx, "CreateShaderResourceView failed: " << LogHEX(hr));
+            LogError(ExcepCategory::DirectX, "CreateShaderResourceView failed: " << LogHEX(hr));
             ::PostQuitMessage(1);
             return nullptr;
         }

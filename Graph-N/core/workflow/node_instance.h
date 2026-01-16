@@ -18,7 +18,7 @@ public:
     void init() override;
 
     float calc_node_width();
-    float recalc_node_widths(float avail_width, bool allow_extend, bool allow_compress, bool use_big_pin_icon);
+    float recalc_node_widths(float avail_width, bool allow_extend, bool allow_compress, bool use_big_Pin_icon);
 
     const std::string& get_name() const;
     void set_name(std::string name);
@@ -40,8 +40,8 @@ public:
     float w_widget_name = 0.0f;
     float w_widget_value = 0.0f;
     float w_center = 0.0f;
-    float w_pin_in = 0.0f;
-    float w_pin_out = 0.0f;
+    float w_Pin_in = 0.0f;
+    float w_Pin_out = 0.0f;
     float w_separator = 0.0f;
 
     bool m_has_in_pins = false;

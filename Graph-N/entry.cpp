@@ -44,10 +44,10 @@ int do_main(std::atomic_bool& request_focus)
     if (!g::pGraphN->init_graphn())
         return 1;
 
-    platform::MainRoutine::flow_callback callback = [](bool do_exit)
+    platform::MainRoutine::flow_callback callback = [](bool DoExit)
     {
         const bool res = g::pGraphN->flow();
-        if (!res || do_exit)
+        if (!res || DoExit)
         {
             if (g::pGraphN != nullptr)
                 g::pGraphN->exit_graphn();
@@ -92,12 +92,12 @@ int main(int, char**)
     }
     catch (const std::exception& ex)
     {
-        LogExcep(ExcepCategory::main, "Main routine, err " << ex.what());
+        LogExcep(ExcepCategory::Main, "Main routine, err " << ex.what());
         throw;
     }
     catch (...)
     {
-        LogExcep(ExcepCategory::main, "Main routine unknown exception");
+        LogExcep(ExcepCategory::Main, "Main routine unknown exception");
         throw;
     }
 

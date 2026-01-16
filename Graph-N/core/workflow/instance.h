@@ -56,7 +56,7 @@ public:
         m_obj_id = 0;
         if (nullptr == m_object)
         {
-            LogAndThrowInternalError(ExcepCategory::inconsistent_ptr, "Can't prepare to invalidation - no object")
+            LogAndThrowInternalError(ExcepCategory::InconsistentPtr, "Can't prepare to invalidation - no object")
         }
         m_obj_id = m_object->get_id();
         m_object = nullptr;
@@ -69,7 +69,7 @@ public:
         m_object = nullptr;
         if (0 == m_obj_id)
         {
-            LogError(ExcepCategory::inconsistent_ptr, "No saved data to invalidate object");
+            LogError(ExcepCategory::InconsistentPtr, "No saved data to invalidate object");
         }
         m_object = find_obj(m_obj_id);
         if (nullptr == m_object)

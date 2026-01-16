@@ -7,9 +7,9 @@ namespace mngr
 
 enum class ConnectState
 {
-    disconnected,
-    connecting,
-    connected,
+    Disconnected,
+    Connecting,
+    Connected,
 };
 
 class ConnectManager final : public Manager
@@ -36,7 +36,7 @@ private:
         int64_t conn_timeout = 0;
         int64_t read_timeout = 0;
         int32_t conn_th_id = 0;
-        ConnectState state = ConnectState::disconnected;
+        ConnectState state = ConnectState::Disconnected;
         std::atomic_bool stop_thread_flag = false;
         std::string data;
     };
@@ -45,7 +45,7 @@ private:
 
 private:
     std::shared_ptr<ConnectData> m_conn_data;
-    std::atomic<ConnectState> m_state = ConnectState::disconnected;
+    std::atomic<ConnectState> m_state = ConnectState::Disconnected;
     std::thread m_thread;
     std::future<std::shared_ptr<ConnectData>> m_future;
     std::string m_nodes_raw;

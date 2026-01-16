@@ -14,19 +14,19 @@ using primitive = std::variant<int64_t, uint64_t, double, std::string, bool, std
 enum class ExcepCategory
 {
     _none,
-    inconsistent_map,
-    inconsistent_ptr,
-    directx,
-    filesystem,
-    switch_enum,
-    comfyui,
-    sqlite,
-    ui,
-    main,
-    logic,
-    logger,
-    flow,
-    api
+    InconsistentMap,
+    InconsistentPtr,
+    DirectX,
+    FileSystem,
+    SwitchEnum,
+    ComfyUI,
+    SQLite,
+    UI,
+    Main,
+    Logic,
+    Logger,
+    Flow,
+    API
 };
 
 enum class DlgObj
@@ -65,43 +65,39 @@ enum class OptPane
 
 enum DlgCtrl
 {
-    //_none = 0,
+    _none = 0,
 
-    btn_ok      = 0x00001,
-    btn_cancel  = 0x00002,
-    btn_yes     = 0x00004,
-    btn_no      = 0x00008,
+    BtnOK      = 0x00001,
+    BtnCancel  = 0x00002,
+    BtnYes     = 0x00004,
+    BtnNo      = 0x00008,
 
-    ico_err     = 0x10000,
-    ico_info    = 0x20000,
-    ico_warn    = 0x40000,
-    ico_ques    = 0x80000,
+    IcoErr     = 0x10000,
+    IcoInfo    = 0x20000,
+    IcoWarn    = 0x40000,
+    IcoQues    = 0x80000,
 
-    //_btn_count = 4,
-    //_ico_count = 4,
+    _btn_count = 4,
+    _ico_count = 4,
 };
 
 // update LogWriter with new elements!
 enum class DlgCode
 {
-    progress,
-
-    ok,
-    cancel,
-    yes,
-    no,
+    Progress,
+    Cancel,
 };
 
 enum class WidgetInput
 {
     _none,
 
-    direct,     // int
-    slider,     // int - def
-    drag,       // int
-    toggle,     // bool
-    switcher,   // bool
-    select,     // bool - def
+    Direct,     // int
+    Slider,     // int - def
+    Drag,       // int
+    Toggle,     // bool
+    Switcher,   // bool
+    Select,     // bool - def
 
     _count,
     _first = _none + 1,
@@ -111,86 +107,88 @@ enum class WidgetInput
 
 enum class MetricLimit
 {
-    local_ram,
-    local_disk,
-    local_fps,
-    server_ram,
-    server_vram,
-    server_pytorch,
-    server_ping,
+    LocalRAM,
+    LocalDisk,
+    LocalFPS,
+    ServerRAM,
+    ServerVRAM,
+    ServerPyTorch,
+    ServerPing,
 
     _count
 };
 
 enum class AppColor
 {
-    disconnected_menubar_bg,
-    disconnected_menubar_text,
-    opt_btn_normal,
-    opt_btn_hover,
-    opt_btn_pressed,
-    opt_dlg_title_bg,
-    opt_dlg_bg,
-    panel_bg,
-    panel_nodes_hover_group,
-    panel_nodes_hover_node,
-    panel_nodes_sel_node,
-    panel_node_insp_descr_frame,
-    node_header_bg,
-    node_header_text,
-    node_body_bg,
-    node_pin_text,
-    node_border,
-    node_widget_hidden_sep,
-    stat_norm,
-    stat_warn,
-    stat_crit,
-    stat_sep_capt,
-    stat_sep_subtitle,
-    popup_bg,
-    menubar_bg,
-    opt_subtitle_sep,
-    opt_separator,
-    opt_selected_item,
-    opt_help_mark,
-    opt_help_text,
-    pin_int,
-    pin_float,
-    pin_string,
-    pin_boolean,
-    pin_any,
-    pin_combo,
-    pin_color,
-    pin_number,
-    pin_floats,
-    pin_seed,
-    pin_model,
-    pin_latent,
-    pin_vae,
-    pin_clip,
-    pin_image,
-    pin_mask,
-    pin_conditioning,
-    pin_clip_vision,
-    pin_control_net,
-    pin_audio,
-    pin_video,
-    pin_ipadapter,
-    pin_insightface,
-    pin_control_net_stack,
-    pin_clip_vision_output,
-    pin_noise,
-    pin_sigmas,
-    pin_sampler,
-    pin_pipe_line,
-    pin_lora_stack,
-    pin_lora_list,
-    pin_segs,
-    pin_bbox,
-    pin_bus,
-    restart_button,
-    url_text_default,
-    url_text_hovered,
+    DisconnectedMenuBarBg,
+    DisconnectedMenuBarText,
+    OptBtnNormal,
+    OptBtnHover,
+    OptBtnPressed,
+    OptDlgTitleBg,
+    OptDlgBg,
+    PanelBg,
+    PanelNodesHoverGroup,
+    PanelNodesHoverNode,
+    PanelNodesSelNode,
+    PanelNodesInspDescrFrame,
+    NodeHeaderBg,
+    NodeHeaderText,
+    NodeBodyBg,
+    NodePinText,
+    NodeBorder,
+    NodeWidgetHiddenSep,
+    StatNorm,
+    StatWarn,
+    StatCrit,
+    StatSepCapt,
+    StatSepSubtitle,
+    PopupBg,
+    MenubarBg,
+    OptSubtitleSep,
+    OptSeparator,
+    OptSelectedItem,
+    OptHelpMark,
+    OptHelpText,
+    RestartButton,
+    UrlTextDefault,
+    UrlTextHovered,
+
+
+    Pin_int,
+    Pin_float,
+    Pin_string,
+    Pin_boolean,
+    Pin_any,
+    Pin_combo,
+    Pin_color,
+    Pin_number,
+    Pin_floats,
+    Pin_seed,
+    Pin_model,
+    Pin_latent,
+    Pin_vae,
+    Pin_clip,
+    Pin_image,
+    Pin_mask,
+    Pin_conditioning,
+    Pin_ClipVision,
+    Pin_ControlNet,
+    Pin_audio,
+    Pin_video,
+    Pin_IPAdapter,
+    Pin_InsightFace,
+    Pin_ControlNetStack,
+    Pin_ClipVisionOutput,
+    Pin_noise,
+    Pin_sigmas,
+    Pin_sampler,
+    Pin_PipeLine,
+    Pin_LoraStack,
+    Pin_LoraList,
+    Pin_segs,
+    Pin_bbox,
+    Pin_bus,
 
     _count
 };
@@ -225,8 +223,8 @@ constexpr const char* upload_mask       = "/upload/mask";           // post
 
 namespace w
 {
-extern float pin_l_offset;
-extern float pin_r_offset;
+extern float Pin_l_offset;
+extern float Pin_r_offset;
 extern float ico_circle;
 extern float ico_eye;
 extern float ico_max;
@@ -247,7 +245,7 @@ NODE
 |                                     [             node name           ]                           |              |
 |<---------------2------------------->|<--------------3/4-------------->|<-----------2------------->|         ---->| 
 | 19
-|     [       pin_ico    ]     [in_pin_name][    center      ][out_pin_name]     [ pin_ico    ]     |              |
+|     [       Pin_ico    ]     [in_Pin_name][    center      ][out_Pin_name]     [ Pin_ico    ]     |              |
 |<-5->|<------6/13------>|<-7->|<---8/9--->|[<-----10------->|<---11/12--->|<-7->|<---6/13--->|<-5->|         ---->|
 | 20
 |     [    widget_ico    ]     [  widget_name       ][     widget_value    ]                        |              |
@@ -263,9 +261,9 @@ NODE
 ##  | what                   | equal to                                                         | variable                          | when
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 3   | node name              | CalcTextSize(Node::name)                                         | Node::w_name                      | on parse
-5   | pin left offset        | 4.0                                                              | w::pin_l_offset                   | app start
+5   | pin left offset        | 4.0                                                              | w::Pin_l_offset                   | app start
 6   | icon width             | CalcTextSize(ICON_CIRCLE)                                        | w::ico_circle                     | app start
-7   | pin right offset       | 4.0                                                              | w::pin_r_offset                   | app start
+7   | pin right offset       | 4.0                                                              | w::Pin_r_offset                   | app start
 8   | input pin name         | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
 11  | output pin name        | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
 13  | icon width             | CalcTextSize(ICON_EYE)                                           | w::ico_eye                        | app start
@@ -274,8 +272,8 @@ NODE
 19  | vertical spacing       | 4.0                                                              | w::v_spacing                      | app start
 20  | vertical spacing       | (19)*2                                                           |                                   | app start
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
-9   | max input pin name     | max(!wigdet(8))                                                  | Node::w_pin_in_max                | first instance create
-12  | max output pin name    | max(11)                                                          | Node::w_pin_out_max               | first instance create
+9   | max input pin name     | max(!wigdet(8))                                                  | Node::w_Pin_in_max                | first instance create
+12  | max output pin name    | max(11)                                                          | Node::w_Pin_out_max               | first instance create
 15  | max widget name        | max(widget(14) + 2 * ImGui::GetStyle().ItemSpacing.x)            | Node::w_widget_name_max           | first instance create
 17  | max widget value       | max(16)                                                          | Node::w_widget_value_max          | first instance create
 21  | node ideal fit         | = (1 ideal)                                                      | Node::w_fit                       | first instance create

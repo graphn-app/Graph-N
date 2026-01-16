@@ -55,7 +55,7 @@ protected:
     {
         ImGui::End();
         ImGui::PopStyleColor();
-        return opened ? DlgCode::progress : DlgCode::cancel;
+        return opened ? DlgCode::Progress : DlgCode::Cancel;
     }
 
     void show_empty_panel_descr(const char* header_descr, const std::vector<const char*>& titles, const std::vector<const char*>& subtitles,
@@ -95,7 +95,7 @@ protected:
             if (disabled)
                 ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
             if (as_url)
-                click = ImGuiEx::UrlButton(url, g::pOptsManager->color_load(AppColor::url_text_default), g::pOptsManager->color_load(AppColor::url_text_hovered), nullptr);
+                click = ImGuiEx::UrlButton(url, g::pOptsManager->color_load(AppColor::UrlTextDefault), g::pOptsManager->color_load(AppColor::UrlTextHovered), nullptr);
             else
                 ImGui::TextUnformatted(text);
             if (disabled)

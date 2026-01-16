@@ -155,12 +155,12 @@ struct LogGuard final
             glog::Logger::instance().write(log_writer__); \
         } \
         catch (const std::exception& e) { \
-            SAVE_EXCEPTION(ExcepCategory::logger, e.what()); \
+            SAVE_EXCEPTION(ExcepCategory::Logger, e.what()); \
             glog::Logger::instance().disable_logging(); \
             DEBUG_CATCH; \
         } \
         catch (...) { \
-            SAVE_EXCEPTION(ExcepCategory::logger, "Unknown exception"); \
+            SAVE_EXCEPTION(ExcepCategory::Logger, "Unknown exception"); \
             glog::Logger::instance().disable_logging(); \
             DEBUG_CATCH; \
         } \
@@ -181,12 +181,12 @@ struct LogGuard final
                 glog::Logger::instance().write(log_writer_2__); \
             } \
             catch (const std::exception& e) { \
-                SAVE_EXCEPTION(ExcepCategory::logger, e.what()); \
+                SAVE_EXCEPTION(ExcepCategory::Logger, e.what()); \
                 glog::Logger::instance().disable_logging(); \
                 DEBUG_CATCH; \
             } \
             catch (...) { \
-                SAVE_EXCEPTION(ExcepCategory::logger, "Unknown exception"); \
+                SAVE_EXCEPTION(ExcepCategory::Logger, "Unknown exception"); \
                 glog::Logger::instance().disable_logging(); \
                 DEBUG_CATCH; \
             } \

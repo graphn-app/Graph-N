@@ -14,7 +14,7 @@ void OptRightPane::show_help_mark(const char*& out, float offset, bool same_line
     if (same_line)
         ImGui::SameLine();
     ImGui::SetCursorPosX(offset);
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::opt_help_mark));
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptHelpMark));
     ImGui::TextUnformatted(" [?]");
     ImGui::PopStyleColor();
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
@@ -26,7 +26,7 @@ void OptRightPane::show_help_text(const char* help_text)
     if (help_text != nullptr)
     {
         ImGui::Separator();
-        ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::opt_help_text));
+        ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptHelpText));
         ImGui::PushTextWrapPos(0.0f);
         ImGui::TextUnformatted(help_text);
         ImGui::PopTextWrapPos();

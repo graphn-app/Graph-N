@@ -1,6 +1,6 @@
 
 #include "core/workflow/link.h"
-#include "core/workflow/pin_instance.h"
+#include "core/workflow/Pin_instance.h"
 #include "core/workflow/workflow.h"
 #include "core/data/pin.h"
 #include "core/managers/nodes_manager.h"
@@ -20,12 +20,12 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
 {
     if (nullptr == i1 || nullptr == i2 || i1->get_object() == nullptr || i2->get_object() == nullptr)
     {
-        LogAndThrowInternalError(ExcepCategory::logic, "Null link");
+        LogAndThrowInternalError(ExcepCategory::Logic, "Null link");
     }
 
     if (i1->get_workflow() != i2->get_workflow())
     {
-        LogAndThrowInternalError(ExcepCategory::logic, "Different workflow");
+        LogAndThrowInternalError(ExcepCategory::Logic, "Different workflow");
     }
 
     const auto p1 = i1->get_object();
@@ -64,7 +64,7 @@ Link* Link::link(PinInstance* i1, PinInstance* i2)
 {
     if (!can_link(i1, i2))
     {
-        LogAndThrowInternalError(ExcepCategory::logic, "Check can link before entablish connection");
+        LogAndThrowInternalError(ExcepCategory::Logic, "Check can link before entablish connection");
     }
 
     auto link = i1->get_workflow()->add_link();
@@ -79,13 +79,13 @@ Link* Link::link(PinInstance* i1, PinInstance* i2)
     {
         s1->type = s2->type;
         s1->type_str = s2->type_str;
-        s1->pin_color = s2->pin_color;
+        s1->Pin_color = s2->Pin_color;
     }
     else if (p2->type_any)
     {
         s2->type = s1->type;
         s2->type_str = s1->type_str;
-        s2->pin_color = s1->pin_color;
+        s2->Pin_color = s1->Pin_color;
     }
 
     s1->links++;
@@ -121,13 +121,13 @@ void Link::unlink()
     {
         s1->type = p1->def_state.type;
         s1->type_str = p1->def_state.type_str;
-        s1->pin_color = p1->def_state.pin_color;
+        s1->Pin_color = p1->def_state.Pin_color;
     }
     if (p2->type_any && 0 == s2->links)
     {
         s2->type = p2->def_state.type;
         s2->type_str = p2->def_state.type_str;
-        s2->pin_color = p2->def_state.pin_color;
+        s2->Pin_color = p2->def_state.Pin_color;
     }
 
     Log("Link-: link id=" << m_graph_id << ", pin id=" << m_input->get_graph_id() << "/" << p1->get_id() << " unlinked from id=" << m_output->get_graph_id() << "/" << p2->get_id());

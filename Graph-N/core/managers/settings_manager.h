@@ -74,14 +74,14 @@ public:
     // nodes
     void nd_node_options_preload();
     inline void nd_node_options_release() { m_hashed_pin_advanced.clear(); }
-    inline std::optional<bool> nd_pin_advanced_load(hid pin_id) const
+    inline std::optional<bool> nd_Pin_advanced_load(hid Pin_id) const
     {
-        const auto it = m_hashed_pin_advanced.find(pin_id);
+        const auto it = m_hashed_pin_advanced.find(Pin_id);
         if (it == m_hashed_pin_advanced.end())
             return std::nullopt;
         return it->second;
     }
-    void nd_pin_advanced_save(hid pin_id, bool advanced) const;
+    void nd_pin_advanced_save(hid Pin_id, bool advanced) const;
 
     // stats
     inline int64_t stat_threshold_warn_load(MetricLimit type) const { return *std::get_if<int64_t>(&m_stat_limits_warn[cast::to_szt(type)].value); }

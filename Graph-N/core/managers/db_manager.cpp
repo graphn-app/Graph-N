@@ -140,7 +140,7 @@ bool DbManager::init()
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite initialization " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite initialization " << LOG_EXP(ex));
         return false;
     }
 
@@ -165,7 +165,7 @@ void DbManager::exception_save(ExcepCategory category, const std::string& messag
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite save " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_EXP(ex));
     }
 }
 
@@ -184,7 +184,7 @@ void DbManager::option_save(const std::string& key, const Value& value)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite save " << LOG_KEY_VAL(key, value) << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_KEY_VAL(key, value) << ", " << LOG_EXP(ex));
     }
 }
 
@@ -213,7 +213,7 @@ std::vector<DbOption> DbManager::option_load_all()
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite load all options " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite load all options " << LOG_EXP(ex));
     }
     return {};
 }
@@ -241,7 +241,7 @@ void DbManager::option_save_all(const std::vector<DbOption>& opts)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite save all options " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite save all options " << LOG_EXP(ex));
     }
 }
 
@@ -261,7 +261,7 @@ void DbManager::node_option_save(hid node_hash, NodeOption opt, const Value& val
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite save " << LOG_NOPT_KEY_VAL(node_hash, opt, value) << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_NOPT_KEY_VAL(node_hash, opt, value) << ", " << LOG_EXP(ex));
     }
 }
 
@@ -284,7 +284,7 @@ std::optional<Value> DbManager::node_option_load(hid node_hash, NodeOption opt)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite load " << LOG_NOPT_KEY(node_hash, opt) << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite load " << LOG_NOPT_KEY(node_hash, opt) << ", " << LOG_EXP(ex));
     }
     return std::nullopt;
 }
@@ -314,7 +314,7 @@ std::vector<std::pair<hid, Value>> DbManager::node_option_load_all(NodeOption op
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite load all " << LOG_NOPT_KEY(0, opt) << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite load all " << LOG_NOPT_KEY(0, opt) << ", " << LOG_EXP(ex));
     }
     return {};
 }
@@ -351,7 +351,7 @@ std::vector<WfData> DbManager::wf_load_meta()
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite load all workflows, " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite load all workflows, " << LOG_EXP(ex));
     }
     return {};
 }
@@ -373,7 +373,7 @@ void DbManager::wf_update_meta(const WfData& wf)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite upd workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite upd workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
     }
 }
 
@@ -394,7 +394,7 @@ void DbManager::wf_load_json(WfData& wf)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite load json workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite load json workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
     }
 }
 
@@ -413,7 +413,7 @@ void DbManager::wf_update_json(const WfData& wf)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::sqlite, "SQLite upd json workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite upd json workflow " << wf.name << "###" << wf.id << ", " << LOG_EXP(ex));
     }
 }
 

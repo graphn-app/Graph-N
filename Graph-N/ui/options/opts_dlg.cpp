@@ -31,8 +31,8 @@ void OptionsDlgs::init()
     data()->width = 650;
     data()->height = 680;
 
-    data()->clr_title = g::pOptsManager->color_load(AppColor::opt_dlg_title_bg);
-    data()->clr_bg = g::pOptsManager->color_load(AppColor::opt_dlg_bg);
+    data()->clr_title = g::pOptsManager->color_load(AppColor::OptDlgTitleBg);
+    data()->clr_bg = g::pOptsManager->color_load(AppColor::OptDlgBg);
 
     m_opts_data.buffer_i.resize(cast::to_szt(OptPane::_count));
     m_opts_data.buffer_s.resize(cast::to_szt(OptPane::_count));
@@ -103,7 +103,7 @@ void OptionsDlgs::show_left_pane()
         }
         
         ImGui::SetCursorPosY(avail_h - ImGui::GetTextLineHeight());
-        ImGui::PushStyleColor(ImGuiCol_Button, g::pOptsManager->color_load(AppColor::restart_button));
+        ImGui::PushStyleColor(ImGuiCol_Button, g::pOptsManager->color_load(AppColor::RestartButton));
         const bool restart = ImGui::Button("Restart " APP_COMFYUI, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f));
         ImGui::PopStyleColor();
         if (restart)
@@ -133,7 +133,7 @@ void OptionsDlgs::show_right_pane()
                     }
                     catch (const std::exception& ex)
                     {
-                        LogExcep(ExcepCategory::ui, "Options: " << ex.what());
+                        LogExcep(ExcepCategory::UI, "Options: " << ex.what());
                     }
                 }
 

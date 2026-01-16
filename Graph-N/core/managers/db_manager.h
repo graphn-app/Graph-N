@@ -7,7 +7,7 @@ namespace mngr
 
 enum class NodeOption
 {
-    advanced = 1
+    Advanced = 1
 };
 
 struct Value final

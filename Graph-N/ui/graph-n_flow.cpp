@@ -22,8 +22,8 @@
 
 namespace w
 {
-float pin_l_offset = 0.0f;
-float pin_r_offset = 0.0f;
+float Pin_l_offset = 0.0f;
+float Pin_r_offset = 0.0f;
 float ico_circle = 0.0f;
 float ico_eye = 0.0f;
 float ico_max = 0.0f;
@@ -49,8 +49,8 @@ bool GraphN_Flow::init()
 {
     LogF;
 
-    w::pin_l_offset = 4.0f;
-    w::pin_r_offset = 4.0f;
+    w::Pin_l_offset = 4.0f;
+    w::Pin_r_offset = 4.0f;
     w::ico_circle = ImGui::CalcTextSize(ICON_LC_CIRCLE_SMALL).x;
     w::ico_eye = ImGui::CalcTextSize(ICON_LC_EYE).x;
     w::ico_max = std::max(w::ico_circle, w::ico_eye);
@@ -63,8 +63,8 @@ bool GraphN_Flow::init()
     ImGuiStyle& style = ImGui::GetStyle();
 
     // Background: Dark Grey (Opaque) - Lighter than main window
-    style.Colors[ImGuiCol_PopupBg] = ImColor(g::pOptsManager->color_load(AppColor::popup_bg));
-    style.Colors[ImGuiCol_MenuBarBg] = ImColor(g::pOptsManager->color_load(AppColor::menubar_bg));
+    style.Colors[ImGuiCol_PopupBg] = ImColor(g::pOptsManager->color_load(AppColor::PopupBg));
+    style.Colors[ImGuiCol_MenuBarBg] = ImColor(g::pOptsManager->color_load(AppColor::MenubarBg));
 
     // open windows
     m_windows = g::pOptsManager->ui_open_wnds_load();
@@ -196,7 +196,7 @@ void GraphN_Flow::destroy_workflow(data::Workflow* wf)
     auto wf_it = m_workflows.find(wf->get_id());
     if (wf_it == m_workflows.end())
     {
-        LogAndThrowInternalError(ExcepCategory::inconsistent_map, "Can't destroy workflow id=" << wf->get_id());
+        LogAndThrowInternalError(ExcepCategory::InconsistentMap, "Can't destroy workflow id=" << wf->get_id());
     }
     else
     {
@@ -334,7 +334,7 @@ void GraphN_Flow::show_menu_bar()
 {
     const bool connecting_mode = (m_windows & (ViewConnect | ViewParsingNodes)) > 0 && !m_online;
     if (connecting_mode)
-        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, g::pOptsManager->color_load(AppColor::disconnected_menubar_bg));
+        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, g::pOptsManager->color_load(AppColor::DisconnectedMenuBarBg));
 
     if (ImGui::BeginMainMenuBar())
     {
@@ -544,7 +544,7 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
         Log("Models panel closed");
         break;
     default:
-        LogError(ExcepCategory::switch_enum, "Unregistered dialog is trying to be closed " << cast::to_u64(dlg));
+        LogError(ExcepCategory::SwitchEnum, "Unregistered dialog is trying to be closed " << cast::to_u64(dlg));
     }
 
     g::pOptsManager->ui_open_wnds_save(m_windows);
@@ -597,7 +597,7 @@ void GraphN_Flow::show_options_dlg()
     }
 
     bool focused = false;
-    if (m_opts_dlg->show_dialog(focused) != DlgCode::progress)
+    if (m_opts_dlg->show_dialog(focused) != DlgCode::Progress)
     {
         on_dlg_closed(DlgObj::OptionsDlg);
     }
@@ -606,7 +606,7 @@ void GraphN_Flow::show_options_dlg()
 void GraphN_Flow::show_panel(BaseDlg* panel, DlgObj obj)
 {
     bool focused = false;
-    if (panel->show_dialog(focused) != DlgCode::progress)
+    if (panel->show_dialog(focused) != DlgCode::Progress)
     {
         on_dlg_closed(obj);
     }
@@ -658,7 +658,7 @@ void GraphN_Flow::show_panel_wf()
     {
         auto& panel = *it;
         bool focused = false;
-        if (panel->show_dialog(focused) != DlgCode::progress)
+        if (panel->show_dialog(focused) != DlgCode::Progress)
         {
             if (panel.get() == m_wf_focused)
                 m_wf_focused = nullptr;
@@ -698,7 +698,7 @@ void GraphN_Flow::show_menu_bar_connecting()
     if (m_windows & ViewConnect)
     {
         const auto status = g::pConnectManager->check_status();
-        if (mngr::ConnectState::connected == status)
+        if (mngr::ConnectState::Connected == status)
         {
             m_windows &= ~ViewConnect;
             m_windows |= ViewParsingNodes;
@@ -713,11 +713,11 @@ void GraphN_Flow::show_menu_bar_connecting()
             m_online = true;
             return;
         }
-        if (mngr::ConnectState::disconnected == status)
+        if (mngr::ConnectState::Disconnected == status)
         {
             text = APP_COMFYUI " disconnected";
         }
-        else if (mngr::ConnectState::connecting == status)
+        else if (mngr::ConnectState::Connecting == status)
         {
             text = fmt::format(FMT_COMPILE("Connecting to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
         }
@@ -752,7 +752,7 @@ void GraphN_Flow::show_menu_bar_connecting()
     }
 
     ImGui::AlignTextToFramePadding();
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::disconnected_menubar_text));
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::DisconnectedMenuBarText));
     ImGui::TextUnformatted(text.c_str(), text.c_str() + text.size());
     ImGui::PopStyleColor();
 }

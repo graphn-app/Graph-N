@@ -32,10 +32,10 @@ public:
     enum class Flow
     {
         _none,
-        init,
-        graph_n,
-        prepare_to_exit,
-        do_exit
+        Init,
+        GraphN,
+        PrepareToExit,
+        DoExit
     };
 
     bool init_graphn();

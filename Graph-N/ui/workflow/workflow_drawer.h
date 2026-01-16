@@ -40,7 +40,7 @@ private:
     const ImU32 m_clr_node_header_bg;
     const ImU32 m_clr_node_header_text;
     const ImU32 m_clr_node_body_bg;
-    const ImU32 m_clr_node_pin_text;
+    const ImU32 m_clr_node_Pin_text;
     const ImU32 m_clr_node_border;
 };
 

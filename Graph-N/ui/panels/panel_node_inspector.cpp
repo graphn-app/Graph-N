@@ -3,7 +3,7 @@
 #include "core/data/node.h"
 #include "core/data/pin.h"
 #include "core/workflow/node_instance.h"
-#include "core/workflow/pin_instance.h"
+#include "core/workflow/Pin_instance.h"
 #include "core/workflow/workflow.h"
 #include "ui/graph-n_flow.h"
 #include "platform/main.h"
@@ -27,8 +27,8 @@ void PanelNodeInspector::init()
 
     g::pFlow->subscribe_comfyui_validity_state(this);
 
-    data()->clr_descr_frame = g::pOptsManager->color_load(AppColor::panel_node_insp_descr_frame);
-    data()->clr_selected_node = g::pOptsManager->color_load(AppColor::panel_nodes_sel_node);
+    data()->clr_descr_frame = g::pOptsManager->color_load(AppColor::PanelNodesInspDescrFrame);
+    data()->clr_selected_node = g::pOptsManager->color_load(AppColor::PanelNodesSelNode);
 
     m_wf = g::pFlow->create_workflow();
 }
@@ -58,7 +58,7 @@ void PanelNodeInspector::remove_inspecting_node(data::Node* node)
     const auto it = std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object()->get_id() == node->get_id(); });
     if (it == m_inspecting.end())
     {
-        LogInternalError(ExcepCategory::inconsistent_map, "Can't remove node");
+        LogInternalError(ExcepCategory::InconsistentMap, "Can't remove node");
     }
     else
     {

@@ -218,7 +218,7 @@ void PanelStats::th_comfyui()
                 catch (std::exception& e)
                 {
                     if (!system_stats_err)
-                        LogExcep(ExcepCategory::comfyui, "/system_stats parse error: " << e.what());
+                        LogExcep(ExcepCategory::ComfyUI, "/system_stats parse error: " << e.what());
                     system_stats_err = true;
                 }
             }
@@ -237,7 +237,7 @@ void PanelStats::th_comfyui()
                 catch (std::exception& e)
                 {
                     if (!prompt_err)
-                        LogExcep(ExcepCategory::comfyui, "/prompt parse error: " << e.what());
+                        LogExcep(ExcepCategory::ComfyUI, "/prompt parse error: " << e.what());
                     prompt_err = true;
                 }
             }
@@ -299,18 +299,18 @@ ImU32 PanelStats::get_color(int64_t value, bool& stay_default, int64_t lim_warn,
     {
         if (is_lower_better)
         {
-            if (value >= lim_crit) return g::pOptsManager->color_load(AppColor::stat_crit);
-            if (value >= lim_warn) return g::pOptsManager->color_load(AppColor::stat_warn);
+            if (value >= lim_crit) return g::pOptsManager->color_load(AppColor::StatCrit);
+            if (value >= lim_warn) return g::pOptsManager->color_load(AppColor::StatWarn);
         }
         else
         {
-            if (value <= lim_crit) return g::pOptsManager->color_load(AppColor::stat_crit);
-            if (value <= lim_warn) return g::pOptsManager->color_load(AppColor::stat_warn);
+            if (value <= lim_crit) return g::pOptsManager->color_load(AppColor::StatCrit);
+            if (value <= lim_warn) return g::pOptsManager->color_load(AppColor::StatWarn);
         }
     }
 
     stay_default = true;
-    return g::pOptsManager->color_load(AppColor::stat_norm);
+    return g::pOptsManager->color_load(AppColor::StatNorm);
 }
 
 void PanelStats::format_bytes(uint64_t bytes)
@@ -357,11 +357,11 @@ DlgCode PanelStats::show(bool& focused)
 
         if (m_queue_remaining > 0)
         {
-            ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_subtitle), 0.0f, queue.data(), queue.size(), queue_wid);
+            ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepSubtitle), 0.0f, queue.data(), queue.size(), queue_wid);
             show_queue(val_text_offset);            
         }
 
-        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_capt), 0.0f, server.data(), server.size(), server_wid);
+        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepCapt), 0.0f, server.data(), server.size(), server_wid);
         if (!g::pFlow->get_online())
         {
             ImGui::TextUnformatted("Status");
@@ -380,14 +380,14 @@ DlgCode PanelStats::show(bool& focused)
                 show_server_as_text(val_text_offset);            
         }
 
-        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_capt), 0.0f, this_pc.data(), this_pc.size(), this_pc_wid);
+        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepCapt), 0.0f, this_pc.data(), this_pc.size(), this_pc_wid);
 
         if (show_bar)
             show_this_pc_as_bar(val_text_offset);
         else
             show_this_pc_as_text(val_text_offset);        
 
-        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_capt), 0.0f, performance.data(), performance.size(), performance_wid);
+        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepCapt), 0.0f, performance.data(), performance.size(), performance_wid);
         show_performance(val_text_offset);
 
         ImGui::EndGroup();
@@ -422,8 +422,8 @@ void PanelStats::print_text_stat(const char* stat_name, float val_offset, uint64
 void PanelStats::show_this_pc_as_text(float val_offset)
 {
     print_text_stat("RAM", val_offset, m_lram_free,
-        g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_ram),
-        g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_ram),
+        g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalRAM),
+        g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalRAM),
         false, true);
 
     for (auto& disk : m_disks)
@@ -431,8 +431,8 @@ void PanelStats::show_this_pc_as_text(float val_offset)
         if (disk.disk_opt->second)
         {
             print_text_stat(disk.format_path.c_str(), val_offset, disk.free,
-                g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_disk),
-                g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_disk),
+                g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalDisk),
+                g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalDisk),
                 false, true);
         }
     }
@@ -443,16 +443,16 @@ void PanelStats::show_server_as_text(float val_offset)
     if (m_ping > 0)
     {
         print_text_stat("Ping", val_offset, m_ping,
-            g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ping),
-            g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ping),
+            g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPing),
+            g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPing),
             true, false);
     }
 
     if (m_sram_free > 0)
     {
         print_text_stat("RAM", val_offset, m_sram_free,
-            g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ram),
-            g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ram),
+            g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerRAM),
+            g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerRAM),
             false, true);
     }
 
@@ -465,7 +465,7 @@ void PanelStats::show_server_as_text(float val_offset)
     {
         if (vd.pytorch_total > 0 || vd.pytorch_free > 0 || vd.vram_free > 0)
         {
-            ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_subtitle), 0.0f, vd.name.c_str(), vd.name.size(), 0.0f);
+            ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepSubtitle), 0.0f, vd.name.c_str(), vd.name.size(), 0.0f);
 
             if (vd.pytorch_total > 0)
             {
@@ -478,15 +478,15 @@ void PanelStats::show_server_as_text(float val_offset)
             if (vd.pytorch_free > 0)
             {
                 print_text_stat("PyTorch free", val_offset, vd.pytorch_free,
-                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_pytorch),
-                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_pytorch),
+                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPyTorch),
+                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPyTorch),
                     false, true);
             }
             if (vd.vram_free > 0)
             {
                 print_text_stat("VRAM", val_offset, vd.vram_free,
-                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_vram),
-                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_vram),
+                    g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerVRAM),
+                    g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerVRAM),
                     false, true);
             }
         }
@@ -514,8 +514,8 @@ void PanelStats::print_fps(float val_offset)
 
     bool def_clr = true;
     const auto color = get_color(cast::to_i64(latency * 100), def_clr,
-        g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_fps),
-        g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_fps),
+        g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalFPS),
+        g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalFPS),
         true);
 
     if (!def_clr)
@@ -538,8 +538,8 @@ void PanelStats::show_performance(float val_offset)
     if (m_ping > 0)
     {
         print_text_stat("Ping", val_offset, m_ping,
-            g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ping),
-            g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ping),
+            g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPing),
+            g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPing),
             true, false);
     }
 
@@ -575,8 +575,8 @@ void PanelStats::print_bar_stat(const char* stat_name, float val_offset, uint64_
 void PanelStats::show_this_pc_as_bar(float val_offset)
 {
     print_bar_stat("RAM", val_offset, m_lram_free, m_lram_total,
-        g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_ram),
-        g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_ram),
+        g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalRAM),
+        g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalRAM),
         "Local RAM");
 
     for (auto& disk : m_disks)
@@ -584,8 +584,8 @@ void PanelStats::show_this_pc_as_bar(float val_offset)
         if (disk.disk_opt->second)
         {
             print_bar_stat(disk.format_path.c_str(), val_offset, disk.free, disk.total,
-                g::pOptsManager->stat_threshold_warn_load(MetricLimit::local_disk),
-                g::pOptsManager->stat_threshold_crit_load(MetricLimit::local_disk),
+                g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalDisk),
+                g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalDisk),
                 disk.format_path.c_str());
         }
     }
@@ -594,8 +594,8 @@ void PanelStats::show_this_pc_as_bar(float val_offset)
 void PanelStats::show_server_as_bar(float val_offset)
 {
     print_bar_stat("RAM", val_offset, m_sram_free, m_sram_total,
-        g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_ram),
-        g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_ram),
+        g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerRAM),
+        g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerRAM),
         "Server RAM");
 
     std::list<VideoDevice> devices;
@@ -607,16 +607,16 @@ void PanelStats::show_server_as_bar(float val_offset)
     {
         if (vd.pytorch_total > 0 || vd.pytorch_free > 0 || vd.vram_free > 0)
         {
-            ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::stat_sep_subtitle), 0.0f, vd.name.c_str(), vd.name.size(), 0.0f);
+            ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepSubtitle), 0.0f, vd.name.c_str(), vd.name.size(), 0.0f);
 
             print_bar_stat("VRAM", val_offset, vd.vram_free, vd.vram_total,
-                g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_vram),
-                g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_vram),
+                g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerVRAM),
+                g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerVRAM),
                 "Video RAM");
 
             print_bar_stat("PyTorch VRAM", val_offset, vd.pytorch_free, vd.pytorch_total,
-                g::pOptsManager->stat_threshold_warn_load(MetricLimit::server_pytorch),
-                g::pOptsManager->stat_threshold_crit_load(MetricLimit::server_pytorch),
+                g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPyTorch),
+                g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPyTorch),
                 "PyTorch Video RAM");
         }
     }
