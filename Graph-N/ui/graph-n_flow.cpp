@@ -868,11 +868,10 @@ void GraphN_Flow::show_panels()
             }
 
             ImGui::DockBuilderFinish(dockspace_id);
-            m_fix_focus = true;
         }
-        else if (m_fix_focus)
+
+        if (3 == ImGui::GetFrameCount())
         {
-            m_fix_focus = false;
             ImGui::SetWindowFocus(m_panel_nodes->get_panel_name());
             ImGui::SetWindowFocus(m_panel_node_inspector->get_panel_name());
             ImGui::SetWindowFocus(m_panel_templates->get_panel_name());

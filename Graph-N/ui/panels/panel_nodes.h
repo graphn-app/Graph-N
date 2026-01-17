@@ -66,8 +66,10 @@ private:
     PanelNodeInspector* m_inspector = nullptr;
     data::Workflow* m_wf = nullptr;
     data::NodeInstance* m_tt_node = nullptr;
+    data::Nodes* m_tt_node_holder = nullptr;
     float m_tt_width = 0.0f;
     RoNodeDrawer m_tt_node_drawer;
+    float m_tt_life_timer = 0.0f;
 };
 
 

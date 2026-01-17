@@ -32,6 +32,7 @@ public:
 
     iid get_instance_id() const { return m_instance_id; }    // use this to save/load
     gid get_graph_id() const { return m_graph_id; }     // use this on graph
+    const gid* get_graph_id_ptr() const { return &m_graph_id; }     // use this on graph
     const std::string& get_graph_id_str() const { return m_graph_id_str; }
     hid get_object_id() const { return m_obj_id; }      // raw node/pin id
 

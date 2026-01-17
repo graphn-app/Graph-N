@@ -274,34 +274,57 @@ void PanelNodes::test_node_clicks(data::Nodes* holder)
             m_inspector->add_inspecting_node(holder->node);
         }
     }
-    else if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+    else
     {
         show_tooltip(holder);
-    }
-    else if (m_tt_node != nullptr)
-    {
-        m_wf->remove_node(m_tt_node);
-        m_tt_node = nullptr;
     }
 }
 
 void PanelNodes::show_tooltip(data::Nodes* holder)
 {
-    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
+    const bool tt = ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal);
+    if (tt)
+    {
+        m_tt_life_timer = 0.5f;
+    }
+    else
+    {
+        m_tt_life_timer -= ImGui::GetIO().DeltaTime;
+    }
+
+    if (m_tt_life_timer > 0.0f && nullptr == m_tt_node)
+    {
+        m_tt_node_holder = holder;
+        m_tt_node = m_wf->add_node(holder->node);
+        m_tt_width = m_tt_node->calc_node_width();
+    }
+    else if (m_tt_life_timer <= 0.0f && m_tt_node != nullptr)
+    {
+        m_wf->remove_node(m_tt_node);
+        m_tt_node = nullptr;
+        m_tt_node_holder = nullptr;
+    }
+    else if (holder != m_tt_node_holder && tt)
+    {
+        if (m_tt_node != nullptr)
+            m_wf->remove_node(m_tt_node);
+        m_tt_node_holder = holder;
+        m_tt_node = m_wf->add_node(holder->node);
+        m_tt_width = m_tt_node->calc_node_width();
+        return;
+    }
+
+    if (!tt)
+        return;
 
     if (ImGui::BeginTooltip())
     {
-        if (nullptr == m_tt_node)
-        {
-            m_tt_node = m_wf->add_node(holder->node);
-            m_tt_width = m_tt_node->calc_node_width();
-        }
+        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
         m_tt_node_drawer.draw(m_tt_node, true, m_tt_width);
+        ImGui::PopStyleColor(2);
         ImGui::EndTooltip();
     }
-
-    ImGui::PopStyleColor(2);
 }
 
 void PanelNodes::add_node_to_wf(data::Nodes* /*holder*/)

@@ -50,7 +50,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
     max_w = m_node->recalc_node_widths(max_w, false /*allow_extend*/, !m_tt_mode /*allow_compress*/, !m_tt_mode /*use_big_Pin_icon*/);
     m_curr_node_left_offset = ImGui::GetCursorPosX();
 
-    ImGuiEx::PushID(m_node->get_graph_id());
+    ImGui::PushID(m_node->get_graph_id_ptr());
 
     // --- NODE FRAME ---
 
@@ -454,7 +454,7 @@ void RoNodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_wid
     std::string val = data::Pin::get_string(pin->m_state->value);
 
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
-    ImGuiEx::InputTextWithHint("", placeholder.c_str(), &val);
+    ImGuiEx::InputTextWithHint("", placeholder.c_str(), &val, ImGuiInputTextFlags_ReadOnly);
 
     bool tt_mod = false;
     if (!val.empty())
@@ -472,7 +472,7 @@ void RoNodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_
     std::string val = data::Pin::get_string(pin->m_state->value);
 
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
-    ImGuiEx::InputTextMultilineWithHint("", placeholder.c_str(), &val);
+    ImGuiEx::InputTextMultilineWithHint("", placeholder.c_str(), &val, ImVec2(0, 0), ImGuiInputTextFlags_ReadOnly);
 
     bool tt_mod = false;
     if (!val.empty())

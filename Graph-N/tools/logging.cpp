@@ -375,7 +375,7 @@ LogWriter& LogWriter::operator << (uint64_t ui64)
 
 LogWriter& LogWriter::operator << (float f)
 {
-    fmt::format_to(std::back_inserter(m_buffer), "{:.8f", f);
+    fmt::format_to(std::back_inserter(m_buffer), "{:.8f}", f);
     return *this;
 }
 

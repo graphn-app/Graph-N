@@ -134,7 +134,6 @@ private:
     bool m_online = false;
 
     ImGuiID m_main_dock_id = 0;
-    bool m_fix_focus = false;
 
     std::unique_ptr<mngr::NodesParser> m_nodes_parser;
 
