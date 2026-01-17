@@ -172,7 +172,7 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
 
     for (auto& val : values)
     {
-        auto it = std::find_if(db_values.begin(), db_values.end(), [&val](mngr::DbOption& db_opt) { return db_opt.name == val->db_name; });
+        auto it = std::find_if(db_values.begin(), db_values.end(), [&val](DbOption& db_opt) { return db_opt.name == val->db_name; });
         if (it != db_values.end())
         {
             auto& db_opt = it->val.value();
@@ -192,7 +192,7 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
         {
             do_update = true;
             db_values.push_back({});
-            mngr::DbOption& db_opt = db_values.back();
+            DbOption& db_opt = db_values.back();
             db_opt.name = val->db_name;
 
             if (std::holds_alternative<int64_t>(val->value))
@@ -300,19 +300,19 @@ void SettingsManager::ui_open_wnds_save(int64_t windows)
 ////////       Nodes                     /////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-void SettingsManager::nd_node_options_preload()
+void SettingsManager::node_options_preload()
 {
-    nd_node_options_release();
-    const auto res = g::pDbManager->node_option_load_all(mngr::NodeOption::Advanced);
-    for (auto& [id, value] : res)
+    node_options_release();
+    const auto res = g::pDbManager->node_option_load_all();
+    for (auto& [id, opt, value] : res)
     {
-        m_hashed_pin_advanced[id] = value.ival == 1;
+        m_hashed_node_options[std::make_pair(id, cast::to_i32(opt))] = value;
     }
 }
 
-void SettingsManager::nd_pin_advanced_save(hid Pin_id, bool advanced) const
+void SettingsManager::node_save(hid node_id, NodeOption opt, bool value) const
 {
-    g::pDbManager->node_option_save(Pin_id, mngr::NodeOption::Advanced, { advanced ? 1 : 0 });
+    g::pDbManager->node_option_save(node_id, opt, { value ? 1 : 0 });
 }
 
 //////////////////////////////////////////////////////////////////////

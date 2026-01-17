@@ -36,6 +36,12 @@ private:
     void show_wfs();
     void show_cfg_buttons();
     void show_wfs_list();
+    void add_new_wf();
+    void rename_wf();
+    void locate_wf();
+    void sort_wfs();
+    void delete_wf();
+    void view_deleted();
 
 private:
     std::list<data::Workflow*> m_wfs;

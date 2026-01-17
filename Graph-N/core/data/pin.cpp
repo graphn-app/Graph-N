@@ -233,7 +233,7 @@ void Pin::finalize()
     }
 
     // load options
-    auto opt_adv = g::pOptsManager->nd_Pin_advanced_load(get_id());
+    auto opt_adv = g::pOptsManager->node_advanced_load(get_id());
     if (opt_adv.has_value())
         advanced = opt_adv.value();
 }

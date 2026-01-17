@@ -606,6 +606,16 @@ void GraphN_Flow::on_menu_wf(PanelWorkflow* wf_panel)
         m_panel_wf_list->set_active(wf);
     }
 }
+
+void GraphN_Flow::on_menu_import_json()
+{
+    // TODO
+}
+
+void GraphN_Flow::on_menu_export_json()
+{
+    // TODO ICON_LC_SHARE
+}
     
 void GraphN_Flow::open_settings_dlg(OptPane section /*= OptPane::_none*/)
 {
@@ -733,7 +743,7 @@ void GraphN_Flow::show_menu_bar_connecting()
             m_windows &= ~ViewConnect;
             m_windows |= ViewParsingNodes;
 
-            g::pOptsManager->nd_node_options_preload();
+            g::pOptsManager->node_options_preload();
             m_nodes_parser = std::make_unique<mngr::NodesParser>();
 #if 1
             m_nodes_parser->parse(debug::test_json);
@@ -760,7 +770,7 @@ void GraphN_Flow::show_menu_bar_connecting()
 
         if (m_nodes_parser->is_parse_finished())
         {
-            g::pOptsManager->nd_node_options_release();
+            g::pOptsManager->node_options_release();
             if (m_nodes_parser->is_parse_failed())
             {
                 text = "Failed to parse loaded nodes";

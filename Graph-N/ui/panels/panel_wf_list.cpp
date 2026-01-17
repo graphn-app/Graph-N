@@ -112,8 +112,6 @@ void PanelWfList::show_cfg_buttons()
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, data()->clr_hover_btn);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, data()->clr_active_btn);
 
-    // import
-    // import + export -> main menu?
     // ICON_LC_STAR
 
     const float spacing = ImGui::GetStyle().ItemSpacing.x;
@@ -168,14 +166,6 @@ void PanelWfList::show_cfg_buttons()
 
     ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
     fg.push();
-    if (ImGui::Button(ICON_LC_SHARE))
-    {
-        export_wf();
-    }
-    tooltip("Export to JSON");
-
-    ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
-    fg.push();
     if (ImGui::Button(ICON_LC_ARROW_DOWN_A_Z)) // ICON_LC_CLOCK_ARROW_DOWN
     {
         sort_wfs();
@@ -197,13 +187,42 @@ void PanelWfList::show_cfg_buttons()
         view_deleted();
     }
     tooltip("Trash.\nView deleted Projects");
-    // Deleted Projects. Will be purged automatically on exit
-    // Projects in this list are marked for deletion. They will be permanently removed from the database when you close the application
 
     ImGui::PopStyleColor(3);
 }
 
 void PanelWfList::show_wfs_list()
+{
+    ImGui::PushStyleColor(ImGuiCol_Header, data()->clr_bg);
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, data()->clr_bg);
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, data()->clr_bg);
+    ImGui::BeginGroup();
+
+    ImGui::EndGroup();
+    ImGui::PopStyleColor(3);
+}
+
+void PanelWfList::add_new_wf()
 {}
+
+void PanelWfList::rename_wf()
+{}
+
+void PanelWfList::locate_wf()
+{}
+
+
+void PanelWfList::sort_wfs()
+{}
+
+void PanelWfList::delete_wf()
+{}
+
+void PanelWfList::view_deleted()
+{
+
+    // Deleted Projects. Will be purged automatically on exit
+    // Projects in this list are marked for deletion. They will be permanently removed from the database when you close the application
+}
 
 } // namespace ui

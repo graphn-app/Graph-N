@@ -70,18 +70,15 @@ public:
     inline const std::string& wf_active_load() const { return *std::get_if<std::string>(&m_wf_active.value); }
     inline void wf_active_save(const std::string& active) { save_option(m_wf_active, active); }
 
-
     // nodes
-    void nd_node_options_preload();
-    inline void nd_node_options_release() { m_hashed_pin_advanced.clear(); }
-    inline std::optional<bool> nd_Pin_advanced_load(hid Pin_id) const
-    {
-        const auto it = m_hashed_pin_advanced.find(Pin_id);
-        if (it == m_hashed_pin_advanced.end())
-            return std::nullopt;
-        return it->second;
-    }
-    void nd_pin_advanced_save(hid Pin_id, bool advanced) const;
+    void node_options_preload();
+    inline void node_options_release() { m_hashed_node_options.clear(); }
+
+    inline std::optional<bool> node_advanced_load(hid node_id) const { return node_bool_load(node_id, NodeOption::Advanced); }
+    void node_advanced_save(hid pin_id, bool value) const { node_save(pin_id, NodeOption::Advanced, value); }
+
+    std::optional<bool> node_starred_load(hid node_id) const { return node_bool_load(node_id, NodeOption::Starred); }
+    void node_starred_save(hid node_id, bool value) const { node_save(node_id, NodeOption::Starred, value); }
 
     // stats
     inline int64_t stat_threshold_warn_load(MetricLimit type) const { return *std::get_if<int64_t>(&m_stat_limits_warn[cast::to_szt(type)].value); }
@@ -111,6 +108,22 @@ private:
     void save_option(OptionValue& option, bool new_bool);
     void save_option(OptionValue& option, const std::filesystem::path& new_path);
 
+    inline std::optional<bool> node_bool_load(hid node_id, NodeOption opt) const
+    {
+        const auto it = m_hashed_node_options.find(std::make_pair(node_id, cast::to_i32(opt)));
+        if (it == m_hashed_node_options.end())
+            return std::nullopt;
+        return it->second.ival == 1;
+    }
+    inline std::optional<std::string>node_string_load(hid node_id, NodeOption opt) const
+    {
+        const auto it = m_hashed_node_options.find(std::make_pair(node_id, cast::to_i32(opt)));
+        if (it == m_hashed_node_options.end())
+            return std::nullopt;
+        return it->second.sval;
+    }
+    void node_save(hid node_id, NodeOption opt, bool value) const;
+
 private:
     // app
     OptionValue m_app_vsync; // int
@@ -139,7 +152,7 @@ private:
     OptionValue m_wf_active; // str
 
     // nodes
-    std::unordered_map<hid, bool> m_hashed_pin_advanced;
+    std::map<std::pair<hid, int32_t>, DbValue> m_hashed_node_options;
 
     // stats
     std::vector<OptionValue> m_stat_limits_warn;

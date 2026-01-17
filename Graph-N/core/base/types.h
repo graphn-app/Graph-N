@@ -62,6 +62,18 @@ enum class OptPane
     _last = _count - 1
 };
 
+enum class NodeOption
+{
+    _none,
+
+    Advanced,
+    Starred,
+
+    _count,
+    _first = _none + 1,
+    _last = _count - 1
+};
+
 enum DlgCtrl
 {
     _none = 0,
@@ -191,6 +203,36 @@ enum class AppColor
     Pin_bus,
 
     _count
+};
+
+struct DbValue final
+{
+    std::string sval;
+    int64_t ival = 0;
+
+    DbValue() = default;
+    ~DbValue() = default;
+
+    DbValue(const std::string& s, int64_t i)
+        : sval(s)
+        , ival(i)
+    {}
+    DbValue(int64_t i, const std::string& s)
+        : sval(s)
+        , ival(i)
+    {}
+    DbValue(int64_t i)
+        : ival(i)
+    {}
+    DbValue(const std::string& s)
+        : sval(s)
+    {}
+};
+
+struct DbOption final
+{
+    std::string name;
+    std::optional<DbValue> val;
 };
 
 struct WfData

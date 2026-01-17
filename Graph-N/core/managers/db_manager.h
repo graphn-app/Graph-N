@@ -5,38 +5,6 @@
 namespace mngr
 {
 
-enum class NodeOption
-{
-    Advanced = 1
-};
-
-struct Value final
-{
-    std::string sval;
-    int64_t ival = 0;
-
-    Value(const std::string& s, int64_t i)
-        : sval(s)
-        , ival(i)
-    {}
-    Value(int64_t i, const std::string& s)
-        : sval(s)
-        , ival(i)
-    {}
-    Value(int64_t i)
-        : ival(i)
-    {}
-    Value(const std::string& s)
-        : sval(s)
-    {}
-};
-
-struct DbOption
-{
-    std::string name;
-    std::optional<Value> val;
-};
-
 class DbManager final : public Manager
 {
 public:
@@ -49,13 +17,13 @@ public:
 
     void exception_save(ExcepCategory category, const std::string& message, const char* file, int line);
 
-    void option_save(const std::string& key, const Value& value);
+    void option_save(const std::string& key, const DbValue& value);
     std::vector<DbOption> option_load_all();
     void option_save_all(const std::vector<DbOption>& opts);
 
-    void node_option_save(hid node_hash, NodeOption opt, const Value& value);
-    std::optional<Value> node_option_load(hid node_hash, NodeOption opt);
-    std::vector<std::pair<hid, Value>> node_option_load_all(NodeOption opt);
+    void node_option_save(hid node_hash, NodeOption opt, const DbValue& value);
+    std::optional<DbValue> node_option_load(hid node_hash, NodeOption opt);
+    std::vector<std::tuple<hid, NodeOption, DbValue>> node_option_load_all();
 
     void wf_delete(const WfData& wf);
     std::vector<WfData> wf_load_meta_delete_empty();

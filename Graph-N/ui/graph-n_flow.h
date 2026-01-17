@@ -121,6 +121,8 @@ private:
     void on_menu_about();
     void on_menu_panel_window(ViewDialogs wnd);
     void on_menu_wf(PanelWorkflow* wf_panel);
+    void on_menu_import_json();
+    void on_menu_export_json();
 
     void init_workflow_panels();
     PanelWorkflow* create_wf_panel(data::Workflow* wf);

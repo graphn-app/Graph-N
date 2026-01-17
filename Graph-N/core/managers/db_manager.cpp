@@ -172,7 +172,7 @@ void DbManager::exception_save(ExcepCategory category, const std::string& messag
     }
 }
 
-void DbManager::option_save(const std::string& key, const Value& value)
+void DbManager::option_save(const std::string& key, const DbValue& value)
 {
     try
     {
@@ -233,7 +233,7 @@ void DbManager::option_save_all(const std::vector<DbOption>& opts)
         for (auto& opt : opts)
         {
             query.bindNoCopy(1, opt.name);
-            const Value& v = opt.val.value();
+            const DbValue& v = opt.val.value();
             query.bind(2, v.ival);
             query.bindNoCopy(3, v.sval);
 
@@ -248,7 +248,7 @@ void DbManager::option_save_all(const std::vector<DbOption>& opts)
     }
 }
 
-void DbManager::node_option_save(hid node_hash, NodeOption opt, const Value& value)
+void DbManager::node_option_save(hid node_hash, NodeOption opt, const DbValue& value)
 {
     try
     {
@@ -268,7 +268,7 @@ void DbManager::node_option_save(hid node_hash, NodeOption opt, const Value& val
     }
 }
 
-std::optional<Value> DbManager::node_option_load(hid node_hash, NodeOption opt)
+std::optional<DbValue> DbManager::node_option_load(hid node_hash, NodeOption opt)
 {
     try
     {
@@ -281,7 +281,7 @@ std::optional<Value> DbManager::node_option_load(hid node_hash, NodeOption opt)
             return std::nullopt;
         if (query.getColumn(0).isNull() && query.getColumn(1).isNull())
             return std::nullopt;
-        std::optional<Value> v;
+        std::optional<DbValue> v;
         v.emplace(query.getColumn(0).getString(), query.getColumn(1).getInt64());
         return v;
     }
@@ -292,32 +292,33 @@ std::optional<Value> DbManager::node_option_load(hid node_hash, NodeOption opt)
     return std::nullopt;
 }
 
-std::vector<std::pair<hid, Value>> DbManager::node_option_load_all(NodeOption opt)
+std::vector<std::tuple<hid, NodeOption, DbValue>> DbManager::node_option_load_all()
 {
     try
     {
         SQLite::Statement query(*m_db,
-            fmt::format(FMT_COMPILE("SELECT {}, {}, {} FROM {} WHERE {}=?"),
-                gdb_val_hash, gdb_val_str, gdb_val_int, gdb_tbl_nodes, gdb_val_opt));
-        query.bind(1, cast::to_i32(opt));
+            fmt::format(FMT_COMPILE("SELECT {}, {}, {}, {} FROM {}"),
+                gdb_val_hash, gdb_val_opt, gdb_val_str, gdb_val_int, gdb_tbl_nodes));
 
-        std::vector<std::pair<hid, Value>> ret;
+        std::vector<std::tuple<hid, NodeOption, DbValue>> ret;
         ret.reserve(100);
         while(query.executeStep())
         {
-            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull())
+            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() || query.getColumn(2).isNull() && query.getColumn(3).isNull())
                 continue;
 
             const std::string hash = query.getColumn(0).getString();
-            Value v(query.getColumn(1).getString(), query.getColumn(2).getInt64());
-            ret.emplace_back(std::strtoull(hash.c_str(), nullptr, 10), std::move(v));
+            const NodeOption opt = cast::to_enum<NodeOption>(query.getColumn(1).getInt());
+            DbValue v(query.getColumn(2).getString(), query.getColumn(3).getInt());
+
+            ret.emplace_back(std::strtoull(hash.c_str(), nullptr, 10), opt, std::move(v));
         }
 
         return ret;
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite load all " << LOG_NOPT_KEY(0, opt) << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite load all opts " << LOG_EXP(ex));
     }
     return {};
 }

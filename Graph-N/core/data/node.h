@@ -40,6 +40,8 @@ struct Node : public base::HashID
     bool deprecated = false;
     bool api_node = false;
 
+    bool starred = false;
+
   //  bool w_ready = false;
     float w_name = 0.0f;
     float w_Pin_in_max = 0.0f;
