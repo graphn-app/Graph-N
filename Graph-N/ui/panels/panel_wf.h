@@ -10,7 +10,9 @@ class Workflow;
 namespace ui
 {
 
-class PanelWorkflow final : public PanelBase<PanelCommonData>
+class PanelWorkflow final : 
+    public PanelEmptyWithDescr,
+    public PanelBase<PanelCommonData>
 {
 public:
     PanelWorkflow(data::Workflow* wf, const char* name, const char* id, ImGuiID& dock);

@@ -7,6 +7,82 @@ namespace ui
 {
 
 ///////////////////////////////////////////////////////////////////////
+//////////////      PanelEmptyWithDescr
+///////////////////////////////////////////////////////////////////////
+
+void PanelEmptyWithDescr::show_empty_panel_descr(
+    const char* header_descr,
+    const std::vector<const char*>& titles,
+    const std::vector<const char*>& subtitles,
+    const char* url /*= nullptr*/, std::function<void()> url_handler /*= nullptr*/)
+{
+    ImGui::Spacing();
+
+    // --- Static Description (Top of the window) ---
+    // Make it slightly dimmed to act as a "subtitle"
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+    ImGui::TextWrapped(header_descr);
+    ImGui::PopStyleColor();
+
+    if (*header_descr)
+        ImGui::Separator(); // Visually separate help from state
+
+                        // --- Center the "Empty State" in the remaining space ---
+
+                        // Calculate total height to center vertically
+    const float line_h = ImGui::GetTextLineHeight();
+    const float spacing = ImGui::GetStyle().ItemSpacing.y;
+    // Icon + Title + Spacing + Subtitle + Help1 + Help2
+    const float total_h = line_h * 7 + spacing * 4;
+
+    const ImVec2 avail = ImGui::GetContentRegionAvail();
+    float start_y = (avail.y - total_h) * 0.5f;
+    if (start_y < 20.0f)
+        start_y = 20.0f; // Safety margin
+
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + start_y);
+
+    // Helper lambda for centered text
+    const auto text_centered = [&](const char* text, bool disabled, bool as_url)
+    {
+        bool click = false;
+        const float w = ImGui::CalcTextSize(text).x;
+        ImGui::SetCursorPosX((avail.x - w) * 0.5f);
+        if (disabled)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (as_url)
+            click = ImGuiEx::UrlButton(url, g::pOptsManager->color_load(AppColor::UrlTextDefault), g::pOptsManager->color_load(AppColor::UrlTextHovered), nullptr);
+        else
+            ImGui::TextUnformatted(text);
+        if (disabled)
+            ImGui::PopStyleColor();
+        return click;
+    };
+
+    // Draw Content
+    for (auto& title : titles)
+    {
+        text_centered(title, false, false);
+    }
+
+    ImGui::Dummy(ImVec2(0, spacing * 2)); // Extra gap
+
+                                          // Subtitles (Grey)
+    for (auto& subtitle : subtitles)
+    {
+        text_centered(subtitle, true, false);
+    }
+
+    if (url != nullptr && url_handler != nullptr)
+    {
+        ImGui::Spacing();
+        if (text_centered(url, false, true))
+            url_handler();
+    }
+}
+
+
+///////////////////////////////////////////////////////////////////////
 //////////////      PanelWithList
 ///////////////////////////////////////////////////////////////////////
 
@@ -223,18 +299,18 @@ void PanelWithList::go_tooltip(int32_t tt_index, const TtCallbacks* tt_callbacks
     if (-1 == m_tt_index || tt_index != m_tt_index)
     {
         m_tt_index = tt_index;
-        if (tt_callbacks) tt_callbacks->on_alloc_tt_data(m_tt_index);
+        if (tt_callbacks && tt_callbacks->on_alloc_tt_data) tt_callbacks->on_alloc_tt_data(m_tt_index);
     }
 
-    if (tt_callbacks)
+    if (tt_callbacks && tt_callbacks->on_show_tt)
     {
-        tt_callbacks->on_pre_tt(tt_index);
+        if (tt_callbacks->on_pre_tt) tt_callbacks->on_pre_tt(tt_index);
         if (ImGui::BeginTooltip())
         {
             tt_callbacks->on_show_tt(tt_index);
             ImGui::EndTooltip();
         }
-        tt_callbacks->on_post_tt(tt_index);
+        if (tt_callbacks->on_post_tt) tt_callbacks->on_post_tt(tt_index);
     }
 }
 
@@ -247,7 +323,7 @@ bool PanelWithList::release_tooltip(int32_t tt_index, const TtCallbacks* tt_call
     }
 
     m_tt_index = -1;
-    if (tt_callbacks) tt_callbacks->on_release_tt_data(tt_index);
+    if (tt_callbacks && tt_callbacks->on_release_tt_data) tt_callbacks->on_release_tt_data(tt_index);
     return true;
 }
 
@@ -276,7 +352,7 @@ void PanelToolbar::finalize_toolbar()
     m_toolbar_w = 0.0f;
     for (auto& btn : m_buttons)
     {
-        m_toolbar_w += btn.ico_width + style.ItemSpacing.x * 2 + style.ItemSpacing.x * (btn.regular_indent ? 1 : 2);
+        m_toolbar_w += btn.ico_width + style.ItemSpacing.x * 2 + style.ItemSpacing.x * (btn.long_indent_after ? 3 : 1);
     }
 }
 
@@ -330,7 +406,7 @@ void PanelToolbar::draw_toolbar()
         if (!button.enabled) ImGui::EndDisabled();
         if (button.on_postview) button.on_postview(button);
 
-        ImGui::SameLine(0.0f, style.ItemSpacing.x * (button.regular_indent ? 1 : 2));
+        ImGui::SameLine(0.0f, style.ItemSpacing.x * (button.long_indent_after ? 3 : 1));
     }
 
     ImGui::PopStyleColor(3);

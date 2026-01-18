@@ -2,8 +2,8 @@
 #include "ui/panels/panel_wf_list.h"
 #include "core/workflow/workflow.h"
 #include "core/managers/settings_manager.h"
-#include "platform/main.h"
-#include "ui/font_guard.h"
+#include "core/managers/db_manager.h"
+#include "ui/graph-n_flow.h"
 
 namespace ui
 {
@@ -22,20 +22,55 @@ void PanelWfList::init()
     LogF;
     PanelBase::init();
 
-    const auto adjust_brightness = [](ImU32 color, float factor)
     {
-        ImVec4 c = ImGui::ColorConvertU32ToFloat4(color);
+        PanelToolbar::Button button;
+        button.icon = ICON_LC_PLUS;
+        button.tooltip = "New Project";
+        button.on_click = std::bind(&PanelWfList::on_add_new_wf, this, std::placeholders::_1);
+        add_button(std::move(button));
+    }
+    {
+        PanelToolbar::Button button;
+        button.icon = ICON_LC_PEN_LINE;
+        button.tooltip = "Rename Project";
+        button.on_click = std::bind(&PanelWfList::on_rename_wf, this, std::placeholders::_1);
+        button.on_preview = std::bind(&PanelWfList::on_pre_rename_wf, this, std::placeholders::_1);
+        add_button(std::move(button));
+    }
+    {
+        PanelToolbar::Button button;
+        button.icon = ICON_LC_SCAN_EYE;
+        button.tooltip = "Locate active workflow";
+        button.on_click = std::bind(&PanelWfList::on_locate_wf, this, std::placeholders::_1);
+        button.on_preview = std::bind(&PanelWfList::on_pre_locate_wf, this, std::placeholders::_1);
+        add_button(std::move(button));
+    }
+    {
+        PanelToolbar::Button button;
+        button.icon = ICON_LC_ARROW_DOWN_A_Z;
+        button.tooltip = "Sort by Name/Date";
+        button.on_click = std::bind(&PanelWfList::on_sort_wfs, this, std::placeholders::_1);
+        add_button(std::move(button));
+    }
+    {
+        PanelToolbar::Button button;
+        button.icon = ICON_LC_TRASH;
+        button.tooltip = "Remove to Trash (Auto-purge on exit)";
+        button.on_click = std::bind(&PanelWfList::on_delete_wf, this, std::placeholders::_1);
+        button.on_preview = std::bind(&PanelWfList::on_pre_delete_wf, this, std::placeholders::_1);
+        button.long_indent_after = true;
+        add_button(std::move(button));
+    }
+    {
+        PanelToolbar::Button button;
+        button.icon = ICON_LC_TRASH_2;
+        button.tooltip = "Trash.\nView deleted Projects";
+        button.on_click = std::bind(&PanelWfList::on_view_deleted, this, std::placeholders::_1);
+        add_button(std::move(button));
+    }
+    finalize_toolbar();
 
-        c.x = std::min(c.x * factor, 1.0f); // R
-        c.y = std::min(c.y * factor, 1.0f); // G
-        c.z = std::min(c.z * factor, 1.0f); // B
-
-        return ImGui::ColorConvertFloat4ToU32(c);
-    };
-
-    data()->clr_hover_btn = adjust_brightness(data()->clr_bg, 1.5f);
-    data()->clr_active_btn = adjust_brightness(data()->clr_bg, 1.7f);
-    data()->clr_active = g::pOptsManager->color_load(AppColor::SelectedItem);
+    rebuild_items();
 }
 
 void PanelWfList::stop_all_threads()
@@ -48,10 +83,12 @@ DlgCode PanelWfList::show(bool& focused)
     bool opened = true;
     if (begin_panel(opened, focused, data()->clr_bg) && opened)
     {
+        draw_toolbar();
+
         if (m_wfs.empty())
         {
             show_empty_panel_descr(
-                ICON_LC_INFO " My Projects.",
+                "",
                 {},
                 {
                     "Your library of saved graphs.",
@@ -73,6 +110,12 @@ DlgCode PanelWfList::show(bool& focused)
 
 void PanelWfList::add_wf(data::Workflow* wf)
 {
+    if (nullptr == wf)
+    {
+        rebuild_items();
+        return;
+    }
+
     for (auto saved : m_wfs)
     {
         if (wf == saved)
@@ -98,132 +141,128 @@ void PanelWfList::set_active(data::Workflow* wf)
 
 void PanelWfList::show_wfs()
 {
-    show_cfg_buttons();
     ImGuiEx::Spacing(3);
     if (ImGui::BeginChild("WfsGroup", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
     {
-        show_wfs_list();
+        PanelItemState state;
+        if (draw_list(m_panel_items, state))
+            handle_dirty(state);
     }
     ImGui::EndChild();
 }
 
-void PanelWfList::show_cfg_buttons()
+void PanelWfList::rebuild_items()
 {
-    ImGui::PushStyleColor(ImGuiCol_Button, data()->clr_bg);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, data()->clr_hover_btn);
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, data()->clr_active_btn);
+    LogF;
 
-    // ICON_LC_STAR
+    m_panel_items.clear();
+    m_panel_items.reserve(m_wfs.size() + 1);
 
-    const float spacing = ImGui::GetStyle().ItemSpacing.x;
-    const uint32_t button_count = 8;
-    const uint32_t big_spaces = 2;
-    const uint32_t small_spaces = 1;
-    const float start_pos =
-        ImGui::GetContentRegionAvail().x -
-        (button_count * data()->button_width) -
-        (big_spaces * spacing * data()->ungrouped_btn_spacing_x) -
-        (small_spaces * spacing * data()->grouped_btn_spacing_x) -
-        spacing * 3;
-
-    ImGui::SameLine(start_pos);
-
-    FontGuard fg(g::pMain->get_icons_font());
-
-    const auto tooltip = [&fg](const char* text)
+    for (auto wf : m_wfs)
     {
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+        auto& data = wf->get_workflow_data();
+        if (data.fav)
         {
-            fg.pop();
-            if (ImGui::BeginTooltip())
-            {
-                ImGui::TextUnformatted(text);
-                ImGui::EndTooltip();
-            }
+            PanelListItem item;
+            item.name = data.name;
+            item.can_star = item.starred = true;
+            item.can_lclick = true;
+            item.selected = (wf->get_id() == m_active->get_id());
+            item.ptr = wf;
+            m_panel_items.push_back(std::move(item));
         }
-    };
-
-    if (ImGui::Button(ICON_LC_PLUS))
-    {
-        add_new_wf();
     }
-    tooltip("New Project");
 
-    ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
-    fg.push();
-    if (ImGui::Button(ICON_LC_PEN_LINE))
+    if (!m_panel_items.empty())
     {
-        rename_wf();
+        PanelListItem separator;
+        separator.is_separator = true;
+        m_panel_items.push_back(std::move(separator));
     }
-    tooltip("Rename Project");
 
-    ImGui::SameLine(0.0f, spacing * data()->grouped_btn_spacing_x);
-    fg.push();
-    if (ImGui::Button(ICON_LC_SCAN_EYE))
+    for (auto wf : m_wfs)
     {
-        locate_wf();
+        auto& data = wf->get_workflow_data();
+        if (!data.fav)
+        {
+            PanelListItem item;
+            item.name = data.name;
+            item.can_star = true;
+            item.can_lclick = true;
+            item.selected = (wf->get_id() == m_active->get_id());
+            item.ptr = wf;
+            m_panel_items.push_back(std::move(item));
+        }
     }
-    tooltip("Locate active workflow");
-
-    ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
-    fg.push();
-    if (ImGui::Button(ICON_LC_ARROW_DOWN_A_Z)) // ICON_LC_CLOCK_ARROW_DOWN
-    {
-        sort_wfs();
-    }
-    tooltip("Sort by Name/Date");
-
-    ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
-    fg.push();
-    if (ImGui::Button(ICON_LC_TRASH))
-    {
-        delete_wf();
-    }
-    tooltip("Remove to Trash (Auto-purge on exit)");
-
-    ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
-    fg.push();
-    if (ImGui::Button(ICON_LC_TRASH_2))
-    {
-        view_deleted();
-    }
-    tooltip("Trash.\nView deleted Projects");
-
-    ImGui::PopStyleColor(3);
 }
 
-void PanelWfList::show_wfs_list()
+void PanelWfList::handle_dirty(const PanelItemState& dirty_item)
 {
-    ImGui::PushStyleColor(ImGuiCol_Header, data()->clr_bg);
-    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, data()->clr_bg);
-    ImGui::PushStyleColor(ImGuiCol_HeaderActive, data()->clr_bg);
-    ImGui::BeginGroup();
+    Log("Dirty: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", fv=" << dirty_item.starred << ", xp=" << dirty_item.expanded);
 
-    ImGui::EndGroup();
-    ImGui::PopStyleColor(3);
+    if (dirty_item.index >= m_panel_items.size())
+    {
+        LogError(ExcepCategory::Logic, "Index out of bounds");
+    }
+
+    auto& panel_item = m_panel_items[dirty_item.index];
+    data::Workflow* wf = (data::Workflow*)panel_item.ptr;
+    if (nullptr == wf)
+    {
+        LogError(ExcepCategory::Logic, "Null dirty item");
+    }
+
+    if (dirty_item.starred)
+    {
+        auto& data = wf->get_workflow_data();
+        data.fav = !data.fav;
+        g::pDbManager->wf_update_meta(data);
+        rebuild_items();
+    }
+    else if (dirty_item.lclicked)
+    {
+        g::pFlow->set_active_wf(wf);
+    }
+    else
+    {
+        LogError(ExcepCategory::Logic, "Unhandled dirty state");
+    }
 }
 
-void PanelWfList::add_new_wf()
-{}
-
-void PanelWfList::rename_wf()
-{}
-
-void PanelWfList::locate_wf()
-{}
-
-
-void PanelWfList::sort_wfs()
-{}
-
-void PanelWfList::delete_wf()
-{}
-
-void PanelWfList::view_deleted()
+void PanelWfList::on_add_new_wf(PanelToolbar::Button& /*button*/)
 {
-
-    // Deleted Projects. Will be purged automatically on exit
-    // Projects in this list are marked for deletion. They will be permanently removed from the database when you close the application
+    g::pFlow->add_new_workflow();
+    rebuild_items();
 }
+
+void PanelWfList::on_rename_wf(PanelToolbar::Button& /*button*/)
+{}
+
+void PanelWfList::on_pre_rename_wf(PanelToolbar::Button& button)
+{
+    button.enabled = (m_active != nullptr);
+}
+
+void PanelWfList::on_locate_wf(PanelToolbar::Button& /*button*/)
+{}
+
+void PanelWfList::on_pre_locate_wf(PanelToolbar::Button& button)
+{
+    button.enabled = (m_active != nullptr);
+}
+
+void PanelWfList::on_sort_wfs(PanelToolbar::Button& /*button*/)
+{}
+
+void PanelWfList::on_delete_wf(PanelToolbar::Button& /*button*/)
+{}
+
+void PanelWfList::on_pre_delete_wf(PanelToolbar::Button& button)
+{
+    button.enabled = (m_active != nullptr);
+}
+
+void PanelWfList::on_view_deleted(PanelToolbar::Button& /*button*/)
+{}
 
 } // namespace ui

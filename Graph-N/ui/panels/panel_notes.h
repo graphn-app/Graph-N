@@ -5,7 +5,9 @@
 namespace ui
 {
 
-class PanelNotes final : public PanelBase<PanelCommonData>
+class PanelNotes final : 
+    public PanelEmptyWithDescr,
+    public PanelBase<PanelCommonData>
 {
 public:
     PanelNotes();

@@ -5,7 +5,9 @@
 namespace ui
 {
 
-class PanelOutput final : public PanelBase<PanelCommonData>
+class PanelOutput final : 
+    public PanelEmptyWithDescr,
+    public PanelBase<PanelCommonData>
 {
 public:
     PanelOutput();

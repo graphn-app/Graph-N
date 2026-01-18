@@ -17,7 +17,11 @@ struct PanelWfListData final : public PanelCommonData
     ImU32 clr_active_btn = 0;
 };
 
-class PanelWfList final : public PanelBase<PanelWfListData>
+class PanelWfList final :
+    public PanelEmptyWithDescr,
+    public PanelWithList,
+    public PanelToolbar,
+    public PanelBase<PanelWfListData>
 {
 public:
     PanelWfList();
@@ -34,19 +38,25 @@ public:
 private:
     DlgCode show(bool& focused) override;
     void show_wfs();
-    void show_cfg_buttons();
-    void show_wfs_list();
-    void add_new_wf();
-    void rename_wf();
-    void locate_wf();
-    void sort_wfs();
-    void delete_wf();
-    void view_deleted();
+
+    void rebuild_items();
+    void handle_dirty(const PanelItemState& dirty_item);
+
+    void on_add_new_wf(PanelToolbar::Button& button);
+    void on_rename_wf(PanelToolbar::Button& button);
+    void on_pre_rename_wf(PanelToolbar::Button& button);
+    void on_locate_wf(PanelToolbar::Button& button);
+    void on_pre_locate_wf(PanelToolbar::Button& button);
+    void on_sort_wfs(PanelToolbar::Button& button);
+    void on_delete_wf(PanelToolbar::Button& button);
+    void on_pre_delete_wf(PanelToolbar::Button& button);
+    void on_view_deleted(PanelToolbar::Button& button);
 
 private:
     std::list<data::Workflow*> m_wfs;
     data::Workflow* m_active = nullptr;
     bool m_active_updated = false;
+    std::vector<PanelListItem> m_panel_items;
 };
 
 

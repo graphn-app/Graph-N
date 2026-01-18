@@ -84,9 +84,11 @@ public:
 
     void open_settings_dlg(OptPane section = OptPane::_none);
 
+    void add_new_workflow();
     data::Workflow* create_workflow(const WfData* wf_data = nullptr);
     void delete_workflow(data::Workflow* wf);
     PanelWorkflow* get_active_wf_or_create_new();
+    void set_active_wf(data::Workflow* wf);
 
     void subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener);
 

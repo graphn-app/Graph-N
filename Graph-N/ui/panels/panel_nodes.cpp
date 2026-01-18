@@ -53,7 +53,7 @@ void PanelNodes::init()
         button.icon = g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE;
         button.tooltip = "Toggle Flat/Category View";
         button.on_click = std::bind(&PanelNodes::on_view, this, std::placeholders::_1);
-        button.regular_indent = false;
+        button.long_indent_after = true;
         add_button(std::move(button));
     }
     {

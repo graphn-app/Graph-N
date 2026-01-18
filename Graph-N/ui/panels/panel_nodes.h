@@ -1,8 +1,8 @@
 
 #pragma once
 #include "ui/panels/panel_base.h"
-#include "core/managers/comfyui_object_validity_listener.h"
 #include "ui/panels/ro_node_drawer.h"
+#include "core/managers/comfyui_object_validity_listener.h"
 
 namespace data
 {
@@ -29,6 +29,7 @@ struct PanelNodesData final : public PanelCommonData
 };
 
 class PanelNodes final :
+    public PanelEmptyWithDescr,
     public PanelWithList,
     public PanelToolbar,
     public PanelBase<PanelNodesData>,

@@ -23,6 +23,7 @@ struct PanelNodeInspectorData final : public PanelCommonData
 };
 
 class PanelNodeInspector final :
+    public PanelEmptyWithDescr,
     public PanelBase<PanelNodeInspectorData>,
     public mngr::ComfyUiObjectValidityListener
 {

@@ -143,12 +143,13 @@ void GraphN_Flow::init_workflow_panels()
             }
         }
     }
+    m_panel_wf_list->add_wf(nullptr);   // rebuild
 }
 
 PanelWorkflow* GraphN_Flow::create_wf_panel(data::Workflow* wf)
 {
     auto& wf_data = wf->get_workflow_data();
-    wf_data.name = ICON_LC_WORKFLOW " Workflow " + std::to_string(++m_wf_name_counter);
+    wf_data.name = "Workflow " + std::to_string(++m_wf_name_counter);
 
     m_panels_wf.emplace_back(std::make_unique<ui::PanelWorkflow>(wf, wf->get_workflow_data().name.c_str(), wf->get_id().c_str(), m_main_dock_id));
     auto& panel_wf = m_panels_wf.back();
@@ -170,6 +171,35 @@ PanelWorkflow* GraphN_Flow::get_active_wf_or_create_new()
     return m_wf_focused;
 }
 
+void GraphN_Flow::set_active_wf(data::Workflow* wf)
+{
+    LogF;
+
+    PanelWorkflow* wf_panel = nullptr;
+    for (auto& panel : m_panels_wf)
+    {
+        if (panel->get_workflow()->get_id() == wf->get_id())
+        {
+            wf_panel = panel.get();
+        }
+    }
+
+    if (nullptr == wf_panel)
+    {
+        LogError(ExcepCategory::Logic, "WfPanel by Wf not found");
+    }
+
+    auto wnd = ImGui::FindWindowByName(wf_panel->get_panel_name());
+    if (nullptr == wnd)
+    {
+        LogError(ExcepCategory::API, "Wnd by WfPanel not found");
+    }
+
+    ImGui::BringWindowToDisplayFront(wnd);
+    m_wf_focused = wf_panel;
+    m_panel_wf_list->set_active(m_wf_focused->get_workflow());
+}
+
 data::Workflow* GraphN_Flow::create_workflow(const WfData* wf_data /*= nullptr*/)
 {
     std::unique_ptr<data::Workflow> wf;
@@ -184,6 +214,14 @@ data::Workflow* GraphN_Flow::create_workflow(const WfData* wf_data /*= nullptr*/
     m_workflows.emplace(wf_data->uuid, std::move(wf));
     Log("Workflow created, id=" << wf_data->uuid);
     return wf_ptr;
+}
+
+void GraphN_Flow::add_new_workflow()
+{
+    auto wf = create_workflow();
+    m_wf_focused = create_wf_panel(wf);
+    m_panel_wf_list->add_wf(wf);
+    m_panel_wf_list->set_active(wf);
 }
 
 void GraphN_Flow::delete_workflow(data::Workflow* wf)
@@ -590,20 +628,11 @@ void GraphN_Flow::on_menu_wf(PanelWorkflow* wf_panel)
     LogF;
     if (wf_panel != nullptr)
     {
-        auto wnd = ImGui::FindWindowByName(wf_panel->get_panel_name());
-        if (wnd != nullptr)
-        {
-            ImGui::BringWindowToDisplayFront(wnd);
-            m_wf_focused = wf_panel;
-            m_panel_wf_list->set_active(m_wf_focused->get_workflow());
-        }
+        set_active_wf(wf_panel->get_workflow());
     }
     else
     {
-        auto wf = create_workflow();
-        m_wf_focused = create_wf_panel(wf);
-        m_panel_wf_list->add_wf(wf);
-        m_panel_wf_list->set_active(wf);
+        add_new_workflow();
     }
 }
 
