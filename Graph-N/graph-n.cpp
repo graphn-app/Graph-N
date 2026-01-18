@@ -37,19 +37,19 @@ GraphN::~GraphN()
 
 bool GraphN::init_graphn()
 {
-    m_managers.emplace_back(std::make_unique<mngr::DbManager>());
+    m_managers.push_back(std::make_unique<mngr::DbManager>());
     g::pDbManager = (mngr::DbManager*)m_managers.back().get();
 
-    m_managers.emplace_back(std::make_unique<mngr::SettingsManager>());
+    m_managers.push_back(std::make_unique<mngr::SettingsManager>());
     g::pOptsManager = (mngr::SettingsManager*)m_managers.back().get();
 
-    m_managers.emplace_back(std::make_unique<mngr::NodesManager>());
+    m_managers.push_back(std::make_unique<mngr::NodesManager>());
     g::pNodesManager = (mngr::NodesManager*)m_managers.back().get();
 
-    m_managers.emplace_back(std::make_unique<mngr::NodesManager>());
+    m_managers.push_back(std::make_unique<mngr::NodesManager>());
     g::pNodesManager = (mngr::NodesManager*)m_managers.back().get();
 
-    m_managers.emplace_back(std::make_unique<mngr::ConnectManager>());
+    m_managers.push_back(std::make_unique<mngr::ConnectManager>());
     g::pConnectManager = (mngr::ConnectManager*)m_managers.back().get();
 
     bool success = true;

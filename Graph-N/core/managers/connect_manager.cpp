@@ -100,7 +100,7 @@ void ConnectManager::stop_connect()
 
 std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std::shared_ptr<ConnectData> data)
 {
-    LogF;
+    LogFS;
 
     Log("Thread " << data->conn_th_id << ". Connecting to " APP_COMFYUI ". " << data->host << ":" << data->port << ", ct=" << data->conn_timeout << ", rt=" << data->read_timeout);
     using namespace std::chrono_literals;

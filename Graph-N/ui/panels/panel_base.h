@@ -136,5 +136,38 @@ private:
     //  ImGuiWindowClass m_class;
 };
 
+class PanelWithList
+{
+public:
+    PanelWithList() = default;
+    ~PanelWithList() = default;
+
+    NO_COPY_MOVE(PanelWithList);
+
+    struct TtCallbacks
+    {
+        std::function<void(int32_t)> on_alloc_tt_data;
+        std::function<void(int32_t)> on_release_tt_data;
+        std::function<void(int32_t)> on_show_tt;
+        std::function<void(int32_t)> on_pre_tt;
+        std::function<void(int32_t)> on_post_tt;
+    };
+
+    // returns true if dirty
+    // draw_boudnded_rect applicable only for expandable items
+    bool draw_list(std::vector<PanelListItem>& items, PanelItemState& dirty_item, 
+        const TtCallbacks* tt_callbacks = nullptr);
+
+private:
+    void go_tooltip(int32_t tt_index, const TtCallbacks* tt_callbacks);
+    bool release_tooltip(int32_t tt_index, const TtCallbacks* tt_callbacks);
+
+private:
+    int32_t m_hovered_item = -1;
+    std::vector<int32_t> m_selected_items;
+    float m_tt_life_timer = 0.0f;
+    int32_t m_tt_index = -1;
+};
+
 
 } // namespace ui

@@ -206,10 +206,11 @@ std::vector<DbOption> DbManager::option_load_all()
             if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull())
                 continue;
 
-            ret.push_back({});
-            DbOption& opt = ret.back();
-            opt.name = query.getColumn(0).getString();
-            opt.val = { query.getColumn(1).getString(), query.getColumn(2).getInt64() };            
+            DbOption db_opt;
+            db_opt.name = query.getColumn(0).getString();
+            db_opt.val.sval = query.getColumn(1).getString();
+            db_opt.val.ival = query.getColumn(2).getInt64();
+            ret.push_back(std::move(db_opt));
         }
 
         return ret;
@@ -233,9 +234,8 @@ void DbManager::option_save_all(const std::vector<DbOption>& opts)
         for (auto& opt : opts)
         {
             query.bindNoCopy(1, opt.name);
-            const DbValue& v = opt.val.value();
-            query.bind(2, v.ival);
-            query.bindNoCopy(3, v.sval);
+            query.bind(2, opt.val.ival);
+            query.bindNoCopy(3, opt.val.sval);
 
             query.exec();
             query.reset();

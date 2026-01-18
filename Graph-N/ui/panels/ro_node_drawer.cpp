@@ -15,7 +15,9 @@ RoNodeDrawer::RoNodeDrawer()
     , m_clr_node_body_bg(g::pOptsManager->color_load(AppColor::NodeBodyBg))
     , m_clr_node_Pin_text(g::pOptsManager->color_load(AppColor::NodePinText))
     , m_clr_node_border(g::pOptsManager->color_load(AppColor::NodeBorder))
-{}
+{
+    LogF;
+}
 
 RoNodeDrawer::~RoNodeDrawer()
 {

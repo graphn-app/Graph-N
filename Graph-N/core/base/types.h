@@ -232,7 +232,7 @@ struct DbValue final
 struct DbOption final
 {
     std::string name;
-    std::optional<DbValue> val;
+    DbValue val;
 };
 
 struct WfData
@@ -244,6 +244,42 @@ struct WfData
     bool fav = false;
     uint32_t nodes_inside = 0;
     bool deleted = false;
+};
+
+struct PanelListItem
+{
+    int32_t depth = 0;
+
+    bool is_separator = false;
+    bool dbl_check_if_selected = false;
+
+    bool selected = false;
+    
+    std::string name;
+    std::string name_backup;
+    bool renaming = false;
+    bool need_focus = false;
+
+    bool can_expand = false;    // exclusive ability
+    bool expanded = false;
+
+    bool can_star = false;
+    bool starred = false;
+
+    bool can_rclick = false;
+    bool can_lclick = false;
+
+    void* ptr = nullptr;    // user data
+};
+
+struct PanelItemState
+{
+    size_t index = 0;
+    bool rclicked = false;
+    bool lclicked = false;
+    bool renamed = false;
+    bool starred = false;
+    bool expanded = false;
 };
 
 namespace comfyui_api

@@ -418,7 +418,7 @@ void NodesParser::prepare_parsers_map()
             {
                 auto value = get_combo_item(val);
                 if (value.has_value())
-                    pin.list.emplace_back(std::move(value.value()));
+                    pin.list.push_back(std::move(value.value()));
                 else
                     log_err_type(node, pin, val, "COMBO/options/item");
             }
@@ -535,7 +535,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
                     {
                         auto value = get_combo_item(item);
                         if (value.has_value())
-                            pin->list.emplace_back(std::move(value.value()));
+                            pin->list.push_back(std::move(value.value()));
                         else
                         {
                             LogUnhandledJson("/input/<>/COMBO/item. Unknown item type. Node=" << node.name << ", pin="
@@ -590,7 +590,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
         for (const auto& item : array)
         {
             if (item.is_string())
-                input.order.emplace_back(item);
+                input.order.push_back(item);
             else
             {
                 LogUnhandledJson("/input_order. Not a string. Node=" << node.name << ", type=" << item.type_name());

@@ -35,14 +35,14 @@ void PanelStats::init_disks()
     const auto& enabled_disks = g::pOptsManager->stat_disks_enabled_load();
     for (auto& opt : enabled_disks)
     {
-        m_disks.push_back({});
-        Disks& d = m_disks.back();
+        Disks d;
         d.disk_opt = &opt;
 #ifdef _WIN32
         d.format_path = fmt::format("Disk {}", d.disk_opt->first);
 #else
         d.format_path = d.path;
 #endif
+        m_disks.push_back(std::move(d));
     }
 }
 
@@ -174,8 +174,7 @@ void PanelStats::th_comfyui()
                         auto& devices = data["devices"];
                         for (auto& device : devices)
                         {
-                            list.push_back({});
-                            VideoDevice& vd = list.back();
+                            VideoDevice vd;
                             if (device.contains("name") && device["name"].is_string())
                             {
                                 vd.name = device["name"];
@@ -209,6 +208,7 @@ void PanelStats::th_comfyui()
                             {
                                 vd.pytorch_free = device["torch_vram_free"];
                             }
+                            list.push_back(std::move(vd));
                         }
 
                         std::lock_guard<std::mutex> lock(m_lock);

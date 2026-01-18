@@ -80,7 +80,7 @@ std::vector<std::string> split(const std::string& str, char separator)
         std::string token = str.substr(start, end - start);
         trim_this(token);
         if (!token.empty())
-            out.emplace_back(std::move(token));
+            out.push_back(std::move(token));
 
         start = end + 1;
         end = str.find(separator, start);
@@ -89,7 +89,7 @@ std::vector<std::string> split(const std::string& str, char separator)
     std::string last_token = str.substr(start);
     trim_this(last_token);
     if (!last_token.empty())
-        out.emplace_back(std::move(last_token));
+        out.push_back(std::move(last_token));
 
     return out;
 }
@@ -534,7 +534,7 @@ std::vector<std::filesystem::path> enumerate_directory(
         {
             current_path = entry.path();
         }
-        out.emplace_back(std::move(current_path));
+        out.push_back(std::move(current_path));
     };
 
     try
@@ -575,7 +575,7 @@ std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::pa
         auto str = p.generic_u8string();
         if (slash != '/')
             std::replace(str.begin(), str.end(), '/', slash);
-        out.emplace_back(std::move(str));
+        out.push_back(std::move(str));
     }
     return out;
 }

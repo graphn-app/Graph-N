@@ -23,21 +23,24 @@ struct PanelNodesData final : public PanelCommonData
     {
         BuffFilter,
         BuffFilterLowered,
-        BuffCount
+
+        _buf_count
     };
 
-    std::set<hid> open_items;
+    //std::set<hid> open_items;
 
-    ImU32 clr_hover_group = 0;			// hovered group frame
-    ImU32 clr_hover_node = 0;			// hovered node frame
-    ImU32 clr_selected_node = 0;		// selected node text
+    // TODO
+    //ImU32 clr_hover_group = 0;			// hovered group frame
+    //ImU32 clr_hover_node = 0;			// hovered node frame
+    //ImU32 clr_selected_node = 0;		// selected node text
     ImU32 clr_hover_btn = 0;			// hovered button
     ImU32 clr_active_btn = 0;			// active button
 
-    std::set<lid> selected_nodes;
+    //std::set<lid> selected_nodes;
 };
 
 class PanelNodes final :
+    public PanelWithList,
     public PanelBase<PanelNodesData>,
     public mngr::ComfyUiObjectValidityListener
 {
@@ -49,27 +52,34 @@ public:
 
     //ComfyUiObjectValidityListener
     void invalidate_comfyui_objects() override;
+    void finalize_resolve_comfyui_objects() override;
 
 private:
     DlgCode show(bool& focused) override;
-    void show_tree_view();
-    void show_plain_view();
 
     void show_cfg_buttons();
     void expand_all();
     void collapse_all();
-    void test_node_clicks(data::Nodes* holder);
     void add_node_to_wf(data::Nodes* holder);
-    void show_tooltip(data::Nodes* holder);
+
+    void rebuild_items(bool force_expand_all = false);
+    void handle_dirty(const PanelItemState& dirty_item);
+
+    void on_alloc_tt_data(int32_t idx);
+    void on_release_tt_data(int32_t idx);
+    void on_show_tt(int32_t idx);
+    void on_pre_tt(int32_t idx);
+    void on_post_tt(int32_t idx);
 
 private:
     PanelNodeInspector* m_inspector = nullptr;
     data::Workflow* m_wf = nullptr;
+    std::vector<PanelListItem> m_panel_items;
+    PanelWithList::TtCallbacks m_tt_callbacks;
     data::NodeInstance* m_tt_node = nullptr;
-    data::Nodes* m_tt_node_holder = nullptr;
     float m_tt_width = 0.0f;
     RoNodeDrawer m_tt_node_drawer;
-    float m_tt_life_timer = 0.0f;
+    int32_t m_tt_idx = -1;
 };
 
 

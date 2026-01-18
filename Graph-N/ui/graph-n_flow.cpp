@@ -150,7 +150,7 @@ PanelWorkflow* GraphN_Flow::create_wf_panel(data::Workflow* wf)
     auto& wf_data = wf->get_workflow_data();
     wf_data.name = ICON_LC_WORKFLOW " Workflow " + std::to_string(++m_wf_name_counter);
 
-    m_panels_wf.push_back(std::make_unique<ui::PanelWorkflow>(wf, wf->get_workflow_data().name.c_str(), wf->get_id().c_str(), m_main_dock_id));
+    m_panels_wf.emplace_back(std::make_unique<ui::PanelWorkflow>(wf, wf->get_workflow_data().name.c_str(), wf->get_id().c_str(), m_main_dock_id));
     auto& panel_wf = m_panels_wf.back();
     panel_wf->init();
 

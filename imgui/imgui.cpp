@@ -10095,6 +10095,13 @@ void ImGui::ItemSize(const ImVec2& size, float text_baseline_y)
         SameLine();
 }
 
+ImRect ImGui::GetItemRect()
+{
+    ImGuiContext& g = *GImGui;
+    return g.LastItemData.Rect;
+}
+
+
 // Declare item bounding box for clipping and interaction.
 // Note that the size can be different than the one provided to ItemSize(). Typically, widgets that spread over available surface
 // declare their minimum size requirement to ItemSize() and provide a larger region to ItemAdd() which is used drawing/interaction.

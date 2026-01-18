@@ -175,24 +175,21 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
         auto it = std::find_if(db_values.begin(), db_values.end(), [&val](DbOption& db_opt) { return db_opt.name == val->db_name; });
         if (it != db_values.end())
         {
-            auto& db_opt = it->val.value();
-
             if (std::holds_alternative<int64_t>(val->value))
-                val->value = db_opt.ival;
+                val->value = it->val.ival;
             else if (std::holds_alternative<std::string>(val->value))
-                val->value = db_opt.sval;
+                val->value = it->val.sval;
             else if (std::holds_alternative<std::filesystem::path>(val->value))
-                val->value = std::filesystem::u8path(db_opt.sval);
+                val->value = std::filesystem::u8path(it->val.sval);
             else if (std::holds_alternative<bool>(val->value))
-                val->value = bool(db_opt.ival == 1);
+                val->value = bool(it->val.ival == 1);
             else
                 LogError(ExcepCategory::Logic, "Unhandled option type");
         }
         else
         {
             do_update = true;
-            db_values.push_back({});
-            DbOption& db_opt = db_values.back();
+            DbOption db_opt;
             db_opt.name = val->db_name;
 
             if (std::holds_alternative<int64_t>(val->value))
@@ -205,6 +202,8 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
                 db_opt.val = int64_t(*std::get_if<bool>(&val->value));
             else
                 LogError(ExcepCategory::Logic, "Unhandled option type");
+
+            db_values.push_back(std::move(db_opt));
         }
     }
 

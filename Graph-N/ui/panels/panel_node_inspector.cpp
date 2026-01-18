@@ -48,7 +48,7 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
     if (!node->description.empty())
         data.descr_wrapper.set_raw_text(&node->description);
 
-    m_inspecting.emplace_back(std::move(data));
+    m_inspecting.push_back(std::move(data));
 }
 
 void PanelNodeInspector::remove_inspecting_node(data::Node* node)

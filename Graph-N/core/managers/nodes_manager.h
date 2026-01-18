@@ -39,8 +39,10 @@ public:
     void free() override;
 
     const std::vector<data::Nodes*>& get_models_tree() const { return m_nodes_tree; }
+
     const std::vector<data::Nodes*>& get_nodes_tree() const { return m_nodes_tree; }
     const std::vector<data::Nodes*>& get_nodes_plain() const { return m_nodes_plain; }
+    size_t get_node_items_total() const { return m_node_holders.size(); }
 
     void calc_number_inside(const std::string& filter);
 
