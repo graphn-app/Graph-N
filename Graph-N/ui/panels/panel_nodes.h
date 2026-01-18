@@ -26,21 +26,11 @@ struct PanelNodesData final : public PanelCommonData
 
         _buf_count
     };
-
-    //std::set<hid> open_items;
-
-    // TODO
-    //ImU32 clr_hover_group = 0;			// hovered group frame
-    //ImU32 clr_hover_node = 0;			// hovered node frame
-    //ImU32 clr_selected_node = 0;		// selected node text
-    ImU32 clr_hover_btn = 0;			// hovered button
-    ImU32 clr_active_btn = 0;			// active button
-
-    //std::set<lid> selected_nodes;
 };
 
 class PanelNodes final :
     public PanelWithList,
+    public PanelToolbar,
     public PanelBase<PanelNodesData>,
     public mngr::ComfyUiObjectValidityListener
 {
@@ -57,9 +47,6 @@ public:
 private:
     DlgCode show(bool& focused) override;
 
-    void show_cfg_buttons();
-    void expand_all();
-    void collapse_all();
     void add_node_to_wf(data::Nodes* holder);
 
     void rebuild_items(bool force_expand_all = false);
@@ -70,6 +57,13 @@ private:
     void on_show_tt(int32_t idx);
     void on_pre_tt(int32_t idx);
     void on_post_tt(int32_t idx);
+
+    void on_expand_all(PanelToolbar::Button& button);
+    void on_collapse_all(PanelToolbar::Button& button);
+    void on_view(PanelToolbar::Button& button);
+    void on_sync(PanelToolbar::Button& button);
+    void on_pre_expand_collapse(PanelToolbar::Button& button);
+    void on_pre_sync(PanelToolbar::Button& button);
 
 private:
     PanelNodeInspector* m_inspector = nullptr;

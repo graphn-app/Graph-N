@@ -1,8 +1,14 @@
 
 #include "ui/panels/panel_base.h"
+#include "ui/font_guard.h"
+#include "platform/main.h"
 
 namespace ui
 {
+
+///////////////////////////////////////////////////////////////////////
+//////////////      PanelWithList
+///////////////////////////////////////////////////////////////////////
 
 bool PanelWithList::draw_list(
     std::vector<PanelListItem>& items, PanelItemState& dirty_item,
@@ -243,6 +249,91 @@ bool PanelWithList::release_tooltip(int32_t tt_index, const TtCallbacks* tt_call
     m_tt_index = -1;
     if (tt_callbacks) tt_callbacks->on_release_tt_data(tt_index);
     return true;
+}
+
+///////////////////////////////////////////////////////////////////////
+//////////////      PanelToolbar
+///////////////////////////////////////////////////////////////////////
+
+void PanelToolbar::add_button(Button&& button)
+{
+    if (0.0f == button.ico_width)
+        button.ico_width = ImGui::CalcTextSize(button.icon).x;
+    m_buttons.push_back(std::move(button));
+}
+
+void PanelToolbar::finalize_toolbar()
+{
+    m_clr_hover = g::pOptsManager->color_load(AppColor::SelectedItem);
+
+    ImVec4 c = ImGui::ColorConvertU32ToFloat4(m_clr_hover);
+    c.x = std::min(c.x * 0.8f, 1.0f); // R
+    c.y = std::min(c.y * 0.8f, 1.0f); // G
+    c.z = std::min(c.z * 0.8f, 1.0f); // B
+    m_clr_pressed = ImGui::ColorConvertFloat4ToU32(c);
+
+    const auto& style = ImGui::GetStyle();
+    m_toolbar_w = 0.0f;
+    for (auto& btn : m_buttons)
+    {
+        m_toolbar_w += btn.ico_width + style.ItemSpacing.x * 2 + style.ItemSpacing.x * (btn.regular_indent ? 1 : 2);
+    }
+}
+
+void PanelToolbar::draw_toolbar()
+{
+    const float start_pos = ImGui::GetContentRegionAvail().x - m_toolbar_w;
+    ImGui::SetCursorPosX(start_pos);
+
+    FontGuard fg(g::pMain->get_icons_font());
+    const auto tooltip = [&fg](const char* text)
+    {
+        if (text != nullptr && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+        {
+            fg.pop();
+            if (ImGui::BeginTooltip())
+            {
+                ImGui::TextUnformatted(text);
+                ImGui::EndTooltip();
+            }
+        }
+    };
+
+    const auto& style = ImGui::GetStyle();
+
+    ImGui::PushStyleColor(ImGuiCol_Button, 0);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
+
+    for (auto& button : m_buttons)
+    {
+        if (button.on_preview) button.on_preview(button);
+        if (!button.enabled) ImGui::BeginDisabled();
+
+        ImGui::PushStyleColor(ImGuiCol_Text, 0);
+        const bool pressed = ImGui::Button(button.icon);
+        ImGui::PopStyleColor();
+        tooltip(button.tooltip);
+
+        ImU32 color; 
+        if (ImGui::IsItemActive())
+            color = m_clr_pressed;
+        else if (ImGui::IsItemHovered())
+            color = m_clr_hover;
+        else
+            color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
+
+        fg.push();
+        ImGui::GetWindowDrawList()->AddText(ImGui::GetItemRectMin(), color, button.icon);
+
+        if (pressed && button.on_click) button.on_click(button);
+        if (!button.enabled) ImGui::EndDisabled();
+        if (button.on_postview) button.on_postview(button);
+
+        ImGui::SameLine(0.0f, style.ItemSpacing.x * (button.regular_indent ? 1 : 2));
+    }
+
+    ImGui::PopStyleColor(3);
 }
 
 } // namespace ui

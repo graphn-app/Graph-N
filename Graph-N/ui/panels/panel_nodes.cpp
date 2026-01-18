@@ -32,19 +32,39 @@ void PanelNodes::init()
 
     g::pFlow->subscribe_comfyui_validity_state(this);
 
-    const auto adjust_brightness = [](ImU32 color, float factor)
     {
-        ImVec4 c = ImGui::ColorConvertU32ToFloat4(color);
-
-        c.x = std::min(c.x * factor, 1.0f); // R
-        c.y = std::min(c.y * factor, 1.0f); // G
-        c.z = std::min(c.z * factor, 1.0f); // B
-
-        return ImGui::ColorConvertFloat4ToU32(c);
-    };
-
-    data()->clr_hover_btn = adjust_brightness(data()->clr_bg, 1.5f);
-    data()->clr_active_btn = adjust_brightness(data()->clr_bg, 1.7f);
+        PanelToolbar::Button button;
+        button.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
+        button.tooltip = "Expand All";
+        button.on_click = std::bind(&PanelNodes::on_expand_all, this, std::placeholders::_1);
+        button.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
+        add_button(std::move(button));
+    }
+    {
+        PanelToolbar::Button button;
+        button.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
+        button.tooltip = "Collapse All";
+        button.on_click = std::bind(&PanelNodes::on_collapse_all, this, std::placeholders::_1);
+        button.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
+        add_button(std::move(button));
+    }
+    {
+        PanelToolbar::Button button;
+        button.icon = g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE;
+        button.tooltip = "Toggle Flat/Category View";
+        button.on_click = std::bind(&PanelNodes::on_view, this, std::placeholders::_1);
+        button.regular_indent = false;
+        add_button(std::move(button));
+    }
+    {
+        PanelToolbar::Button button;
+        button.icon = ICON_LC_FOLDER_SYNC;
+        button.tooltip = "Refresh Node List";
+        button.on_click = std::bind(&PanelNodes::on_sync, this, std::placeholders::_1);
+        button.on_preview = std::bind(&PanelNodes::on_pre_sync, this, std::placeholders::_1);
+        add_button(std::move(button));
+    }
+    finalize_toolbar();
 
     m_tt_callbacks.on_alloc_tt_data = std::bind(&PanelNodes::on_alloc_tt_data, this, std::placeholders::_1);
     m_tt_callbacks.on_release_tt_data = std::bind(&PanelNodes::on_release_tt_data, this, std::placeholders::_1);
@@ -93,7 +113,7 @@ DlgCode PanelNodes::show(bool& focused)
             return end_panel(true);
         }
 
-        show_cfg_buttons();
+        draw_toolbar();
         ImGui::Spacing();
 
         ImGui::SetNextItemWidth(-FLT_MIN);
@@ -103,8 +123,7 @@ DlgCode PanelNodes::show(bool& focused)
             data()->buffer[PanelNodesData::BuffFilterLowered] = tools::str::to_lower_ascii(data()->buffer[PanelNodesData::BuffFilter]);
             Log("Filter by: " << data()->buffer[PanelNodesData::BuffFilterLowered]);
             g::pNodesManager->calc_number_inside(tools::str::trim_this(data()->buffer[PanelNodesData::BuffFilterLowered]));
-            if (!data()->buffer[PanelNodesData::BuffFilterLowered].empty())
-                expand_all();
+            rebuild_items(true);
         }
 
         ImGuiEx::Spacing(3);
@@ -148,7 +167,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         auto& plain = g::pNodesManager->get_nodes_plain();
         for (auto nodes : plain)
         {
-            if (nodes->is_node && nodes->node->starred)
+            if (nodes->is_node && nodes->node->starred && !nodes->filtered)
             {
                 fav_items++;
                 if (!fav_folder_expanded && !force_expand_all)
@@ -195,7 +214,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     if (item_expanded)
                         go_tree(node->children, depth + 1);
                 }
-                else
+                else if (!node->filtered)
                 {
                     PanelListItem item;
                     item.depth = depth;
@@ -219,7 +238,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
         for (auto nodes : plain)
         {
-            if (nodes->is_node && nodes->node->starred)
+            if (nodes->is_node && nodes->node->starred && !nodes->filtered)
             {
                 PanelListItem item;
                 item.name = nodes->name_or_category;
@@ -240,7 +259,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
         for (auto nodes : plain)
         {
-            if (nodes->is_node && !nodes->node->starred)
+            if (nodes->is_node && !nodes->node->starred && !nodes->filtered)
             {
                 PanelListItem item;
                 item.name = nodes->name_or_category;
@@ -367,12 +386,12 @@ void PanelNodes::on_post_tt(int32_t /*idx*/)
 void PanelNodes::add_node_to_wf(data::Nodes* /*holder*/)
 {}
 
-void PanelNodes::expand_all()
+void PanelNodes::on_expand_all(PanelToolbar::Button& /*button*/)
 {
     rebuild_items(true);
 }
 
-void PanelNodes::collapse_all()
+void PanelNodes::on_collapse_all(PanelToolbar::Button& /*button*/)
 {
     for (auto& item : m_panel_items)
     {
@@ -381,94 +400,33 @@ void PanelNodes::collapse_all()
     rebuild_items();
 }
 
-void PanelNodes::show_cfg_buttons()
+void PanelNodes::on_pre_expand_collapse(PanelToolbar::Button& button)
 {
-    ImGui::PushStyleColor(ImGuiCol_Button, data()->clr_bg);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, data()->clr_hover_btn);
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, data()->clr_active_btn);
+    button.enabled = g::pOptsManager->ui_nodes_pane_tree_view_load();
+}
 
-    const float spacing = ImGui::GetStyle().ItemSpacing.x;
-    const uint32_t button_count = 4;
-    const uint32_t big_spaces = 2;
-    const uint32_t small_spaces = 1;
-    const float start_pos =
-        ImGui::GetContentRegionAvail().x -
-        (button_count * data()->button_width) -
-        (big_spaces * spacing * data()->ungrouped_btn_spacing_x) -
-        (small_spaces * spacing * data()->grouped_btn_spacing_x) -
-        spacing * 3;
+void PanelNodes::on_view(PanelToolbar::Button& button)
+{
+    auto tree_view = g::pOptsManager->ui_nodes_pane_tree_view_load();
+    tree_view = !tree_view;
+    g::pOptsManager->ui_nodes_pane_tree_view_save(tree_view);
 
-    ImGui::SameLine(start_pos);
+    rebuild_items();
 
-    const bool tree_view = g::pOptsManager->ui_nodes_pane_tree_view_load();
-    if (!tree_view)
-        ImGui::BeginDisabled();
-    FontGuard fg(g::pMain->get_icons_font());
+    if (tree_view)
+        button.icon = ICON_LC_FOLDER_TREE;
+    else
+        button.icon = ICON_LC_LIST_TREE;
+}
 
-    const auto tooltip = [&fg](const char* text)
-    {
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-        {
-            fg.pop();
-            if (ImGui::BeginTooltip())
-            {
-                ImGui::TextUnformatted(text);
-                ImGui::EndTooltip();
-            }
-        }
-    };
+void PanelNodes::on_sync(PanelToolbar::Button& /*button*/)
+{
+    g::pFlow->reconnect();
+}
 
-    if (ImGui::Button(ICON_LC_LIST_CHEVRONS_UP_DOWN))
-    {
-        expand_all();
-    }
-    tooltip("Expand All");
-
-    ImGui::SameLine(0.0f, spacing * data()->grouped_btn_spacing_x);
-    fg.push();
-    if (ImGui::Button(ICON_LC_LIST_CHEVRONS_DOWN_UP))
-    {
-        collapse_all();
-    }
-    tooltip("Collapse All");
-    if (!tree_view)
-        ImGui::EndDisabled();
-
-    ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
-    fg.push();
-    if (ImGui::Button(g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE))
-    {
-        g::pOptsManager->ui_nodes_pane_tree_view_save(!g::pOptsManager->ui_nodes_pane_tree_view_load());
-        rebuild_items();
-    }
-    tooltip("Toggle Flat/Category View");
-
-    const bool online = g::pFlow->get_online();
-    if (!online)
-        ImGui::BeginDisabled();
-    ImGui::SameLine(0.0f, spacing * data()->ungrouped_btn_spacing_x);
-    fg.push();
-    if (ImGui::Button(ICON_LC_FOLDER_SYNC))
-    {
-        g::pFlow->reconnect();
-    }
-    tooltip("Refresh Node List");
-    if (!online)
-        ImGui::EndDisabled();
-
-    //ImGui::SameLine();
-    //if (ImGui::Button(ICON_LC_COLUMNS_3_COG))
-    //{
-    //    // Handle opts
-    //}
-    //if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
-    //{
-    //    ImGui::TextUnformatted("View options");
-    //    ImGui::SetWindowFontScale(data()->icon_scale);
-    //    ImGui::EndTooltip();
-    //}
-
-    ImGui::PopStyleColor(3);
+void PanelNodes::on_pre_sync(PanelToolbar::Button& button)
+{
+    button.enabled = g::pFlow->get_online();
 }
 
 } // namespace ui

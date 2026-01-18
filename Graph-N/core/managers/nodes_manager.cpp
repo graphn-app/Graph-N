@@ -32,6 +32,7 @@ void NodesManager::calc_number_inside(const std::string& filter)
     {
         for (auto node : nodes)
         {
+            node->nodes_inside = node->nodes_inside_unfiltered = 0;
             if (!node->children.empty())
             {
                 const bool category_unfiltered = force_unfilter || (!filter.empty() && node->search.find(filter) != std::string::npos);

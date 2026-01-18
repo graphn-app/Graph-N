@@ -169,5 +169,38 @@ private:
     int32_t m_tt_index = -1;
 };
 
+class PanelToolbar
+{
+public:
+    PanelToolbar() = default;
+    ~PanelToolbar() = default;
+
+    NO_COPY_MOVE(PanelToolbar);
+
+    void draw_toolbar();
+
+    struct Button
+    {
+        const char* icon = nullptr;
+        float ico_width = 0.0f;
+        const char* tooltip = nullptr;
+        bool regular_indent = true;
+        bool enabled = true;
+        std::function<void(Button&)> on_click = nullptr;
+        std::function<void(Button&)> on_preview = nullptr;
+        std::function<void(Button&)> on_postview = nullptr;
+    };
+
+    // handler can return new icon and tooltip
+    void add_button(Button&& button);
+    void finalize_toolbar();
+
+private:
+    std::vector<Button> m_buttons;
+    ImU32 m_clr_hover = 0;
+    ImU32 m_clr_pressed = 0;
+    float m_toolbar_w = 0.0f;
+};
+
 
 } // namespace ui

@@ -55,12 +55,13 @@ DlgCode PanelWfList::show(bool& focused)
                 {},
                 {
                     "Your library of saved graphs.",
-                    "Here you can create, rename,"
+                    "Here you can create, rename,",
                     "open and delete your Projects.",
                     "",
                     "Deleted Projects will be auto-purged on exit",
                     "",
-                    "Use the Main Menu to import or export .json files."
+                    "Use the Main Menu to",
+                    "import or export .json files."
                 }
                 );
         }
