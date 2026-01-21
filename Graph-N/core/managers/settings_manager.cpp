@@ -45,6 +45,11 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::OptDlgTitleBg)] =                     { "color_opt_dlg_title_bg",  int64_t(IM_COL32(0, 128, 128, 255)) };
     m_ui_colors[cast::to_szt(AppColor::OptDlgBg)] =                          { "color_opt_dlg_bg",  int64_t(IM_COL32(0, 0, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::PanelBg)] =                           { "color_panel_bg",  int64_t(IM_COL32(24, 24, 27, 255)) };
+
+    m_ui_colors[cast::to_szt(AppColor::PanelActiveWfTab)] =                  { "color_active_wf_tab",  int64_t(IM_COL32(194, 126, 0, 120)) };
+    m_ui_colors[cast::to_szt(AppColor::PanelActiveHoveredWfTab)] =           { "color_active_hovered_wf_tab",  int64_t(IM_COL32(194, 126, 0, 140)) };
+
+
     m_ui_colors[cast::to_szt(AppColor::PanelNodesHoverGroup)] =              { "color_panel_nodes_hover_group",  int64_t(IM_COL32(220, 220, 220, 50)) };
     m_ui_colors[cast::to_szt(AppColor::PanelNodesHoverNode)] =               { "color_panel_nodes_hover_node",  int64_t(IM_COL32(211, 112, 0, 80)) };
     m_ui_colors[cast::to_szt(AppColor::PanelNodesSelNode)] =                 { "color_panel_nodes_sel_node",  int64_t(IM_COL32(255, 165, 0, 250)) };
@@ -209,7 +214,7 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
 
     if (do_update)
     {
-        g::pDbManager->option_save_all(db_values);
+        g::pDbManager->option_save_all(std::move(db_values));
     }
 }
 
