@@ -379,6 +379,12 @@ LogWriter& LogWriter::operator << (float f)
     return *this;
 }
 
+LogWriter& LogWriter::operator << (double d)
+{
+    fmt::format_to(std::back_inserter(m_buffer), "{:.8f}", d);
+    return *this;
+}
+
 LogWriter& LogWriter::operator << (bool b)
 {
     fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), (b ? "yes" : "no"));

@@ -101,6 +101,7 @@ public:
 	LogWriter& operator << (int64_t i64);
 	LogWriter& operator << (uint64_t ui64);
 	LogWriter& operator << (float f);
+    LogWriter& operator << (double d);
 	LogWriter& operator << (bool b);
 
 	LogWriter& operator << (DlgCode code);
@@ -199,6 +200,7 @@ struct LogGuard final
     }
 
 
+#define LogWarn(message)                            Log("[WARNING] " << message)
 #define LogExcep(category, message)                 LOG_SOMETHING_HAPPENED(category, "EXCEPTION", message, false)
 #define LogError(category, message)                 LOG_SOMETHING_HAPPENED(category, "ERROR", message, false)
 #define LogInternalLogic(message)                   LOG_SOMETHING_HAPPENED(ExcepCategory::Logic, "INTERNAL_LOGIC_ERROR", message, false)

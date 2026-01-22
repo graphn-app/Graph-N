@@ -39,12 +39,12 @@ enum class PinType		// primitives and predefined colors only
 
     _count,
 
+    CUSTOM,
+
     _first_widget = INT,
     _last_widget = COLOR,
 
-    CUSTOM,
-
-    _none,
+    _none = _count + 100,
     _first = INT,
     _last = _count - 1
 };
@@ -188,6 +188,7 @@ private:
     void generate_Pin_color();
     void init_defaults();
     void precision_to_string();
+    void clamp_values();
 };
 
 } // namespace data

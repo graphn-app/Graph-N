@@ -236,6 +236,49 @@ void Pin::finalize()
     auto opt_adv = g::pOptsManager->node_advanced_load(get_id());
     if (opt_adv.has_value())
         advanced = opt_adv.value();
+
+    clamp_values();
+}
+
+template <typename T>
+struct Clamp
+{
+    static void clamp(Pin& pin, primitive& p, T min, T max)
+    {
+        const auto old_val = std::get<T>(p);
+        const auto new_val = std::clamp(old_val, min, max);
+        if (old_val != new_val)
+        {
+            LogWarn("Pin '" << pin.name << ", value clump (" << old_val << ") != (" << new_val << ")");
+        }
+        p = new_val;
+    }
+
+    static void clamp(Pin& p, T min, T max)
+    {
+        clamp(p, p.def_state.value, min, max);
+        clamp(p, p.min, min, max);
+        clamp(p, p.max, min, max);
+        clamp(p, p.def, min, max);
+        clamp(p, p.step, min, max);
+    }
+};
+
+void Pin::clamp_values()
+{
+    switch (def_state.type)
+    {
+    case data::PinType::INT:
+    case data::PinType::NUMBER:
+        if (is_unsigned)
+            Clamp<uint64_t>::clamp(*this, 0, ULLONG_MAX / 2);
+        else
+            Clamp<int64_t>::clamp(*this, LLONG_MIN / 2, LLONG_MAX / 2);
+        break;
+    case data::PinType::FLOAT:
+        Clamp<double>::clamp(*this, -DBL_MAX / 2.0, DBL_MAX / 2.0);
+        break;
+    }
 }
 
 void Pin::init_defaults()
@@ -246,6 +289,7 @@ void Pin::init_defaults()
         def = double(0.0f);
         min = double(FLT_MIN);
         max = double(FLT_MAX);
+        step = double(0.0);
     }
     else if (PinType::INT == def_state.type)
     {
@@ -253,6 +297,7 @@ void Pin::init_defaults()
         def = int64_t(0);
         min = int64_t(LLONG_MIN);
         max = int64_t(LLONG_MAX);
+        step = int64_t(0);
     }
     else if (PinType::COLOR == def_state.type)
     {
@@ -260,16 +305,25 @@ void Pin::init_defaults()
         def = int64_t(IM_COL32_WHITE);
         min = int64_t(IM_COL32_BLACK);
         max = int64_t(IM_COL32_WHITE);
+        step = int64_t(0);
     }
     else if (PinType::BOOLEAN == def_state.type)
     {
         def_state.value = bool(false);
         def = bool(false);
+        min = bool(false);
+        max = bool(true);
+        step = bool(true);
+        step = bool(false);
     }
     else if (PinType::STRING == def_state.type)
     {
         def_state.value = std::string("");
         def = std::string("");
+        min = std::string("");
+        max = std::string("");
+        step = std::string("");
+        step = std::string("");
     }
 }
 
