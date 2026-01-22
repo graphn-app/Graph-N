@@ -10,6 +10,9 @@ struct PanelCommonData : public DlgData
     const float button_width = 30.0f;
     const float grouped_btn_spacing_x = 1.0f;
     const float ungrouped_btn_spacing_x = 2.0f;
+
+    ImU32 clr_active_wf = 0;
+    ImU32 clr_active_hov_wf = 0;
 };
 
 template <typename DataType>
@@ -32,7 +35,9 @@ public:
     const char* get_panel_id() const { return m_panel_id.c_str(); }
 
 protected:
-    bool begin_panel(bool& opened, bool& focused, ImU32 bg_color, bool save_pos = true)
+    void set_name(const std::string& new_name) { m_panel_name = new_name; }
+
+    bool begin_panel(bool& opened, bool& focused, bool save_pos = true, bool always_active = false)
     {
         // m_class.ClassId = cast::to_u32(data()->class_id);
         // ImGui::SetNextWindowClass(&m_class);
@@ -41,9 +46,19 @@ protected:
         if (m_panel_w > 0 && m_panel_w < m_panel_name_w + 60.0f)
             name = &m_panel_name_shortened;
 
+        m_always_active = always_active;
+        if (m_always_active)
+        {
+            ImGui::PushStyleColor(ImGuiCol_TabHovered, data()->clr_active_hov_wf);
+            ImGui::PushStyleColor(ImGuiCol_TabActive, data()->clr_active_wf);
+            ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, data()->clr_active_wf);
+            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, data()->clr_active_wf);
+            ImGui::PushStyleColor(ImGuiCol_TitleBg, data()->clr_active_wf);
+        }
+
         opened = true;
         focused = false;
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, bg_color);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, data()->clr_bg);
         const bool expanded = ImGui::Begin(name->c_str(), &opened, save_pos ? ImGuiWindowFlags_None : ImGuiWindowFlags_NoSavedSettings);
         m_panel_w = ImGui::GetWindowWidth();
 
@@ -55,8 +70,16 @@ protected:
     DlgCode end_panel(bool opened)
     {
         ImGui::End();
-        ImGui::PopStyleColor();
+        ImGui::PopStyleColor(m_always_active ? 6 : 1);
         return opened ? DlgCode::Progress : DlgCode::Cancel;
+    }
+
+    void init() override
+    {
+        BaseDlgWithData<DataType>::init();
+        data()->clr_bg = g::pOptsManager->color_load(AppColor::PanelBg);
+        data()->clr_active_wf = g::pOptsManager->color_load(AppColor::PanelActiveWfTab);
+        data()->clr_active_hov_wf = g::pOptsManager->color_load(AppColor::PanelActiveHoveredWfTab);
     }
 
 private:
@@ -66,6 +89,7 @@ private:
     float m_panel_name_w = 0.0f;
     float m_panel_w = 0.0f;
     bool m_need_focus = false;
+    bool m_always_active = false;
     //  ImGuiWindowClass m_class;
 };
 
@@ -140,6 +164,7 @@ public:
     };
 
     // handler can return new icon and tooltip
+    void clear_toolbar();
     void add_button(Button&& button);
     void finalize_toolbar();
 

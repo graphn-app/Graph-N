@@ -5,6 +5,7 @@
 #include "core/workflow/node_instance.h"
 #include "core/workflow/Pin_instance.h"
 #include "core/workflow/workflow.h"
+#include "core/managers/workflows_manager.h"
 #include "ui/graph-n_flow.h"
 #include "platform/main.h"
 
@@ -30,7 +31,9 @@ void PanelNodeInspector::init()
     data()->clr_descr_frame = g::pOptsManager->color_load(AppColor::PanelNodesInspDescrFrame);
     data()->clr_selected_node = g::pOptsManager->color_load(AppColor::PanelNodesSelNode);
 
-    m_wf = g::pFlow->create_workflow();
+    auto wf_id = g::pWfsManager->create().id;
+    m_wf = g::pWfsManager->access(wf_id);
+    g::pWfsManager->set_read_only(wf_id);
 }
 
 void PanelNodeInspector::add_inspecting_node(data::Node* node)
@@ -58,7 +61,7 @@ void PanelNodeInspector::remove_inspecting_node(data::Node* node)
     const auto it = std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object()->get_id() == node->get_id(); });
     if (it == m_inspecting.end())
     {
-        LogInternalError(ExcepCategory::InconsistentMap, "Can't remove node");
+        LogInternalMap("Can't remove node");
     }
     else
     {
@@ -81,7 +84,7 @@ void PanelNodeInspector::invalidate_comfyui_objects()
 DlgCode PanelNodeInspector::show(bool& focused)
 {
     bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg) && opened)
+    if (begin_panel(opened, focused) && opened)
     {
         if (m_inspecting.empty())
         {

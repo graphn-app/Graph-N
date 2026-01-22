@@ -19,10 +19,10 @@ Workflow::Workflow()
     m_links.reserve(150);
 }
 
-Workflow::Workflow(const WfData& data)
+Workflow::Workflow(WfData&& data)
     : Workflow()
 {
-    m_wf_data = data;
+    m_wf_data = std::move(data);
     m_id_crc32 = tools::str::crc32(m_wf_data.uuid);
 }
 
@@ -101,7 +101,7 @@ void Workflow::remove_node(const NodeInstance* node)
 
     if (n_it == m_nodes.end())
     {
-        LogAndThrowInternalError(ExcepCategory::InconsistentMap, "Node " << node->get_graph_id() << " not found");
+        LogInternalMap("Node " << node->get_graph_id() << " not found");
     }
 
     const auto remove_pins = [this](const std::vector<PinInstance*>& pins)
@@ -131,7 +131,7 @@ void Workflow::remove_pin(const PinInstance* pin)
     );
     if (p_it == m_pins.end())
     {
-        LogAndThrowInternalError(ExcepCategory::InconsistentMap, "Pin " << pin->get_graph_id() << " not found");
+        LogInternalMap("Pin " << pin->get_graph_id() << " not found");
     }
 
     const auto remove_links = [this](const PinInstance* pin)
@@ -176,7 +176,7 @@ void Workflow::remove_link(const Link* link)
     }
     else
     {
-        LogAndThrowInternalError(ExcepCategory::InconsistentMap, "Link " << link->get_graph_id() << " not found");
+        LogInternalMap("Link " << link->get_graph_id() << " not found");
     }
 }
 
@@ -216,5 +216,8 @@ void Workflow::finalize_resolve_comfyui_objects()
     m_invalid_items.clear();
     m_invalidation_state = false;
 }
+
+void Workflow::save()
+{}
 
 } // namespace data

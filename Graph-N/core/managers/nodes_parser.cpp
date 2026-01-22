@@ -193,7 +193,7 @@ static TYPE json_to_number(nlohmann::json& data)
         return {};
     }
 
-    LogInternalError(ExcepCategory::Logic, "json data unknown type " << data.type_name() << " (number expected)");
+    LogInternalLogic("json data unknown type " << data.type_name() << " (number expected)");
     return {};
 }
 
@@ -220,7 +220,7 @@ static std::string json_to_string(nlohmann::json& data)
         return {};
     }
 
-    LogInternalError(ExcepCategory::Logic, "json data unknown type " << data.type_name() << " (string expected)");
+    LogInternalLogic("json data unknown type " << data.type_name() << " (string expected)");
     return {};
 }
 
@@ -244,7 +244,7 @@ static bool json_to_bool(nlohmann::json& data)
         return false;
     }
 
-    LogInternalError(ExcepCategory::Logic, "json data unknown type " << data.type_name() << " (bool expected)");
+    LogInternalLogic("json data unknown type " << data.type_name() << " (bool expected)");
     return false;
 }
 

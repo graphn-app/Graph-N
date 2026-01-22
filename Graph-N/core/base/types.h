@@ -7,14 +7,18 @@ using lid = uint32_t;	// local ID
 using hid = size_t;		// hash id, based on unique node/pin name
 using iid = uint32_t;	// instance id, to save in json
 using gid = uint64_t;	// app global id, to use in graph, based on workflow id
+using wid = uint64_t;   // workflow id - hash id, based in uuid
 using byte_buff = std::vector<byte>;
 using primitive = std::variant<int64_t, uint64_t, double, std::string, bool, std::monostate>;
 
 enum class ExcepCategory
 {
     _none,
+
     InconsistentMap,
-    InconsistentPtr,
+    InconsistentObjPtr,
+    Logic,
+
     DirectX,
     FileSystem,
     SwitchEnum,
@@ -22,7 +26,6 @@ enum class ExcepCategory
     SQLite,
     UI,
     Main,
-    Logic,
     Logger,
     Flow,
     API
@@ -139,6 +142,8 @@ enum class AppColor
     OptDlgTitleBg,
     OptDlgBg,
     PanelBg,
+    PanelActiveWfTab,
+    PanelActiveHoveredWfTab,
     PanelNodesHoverGroup,
     PanelNodesHoverNode,
     PanelNodesSelNode,
@@ -235,18 +240,38 @@ struct DbOption final
     DbValue val;
 };
 
-struct WfData
+struct WfData final
 {
     std::string uuid;
+    wid id = 0;     // hash of 'uuid'. Curr session only. Don't save info db
+
     std::string name;
+
     std::string json;
-    bool open = false;
-    bool fav = false;
-    uint32_t nodes_inside = 0;
+
+    uint32_t history_pos = 0;
+    uint32_t history_steps = 0;
+
     bool deleted = false;
+    bool keep = false;
+
+    std::string created_at;
+    std::string saved_at;
+
+    std::set<std::string> labels;
+    std::string labels_raw;
+
+    bool ro = false;
 };
 
-struct PanelListItem
+struct WfInfo final
+{
+    wid id = 0;
+    std::string uuid;
+    std::string name;
+};
+
+struct PanelListItem final
 {
     int32_t depth = 0;
 
@@ -260,11 +285,13 @@ struct PanelListItem
     bool renaming = false;
     bool need_focus = false;
 
+    const char* icon = nullptr;
+
     bool can_expand = false;    // exclusive ability
     bool expanded = false;
 
-    bool can_star = false;
-    bool starred = false;
+    bool icon_active = false;
+    bool icon_can_click = false;
 
     bool can_rclick = false;
     bool can_lclick = false;
@@ -272,13 +299,13 @@ struct PanelListItem
     void* ptr = nullptr;    // user data
 };
 
-struct PanelItemState
+struct PanelItemState final
 {
     size_t index = 0;
     bool rclicked = false;
     bool lclicked = false;
     bool renamed = false;
-    bool starred = false;
+    bool icon_clicked = false;
     bool expanded = false;
 };
 

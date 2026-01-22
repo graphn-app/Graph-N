@@ -94,8 +94,7 @@ bool PanelWithList::draw_list(
     dirty_item = {};
 
     static const float dbl_check_w = ImGui::CalcTextSize(ICON_LC_CHECK_CHECK).x + ImGui::GetStyle().ItemSpacing.x;
-    static const float folder_w = ImGui::CalcTextSize(ICON_LC_FOLDER_OPEN).x + ImGui::GetStyle().ItemSpacing.x;
-    const float indent = folder_w;
+    const float indent = dbl_check_w;
 
     ImGuiListClipper clipper;
     clipper.Begin(cast::to_i32(items.size()));
@@ -106,15 +105,6 @@ bool PanelWithList::draw_list(
         {
             auto& item = items[idx];
 
-#ifdef _DEBUG
-            if (item.can_expand &&
-                (item.dbl_check_if_selected + item.can_star + item.dbl_check_if_selected +
-                 item.selected + item.renaming + item.starred
-                 > 0))
-            {
-                LogError(ExcepCategory::Logic, "Invalid list item");
-            }
-#endif
             if (item.is_separator)
             {
                 ImGui::Separator();
@@ -138,14 +128,16 @@ bool PanelWithList::draw_list(
 
             if (item.can_expand)
             {
-                if (m_hovered_item == idx)
-                    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
                 is_selected = false;
-                if (item.expanded) ImGui::TextUnformatted(ICON_LC_FOLDER_OPEN);
-                else                ImGui::TextUnformatted(ICON_LC_FOLDER);
-                if (m_hovered_item == idx)
-                    ImGui::PopStyleColor();
-                ImGui::SameLine();
+                if (item.icon != nullptr)
+                {
+                    if (m_hovered_item == idx)
+                        ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
+                    ImGui::TextUnformatted(item.icon);
+                    if (m_hovered_item == idx)
+                        ImGui::PopStyleColor();
+                    ImGui::SameLine();
+                }
             }
             else
             {
@@ -161,11 +153,11 @@ bool PanelWithList::draw_list(
                     }
                 }
 
-                if (item.can_star && idx == m_hovered_item || item.starred)
+                if (item.icon != nullptr && (item.icon_can_click && idx == m_hovered_item || item.icon_active))
                 {
-                    if (item.starred) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::Starred));
-                    ImGui::TextUnformatted(ICON_LC_STAR);
-                    if (item.starred) ImGui::PopStyleColor();
+                    if (item.icon_active) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::Starred));
+                    ImGui::TextUnformatted(item.icon);
+                    if (item.icon_active) ImGui::PopStyleColor();
                 }
                 else
                 {
@@ -236,15 +228,15 @@ bool PanelWithList::draw_list(
                     {
                         const auto mouse = ImGui::GetMousePos();
 
-                        if (ico_rect.Contains(mouse) && (item.can_expand || item.can_star))
+                        if (ico_rect.Contains(mouse) && (item.can_expand || item.icon_can_click))
                         {
                             dirty = true;
                             dirty_item.index = idx;
 
-                            if (item.can_star)
+                            if (item.icon_can_click)
                             {
-                                item.starred = !item.starred;
-                                dirty_item.starred = true;
+                                item.icon_active = !item.icon_active;
+                                dirty_item.icon_clicked = true;
                             }
                             else // if (item.can_expand)
                             {
@@ -253,7 +245,7 @@ bool PanelWithList::draw_list(
                             }
                         }
 
-                        if (!dirty && item.can_lclick)
+                        if (!dirty && (item.can_lclick || item.can_expand))
                         {
                             dirty = true;
                             if (item.can_expand)
@@ -294,7 +286,7 @@ bool PanelWithList::draw_list(
 
 void PanelWithList::go_tooltip(int32_t tt_index, const TtCallbacks* tt_callbacks)
 {
-    m_tt_life_timer = 0.5f;
+    m_tt_life_timer = (tt_callbacks && tt_callbacks->on_alloc_tt_data) ? 0.5f : 0.1f;
 
     if (-1 == m_tt_index || tt_index != m_tt_index)
     {
@@ -354,6 +346,11 @@ void PanelToolbar::finalize_toolbar()
     {
         m_toolbar_w += btn.ico_width + style.ItemSpacing.x * 2 + style.ItemSpacing.x * (btn.long_indent_after ? 3 : 1);
     }
+}
+
+void PanelToolbar::clear_toolbar()
+{
+    m_buttons.clear();
 }
 
 void PanelToolbar::draw_toolbar()

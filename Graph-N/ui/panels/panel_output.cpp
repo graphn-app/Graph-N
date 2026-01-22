@@ -29,7 +29,7 @@ void PanelOutput::stop_all_threads()
 DlgCode PanelOutput::show(bool& focused)
 {
     bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg) && opened)
+    if (begin_panel(opened, focused) && opened)
     {
         show_empty_panel_descr(
             ICON_LC_INFO " Server Log.",

@@ -94,7 +94,8 @@ std::vector<std::string> split(const std::string& str, char separator)
     return out;
 }
 
-std::string merge(const std::vector<std::string>& items, char separator)
+template<typename CONT>
+std::string merge_cont(const CONT& items, char separator)
 {
     std::string out;
     out.reserve(items.size() * 10);
@@ -112,6 +113,16 @@ std::string merge(const std::vector<std::string>& items, char separator)
         }
     }
     return out;
+}
+
+std::string merge(const std::vector<std::string>& items, char separator)
+{
+    return merge_cont(items, separator);
+}
+
+std::string merge(const std::set<std::string>& items, char separator)
+{
+    return merge_cont(items, separator);
 }
 
 std::string to_lower_ascii(const std::string& str)

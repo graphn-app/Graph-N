@@ -14,15 +14,19 @@ class Workflow final : public mngr::ComfyUiObjectValidityListener
 {
 public:
     Workflow();
-    Workflow(const WfData& data);
+    Workflow(WfData&& data);
     ~Workflow() override;
 
     void init();
     void stop_all_threads();
 
-    inline const std::string& get_id() const { return m_wf_data.uuid; }
-    inline uint32_t get_id_crc32() const { return m_id_crc32; }
-    WfData& get_workflow_data() { return m_wf_data; }
+    void save();
+
+    inline const std::string& get_uuid() const { return m_wf_data.uuid; }
+    inline wid get_uuid_hash() const { return m_id_crc32; }
+
+    WfData& get_data() { return m_wf_data; }
+    const WfData& get_data() const { return m_wf_data; }
 
     const std::vector<std::unique_ptr<NodeInstance>>& get_nodes() const { return m_nodes; }
     const std::vector<std::unique_ptr<PinInstance>>& get_pins() const { return m_pins; }

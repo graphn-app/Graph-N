@@ -71,7 +71,7 @@ data::Nodes* NodesManager::find_holder(lid id) const
     const auto it = m_node_holders.find(id);
     if (it == m_node_holders.end())
     {
-        LogInternalError(ExcepCategory::InconsistentMap, "Nodes id=" << id << " not found");
+        LogInternalMap("Nodes id=" << id << " not found");
         return nullptr;
     }
     return it->second.get();
@@ -82,7 +82,7 @@ data::Node* NodesManager::find_node(hid id) const
     const auto it = m_nodes.find(id);
     if (it == m_nodes.end())
     {
-        LogInternalError(ExcepCategory::InconsistentMap, "Node id=" << id << " not found");
+        LogInternalMap("Node id=" << id << " not found");
         return nullptr;
     }
     return it->second.get();
@@ -93,7 +93,7 @@ data::Pin* NodesManager::find_pin(hid id) const
     const auto it = m_pins.find(id);
     if (it == m_pins.end())
     {
-        LogInternalError(ExcepCategory::InconsistentMap, "Pin id=" << id << " not found");
+        LogInternalMap("Pin id=" << id << " not found");
         return nullptr;
     }
     return it->second.get();

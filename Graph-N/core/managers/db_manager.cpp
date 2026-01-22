@@ -176,7 +176,7 @@ bool DbManager::init()
 						{} INTEGER,
 						{} INTEGER,
 						{} INTEGER,
-                        {} DATETIME DEFAULT CURRENT_TIMESTAMP
+                        {} DATETIME DEFAULT CURRENT_TIMESTAMP,
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
 				)", gdb_tbl_wf, gdb_val_id,

@@ -18,6 +18,7 @@
 #include "core/managers/comfyui_object_validity_listener.h"
 #include "core/managers/nodes_parser.h"
 #include "core/managers/db_manager.h"
+#include "core/managers/workflows_manager.h"
 #include "core/workflow/workflow.h"
 
 namespace w
@@ -117,139 +118,6 @@ void GraphN_Flow::reconnect()
     LogF;
     m_windows |= ViewConnect;
     g::pConnectManager->connect();
-}
-
-void GraphN_Flow::init_workflow_panels()
-{
-    if (g::pDbManager->get_is_first_run())
-    {
-        auto wf = create_workflow();
-        m_wf_focused = create_wf_panel(wf);
-        m_panel_wf_list->add_wf(wf);
-        m_panel_wf_list->set_active(wf);
-    }
-    else
-    {
-        auto wfs_data = g::pDbManager->wf_load_meta_delete_empty();
-        for (auto& wf_data : wfs_data)
-        {
-            auto wf = create_workflow(&wf_data);
-            auto panel = create_wf_panel(wf);
-            m_panel_wf_list->add_wf(wf);
-            if (g::pOptsManager->wf_active_load() == wf->get_id())
-            {
-                m_wf_focused = panel;
-                m_panel_wf_list->set_active(wf);
-            }
-        }
-    }
-    m_panel_wf_list->add_wf(nullptr);   // rebuild
-}
-
-PanelWorkflow* GraphN_Flow::create_wf_panel(data::Workflow* wf)
-{
-    auto& wf_data = wf->get_workflow_data();
-    wf_data.name = "Workflow " + std::to_string(++m_wf_name_counter);
-
-    m_panels_wf.emplace_back(std::make_unique<ui::PanelWorkflow>(wf, wf->get_workflow_data().name.c_str(), wf->get_id().c_str(), m_main_dock_id));
-    auto& panel_wf = m_panels_wf.back();
-    panel_wf->init();
-
-    m_all_dialogs.insert(panel_wf.get());
-    return panel_wf.get();
-}
-
-PanelWorkflow* GraphN_Flow::get_active_wf_or_create_new()
-{
-    if (m_wf_focused != nullptr)
-        return m_wf_focused;
-
-    auto wf = create_workflow();
-    m_wf_focused = create_wf_panel(wf);
-    m_panel_wf_list->add_wf(wf);
-    m_panel_wf_list->set_active(wf);
-    return m_wf_focused;
-}
-
-void GraphN_Flow::set_active_wf(data::Workflow* wf)
-{
-    LogF;
-
-    PanelWorkflow* wf_panel = nullptr;
-    for (auto& panel : m_panels_wf)
-    {
-        if (panel->get_workflow()->get_id() == wf->get_id())
-        {
-            wf_panel = panel.get();
-        }
-    }
-
-    if (nullptr == wf_panel)
-    {
-        LogError(ExcepCategory::Logic, "WfPanel by Wf not found");
-    }
-
-    auto wnd = ImGui::FindWindowByName(wf_panel->get_panel_name());
-    if (nullptr == wnd)
-    {
-        LogError(ExcepCategory::API, "Wnd by WfPanel not found");
-    }
-
-    ImGui::BringWindowToDisplayFront(wnd);
-    m_wf_focused = wf_panel;
-    m_panel_wf_list->set_active(m_wf_focused->get_workflow());
-}
-
-data::Workflow* GraphN_Flow::create_workflow(const WfData* wf_data /*= nullptr*/)
-{
-    std::unique_ptr<data::Workflow> wf;
-    if (wf_data != nullptr)
-        wf = std::make_unique<data::Workflow>(*wf_data);
-    else
-        wf = std::make_unique<data::Workflow>();
-
-    auto wf_ptr = wf.get();
-    wf_ptr->init();
-    wf_data = &wf_ptr->get_workflow_data();
-    m_workflows.emplace(wf_data->uuid, std::move(wf));
-    Log("Workflow created, id=" << wf_data->uuid);
-    return wf_ptr;
-}
-
-void GraphN_Flow::add_new_workflow()
-{
-    auto wf = create_workflow();
-    m_wf_focused = create_wf_panel(wf);
-    m_panel_wf_list->add_wf(wf);
-    m_panel_wf_list->set_active(wf);
-}
-
-void GraphN_Flow::delete_workflow(data::Workflow* wf)
-{
-    for (auto& panel : m_panels_wf)
-    {
-        if (panel->get_workflow()->get_id() == wf->get_id())
-        {
-            wf->get_workflow_data().deleted = true;
-            panel->close_dialog();
-            break;
-        }
-    }
-}
-
-void GraphN_Flow::destroy_workflow(data::Workflow* wf)
-{
-    auto wf_it = m_workflows.find(wf->get_id());
-    if (wf_it == m_workflows.end())
-    {
-        LogAndThrowInternalError(ExcepCategory::InconsistentMap, "Can't destroy workflow id=" << wf->get_id());
-    }
-    else
-    {
-        Log("Workflow destroyed, id=" << wf->get_id());
-        m_panel_wf_list->remove_wf(wf);
-        m_workflows.erase(wf_it);
-    }
 }
 
 void GraphN_Flow::subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener)
@@ -355,20 +223,17 @@ void GraphN_Flow::prepare_to_quit()
 {
     LogF_In;
 
-    m_panel_wf_list->remove_all_wf();
-    for (auto& panel : m_panels_wf)
-    {
-        save_workflow(panel.get(), true);
-    }
-
     for (auto& dlg : m_all_dialogs)
     {
         if (dlg)
+        {
             dlg->stop_all_threads();
+            dlg->free();
+        }
     }
     m_all_dialogs.clear();
     m_panels_wf.clear();
-    m_workflows.clear();
+    m_wf_focused = nullptr;
 
     if (m_nodes_parser)
         m_nodes_parser->stop();
@@ -628,13 +493,184 @@ void GraphN_Flow::on_menu_wf(PanelWorkflow* wf_panel)
     LogF;
     if (wf_panel != nullptr)
     {
-        set_active_wf(wf_panel->get_workflow());
+        activate_wf_panel(wf_panel);
     }
     else
     {
-        add_new_workflow();
+        wf_create();
     }
 }
+
+// WF public ->
+void GraphN_Flow::wf_create()
+{
+    auto info = g::pWfsManager->create();
+    g::pWfsManager->set_active(info.id);
+    auto panel = create_wf_panel(info);
+    activate_wf_panel(panel);
+    m_panel_wf_list->reload();
+}
+
+void GraphN_Flow::wf_activate(wid id)
+{
+    g::pWfsManager->set_active(id);
+    auto panel = find_wf_panel(id);
+    activate_wf_panel(panel);
+    m_panel_wf_list->rebuild();
+}
+
+void GraphN_Flow::wf_locate(wid id)
+{
+    auto panel = find_wf_panel(id);
+    if (nullptr == panel)
+    {
+        auto info = g::pWfsManager->get_info(id);
+        panel = create_wf_panel(info);
+    }
+    wf_activate(id);
+    panel->restore_pos();
+    m_panel_wf_list->reload();
+}
+
+void GraphN_Flow::wf_delete(wid id)
+{
+    auto wf = g::pWfsManager->get_active();
+    if (wf == id)
+    {
+        g::pWfsManager->set_active(0);
+        activate_wf_panel(nullptr);
+    }
+
+    g::pWfsManager->mark_deleted(id);
+
+    auto panel = find_wf_panel(id);
+    if (panel != nullptr)
+    {
+        close_wf_panel(panel);
+    }
+    
+    m_panel_wf_list->reload();
+}
+
+void GraphN_Flow::wf_restore(wid id)
+{
+    g::pWfsManager->undelete(id);
+    m_panel_wf_list->reload();
+}
+
+void GraphN_Flow::wf_rename(wid id, const std::string& new_name)
+{
+    g::pWfsManager->update_name(id, new_name);
+
+    auto panel = find_wf_panel(id);
+    if (panel != nullptr)
+        rename_wf_panel(panel, new_name);
+
+    m_panel_wf_list->reload();
+}
+
+void GraphN_Flow::wf_add_label(wid id, const std::string& label)
+{
+    g::pWfsManager->add_to_label(id, label.c_str());
+    m_panel_wf_list->reload();
+}
+
+void GraphN_Flow::wf_remove_label(wid id, const std::string& label)
+{
+    g::pWfsManager->remove_from_label(id, label.c_str());
+    m_panel_wf_list->reload();
+}
+
+void GraphN_Flow::wf_add_label(const std::string& label)
+{
+    g::pWfsManager->add_label(label.c_str());
+    m_panel_wf_list->reload();
+}
+
+void GraphN_Flow::wf_remove_label(const std::string& label)
+{
+    g::pWfsManager->delete_label(label.c_str());
+    m_panel_wf_list->reload();
+}
+// <- WF public
+
+// WF internal ->
+void GraphN_Flow::init_workflow_panels()
+{
+    if (g::pDbManager->get_is_first_run())
+    {
+        wf_create();
+    }
+    else
+    {
+        auto active = g::pWfsManager->get_active();
+        if (active != 0)
+        {
+            auto info = g::pWfsManager->get_info(active);
+            auto panel = create_wf_panel(info);
+            activate_wf_panel(panel);
+            m_panel_wf_list->reload();
+        }
+    }
+}
+
+PanelWorkflow* GraphN_Flow::find_wf_panel(wid id) const
+{
+    for (const auto& panel : m_panels_wf)
+    {
+        if (panel->get_workflow() == id)
+            return panel.get();
+    }
+    return nullptr;
+}
+
+PanelWorkflow* GraphN_Flow::create_wf_panel(const WfInfo& wf)
+{
+    m_panels_wf.emplace_back(std::make_unique<ui::PanelWorkflow>(wf.id, wf.name, wf.uuid, m_main_dock_id));
+    auto& panel_wf = m_panels_wf.back();
+    panel_wf->init();
+    m_all_dialogs.insert(panel_wf.get());
+    return panel_wf.get();
+}
+
+void GraphN_Flow::activate_wf_panel(PanelWorkflow* wf_panel)
+{
+    if (m_wf_focused != wf_panel)
+    {
+        for (auto& panel : m_panels_wf)
+        {
+            panel->set_active(false);
+        }
+        if (wf_panel != nullptr)
+            wf_panel->set_active(true);
+
+        m_wf_focused = wf_panel;
+    }
+}
+
+void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
+{
+    wf_panel->stop_all_threads();
+    on_dlg_closed(DlgObj::PanelWf);
+
+    m_all_dialogs.erase(wf_panel);
+
+    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
+    {
+        if ((*it).get() == wf_panel)
+        {
+            m_panels_wf.erase(it);
+            break;
+        }
+    }
+}
+
+void GraphN_Flow::rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name)
+{
+    wf_panel->rename_panel(new_name);
+}
+
+// <- WF internal
 
 void GraphN_Flow::on_menu_import_json()
 {
@@ -727,33 +763,11 @@ void GraphN_Flow::show_panel_wf()
         bool focused = false;
         if (panel->show_dialog(focused) != DlgCode::Progress)
         {
-            if (panel.get() == m_wf_focused)
-                m_wf_focused = nullptr;
-
-            auto wf = panel->get_workflow();
-            wf->stop_all_threads();
-
-            if (wf->get_workflow_data().deleted)
-            {
-                g::pDbManager->wf_delete(wf->get_workflow_data());
-            }
-            else
-            {
-                save_workflow(panel.get(), true);
-            }
-
-            m_panel_wf_list->remove_wf(wf);
-            panel->stop_all_threads();
-            on_dlg_closed(DlgObj::PanelWf);
-
-            m_all_dialogs.erase(panel.get());
-            it = m_panels_wf.erase(it);
-            destroy_workflow(wf);
+            close_wf_panel(panel.get());
         }
         else if (focused)
         {
-            m_wf_focused = panel.get();
-            m_panel_wf_list->set_active(m_wf_focused->get_workflow());
+            activate_wf_panel(panel.get());
             ++it;
         }
         else
@@ -775,7 +789,14 @@ void GraphN_Flow::show_menu_bar_connecting()
             g::pOptsManager->node_options_preload();
             m_nodes_parser = std::make_unique<mngr::NodesParser>();
 #if 1
-            m_nodes_parser->parse(debug::test_json);
+            auto test_json_path = fs::get_root_directory_path();
+            test_json_path /= "test_json.json";
+            auto test_json_data = tools::path::read_file(test_json_path);
+            std::string test_json_string;
+            test_json_string.reserve(test_json_data.size() + 1);
+            test_json_string = test_json_data.data();
+            test_json_string.at(test_json_data.size()) = 0;
+            m_nodes_parser->parse(std::move(test_json_string));
 #else
             m_nodes_parser->parse(std::move(g::pConnectManager->get_nodes_raw()));
 #endif
@@ -827,16 +848,6 @@ void GraphN_Flow::show_menu_bar_connecting()
 }
 
 void GraphN_Flow::show_menu_bar_queue_controls()
-{
-    // TODO
-}
-
-void GraphN_Flow::cleanup_empty_workflow_panels()
-{
-    // TODO
-}
-
-void GraphN_Flow::save_workflow(PanelWorkflow* /*wf*/, bool /*last_call*/)
 {
     // TODO
 }
@@ -902,8 +913,8 @@ void GraphN_Flow::show_panels()
         if (3 == ImGui::GetFrameCount())
         {
             ImGui::SetWindowFocus(m_panel_nodes->get_panel_name());
-            ImGui::SetWindowFocus(m_panel_node_inspector->get_panel_name());
-            ImGui::SetWindowFocus(m_panel_templates->get_panel_name());
+            ImGui::SetWindowFocus(m_panel_wf_list->get_panel_name());
+            ImGui::SetWindowFocus(m_panel_notes->get_panel_name());
         }
     }
     ImGui::End();
@@ -932,251 +943,3 @@ void GraphN_Flow::show_panels()
 
 }
 
-
-
-#if 1
-namespace debug
-{
-const char* test_json =
-R"(
-    {
-	    "ImpactKSamplerAdvancedBasicPipe": {
-		    "input": {
-			    "required": {
-				    "basic_pipe": [
-					    "IMAGE",
-					    {
-						    "tooltip": "basic_pipe input for sampling"
-					    }
-				    ],
-				    "add_noise": [
-					    "BOOLEAN",
-					    {
-						    "default": true,
-						    "label_on": "enable",
-						    "label_off": "disable",
-						    "tooltip": "Whether to add noise"
-					    }
-				    ],
-				    "noise_seed": [
-					    "INT",
-					    {
-						    "default": 0,
-						    "min": 0,
-						    "max": 18446744073709551615,
-						    "tooltip": "Random seed to use for generating CPU noise for sampling."
-					    }
-				    ],
-				    "steps": [
-					    "INT",
-					    {
-						    "default": 20,
-						    "min": 1,
-						    "max": 10000,
-						    "tooltip": "total sampling steps"
-					    }
-				    ],
-				    "labels": [
-					    "STRING",
-					    {
-						    "multiline": true,
-						    "placeholder": "List the types of segments to be allowed, separated by commas"
-					    }
-				    ],
-				    "cfg": [
-					    "FLOAT",
-					    {
-						    "default": 8.0,
-						    "min": 0.0,
-						    "max": 100.0,
-						    "tooltip": "classifier free guidance value",
-                            "advanced": true
-					    }
-				    ],
-				    "constant_color": [
-					    "COLOR",
-					    {
-						    "default": "#123456"
-					    }
-				    ],
-				    "constant_color_alpha": [
-					    "COLOR",
-					    {
-						    "default": "#12345678",
-						    "tooltip": "RGBA"
-					    }
-				    ],
-				    "folder_path": [
-					    "STRING",
-					    {
-						    "default": "",
-						    "tooltip": "Path to the folder containing images. Relative paths are resolved to the ComfyUI output directory."
-					    }
-				    ],
-				    "sampler_name": [
-					    [
-						    "euler",
-						    "euler_cfg_pp",
-						    "euler_ancestral",
-						    "euler_ancestral_cfg_pp",
-						    "heun",
-						    "heunpp2",
-						    "dpm_2",
-						    "dpm_2_ancestral",
-						    "lms",
-						    "dpm_fast",
-						    "dpm_adaptive",
-						    "dpmpp_2s_ancestral",
-						    "dpmpp_2s_ancestral_cfg_pp",
-						    "dpmpp_sde",
-						    "dpmpp_sde_gpu",
-						    "dpmpp_2m",
-						    "dpmpp_2m_cfg_pp",
-						    "dpmpp_2m_sde",
-						    "dpmpp_2m_sde_gpu",
-						    "dpmpp_2m_sde_heun",
-						    "dpmpp_2m_sde_heun_gpu",
-						    "dpmpp_3m_sde",
-						    "dpmpp_3m_sde_gpu",
-						    "ddpm",
-						    "lcm",
-						    "ipndm",
-						    "ipndm_v",
-						    "deis",
-						    "res_multistep",
-						    "res_multistep_cfg_pp",
-						    "res_multistep_ancestral",
-						    "res_multistep_ancestral_cfg_pp",
-						    "gradient_estimation",
-						    "gradient_estimation_cfg_pp",
-						    "er_sde",
-						    "seeds_2",
-						    "seeds_3",
-						    "sa_solver",
-						    "sa_solver_pece",
-						    "ddim",
-						    "uni_pc",
-						    "uni_pc_bh2"
-					    ],
-					    {
-						    "tooltip": "sampler"
-					    }
-				    ],
-				    "scheduler": [
-					    [
-						    "simple",
-						    "sgm_uniform",
-						    "karras",
-						    "exponential",
-						    "ddim_uniform",
-						    "beta",
-						    "normal",
-						    "linear_quadratic",
-						    "kl_optimal",
-						    "AYS SDXL",
-						    "AYS SD1",
-						    "AYS SVD",
-						    "GITS[coeff=1.2]",
-						    "LTXV[default]",
-						    "OSS FLUX",
-						    "OSS Wan",
-						    "OSS Chroma"
-					    ],
-					    {
-						    "tooltip": "noise schedule"
-					    }
-				    ],
-				    "latent_image": [
-					    "MASK",
-					    {
-						    "tooltip": "input latent image"
-					    }
-				    ],
-				    "start_at_step": [
-					    "INT",
-					    {
-						    "default": 0,
-						    "min": 0,
-						    "max": 10000,
-						    "tooltip": "The starting step of the sampling to be applied at this node within the range of 'steps'."
-					    }
-				    ],
-				    "end_at_step": [
-					    "INT",
-					    {
-						    "default": 10000,
-						    "min": 0,
-						    "max": 10000,
-						    "tooltip": "The step at which sampling applied at this node will stop within the range of steps (if greater than steps, sampling will continue only up to steps)."
-					    }
-				    ],
-				    "return_with_leftover_noise": [
-					    "BOOLEAN",
-					    {
-						    "default": false,
-						    "label_on": "enable",
-						    "label_off": "disable",
-						    "tooltip": "Whether to return the latent with noise remaining if the noise has not been completely removed according to the noise schedule, or to completely remove the noise before returning it."
-					    }
-				    ]
-			    },
-			    "optional": {
-				    "scheduler_func_opt": [
-					    "SCHEDULER_FUNC",
-					    {
-						    "tooltip": "[OPTIONAL] Noise schedule generation function. If this is set, the scheduler widget will be ignored."
-					    }
-				    ]
-			    }
-		    },
-		    "input_order": {
-			    "required": [
-				    "basic_pipe",
-				    "add_noise",
-				    "noise_seed",
-				    "steps",
-				    "cfg",
-				    "sampler_name",
-				    "scheduler",
-				    "latent_image",
-				    "start_at_step",
-				    "end_at_step",
-				    "return_with_leftover_noise"
-			    ],
-			    "optional": [
-				    "scheduler_func_opt"
-			    ]
-		    },
-		    "output": [
-			    "CLIP",
-			    "LATENT",
-			    "CONDITIONING",
-			    "MODEL"
-		    ],
-		    "output_is_list": [
-			    false,
-			    false,
-			    false,
-			    false
-		    ],
-		    "output_name": [
-			    "CLIP",
-			    "LATENT",
-			    "CONDITIONING",
-			    "MODEL"
-		    ],
-		    "name": "ImpactKSamplerAdvancedBasicPipe",
-		    "display_name": "KSampler",
-            "description": "",
-            "python_module" : "custom_nodes.ComfyUI-Impact-Pack",
-            "category" : "sampling",
-            "output_node" : false,
-            "output_tooltips" : [
-            "passthrough input basic_pipe",
-            "result latent",
-            "VAE in basic_pipe"
-        ]
-    }
-})";
-} // namespace debug
-#endif

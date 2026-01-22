@@ -15,20 +15,25 @@ class PanelWorkflow final :
     public PanelBase<PanelCommonData>
 {
 public:
-    PanelWorkflow(data::Workflow* wf, const char* name, const char* id, ImGuiID& dock);
+    PanelWorkflow(wid workflow_id, const std::string& name, const std::string& panel_id, ImGuiID dock);
     ~PanelWorkflow() override;
 
     void init() override;
     void stop_all_threads() override;
 
-    data::Workflow* get_workflow() const { return m_wf; }
+    void restore_pos();
+    void rename_panel(const std::string& new_name);
+    inline wid get_workflow() const { return m_wf; }
+    inline void set_active(bool active) { m_active = active; }
 
 private:
     DlgCode show(bool& focused) override;
 
 private:
-    data::Workflow* m_wf = nullptr;
-    const ImGuiID& m_dock;
+    wid m_wf = 0;
+    const ImGuiID m_dock;
+    bool m_restore_pos = false;
+    bool m_active = false;
 };
 
 

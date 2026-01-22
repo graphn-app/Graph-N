@@ -333,7 +333,7 @@ void PanelStats::format_bytes(uint64_t bytes)
 DlgCode PanelStats::show(bool& focused)
 {
     bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg) && opened)
+    if (begin_panel(opened, focused) && opened)
     {
         m_pause = false;
 

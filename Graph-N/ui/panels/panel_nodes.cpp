@@ -5,6 +5,7 @@
 #include "ui/font_guard.h"
 #include "platform/main.h"
 #include "core/managers/nodes_manager.h"
+#include "core/managers/workflows_manager.h"
 #include "core/data/node.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/workflow.h"
@@ -28,7 +29,9 @@ void PanelNodes::init()
     PanelBase::init();
     data()->buffer.resize(PanelNodesData::_buf_count);
 
-    m_wf = g::pFlow->create_workflow();
+    auto wf_id = g::pWfsManager->create().id;
+    m_wf = g::pWfsManager->access(wf_id);
+    g::pWfsManager->set_read_only(wf_id);
 
     g::pFlow->subscribe_comfyui_validity_state(this);
 
@@ -88,7 +91,7 @@ void PanelNodes::finalize_resolve_comfyui_objects()
 DlgCode PanelNodes::show(bool& focused)
 {
     bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg) && opened)
+    if (begin_panel(opened, focused) && opened)
     {
         if (g::pNodesManager->get_nodes_tree().empty())
         {
@@ -175,7 +178,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 PanelListItem item;
                 item.depth = 1;
                 item.name = nodes->name_or_category;
-                item.can_star = item.starred = true;
+                item.icon = ICON_LC_STAR;
+                item.icon_can_click = item.icon_active = true;
                 item.can_lclick = item.can_rclick = true;
                 item.selected = selected.count(nodes) > 0;
                 item.ptr = nodes;
@@ -187,7 +191,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
         PanelListItem star_folder;
         star_folder.name = fav_folder_name + " [" + std::to_string(fav_items) + "]";
-        star_folder.can_expand = star_folder.can_lclick = true;
+        star_folder.can_expand = true;
+        star_folder.icon = (force_expand_all || fav_folder_expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER);
         star_folder.expanded = force_expand_all || fav_folder_expanded;
         m_panel_items.insert(m_panel_items.begin(), std::move(star_folder));
 
@@ -205,7 +210,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     PanelListItem item;
                     item.depth = depth;
                     item.name = node->name_or_category;
-                    item.can_expand = item.can_lclick = true;
+                    item.can_expand = true;
+                    item.icon = (force_expand_all || expanded.count(node) > 0 ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER);
                     item.expanded = force_expand_all || expanded.count(node) > 0;
                     const bool item_expanded = item.expanded;
                     item.ptr = node;
@@ -220,8 +226,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     item.depth = depth;
                     item.selected = selected.count(node) > 0;
                     item.name = node->name_or_category;
-                    item.can_star = true;
-                    item.starred = node->node->starred;
+                    item.icon_can_click = true;
+                    item.icon_active = node->node->starred;
                     item.can_lclick = item.can_rclick = true;
                     item.ptr = node;
                     panel_items.push_back(std::move(item));
@@ -242,7 +248,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             {
                 PanelListItem item;
                 item.name = nodes->name_or_category;
-                item.can_star = item.starred = true;
+                item.icon_can_click = item.icon_active = true;
                 item.can_lclick = item.can_rclick = true;
                 item.selected = selected.count(nodes) > 0;
                 item.ptr = nodes;
@@ -263,7 +269,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             {
                 PanelListItem item;
                 item.name = nodes->name_or_category;
-                item.can_star = item.can_lclick = item.can_rclick = true;
+                item.icon_can_click = item.can_lclick = item.can_rclick = true;
                 item.selected = selected.count(nodes) > 0;
                 item.ptr = nodes;
                 m_panel_items.push_back(std::move(item));
@@ -274,7 +280,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
 void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
 {
-    Log("Dirty: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", fv=" << dirty_item.starred << ", xp=" << dirty_item.expanded);
+    Log("Dirty: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
 
     if (dirty_item.expanded)
     {
@@ -295,9 +301,9 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
         LogError(ExcepCategory::Logic, "Null dirty item or dirty item is folder");
     }
 
-    if (dirty_item.starred)
+    if (dirty_item.icon_clicked)
     {
-        nodes->node->starred = panel_item.starred;
+        nodes->node->starred = panel_item.icon_active;
         g::pOptsManager->node_starred_save(nodes->node->get_id(), nodes->node->starred);
         rebuild_items();
     }
@@ -322,7 +328,7 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
             panel_item.selected = true;
         }
 
-        if (panel_item.starred && g::pOptsManager->ui_nodes_pane_tree_view_load())
+        if (panel_item.icon_active && g::pOptsManager->ui_nodes_pane_tree_view_load())
         {
             int32_t handled_items = 2;
             for (auto& item : m_panel_items)

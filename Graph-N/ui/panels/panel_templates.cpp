@@ -28,7 +28,7 @@ void PanelTemplates::stop_all_threads()
 DlgCode PanelTemplates::show(bool& focused)
 {
     bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg) && opened)
+    if (begin_panel(opened, focused) && opened)
     {
         show_empty_panel_descr(
             ICON_LC_INFO " Templates.",

@@ -29,7 +29,7 @@ void PanelModels::stop_all_threads()
 DlgCode PanelModels::show(bool& focused)
 {
     bool opened = true;
-    if (begin_panel(opened, focused, data()->clr_bg) && opened)
+    if (begin_panel(opened, focused) && opened)
     {
         if (g::pNodesManager->get_models_tree().empty())
         {

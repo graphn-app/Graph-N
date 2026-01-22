@@ -10,7 +10,6 @@ struct ComfyUiObjectValidityListener;
 namespace data
 {
 struct Node;
-class Workflow;
 }
 
 namespace ui
@@ -84,16 +83,23 @@ public:
 
     void open_settings_dlg(OptPane section = OptPane::_none);
 
-    void add_new_workflow();
-    data::Workflow* create_workflow(const WfData* wf_data = nullptr);
-    void delete_workflow(data::Workflow* wf);
-    PanelWorkflow* get_active_wf_or_create_new();
-    void set_active_wf(data::Workflow* wf);
-
     void subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener);
 
     void invalidate_comfyui_objects();
     void resolve_comfyui_objects();
+
+    // WF public
+    void wf_create();
+    void wf_activate(wid id);
+    void wf_locate(wid id);
+    void wf_delete(wid id);
+    void wf_restore(wid id);
+    void wf_rename(wid id, const std::string& new_name);
+    void wf_add_label(wid id, const std::string& label);
+    void wf_remove_label(wid id, const std::string& label);
+    void wf_add_label(const std::string& label);
+    void wf_remove_label(const std::string& label);
+    // WF public
 
 private:
     void stop_all_threads();
@@ -126,11 +132,14 @@ private:
     void on_menu_import_json();
     void on_menu_export_json();
 
+    // WF internal
     void init_workflow_panels();
-    PanelWorkflow* create_wf_panel(data::Workflow* wf);
-    void cleanup_empty_workflow_panels();
-    void save_workflow(PanelWorkflow* wf, bool last_call);
-    void destroy_workflow(data::Workflow* wf);
+    PanelWorkflow* find_wf_panel(wid id) const;
+    PanelWorkflow* create_wf_panel(const WfInfo& wf);
+    void activate_wf_panel(PanelWorkflow* wf_panel);
+    void close_wf_panel(PanelWorkflow* wf_panel);
+    void rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name);
+    // WF internal
 
 private:
     bool m_online = false;
@@ -146,24 +155,15 @@ private:
     std::unique_ptr<PanelNodes> m_panel_nodes;
     std::unique_ptr<PanelNodeInspector> m_panel_node_inspector;
     std::unique_ptr<PanelStats> m_panel_stats;
-    std::unique_ptr<PanelWfList> m_panel_wf_list;
     std::unique_ptr<PanelTemplates> m_panel_templates;
     std::unique_ptr<PanelOutput> m_panel_output;
     std::unique_ptr<PanelNotes> m_panel_notes;
     std::unique_ptr<PanelModels> m_panel_models;
+    std::unique_ptr<PanelWfList> m_panel_wf_list;
 
     PanelWorkflow* m_wf_focused = nullptr;
-    size_t m_wf_name_counter = 0;
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
-    std::map<std::string, std::unique_ptr<data::Workflow>> m_workflows;
 
     std::list<mngr::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
 };
 }
-
-#if 1
-namespace debug
-{
-extern const char* test_json;
-}
-#endif

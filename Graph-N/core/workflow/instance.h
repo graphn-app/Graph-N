@@ -27,7 +27,7 @@ public:
     virtual void init()
     {
         g::pFlow->subscribe_comfyui_validity_state(this);
-        Log("Wf id = " << m_wf->get_id() << ", Inst id=" << get_instance_id() << ", Graph id=" << get_graph_id() << ", Obj id=" << m_object->get_id());
+        Log("Wf id = " << m_wf->get_uuid_hash() << ", Inst id=" << get_instance_id() << ", Graph id=" << get_graph_id() << ", Obj id=" << m_object->get_id());
     }
 
     iid get_instance_id() const { return m_instance_id; }    // use this to save/load
@@ -57,11 +57,11 @@ public:
         m_obj_id = 0;
         if (nullptr == m_object)
         {
-            LogAndThrowInternalError(ExcepCategory::InconsistentPtr, "Can't prepare to invalidation - no object")
+            LogInternalPtr("Can't prepare to invalidation - no object")
         }
         m_obj_id = m_object->get_id();
         m_object = nullptr;
-        Log("Preinvalidate: Wf id = " << m_wf->get_id() << ", Inst id=" << get_instance_id() << ", Graph id=" << get_graph_id() << ", Obj id=" << m_obj_id);
+        Log("Preinvalidate: Wf id = " << m_wf->get_uuid_hash() << ", Inst id=" << get_instance_id() << ", Graph id=" << get_graph_id() << ", Obj id=" << m_obj_id);
     }
 
     // ComfyUiObjectValidityListener
@@ -70,12 +70,12 @@ public:
         m_object = nullptr;
         if (0 == m_obj_id)
         {
-            LogError(ExcepCategory::InconsistentPtr, "No saved data to invalidate object");
+            LogInternalPtr("No saved data to invalidate object");
         }
         m_object = find_obj(m_obj_id);
         if (nullptr == m_object)
         {
-            Log("Invalid obj: Wf id = " << m_wf->get_id() << ", Inst id=" << get_instance_id() << ", Graph id=" << get_graph_id() << ", Obj id=" << m_obj_id);
+            Log("Invalid obj: Wf id = " << m_wf->get_uuid_hash() << ", Inst id=" << get_instance_id() << ", Graph id=" << get_graph_id() << ", Obj id=" << m_obj_id);
             m_wf->mark_invalid(m_obj_id);
             m_obj_id = 0;
         }

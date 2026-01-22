@@ -19,13 +19,13 @@ struct DlgData
     float width = 0;
     float height = 0;
 
+    ImU32 clr_bg = 0;
+    ImU32 clr_title = 0;
+
     bool open_popup = true;
     bool set_focus = true;
 
     std::vector<std::string> buffer;
-
-    ImU32 clr_bg = 0;
-    ImU32 clr_title = 0;
 };
 
 class BaseDlg : public base::LocalID
@@ -51,6 +51,13 @@ public:
     {
         m_close_called = true;
     }
+
+    virtual void init()
+    {
+    }
+
+    virtual void free()
+    {}
 
     virtual void stop_all_threads() { LogF; }
 
@@ -119,7 +126,7 @@ public:
     using BaseDlg::BaseDlg;
     ~BaseDlgWithData() override = default;
 
-    virtual void init()
+    void init() override
     {
         if (m_dlg_initialized)
             return;

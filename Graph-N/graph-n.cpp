@@ -5,6 +5,7 @@
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/connect_manager.h"
+#include "core/managers/workflows_manager.h"
 #include "core/base/id.h"
 
 namespace g
@@ -17,11 +18,12 @@ mngr::SettingsManager* pOptsManager = nullptr;
 mngr::DbManager* pDbManager = nullptr;
 mngr::NodesManager* pNodesManager = nullptr;
 mngr::ConnectManager* pConnectManager = nullptr;
+mngr::WfsManager* pWfsManager = nullptr;
 
-void save_exception(ExcepCategory category, const std::string& message, const char* file, int line)
+void save_exception(ExcepCategory category, std::string message, const char* file, int line)
 {
     if (g::pDbManager != nullptr && category != ExcepCategory::SQLite)
-        g::pDbManager->exception_save(category, message, file, line);
+        g::pDbManager->exception_save(category, std::move(message), file, line);
 }
 }
 
@@ -52,6 +54,9 @@ bool GraphN::init_graphn()
     m_managers.push_back(std::make_unique<mngr::ConnectManager>());
     g::pConnectManager = (mngr::ConnectManager*)m_managers.back().get();
 
+    m_managers.push_back(std::make_unique<mngr::WfsManager>());
+    g::pWfsManager = (mngr::WfsManager*)m_managers.back().get();
+
     bool success = true;
     std::for_each(m_managers.begin(), m_managers.end(), [&success](std::unique_ptr<mngr::Manager>& manager)
     {
@@ -73,7 +78,7 @@ bool GraphN::init_graphn()
 
 void GraphN::exit_graphn()
 {
-    LogF;
+    LogF_In;
 
     if (m_graphn_flow)
         m_graphn_flow->exit();
@@ -94,7 +99,7 @@ void GraphN::exit_graphn()
     g::pDbManager = nullptr;
     g::pConnectManager = nullptr;
 
-    LogF;
+    LogF_Out;
 }
 
 int GraphN::override_exit_code()

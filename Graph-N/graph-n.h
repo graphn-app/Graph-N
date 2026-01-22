@@ -14,6 +14,7 @@ class SettingsManager;
 class DbManager;
 class NodesManager;
 class ConnectManager;
+class WfsManager;
 }
 
 namespace ui
@@ -82,6 +83,7 @@ extern mngr::SettingsManager* pOptsManager;
 extern mngr::DbManager* pDbManager;
 extern mngr::NodesManager* pNodesManager;
 extern mngr::ConnectManager* pConnectManager;
+extern mngr::WfsManager* pWfsManager;
 
-void save_exception(ExcepCategory category, const std::string& message, const char* file, int line);
+void save_exception(ExcepCategory category, std::string message, const char* file, int line);
 }

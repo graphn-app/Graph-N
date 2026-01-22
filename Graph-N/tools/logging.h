@@ -201,7 +201,9 @@ struct LogGuard final
 
 #define LogExcep(category, message)                 LOG_SOMETHING_HAPPENED(category, "EXCEPTION", message, false)
 #define LogError(category, message)                 LOG_SOMETHING_HAPPENED(category, "ERROR", message, false)
-#define LogInternalError(category, message)         LOG_SOMETHING_HAPPENED(category, "INTERNAL_LOGIC_ERROR", message, false)
+#define LogInternalLogic(message)                   LOG_SOMETHING_HAPPENED(ExcepCategory::Logic, "INTERNAL_LOGIC_ERROR", message, false)
+#define LogInternalMap(message)                     LOG_SOMETHING_HAPPENED(ExcepCategory::InconsistentMap, "INTERNAL_LOGIC_ERROR:MAP", message, false)
+#define LogInternalPtr(message)                     LOG_SOMETHING_HAPPENED(ExcepCategory::InconsistentObjPtr, "INTERNAL_LOGIC_ERROR:OBJPTR", message, false)
 #define LogUnhandledJson(message)	                Log("[JSON_UNHANDLED] " << message)
 #define LogInvalidJson(message)		                Log("[JSON_INVALID] " << message)
 
