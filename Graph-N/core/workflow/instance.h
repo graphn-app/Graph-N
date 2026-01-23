@@ -20,6 +20,7 @@ public:
         , m_instance_id(instance_id)
     {
         m_graph_id_str = std::to_string(m_graph_id);
+        m_obj_id = m_object->get_id();
     }
     ~Instance() override
     {}

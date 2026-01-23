@@ -216,14 +216,14 @@ void Pin::finalize()
             w_name = 0.0f;
             break;
         case PinType::COMBO:
-            w_value = 100.0f;
-            for (auto& item : list)
-            {
-                const auto w = ImGui::CalcTextSize(primitive_to_string(item).c_str()).x;
-                w_value = std::max(w_value, w + 30);
-                if (w_value < w + 30)
-                    w_value = w + 30;
-            }
+            w_value = 150.0f;
+            //for (auto& item : list)
+            //{
+            //    const auto w = ImGui::CalcTextSize(primitive_to_string(item).c_str()).x;
+            //    w_value = std::max(w_value, w + 30);
+            //    if (w_value < w + 30)
+            //        w_value = w + 30;
+            //}
             break;
         case PinType::BOOLEAN:
         default:

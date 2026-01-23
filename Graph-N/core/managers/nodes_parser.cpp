@@ -99,7 +99,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
         }
 
         Log("Parsed: " << m_parsed_item << " item. Adding internal nodes");
-        add_internal_nodes(*copy.get());
+        //add_internal_nodes(*copy.get());
         sort_nodes(*copy.get());
         Log("Nodes loading and parsing done");
         return copy;
@@ -530,7 +530,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
                 else if (arr.size() == 2 && arr[0].is_array() && arr[1].is_object() ||
                     arr.size() == 1 && arr[0].is_array())
                 {
-                    pin->def_state.type = data::PinType::COMBO;
+                    pin->initialize("COMBO");
                     for (const auto& item : arr[0])
                     {
                         auto value = get_combo_item(item);
@@ -670,7 +670,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
                 }
                 else if (item.is_array())
                 {
-                    pin->def_state.type = data::PinType::COMBO;
+                    pin->initialize("COMBO");
                     for (const auto& out_item : item)
                     {
                         if (out_item.is_string())

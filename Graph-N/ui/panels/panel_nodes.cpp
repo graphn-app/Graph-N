@@ -10,6 +10,8 @@
 #include "core/workflow/node_instance.h"
 #include "core/workflow/workflow.h"
 
+#define TEST
+
 namespace ui
 {
 
@@ -147,13 +149,11 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
     const std::string fav_folder_name = "Favorited";
 
-    // keep selected/expanded state
-    std::set<data::Nodes*> selected, expanded;
+    // save expanded state
+    std::set<data::Nodes*> expanded;
     for (auto& item : m_panel_items)
     {
-        if (item.selected)
-            selected.insert((data::Nodes*)item.ptr);
-        else if (item.expanded)
+        if (item.expanded)
             expanded.insert((data::Nodes*)item.ptr);
     }
 
@@ -181,7 +181,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 item.icon = ICON_LC_STAR;
                 item.icon_can_click = item.icon_active = true;
                 item.can_lclick = item.can_rclick = true;
-                item.selected = selected.count(nodes) > 0;
+                item.selected = m_inspector->is_node_inspecting(nodes->node);
                 item.ptr = nodes;
                 m_panel_items.push_back(std::move(item));
             }
@@ -189,19 +189,22 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
         m_panel_items.reserve(m_panel_items.size() + g::pNodesManager->get_node_items_total() + 2);
 
-        PanelListItem star_folder;
-        star_folder.name = fav_folder_name + " [" + std::to_string(fav_items) + "]";
-        star_folder.can_expand = true;
-        star_folder.icon = (force_expand_all || fav_folder_expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER);
-        star_folder.expanded = force_expand_all || fav_folder_expanded;
-        m_panel_items.insert(m_panel_items.begin(), std::move(star_folder));
+        if (fav_items > 0)
+        {
+            PanelListItem star_folder;
+            star_folder.name = fav_folder_name + " [" + std::to_string(fav_items) + "]";
+            star_folder.can_expand = true;
+            star_folder.icon = (force_expand_all || fav_folder_expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER);
+            star_folder.expanded = force_expand_all || fav_folder_expanded;
+            m_panel_items.insert(m_panel_items.begin(), std::move(star_folder));
 
-        PanelListItem separator;
-        separator.is_separator = true;
-        m_panel_items.push_back(std::move(separator));
+            PanelListItem separator;
+            separator.is_separator = true;
+            m_panel_items.push_back(std::move(separator));
+        }
 
         std::function<void(const std::vector<data::Nodes*>&, int32_t)> go_tree;
-        go_tree = [&go_tree, &panel_items = m_panel_items, &expanded, &selected, force_expand_all](const std::vector<data::Nodes*>& nodes, int32_t depth)
+        go_tree = [&go_tree, &panel_items = m_panel_items, &expanded, force_expand_all, &inspector = m_inspector](const std::vector<data::Nodes*>& nodes, int32_t depth)
         {
             for (auto node : nodes)
             {
@@ -215,6 +218,9 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     item.expanded = force_expand_all || expanded.count(node) > 0;
                     const bool item_expanded = item.expanded;
                     item.ptr = node;
+#ifdef TEST
+                    item.can_rclick = true;
+#endif
                     panel_items.push_back(std::move(item));
 
                     if (item_expanded)
@@ -224,8 +230,9 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 {
                     PanelListItem item;
                     item.depth = depth;
-                    item.selected = selected.count(node) > 0;
+                    item.selected = inspector->is_node_inspecting(node->node);
                     item.name = node->name_or_category;
+                    item.icon = ICON_LC_STAR;
                     item.icon_can_click = true;
                     item.icon_active = node->node->starred;
                     item.can_lclick = item.can_rclick = true;
@@ -249,8 +256,9 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 PanelListItem item;
                 item.name = nodes->name_or_category;
                 item.icon_can_click = item.icon_active = true;
+                item.icon = ICON_LC_STAR;
                 item.can_lclick = item.can_rclick = true;
-                item.selected = selected.count(nodes) > 0;
+                item.selected = m_inspector->is_node_inspecting(nodes->node);
                 item.ptr = nodes;
                 m_panel_items.push_back(std::move(item));
             }
@@ -270,7 +278,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 PanelListItem item;
                 item.name = nodes->name_or_category;
                 item.icon_can_click = item.can_lclick = item.can_rclick = true;
-                item.selected = selected.count(nodes) > 0;
+                item.icon = ICON_LC_STAR;
+                item.selected = m_inspector->is_node_inspecting(nodes->node);
                 item.ptr = nodes;
                 m_panel_items.push_back(std::move(item));
             }
@@ -296,10 +305,12 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
     auto& panel_item = m_panel_items[dirty_item.index];
     data::Nodes* nodes = (data::Nodes*)panel_item.ptr;
 
+#ifndef TEST
     if (nullptr == nodes || !nodes->is_node)
     {
         LogError(ExcepCategory::Logic, "Null dirty item or dirty item is folder");
     }
+#endif
 
     if (dirty_item.icon_clicked)
     {
@@ -309,6 +320,33 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
     }
     else if (dirty_item.rclicked)
     {
+#ifdef TEST
+        if (panel_item.can_expand && !nodes->is_node)
+        {
+            m_inspector->reset_inspecting_nodes();
+            for (auto& unsel_panel_item : m_panel_items)
+            {
+                unsel_panel_item.selected = false;
+            }
+            for (auto child : nodes->children)
+            {
+                if (child->is_node)
+                {
+                    m_inspector->add_inspecting_node(child->node);
+                    for (auto& sel_panel_item : m_panel_items)
+                    {
+                        if (sel_panel_item.ptr == child)
+                        {
+                            sel_panel_item.selected = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            return;
+        }
+#endif
+
         if (ImGui::IsKeyDown(ImGuiMod_Ctrl) || ImGui::IsKeyDown(ImGuiMod_Shift))
         {
             if (panel_item.selected)

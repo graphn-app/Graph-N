@@ -41,15 +41,12 @@ RoNodeDrawer& RoNodeDrawer::operator=(RoNodeDrawer&& other)
     return *this;
 }
 
-//float temp_pos = 0.0f;
-//#define TEMP_POS        temp_pos = ImGui::GetCursorPosX();
-
 float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_w)
 {
     m_node = node;
     m_tt_mode = tooltip_mode;
 
-    max_w = m_node->recalc_node_widths(max_w, false /*allow_extend*/, !m_tt_mode /*allow_compress*/, !m_tt_mode /*use_big_pin_icon*/);
+    max_w = m_node->recalc_node_width(max_w, false /*allow_extend*/, false /*allow_compress*/, !m_tt_mode /*use_big_pin_icon*/);
     m_curr_node_left_offset = ImGui::GetCursorPosX();
 
     ImGui::PushID(m_node->get_graph_id_ptr());

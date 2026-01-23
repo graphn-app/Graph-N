@@ -21,6 +21,8 @@
 #include "core/managers/workflows_manager.h"
 #include "core/workflow/workflow.h"
 
+#define TEST
+
 namespace w
 {
 float pin_l_offset = 0.0f;
@@ -788,7 +790,7 @@ void GraphN_Flow::show_menu_bar_connecting()
 
             g::pOptsManager->node_options_preload();
             m_nodes_parser = std::make_unique<mngr::NodesParser>();
-#if 1
+#ifdef TEST
             auto test_json_path = fs::get_root_directory_path();
             test_json_path /= "test_json.json";
             auto test_json_data = tools::path::read_file(test_json_path);

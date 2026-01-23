@@ -123,7 +123,7 @@ float NodeInstance::calc_node_width()
     return m_object->w_fit;
 }
 
-float NodeInstance::recalc_node_widths(float avail_width, bool allow_extend, bool allow_compress, bool use_big_pin_icon)
+float NodeInstance::recalc_node_width(float avail_width, bool allow_extend, bool allow_compress, bool use_big_pin_icon)
 {
     if (w_name <= 0.0f)
     {
@@ -136,6 +136,12 @@ float NodeInstance::recalc_node_widths(float avail_width, bool allow_extend, boo
         return w_node;
 
     const float max_ico = (use_big_pin_icon ? w::ico_max : w::ico_circle);
+    float min_w = w_name + ImGui::GetStyle().ItemSpacing.x * 2;
+    min_w = std::max(min_w, m_object->w_pin_in_max + m_object->w_pin_out_max + 20.0f + (w::pin_l_offset * 2) + (max_ico * 2) + (w::pin_l_offset * 2));
+    min_w = std::max(min_w, m_object->w_widget_name_max + m_object->w_widget_value_max);
+
+    if (allow_extend)
+        min_w = std::max(avail_width, min_w);
 
     if (avail_width < m_object->w_fit && allow_compress)
     {
@@ -150,7 +156,7 @@ float NodeInstance::recalc_node_widths(float avail_width, bool allow_extend, boo
     else if (avail_width > m_object->w_fit && allow_extend)
     {
         w_node = avail_width;
-        w_node_name_off = (avail_width / 2) - (w_name / 2);
+        w_node_name_off = std::max(0.0f, (avail_width / 2) - (w_name / 2));
         w_widget_name = m_object->w_widget_name_max;
         w_widget_value = std::max(0.0f, avail_width - (w::pin_l_offset * 2) - (max_ico * 2) - (w::pin_l_offset * 2) - w_widget_name);
         w_pin_in = m_object->w_pin_in_max;
@@ -160,46 +166,67 @@ float NodeInstance::recalc_node_widths(float avail_width, bool allow_extend, boo
     else
     {
         w_node = m_object->w_fit;
-        w_node_name_off = (w_node / 2) - (w_name / 2);
+        w_node = std::max(min_w, w_node);
+        w_node_name_off = std::max(0.0f, (w_node / 2) - (w_name / 2));
         w_widget_name = m_object->w_widget_name_max;
         w_widget_value = m_object->w_widget_value_max;
         w_pin_in = m_object->w_pin_in_max;
         w_pin_out = m_object->w_pin_out_max;
-        w_center = std::max(0.0f, w_widget_name + w_widget_value - w_pin_in - w_pin_out);
+        w_center = std::max(20.0f, w_widget_name + w_widget_value - w_pin_in - w_pin_out);
+
+        if (w_widget_name + w_widget_value + (w::pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) < w_node)
+        {
+            const auto prev = w_widget_value;
+            w_widget_value = w_node - w_widget_name - (w::pin_l_offset * 2) - (max_ico * 2) - (w::pin_r_offset * 2);
+            w_center += w_widget_value - prev;
+        }
     }
 
+    // empty
     if (!m_has_in_pins && !m_has_out_pins && !m_has_widgets)
     {
         w_node = (allow_extend && avail_width > m_object->w_fit || allow_compress && avail_width < m_object->w_fit ? avail_width : m_object->w_fit);
     }
+    // widgets only
     else if (!m_has_in_pins && !m_has_out_pins && m_has_widgets)
     {
         w_node = (w::pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_widget_name + w_widget_value;
     }
+    // input only
     else if (m_has_in_pins && !m_has_out_pins && !m_has_widgets)
     {
         w_center = 50.0f;
         w_node = (w::pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_pin_in + w_center;
     }
+    // output only
     else if (!m_has_in_pins && m_has_out_pins && !m_has_widgets)
     {
         w_center = 50.0f;
         w_node = (w::pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_center + w_pin_out;
     }
+    // no input
     else if (!m_has_in_pins && m_has_out_pins && m_has_widgets)
     {
+        w_center = w_widget_name + w_widget_value - w_pin_out;
         w_node = (w::pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_widget_name + w_widget_value;
-        w_center = w_widget_name + w_widget_name - w_pin_out;
     }
+    // no output
     else if (m_has_in_pins && !m_has_out_pins && m_has_widgets)
     {
+        w_center = w_widget_name + w_widget_value - w_pin_in;
         w_node = (w::pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_widget_name + w_widget_value;
-        w_center = w_widget_name + w_widget_name - w_pin_in;
     }
+    // no widgets
     else if (m_has_in_pins && m_has_out_pins && !m_has_widgets)
     {
-        w_center = 10.0f;
-        w_node = (w::pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_pin_in + w_center + w_pin_out;
+        w_center = 20.0f;
+        w_node = (w::pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_pin_in + w_center + w_pin_out;  
+    }
+
+    if (w_node < min_w)
+    {
+        w_center += min_w - w_node;
+        w_node = min_w;
     }
 
     w_separator = std::max(0.0f, w_node - (w::pin_l_offset * 2) - (max_ico * 2) - (w::pin_r_offset * 2));

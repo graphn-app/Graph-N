@@ -36,6 +36,7 @@ public:
     void add_inspecting_node(data::Node* node);
     void remove_inspecting_node(data::Node* node);
     void reset_inspecting_nodes();
+    bool is_node_inspecting(data::Node* node) const;
 
     //ComfyUiObjectValidityListener
     void invalidate_comfyui_objects() override;
@@ -43,7 +44,7 @@ public:
 private:
     DlgCode show(bool& focused) override;
     void show_nodes();
-    void show_description(TextWrapperRO& descr_wrapper, float max_w);
+    void show_description(std::string* descr, const ImVec2& descr_sz, float max_w);
 
 private:
     data::Workflow* m_wf = nullptr;
@@ -53,7 +54,8 @@ private:
         data::NodeInstance* node = nullptr;
         RoNodeDrawer drawer;
         float ideal_size = 0.0f;
-        TextWrapperRO descr_wrapper;
+        std::string* descr = nullptr;
+        ImVec2 descr_sz;
     };
     std::vector<Data> m_inspecting;
 };

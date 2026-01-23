@@ -40,16 +40,20 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
 {    
     if (nullptr == node)
         return;
-    if (std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object()->get_id() == node->get_id(); }) != m_inspecting.end())
+    if (std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object_id() == node->get_id(); }) != m_inspecting.end())
         return;
     Log("Add node '" << node->name << "' id=" << node->get_id());
 
     Data data;
     data.node = m_wf->add_node(node);
-    data.ideal_size = data.node->calc_node_width();
-    data.descr_wrapper.set_font(g::pMain->get_regular_font());
+    const auto ideal = data.node->calc_node_width();
+    const auto actual = data.node->recalc_node_width(0.0f, false, false, true);
+    data.ideal_size = std::max(ideal, actual);
     if (!node->description.empty())
-        data.descr_wrapper.set_raw_text(&node->description);
+    {
+        data.descr = &node->description;
+        data.descr_sz = ImGuiEx::CalcTextSizeForMultilineWithHScroll(node->description);
+    }
 
     m_inspecting.push_back(std::move(data));
 }
@@ -58,7 +62,7 @@ void PanelNodeInspector::remove_inspecting_node(data::Node* node)
 {
     Log("Remove node '" << node->name << "' id=" << node->get_id());
 
-    const auto it = std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object()->get_id() == node->get_id(); });
+    const auto it = std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object_id() == node->get_id(); });
     if (it == m_inspecting.end())
     {
         LogInternalMap("Can't remove node");
@@ -74,6 +78,16 @@ void PanelNodeInspector::reset_inspecting_nodes()
 {
     Log("Remove all nodes");
     m_inspecting.clear();
+}
+
+bool PanelNodeInspector::is_node_inspecting(data::Node* node) const
+{
+    for (auto& data : m_inspecting)
+    {
+        if (data.node->get_object_id() == node->get_id())
+            return true;
+    }
+    return false;
 }
 
 void PanelNodeInspector::invalidate_comfyui_objects()
@@ -129,13 +143,8 @@ void PanelNodeInspector::show_nodes()
         ImGui::BeginGroup();
 
         ImGui::Spacing();
-        ImGui::PushStyleColor(ImGuiCol_Text, data()->clr_selected_node);
-        ImGui::TextUnformatted(node.node->get_name().c_str(), node.node->get_name().c_str() + node.node->get_name().size());
-        ImGui::PopStyleColor();
-
-        ImGui::Spacing();
         node.drawer.draw(node.node, false, col_w);
-        show_description(node.descr_wrapper, col_w);
+        show_description(node.descr, node.descr_sz, col_w);
 
         ImGui::EndGroup();
         ImGui::PopID();
@@ -143,9 +152,9 @@ void PanelNodeInspector::show_nodes()
         if (i + 1 < m_inspecting.size())
         {
             const float last_group_w = ImGui::GetItemRectSize().x;
-            curr_y += last_group_w;
+            curr_y += last_group_w + style.ItemSpacing.x;
             const float next_col_w = std::max(m_inspecting[i + 1].ideal_size, min_descr_w);
-            if (curr_y + style.ItemSpacing.x * 2 + next_col_w < avail_w)
+            if (curr_y + style.ItemSpacing.x + next_col_w <= avail_w)
                 ImGui::SameLine();
             else
                 curr_y = 0.0f;
@@ -153,22 +162,17 @@ void PanelNodeInspector::show_nodes()
     }
 }
 
-void PanelNodeInspector::show_description(TextWrapperRO& descr_wrapper, float max_w)
+void PanelNodeInspector::show_description(std::string* descr, const ImVec2& descr_sz, float max_w)
 {
-    auto raw = descr_wrapper.get_raw_text();
-    if (raw != nullptr && *raw != 0)
+    if (descr != nullptr && !descr->empty())
     {
         ImGui::PushStyleColor(ImGuiCol_FrameBg, data()->clr_bg);
-       // ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-        ImGui::PushStyleColor(ImGuiCol_Border, data()->clr_descr_frame);
+        ImGui::PushStyleColor(ImGuiCol_Border, 0);
+        ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeDescription));
 
-        ImGuiEx::InputTextMultiline("##NodeDescription", descr_wrapper.get_wrapped_text(),
-            ImVec2(max_w, descr_wrapper.get_wrapped_height()),
-            ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
-        descr_wrapper.re_calc(ImGui::GetItemRectSize());
+        ImGuiEx::InputTextMultilineWithHScroll("##NodeDescr", "##NodeDescrBlock", descr, max_w, std::min(descr_sz.y, 120.0f), descr_sz, ImGuiInputTextFlags_ReadOnly);
 
-        ImGui::PopStyleColor(2);
-       // ImGui::PopStyleVar();
+        ImGui::PopStyleColor(3);
         ImGuiEx::Spacing(3);
     }
 }

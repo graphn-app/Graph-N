@@ -18,7 +18,7 @@ public:
     void init() override;
 
     float calc_node_width();
-    float recalc_node_widths(float avail_width, bool allow_extend, bool allow_compress, bool use_big_pin_icon);
+    float recalc_node_width(float avail_width, bool allow_extend, bool allow_compress, bool use_big_pin_icon);
 
     const std::string& get_name() const;
     void set_name(std::string name);
@@ -49,7 +49,7 @@ public:
     bool m_has_widgets = false;
 
 private:
-    float m_saved_width = 0.0f;
+    float m_saved_width = -1.0f;
     std::string m_name;
 };
 

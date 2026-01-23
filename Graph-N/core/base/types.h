@@ -154,6 +154,7 @@ enum class AppColor
     NodePinText,
     NodeBorder,
     NodeWidgetHiddenSep,
+    NodeDescription,
     StatNorm,
     StatWarn,
     StatCrit,
@@ -232,6 +233,8 @@ struct DbValue final
     DbValue(const std::string& s)
         : sval(s)
     {}
+
+    inline bool empty() const { return 0 == ival && sval.empty(); }
 };
 
 struct DbOption final
