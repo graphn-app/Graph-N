@@ -3,7 +3,7 @@
 #include "core/data/node.h"
 #include "core/data/pin.h"
 #include "core/workflow/node_instance.h"
-#include "core/workflow/Pin_instance.h"
+#include "core/workflow/pin_instance.h"
 #include "core/workflow/workflow.h"
 #include "core/managers/workflows_manager.h"
 #include "ui/graph-n_flow.h"

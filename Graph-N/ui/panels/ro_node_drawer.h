@@ -29,7 +29,7 @@ private:
     void draw_input_pin(data::PinInstance* pin);
     void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width, bool draw_control_after_generate = false);
     void draw_output_pin(data::PinInstance* pin);
-    void draw_Pin_icon(ImU32 color);
+    void draw_pin_icon(ImU32 color);
     void draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width);
@@ -47,7 +47,7 @@ private:
     const ImU32 m_clr_node_header_bg;
     const ImU32 m_clr_node_header_text;
     const ImU32 m_clr_node_body_bg;
-    const ImU32 m_clr_node_Pin_text;
+    const ImU32 m_clr_node_pin_text;
     const ImU32 m_clr_node_border;
 
     data::NodeInstance* m_node = nullptr;

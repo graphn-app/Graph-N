@@ -2,7 +2,7 @@
 #include "ui/workflow/workflow_drawer.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/node_instance.h"
-#include "core/workflow/Pin_instance.h"
+#include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
 #include "core/managers/settings_manager.h"
 #include "core/data/node.h"
@@ -18,7 +18,7 @@ WorkflowDrawer::WorkflowDrawer()
     : m_clr_node_header_bg(g::pOptsManager->color_load(AppColor::NodeHeaderBg))
     , m_clr_node_header_text(g::pOptsManager->color_load(AppColor::NodeHeaderText))
     , m_clr_node_body_bg(g::pOptsManager->color_load(AppColor::NodeBodyBg))
-    , m_clr_node_Pin_text(g::pOptsManager->color_load(AppColor::NodePinText))
+    , m_clr_node_pin_text(g::pOptsManager->color_load(AppColor::NodePinText))
     , m_clr_node_border(g::pOptsManager->color_load(AppColor::NodeBorder))
 {}
 
@@ -100,7 +100,7 @@ void WorkflowDrawer::draw(float /*max_w*/)
 
         // --- PINS - INPUT ---
 
-        ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_Pin_text);
+        ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_pin_text);
         ImGui::BeginGroup();
 
         const auto& input = node_inst->m_input;
@@ -145,7 +145,7 @@ void WorkflowDrawer::draw(float /*max_w*/)
             {
                 ImGuiEx::PushID(pin->get_graph_id());
 
-                const float start_pos = node_inst->get_node_width() - mngr::SettingsManager::wf_get_Pin_indent() - mngr::SettingsManager::wf_get_Pin_width() - pin->get_object()->name_width - ImGui::GetStyle().ItemSpacing.x;
+                const float start_pos = node_inst->get_node_width() - mngr::SettingsManager::wf_get_pin_indent() - mngr::SettingsManager::wf_get_Pin_width() - pin->get_object()->name_width - ImGui::GetStyle().ItemSpacing.x;
                 ImGui::SetCursorPosX(start_pos);
 
                 ed::BeginPin(pin->get_graph_id(), ed::PinKind::Output);
@@ -204,7 +204,7 @@ void WorkflowDrawer::draw(float /*max_w*/)
 
 void WorkflowDrawer::draw_link(const data::Link* link)
 {
-    ed::Link(link->get_graph_id(), link->get_input()->get_graph_id(), link->get_output()->get_graph_id(), link->get_input()->m_state->Pin_color);
+    ed::Link(link->get_graph_id(), link->get_input()->get_graph_id(), link->get_output()->get_graph_id(), link->get_input()->m_state->pin_color);
 }
 
 } // namespace ui

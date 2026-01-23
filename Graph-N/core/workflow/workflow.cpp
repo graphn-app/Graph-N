@@ -1,7 +1,7 @@
 
 #include "core/workflow/workflow.h"
 #include "core/workflow/node_instance.h"
-#include "core/workflow/Pin_instance.h"
+#include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
 #include "core/managers/nodes_manager.h"
 #include "ui/graph-n_flow.h"

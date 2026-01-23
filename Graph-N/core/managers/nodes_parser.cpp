@@ -248,7 +248,7 @@ static bool json_to_bool(nlohmann::json& data)
     return false;
 }
 
-static primitive get_from_Pin_type(const data::Node& node, data::Pin& pin, nlohmann::json& json, const char* attr)
+static primitive get_from_pin_type(const data::Node& node, data::Pin& pin, nlohmann::json& json, const char* attr)
 {
     switch (pin.def_state.type)
     {
@@ -309,7 +309,7 @@ void NodesParser::prepare_parsers_map()
     m_parsers["default"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
     {
-        pin.def = get_from_Pin_type(node, pin, json, "default");
+        pin.def = get_from_pin_type(node, pin, json, "default");
     };
     m_parsers["defaultInput"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
@@ -390,12 +390,12 @@ void NodesParser::prepare_parsers_map()
     m_parsers["min"] =
         [](const data::Node& node, data::Pin& pin, nlohmann::json& json)
     {
-        pin.min = get_from_Pin_type(node, pin, json, "min");
+        pin.min = get_from_pin_type(node, pin, json, "min");
     };
     m_parsers["max"] =
         [](const data::Node& node, data::Pin& pin, nlohmann::json& json)
     {
-        pin.max = get_from_Pin_type(node, pin, json, "max");
+        pin.max = get_from_pin_type(node, pin, json, "max");
     };
     m_parsers["multiline"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
@@ -452,7 +452,7 @@ void NodesParser::prepare_parsers_map()
     m_parsers["step"] =
         [](const data::Node& node, data::Pin& pin, nlohmann::json& json)
     {
-        pin.step = get_from_Pin_type(node, pin, json, "step");
+        pin.step = get_from_pin_type(node, pin, json, "step");
     };
     m_parsers["tooltip"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
@@ -490,22 +490,22 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
     const auto parse_input = [&node, &manager, this](data::Node::Input& input, json& objects, bool is_required, bool is_optional, bool is_hidden)
     {
         auto items = objects.items();
-        for (const auto&[Pin_name, Pin_info] : items)
+        for (const auto&[pin_name, pin_info] : items)
         {
-            auto pin = std::make_unique<data::Pin>(&node, Pin_name);
+            auto pin = std::make_unique<data::Pin>(&node, pin_name);
             input.pins.push_back(pin.get());
 
             pin->input = true;
             pin->required = is_required;
             pin->optional = is_optional;
             pin->hidden = is_hidden;
-            pin->name = Pin_name;
+            pin->name = pin_name;
 
-            //Log("Node: " << node.name << ", Pin: " << Pin_name);
+            //Log("Node: " << node.name << ", Pin: " << pin_name);
 
-            if (Pin_info.is_array())
+            if (pin_info.is_array())
             {
-                auto& arr = Pin_info.get_ref<json::array_t&>();
+                auto& arr = pin_info.get_ref<json::array_t&>();
                 if (arr.size() == 1 && arr[0].is_string())
                 {
                     pin->initialize(arr[0]);
@@ -552,14 +552,14 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
                 }
                 else
                 {
-                    LogUnhandledJson("/input/<>/Pin_info_arr. Unknown arr. Node=" << node.name << ", pin="
+                    LogUnhandledJson("/input/<>/pin_info. Unknown arr. Node=" << node.name << ", pin="
                         << pin->name << ", arr_sz=" << arr.size());
                 }
             }
             else
             {
-                LogUnhandledJson("/input/<>/Pin_info. Not array. Node=" << node.name << ", pin="
-                    << pin->name << ", type=" << Pin_info.type_name());
+                LogUnhandledJson("/input/<>/pin_info. Not array. Node=" << node.name << ", pin="
+                    << pin->name << ", type=" << pin_info.type_name());
             }
 
             pin->finalize();

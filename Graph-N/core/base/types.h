@@ -178,7 +178,7 @@ enum class AppColor
     Pin_boolean,
     Pin_any,
     Pin_combo,
-    Pin_color,
+    pin_color,
     Pin_number,
     Pin_floats,
     Pin_seed,
@@ -327,8 +327,8 @@ constexpr const char* upload_mask       = "/upload/mask";           // post
 
 namespace w
 {
-extern float Pin_l_offset;
-extern float Pin_r_offset;
+extern float pin_l_offset;
+extern float pin_r_offset;
 extern float ico_circle;
 extern float ico_eye;
 extern float ico_max;
@@ -349,7 +349,7 @@ NODE
 |                                     [             node name           ]                           |              |
 |<---------------2------------------->|<--------------3/4-------------->|<-----------2------------->|         ---->| 
 | 19
-|     [       Pin_ico    ]     [in_Pin_name][    center      ][out_Pin_name]     [ Pin_ico    ]     |              |
+|     [       pin_ico    ]     [in_pin_name][    center      ][out_pin_name]     [ pin_ico    ]     |              |
 |<-5->|<------6/13------>|<-7->|<---8/9--->|[<-----10------->|<---11/12--->|<-7->|<---6/13--->|<-5->|         ---->|
 | 20
 |     [    widget_ico    ]     [  widget_name       ][     widget_value    ]                        |              |
@@ -365,9 +365,9 @@ NODE
 ##  | what                   | equal to                                                         | variable                          | when
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 3   | node name              | CalcTextSize(Node::name)                                         | Node::w_name                      | on parse
-5   | pin left offset        | 4.0                                                              | w::Pin_l_offset                   | app start
+5   | pin left offset        | 4.0                                                              | w::pin_l_offset                   | app start
 6   | icon width             | CalcTextSize(ICON_CIRCLE)                                        | w::ico_circle                     | app start
-7   | pin right offset       | 4.0                                                              | w::Pin_r_offset                   | app start
+7   | pin right offset       | 4.0                                                              | w::pin_r_offset                   | app start
 8   | input pin name         | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
 11  | output pin name        | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
 13  | icon width             | CalcTextSize(ICON_EYE)                                           | w::ico_eye                        | app start
@@ -376,8 +376,8 @@ NODE
 19  | vertical spacing       | 4.0                                                              | w::v_spacing                      | app start
 20  | vertical spacing       | (19)*2                                                           |                                   | app start
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
-9   | max input pin name     | max(!wigdet(8))                                                  | Node::w_Pin_in_max                | first instance create
-12  | max output pin name    | max(11)                                                          | Node::w_Pin_out_max               | first instance create
+9   | max input pin name     | max(!wigdet(8))                                                  | Node::w_pin_in_max                | first instance create
+12  | max output pin name    | max(11)                                                          | Node::w_pin_out_max               | first instance create
 15  | max widget name        | max(widget(14) + 2 * ImGui::GetStyle().ItemSpacing.x)            | Node::w_widget_name_max           | first instance create
 17  | max widget value       | max(16)                                                          | Node::w_widget_value_max          | first instance create
 21  | node ideal fit         | = (1 ideal)                                                      | Node::w_fit                       | first instance create

@@ -44,8 +44,8 @@ struct Node : public base::HashID
 
   //  bool w_ready = false;
     float w_name = 0.0f;
-    float w_Pin_in_max = 0.0f;
-    float w_Pin_out_max = 0.0f;
+    float w_pin_in_max = 0.0f;
+    float w_pin_out_max = 0.0f;
     float w_widget_name_max = 0.0f;
     float w_widget_value_max = 0.0f;
     float w_fit = 0.0f;
