@@ -18,8 +18,6 @@ inline constexpr auto gdb_val_opt = "option";
 inline constexpr auto gdb_val_json = "json";
 inline constexpr auto gdb_val_uuid = "uuid";
 inline constexpr auto gdb_val_nodes = "nodes";
-inline constexpr auto gdb_val_created_at = "created_at";
-inline constexpr auto gdb_val_updated_at = "updated_at";
 inline constexpr auto gdb_val_labels = "labels";
 inline constexpr auto gdb_val_history_steps = "history_steps";
 inline constexpr auto gdb_val_history_pos = "history_pos";
@@ -29,7 +27,8 @@ inline constexpr auto gdb_val_keep = "keep";
 inline constexpr auto gdb_tbl_err = "ERRORS";
 inline constexpr auto gdb_tbl_opt = "SETTINGS";
 inline constexpr auto gdb_tbl_nodes = "NODES";
-inline constexpr auto gdb_tbl_wf = "WORKFLOWS";
+inline constexpr auto gdb_tbl_wf_meta = "WORKFLOW_META";
+inline constexpr auto gdb_tbl_wf_json = "WORKFLOW_JSON";
 
 /*
 _______________________________________________________________________________________________________________________________________________________________
@@ -60,13 +59,22 @@ ________________________________________________________________________________
 
 
 _______________________________________________________________________________________________________________________________________________________________________
-WORKFLOWS:    | id        | uuid          | name            | json        | labels     | deleted | keep             | history_steps  | history_pos        | created_at    | updated_at
-______________|--------------------------------------------------------------------------------------------------------------------------------------------------------
-              | int       | str           | str             | str         | str        | int     | int              | int            | int                | datetime      | datetime
+WORKFLOW_META: | id        | uuid          | name            | labels     | deleted | keep             | history_steps  | history_pos        | at
+_______________|--------------------------------------------------------------------------------------------------------------------------------------------------------
+               | int       | str           | str             | str        | int     | int              | int            | int                | datetime
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-              | prim      | WF id as uuid | name (caption)  | json-view   | wf labels  | flag    | force not delete | history length | curr history pos   | created       | last save
-                                                                                                 | usually if       |
-                                                                                                 | history is empty |
+               | prim      | WF id as uuid | name (caption)  | wf labels  | flag    | force not delete | history length | curr history pos   | create/update time
+                                                                                    | usually if       |
+                                                                                    | history is empty |
+_______________________________________________________________________________________________________________________________________________________________________
+
+
+_________________________________________________________________________________________________________________________________________________________
+WORKFLOW_JSON: | id        | uuid          | json            | at
+_______________|--------------------------------------------------------------------------------------------------------------------------------------------------------
+               | int       | str           | str             | datetime
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+               | prim      | WF id as uuid | workflow json   | create/update time
 _______________________________________________________________________________________________________________________________________________________________________
 */
 
@@ -171,17 +179,26 @@ bool DbManager::init()
 						{} TEXT NOT NULL UNIQUE,
 						{} TEXT,
                         {} TEXT,
-                        {} TEXT,
 						{} INTEGER,
 						{} INTEGER,
 						{} INTEGER,
 						{} INTEGER,
-                        {} DATETIME DEFAULT CURRENT_TIMESTAMP,
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
-				)", gdb_tbl_wf, gdb_val_id,
-                    gdb_val_uuid, gdb_val_name, gdb_val_json, gdb_val_labels, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep,
-                    gdb_val_created_at, gdb_val_updated_at));
+				)", gdb_tbl_wf_meta, gdb_val_id,
+                    gdb_val_uuid, gdb_val_name, gdb_val_labels, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep,
+                    gdb_val_when));
+
+        m_db->exec(fmt::format(R"(
+					CREATE TABLE IF NOT EXISTS {} (
+						{} INTEGER PRIMARY KEY AUTOINCREMENT,
+						{} TEXT NOT NULL UNIQUE,
+						{} TEXT,
+                        {} DATETIME DEFAULT CURRENT_TIMESTAMP
+					);
+				)", gdb_tbl_wf_json, gdb_val_id,
+                    gdb_val_uuid, gdb_val_json,
+                    gdb_val_when));
 
         //m_db->exec(make_trigger(gdb_tbl_wf, gdb_val_updated_at));
 
@@ -379,13 +396,12 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
     {
         SQLite::Statement query(*m_db,
             fmt::format(FMT_COMPILE(R"(
-                    SELECT {}, {}, {}, {}, {}, {}, {}, {}, {}
+                    SELECT {}, {}, {}, {}, {}, {}, {}, {}
                     FROM {}
                     WHERE {} = 0 AND ({} > 0 OR {} = 0 AND {} = 1)
                 )"),
-                gdb_val_uuid, gdb_val_name, gdb_val_labels, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep,
-                gdb_val_created_at, gdb_val_updated_at,
-                gdb_tbl_wf,
+                gdb_val_uuid, gdb_val_name, gdb_val_labels, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep, gdb_val_when,
+                gdb_tbl_wf_meta,
                 gdb_val_deleted, gdb_val_history_steps, gdb_val_history_steps, gdb_val_keep));
 
         while(query.executeStep())
@@ -439,7 +455,7 @@ void DbManager::wf_load_json(WfData& wf)
                     WHERE {} = ?
                 )"),
                 gdb_val_json,
-                gdb_tbl_wf,
+                gdb_tbl_wf_json,
                 gdb_val_uuid));
 
         query.bindNoCopy(1, wf.uuid);
@@ -529,16 +545,12 @@ void DbManager::write_data(SQLite::Database& db, const DbOption* data)
     {
         SQLite::Statement query(db,
             fmt::format(FMT_COMPILE(R"(
-                        INSERT INTO {}
+                        REPLACE INTO {}
                                 ({}, {}, {})
                         VALUES  (?,  ?,  ?)
-                        ON CONFLICT({}) DO UPDATE SET
-                            {} = datetime('now')
                 )"),
                 gdb_tbl_opt,
-                gdb_val_name, gdb_val_int, gdb_val_str,
-                gdb_val_name,
-                gdb_val_when));
+                gdb_val_name, gdb_val_int, gdb_val_str));
 
         query.bindNoCopy(1, data->name);
         query.bind(2, data->val.ival);
@@ -558,16 +570,12 @@ void DbManager::write_data(SQLite::Database& db, const NodeData* data)
     {
         SQLite::Statement query(db,
             fmt::format(FMT_COMPILE(R"(
-                        INSERT INTO {}
+                        REPLACE INTO {}
                                 ({}, {}, {}, {})
                         VALUES  (?,  ?,  ?,  ?)
-                        ON CONFLICT({}) DO UPDATE SET
-                            {} = datetime('now')
                 )"),
                 gdb_tbl_nodes,
-                gdb_val_hash, gdb_val_opt, gdb_val_int, gdb_val_str,
-                gdb_val_hash,
-                gdb_val_when));
+                gdb_val_hash, gdb_val_opt, gdb_val_int, gdb_val_str));
 
         query.bind(1, std::to_string(data->node_hash));
         query.bind(2, cast::to_i32(data->opt));
@@ -582,24 +590,41 @@ void DbManager::write_data(SQLite::Database& db, const NodeData* data)
     }
 }
 
+void DbManager::delete_data(SQLite::Database& db, const NodeData* data)
+{
+    try
+    {
+        SQLite::Statement query(db,
+            fmt::format(FMT_COMPILE(R"(
+                        DELETE FROM {}
+                            WHERE {} = ? AND {} = ?
+                )"),
+                gdb_tbl_nodes,
+                gdb_val_hash, gdb_val_opt));
+
+        query.bind(1, std::to_string(data->node_hash));
+        query.bind(2, cast::to_i32(data->opt));
+        query.exec();
+        Log("Del " << LOG_NOPT_KEY(data->node_hash, data->opt));
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_NOPT_KEY_VAL(data->node_hash, data->opt, data->value) << ", " << LOG_EXP(ex));
+    }
+}
+
 void DbManager::write_wf_meta(SQLite::Database& db, const WfData* data)
 {
     try
     {
         SQLite::Statement query(db,
             fmt::format(FMT_COMPILE(R"(
-                        INSERT INTO {}
+                        REPLACE INTO {}
                                ({}, {}, {}, {}, {}, {}, {})
                         VALUES (?,  ?,  ?,  ?,  ?,  ?,  ?)
-                        ON CONFLICT({}) DO UPDATE SET
-                            {} = excluded.{},
-                            {} = datetime('now')
                 )"),
-                gdb_tbl_wf,
-                gdb_val_uuid, gdb_val_name, gdb_val_labels, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep,
-                gdb_val_uuid,
-                gdb_val_json, gdb_val_json,
-                gdb_val_updated_at
+                gdb_tbl_wf_meta,
+                gdb_val_uuid, gdb_val_name, gdb_val_labels, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep
             ));
 
         query.bindNoCopy(1, data->uuid);
@@ -610,7 +635,7 @@ void DbManager::write_wf_meta(SQLite::Database& db, const WfData* data)
         query.bind(6, data->deleted);
         query.bind(7, data->keep);
         query.exec();
-        Log("Workflow upd: " << data->name << "###" << data->uuid << ", lb=" << data->labels_raw << ", hs=" << data->history_steps << ", hp=" << data->history_pos << ", d=" << data->deleted);
+        Log("Workflow meta upd: " << data->name << "###" << data->uuid << ", lb=" << data->labels_raw << ", hs=" << data->history_steps << ", hp=" << data->history_pos << ", d=" << data->deleted);
     }
     catch (const SQLite::Exception& ex)
     {
@@ -624,27 +649,41 @@ void DbManager::write_wf_json(SQLite::Database& db, const WfData* data)
     {
         SQLite::Statement query(db,
             fmt::format(FMT_COMPILE(R"(
-                    INSERT OR REPLACE INTO {}
-                               ({}, {})
-                        VALUES (?,  ?)
-                        ON CONFLICT({}) DO UPDATE SET
-                            {} = excluded.{}, {} = excluded.{}, {} = excluded.{}, {} = excluded.{}, {} = excluded.{}, {} = excluded.{},
-                            {} = datetime('now')
+                    REPLACE INTO {}
+                               ({})
+                        VALUES (?)
                 )"),
-                gdb_tbl_wf,
-                gdb_val_uuid, gdb_val_json,
-                gdb_val_uuid,
-                gdb_val_name, gdb_val_name, gdb_val_labels, gdb_val_labels,
-                    gdb_val_history_steps, gdb_val_history_steps,
-                    gdb_val_history_pos, gdb_val_history_pos,
-                    gdb_val_deleted, gdb_val_deleted, gdb_val_keep, gdb_val_keep,
-                gdb_val_updated_at
+                gdb_tbl_wf_json,
+                gdb_val_json
             ));
 
         query.bindNoCopy(1, data->uuid);
         query.bindNoCopy(2, data->json);
         query.exec();
-        Log("Workflow upd: " << data->name << "###" << data->uuid << ", j=" << data->json.size());
+        Log("Workflow json upd: " << data->name << "###" << data->uuid << ", j=" << data->json.size());
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::SQLite, "SQLite upd json workflow " << data->name << "###" << data->uuid << ", " << LOG_EXP(ex));
+    }
+}
+
+void DbManager::delete_wf_json(SQLite::Database& db, const WfData* data)
+{
+    try
+    {
+        SQLite::Statement query(db,
+            fmt::format(FMT_COMPILE(R"(
+                    DELETE FROM {}
+                        WHERE {} = ?
+                )"),
+                gdb_tbl_wf_json,
+                gdb_val_uuid
+            ));
+
+        query.bindNoCopy(1, data->uuid);
+        query.exec();
+        Log("Workflow json del: " << data->name << "###" << data->uuid << ", j=" << data->json.size());
     }
     catch (const SQLite::Exception& ex)
     {
@@ -656,17 +695,33 @@ void DbManager::purge_wf(SQLite::Database& db)
 {
     try
     {
-        SQLite::Statement query(db,
+        SQLite::Statement query1(db,
+            fmt::format(FMT_COMPILE(R"(
+                    DELETE FROM {}
+                    WHERE {} IN (
+                        SELECT {} FROM {}
+                        WHERE {} = 1 OR {} = 0 AND {} = 0
+                    )
+                )"),
+                gdb_tbl_wf_json,
+                gdb_val_uuid,
+                gdb_val_uuid,
+                gdb_tbl_wf_meta,
+                gdb_val_deleted, gdb_val_history_steps, gdb_val_keep));
+
+        const auto num1 = query1.exec();
+
+        SQLite::Statement query2(db,
             fmt::format(FMT_COMPILE(R"(
                     DELETE FROM {}
                         WHERE {} = 1 OR {} = 0 AND {} = 0
                 )"),
-                gdb_tbl_wf,
+                gdb_tbl_wf_meta,
                 gdb_val_deleted, gdb_val_history_steps, gdb_val_keep));
 
-        const auto num = query.exec();
+        const auto num2 = query2.exec();
 
-        Log("Purged " << num << " workflows");
+        Log("Purged WFs: " << num1 << " jsons and " << num2 << " metas");
     }
     catch (const SQLite::Exception& ex)
     {
@@ -714,13 +769,25 @@ void DbManager::write_thread(std::filesystem::path db_path)
                     write_data(db, std::get_if<DbOption>(&data.data));
                     break;
                 case WriteType::Node:
-                    write_data(db, std::get_if<NodeData>(&data.data));
+                    {
+                        auto node_data = std::get_if<NodeData>(&data.data);
+                        if (node_data->value.empty())
+                            delete_data(db, node_data);
+                        else
+                            write_data(db, node_data);                    
+                    }
                     break;
                 case WriteType::WfMeta:
                     write_wf_meta(db, std::get_if<WfData>(&data.data));
                     break;
                 case WriteType::WfJson:
-                    write_wf_json(db, std::get_if<WfData>(&data.data));
+                    {
+                        auto wf_data = std::get_if<WfData>(&data.data);
+                        if (wf_data->json.empty())
+                            delete_wf_json(db, wf_data);
+                        else
+                            write_wf_json(db, wf_data);
+                    }
                     break;
                 case WriteType::WfPurge:
                     purge_wf(db);

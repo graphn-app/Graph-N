@@ -61,8 +61,10 @@ private:
     void write_data(SQLite::Database& db, const ExcepData* data);
     void write_data(SQLite::Database& db, const DbOption* data);
     void write_data(SQLite::Database& db, const NodeData* data);
+    void delete_data(SQLite::Database& db, const NodeData* data);
     void write_wf_meta(SQLite::Database& db, const WfData* data);
     void write_wf_json(SQLite::Database& db, const WfData* data);
+    void delete_wf_json(SQLite::Database& db, const WfData* data);
     void purge_wf(SQLite::Database& db);
 
 private:
