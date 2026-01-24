@@ -4,6 +4,7 @@
 
 namespace data
 {
+struct Node;
 class Workflow;
 }
 
@@ -25,6 +26,8 @@ public:
     void rename_panel(const std::string& new_name);
     inline wid get_workflow() const { return m_wf; }
     inline void set_active(bool active) { m_active = active; }
+
+    void add_node(data::Node* node);
 
 private:
     DlgCode show(bool& focused) override;

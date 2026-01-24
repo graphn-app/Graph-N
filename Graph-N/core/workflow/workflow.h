@@ -28,16 +28,11 @@ public:
     WfData& get_data() { return m_wf_data; }
     const WfData& get_data() const { return m_wf_data; }
 
-    const std::vector<std::unique_ptr<NodeInstance>>& get_nodes() const { return m_nodes; }
-    const std::vector<std::unique_ptr<PinInstance>>& get_pins() const { return m_pins; }
-    const std::vector<std::unique_ptr<Link>>& get_links() const { return m_links; }
-
     NodeInstance* add_node(Node* node);
     PinInstance* add_pin(Pin* pin);
     Link* add_link();
 
     void remove_node(const NodeInstance* node);
-    void remove_pin(const PinInstance* pin);
     void remove_link(const Link* link);
 
     void mark_invalid(hid id);
@@ -45,10 +40,11 @@ public:
     // ComfyUiObjectValidityListener
     void finalize_resolve_comfyui_objects() override;
 
+private:
     static uint32_t get_wf_id_by_child_gid(gid child_id);       // returns WF' crc32
     static uint32_t get_child_id_by_child_gid(gid child_id);    // returns item's json id
 
-private:
+    void remove_pin(const PinInstance* pin);
     std::pair<gid, iid> get_new_child_id();
 
 private:

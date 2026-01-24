@@ -427,8 +427,10 @@ void PanelNodes::on_post_tt(int32_t /*idx*/)
     ImGui::PopStyleColor(2);
 }
 
-void PanelNodes::add_node_to_wf(data::Nodes* /*holder*/)
-{}
+void PanelNodes::add_node_to_wf(data::Nodes* holder)
+{
+    g::pFlow->wf_add_node_to_active_panel(holder->node);
+}
 
 void PanelNodes::on_expand_all(PanelToolbar::Button& /*button*/)
 {

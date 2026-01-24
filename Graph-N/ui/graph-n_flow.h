@@ -99,6 +99,8 @@ public:
     void wf_remove_label(wid id, const std::string& label);
     void wf_add_label(const std::string& label);
     void wf_remove_label(const std::string& label);
+
+    void wf_add_node_to_active_panel(data::Node* node);
     // WF public
 
 private:

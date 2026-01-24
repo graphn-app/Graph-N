@@ -1,6 +1,8 @@
 
 #include "ui/panels/panel_wf.h"
 #include "ui/graph-n_flow.h"
+#include "core/managers/workflows_manager.h"
+#include "core/workflow/workflow.h"
 
 namespace ui
 {
@@ -57,6 +59,12 @@ DlgCode PanelWorkflow::show(bool& focused)
     }
 
     return end_panel(opened);
+}
+
+void PanelWorkflow::add_node(data::Node* node)
+{
+    auto wf = g::pWfsManager->access(m_wf);
+    wf->add_node(node);
 }
 
 } // namespace ui
