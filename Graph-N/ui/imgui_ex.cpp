@@ -228,6 +228,81 @@ bool InputTextMultilineWithHint(const char* label, const char* hint, std::string
     return ImGui::InputTextEx(label, hint, (char*)str->c_str(), cast::to_i32(str->capacity() + 1), size, flags, InputTextCallback, &cb_user_data);
 }
 
+ImVec2 CalcTextSizeForMultilineWithHScroll(const std::string& text)
+{
+    ImVec2 size = ImGui::CalcTextSize(text.c_str(), text.c_str() + text.size());
+    auto& style = ImGui::GetStyle();
+    size.x += style.FramePadding.x * 2.0f;
+    size.y += style.FramePadding.y * 2.0f + style.ScrollbarSize + ImGui::GetTextLineHeight();
+    return size;
+}
+
+std::pair<bool, bool> InputTextMultilineWithHScroll(
+    const char* text_label, const char* parent_block_label,
+    std::string* str,
+    float max_widget_w, float max_widget_h,
+    const ImVec2& text_sz,
+    ImGuiInputTextFlags flags /*= 0*/)
+{
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    float child_h = max_widget_h;
+    if (text_sz.x > max_widget_w)
+        child_h += style.ScrollbarSize;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+
+    bool edited = false, deactivated = false;
+    if (ImGui::BeginChild(parent_block_label, ImVec2(max_widget_w, child_h), true, ImGuiWindowFlags_HorizontalScrollbar))
+    {
+        const float inner_w = std::max(text_sz.x, ImGui::GetContentRegionAvail().x);
+        const float inner_h = std::max(text_sz.y, child_h); 
+
+        edited = ImGuiEx::InputTextMultiline(text_label, str, 
+            ImVec2(inner_w, inner_h), 
+            flags | ImGuiInputTextFlags_NoHorizontalScroll);
+
+        deactivated = ImGui::IsItemDeactivatedAfterEdit();
+    }
+
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+    return std::make_pair(edited, deactivated);
+}
+
+std::pair<bool, bool> InputTextMultilineWithHintWithHScroll(
+    const char* text_label, const char* parent_block_label,
+    const char* hint, std::string* str,
+    float max_widget_w, float max_widget_h,
+    const ImVec2& text_sz,
+    ImGuiInputTextFlags flags /*= 0*/)
+{
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    float child_h = max_widget_h;
+    if (text_sz.x > max_widget_w)
+        child_h += style.ScrollbarSize;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+
+    bool edited = false, deactivated = false;
+    if (ImGui::BeginChild(parent_block_label, ImVec2(max_widget_w, child_h), true, ImGuiWindowFlags_HorizontalScrollbar))
+    {
+        const float inner_w = std::max(text_sz.x, ImGui::GetContentRegionAvail().x);
+        const float inner_h = std::max(text_sz.y, child_h); 
+
+        edited = ImGuiEx::InputTextMultilineWithHint(text_label, hint, str, 
+            ImVec2(inner_w, inner_h), 
+            flags | ImGuiInputTextFlags_NoHorizontalScroll);
+
+        deactivated = ImGui::IsItemDeactivatedAfterEdit();
+    }
+
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+    return std::make_pair(edited, deactivated);
+}
+
 void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button)
 {
     ImGuiContext& g = *ImGui::GetCurrentContext();

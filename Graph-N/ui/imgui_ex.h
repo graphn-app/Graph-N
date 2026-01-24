@@ -32,6 +32,23 @@ bool InputTextWithHint(const char* label, const char* hint, std::string* str, Im
 bool InputTextMultiline(const char* label, std::string* str, const ImVec2& size = ImVec2(0, 0), ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
 bool InputTextMultilineWithHint(const char* label, const char* hint, std::string* str, const ImVec2& size = ImVec2(0, 0), ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);
 
+ImVec2 CalcTextSizeForMultilineWithHScroll(const std::string& text);
+
+// return pair.first: text edited
+// return pair.second: text edition finished (edit controls deactivated)
+std::pair<bool, bool> InputTextMultilineWithHScroll(
+    const char* text_label, const char* parent_block_label,
+    std::string* str,
+    float max_widget_w, float max_widget_h,
+    const ImVec2& text_sz,
+    ImGuiInputTextFlags flags = 0);
+std::pair<bool, bool> InputTextMultilineWithHintWithHScroll(
+    const char* text_label, const char* parent_block_label,
+    const char* hint, std::string* str,
+    float max_widget_w, float max_widget_h,
+    const ImVec2& text_sz,
+    ImGuiInputTextFlags flags = 0);
+
 void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button);
 
 bool InputIntSmart(const char* label_id, int64_t* value, int64_t step, int64_t min, int64_t max, const std::string& format_named, const std::string& format_unnamed);
