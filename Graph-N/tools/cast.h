@@ -9,36 +9,83 @@ template <typename DEST, typename SOURCE>
 constexpr bool can_fit(SOURCE arg)
 {
     if (skip_check)
-        return true;
-
-    if constexpr (std::is_same_v<DEST, SOURCE>)
     {
         (void)arg;
         return true;
     }
-    
-    else if constexpr (std::is_floating_point_v<SOURCE> && std::is_integral_v<DEST>)
+
+    using S_Type = std::decay_t<SOURCE>;
+    using D_Type = std::decay_t<DEST>;
+
+    if constexpr (std::is_same_v<D_Type, S_Type>)
+    {
+        (void)arg;
+        return true;
+    }
+
+    // double->float
+    else if constexpr (std::is_floating_point_v<S_Type> && std::is_floating_point_v<D_Type>)
+    {
+        if (!std::isfinite(arg)) 
+            return false;
+        if constexpr (sizeof(D_Type) >= sizeof(S_Type))
+            return true;
+        return arg >= std::numeric_limits<D_Type>::lowest() && arg <= std::numeric_limits<D_Type>::max();
+    }
+
+    // Float -> Integer
+    else if constexpr (std::is_floating_point_v<S_Type> && std::is_integral_v<D_Type>)
     {
         if (!std::isfinite(arg))
             return false;
 
-        return arg >= static_cast<SOURCE>(std::numeric_limits<DEST>::lowest()) &&
-            arg < (static_cast<SOURCE>(std::numeric_limits<DEST>::max()) + 1.0);
-    }
-    
-    else if constexpr (std::is_integral_v<SOURCE> && std::is_signed_v<SOURCE> && !std::is_signed_v<DEST>)
-    {
-        return arg >= 0 && static_cast<std::make_unsigned_t<SOURCE>>(arg) <= std::numeric_limits<DEST>::max();
+        if constexpr (std::is_unsigned_v<D_Type>)
+        {
+            if (arg < 0)
+                return false;
+        }
+        else
+        {
+            if (arg < static_cast<S_Type>(std::numeric_limits<D_Type>::lowest()))
+                return false;
+        }
+
+        if (arg > static_cast<S_Type>(std::numeric_limits<D_Type>::max()))
+            return false;
+
+        return true;
     }
 
-    else if constexpr (std::is_integral_v<SOURCE> && !std::is_signed_v<SOURCE> && std::is_signed_v<DEST>)
+    // Integer -> Float
+    else if constexpr (std::is_integral_v<S_Type> && std::is_floating_point_v<D_Type>)
     {
-        return arg <= static_cast<std::make_unsigned_t<DEST>>(std::numeric_limits<DEST>::max());
+        (void)arg;
+        return true; 
     }
 
+    // Integer -> Integer
+    else if constexpr (std::is_integral_v<S_Type> && std::is_integral_v<D_Type>)
+    {
+        // Signed -> Unsigned
+        if constexpr (std::is_signed_v<S_Type> && !std::is_signed_v<D_Type>)
+        {
+            return arg >= 0 && static_cast<std::make_unsigned_t<S_Type>>(arg) <= std::numeric_limits<D_Type>::max();
+        }
+        // Unsigned -> Signed
+        else if constexpr (!std::is_signed_v<S_Type> && std::is_signed_v<D_Type>)
+        {
+            return arg <= static_cast<std::make_unsigned_t<D_Type>>(std::numeric_limits<D_Type>::max());
+        }
+
+        else
+        {
+            return arg >= std::numeric_limits<D_Type>::lowest() && arg <= std::numeric_limits<D_Type>::max();
+        }
+    }
     else
     {
-        return arg >= std::numeric_limits<DEST>::lowest() && arg <= std::numeric_limits<DEST>::max();
+        // eczotic
+        return true;
     }
 }
 
@@ -55,117 +102,67 @@ constexpr DEST to(SOURCE param)
     return static_cast<DEST>(param);
 }
 
-template <typename ENUM>
-constexpr ENUM to_enum(uint64_t value)
+template <typename ENUM, typename T>
+constexpr ENUM to_enum(T value)
 {
-    uint64_t first = static_cast<uint64_t>(ENUM::_first);
-    uint64_t last = static_cast<uint64_t>(ENUM::_last);
-    if (value < first || value > last)
+    static_assert(std::is_enum_v<ENUM>, "Target type must be an enum");
+    using Underlying = std::underlying_type_t<ENUM>;
+
+    if (!can_fit<Underlying>(value))
     {
         DEBUG_CATCH;
-        throw std::runtime_error("Value does not match to enum type");
+        throw std::runtime_error("Value out of bounds for enum underlying type");
     }
+
+    const Underlying val = static_cast<Underlying>(value);
+    if (val < static_cast<Underlying>(ENUM::_first) || val > static_cast<Underlying>(ENUM::_last))
+    {
+        DEBUG_CATCH;
+        throw std::runtime_error("Value is outside explicit ENUM range");
+    }
+
     return static_cast<ENUM>(value);
 }
 
 template <typename T>
 constexpr char to_char(T param)
 {
-	return to<T, char>(param);
+    return to<T, char>(param);
+}
+
+template <typename T>
+constexpr unsigned char to_uchar(T param)
+{
+    if constexpr (std::is_same_v<std::decay_t<T>, char> || std::is_same_v<std::decay_t<T>, signed char>)
+        return static_cast<unsigned char>(param);
+    else
+        return to<T, unsigned char>(param);
 }
 
 template <typename T>
 constexpr wchar_t to_wchar(T param)
 {
-	return to<T, wchar_t>(param);
+    return to<T, wchar_t>(param);
 }
 
-template <typename T>
-constexpr byte to_u8(T param)
-{
-	return to<T, byte>(param);
-}
-
-template <typename T>
-constexpr int16_t to_i16(T param)
-{
-	return to<T, int16_t>(param);
-}
-
-template <typename T>
-constexpr uint16_t to_u16(T param)
-{
-	return to<T, uint16_t>(param);
-}
-
-template <typename T>
-constexpr uint32_t to_u32(T param)
-{
-	return to<T, uint32_t>(param);
-}
-
-template <typename T>
-constexpr int32_t to_i32(T param)
-{
-    if constexpr (std::is_enum_v<T>)
-    {
-        return static_cast<int32_t>(param);
+#define CAST_HELPER(NAME, TYPE) \
+    template <typename T> \
+    constexpr TYPE NAME(T param) { \
+        if constexpr (std::is_enum_v<T>) return static_cast<TYPE>(param); \
+        else return to<T, TYPE>(param); \
     }
-    else
-    {
-        return to<T, int32_t>(param);
-    }
-}
 
-template <typename T>
-constexpr uint64_t to_u64(T param)
-{
-    if constexpr (std::is_enum_v<T>)
-    {
-        return static_cast<uint64_t>(param);
-    }
-    else
-    {
-        return to<T, uint64_t>(param);
-    }
-}
+CAST_HELPER(to_u8,  uint8_t)
+CAST_HELPER(to_i16, int16_t)
+CAST_HELPER(to_u16, uint16_t)
+CAST_HELPER(to_i32, int32_t)
+CAST_HELPER(to_u32, uint32_t)
+CAST_HELPER(to_i64, int64_t)
+CAST_HELPER(to_u64, uint64_t)
+CAST_HELPER(to_szt, size_t)
+CAST_HELPER(to_float, float)
+CAST_HELPER(to_double, double)
 
-template <typename T>
-constexpr int64_t to_i64(T param)
-{
-    if constexpr (std::is_enum_v<T>)
-    {
-        return static_cast<int64_t>(param);
-    }
-    else
-    {
-        return to<T, int64_t>(param);
-    }
-}
+#undef CAST_HELPER
 
-template <typename T>
-constexpr size_t to_szt(T param)
-{
-    if constexpr (std::is_enum_v<T>)
-    {
-        return static_cast<size_t>(param);
-    }
-    else
-    {
-        return to<T, size_t>(param);
-    }
-}
-
-template <typename T>
-constexpr float to_float(T param)
-{
-	return to<T, float>(param);
-}
-
-template <typename T>
-constexpr double to_double(T param)
-{
-	return to<T, double>(param);
-}
-
-};	// namespace cast
+}; // namespace cast

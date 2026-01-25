@@ -317,7 +317,7 @@ void PanelStats::format_bytes(uint64_t bytes)
 {        
     static constexpr std::string_view suffixes[] = { "B", "KB", "MB", "GB", "TB", "PB" };
     size_t suffix_index = 0;
-    double count = cast::to_double(cast::to_i64(bytes));
+    double count = cast::to_double(bytes);
 
     while (count >= 1024.0 && suffix_index < 5)
     {
@@ -559,13 +559,13 @@ void PanelStats::print_bar_stat(const char* stat_name, float val_offset, uint64_
             "Capacity:  {:.2f} GB\n"
             "Available: {:.2f} GB",
             tt,
-            cast::to_double(cast::to_i64(total)) / 1024 / 1024 / 1024,
-            cast::to_double(cast::to_i64(free)) / 1024 / 1024 / 1024
+            cast::to_double(total) / 1024 / 1024 / 1024,
+            cast::to_double(free) / 1024 / 1024 / 1024
         );
 
         bool def;
         ImGui::PushStyleColor(ImGuiCol_PlotHistogram, get_color(free, def, lim_warn, lim_crit, false));
-        const float fraction = cast::to_float(cast::to_double(cast::to_i64(total - free)) / cast::to_double(cast::to_i64(total)));
+        const float fraction = cast::to_float(cast::to_double(total - free) / cast::to_double(total));
         ImGui::ProgressBar(fraction, ImVec2(-FLT_MIN, 0.0f), "");
         ImGui::PopStyleColor();
         ImGuiEx::TooltipOnLastControl(m_buffer.data(), m_buffer.data() + m_buffer.size(), ImGuiHoveredFlags_DelayNormal);
