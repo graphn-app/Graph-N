@@ -1036,13 +1036,26 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 
 void NodesParser::sort_nodes(NodesManager& manager)
 {
-    const auto sort_callback = [](const data::Nodes* lhs, const data::Nodes* rhs)
+    const auto find_first_sortable = [](const char* str)   // ignore non-ascii like smiles and icons
+    {
+        while (*str && cast::to_uchar(*str) > 127)
+            str++;
+        while (*str && ' ' == *str)
+            str++;
+        return str;
+    };
+
+    const auto sort_callback = [&find_first_sortable](const data::Nodes* lhs, const data::Nodes* rhs)
     {
         if (!lhs->is_node && rhs->is_node)
             return true;
         if (lhs->is_node && !rhs->is_node)
             return false;
-        return tools::str::to_lower_ascii(lhs->name_or_category) < tools::str::to_lower_ascii(rhs->name_or_category);
+
+        const char* lhs_sort = find_first_sortable(lhs->name_or_category.c_str());
+        const char* rhs_sort = find_first_sortable(rhs->name_or_category.c_str());
+
+        return tools::str::to_lower_ascii(lhs_sort) < tools::str::to_lower_ascii(rhs_sort);
     };
 
     std::function<void(std::vector<data::Nodes*>& nodes)> sort_tree;
