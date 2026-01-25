@@ -1010,7 +1010,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
     {
         auto branch_ptr = std::make_unique<data::Nodes>();
         auto branch = branch_ptr.get();
-        manager.m_node_holders.emplace(branch_ptr->get_id(), std::move(branch_ptr));
+        manager.m_node_holders.push_back(std::move(branch_ptr));
 
         root->push_back(branch);
         branch->is_node = false;
@@ -1022,7 +1022,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 
     auto branch_ptr = std::make_unique<data::Nodes>();
     auto branch = branch_ptr.get();
-    manager.m_node_holders.emplace(branch_ptr->get_id(), std::move(branch_ptr));
+    manager.m_node_holders.push_back(std::move(branch_ptr));
 
     root->push_back(branch);
     branch->is_node = true;

@@ -83,8 +83,6 @@ private:
 /////   InstanceID      /////////////////////
 /////////////////////////////////////////////
 
-// TODO: needed ?
-
 struct InstanceID
 {
     InstanceID(lid workflow_id);
@@ -101,13 +99,11 @@ protected:
     const std::string& get_id_str() const { return m_id_str; }
     const std::string& get_workflow_id_str() const { return m_workflow_id_str; }
 
-    void set_id(iid id);
-
 private:
     void generate_id();
 
 private:
-    static std::unordered_map<lid, std::set<iid>> m_ids;
+    static std::map<lid, iid> m_ids;
     lid m_workflow_id = 0;
     iid m_id = 0;
     std::string m_id_str;

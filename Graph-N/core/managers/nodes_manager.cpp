@@ -66,17 +66,6 @@ void NodesManager::calc_number_inside(const std::string& filter)
     Log("Filter = (" << filter << "), count=" << count);
 }
 
-data::Nodes* NodesManager::find_holder(lid id) const
-{
-    const auto it = m_node_holders.find(id);
-    if (it == m_node_holders.end())
-    {
-        LogInternalMap("Nodes id=" << id << " not found");
-        return nullptr;
-    }
-    return it->second.get();
-}
-
 data::Node* NodesManager::find_node(hid id) const
 {
     const auto it = m_nodes.find(id);

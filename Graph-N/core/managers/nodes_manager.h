@@ -46,7 +46,6 @@ public:
 
     void calc_number_inside(const std::string& filter);
 
-    data::Nodes* find_holder(lid id) const;			// returns nullptr if not found
     data::Node* find_node(hid id) const;		    // returns nullptr if not found
     data::Pin* find_pin(hid id) const;			    // returns nullptr if not found
 
@@ -56,7 +55,7 @@ private:
 private:
     std::unordered_map<hid, std::unique_ptr<data::Node>> m_nodes;
     std::unordered_map<hid, std::unique_ptr<data::Pin>> m_pins;
-    std::unordered_map<lid, std::unique_ptr<data::Nodes>> m_node_holders;
+    std::list<std::unique_ptr<data::Nodes>> m_node_holders;
 
     std::vector<data::Nodes*> m_nodes_tree;			// tree view
     std::vector<data::Nodes*> m_nodes_plain;		// plain view: sorted by display name

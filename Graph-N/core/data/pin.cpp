@@ -156,7 +156,7 @@ void Pin::finalize()
 
         else if (PinType::COLOR == def_state.type && std::holds_alternative<std::string>(def))
         {
-            const ImU32 clr_im = color_to_val(std::get<std::string>(def), alpha_enabled);
+            const ImU32 clr_im = color_to_val(*std::get_if<std::string>(&def), alpha_enabled);
             def = int64_t(clr_im);
             const ImVec4 clr_vec = ImColor(clr_im);
             def_state.colors[0] = clr_vec.x;
@@ -245,9 +245,9 @@ struct Clamp
 {
     static void clamp(Pin& pin, primitive& p, T min, T max)
     {
-        const auto old_val = std::get<T>(p);
-        const auto new_val = std::clamp(old_val, min, max);
-        if (old_val != new_val)
+        const auto old_val = std::get_if<T>(&p);
+        const auto new_val = std::clamp(*old_val, min, max);
+        if (*old_val != new_val)
         {
             LogWarn("Pin '" << pin.name << ", value clump (" << old_val << ") != (" << new_val << ")");
         }

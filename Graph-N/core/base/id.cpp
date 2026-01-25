@@ -111,7 +111,7 @@ void HashID::set_id(hid id)
 /////   InstanceID      /////////////////////
 /////////////////////////////////////////////
 
-std::unordered_map<lid, std::set<iid>> InstanceID::m_ids;
+std::map<lid, iid> InstanceID::m_ids;
 
 InstanceID::InstanceID(lid workflow_id)
     : m_workflow_id(workflow_id)
@@ -130,23 +130,15 @@ void InstanceID::erase_key(lid workflow_id)
 
 void InstanceID::generate_id()
 {
-    auto& ids = m_ids[m_workflow_id];
-    if (ids.empty())
+    auto last = m_ids[m_workflow_id];
+    if (0 == last)
     {
-        m_ids[m_workflow_id].insert(1);
+        m_ids[m_workflow_id] = 1;
     }
     else
     {
-        auto last = *ids.rbegin();
-        m_ids[m_workflow_id].insert(++last);
+        m_ids[m_workflow_id] = ++last;
     }
-}
-
-void InstanceID::set_id(iid id)
-{
-    m_id = id;
-    m_id_str = std::to_string(m_id);
-    m_ids[m_workflow_id].insert(m_id);
 }
 
 }
