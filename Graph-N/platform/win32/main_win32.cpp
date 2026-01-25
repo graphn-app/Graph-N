@@ -2,10 +2,10 @@
 #ifdef _WIN32
 #include "platform/win32/main_win32.h"
 #include "tools/exception_handler.h"
+#include "ui/helpers/ImFileDialog.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include <d3d11.h>
-#include "ui/ImFileDialog.h"
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

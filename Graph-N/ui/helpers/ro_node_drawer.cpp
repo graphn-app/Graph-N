@@ -1,18 +1,15 @@
 
-#include "ui/workflow/node_drawer.h"
+#include "ui/helpers/ro_node_drawer.h"
 #include "core/managers/settings_manager.h"
 #include "core/data/node.h"
 #include "core/data/pin.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
-#include "imgui_node_editor.h"
 
 namespace ui
 {
 
-namespace ed = ax::NodeEditor;
-
-NodeDrawer::NodeDrawer()
+RoNodeDrawer::RoNodeDrawer()
     : m_clr_node_header_bg(g::pOptsManager->color_load(AppColor::NodeHeaderBg))
     , m_clr_node_header_text(g::pOptsManager->color_load(AppColor::NodeHeaderText))
     , m_clr_node_body_bg(g::pOptsManager->color_load(AppColor::NodeBodyBg))
@@ -22,50 +19,61 @@ NodeDrawer::NodeDrawer()
     LogF;
 }
 
-NodeDrawer::~NodeDrawer()
+RoNodeDrawer::~RoNodeDrawer()
 {
     LogF;
 }
 
-NodeDrawer::NodeDrawer(NodeDrawer&& other)
-    : NodeDrawer()
+RoNodeDrawer::RoNodeDrawer(RoNodeDrawer&& other)
+    : RoNodeDrawer()
 {
     *this = std::move(other);
 }
 
-NodeDrawer& NodeDrawer::operator=(NodeDrawer&& other)
+RoNodeDrawer& RoNodeDrawer::operator=(RoNodeDrawer&& other)
 {
     if (this == &other)
         return *this;
 
+    m_node = other.m_node;
+    m_tt_mode = other.m_tt_mode;
     m_curr_node_left_offset = other.m_curr_node_left_offset;
     return *this;
 }
 
-float NodeDrawer::draw(data::NodeInstance* node, float ideal_fit_w)
+float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_w)
 {
-    const ImVec2 node_size = ed::GetNodeSize(node->get_graph_id());
-    if (node_size.x > 0 && node_size.y > 0)
-        ideal_fit_w = node_size.x - ed::GetStyle().NodePadding.x - ed::GetStyle().NodePadding.z;
+    m_node = node;
+    m_tt_mode = tooltip_mode;
 
-    ideal_fit_w = node->recalc_node_width(ideal_fit_w, true /*allow_extend*/, true /*allow_compress*/, false /*use_big_pin_icon*/);
+    max_w = m_node->recalc_node_width(max_w, false /*allow_extend*/, false /*allow_compress*/, !m_tt_mode /*use_big_pin_icon*/);
     m_curr_node_left_offset = ImGui::GetCursorPosX();
+
+    ImGui::PushID(m_node->get_graph_id_ptr());
 
     // --- NODE FRAME ---
 
-    ImGui::Dummy(ImVec2(node->w_node, w::v_spacing));
+    const auto draw_list = ImGui::GetWindowDrawList();
+    draw_list->ChannelsSplit(2);
+    draw_list->ChannelsSetCurrent(1);
+
+    ImGui::BeginGroup();            // 1 -> node
+    ImGui::Dummy(ImVec2(m_node->w_node, w::v_spacing));
 
     // --- HEADER ---
 
-    draw_node_header(node);
+    ImGui::BeginGroup();            // 2 -> header
+    draw_node_header(m_node);
+    ImGui::EndGroup();              // 2 -> header
 
-    ImGui::Dummy(ImVec2(node->w_node, w::v_spacing));
+    ImGui::Dummy(ImVec2(m_node->w_node, w::v_spacing));
 
     // --- PINS - INPUT ---
 
     ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_pin_text);
+    ImGui::BeginGroup();            // 3 -> in pins
 
-    const auto& input = node->m_input;
+    const auto& input = m_node->m_input;
     for (auto pin : input)
     {
         if (nullptr == pin || !pin->is_valid())
@@ -74,26 +82,25 @@ float NodeDrawer::draw(data::NodeInstance* node, float ideal_fit_w)
         }
         else if (!pin->get_object()->is_widget())
         {
-            ImGui::PushID(pin->get_graph_id_str().c_str());
+            ImGuiEx::PushID(pin->get_graph_id());
             draw_input_pin(pin);
             ImGui::PopID();
         }
     }
+    ImGui::EndGroup();              // 3 -> in pins
 
     // --- SPACER ---
 
-    if (!node->m_output.empty())
-    {
-        ImGui::SameLine(0.0f, 0.0f);
-        if (node->w_center > 0.0f)
-            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset + node->w_pin_in + node->w_center);
-    }
+    ImGui::SameLine(0.0f, 0.0f);
+    if (m_node->w_center > 0.0f)
+        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset + m_node->w_pin_in + m_node->w_center);
 
     // --- PINS - OUTPUT ---
 
+    ImGui::BeginGroup();            // 4 -> out pins
     const auto out_pins_pos = ImGui::GetCursorPosX();
 
-    const auto& output = node->m_output;
+    const auto& output = m_node->m_output;
     for (auto pin : output)
     {
         if (nullptr == pin || !pin->is_valid())
@@ -102,21 +109,24 @@ float NodeDrawer::draw(data::NodeInstance* node, float ideal_fit_w)
         }
         else
         {
-            ImGui::PushID(pin->get_graph_id_str().c_str());
-            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset + node->w_pin_in + node->w_center +
-                node->w_pin_out - pin->get_object()->w_name);
+            ImGuiEx::PushID(pin->get_graph_id());
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset + m_node->w_pin_in + m_node->w_center +
+                m_node->w_pin_out - pin->get_object()->w_name);
             draw_output_pin(pin);
             ImGui::PopID(); // pin id
         }
     }
+    ImGui::EndGroup();              // 4 -> out pins
 
     ImGui::PopStyleColor();
 
-    ImGui::Dummy(ImVec2(node->w_node, w::v_spacing * 2));
+    ImGui::Dummy(ImVec2(m_node->w_node, w::v_spacing * 2));
 
-    if (node->m_has_widgets)
+    if (m_node->m_has_widgets)
     {
         // --- WIDGETS ---
+
+        ImGui::BeginGroup();            // 5 -> widgets
 
         size_t advanced = 0;
         for (auto pin : input)
@@ -126,45 +136,78 @@ float NodeDrawer::draw(data::NodeInstance* node, float ideal_fit_w)
                 advanced++;
             else if (obj->is_widget())
             {
-                ImGui::PushID(pin->get_graph_id_str().c_str());
-                draw_input_widget(pin, node->w_widget_name, node->w_widget_value, false);
+                ImGuiEx::PushID(pin->get_graph_id());
+                draw_input_widget(pin, m_node->w_widget_name, m_node->w_widget_value, false);
 
                 if (obj->control_after_generate)
                 {
-                    draw_input_widget(pin, node->w_widget_name, node->w_widget_value, true);
+                    draw_input_widget(pin, m_node->w_widget_name, m_node->w_widget_value, true);
                 }
                 ImGui::PopID(); // widget id
             }
         }
         if (advanced > 0)
         {
-            draw_widget_separator(w::pin_l_offset + w::ico_max + w::pin_r_offset, node->w_separator);
+            draw_widget_separator(w::pin_l_offset + w::ico_max + w::pin_r_offset, m_node->w_separator);
             for (auto pin : input)
             {
                 auto obj = pin->get_object();
                 if (obj->advanced)
                 {
-                    ImGui::PushID(pin->get_graph_id_str().c_str());
-                    draw_input_widget(pin, node->w_widget_name, node->w_widget_value, false);
-                    ImGui::PopID(); // widget id
+                    ImGuiEx::PushID(pin->get_graph_id());
+                    draw_input_widget(pin, m_node->w_widget_name, m_node->w_widget_value, false);
 
                     if (obj->control_after_generate)
                     {
-                        ImGui::PushID(pin->get_graph_id_str().c_str());
-                        draw_input_widget(pin, node->w_widget_name, node->w_widget_value, true);
-                        ImGui::PopID(); // widget id
+                        draw_input_widget(pin, m_node->w_widget_name, m_node->w_widget_value, true);
                     }
+                    ImGui::PopID(); // widget id
                 }
             }
         }
-
-        ImGui::Dummy(ImVec2(node->w_node, 10.0f));
+        ImGui::EndGroup();              // 5 -> widgets
+        ImGui::Dummy(ImVec2(m_node->w_node, 10.0f));
     }
 
-    return ideal_fit_w;
+    // --- FINALIZE ---
+
+    ImGui::EndGroup();              // -> node
+
+    // Channel 0
+    const ImVec2 node_min = ImGui::GetItemRectMin();
+    const ImVec2 node_max = ImGui::GetItemRectMax();
+
+    draw_list->ChannelsSetCurrent(0);
+
+    // Body
+    draw_list->AddRectFilled(node_min, node_max, m_clr_node_body_bg, 12.0f);
+
+    // Header
+    const float header_h = ImGui::GetTextLineHeight() + 8.0f + (w::v_spacing / 2.0f);
+    draw_list->AddRectFilled(
+        node_min,
+        ImVec2(node_max.x, node_min.y + header_h),
+        m_clr_node_header_bg,
+        12.0f,
+        ImDrawFlags_RoundCornersTop
+    );
+
+    // Border
+    draw_list->AddRect(node_min, node_max, m_clr_node_border, 12.0f);
+    draw_list->AddLine(
+        ImVec2(node_min.x, node_min.y + header_h),
+        ImVec2(node_max.x, node_min.y + header_h),
+        m_clr_node_border
+    );
+
+    draw_list->ChannelsMerge();
+    ImGui::NewLine();
+
+    ImGui::PopID(); // m_node id
+    return max_w;
 }
 
-void NodeDrawer::draw_node_header(data::NodeInstance* node)
+void RoNodeDrawer::draw_node_header(data::NodeInstance* node)
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + node->w_node_name_off);
     ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_header_text);
@@ -172,31 +215,35 @@ void NodeDrawer::draw_node_header(data::NodeInstance* node)
     ImGui::PopStyleColor();
 }
 
-void NodeDrawer::draw_input_pin(data::PinInstance* pin)
+void RoNodeDrawer::draw_input_pin(data::PinInstance* pin)
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
-    draw_pin_icon(pin, true);
+    draw_pin_icon(pin->m_state->pin_color);
     ImGui::SameLine(0.0f, w::pin_r_offset);
     ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
 }
 
-void NodeDrawer::draw_output_pin(data::PinInstance* pin)
+void RoNodeDrawer::draw_output_pin(data::PinInstance* pin)
 {
     ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
     ImGui::SameLine(0, w::pin_r_offset);
-    draw_pin_icon(pin, false);
+    draw_pin_icon(pin->m_state->pin_color);
 }
 
-void NodeDrawer::draw_pin_icon(data::PinInstance* pin, bool input)
+void RoNodeDrawer::draw_pin_icon(ImU32 color)
 {
-    ImGui::PushStyleColor(ImGuiCol_Text, pin->m_state->pin_color);
-    ed::BeginPin(pin->get_instance_id(), input ? ed::PinKind::Input : ed::PinKind::Output);
+    ImGui::PushStyleColor(ImGuiCol_Text, color);
     ImGui::TextUnformatted(ICON_LC_CIRCLE_SMALL);
-    ed::EndPin();
     ImGui::PopStyleColor();
+
+    //const auto cursorPos = ImGui::GetCursorScreenPos();
+    //const ImVec2 center = ImVec2(cursorPos.x + mngr::SettingsManager::wf_get_pin_radius(), cursorPos.y + ImGui::GetTextLineHeight() / 2);
+
+    //const auto draw_list = ImGui::GetWindowDrawList();
+    //draw_list->AddCircle(center, mngr::SettingsManager::wf_get_pin_radius(), color, 0, 1.0f);
 }
 
-void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width, bool draw_control_after_generate /*= false*/)
+void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width, bool draw_control_after_generate /*= false*/)
 {
     if (draw_control_after_generate)
     {
@@ -205,14 +252,33 @@ void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_wid
     }
     else
     {
-        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
-        draw_pin_icon(pin, true);
-        ImGui::SameLine(0, w::pin_r_offset);
+        if (m_tt_mode)
+        {
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset);
+        }
+        else
+        {
+            auto obj = pin->get_object();
+
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
+            ImGui::TextUnformatted(obj->advanced ? ICON_LC_EYE_CLOSED : ICON_LC_EYE);
+
+            const ImVec2 size = ImGui::GetItemRectSize();
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
+            if (ImGui::InvisibleButton("##pin", size))
+            {
+                obj->advanced = !obj->advanced;
+                g::pOptsManager->node_advanced_save(obj->get_id(), obj->advanced);
+            }
+            ImGui::SameLine(0, w::pin_r_offset);
+        }
+
         draw_widget(pin, widget_name_width, widget_value_width);
     }
 }
 
-void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void RoNodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     switch (pin->m_state->type)
     {
@@ -246,7 +312,7 @@ void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, fl
     }
 }
 
-void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void RoNodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
     auto& state = pin->m_state;
@@ -281,7 +347,7 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
-void NodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void RoNodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
     auto& state = pin->m_state;
@@ -314,7 +380,7 @@ void NodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_widt
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
-void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void RoNodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
     auto& state = pin->m_state;
@@ -349,11 +415,11 @@ void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_wid
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
-void NodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void RoNodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
     auto& state = pin->m_state;
-    bool* val = data::Pin::get_bool(state->value);
+    bool val = data::Pin::get_bool(state->value);
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -363,20 +429,23 @@ void NodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_widt
 
     switch (g::pOptsManager->wf_widget_input_bools_load())
     {
+        //case WidgetInput::Switcher:
+        //    ImGuiEx::BooleanSwitch("", val ? obj->label_on.c_str() : obj->label_off.c_str(), &val, max_w);
+        //    break;
     case WidgetInput::Toggle:
         ImGui::SetNextItemWidth(widget_value_width);
-        ImGuiEx::BooleanButtons2("", *val ? obj->label_on.c_str() : obj->label_off.c_str(), val);
+        ImGuiEx::BooleanButtons2("", val ? obj->label_on.c_str() : obj->label_off.c_str(), &val);
         break;
     case WidgetInput::Select:
     default:
-        ImGuiEx::BooleanToggleLED(*val ? obj->label_on.c_str() : obj->label_off.c_str(), val, false, false, widget_value_width);
+        ImGuiEx::BooleanToggleLED(val ? obj->label_on.c_str() : obj->label_off.c_str(), &val, false, false, widget_value_width);
         break;
     }
 
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
-void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void RoNodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
 
@@ -394,7 +463,7 @@ void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width
         ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
-void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void RoNodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
 
@@ -412,12 +481,12 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
         ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
-void NodeDrawer::draw_widget_num(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void RoNodeDrawer::draw_widget_num(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     draw_widget_int(pin, widget_name_width, widget_value_width);
 }
 
-void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void RoNodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
 
@@ -433,7 +502,7 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
-void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void RoNodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
     auto& state = pin->m_state;
@@ -457,7 +526,7 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
-void NodeDrawer::draw_widget_control_after_generate(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void RoNodeDrawer::draw_widget_control_after_generate(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
     if (obj->control_after_generate)
@@ -474,13 +543,12 @@ void NodeDrawer::draw_widget_control_after_generate(data::PinInstance* pin, floa
             ImGui::SetNextItemWidth(widget_value_width);
 
             int curr = cast::to_i32(state->control_after_generate_value);
-            if (ImGui::Combo("##CAGCombo", &curr, data::ControlAfterGenerateStr, sizeof(data::ControlAfterGenerateStr) / sizeof(data::ControlAfterGenerateStr[0])))
-                state->control_after_generate_value = cast::to_enum<data::ControlAfterGenerate>(curr);
+            ImGui::Combo("##CAGCombo", &curr, data::ControlAfterGenerateStr, sizeof(data::ControlAfterGenerateStr) / sizeof(data::ControlAfterGenerateStr[0]));
         }
     }
 }
 
-void NodeDrawer::draw_widget_separator(float offset, float width)
+void RoNodeDrawer::draw_widget_separator(float offset, float width)
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + offset);
     ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::NodeWidgetHiddenSep), width, w::hidden_widgets.c_str(), w::hidden_widgets.size(), w::hidden_widgets_len);

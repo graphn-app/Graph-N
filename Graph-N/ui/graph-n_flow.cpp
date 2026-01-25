@@ -11,7 +11,6 @@
 #include "ui/panels/panel_notes.h"
 #include "ui/panels/panel_output.h"
 #include "ui/panels/panel_templates.h"
-#include "ui/workflow/workflow_drawer.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/connect_manager.h"
 #include "core/managers/nodes_manager.h"
@@ -19,7 +18,6 @@
 #include "core/managers/nodes_parser.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/workflows_manager.h"
-#include "core/workflow/workflow.h"
 
 #define TEST
 

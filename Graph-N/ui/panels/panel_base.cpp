@@ -1,6 +1,6 @@
 
 #include "ui/panels/panel_base.h"
-#include "ui/font_guard.h"
+#include "ui/helpers/font_guard.h"
 #include "platform/main.h"
 
 namespace ui

@@ -1,7 +1,7 @@
 
 #include "ui/options/opt_comfyui_dlg.h"
 #include "core/managers/settings_manager.h"
-#include "ui/ImFileDialog.h"
+#include "ui/helpers/ImFileDialog.h"
 #include "ui/graph-n_flow.h"
 
 namespace ui

@@ -1,7 +1,7 @@
 
 #pragma once
 #include "ui/panels/panel_base.h"
-#include "ui/workflow/node_drawer.h"
+#include "ui/helpers/node_drawer.h"
 
 namespace ax::NodeEditor
 {

@@ -1,8 +1,7 @@
 
 #pragma once
 #include "ui/panels/panel_base.h"
-#include "ui/text_wrapper_ro.h"
-#include "ui/panels/ro_node_drawer.h"
+#include "ui/helpers/ro_node_drawer.h"
 #include "core/managers/comfyui_object_validity_listener.h"
 
 namespace data
