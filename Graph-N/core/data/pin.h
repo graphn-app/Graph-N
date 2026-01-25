@@ -93,12 +93,12 @@ public:
 
     bool is_widget() const;
 
-    static inline bool get_is_null(primitive& value) { return std::holds_alternative<std::monostate>(value); }
-    static inline int64_t& get_int(primitive& value) { return std::get<int64_t>(value); }
-    static inline uint64_t& get_uint(primitive& value) { return std::get<uint64_t>(value); }
-    static inline double& get_float(primitive& value) { return std::get<double>(value); }
-    static inline bool& get_bool(primitive& value) { return std::get<bool>(value); }
-    static inline std::string& get_string(primitive& value) { return std::get<std::string>(value); }
+    static inline bool get_is_null(const primitive& value) { return std::holds_alternative<std::monostate>(value); }
+    static inline int64_t* get_int(primitive& value) { return std::get_if<int64_t>(&value); }
+    static inline uint64_t* get_uint(primitive& value) { return std::get_if<uint64_t>(&value); }
+    static inline double* get_float(primitive& value) { return std::get_if<double>(&value); }
+    static inline bool* get_bool(primitive& value) { return std::get_if<bool>(&value); }
+    static inline std::string* get_string(primitive& value) { return std::get_if<std::string>(&value); }
 
     void initialize(const std::string& type_as_string);
     void finalize();

@@ -317,10 +317,10 @@ void RoNodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_wid
     auto obj = pin->get_object();
     auto& state = pin->m_state;
 
-    int64_t val = data::Pin::get_int(state->value);
-    int64_t step = data::Pin::get_int(obj->step);
-    int64_t min = data::Pin::get_int(obj->min);
-    int64_t max = data::Pin::get_int(obj->max);
+    int64_t* val = data::Pin::get_int(state->value);
+    const int64_t* step = data::Pin::get_int(obj->step);
+    const int64_t* min = data::Pin::get_int(obj->min);
+    const int64_t* max = data::Pin::get_int(obj->max);
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -333,14 +333,14 @@ void RoNodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_wid
     switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::Direct:
-        ImGuiEx::InputIntSmart("", &val, step, min, max, obj->precision, obj->precision);
+        ImGuiEx::InputIntSmart("", val, *step, *min, *max, obj->precision, obj->precision);
         break;
     case WidgetInput::Drag:
-        ImGuiEx::DragIntSmart("", &val, min, max, obj->precision.c_str());
+        ImGuiEx::DragIntSmart("", val, *min, *max, obj->precision.c_str());
         break;
     case WidgetInput::Slider:
     default:
-        ImGuiEx::SliderIntSmart("", &val, min, max, obj->precision.c_str());
+        ImGuiEx::SliderIntSmart("", val, *min, *max, obj->precision.c_str());
         break;
     }
 
@@ -352,10 +352,10 @@ void RoNodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_wi
     auto obj = pin->get_object();
     auto& state = pin->m_state;
 
-    uint64_t val = data::Pin::get_uint(state->value);
-    uint64_t step = data::Pin::get_uint(obj->step);
-    uint64_t min = data::Pin::get_uint(obj->min);
-    uint64_t max = data::Pin::get_uint(obj->max);
+    uint64_t* val = data::Pin::get_uint(state->value);
+    const uint64_t* step = data::Pin::get_uint(obj->step);
+    const uint64_t* min = data::Pin::get_uint(obj->min);
+    const uint64_t* max = data::Pin::get_uint(obj->max);
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -368,12 +368,12 @@ void RoNodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_wi
     switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::Direct:
-        ImGuiEx::InputUIntSmart("", &val, step, min, max, obj->precision, obj->precision);
+        ImGuiEx::InputUIntSmart("", val, *step, *min, *max, obj->precision, obj->precision);
         break;
     case WidgetInput::Slider:
     case WidgetInput::Drag:
     default:
-        ImGuiEx::DragUIntSmart("", &val, min, max, obj->precision.c_str());
+        ImGuiEx::DragUIntSmart("", val, *min, *max, obj->precision.c_str());
         break;
     }
 
@@ -385,10 +385,10 @@ void RoNodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_w
     auto obj = pin->get_object();
     auto& state = pin->m_state;
 
-    double val = data::Pin::get_float(state->value);
-    double min = data::Pin::get_float(obj->min);
-    double max = data::Pin::get_float(obj->max);
-    double step = data::Pin::get_float(obj->step);
+    double* val = data::Pin::get_float(state->value);
+    const double* min = data::Pin::get_float(obj->min);
+    const double* max = data::Pin::get_float(obj->max);
+    const double* step = data::Pin::get_float(obj->step);
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -401,14 +401,14 @@ void RoNodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_w
     switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::Direct:
-        ImGuiEx::InputDoubleSmart("", &val, step, min, max, obj->precision, obj->precision);
+        ImGuiEx::InputDoubleSmart("", val, *step, *min, *max, obj->precision, obj->precision);
         break;
     case WidgetInput::Drag:
-        ImGuiEx::DragDoubleSmart("", &val, min, max, obj->precision.c_str());
+        ImGuiEx::DragDoubleSmart("", val, *min, *max, obj->precision.c_str());
         break;
     case WidgetInput::Slider:
     default:
-        ImGuiEx::SliderDoubleSmart("", &val, min, max, obj->precision.c_str());
+        ImGuiEx::SliderDoubleSmart("", val, *min, *max, obj->precision.c_str());
         break;
     }
 
@@ -450,13 +450,13 @@ void RoNodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_wid
     auto obj = pin->get_object();
 
     auto& placeholder = (obj->placeholder.empty() ? obj->name : obj->placeholder);
-    std::string val = data::Pin::get_string(pin->m_state->value);
+    std::string* val = data::Pin::get_string(pin->m_state->value);
 
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
-    ImGuiEx::InputTextWithHint("", placeholder.c_str(), &val, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputTextWithHint("", placeholder.c_str(), val, ImGuiInputTextFlags_ReadOnly);
 
     bool tt_mod = false;
-    if (!val.empty())
+    if (!val->empty())
         tt_mod = ImGuiEx::TooltipOnLastControl(placeholder.c_str(), placeholder.c_str() + placeholder.size(), ImGuiHoveredFlags_DelayNone, true);
 
     if (!tt_mod)
@@ -468,13 +468,13 @@ void RoNodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_
     auto obj = pin->get_object();
 
     auto& placeholder = (obj->placeholder.empty() ? obj->name : obj->placeholder);
-    std::string val = data::Pin::get_string(pin->m_state->value);
+    std::string* val = data::Pin::get_string(pin->m_state->value);
 
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
-    ImGuiEx::InputTextMultilineWithHint("", placeholder.c_str(), &val, ImVec2(0, 0), ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputTextMultilineWithHint("", placeholder.c_str(), val, ImVec2(0, 0), ImGuiInputTextFlags_ReadOnly);
 
     bool tt_mod = false;
-    if (!val.empty())
+    if (!val->empty())
         tt_mod = ImGuiEx::TooltipOnLastControl(placeholder.c_str(), placeholder.c_str() + placeholder.size(), ImGuiHoveredFlags_DelayNone, true);
 
     if (!tt_mod)

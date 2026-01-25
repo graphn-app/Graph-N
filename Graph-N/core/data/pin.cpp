@@ -178,8 +178,8 @@ void Pin::finalize()
 
                 if (std::holds_alternative<std::string>(item))
                 {
-                    std::string& val = get_string(item);
-                    combo_items_ptr[idx] = val.c_str();
+                    std::string* val = get_string(item);
+                    combo_items_ptr[idx] = val->c_str();
                 }
                 else
                 {
@@ -436,15 +436,15 @@ std::string Pin::primitive_to_string(primitive& item)
         return "";
 
     if (std::holds_alternative<int64_t>(item))
-        return std::to_string(get_int(item));
+        return std::to_string(*get_int(item));
 
     if (std::holds_alternative<double>(item))
-        return std::to_string(get_float(item));
+        return std::to_string(*get_float(item));
 
     if (std::holds_alternative<bool>(item))
         return (get_bool(item) ? "true" : "false");
 
-    return get_string(item);
+    return *get_string(item);
 }
 
 int64_t Pin::colors_to_int(const float colors[4])
