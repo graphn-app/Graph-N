@@ -2,6 +2,55 @@
 #pragma once
 #include "ui/panels/panel_base.h"
 #include "ui/helpers/node_drawer.h"
+#include "imgui_node_editor.h"
+
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx11.h"
+#include <d3d11.h>
+
+
+namespace ed = ax::NodeEditor;
+
+struct RealNode {
+    int ID;
+    float X, Y;
+
+    // Node State
+    int Seed = 0;
+    int Steps = 20;
+    float Cfg = 8.0f;
+
+    // Combo selections
+    int SamplerIdx = 0;
+    int SchedulerIdx = 0;
+
+    // Prompts
+    char PositivePrompt[512];
+    char NegativePrompt[512];
+};
+
+struct RealLink {
+    int ID;
+    int StartPinID;
+    int EndPinID;
+};
+
+class ComplexStressTest {
+public:
+    void Initialize();
+    void Render(ed::EditorContext* context, ID3D11ShaderResourceView* texture);
+
+private:
+    std::vector<RealNode> m_Nodes;
+    std::vector<RealLink> m_Links;
+    bool m_FirstFrame = true;
+    int m_ActiveEditNodeID = -1;
+    std::map<int, float> m_NodeHeights;
+
+    // Dummy data for combos
+    const char* m_Samplers[4] = { "euler", "euler_a", "heun", "dpm_2" };
+    const char* m_Schedulers[3] = { "normal", "karras", "exponential" };
+};
 
 namespace ax::NodeEditor
 {
@@ -48,7 +97,10 @@ private:
     std::vector<data::NodeInstance*> m_nodes;
     NodeDrawer m_drawer;
     ax::NodeEditor::EditorContext* m_context = nullptr;
+
+    ComplexStressTest g_StressTest;
 };
 
 
 } // namespace ui
+

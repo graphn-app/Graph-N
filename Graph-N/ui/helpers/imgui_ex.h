@@ -5,8 +5,6 @@
 namespace ImGuiEx
 {
 
-void PushID(gid id);
-
 bool TooltipOnLastControl(const char* tt, const char* tt_end, ImGuiHoveredFlags_ delay = ImGuiHoveredFlags_DelayShort,
     bool only_if_modifier_pressed = false, ImGuiKey modifier = ImGuiMod_Ctrl);
 

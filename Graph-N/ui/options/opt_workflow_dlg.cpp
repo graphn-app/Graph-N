@@ -119,20 +119,6 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
 
     bool b_val = !!data.wf.b_sample;
 
-/*
-    if (draw_selected(WidgetInput::Switcher == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Switch:"))
-    {
-        data.wf.booleans = WidgetInput::Switcher;
-        g::pOptsManager->wf_set_widget_input_bools(data.wf.booleans);
-    }
-    idx++;
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGuiEx::BooleanSwitch("##WfBool0", b_val ? "Value: on" : "Value: off", &b_val))
-        data.wf.b_sample = b_val;
-*/
-
     if (draw_selected(WidgetInput::Select == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Selectable:"))
     {
         data.wf.booleans = WidgetInput::Select;

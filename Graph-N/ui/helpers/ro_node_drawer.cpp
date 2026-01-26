@@ -49,7 +49,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
     max_w = m_node->recalc_node_width(max_w, false /*allow_extend*/, false /*allow_compress*/, !m_tt_mode /*use_big_pin_icon*/);
     m_curr_node_left_offset = ImGui::GetCursorPosX();
 
-    ImGui::PushID(m_node->get_graph_id_ptr());
+    ImGui::PushID(m_node);
 
     // --- NODE FRAME ---
 
@@ -82,7 +82,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
         }
         else if (!pin->get_object()->is_widget())
         {
-            ImGuiEx::PushID(pin->get_graph_id());
+            ImGui::PushID(pin);
             draw_input_pin(pin);
             ImGui::PopID();
         }
@@ -109,7 +109,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
         }
         else
         {
-            ImGuiEx::PushID(pin->get_graph_id());
+            ImGui::PushID(pin);
             ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset + m_node->w_pin_in + m_node->w_center +
                 m_node->w_pin_out - pin->get_object()->w_name);
             draw_output_pin(pin);
@@ -136,7 +136,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
                 advanced++;
             else if (obj->is_widget())
             {
-                ImGuiEx::PushID(pin->get_graph_id());
+                ImGui::PushID(pin);
                 draw_input_widget(pin, m_node->w_widget_name, m_node->w_widget_value, false);
 
                 if (obj->control_after_generate)
@@ -154,7 +154,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
                 auto obj = pin->get_object();
                 if (obj->advanced)
                 {
-                    ImGuiEx::PushID(pin->get_graph_id());
+                    ImGui::PushID(pin);
                     draw_input_widget(pin, m_node->w_widget_name, m_node->w_widget_value, false);
 
                     if (obj->control_after_generate)
@@ -429,9 +429,6 @@ void RoNodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_wi
 
     switch (g::pOptsManager->wf_widget_input_bools_load())
     {
-        //case WidgetInput::Switcher:
-        //    ImGuiEx::BooleanSwitch("", val ? obj->label_on.c_str() : obj->label_off.c_str(), &val, max_w);
-        //    break;
     case WidgetInput::Toggle:
         ImGui::SetNextItemWidth(widget_value_width);
         ImGuiEx::BooleanButtons2("", val ? obj->label_on.c_str() : obj->label_off.c_str(), &val);

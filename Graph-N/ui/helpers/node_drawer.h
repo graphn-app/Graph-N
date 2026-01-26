@@ -51,6 +51,8 @@ private:
     const ImU32 m_clr_node_border;
 
     float m_curr_node_left_offset = 0.0f;
+    std::set<void*> m_ids_imgui;
+    std::set<void*> m_ids_nodelib;
 };
 
 

@@ -139,7 +139,7 @@ void PanelNodeInspector::show_nodes()
         float col_w = std::max(node.ideal_size, min_descr_w);
         col_w = std::min(col_w, avail_w);
 
-        ImGui::PushID(node_obj->get_id_str().c_str());
+        ImGui::PushID(node_obj);
         ImGui::BeginGroup();
 
         ImGui::Spacing();

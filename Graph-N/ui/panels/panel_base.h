@@ -59,7 +59,8 @@ protected:
         opened = true;
         focused = false;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, data()->clr_bg);
-        const bool expanded = ImGui::Begin(name->c_str(), &opened, save_pos ? ImGuiWindowFlags_None : ImGuiWindowFlags_NoSavedSettings);
+        const bool expanded = ImGui::Begin(name->c_str(), &opened, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
+            (save_pos ? ImGuiWindowFlags_None : ImGuiWindowFlags_NoSavedSettings));
         m_panel_w = ImGui::GetWindowWidth();
 
         if (expanded && m_need_focus)
