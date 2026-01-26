@@ -145,6 +145,12 @@ constexpr wchar_t to_wchar(T param)
     return to<T, wchar_t>(param);
 }
 
+template <typename T>
+constexpr uintptr_t to_ptr(T* param)
+{
+    return uintptr_t(param);
+}
+
 #define CAST_HELPER(NAME, TYPE) \
     template <typename T> \
     constexpr TYPE NAME(T param) { \
