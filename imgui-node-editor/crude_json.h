@@ -1,5 +1,7 @@
 ﻿// Crude implementation of JSON value object and parser.
 //
+// VERSION 0.1
+//
 // LICENSE
 //   This software is dual-licensed to the public domain and under the following
 //   license: you are granted a perpetual, irrevocable license to copy, modify,
@@ -22,6 +24,10 @@
 # ifndef CRUDE_ASSERT
 #     include <cassert>
 #     define CRUDE_ASSERT(expr) assert(expr)
+# endif
+
+# ifndef CRUDE_JSON_IO
+#     define CRUDE_JSON_IO 1
 # endif
 
 namespace crude_json {
@@ -92,6 +98,8 @@ struct value
     void push_back(const value& value);
     void push_back(value&& value);
 
+    size_t erase(const string& key);
+
     bool is_primitive()  const { return is_string() || is_number() || is_boolean() || is_null(); }
     bool is_structured() const { return is_object() || is_array();   }
     bool is_null()       const { return m_Type == type_t::null;      }
@@ -105,6 +113,9 @@ struct value
     template <typename T> const T& get() const;
     template <typename T>       T& get();
 
+    template <typename T> const T* get_ptr() const;
+    template <typename T>       T* get_ptr();
+
     string dump(const int indent = -1, const char indent_char = ' ') const;
 
     void swap(value& other);
@@ -113,6 +124,11 @@ struct value
 
     // Returns discarded value for invalid inputs.
     static value parse(const string& data);
+
+# if CRUDE_JSON_IO
+    static std::pair<value, bool> load(const string& path);
+    bool save(const string& path, const int indent = -1, const char indent_char = ' ') const;
+# endif
 
 private:
     struct parser;
@@ -131,44 +147,44 @@ private:
 # undef CRUDE_MAX4
 # undef CRUDE_MAX3
 # undef CRUDE_MAX2
-    using storage_t = std::aligned_storage<max_size, max_align>::type;
+    struct storage_t { alignas(max_align) unsigned char data[max_size]; };
 
-    static       object*   object_ptr(      storage_t& storage) { return reinterpret_cast<       object*>(&storage); }
-    static const object*   object_ptr(const storage_t& storage) { return reinterpret_cast<const  object*>(&storage); }
-    static       array*     array_ptr(      storage_t& storage) { return reinterpret_cast<        array*>(&storage); }
-    static const array*     array_ptr(const storage_t& storage) { return reinterpret_cast<const   array*>(&storage); }
-    static       string*   string_ptr(      storage_t& storage) { return reinterpret_cast<       string*>(&storage); }
-    static const string*   string_ptr(const storage_t& storage) { return reinterpret_cast<const  string*>(&storage); }
-    static       boolean* boolean_ptr(      storage_t& storage) { return reinterpret_cast<      boolean*>(&storage); }
-    static const boolean* boolean_ptr(const storage_t& storage) { return reinterpret_cast<const boolean*>(&storage); }
-    static       number*   number_ptr(      storage_t& storage) { return reinterpret_cast<       number*>(&storage); }
-    static const number*   number_ptr(const storage_t& storage) { return reinterpret_cast<const  number*>(&storage); }
+    static       object*   object_ptr(      storage_t& storage) { return reinterpret_cast<       object*>(storage.data); }
+    static const object*   object_ptr(const storage_t& storage) { return reinterpret_cast<const  object*>(storage.data); }
+    static       array*     array_ptr(      storage_t& storage) { return reinterpret_cast<        array*>(storage.data); }
+    static const array*     array_ptr(const storage_t& storage) { return reinterpret_cast<const   array*>(storage.data); }
+    static       string*   string_ptr(      storage_t& storage) { return reinterpret_cast<       string*>(storage.data); }
+    static const string*   string_ptr(const storage_t& storage) { return reinterpret_cast<const  string*>(storage.data); }
+    static       boolean* boolean_ptr(      storage_t& storage) { return reinterpret_cast<      boolean*>(storage.data); }
+    static const boolean* boolean_ptr(const storage_t& storage) { return reinterpret_cast<const boolean*>(storage.data); }
+    static       number*   number_ptr(      storage_t& storage) { return reinterpret_cast<       number*>(storage.data); }
+    static const number*   number_ptr(const storage_t& storage) { return reinterpret_cast<const  number*>(storage.data); }
 
     static type_t construct(storage_t& storage, type_t type)
     {
         switch (type)
         {
-            case type_t::object:    new (&storage) object();  break;
-            case type_t::array:     new (&storage) array();   break;
-            case type_t::string:    new (&storage) string();  break;
-            case type_t::boolean:   new (&storage) boolean(); break;
-            case type_t::number:    new (&storage) number();  break;
+            case type_t::object:    new (storage.data) object();  break;
+            case type_t::array:     new (storage.data) array();   break;
+            case type_t::string:    new (storage.data) string();  break;
+            case type_t::boolean:   new (storage.data) boolean(); break;
+            case type_t::number:    new (storage.data) number();  break;
             default: break;
         }
 
         return type;
     }
 
-    static type_t construct(storage_t& storage,       null)           {                                                       return type_t::null;    }
-    static type_t construct(storage_t& storage,       object&& value) { new (&storage)  object(std::forward<object>(value));  return type_t::object;  }
-    static type_t construct(storage_t& storage, const object&  value) { new (&storage)  object(value);                        return type_t::object;  }
-    static type_t construct(storage_t& storage,       array&&  value) { new (&storage)   array(std::forward<array>(value));   return type_t::array;   }
-    static type_t construct(storage_t& storage, const array&   value) { new (&storage)   array(value);                        return type_t::array;   }
-    static type_t construct(storage_t& storage,       string&& value) { new (&storage)  string(std::forward<string>(value));  return type_t::string;  }
-    static type_t construct(storage_t& storage, const string&  value) { new (&storage)  string(value);                        return type_t::string;  }
-    static type_t construct(storage_t& storage, const char*    value) { new (&storage)  string(value);                        return type_t::string;  }
-    static type_t construct(storage_t& storage,       boolean  value) { new (&storage) boolean(value);                        return type_t::boolean; }
-    static type_t construct(storage_t& storage,       number   value) { new (&storage)  number(value);                        return type_t::number;  }
+    static type_t construct(storage_t& storage,       null)           { (void)storage;                                        return type_t::null;    }
+    static type_t construct(storage_t& storage,       object&& value) { new (storage.data)  object(std::forward<object>(value));  return type_t::object;  }
+    static type_t construct(storage_t& storage, const object&  value) { new (storage.data)  object(value);                        return type_t::object;  }
+    static type_t construct(storage_t& storage,       array&&  value) { new (storage.data)   array(std::forward<array>(value));   return type_t::array;   }
+    static type_t construct(storage_t& storage, const array&   value) { new (storage.data)   array(value);                        return type_t::array;   }
+    static type_t construct(storage_t& storage,       string&& value) { new (storage.data)  string(std::forward<string>(value));  return type_t::string;  }
+    static type_t construct(storage_t& storage, const string&  value) { new (storage.data)  string(value);                        return type_t::string;  }
+    static type_t construct(storage_t& storage, const char*    value) { new (storage.data)  string(value);                        return type_t::string;  }
+    static type_t construct(storage_t& storage,       boolean  value) { new (storage.data) boolean(value);                        return type_t::boolean; }
+    static type_t construct(storage_t& storage,       number   value) { new (storage.data)  number(value);                        return type_t::number;  }
 
     static void destruct(storage_t& storage, type_t type)
     {
@@ -217,6 +233,17 @@ template <> inline       string&  value::get<string>()        { CRUDE_ASSERT(m_T
 template <> inline       boolean& value::get<boolean>()       { CRUDE_ASSERT(m_Type == type_t::boolean); return *boolean_ptr(m_Storage); }
 template <> inline       number&  value::get<number>()        { CRUDE_ASSERT(m_Type == type_t::number);  return *number_ptr(m_Storage);  }
 
+template <> inline const object*  value::get_ptr<object>()  const { if (m_Type == type_t::object)  return object_ptr(m_Storage);  else return nullptr; }
+template <> inline const array*   value::get_ptr<array>()   const { if (m_Type == type_t::array)   return array_ptr(m_Storage);   else return nullptr; }
+template <> inline const string*  value::get_ptr<string>()  const { if (m_Type == type_t::string)  return string_ptr(m_Storage);  else return nullptr; }
+template <> inline const boolean* value::get_ptr<boolean>() const { if (m_Type == type_t::boolean) return boolean_ptr(m_Storage); else return nullptr; }
+template <> inline const number*  value::get_ptr<number>()  const { if (m_Type == type_t::number)  return number_ptr(m_Storage);  else return nullptr; }
+
+template <> inline       object*  value::get_ptr<object>()        { if (m_Type == type_t::object)  return object_ptr(m_Storage);  else return nullptr; }
+template <> inline       array*   value::get_ptr<array>()         { if (m_Type == type_t::array)   return array_ptr(m_Storage);   else return nullptr; }
+template <> inline       string*  value::get_ptr<string>()        { if (m_Type == type_t::string)  return string_ptr(m_Storage);  else return nullptr; }
+template <> inline       boolean* value::get_ptr<boolean>()       { if (m_Type == type_t::boolean) return boolean_ptr(m_Storage); else return nullptr; }
+template <> inline       number*  value::get_ptr<number>()        { if (m_Type == type_t::number)  return number_ptr(m_Storage);  else return nullptr; }
 
 } // namespace crude_json
 

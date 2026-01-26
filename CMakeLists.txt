@@ -144,18 +144,19 @@ endif()
 set(NODE_EDITOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor")
 
 set(NODE_EDITOR_SOURCES
-    "${NODE_EDITOR_DIR}/Source/imgui_node_editor.cpp"
-    "${NODE_EDITOR_DIR}/Source/imgui_node_editor_api.cpp"
-    "${NODE_EDITOR_DIR}/Source/crude_json.cpp"
-    "${NODE_EDITOR_DIR}/Source/imgui_canvas.cpp"
-    "${NODE_EDITOR_DIR}/Support/imgui_node_editor.natvis"
+    "${NODE_EDITOR_DIR}/imgui_node_editor.cpp"
+    "${NODE_EDITOR_DIR}/imgui_node_editor_api.cpp"
+    "${NODE_EDITOR_DIR}/crude_json.cpp"
+    "${NODE_EDITOR_DIR}/imgui_canvas.cpp"
+    "${NODE_EDITOR_DIR}/misc/imgui_node_editor.natvis"
+	"${NODE_EDITOR_DIR}/misc/crude_json.natvis"
 )
 
 add_library(NodeEditorLib STATIC ${NODE_EDITOR_SOURCES})
 
 target_include_directories(NodeEditorLib PUBLIC 
-    "${NODE_EDITOR_DIR}/Include" # Public API (imgui_node_editor.h is usually in root or Include)
-    "${IMGUI_DIR}"       		 # Needs access to ImGui headers
+    "${NODE_EDITOR_DIR}"
+    "${IMGUI_DIR}"
 )
 
 target_link_libraries(NodeEditorLib PUBLIC ImGuiLib)
@@ -336,7 +337,7 @@ target_include_directories(UnitTests SYSTEM PRIVATE
     "asio/asio/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/SQLiteCpp/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/sqlite"
-    "${NODE_EDITOR_DIR}/Include"
+    "${NODE_EDITOR_DIR}"
     "${IMGUI_DIR}" 
     "${IMGUI_DIR}/backends"
 )
