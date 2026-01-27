@@ -133,7 +133,7 @@ void Pin::finalize()
             if (seed)
             {
                 control_after_generate = true;
-                def_state.control_after_generate_value = ControlAfterGenerate::Randomize;
+                def_state.control_after_generate_value = ControlAfterGenerate::CAGRandomize;
             }
 
             if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int

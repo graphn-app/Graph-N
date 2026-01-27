@@ -49,14 +49,14 @@ enum class PinType		// primitives and predefined colors only
     _last = _count - 1
 };
 
-enum class ControlAfterGenerate
+enum ControlAfterGenerate
 {
     _none,
 
-    Fixed = _none,
-    Increment,
-    Decrement,
-    Randomize,
+    CAGFixed = _none,
+    CAGIncrement,
+    CAGDecrement,
+    CAGRandomize,
 
     _count,
     _first = _none,
@@ -64,7 +64,7 @@ enum class ControlAfterGenerate
     _zero = _none
 };
 
-inline constexpr const char* ControlAfterGenerateStr[cast::to_u64(ControlAfterGenerate::_count)] =
+inline constexpr const char* ControlAfterGenerateStr[ControlAfterGenerate::_count] =
 {
     "fixed", "increment", "decrement", "randomize"
 };
@@ -79,9 +79,9 @@ struct PinState final
     std::string type_str;       // will change if ANY pin
 
     primitive value;            // current value, if widget
-    int combo_index = 0;        // combo-list current selection
+    int combo_index = 0;     // combo-list current selection
     float colors[4];            // for color widget
-    ControlAfterGenerate control_after_generate_value = ControlAfterGenerate::Randomize; // current seed state
+    int control_after_generate_value = ControlAfterGenerate::CAGRandomize; // current seed state
 };
 
 struct Pin final : public base::HashID

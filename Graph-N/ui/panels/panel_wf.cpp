@@ -5,47 +5,49 @@
 #include "core/workflow/workflow.h"
 #include "core/workflow/node_instance.h"
 #include "imgui_node_editor.h"
-
-#include "imgui_impl_win32.h"
-#include "imgui_impl_dx11.h"
-#include <d3d11.h>
+#include "ui/helpers/imgui_ex_ne.h"
 
 
-
-void ComplexStressTest::Initialize() {
-    m_Nodes.reserve(1000);
-    // Grid layout for 1000 nodes
-    const int cols = 35; 
-    const float spacingX = 450.0f; // Wider nodes for realistic prompts
-    const float spacingY = 600.0f; // Taller nodes
-
-    for (int i = 0; i < 1000; i++) {
-        RealNode node;
-        node.ID = i + 1;
-
-        int col = i % cols;
-        int row = i / cols;
-        node.X = col * spacingX;
-        node.Y = row * spacingY;
-
-        // Fill with dummy text
-        snprintf(node.PositivePrompt, sizeof(node.PositivePrompt), 
-            "masterpiece, best quality, ultra detailed, node_%d, 8k resolution, cinematic lighting", i);
-        snprintf(node.NegativePrompt, sizeof(node.NegativePrompt), 
-            "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped");
-
-        m_Nodes.push_back(node);
-
-        // Simple chaining logic for links
-        if (i > 0) {
-            RealLink link;
-            link.ID = 10000 + i;
-            link.StartPinID = (i - 1) * 10 + 1;
-            link.EndPinID = i * 10 + 2;
-            m_Links.push_back(link);
-        }
-    }
-}
+// TODO: remove
+//
+//#include "imgui_impl_win32.h"
+//#include "imgui_impl_dx11.h"
+//#include <d3d11.h>
+//
+//void ComplexStressTest::Initialize() {
+//    m_Nodes.reserve(1000);
+//    // Grid layout for 1000 nodes
+//    const int cols = 35; 
+//    const float spacingX = 450.0f; // Wider nodes for realistic prompts
+//    const float spacingY = 600.0f; // Taller nodes
+//
+//    for (int i = 0; i < 1000; i++) {
+//        RealNode node;
+//        node.ID = i + 1;
+//
+//        int col = i % cols;
+//        int row = i / cols;
+//        node.X = col * spacingX;
+//        node.Y = row * spacingY;
+//
+//        // Fill with dummy text
+//        snprintf(node.PositivePrompt, sizeof(node.PositivePrompt), 
+//            "masterpiece, best quality, ultra detailed, node_%d, 8k resolution, cinematic lighting", i);
+//        snprintf(node.NegativePrompt, sizeof(node.NegativePrompt), 
+//            "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped");
+//
+//        m_Nodes.push_back(node);
+//
+//        // Simple chaining logic for links
+//        if (i > 0) {
+//            RealLink link;
+//            link.ID = 10000 + i;
+//            link.StartPinID = (i - 1) * 10 + 1;
+//            link.EndPinID = i * 10 + 2;
+//            m_Links.push_back(link);
+//        }
+//    }
+//}
 
 /*
 void ComplexStressTest::Render(ed::EditorContext* context, ID3D11ShaderResourceView* texture) {
@@ -382,7 +384,8 @@ void PanelWorkflow::init()
     config.SettingsFile = nullptr;
     m_context = ed::CreateEditor(&config);
 
-    g_StressTest.Initialize();
+    // TODO: remove
+    //g_StressTest.Initialize();
 }
 
 void PanelWorkflow::restore_pos()
@@ -445,6 +448,21 @@ void PanelWorkflow::draw_wf()
 
     for (auto node : m_nodes)
     {
+        const bool deferred_node_active = ImGuiExNe::GetDeferredID() == node;
+        if (deferred_node_active)
+        {
+            if (!ed::IsNodeSelected(cast::to_ptr(node)))
+                ed::SelectNode(cast::to_ptr(node), true);
+
+ //           const ImVec4 sel_color = ed::GetStyle().Colors[ed::StyleColor_SelNodeBorder];
+ //           ed::PushStyleColor(ed::StyleColor_NodeBorder, sel_color);
+  //          ed::PushStyleVar(ed::StyleVar_NodeBorderWidth, ed::GetStyle().SelectedNodeBorderWidth); 
+        }
+        else if (ImGuiExNe::GetDeferredID() != nullptr)
+        {
+            ed::DeselectNode(cast::to_ptr(node));
+        }
+
         ImGui::PushID(node);
         ed::BeginNode(cast::to_ptr(node));
         m_drawer.draw(node, node->get_object()->w_fit);
@@ -454,6 +472,8 @@ void PanelWorkflow::draw_wf()
 
     ed::End();
     ed::SetCurrentEditor(nullptr);
+
+    m_drawer.draw_deferred();
     ImGui::GetIO().ConfigFlags = old_flags;
 }
 

@@ -1,5 +1,6 @@
 
 #include "ui/helpers/node_drawer.h"
+#include "ui/helpers/imgui_ex_ne.h"
 #include "core/managers/settings_manager.h"
 #include "core/data/node.h"
 #include "core/data/pin.h"
@@ -57,6 +58,8 @@ float NodeDrawer::draw(data::NodeInstance* node, float ideal_fit_w)
     m_ids_nodelib.clear();
     m_ids_imgui.insert(node);
     m_ids_nodelib.insert(node);
+
+    m_active_node = node;
 
     const ImVec2 node_size = ed::GetNodeSize(node->get_graph_id());
     if (node_size.x > 0 && node_size.y > 0)
@@ -179,7 +182,13 @@ float NodeDrawer::draw(data::NodeInstance* node, float ideal_fit_w)
         ImGui::Dummy(ImVec2(node->w_node, 10.0f));
     }
 
+    m_active_node = nullptr;
     return ideal_fit_w;
+}
+
+void NodeDrawer::draw_deferred()
+{
+    ImGuiExNe::RenderDeferredCombo();
 }
 
 void NodeDrawer::draw_node_header(data::NodeInstance* node)
@@ -478,8 +487,8 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
 
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::SetNextItemWidth(widget_value_width);
-    ImGui::Combo("##value", &pin->m_state->combo_index, obj->combo_items_ptr.data(), cast::to_i32(obj->combo_items_ptr.size()));
 
+    ImGuiExNe::Combo(m_active_node, "##value", &pin->m_state->combo_index, obj->combo_items_ptr.data(), cast::to_i32(obj->combo_items_ptr.size()));
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
     ImGui::PopID();
 }
@@ -530,11 +539,7 @@ void NodeDrawer::draw_widget_control_after_generate(data::PinInstance* pin, floa
 
             ImGui::SameLine(0.0f, 0.0f);
             ImGui::SetNextItemWidth(widget_value_width);
-
-            int curr = cast::to_i32(state->control_after_generate_value);
-            if (ImGui::Combo("##CAGComboValue", &curr, data::ControlAfterGenerateStr, sizeof(data::ControlAfterGenerateStr) / sizeof(data::ControlAfterGenerateStr[0])))
-                state->control_after_generate_value = cast::to_enum<data::ControlAfterGenerate>(curr);
-
+            ImGuiExNe::Combo(m_active_node, "##CAGComboValue", &state->control_after_generate_value, data::ControlAfterGenerateStr, sizeof(data::ControlAfterGenerateStr) / sizeof(data::ControlAfterGenerateStr[0]));
             ImGui::PopID();
         }
     }

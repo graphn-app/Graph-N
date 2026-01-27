@@ -23,6 +23,7 @@ public:
     NodeDrawer& operator=(NodeDrawer&&);
 
     float draw(data::NodeInstance* node, float ideal_fit_w);
+    void draw_deferred();
 
 private:
     void draw_node_header(data::NodeInstance* node);
@@ -50,7 +51,10 @@ private:
     const ImU32 m_clr_node_pin_text;
     const ImU32 m_clr_node_border;
 
+    data::NodeInstance* m_active_node = nullptr;
     float m_curr_node_left_offset = 0.0f;
+
+    // TODO: remove
     std::set<void*> m_ids_imgui;
     std::set<void*> m_ids_nodelib;
 };
