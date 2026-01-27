@@ -27,7 +27,7 @@ dt dt::from_current_date()
     return date;
 }
 
-const char* dt::month_name(int length /*= 0*/) const
+const char* dt::month_name(int32_t length /*= 0*/) const
 {
     switch (m_month)
     {

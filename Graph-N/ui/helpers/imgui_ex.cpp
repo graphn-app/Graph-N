@@ -129,7 +129,7 @@ void HelpMarker(const char* tooltip, const char* help_mark, bool same_line /*= t
 
 bool CheckMultiselectControls()
 {
-    const int mouse_button = (ImGuiPopupFlags_MouseButtonRight & ImGuiPopupFlags_MouseButtonMask_);
+    const int32_t mouse_button = (ImGuiPopupFlags_MouseButtonRight & ImGuiPopupFlags_MouseButtonMask_);
     const bool r_click = (ImGui::IsMouseReleased(mouse_button) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup));
     return r_click || ImGui::GetIO().KeyCtrl || ImGui::GetIO().KeyShift;
 }
@@ -154,7 +154,7 @@ struct InputTextCallback_UserData final
     void*                   ChainCallbackUserData;
 };
 
-static int InputTextCallback(ImGuiInputTextCallbackData* data)
+static int32_t InputTextCallback(ImGuiInputTextCallbackData* data)
 {
     InputTextCallback_UserData* user_data = (InputTextCallback_UserData*)data->UserData;
     if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)

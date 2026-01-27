@@ -12,7 +12,7 @@
 
 #include "app_instance.h"
 
-int do_main(std::atomic_bool& request_focus)
+int32_t do_main(std::atomic_bool& request_focus)
 {
     std::unique_ptr<platform::MainRoutine> main_app;
     std::unique_ptr<platform::Textures> textures;
@@ -55,7 +55,7 @@ int do_main(std::atomic_bool& request_focus)
         return res;
     };
 
-    int ret = main_app->run(callback, request_focus);
+    int32_t ret = main_app->run(callback, request_focus);
     if (0 == ret)
         ret = g::pGraphN->override_exit_code();
     Log("App exit code: " << ret);
@@ -68,7 +68,7 @@ int do_main(std::atomic_bool& request_focus)
     return ret;
 }
 
-int main(int, char**)
+int32_t main(int32_t, char**)
 {
     base::GlobalID::client_id();
     tools::dt::save_app_start_time();

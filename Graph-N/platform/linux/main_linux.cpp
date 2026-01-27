@@ -1,4 +1,4 @@
-﻿
+
 #ifdef __linux__
 #include "platform/linux/main_linux.h"
 
@@ -10,7 +10,7 @@ bool MainRoutine_Linux::init()
 #error Not implemented
 }
 
-int MainRoutine_Linux::run(flow_callback& /*callback*/, std::atomic_bool& /*request_focus*/)
+int32_t MainRoutine_Linux::run(flow_callback& /*callback*/, std::atomic_bool& /*request_focus*/)
 {
 #error Not implemented
 }

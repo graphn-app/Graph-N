@@ -21,7 +21,7 @@ public:
     virtual double get_frame_render_time() const = 0;
 
     using flow_callback = std::function<bool(bool DoExit)>;
-    virtual int run(flow_callback& callback, std::atomic_bool& request_focus) = 0;
+    virtual int32_t run(flow_callback& callback, std::atomic_bool& request_focus) = 0;
 
     ImFont* get_regular_font() const { return m_font_regular; }
     ImFont* get_bold_font() const { return m_font_bold; }

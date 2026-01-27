@@ -29,8 +29,10 @@ public:
     const WfData& get_data() const { return m_wf_data; }
 
     NodeInstance* add_node(Node* node);
-    PinInstance* add_pin(Pin* pin);
+    PinInstance* add_pin(NodeInstance* node, Pin* pin);
     Link* add_link();
+
+    inline const std::vector<std::unique_ptr<Link>>& get_links() { return m_links; }
 
     void remove_node(const NodeInstance* node);
     void remove_link(const Link* link);

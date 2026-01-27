@@ -277,7 +277,7 @@ void PanelStats::th_ws()
 struct FrameSmoother final
 {
     double values[60] = {};
-    int offset = 0;
+    int32_t offset = 0;
 
     float update(double new_val)
     {

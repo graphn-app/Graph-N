@@ -17,7 +17,7 @@ public:
     inline bool get_is_first_run() const { return m_first_run; }
 
 
-    void exception_save(ExcepCategory category, std::string&& message, const char* file, int line);
+    void exception_save(ExcepCategory category, std::string&& message, const char* file, int32_t line);
 
     void option_save(const std::string& key, DbValue&& value);
     std::vector<DbOption> option_load_all();
@@ -42,7 +42,7 @@ private:
         ExcepCategory category;
         std::string message;
         std::string file;
-        int line = 0;
+        int32_t line = 0;
     };
     struct NodeData final
     {

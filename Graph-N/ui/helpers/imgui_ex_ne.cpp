@@ -7,7 +7,7 @@ namespace ImGuiExNe
 
 namespace ed = ax::NodeEditor;
 
-void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, int* current_item, const char* const items[], int items_count)
+void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, int32_t* current_item, const char* const items[], int32_t items_count)
 {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -55,7 +55,7 @@ void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, 
             popup_open = ImGui::BeginPopup("##{592DCC05-159B-44BC-B96C-49FE4643D127}");
             if (popup_open)
             {
-                for (int i = 0; i < items_count; i++)
+                for (int32_t i = 0; i < items_count; i++)
                 {
                     const bool is_selected = (*current_item == i);
                     if (ImGui::Selectable(items[i], is_selected))
@@ -84,7 +84,8 @@ void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, 
     ImGui::RenderFrameBorder(bb.Min, bb.Max, style.FrameRounding);
 
     // Render preview and label
-    ImGui::RenderTextClipped(bb.Min + style.FramePadding, ImVec2(value_x2, bb.Max.y), items[*current_item], NULL, NULL);
+    if (items != nullptr)
+        ImGui::RenderTextClipped(bb.Min + style.FramePadding, ImVec2(value_x2, bb.Max.y), items[*current_item], NULL, NULL);
     if (label_size.x > 0)
         ImGui::RenderText(ImVec2(bb.Max.x + style.ItemInnerSpacing.x, bb.Min.y + style.FramePadding.y), label);
 }

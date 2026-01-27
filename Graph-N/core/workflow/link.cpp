@@ -31,7 +31,7 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     const auto p1 = i1->get_object();
     const auto p2 = i2->get_object();
 
-    if (p1->parent_node == p2->parent_node)
+    if (i1 == i2 || i1->get_parent_instance() == i2->get_parent_instance())
         return false;
 
     const auto& s1 = i1->m_state;

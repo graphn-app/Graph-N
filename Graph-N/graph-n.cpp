@@ -20,7 +20,7 @@ mngr::NodesManager* pNodesManager = nullptr;
 mngr::ConnectManager* pConnectManager = nullptr;
 mngr::WfsManager* pWfsManager = nullptr;
 
-void save_exception(ExcepCategory category, std::string message, const char* file, int line)
+void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line)
 {
     if (g::pDbManager != nullptr && category != ExcepCategory::SQLite)
         g::pDbManager->exception_save(category, std::move(message), file, line);
@@ -102,7 +102,7 @@ void GraphN::exit_graphn()
     LogF_Out;
 }
 
-int GraphN::override_exit_code()
+int32_t GraphN::override_exit_code()
 {
     return m_exit_code;
 }

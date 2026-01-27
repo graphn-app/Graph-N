@@ -7,6 +7,11 @@
 namespace data
 {
 
+PinInstance::PinInstance(Workflow* wf, Pin* obj, NodeInstance* parent_instance, iid instance_id, gid graph_id)
+    : Instance<Pin>(wf, obj, instance_id, graph_id)
+    , m_parent_instance(parent_instance)
+{}
+
 PinInstance::~PinInstance() = default;
 
 void PinInstance::init()

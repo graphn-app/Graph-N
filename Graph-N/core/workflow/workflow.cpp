@@ -67,10 +67,10 @@ NodeInstance* Workflow::add_node(data::Node* node)
     return ptr;
 }
 
-PinInstance* Workflow::add_pin(data::Pin* pin)
+PinInstance* Workflow::add_pin(NodeInstance* node, data::Pin* pin)
 {
     const auto id = get_new_child_id();
-    auto instance = std::make_unique<PinInstance>(this, pin, id.second, id.first);
+    auto instance = std::make_unique<PinInstance>(this, pin, node, id.second, id.first);
     auto ptr = instance.get();
     ptr->init();
     m_pins.push_back(std::move(instance));

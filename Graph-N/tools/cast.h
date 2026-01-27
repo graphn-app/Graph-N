@@ -157,6 +157,12 @@ constexpr DEST* ptrs(void* param)
     return static_cast<DEST*>(param);
 }
 
+template <typename DEST>
+constexpr DEST* ptrs(uintptr_t param)
+{
+    return reinterpret_cast<DEST*>(param);
+}
+
 #define CAST_HELPER(NAME, TYPE) \
     template <typename T> \
     constexpr TYPE NAME(T param) { \

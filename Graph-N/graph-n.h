@@ -43,7 +43,7 @@ public:
     void exit_graphn();
 
     bool flow();
-    int override_exit_code();
+    int32_t override_exit_code();
 
     inline void block_db_on_exit() { m_block_db_on_exit = true; }
     inline void unblock_db_on_exit() { m_block_db_on_exit = false; }
@@ -62,7 +62,7 @@ private:
 
 private:
     Flow m_flow_step = Flow::_none;
-    int m_exit_code = 0;
+    int32_t m_exit_code = 0;
 
     std::unique_ptr<ui::GraphN_Flow> m_graphn_flow;
 
@@ -85,5 +85,5 @@ extern mngr::NodesManager* pNodesManager;
 extern mngr::ConnectManager* pConnectManager;
 extern mngr::WfsManager* pWfsManager;
 
-void save_exception(ExcepCategory category, std::string message, const char* file, int line);
+void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line);
 }

@@ -23,7 +23,7 @@ private:
         MainRoutine overrides
     */
     bool init() override;
-    int run(flow_callback& callback, std::atomic_bool& request_focus) override;
+    int32_t run(flow_callback& callback, std::atomic_bool& request_focus) override;
     void free() override;
 
     void wnd_restore() override;

@@ -23,7 +23,8 @@
 
 namespace w
 {
-float pin_l_offset = 0.0f;
+float pin_l_offset_ro = 0.0f;
+float pin_l_offset_rw = 0.0f;
 float pin_r_offset = 0.0f;
 float ico_circle = 0.0f;
 float ico_eye = 0.0f;
@@ -50,7 +51,8 @@ bool GraphN_Flow::init()
 {
     LogF;
 
-    w::pin_l_offset = 4.0f;
+    w::pin_l_offset_ro = 4.0f;
+    w::pin_l_offset_rw = 0.0f;
     w::pin_r_offset = 4.0f;
     w::ico_circle = ImGui::CalcTextSize(ICON_LC_CIRCLE_SMALL).x;
     w::ico_eye = ImGui::CalcTextSize(ICON_LC_EYE).x;

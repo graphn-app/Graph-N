@@ -46,7 +46,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
     m_node = node;
     m_tt_mode = tooltip_mode;
 
-    max_w = m_node->recalc_node_width(max_w, false /*allow_extend*/, false /*allow_compress*/, !m_tt_mode /*use_big_pin_icon*/);
+    max_w = m_node->recalc_node_width(true /*ro*/, max_w, false /*allow_extend*/, false /*allow_compress*/, !m_tt_mode /*use_big_pin_icon*/);
     m_curr_node_left_offset = ImGui::GetCursorPosX();
 
     ImGui::PushID(m_node);
@@ -93,7 +93,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
 
     ImGui::SameLine(0.0f, 0.0f);
     if (m_node->w_center > 0.0f)
-        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset + m_node->w_pin_in + m_node->w_center);
+        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro + w::ico_max + w::pin_r_offset + m_node->w_pin_in + m_node->w_center);
 
     // --- PINS - OUTPUT ---
 
@@ -110,7 +110,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
         else
         {
             ImGui::PushID(pin);
-            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset + m_node->w_pin_in + m_node->w_center +
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro + w::ico_max + w::pin_r_offset + m_node->w_pin_in + m_node->w_center +
                 m_node->w_pin_out - pin->get_object()->w_name);
             draw_output_pin(pin);
             ImGui::PopID(); // pin id
@@ -148,7 +148,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
         }
         if (advanced > 0)
         {
-            draw_widget_separator(w::pin_l_offset + w::ico_max + w::pin_r_offset, m_node->w_separator);
+            draw_widget_separator(w::pin_l_offset_ro + w::ico_max + w::pin_r_offset, m_node->w_separator);
             for (auto pin : input)
             {
                 auto obj = pin->get_object();
@@ -217,7 +217,7 @@ void RoNodeDrawer::draw_node_header(data::NodeInstance* node)
 
 void RoNodeDrawer::draw_input_pin(data::PinInstance* pin)
 {
-    ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
+    ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro);
     draw_pin_icon(pin->m_state->pin_color);
     ImGui::SameLine(0.0f, w::pin_r_offset);
     ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
@@ -247,25 +247,25 @@ void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_w
 {
     if (draw_control_after_generate)
     {
-        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset);
+        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro + w::ico_max + w::pin_r_offset);
         draw_widget_control_after_generate(pin, widget_name_width, widget_value_width);
     }
     else
     {
         if (m_tt_mode)
         {
-            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset);
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro + w::ico_max + w::pin_r_offset);
         }
         else
         {
             auto obj = pin->get_object();
 
-            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro);
             ImGui::TextUnformatted(obj->advanced ? ICON_LC_EYE_CLOSED : ICON_LC_EYE);
 
             const ImVec2 size = ImGui::GetItemRectSize();
             ImGui::SameLine();
-            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro);
             if (ImGui::InvisibleButton("##pin", size))
             {
                 obj->advanced = !obj->advanced;
@@ -539,7 +539,7 @@ void RoNodeDrawer::draw_widget_control_after_generate(data::PinInstance* pin, fl
             ImGui::SameLine(0.0f, 0.0f);
             ImGui::SetNextItemWidth(widget_value_width);
 
-            int curr = cast::to_i32(state->control_after_generate_value);
+            int32_t curr = cast::to_i32(state->control_after_generate_value);
             ImGui::Combo("##CAGCombo", &curr, data::ControlAfterGenerateStr, sizeof(data::ControlAfterGenerateStr) / sizeof(data::ControlAfterGenerateStr[0]));
         }
     }

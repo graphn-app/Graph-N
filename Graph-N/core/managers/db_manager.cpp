@@ -217,7 +217,7 @@ bool DbManager::init()
     return true;
 }
 
-void DbManager::exception_save(ExcepCategory category, std::string&& message, const char* file, int line)
+void DbManager::exception_save(ExcepCategory category, std::string&& message, const char* file, int32_t line)
 {
     WriteData data;
     ExcepData e;

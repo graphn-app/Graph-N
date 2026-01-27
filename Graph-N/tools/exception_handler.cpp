@@ -19,14 +19,14 @@ namespace tools
 class SehException : public std::exception
 {
 private:
-    unsigned int nSE = 0;
+    uint32_t nSE = 0;
 
 public:
     SehException() {}
-    SehException(unsigned int n) : nSE(n) {}
+    SehException(uint32_t n) : nSE(n) {}
 
     // No need for NO_COPY_MOVE usually, exception needs to be copyable mostly
-    unsigned int getSeNumber() const { return nSE; }
+    uint32_t getSeNumber() const { return nSE; }
 
     const char* what() const override { return "SEH Exception (Access Violation, etc.)"; }
 
@@ -52,7 +52,7 @@ static void dump_mini_dump(HANDLE hdumpfile, PEXCEPTION_POINTERS excp_info)
 
 // Helper to construct path without heap allocation if possible (simplified here)
 // In a real strict handler, use wchar_t buffer[MAX_PATH] and GetModuleFileName
-int __cdecl record_exception_info(PEXCEPTION_POINTERS pExceptPtrs)
+int32_t __cdecl record_exception_info(PEXCEPTION_POINTERS pExceptPtrs)
 {
     static std::atomic_flag bFirstTime = ATOMIC_FLAG_INIT;
     if (bFirstTime.test_and_set(std::memory_order_acquire))
@@ -104,7 +104,7 @@ LONG WINAPI SEHFilter(EXCEPTION_POINTERS* pExp)
 }
 
 // 2. Translator for converting SEH to C++ Exceptions (requires /EHa)
-void SEHTranslator(unsigned int u, EXCEPTION_POINTERS* pExp)
+void SEHTranslator(uint32_t u, EXCEPTION_POINTERS* pExp)
 {
     // Optional: You can record dump here too, OR wait until it hits the catch(...) block
     // Recording here is safer because stack is closer to the error.

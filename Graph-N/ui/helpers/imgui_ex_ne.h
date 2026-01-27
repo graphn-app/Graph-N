@@ -22,7 +22,7 @@ struct DeferredAction final
 inline DeferredAction g_combo_deferred_action;
 inline void* g_hovered_item = nullptr;
 
-void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, int* current_item, const char* const items[], int items_count);
+void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, int32_t* current_item, const char* const items[], int32_t items_count);
 void RenderDeferredCombo(DeferredAction& act);
 
 bool InputTextWithHint(DeferredAction& act, void* node_id, void* pin_id, const char* label, const char* hint, const char* str);

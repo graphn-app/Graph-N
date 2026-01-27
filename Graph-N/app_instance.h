@@ -28,7 +28,7 @@ private:
     const char* m_cmd_pong;
     const char* m_cmd_wakeup;
 
-    int m_port = 0;
+    int32_t m_port = 0;
     WakeUpCallback m_on_wake_up = nullptr;
     std::unique_ptr<httplib::Server> m_server;
     std::thread m_server_thread;

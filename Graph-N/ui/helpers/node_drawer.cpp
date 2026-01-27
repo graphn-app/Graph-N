@@ -4,6 +4,7 @@
 #include "core/managers/settings_manager.h"
 #include "core/data/node.h"
 #include "core/data/pin.h"
+#include "core/workflow/link.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "imgui_node_editor.h"
@@ -117,7 +118,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float ideal_fit_w)
     if (node_size.x > 0 && node_size.y > 0)
         ideal_fit_w = node_size.x - ed::GetStyle().NodePadding.x - ed::GetStyle().NodePadding.z;
 
-    ideal_fit_w = node->recalc_node_width(ideal_fit_w, true /*allow_extend*/, true /*allow_compress*/, false /*use_big_pin_icon*/);
+    ideal_fit_w = node->recalc_node_width(false /*ro*/, ideal_fit_w, true /*allow_extend*/, true /*allow_compress*/, false /*use_big_pin_icon*/);
     m_curr_node_left_offset = ImGui::GetCursorPosX();
 
     // --- HEADER ---
@@ -152,7 +153,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float ideal_fit_w)
     {
         ImGui::SameLine(0.0f, 0.0f);
         if (node->w_center > 0.0f)
-            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset + node->w_pin_in + node->w_center);
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + node->w_pin_in + node->w_center);
     }
 
     // --- PINS - OUTPUT ---
@@ -170,7 +171,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float ideal_fit_w)
         {
             ImGui::PushID(pin);
             test_id(m_ids_imgui, pin);
-            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset + node->w_pin_in + node->w_center +
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + node->w_pin_in + node->w_center +
                 node->w_pin_out - pin->get_object()->w_name);
             draw_output_pin(pin);
             ImGui::PopID();
@@ -209,7 +210,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float ideal_fit_w)
         }
         if (advanced > 0)
         {
-            draw_widget_separator(w::pin_l_offset + w::ico_max + w::pin_r_offset, node->w_separator);
+            draw_widget_separator(w::pin_l_offset_rw + w::ico_max + w::pin_r_offset, node->w_separator);
             for (auto pin : input)
             {
                 auto obj = pin->get_object();
@@ -248,8 +249,8 @@ void NodeDrawer::draw_node_header(data::NodeInstance* node)
 
 void NodeDrawer::draw_input_pin(data::PinInstance* pin)
 {
-    ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
-    draw_pin_icon(pin, true);
+    ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
+    draw_pin(pin);
     ImGui::SameLine(0.0f, w::pin_r_offset);
     ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
 }
@@ -258,33 +259,34 @@ void NodeDrawer::draw_output_pin(data::PinInstance* pin)
 {
     ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
     ImGui::SameLine(0, w::pin_r_offset);
-    draw_pin_icon(pin, false);
+    draw_pin(pin);
 }
 
-void NodeDrawer::draw_pin_icon(data::PinInstance* pin, bool input)
+void NodeDrawer::draw_pin(data::PinInstance* pin)
 {
-    ImGui::PushStyleColor(ImGuiCol_Text, pin->m_state->pin_color);
+    //ImGui::PushStyleColor(ImGuiCol_Text, pin_color);
     ImGui::PushID(&pin->m_state->pin_color);
     test_id(m_ids_imgui, &pin->m_state->pin_color);
-    ed::BeginPin(cast::to_ptr(pin), input ? ed::PinKind::Input : ed::PinKind::Output);
+    ed::BeginPin(cast::to_ptr(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
     test_id(m_ids_nodelib, pin);
-    ImGui::TextUnformatted(ICON_LC_CIRCLE_SMALL);
+    //ImGui::TextUnformatted(ICON_LC_CIRCLE_SMALL);
+    draw_pin_shape(pin);
     ed::EndPin();
     ImGui::PopID();
-    ImGui::PopStyleColor();
+ //   ImGui::PopStyleColor();
 }
 
 void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width, bool draw_control_after_generate /*= false*/)
 {
     if (draw_control_after_generate)
     {
-        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset + w::ico_max + w::pin_r_offset);
+        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset);
         draw_widget_control_after_generate(pin, widget_name_width, widget_value_width);
     }
     else
     {
-        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset);
-        draw_pin_icon(pin, true);
+        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
+        draw_pin(pin);
         ImGui::SameLine(0, w::pin_r_offset);
         draw_widget(pin, widget_name_width, widget_value_width);
     }
@@ -621,6 +623,175 @@ void NodeDrawer::draw_widget_separator(float offset, float width)
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + offset);
     ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::NodeWidgetHiddenSep), width, w::hidden_widgets.c_str(), w::hidden_widgets.size(), w::hidden_widgets_len);
+}
+
+void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& links)
+{
+    for (auto& link : links)
+    {
+        test_id(m_ids_nodelib, link.get());
+        auto in = link->get_input();
+        auto out = link->get_output();
+        ed::Link(cast::to_ptr(link.get()), cast::to_ptr(in), cast::to_ptr(out), in->m_state->pin_color);
+    }
+}
+
+void NodeDrawer::query_links()
+{
+    if (ed::BeginCreate())
+    {
+        ed::PinId start = 0, end = 0;
+
+        if (ed::QueryNewLink(&start, &end))
+        {
+            data::PinInstance* p1 = cast::ptrs<data::PinInstance>(start.Get());
+            data::PinInstance* p2 = cast::ptrs<data::PinInstance>(end.Get());
+            if (data::Link::can_link(p1, p2))
+            {
+                if (ed::AcceptNewItem())
+                {
+                    m_querying_pin = nullptr;
+                    data::Link::link(p1, p2);
+                }
+            }
+            else
+            {
+                ed::RejectNewItem();
+            }
+        }
+        else if (ed::QueryNewNode(&start))
+        {
+            m_querying_pin = cast::ptrs<data::PinInstance>(start.Get());
+        }
+        ed::EndCreate();
+    }
+    else
+    {
+        m_querying_pin = nullptr;
+    }
+
+    static data::PinInstance* test = nullptr;
+    if (test != m_querying_pin)
+    {
+        test = m_querying_pin;
+        if (test != nullptr)
+            ::OutputDebugStringA(fmt::format("Drag pin {}", test->get_object()->name).c_str());
+        else
+            ::OutputDebugStringA("Drag pin is 0");
+    }
+}
+
+void NodeDrawer::draw_pin_shape(data::PinInstance* pin)
+{
+    const bool querying = (m_querying_pin != nullptr);
+    const bool compatible = (m_querying_pin == pin || (querying && data::Link::can_link(pin, m_querying_pin)));
+    const bool connected = (m_querying_pin == pin || pin->m_state->links > 0);
+    const auto type = data::Pin::get_shape(pin->m_state->type);
+    constexpr const float thickness = 2.0f;
+    constexpr const int32_t segments = 12;
+    const auto draw_list = ImGui::GetWindowDrawList();
+    const float alpha = (!querying || compatible ? 1.0f : 0.4f);
+    const auto color = (pin->m_state->pin_color & 0x00FFFFFF) | ((ImU32)(alpha * 255.0f) << 24);
+
+    const float line_height = ImGui::GetTextLineHeight();
+    const float radius = (!querying ? 4.0f : (compatible ? 5.0f : 3.0f));
+    const float diameter = radius * 2.0f;
+    const float y_offset = std::max(0.0f, (line_height - diameter) * 0.5f); 
+    const ImVec2 cursor_pos = ImGui::GetCursorScreenPos();
+    const ImVec2 pin_center = ImVec2(cursor_pos.x + w::ico_circle / 2, cursor_pos.y + w::ico_circle / 2);
+
+    switch (type)
+    {
+    case data::PinShape::Diamond:
+        {
+            const float r = radius * 1.1f;
+            if (connected)
+            {
+                draw_list->AddQuadFilled(ImVec2(pin_center.x, pin_center.y - r), ImVec2(pin_center.x + r, pin_center.y), ImVec2(pin_center.x, pin_center.y + r), ImVec2(pin_center.x - r, pin_center.y), color);
+            }
+            else
+            {
+                const ImVec2 p1(pin_center.x, pin_center.y - r);
+                const ImVec2 p2(pin_center.x + r, pin_center.y);
+                const ImVec2 p3(pin_center.x, pin_center.y + r);
+                const ImVec2 p4(pin_center.x - r, pin_center.y);
+                draw_list->PathLineTo(p1);
+                draw_list->PathLineTo(p2);
+                draw_list->PathLineTo(p3);
+                draw_list->PathLineTo(p4);
+                draw_list->PathStroke(color, ImDrawFlags_Closed, thickness);
+            }
+        }
+        break;
+    case data::PinShape::Hexagon:
+        {
+            const float r = radius * 0.95f;
+            if (connected)
+            {
+                ImVec2 points[6];
+                for (int32_t i = 0; i < 6; ++i)
+                {
+                    const float angle = cast::to_float(i) * 1.047f;
+                    points[i] = ImVec2(pin_center.x + r * cosf(angle), pin_center.y + r * sinf(angle));
+                }
+                draw_list->AddConvexPolyFilled(points, 6, color);
+            }
+            else
+            {
+                draw_list->PathClear();
+                for (int32_t i = 0; i < 6; ++i)
+                {
+                    float angle = cast::to_float(i) * 1.047f;
+                    draw_list->PathLineTo(ImVec2(pin_center.x + r * cosf(angle), pin_center.y + r * sinf(angle)));
+                }
+                draw_list->PathStroke(color, ImDrawFlags_Closed, thickness);
+            }
+        }
+        break;
+    case data::PinShape::SemiCircle:
+        {
+            const bool in = pin->get_object()->input;
+            if (in)
+                draw_list->PathArcTo(pin_center, radius, IM_PI * 1.5f, IM_PI * 2.5f, segments / 2);
+            else
+                draw_list->PathArcTo(pin_center, radius, IM_PI * 0.5f, IM_PI * 1.5f, segments / 2);
+            draw_list->PathFillConvex(color);
+        }
+        break;
+    case data::PinShape::Square:
+        {
+            if (connected)
+                draw_list->AddRectFilled(pin_center - ImVec2(radius, radius) * 0.85f, pin_center + ImVec2(radius, radius) * 0.85f, color, radius * 0.2f);
+            else
+                draw_list->AddRect(pin_center - ImVec2(radius, radius) * 0.85f, pin_center + ImVec2(radius, radius) * 0.85f, color, radius * 0.2f, ImDrawFlags_None, thickness);
+        }
+        break;
+    case data::PinShape::Triangle:
+        {
+            const float r = radius * 1.1f;
+            const float angle_offset = 0.0f;
+            const ImVec2 p1 = ImVec2(pin_center.x + r * cosf(angle_offset), pin_center.y + r * sinf(angle_offset));
+            const ImVec2 p2 = ImVec2(pin_center.x + r * cosf(angle_offset + 2.094f), pin_center.y + r * sinf(angle_offset + 2.094f));
+            const ImVec2 p3 = ImVec2(pin_center.x + r * cosf(angle_offset + 4.188f), pin_center.y + r * sinf(angle_offset + 4.188f));
+            if (connected)
+                draw_list->AddTriangleFilled(p1, p2, p3, color);
+            else
+                draw_list->AddTriangle(p1, p2, p3, color, thickness);
+        }
+        break;
+    default:
+        LogInternalLogic("Unhandled pin shape, pin type " << cast::to_i32(type));
+    case data::PinShape::Circle:
+        {
+            if (connected)
+                draw_list->AddCircleFilled(pin_center, radius, color, segments);
+            else
+                draw_list->AddCircle(pin_center, radius, color, segments, thickness);
+            break;
+        }
+    }
+
+    ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
 }
 
 } // namespace ui

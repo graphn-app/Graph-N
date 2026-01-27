@@ -13,7 +13,7 @@ namespace data
 
 struct Node;
 
-enum class PinType		// primitives and predefined colors only
+enum class PinType
 {
     INT,
     FLOAT,
@@ -29,13 +29,12 @@ enum class PinType		// primitives and predefined colors only
     MODEL, MASK, LATENT, AUDIO, FLOATS, CONDITIONING, CLIP, VAE, VIDEO, CONTROL_NET, IPADAPTER, INSIGHTFACE, NOISE, SIGMAS, SAMPLER,
     CLIP_VISION, SEGS, PIPE_LINE, BUS, LORA_STACK, LORA_LIST, CONTROL_NET_STACK, CLIP_VISION_OUTPUT, BBOX, SEED,
 
-    // POSE_KEYPOINT, GUIDER, DETAILER_HOOK, SEGM_DETECTOR, DETAILER_PIPE, IMAGE_BOUNDS, API_KEY_COMFY_ORG, AUTH_TOKEN_COMFY_ORG, UNIQUE_ID
-    // UPSCALE_STACK, SCHEDULE, IMAGE_LIST, IMAGE_LIST_SIMPLE, TEXT_LIST, TEXT_LIST_SIMPLE, image_LIST, lora_LIST, PROMPT_LIST
-    // SIMPLE_PROMPT_LIST, PK_HOOK, HOOKS, REGIONAL_PROMPTS, RGTHREE_CONTEXT, BATCH_COORDINATES, HOOK_KEYFRAMES, FLOAT_CURVE
-    // SCHEDULER_FUNC, DICT, PLAYLIST, GLIGEN, GEMINI_INPUT_FILES, IPADAPTER_PARAMS, EMBEDS, WEIGHTS_STRATEGY, CROP_DATA, LIST
-    // SEG_ELT, SEG_ELT_crop_region, SEG_ELT_control_net_wrapper, TRANSFORMERS_CLASSIFIER, UPSCALER, CAMERA_CONTROL, LOAD_3D_ANIMATION
-    // LOAD_3D, WHISPER_PIPELINE, LOAD3D_CAMERA, LOSS_MAP, LUMA_CONCEPTS, LUMA_REF, OPENAI_INPUT_FILES, OPENAI_CHAT_CONFIG, 
-    // PHOTOMAKER, PIXVERSE_TEMPLATE, UPSCALER_HOOK
+    IMAGE_LIST, IMAGE_BOUNDS, UNIQUE_ID, IMAGE_LIST_SIMPLE, TEXT_LIST, PROMPT_LIST, PLAYLIST, LOAD_3D, LIST,
+    LOAD_3D_ANIMATION, SIMPLE_PROMPT_LIST, TEXT_LIST_SIMPLE, DICT, API_KEY_COMFY_ORG, AUTH_TOKEN_COMFY_ORG, BATCH_COORDINATES, SEG_ELT, 
+    FLOAT_CURVE, GEMINI_INPUT_FILES, OPENAI_INPUT_FILES, OPENAI_CHAT_CONFIG, IPADAPTER_PARAMS, EMBEDS, CROP_DATA, LOSS_MAP, GUIDER, SCHEDULE,
+    LOAD3D_CAMERA, POSE_KEYPOINT, SEG_ELT_CROP_REGION, SEG_ELT_CONTROL_NET_WRAPPER, SCHEDULER_FUNC, REGIONAL_PROMPTS, WEIGHTS_STRATEGY,
+    CAMERA_CONTROL, DETAILER_HOOK, PK_HOOK, HOOKS, HOOK_KEYFRAMES, DETAILER_PIPE, RGTHREE_CONTEXT, UPSCALER_HOOK, GLIGEN, UPSCALE_STACK,
+    PHOTOMAKER, LUMA_CONCEPTS, LUMA_REF, PIXVERSE_TEMPLATE, 
 
     _count,
 
@@ -69,19 +68,29 @@ inline constexpr const char* ControlAfterGenerateStr[ControlAfterGenerate::_coun
     "fixed", "increment", "decrement", "randomize"
 };
 
+enum class PinShape
+{
+    Circle,
+    SemiCircle,
+    Square,
+    Triangle,
+    Diamond,
+    Hexagon
+};
+
 struct PinState final
 {
     int32_t links = 0;          // number of pin links
     bool converted = false;     // input pin converted to widget
     
-    uint32_t pin_color = 0;     // will change if ANY pin
+    ImU32 pin_color = 0;     // will change if ANY pin
     PinType type = PinType::_none;  // will change if ANY pin
     std::string type_str;       // will change if ANY pin
 
     primitive value;            // current value, if widget
-    int combo_index = 0;     // combo-list current selection
+    int32_t combo_index = 0;     // combo-list current selection
     float colors[4];            // for color widget
-    int control_after_generate_value = ControlAfterGenerate::CAGRandomize; // current seed state
+    int32_t control_after_generate_value = ControlAfterGenerate::CAGRandomize; // current seed state
 };
 
 struct Pin final : public base::HashID
@@ -106,6 +115,8 @@ public:
     static uint32_t color_to_val(const std::string& clr, bool& alpha_in_string);
     static int64_t colors_to_int(const float colors[4]);
 
+    static PinShape get_shape(PinType type);
+
     const Node* parent_node = nullptr;
 
     bool input = false;
@@ -126,8 +137,6 @@ public:
     bool file_upload = false;
     bool video_upload = false;
     std::string image_folder;
-
-    bool is_known_type = false;
 
     size_t hash = 0;
     std::string name;

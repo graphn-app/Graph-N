@@ -33,8 +33,8 @@ bool MainRoutine_Win32::init()
     m_wc.hbrBackground = NULL;
     ::RegisterClassExW(&m_wc);
 
-    const int screen_w = GetSystemMetrics(SM_CXSCREEN);
-    const int screen_y = GetSystemMetrics(SM_CYSCREEN);
+    const int32_t screen_w = GetSystemMetrics(SM_CXSCREEN);
+    const int32_t screen_y = GetSystemMetrics(SM_CYSCREEN);
 
     const auto initial_width = 1024;
     const auto initial_height = 768;
@@ -96,7 +96,7 @@ bool MainRoutine_Win32::init()
     return true;
 }
 
-int MainRoutine_Win32::run(flow_callback& callback, std::atomic_bool& request_focus)
+int32_t MainRoutine_Win32::run(flow_callback& callback, std::atomic_bool& request_focus)
 {
     // Main loop
     m_callback = &callback;
@@ -285,7 +285,7 @@ bool MainRoutine_Win32::create_render_target()
 void MainRoutine_Win32::init_imgui_diloag_texture()
 {
     ifd::FileDialog::Instance().CreateTexture =
-        [d3d_device = m_d3d_device.get()](uint8_t* data, int w, int h, char fmt) -> void*
+        [d3d_device = m_d3d_device.get()](uint8_t* data, int32_t w, int32_t h, char fmt) -> void*
     {
         D3D11_TEXTURE2D_DESC desc;
         ZeroMemory(&desc, sizeof(desc));

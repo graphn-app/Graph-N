@@ -25,7 +25,7 @@ public:
     std::string as_full_date() const;
 
     /* length can be 1 (first char), 3 (first 3 chars) or more for full name */
-	const char* month_name(int length = 5) const;
+	const char* month_name(int32_t length = 5) const;
 
 	int32_t m_day = 0;
     int32_t m_month = 0;

@@ -1,4 +1,4 @@
-﻿
+
 #ifdef __APPLE__
 #include "platform/apple/main_apple.h"
 
@@ -10,7 +10,7 @@ bool MainRoutine_Apple::init()
 #error Not implemented
 }
 
-int MainRoutine_Apple::run(flow_callback& /*callback*/, std::atomic_bool& /*request_focus*/)
+int32_t MainRoutine_Apple::run(flow_callback& /*callback*/, std::atomic_bool& /*request_focus*/)
 {
 #error Not implemented
 }

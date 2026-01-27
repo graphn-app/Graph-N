@@ -8,19 +8,34 @@ namespace data
 
 const std::unordered_map<std::string, PinType> Pin::pin_type_map =
 {
-    { "INT", PinType::INT },				{ "FLOAT", PinType::FLOAT },				{ "BOOLEAN", PinType::BOOLEAN },
-    { "COMBO", PinType::COMBO },			{ "STRING", PinType::STRING },				{ "*", PinType::ANY },
-
-    { "COLOR", PinType::COLOR },			{ "NUMBER", PinType::NUMBER },				{ "INSIGHTFACE", PinType::INSIGHTFACE },
-    { "IMAGE", PinType::IMAGE },			{ "MODEL", PinType::MODEL },				{ "MASK", PinType::MASK },
-    { "LATENT", PinType::LATENT },			{ "VAE", PinType::VAE },					{ "CONDITIONING", PinType::CONDITIONING },
-    { "CLIP", PinType::CLIP },				{ "NOISE", PinType::NOISE },				{ "CONTROL_NET", PinType::CONTROL_NET },
-    { "SIGMAS", PinType::SIGMAS },			{ "BUS", PinType::BUS },					{ "IPADAPTER", PinType::IPADAPTER },
-    { "SAMPLER", PinType::SAMPLER },		{ "AUDIO", PinType::AUDIO },				{ "SEED", PinType::SEED },
-    { "SEGS", PinType::SEGS },				{ "CLIP_VISION", PinType::CLIP_VISION },	{ "CONTROL_NET_STACK", PinType::CONTROL_NET_STACK },
-    { "PIPE_LINE", PinType::PIPE_LINE },	{ "VIDEO", PinType::VIDEO },				{ "LORA_STACK", PinType::LORA_STACK },
-    { "BBOX", PinType::BBOX },				{ "LORA_LIST", PinType::LORA_LIST },		{ "CLIP_VISION_OUTPUT", PinType::CLIP_VISION_OUTPUT },
-    { "FLOATS", PinType::FLOATS },
+    { "INT", PinType::INT },				            { "FLOAT", PinType::FLOAT },				        { "BOOLEAN", PinType::BOOLEAN },
+    { "COMBO", PinType::COMBO },			            { "STRING", PinType::STRING },				        { "*", PinType::ANY },
+    { "COLOR", PinType::COLOR },			            { "NUMBER", PinType::NUMBER },				        { "INSIGHTFACE", PinType::INSIGHTFACE },
+    { "IMAGE", PinType::IMAGE },			            { "MODEL", PinType::MODEL },				        { "MASK", PinType::MASK },
+    { "LATENT", PinType::LATENT },			            { "VAE", PinType::VAE },					        { "CONDITIONING", PinType::CONDITIONING },
+    { "CLIP", PinType::CLIP },				            { "NOISE", PinType::NOISE },				        { "CONTROL_NET", PinType::CONTROL_NET },
+    { "SIGMAS", PinType::SIGMAS },			            { "BUS", PinType::BUS },					        { "IPADAPTER", PinType::IPADAPTER },
+    { "SAMPLER", PinType::SAMPLER },		            { "AUDIO", PinType::AUDIO },				        { "SEED", PinType::SEED },
+    { "SEGS", PinType::SEGS },				            { "CLIP_VISION", PinType::CLIP_VISION },	        { "CONTROL_NET_STACK", PinType::CONTROL_NET_STACK },
+    { "PIPE_LINE", PinType::PIPE_LINE },	            { "VIDEO", PinType::VIDEO },				        { "LORA_STACK", PinType::LORA_STACK },
+    { "BBOX", PinType::BBOX },				            { "LORA_LIST", PinType::LORA_LIST },		        { "CLIP_VISION_OUTPUT", PinType::CLIP_VISION_OUTPUT },
+    { "FLOATS", PinType::FLOATS },                      { "IMAGE_BOUNDS", PinType::IMAGE_BOUNDS },          { "UNIQUE_ID", PinType::UNIQUE_ID },
+    { "IMAGE_LIST", PinType::IMAGE_LIST },              { "TEXT_LIST", PinType::TEXT_LIST },                { "IMAGE_LIST_SIMPLE", PinType::IMAGE_LIST_SIMPLE },
+    { "image_LIST", PinType::IMAGE_LIST },              { "DICT", PinType::DICT },                          { "TEXT_LIST_SIMPLE", PinType::TEXT_LIST_SIMPLE },
+    { "PROMPT_LIST", PinType::PROMPT_LIST },            { "LORA_LIST", PinType::LORA_LIST },		        { "SIMPLE_PROMPT_LIST", PinType::SIMPLE_PROMPT_LIST },
+    { "PLAYLIST", PinType::PLAYLIST },		            { "LIST", PinType::LIST },		                    { "LOAD_3D_ANIMATION", PinType::LOAD_3D_ANIMATION },
+    { "LOAD_3D", PinType::LOAD_3D },                    { "EMBEDS", PinType::EMBEDS },                      { "API_KEY_COMFY_ORG", PinType::API_KEY_COMFY_ORG },
+    { "CROP_DATA", PinType::CROP_DATA },                { "LOSS_MAP", PinType::LOSS_MAP },                  { "AUTH_TOKEN_COMFY_ORG", PinType::AUTH_TOKEN_COMFY_ORG },
+    { "PK_HOOK", PinType::PK_HOOK },                    { "HOOKS", PinType::HOOKS },                        { "BATCH_COORDINATES", PinType::BATCH_COORDINATES },
+    { "GUIDER", PinType::GUIDER },                      { "FLOAT_CURVE", PinType::FLOAT_CURVE },            { "GEMINI_INPUT_FILES", PinType::GEMINI_INPUT_FILES },
+    { "IPADAPTER_PARAMS", PinType::IPADAPTER_PARAMS },	{ "LUMA_REF", PinType::LUMA_REF },		            { "PIXVERSE_TEMPLATE", PinType::PIXVERSE_TEMPLATE },            
+    { "POSE_KEYPOINT", PinType::POSE_KEYPOINT },		{ "SEG_ELT", PinType::SEG_ELT },		            { "SEG_ELT_crop_region", PinType::SEG_ELT_CROP_REGION },
+    { "SCHEDULE", PinType::SCHEDULE },                  { "LUMA_CONCEPTS", PinType::LUMA_CONCEPTS },		{ "OPENAI_INPUT_FILES", PinType::OPENAI_INPUT_FILES },
+    { "SCHEDULER_FUNC", PinType::SCHEDULER_FUNC },      { "REGIONAL_PROMPTS", PinType::REGIONAL_PROMPTS },	{ "WEIGHTS_STRATEGY", PinType::WEIGHTS_STRATEGY },
+    { "CAMERA_CONTROL", PinType::CAMERA_CONTROL },		{ "LOAD3D_CAMERA", PinType::LOAD3D_CAMERA },		{ "DETAILER_HOOK", PinType::DETAILER_HOOK },
+    { "HOOK_KEYFRAMES", PinType::HOOK_KEYFRAMES },      { "PHOTOMAKER", PinType::PHOTOMAKER },              { "SEG_ELT_control_net_wrapper", PinType::SEG_ELT_CONTROL_NET_WRAPPER },
+    { "UPSCALER_HOOK", PinType::UPSCALER_HOOK },		{ "DETAILER_PIPE", PinType::DETAILER_PIPE },		{ "RGTHREE_CONTEXT", PinType::RGTHREE_CONTEXT },
+    { "UPSCALE_STACK", PinType::UPSCALE_STACK },        { "GLIGEN", PinType::GLIGEN },		                { "OPENAI_CHAT_CONFIG", PinType::OPENAI_CHAT_CONFIG }
 };
 
 Pin::Pin(const Node* node, const std::string& pin_name)
@@ -52,11 +67,9 @@ void Pin::initialize(const std::string& type_as_string)
     {
         def_state.type = map_it->second;
         type_any = (PinType::ANY == def_state.type);
-        is_known_type = true;
     }
     else
     {
-        is_known_type = false;
         def_state.type = PinType::CUSTOM;
     }
 
@@ -335,7 +348,7 @@ void Pin::precision_to_string()
     int32_t decimals = 2;
     if (round.value() > 0.0 && round.value() < 1.0)
     {
-        decimals = static_cast<int>(std::ceil(-std::log10(round.value())));
+        decimals = static_cast<int32_t>(std::ceil(-std::log10(round.value())));
         if (decimals > 6)
             decimals = 6;
     }
@@ -351,52 +364,50 @@ void Pin::generate_pin_color()
         LogAndThrowInternalError(ExcepCategory::Logic, "Hash wasn't generated. id=" << get_id());
     }
 
-    if (is_known_type)	// hardcoded colors for some most used types
+    switch (def_state.type)
     {
-        switch (def_state.type)
-        {
-        case PinType::INT:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_int);                 break;
-        case PinType::FLOAT:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_float);               break;
-        case PinType::STRING:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_string);              break;
-        case PinType::BOOLEAN:              def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_boolean);             break;
-        case PinType::ANY:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_any);                 break;
-        case PinType::COMBO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_combo);               break;
-        case PinType::COLOR:                def_state.pin_color = g::pOptsManager->color_load(AppColor::pin_color);               break;
-        case PinType::NUMBER:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_number);              break;
+    case PinType::INT:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Int);                 return;
+    case PinType::FLOAT:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Float);               return;
+    case PinType::TEXT_LIST:
+    case PinType::TEXT_LIST_SIMPLE:
+    case PinType::STRING:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_String);              return;
+    case PinType::BOOLEAN:              def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Boolean);             return;
+    case PinType::ANY:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Any);                 return;
+    case PinType::COMBO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Combo);               return;
+    case PinType::COLOR:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Color);               return;
+    case PinType::NUMBER:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Number);              return;
 
-        case PinType::FLOATS:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_floats);              break;
-        case PinType::SEED:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_seed);                break;
-        case PinType::MODEL:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_model);               break;
-        case PinType::LATENT:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_latent);              break;
-        case PinType::VAE:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_vae);                 break;
-        case PinType::CLIP:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_clip);                break;
-        case PinType::IMAGE:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_image);               break;
-        case PinType::MASK:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_mask);                break;
-        case PinType::CONDITIONING:         def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_conditioning);        break;
-        case PinType::CLIP_VISION:          def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_ClipVision);         break;
-        case PinType::CONTROL_NET:          def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_ControlNet);         break;
-        case PinType::AUDIO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_audio);               break;
-        case PinType::VIDEO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_video);               break;
-        case PinType::IPADAPTER:            def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_IPAdapter);           break;
-        case PinType::INSIGHTFACE:          def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_InsightFace);         break;
-        case PinType::CONTROL_NET_STACK:    def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_ControlNetStack);   break;
-        case PinType::CLIP_VISION_OUTPUT:   def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_ClipVisionOutput);  break;
-        case PinType::NOISE:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_noise);               break;
-        case PinType::SIGMAS:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_sigmas);              break;
-        case PinType::SAMPLER:              def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_sampler);             break;
-        case PinType::PIPE_LINE:            def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_PipeLine);           break;
-        case PinType::LORA_STACK:           def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_LoraStack);          break;
-        case PinType::LORA_LIST:            def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_LoraList);           break;
-        case PinType::SEGS:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_segs);                break;
-        case PinType::BBOX:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_bbox);                break;
-        case PinType::BUS:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_bus);                 break;
-
-        default:
-        {
-            LogAndThrowInternalError(ExcepCategory::Logic, "Some predefined colors were not set");
-        }
-        }
-        return;
+    case PinType::FLOATS:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Floats);              return;
+    case PinType::SEED:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Seed);                return;
+    case PinType::MODEL:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Model);               return;
+    case PinType::LATENT:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Latent);              return;
+    case PinType::VAE:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Vae);                 return;
+    case PinType::CLIP:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Clip);                return;    
+    case PinType::IMAGE_LIST:
+    case PinType::IMAGE_LIST_SIMPLE:
+    case PinType::IMAGE_BOUNDS:
+    case PinType::IMAGE:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Image);               return;
+    case PinType::MASK:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Mask);                return;
+    case PinType::PROMPT_LIST:
+    case PinType::SIMPLE_PROMPT_LIST:
+    case PinType::CONDITIONING:         def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Conditioning);        return;
+    case PinType::CLIP_VISION:          def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_ClipVision);          return;
+    case PinType::CONTROL_NET:          def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_ControlNet);          return;
+    case PinType::AUDIO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Audio);               return;
+    case PinType::VIDEO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Video);               return;
+    case PinType::IPADAPTER:            def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_IPAdapter);           return;
+    case PinType::INSIGHTFACE:          def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_InsightFace);         return;
+    case PinType::CONTROL_NET_STACK:    def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_ControlNetStack);     return;
+    case PinType::CLIP_VISION_OUTPUT:   def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_ClipVisionOutput);    return;
+    case PinType::NOISE:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Noise);               return;
+    case PinType::SIGMAS:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Sigmas);              return;
+    case PinType::SAMPLER:              def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Sampler);             return;
+    case PinType::PIPE_LINE:            def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_PipeLine);            return;
+    case PinType::LORA_STACK:
+    case PinType::LORA_LIST:            def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Lora);                return;
+    case PinType::SEGS:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Segs);                return;
+    case PinType::BBOX:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_BBox);                return;
+    case PinType::BUS:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Bus);                 return;
     }
 
     // golden ratio
@@ -408,7 +419,7 @@ void Pin::generate_pin_color()
     const double v = 0.95f;
 
     // HSV -> RGB
-    const int h_i = cast::to_i32(hue * 6);
+    const int32_t h_i = cast::to_i32(hue * 6);
     const double f = hue * 6 - h_i;
     const double p = v * (1 - s);
     const double q = v * (1 - f * s);
@@ -497,6 +508,103 @@ uint32_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string)
 
     // if we didn't get it - return bright magenta
     return IM_COL32(255, 0, 255, 255);
+}
+
+PinShape Pin::get_shape(PinType type)
+{
+    switch (type)
+    {
+        // --- SPECIAL ---
+    case PinType::ANY:
+        return PinShape::SemiCircle;
+
+        // --- PRIMITIVES & DATA ---
+    case PinType::INT:
+    case PinType::FLOAT:
+    case PinType::FLOATS:
+    case PinType::BOOLEAN:
+    case PinType::STRING:
+    case PinType::NUMBER:
+    case PinType::SEED:
+    case PinType::UNIQUE_ID:
+    case PinType::COLOR:
+    case PinType::COMBO:
+    case PinType::TEXT_LIST:
+    case PinType::TEXT_LIST_SIMPLE:
+    case PinType::LIST:
+    case PinType::DICT:
+    case PinType::API_KEY_COMFY_ORG:
+    case PinType::AUTH_TOKEN_COMFY_ORG:
+    case PinType::BATCH_COORDINATES:
+    case PinType::FLOAT_CURVE:
+    case PinType::GEMINI_INPUT_FILES:
+    case PinType::OPENAI_INPUT_FILES:
+    case PinType::OPENAI_CHAT_CONFIG:
+    case PinType::IPADAPTER_PARAMS:
+    case PinType::EMBEDS:
+    case PinType::CROP_DATA:
+    case PinType::LOSS_MAP:
+        return PinShape::Diamond;
+
+        // --- VISUAL & SPATIAL ---
+    case PinType::IMAGE:
+    case PinType::IMAGE_LIST:
+    case PinType::IMAGE_LIST_SIMPLE:
+    case PinType::IMAGE_BOUNDS:
+    case PinType::MASK:
+    case PinType::VIDEO:
+    case PinType::AUDIO:
+    case PinType::PLAYLIST:
+    case PinType::LOAD_3D:
+    case PinType::LOAD_3D_ANIMATION:
+    case PinType::POSE_KEYPOINT:
+    case PinType::SEG_ELT:
+    case PinType::SEG_ELT_CROP_REGION:
+    case PinType::SEG_ELT_CONTROL_NET_WRAPPER:
+    case PinType::SEGS:
+    case PinType::BBOX:
+        return PinShape::Square;
+
+        // --- FLOW & CONTROL ---
+    case PinType::CONDITIONING:
+    case PinType::CONTROL_NET:
+    case PinType::CONTROL_NET_STACK:
+    case PinType::PROMPT_LIST:
+    case PinType::SIMPLE_PROMPT_LIST:
+    case PinType::GUIDER:
+    case PinType::SCHEDULE:
+    case PinType::SCHEDULER_FUNC:
+    case PinType::REGIONAL_PROMPTS:
+    case PinType::WEIGHTS_STRATEGY:
+    case PinType::CAMERA_CONTROL:
+    case PinType::LOAD3D_CAMERA:
+    case PinType::SIGMAS:
+        return PinShape::Triangle;
+
+        // --- TOOLS & PIPES ---
+    case PinType::LORA_LIST:
+    case PinType::LORA_STACK:
+    case PinType::IPADAPTER:
+    case PinType::INSIGHTFACE:
+    case PinType::DETAILER_HOOK:
+    case PinType::PK_HOOK:
+    case PinType::HOOKS:
+    case PinType::HOOK_KEYFRAMES:
+    case PinType::UPSCALER_HOOK:
+    case PinType::DETAILER_PIPE:
+    case PinType::RGTHREE_CONTEXT:
+    case PinType::UPSCALE_STACK:
+    case PinType::GLIGEN:
+    case PinType::PHOTOMAKER:
+    case PinType::LUMA_CONCEPTS:
+    case PinType::LUMA_REF:
+    case PinType::PIXVERSE_TEMPLATE:
+    case PinType::PIPE_LINE:
+    case PinType::BUS:
+        return PinShape::Hexagon;
+    }
+
+    return PinShape::Circle;
 }
 
 } // namespace data

@@ -17,8 +17,8 @@ public:
 
     void init() override;
 
-    float calc_node_width();
-    float recalc_node_width(float avail_width, bool allow_extend, bool allow_compress, bool use_big_pin_icon);
+    float calc_node_width(bool ro);
+    float recalc_node_width(bool ro, float avail_width, bool allow_extend, bool allow_compress, bool use_big_pin_icon);
 
     const std::string& get_name() const;
     void set_name(std::string name);

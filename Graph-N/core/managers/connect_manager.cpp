@@ -131,7 +131,7 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std:
 
             Log("Thread " << data->conn_th_id << ". Connect failed. Err: " << httplib::to_string(res.error()));
 
-            for (int i = 0; i < 10; ++i)
+            for (int32_t i = 0; i < 10; ++i)
             { 
                 if (data->stop_thread_flag)
                     break;

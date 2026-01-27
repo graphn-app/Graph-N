@@ -174,41 +174,39 @@ enum class AppColor
     UrlTextHovered,
     Starred,
 
-
-    Pin_int,
-    Pin_float,
-    Pin_string,
-    Pin_boolean,
-    Pin_any,
-    Pin_combo,
-    pin_color,
-    Pin_number,
-    Pin_floats,
-    Pin_seed,
-    Pin_model,
-    Pin_latent,
-    Pin_vae,
-    Pin_clip,
-    Pin_image,
-    Pin_mask,
-    Pin_conditioning,
+    Pin_Int,
+    Pin_Float,
+    Pin_String,
+    Pin_Boolean,
+    Pin_Any,
+    Pin_Combo,
+    Pin_Color,
+    Pin_Number,
+    Pin_Floats,
+    Pin_Seed,
+    Pin_Model,
+    Pin_Latent,
+    Pin_Vae,
+    Pin_Clip,
+    Pin_Image,
+    Pin_Mask,
+    Pin_Conditioning,
     Pin_ClipVision,
     Pin_ControlNet,
-    Pin_audio,
-    Pin_video,
+    Pin_Audio,
+    Pin_Video,
     Pin_IPAdapter,
     Pin_InsightFace,
     Pin_ControlNetStack,
     Pin_ClipVisionOutput,
-    Pin_noise,
-    Pin_sigmas,
-    Pin_sampler,
+    Pin_Noise,
+    Pin_Sigmas,
+    Pin_Sampler,
     Pin_PipeLine,
-    Pin_LoraStack,
-    Pin_LoraList,
-    Pin_segs,
-    Pin_bbox,
-    Pin_bus,
+    Pin_Lora,
+    Pin_Segs,
+    Pin_BBox,
+    Pin_Bus,
 
     _count
 };
@@ -332,7 +330,8 @@ constexpr const char* upload_mask       = "/upload/mask";           // post
 
 namespace w
 {
-extern float pin_l_offset;
+extern float pin_l_offset_ro;
+extern float pin_l_offset_rw;
 extern float pin_r_offset;
 extern float ico_circle;
 extern float ico_eye;

@@ -37,6 +37,41 @@ bool SettingsManager::init()
     m_wf_active =                                     { "wf_active",                std::string("") };
 
     m_ui_colors.resize(cast::to_szt(AppColor::_count));
+
+    m_ui_colors[cast::to_szt(AppColor::Pin_Int)] =                           { "color_pin_int", int64_t(IM_COL32(40, 200, 40, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Float)] =                         { "color_pin_float", int64_t(IM_COL32(40, 200, 40, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_String)] =                        { "color_pin_string", int64_t(IM_COL32(200, 200, 200, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Boolean)] =                       { "color_pin_boolean", int64_t(IM_COL32(180, 180, 180, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Any)] =                           { "color_pin_any", int64_t(IM_COL32_WHITE) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Combo)] =                         { "color_pin_combo", int64_t(IM_COL32(200, 200, 200, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Color)] =                         { "color_pin_color", int64_t(IM_COL32(255, 235, 59, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Number)] =                        { "color_pin_number", int64_t(IM_COL32(46, 204, 113, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Floats)] =                        { "color_pin_floats", int64_t(IM_COL32(26, 188, 156, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Seed)] =                          { "color_pin_seed", int64_t(IM_COL32(52, 152, 219, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Model)] =                         { "color_pin_model", int64_t(IM_COL32(111, 108, 155, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Latent)] =                        { "color_pin_latent", int64_t(IM_COL32(176, 83, 112, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Vae)] =                           { "color_pin_vae", int64_t(IM_COL32(166, 46, 46, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Clip)] =                          { "color_pin_clip", int64_t(IM_COL32(227, 184, 54, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Image)] =                         { "color_pin_image", int64_t(IM_COL32(91, 135, 163, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Mask)] =                          { "color_pin_mask", int64_t(IM_COL32(93, 158, 89, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Conditioning)] =                  { "color_pin_conditioning", int64_t(IM_COL32(195, 134, 52, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_ClipVision)] =                    { "color_pin_clipvision", int64_t(IM_COL32(100, 100, 100, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_ControlNet)] =                    { "color_pin_control_net", int64_t(IM_COL32(90, 160, 140, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Audio)] =                         { "color_pin_audio", int64_t(IM_COL32(255, 160, 0, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Video)] =                         { "color_pin_video", int64_t(IM_COL32(41, 128, 185, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_IPAdapter)] =                     { "color_pin_ipadapter", int64_t(IM_COL32(215, 189, 226, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_InsightFace)] =                   { "color_pin_insightface", int64_t(IM_COL32(231, 76, 60, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_ControlNetStack)] =               { "color_pin_control_net_stack", int64_t(IM_COL32(39, 174, 96, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_ClipVisionOutput)] =              { "color_pin_clipvision_output", int64_t(IM_COL32(241, 196, 15, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Noise)] =                         { "color_pin_noise", int64_t(IM_COL32(149, 165, 166, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Sigmas)] =                        { "color_pin_sigmas", int64_t(IM_COL32(140, 100, 80, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Sampler)] =                       { "color_pin_sampler", int64_t(IM_COL32(230, 126, 34, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_PipeLine)] =                      { "color_pin_pipe_line", int64_t(IM_COL32(255, 215, 0, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Lora)] =                          { "color_pin_lora_list", int64_t(IM_COL32(219, 112, 147, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Segs)] =                          { "color_pin_segs", int64_t(IM_COL32(0, 255, 255, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_BBox)] =                          { "color_pin_bbox", int64_t(IM_COL32(127, 255, 0, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_Bus)] =                           { "color_pin_bus", int64_t(IM_COL32(255, 215, 0, 255)) };
+
     m_ui_colors[cast::to_szt(AppColor::DisconnectedMenuBarBg)] =             { "color_disconnected_menubar_bg",  int64_t(IM_COL32(150, 0, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::DisconnectedMenuBarText)] =           { "color_disconnected_menubar_text",  int64_t(IM_COL32(255, 255, 255, 255)) };
     m_ui_colors[cast::to_szt(AppColor::OptBtnNormal)] =                      { "color_opt_btn_normal",  int64_t(IM_COL32(0, 128, 128, 200)) };
@@ -45,11 +80,8 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::OptDlgTitleBg)] =                     { "color_opt_dlg_title_bg",  int64_t(IM_COL32(0, 128, 128, 255)) };
     m_ui_colors[cast::to_szt(AppColor::OptDlgBg)] =                          { "color_opt_dlg_bg",  int64_t(IM_COL32(0, 0, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::PanelBg)] =                           { "color_panel_bg",  int64_t(IM_COL32(24, 24, 27, 255)) };
-
     m_ui_colors[cast::to_szt(AppColor::PanelActiveWfTab)] =                  { "color_active_wf_tab",  int64_t(IM_COL32(194, 126, 0, 120)) };
     m_ui_colors[cast::to_szt(AppColor::PanelActiveHoveredWfTab)] =           { "color_active_hovered_wf_tab",  int64_t(IM_COL32(194, 126, 0, 140)) };
-
-
     m_ui_colors[cast::to_szt(AppColor::PanelNodesHoverGroup)] =              { "color_panel_nodes_hover_group",  int64_t(IM_COL32(220, 220, 220, 50)) };
     m_ui_colors[cast::to_szt(AppColor::PanelNodesHoverNode)] =               { "color_panel_nodes_hover_node",  int64_t(IM_COL32(211, 112, 0, 80)) };
     m_ui_colors[cast::to_szt(AppColor::PanelNodesSelNode)] =                 { "color_panel_nodes_sel_node",  int64_t(IM_COL32(255, 165, 0, 250)) };
@@ -73,44 +105,11 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::SelectedItem)] =                      { "color_selected_item", int64_t(IM_COL32(255, 165, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::OptHelpMark)] =                       { "color_opt_help_mark", int64_t(IM_COL32(50, 50, 50, 255)) };
     m_ui_colors[cast::to_szt(AppColor::OptHelpText)] =                       { "color_opt_help_text", int64_t(IM_COL32(0, 128, 128, 200)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_int)] =                           { "color_pin_int", int64_t(IM_COL32(40, 200, 40, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_float)] =                         { "color_pin_float", int64_t(IM_COL32(40, 200, 40, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_string)] =                        { "color_pin_string", int64_t(IM_COL32(200, 200, 200, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_boolean)] =                       { "color_pin_boolean", int64_t(IM_COL32(180, 180, 180, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_any)] =                           { "color_pin_any", int64_t(IM_COL32_WHITE) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_combo)] =                         { "color_pin_combo", int64_t(IM_COL32(200, 200, 200, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::pin_color)] =                         { "color_pin_color", int64_t(IM_COL32(255, 235, 59, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_number)] =                        { "color_pin_number", int64_t(IM_COL32(46, 204, 113, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_floats)] =                        { "color_pin_floats", int64_t(IM_COL32(26, 188, 156, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_seed)] =                          { "color_pin_seed", int64_t(IM_COL32(52, 152, 219, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_model)] =                         { "color_pin_model", int64_t(IM_COL32(111, 108, 155, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_latent)] =                        { "color_pin_latent", int64_t(IM_COL32(176, 83, 112, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_vae)] =                           { "color_pin_vae", int64_t(IM_COL32(166, 46, 46, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_clip)] =                          { "color_pin_clip", int64_t(IM_COL32(227, 184, 54, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_image)] =                         { "color_pin_image", int64_t(IM_COL32(91, 135, 163, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_mask)] =                          { "color_pin_mask", int64_t(IM_COL32(93, 158, 89, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_conditioning)] =                  { "color_pin_conditioning", int64_t(IM_COL32(195, 134, 52, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_ClipVision)] =                    { "color_pin_clipvision", int64_t(IM_COL32(100, 100, 100, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_ControlNet)] =                    { "color_pin_control_net", int64_t(IM_COL32(90, 160, 140, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_audio)] =                         { "color_pin_audio", int64_t(IM_COL32(255, 160, 0, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_video)] =                         { "color_pin_video", int64_t(IM_COL32(41, 128, 185, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_IPAdapter)] =                     { "color_pin_ipadapter", int64_t(IM_COL32(215, 189, 226, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_InsightFace)] =                   { "color_pin_insightface", int64_t(IM_COL32(231, 76, 60, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_ControlNetStack)] =               { "color_pin_control_net_stack", int64_t(IM_COL32(39, 174, 96, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_ClipVisionOutput)] =              { "color_pin_clipvision_output", int64_t(IM_COL32(241, 196, 15, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_noise)] =                         { "color_pin_noise", int64_t(IM_COL32(149, 165, 166, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_sigmas)] =                        { "color_pin_sigmas", int64_t(IM_COL32(140, 100, 80, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_sampler)] =                       { "color_pin_sampler", int64_t(IM_COL32(230, 126, 34, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_PipeLine)] =                      { "color_pin_pipe_line", int64_t(IM_COL32(255, 215, 0, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_LoraStack)] =                     { "color_pin_lora_stack", int64_t(IM_COL32(255, 105, 180, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_LoraList)] =                      { "color_pin_lora_list", int64_t(IM_COL32(219, 112, 147, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_segs)] =                          { "color_pin_segs", int64_t(IM_COL32(0, 255, 255, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_bbox)] =                          { "color_pin_bbox", int64_t(IM_COL32(127, 255, 0, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Pin_bus)] =                           { "color_pin_bus", int64_t(IM_COL32(255, 215, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::RestartButton)] =                     { "color_restart_button", int64_t(IM_COL32(120, 0, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::UrlTextDefault)] =                    { "color_url_text_default", int64_t(IM_COL32(51, 127, 229, 255)) };
     m_ui_colors[cast::to_szt(AppColor::UrlTextHovered)] =                    { "color_url_text_hovered", int64_t(IM_COL32(102, 153, 255, 255)) };
     m_ui_colors[cast::to_szt(AppColor::Starred)] =                           { "color_starred", int64_t(IM_COL32(255, 215, 0, 255)) };
+
 
     m_stat_limits_warn.resize(cast::to_szt(MetricLimit::_count));
     m_stat_limits_crit.resize(cast::to_szt(MetricLimit::_count));

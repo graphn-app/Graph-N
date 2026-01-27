@@ -85,8 +85,8 @@ public:
 	std::string extract_buffer() { return std::move(m_buffer); }
     const std::string& get_buffer() const { return std::move(m_buffer); }
 
-	void log_line_start_file(const char* file, int line);
-	void log_line_start_foo(const char* foo, int line);
+	void log_line_start_file(const char* file, int32_t line);
+	void log_line_start_foo(const char* foo, int32_t line);
 
 	LogWriter& operator << (const char* str);
 	LogWriter& operator << (const std::string& str);

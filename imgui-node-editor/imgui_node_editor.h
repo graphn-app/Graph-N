@@ -226,7 +226,7 @@ struct Style
 
     Style()
     {
-        NodePadding              = ImVec4(8, 8, 8, 8);
+        NodePadding              = ImVec4(2, 8, 2, 8);
         NodeRounding             = 12.0f;
         NodeBorderWidth          = 1.5f;
         HoveredNodeBorderWidth   = 3.5f;
@@ -324,6 +324,7 @@ IMGUI_NODE_EDITOR_API void EndGroupHint();
 IMGUI_NODE_EDITOR_API ImDrawList* GetNodeBackgroundDrawList(NodeId nodeId);
 
 IMGUI_NODE_EDITOR_API bool Link(LinkId id, PinId startPinId, PinId endPinId, const ImVec4& color = ImVec4(1, 1, 1, 1), float thickness = 1.0f);
+IMGUI_NODE_EDITOR_API bool Link(LinkId id, PinId startPinId, PinId endPinId, ImU32 color = IM_COL32_WHITE, float thickness = 1.0f);
 
 IMGUI_NODE_EDITOR_API void Flow(LinkId linkId, FlowDirection direction = FlowDirection::Forward);
 

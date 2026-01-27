@@ -46,8 +46,8 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
 
     Data data;
     data.node = m_wf->add_node(node);
-    const auto ideal = data.node->calc_node_width();
-    const auto actual = data.node->recalc_node_width(0.0f, false, false, true);
+    const auto ideal = data.node->calc_node_width(true /*ro*/);
+    const auto actual = data.node->recalc_node_width(true /*ro*/, 0.0f, false, false, true);
     data.ideal_size = std::max(ideal, actual);
     if (!node->description.empty())
     {

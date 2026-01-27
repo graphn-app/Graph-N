@@ -12,7 +12,7 @@ AppInstance::AppInstance(WakeUpCallback on_wake_up)
     auto port_path = fs::get_root_directory_path();
     port_path /= m_port_file;
 
-    int target_port = 0;
+    int32_t target_port = 0;
     std::ifstream in_file(port_path);
     if (in_file.is_open())
     {
@@ -38,7 +38,7 @@ AppInstance::AppInstance(WakeUpCallback on_wake_up)
 
     // we're the first instance
     // search for available port
-    const int port = m_server->bind_to_any_port("127.0.0.1");
+    const int32_t port = m_server->bind_to_any_port("127.0.0.1");
     if (port > 0)
     {
         Log("Port binded: " << port);

@@ -5,6 +5,7 @@ namespace data
 {
 class NodeInstance;
 class PinInstance;
+class Link;
 }
 
 namespace ax::NodeEditor
@@ -40,6 +41,9 @@ public:
     void draw_node(data::NodeInstance* node, float ideal_fit_w);
     void post_draw_node(data::NodeInstance* node);
 
+    void draw_links(const std::vector<std::unique_ptr<data::Link>>& links);
+    void query_links();
+
     data::PinInstance* get_ml_widget_active() const;
 
 private:
@@ -47,7 +51,8 @@ private:
     void draw_input_pin(data::PinInstance* pin);
     void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width, bool draw_control_after_generate = false);
     void draw_output_pin(data::PinInstance* pin);
-    void draw_pin_icon(data::PinInstance* pin, bool input);
+    void draw_pin(data::PinInstance* pin);
+    void draw_pin_shape(data::PinInstance* pin);
     void draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width);
@@ -74,6 +79,7 @@ private:
     std::unique_ptr<ImGuiExNe::DeferredAction> m_deffered_action;
     data::NodeInstance* m_active_node = nullptr;
     float m_curr_node_left_offset = 0.0f;
+    data::PinInstance* m_querying_pin = nullptr;
 
     // TODO: remove
     std::set<void*> m_ids_imgui;

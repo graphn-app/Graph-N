@@ -247,7 +247,7 @@ LogWriter::LogWriter()
     m_buffer.reserve(512);
 }
 
-void LogWriter::log_line_start_file(const char * file, int line)
+void LogWriter::log_line_start_file(const char * file, int32_t line)
 {
     if (nullptr == file)
     {
@@ -282,7 +282,7 @@ void LogWriter::log_line_start_file(const char * file, int line)
     }
 }
 
-void LogWriter::log_line_start_foo(const char * foo, int line)
+void LogWriter::log_line_start_foo(const char * foo, int32_t line)
 {
     if (nullptr == foo)
     {

@@ -398,7 +398,7 @@ void PanelNodes::on_alloc_tt_data(int32_t idx)
         m_wf->remove_node(m_tt_node);
     m_tt_idx = idx;
     m_tt_node = m_wf->add_node(((data::Nodes*)m_panel_items[idx].ptr)->node);
-    m_tt_width = m_tt_node->calc_node_width();
+    m_tt_width = m_tt_node->calc_node_width(true /*ro*/);
 }
 
 void PanelNodes::on_release_tt_data(int32_t /*idx*/)
