@@ -103,7 +103,7 @@ void RenderDeferredCombo(DeferredAction& act)
     }
 }
 
-bool InputTextWithHint(DeferredAction& act, void* node_id, void* pin_id, const char* label, const char* hint, const char* str)
+bool InputTextWithHint(DeferredAction& act, void* /*node_id*/, void* pin_id, const char* label, const char* hint, const char* str)
 {
     ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;
@@ -124,7 +124,7 @@ bool InputTextWithHint(DeferredAction& act, void* node_id, void* pin_id, const c
     const bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
     if (pressed)
     {
-        act.active_node = node_id;
+        //act.active_node = node_id;
         act.active_pin = pin_id;
     }
 

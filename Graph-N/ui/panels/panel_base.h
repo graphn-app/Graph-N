@@ -36,6 +36,7 @@ public:
 
 protected:
     void set_name(const std::string& new_name) { m_panel_name = new_name; }
+    void set_id(const std::string& new_id) { m_panel_id = new_id; }
 
     bool begin_panel(bool& opened, bool& focused, bool save_pos = true, bool always_active = false)
     {

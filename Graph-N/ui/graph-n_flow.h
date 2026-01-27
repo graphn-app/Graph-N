@@ -25,6 +25,8 @@ class PanelTemplates;
 class PanelOutput;
 class PanelNotes;
 class PanelModels;
+class PanelTextEditor;
+class PanelMarkdownPreview;
 
 
 enum ViewDialogs
@@ -47,6 +49,8 @@ enum ViewDialogs
     ViewPanelTemplates          = 0x00004000,
     ViewPanelOutput             = 0x00008000,
     ViewPanelNotes              = 0x00010000,
+    ViewPanelTextEditor         = 0x00080000,
+    ViewPanelMarkdownPreview    = 0x00100000,
 
     ViewDebugMetrics            = 0x01000000,
     ViewDebugDemo               = 0x02000000,
@@ -56,11 +60,11 @@ enum ViewDialogs
     ViewStyleSelector           = 0x20000000,
     ViewFontSelector            = 0x40000000,
 
-    _ViewNextAvail              = 0x00080000,
+    _ViewNextAvail              = 0x00200000,
 
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWf | ViewPanelWfList | ViewPanelModels |
-                                  ViewPanelTemplates | ViewPanelOutput | ViewPanelNotes,
+                                  ViewPanelTemplates | ViewPanelOutput | ViewPanelNotes | ViewPanelTextEditor | ViewPanelMarkdownPreview,
     ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector
 };
 

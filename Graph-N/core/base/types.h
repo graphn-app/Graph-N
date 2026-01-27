@@ -46,6 +46,8 @@ enum class DlgObj
     PanelOutput,
     PanelNotes,
     PanelModels,
+    PanelTextEditor,
+    PanelMarkdownPreview,
 
     _count,
     _first = _none + 1,
