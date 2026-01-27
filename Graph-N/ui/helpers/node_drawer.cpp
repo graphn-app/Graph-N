@@ -26,21 +26,9 @@ NodeDrawer::NodeDrawer()
 NodeDrawer::~NodeDrawer()
 {
     LogF;
-}
 
-NodeDrawer::NodeDrawer(NodeDrawer&& other)
-    : NodeDrawer()
-{
-    *this = std::move(other);
-}
-
-NodeDrawer& NodeDrawer::operator=(NodeDrawer&& other)
-{
-    if (this == &other)
-        return *this;
-
-    m_curr_node_left_offset = other.m_curr_node_left_offset;
-    return *this;
+    if (m_context != nullptr)
+        ed::DestroyEditor(m_context);
 }
 
 void test_id(std::set<void*>& set, void* ptr)
@@ -52,7 +40,71 @@ void test_id(std::set<void*>& set, void* ptr)
     }
 }
 
-float NodeDrawer::draw(data::NodeInstance* node, float ideal_fit_w)
+void NodeDrawer::init()
+{
+    LogF;
+
+    m_deffered_action = std::make_unique<ImGuiExNe::DeferredAction>();
+
+    ed::Config config;
+    config.SettingsFile = nullptr;
+    m_context = ed::CreateEditor(&config);
+}
+
+void NodeDrawer::free()
+{
+    LogF;
+
+    m_deffered_action.reset();
+
+    if (m_context != nullptr)
+        ed::DestroyEditor(m_context);
+    m_context = nullptr;
+}
+
+void NodeDrawer::pre_draw_all(const char* id)
+{
+    ed::SetCurrentEditor(m_context);
+    ed::Begin(id, ImVec2(0, 0));
+}
+
+void NodeDrawer::post_draw_all()
+{
+    ed::End();
+    ed::SetCurrentEditor(nullptr);
+
+    ImGuiExNe::RenderDeferredCombo(*m_deffered_action.get());
+}
+
+void NodeDrawer::pre_draw_node(data::NodeInstance* node)
+{
+    const bool deferred_node_active = m_deffered_action->active_node == node;
+    if (deferred_node_active)
+    {
+        if (!ed::IsNodeSelected(cast::to_ptr(node)))
+            ed::SelectNode(cast::to_ptr(node), true);
+    }
+    else if (m_deffered_action->active_node != nullptr)
+    {
+        ed::DeselectNode(cast::to_ptr(node));
+    }
+
+    ed::BeginNode(cast::to_ptr(node));
+}
+
+void NodeDrawer::post_draw_node(data::NodeInstance* /*node*/)
+{
+    ed::EndNode();
+}
+
+data::PinInstance* NodeDrawer::get_ml_widget_active() const
+{
+    if (nullptr == m_deffered_action->active_pin)
+        return nullptr;
+    return cast::ptrs<data::PinInstance>(m_deffered_action->active_pin);
+}
+
+void NodeDrawer::draw_node(data::NodeInstance* node, float ideal_fit_w)
 {
     m_ids_imgui.clear();
     m_ids_nodelib.clear();
@@ -183,12 +235,7 @@ float NodeDrawer::draw(data::NodeInstance* node, float ideal_fit_w)
     }
 
     m_active_node = nullptr;
-    return ideal_fit_w;
-}
-
-void NodeDrawer::draw_deferred()
-{
-    ImGuiExNe::RenderDeferredCombo();
+    //return ideal_fit_w;
 }
 
 void NodeDrawer::draw_node_header(data::NodeInstance* node)
@@ -277,6 +324,14 @@ void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, fl
     }
 }
 
+void NodeDrawer::handle_widget_active_state()
+{
+    if (ImGui::IsItemActivated())
+    {
+        ed::SelectNode(cast::to_ptr(m_active_node));
+    }
+}
+
 void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
@@ -293,6 +348,7 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    handle_widget_active_state();
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -311,6 +367,7 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
         ImGuiEx::SliderIntSmart("##value", val, *min, *max, obj->precision.c_str());
         break;
     }
+    handle_widget_active_state();
 
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
     ImGui::PopID();
@@ -332,6 +389,7 @@ void NodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_widt
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    handle_widget_active_state();
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -348,6 +406,7 @@ void NodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_widt
         ImGuiEx::DragUIntSmart("##value", val, *min, *max, obj->precision.c_str());
         break;
     }
+    handle_widget_active_state();
 
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
     ImGui::PopID();
@@ -369,6 +428,7 @@ void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_wid
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    handle_widget_active_state();
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -387,6 +447,7 @@ void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_wid
         ImGuiEx::SliderDoubleSmart("##value", val, *min, *max, obj->precision.c_str());
         break;
     }
+    handle_widget_active_state();
 
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
     ImGui::PopID();
@@ -404,6 +465,7 @@ void NodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_widt
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    handle_widget_active_state();
     ImGui::PopStyleColor();
     ImGui::SameLine(0.0f, 0.0f);
 
@@ -418,6 +480,7 @@ void NodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_widt
         ImGuiEx::BooleanToggleLED(*val ? obj->label_on.c_str() : obj->label_off.c_str(), val, false, false, widget_value_width);
         break;
     }
+    handle_widget_active_state();
 
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
     ImGui::PopID();
@@ -433,8 +496,10 @@ void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width
     ImGui::PushID(val);
     test_id(m_ids_imgui, val);
 
-    ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
-    ImGuiEx::InputTextWithHint("", placeholder.c_str(), val);
+    ImGui::PushItemWidth(widget_name_width + widget_value_width);
+    ImGuiEx::InputTextWithHint("##value", placeholder.c_str(), val);
+    handle_widget_active_state();
+    ImGui::PopItemWidth();
 
     bool tt_mod = false;
     if (!val->empty())
@@ -456,7 +521,10 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
     ImGui::PushID(val);
     test_id(m_ids_imgui, val);
 
-    ImGuiEx::InputTextMultilineWithHint("", placeholder.c_str(), val, ImVec2(widget_name_width + widget_value_width, 0));
+    ImGui::PushTextWrapPos(0.0f);
+    ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
+    ImGuiExNe::InputTextWithHint(*m_deffered_action.get(), m_active_node, pin, "##value", val->c_str(), placeholder.c_str());
+    ImGui::PopTextWrapPos();
 
     bool tt_mod = false;
     if (!val->empty())
@@ -483,12 +551,13 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    handle_widget_active_state();
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::SetNextItemWidth(widget_value_width);
 
-    ImGuiExNe::Combo(m_active_node, "##value", &pin->m_state->combo_index, obj->combo_items_ptr.data(), cast::to_i32(obj->combo_items_ptr.size()));
+    ImGuiExNe::Combo(*m_deffered_action.get(), m_active_node, pin, "##value", &pin->m_state->combo_index, obj->combo_items_ptr.data(), cast::to_i32(obj->combo_items_ptr.size()));
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
     ImGui::PopID();
 }
@@ -504,6 +573,7 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    handle_widget_active_state();
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -516,6 +586,7 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     {
         state->value = data::Pin::colors_to_int(state->colors);
     }
+    handle_widget_active_state();
 
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
     ImGui::PopID();
@@ -535,11 +606,12 @@ void NodeDrawer::draw_widget_control_after_generate(data::PinInstance* pin, floa
             ImGui::SetNextItemWidth(widget_name_width);
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
             ImGui::InputText("##CAGControlName", "control", ImGuiInputTextFlags_ReadOnly);
+            handle_widget_active_state();
             ImGui::PopStyleColor();
 
             ImGui::SameLine(0.0f, 0.0f);
             ImGui::SetNextItemWidth(widget_value_width);
-            ImGuiExNe::Combo(m_active_node, "##CAGComboValue", &state->control_after_generate_value, data::ControlAfterGenerateStr, sizeof(data::ControlAfterGenerateStr) / sizeof(data::ControlAfterGenerateStr[0]));
+            ImGuiExNe::Combo(*m_deffered_action.get(), m_active_node, pin, "##CAGComboValue", &state->control_after_generate_value, data::ControlAfterGenerateStr, sizeof(data::ControlAfterGenerateStr) / sizeof(data::ControlAfterGenerateStr[0]));
             ImGui::PopID();
         }
     }

@@ -4,8 +4,6 @@
 #include "core/managers/workflows_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/node_instance.h"
-#include "imgui_node_editor.h"
-#include "ui/helpers/imgui_ex_ne.h"
 
 
 // TODO: remove
@@ -341,8 +339,6 @@ void ComplexStressTest::Render(ed::EditorContext* context, ID3D11ShaderResourceV
 namespace ui
 {
 
-namespace ed = ax::NodeEditor;
-
 PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std::string& panel_id, ImGuiID dock)
     : PanelBase(DlgObj::PanelWf, (ICON_LC_WORKFLOW " " + name).c_str(), ICON_LC_WORKFLOW, panel_id.c_str(), true)
     , m_wf(workflow_id)
@@ -353,9 +349,6 @@ PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std
 PanelWorkflow::~PanelWorkflow()
 {
     LogF;
-
-    if (m_context != nullptr)
-        ed::DestroyEditor(m_context);
 }
 
 void PanelWorkflow::stop_all_threads()
@@ -367,10 +360,7 @@ void PanelWorkflow::free()
 {
     LogF;
     m_wf = 0;
-
-    if (m_context != nullptr)
-        ed::DestroyEditor(m_context);
-    m_context = nullptr;
+    m_drawer.free();
 }
 
 void PanelWorkflow::init()
@@ -379,13 +369,7 @@ void PanelWorkflow::init()
     PanelBase::init();
 
     m_nodes.reserve(100);
-
-    ed::Config config;
-    config.SettingsFile = nullptr;
-    m_context = ed::CreateEditor(&config);
-
-    // TODO: remove
-    //g_StressTest.Initialize();
+    m_drawer.init();
 }
 
 void PanelWorkflow::restore_pos()
@@ -443,37 +427,17 @@ void PanelWorkflow::draw_wf()
     ImGuiConfigFlags old_flags = io.ConfigFlags;
     io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
-    ed::SetCurrentEditor(m_context);
-    ed::Begin(get_panel_id(), ImVec2(0, 0));
-
+    m_drawer.pre_draw_all(get_panel_id());
     for (auto node : m_nodes)
     {
-        const bool deferred_node_active = ImGuiExNe::GetDeferredID() == node;
-        if (deferred_node_active)
-        {
-            if (!ed::IsNodeSelected(cast::to_ptr(node)))
-                ed::SelectNode(cast::to_ptr(node), true);
-
- //           const ImVec4 sel_color = ed::GetStyle().Colors[ed::StyleColor_SelNodeBorder];
- //           ed::PushStyleColor(ed::StyleColor_NodeBorder, sel_color);
-  //          ed::PushStyleVar(ed::StyleVar_NodeBorderWidth, ed::GetStyle().SelectedNodeBorderWidth); 
-        }
-        else if (ImGuiExNe::GetDeferredID() != nullptr)
-        {
-            ed::DeselectNode(cast::to_ptr(node));
-        }
-
         ImGui::PushID(node);
-        ed::BeginNode(cast::to_ptr(node));
-        m_drawer.draw(node, node->get_object()->w_fit);
-        ed::EndNode();
+        m_drawer.pre_draw_node(node);
+        m_drawer.draw_node(node, node->get_object()->w_fit);
+        m_drawer.post_draw_node(node);
         ImGui::PopID();
     }
+    m_drawer.post_draw_all();
 
-    ed::End();
-    ed::SetCurrentEditor(nullptr);
-
-    m_drawer.draw_deferred();
     ImGui::GetIO().ConfigFlags = old_flags;
 }
 

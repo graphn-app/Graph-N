@@ -7,6 +7,16 @@ class NodeInstance;
 class PinInstance;
 }
 
+namespace ax::NodeEditor
+{
+struct EditorContext;
+}
+
+namespace ImGuiExNe
+{
+struct DeferredAction;
+}
+
 namespace ui
 {
 
@@ -16,14 +26,21 @@ public:
     NodeDrawer();
     ~NodeDrawer();
 
-    NodeDrawer(const NodeDrawer&) = delete;
-    NodeDrawer& operator=(const NodeDrawer&) = delete;
+    NO_COPY_MOVE(NodeDrawer);
 
-    NodeDrawer(NodeDrawer&&);
-    NodeDrawer& operator=(NodeDrawer&&);
+    inline ImGuiExNe::DeferredAction* get_deffered_action() const { return m_deffered_action.get(); }
 
-    float draw(data::NodeInstance* node, float ideal_fit_w);
-    void draw_deferred();
+    void init();
+    void free();
+
+    void pre_draw_all(const char* id);
+    void post_draw_all();
+
+    void pre_draw_node(data::NodeInstance* node);
+    void draw_node(data::NodeInstance* node, float ideal_fit_w);
+    void post_draw_node(data::NodeInstance* node);
+
+    data::PinInstance* get_ml_widget_active() const;
 
 private:
     void draw_node_header(data::NodeInstance* node);
@@ -44,6 +61,8 @@ private:
     void draw_widget_control_after_generate(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_separator(float offset, float width);
 
+    void handle_widget_active_state();
+
 private:
     const ImU32 m_clr_node_header_bg;
     const ImU32 m_clr_node_header_text;
@@ -51,6 +70,8 @@ private:
     const ImU32 m_clr_node_pin_text;
     const ImU32 m_clr_node_border;
 
+    ax::NodeEditor::EditorContext* m_context = nullptr;
+    std::unique_ptr<ImGuiExNe::DeferredAction> m_deffered_action;
     data::NodeInstance* m_active_node = nullptr;
     float m_curr_node_left_offset = 0.0f;
 

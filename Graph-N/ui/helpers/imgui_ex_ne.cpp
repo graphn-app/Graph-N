@@ -7,23 +7,7 @@ namespace ImGuiExNe
 
 namespace ed = ax::NodeEditor;
 
-struct DeferredAction final
-{
-    void* deffered_id = nullptr;
-    bool is_active = false;
-    bool do_open = false;
-    ImVec2 screen_pos;
-    float width = 0.0f;
-    std::function<bool(bool)> draw_foo;
-};
-inline DeferredAction g_combo_deferred_action;
-
-void* GetDeferredID()
-{
-    return g_combo_deferred_action.deffered_id;
-}
-
-void Combo(void* deffered_id, const char* label, int* current_item, const char* const items[], int items_count)
+void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, int* current_item, const char* const items[], int items_count)
 {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -50,19 +34,21 @@ void Combo(void* deffered_id, const char* label, int* current_item, const char* 
     bool hovered = false, held = false, popup_open = false;
     if (ImGui::ButtonBehavior(bb, id, &hovered, &held))
     {
-        g_combo_deferred_action.deffered_id = deffered_id;
-        g_combo_deferred_action.is_active = true;
-        g_combo_deferred_action.do_open = true;
+        act.active_node = node_id;
+        act.active_pin = pin_id;
+
+        act.combo.is_active = true;
+        act.combo.do_open = true;
 
         ImVec2 min_screen = ed::CanvasToScreen(pos_before);
-        g_combo_deferred_action.screen_pos = min_screen;
-        g_combo_deferred_action.screen_pos.y += ImGui::GetItemRectSize().y;
-        g_combo_deferred_action.width = w;
+        act.combo.screen_pos = min_screen;
+        act.combo.screen_pos.y += ImGui::GetItemRectSize().y;
+        act.combo.width = w;
 
-        g_combo_deferred_action.draw_foo = [=, &popup_open](bool do_open)
+        act.combo.draw_foo = [=, &popup_open, &act](bool do_open)
         {
-            ImGui::SetNextWindowPos(g_combo_deferred_action.screen_pos);
-            ImGui::SetNextWindowSizeConstraints(ImVec2(g_combo_deferred_action.width, 0), ImVec2(FLT_MAX, 300));
+            ImGui::SetNextWindowPos(act.combo.screen_pos);
+            ImGui::SetNextWindowSizeConstraints(ImVec2(act.combo.width, 0), ImVec2(FLT_MAX, 300));
 
             if (do_open)
                 ImGui::OpenPopup("##{592DCC05-159B-44BC-B96C-49FE4643D127}");
@@ -103,17 +89,70 @@ void Combo(void* deffered_id, const char* label, int* current_item, const char* 
         ImGui::RenderText(ImVec2(bb.Max.x + style.ItemInnerSpacing.x, bb.Min.y + style.FramePadding.y), label);
 }
 
-void RenderDeferredCombo()
+void RenderDeferredCombo(DeferredAction& act)
 {
-    if (g_combo_deferred_action.is_active && g_combo_deferred_action.draw_foo)
+    if (act.combo.is_active && act.combo.draw_foo)
     {
-        g_combo_deferred_action.is_active = g_combo_deferred_action.draw_foo(g_combo_deferred_action.do_open);
-        g_combo_deferred_action.do_open = false;
-        if (!g_combo_deferred_action.is_active)
+        act.combo.is_active = act.combo.draw_foo(act.combo.do_open);
+        act.combo.do_open = false;
+        if (!act.combo.is_active)
         {
-            g_combo_deferred_action.deffered_id = nullptr;
+            act.active_node = nullptr;
+            act.active_pin = nullptr;
         }
     }
+}
+
+bool InputTextWithHint(DeferredAction& act, void* node_id, void* pin_id, const char* label, const char* hint, const char* str)
+{
+    ImGuiContext& g = *GImGui;
+    const ImGuiStyle& style = g.Style;
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+
+    const float height = (ImGui::GetTextLineHeight() * 4) + (style.FramePadding.y * 2.0f);
+    const float width = ImGui::CalcItemWidth();
+
+    const ImVec2 pos = window->DC.CursorPos;
+    const ImRect bb(pos, ImVec2(pos.x + width, pos.y + height));
+
+    ImGui::ItemSize(bb, style.FramePadding.y);
+    const ImGuiID id = window->GetID(label);
+    if (!ImGui::ItemAdd(bb, id))
+        return false;
+
+    bool hovered, held;
+    const bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+    if (pressed)
+    {
+        act.active_node = node_id;
+        act.active_pin = pin_id;
+    }
+
+    hovered = (pin_id == act.active_pin);
+
+    const ImU32 bg_col = ImGui::GetColorU32(hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
+    const ImU32 border_col = ImGui::GetColorU32(ImGuiCol_Border);
+
+    window->DrawList->AddRectFilled(bb.Min, bb.Max, bg_col, style.FrameRounding);
+    if (style.FrameBorderSize > 0.0f)
+        window->DrawList->AddRect(bb.Min, bb.Max, border_col, style.FrameRounding, 0, style.FrameBorderSize);
+
+    ImGui::PushClipRect(bb.Min, bb.Max, true); 
+
+    const ImVec2 text_pos = bb.Min + style.FramePadding;
+
+    if (str != nullptr && *str != 0)
+    {
+        window->DrawList->AddText(text_pos, ImGui::GetColorU32(ImGuiCol_Text), str);
+    }
+    else if (hint != nullptr && *hint != 0)
+    {
+        window->DrawList->AddText(text_pos, ImGui::GetColorU32(ImGuiCol_TextDisabled), hint);
+    }
+
+    ImGui::PopClipRect();
+
+    return pressed;
 }
 
 } // namespace ImGuiExNe
