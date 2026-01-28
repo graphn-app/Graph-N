@@ -6,24 +6,23 @@ namespace data
 {
 struct Pin;
 struct PinState;
-class NodeInstance;
 
 class PinInstance final : public Instance<Pin>
 {
 public:
-    PinInstance(Workflow* wf, Pin* obj, NodeInstance* parent_instance, iid instance_id, gid graph_id);
+    PinInstance(iid parent_node, Pin* obj, wid workflow_id, iid instance_id);
     ~PinInstance() override;
 
     void init() override;
 
-    NodeInstance* get_parent_instance() const { return m_parent_instance; }
+    inline iid get_parent_node() const { return m_parent_node; }
 
 protected:
     data::Pin* find_obj(hid obj_id) const override;
 
 public:
     std::unique_ptr<PinState> m_state;
-    NodeInstance* m_parent_instance = nullptr;
+    iid m_parent_node = 0;
 };
 
 } // namespace data

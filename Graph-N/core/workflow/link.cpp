@@ -1,16 +1,14 @@
 
 #include "core/workflow/link.h"
 #include "core/workflow/pin_instance.h"
-#include "core/workflow/workflow.h"
-#include "core/data/pin.h"
-#include "core/managers/nodes_manager.h"
+#include "core/managers/workflows_manager.h"
 
 namespace data
 {
 
-Link::Link(Workflow* wf, gid graph_id)
-    : m_wf(wf)
-    , m_graph_id(graph_id)
+Link::Link(wid workflow_id, iid link_id)
+    : m_workflow_id(workflow_id)
+    , m_iid(link_id)
 {}
 
 Link::~Link()
@@ -23,7 +21,7 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
         LogAndThrowInternalError(ExcepCategory::Logic, "Null link");
     }
 
-    if (i1->get_workflow() != i2->get_workflow())
+    if (i1->get_workflow_id() != i2->get_workflow_id())
     {
         LogAndThrowInternalError(ExcepCategory::Logic, "Different workflow");
     }
@@ -31,7 +29,7 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     const auto p1 = i1->get_object();
     const auto p2 = i2->get_object();
 
-    if (i1 == i2 || i1->get_parent_instance() == i2->get_parent_instance())
+    if (i1 == i2 || i1->get_parent_node() == i2->get_parent_node())
         return false;
 
     const auto& s1 = i1->m_state;
@@ -67,7 +65,8 @@ Link* Link::link(PinInstance* i1, PinInstance* i2)
         LogAndThrowInternalError(ExcepCategory::Logic, "Check can link before entablish connection");
     }
 
-    auto link = i1->get_workflow()->add_link();
+    auto wf = g::pWfsManager->access(i1->get_workflow_id());
+    auto link = wf->add_link();
 
     auto p1 = i1->get_object();
     auto p2 = i2->get_object();
@@ -91,46 +90,41 @@ Link* Link::link(PinInstance* i1, PinInstance* i2)
     s1->links++;
     s2->links++;
 
-    if (p1->input)
-    {
-        link->m_input = i1;
-        link->m_output = i2;
-    }
-    else
-    {
-        link->m_input = i2;
-        link->m_output = i1;
-    }
+    link->m_input = (p1->input ? i1 : i2);
+    link->m_output = (p1->output ? i1 : i2);
 
-    Log("Link+: link id=" << link->m_graph_id << ", pin id=" << link->m_input->get_graph_id() << "/" << p1->get_id() << " linked to id=" << link->m_output->get_graph_id() << "/" << p2->get_id());
+    Log("Linked: wid=" << link->m_workflow_id << ", iid=" << link->m_iid << ", in=" << link->m_input << ", out=" << link->m_output);
     return link;
 }
 
 void Link::unlink()
 {
-    auto p1 = m_input->get_object();
-    auto p2 = m_output->get_object();
+    auto p1 = m_input;
+    auto p2 = m_output;
 
-    auto& s1 = m_input->m_state;
-    auto& s2 = m_output->m_state;
+    auto& s1 = p1->m_state;
+    auto& s2 = p2->m_state;
 
     s1->links--;
     s2->links--;
 
-    if (p1->type_any && 0 == s1->links)
+    auto o1 = p1->get_object();
+    auto o2 = p2->get_object();
+
+    if (o1->type_any && 0 == s1->links)
     {
-        s1->type = p1->def_state.type;
-        s1->type_str = p1->def_state.type_str;
-        s1->pin_color = p1->def_state.pin_color;
+        s1->type = o1->def_state.type;
+        s1->type_str = o1->def_state.type_str;
+        s1->pin_color = o1->def_state.pin_color;
     }
-    if (p2->type_any && 0 == s2->links)
+    if (o2->type_any && 0 == s2->links)
     {
-        s2->type = p2->def_state.type;
-        s2->type_str = p2->def_state.type_str;
-        s2->pin_color = p2->def_state.pin_color;
+        s2->type = o2->def_state.type;
+        s2->type_str = o2->def_state.type_str;
+        s2->pin_color = o2->def_state.pin_color;
     }
 
-    Log("Link-: link id=" << m_graph_id << ", pin id=" << m_input->get_graph_id() << "/" << p1->get_id() << " unlinked from id=" << m_output->get_graph_id() << "/" << p2->get_id());
+    Log("Unlinked: wid=" << m_workflow_id << ", iid=" << m_iid << ", in=" << m_input << ", out=" << m_output);
 }
 
 } // namespace data

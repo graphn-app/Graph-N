@@ -33,30 +33,6 @@ private:
 };
 
 /////////////////////////////////////////////
-/////   LocalID         /////////////////////
-/////////////////////////////////////////////
-
-struct LocalID
-{
-    LocalID();
-    LocalID(lid id);
-    virtual ~LocalID() = 0;
-
-    NO_COPY_MOVE(LocalID);
-
-    virtual lid get_id() const { return m_id; }
-    const std::string& get_id_str() const { return m_id_str; }
-    void set_id(lid id);
-
-    static lid get_next_id();
-
-private:
-    static std::atomic<lid> m_last_id;
-    lid m_id = 0;
-    std::string m_id_str;
-};
-
-/////////////////////////////////////////////
 /////   HashID          /////////////////////
 /////////////////////////////////////////////
 
@@ -77,37 +53,6 @@ private:
 private:
     hid m_id = 0;
     std::string m_id_str;
-};
-
-/////////////////////////////////////////////
-/////   InstanceID      /////////////////////
-/////////////////////////////////////////////
-
-struct InstanceID
-{
-    InstanceID(lid workflow_id);
-    virtual ~InstanceID() = 0;
-
-    NO_COPY_MOVE(InstanceID);
-
-    static void erase_key(lid workflow_id);
-
-protected:
-    iid get_id() const { return m_id; }
-    lid get_workflow_id() const { return m_workflow_id; }
-
-    const std::string& get_id_str() const { return m_id_str; }
-    const std::string& get_workflow_id_str() const { return m_workflow_id_str; }
-
-private:
-    void generate_id();
-
-private:
-    static std::map<lid, iid> m_ids;
-    lid m_workflow_id = 0;
-    iid m_id = 0;
-    std::string m_id_str;
-    std::string m_workflow_id_str;
 };
 
 }

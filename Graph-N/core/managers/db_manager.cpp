@@ -635,7 +635,7 @@ void DbManager::write_wf_meta(SQLite::Database& db, const WfData* data)
         query.bind(6, data->deleted);
         query.bind(7, data->keep);
         query.exec();
-        Log("Workflow meta upd: " << data->name << "###" << data->uuid << ", lb=" << data->labels_raw << ", hs=" << data->history_steps << ", hp=" << data->history_pos << ", d=" << data->deleted);
+        Log("Workflow meta upd: '" << data->name << "', uuid=" << data->uuid << ", lb=" << data->labels_raw << ", hs=" << data->history_steps << ", hp=" << data->history_pos << ", d=" << data->deleted);
     }
     catch (const SQLite::Exception& ex)
     {

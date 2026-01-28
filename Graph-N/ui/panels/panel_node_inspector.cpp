@@ -40,7 +40,7 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
 {    
     if (nullptr == node)
         return;
-    if (std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object_id() == node->get_id(); }) != m_inspecting.end())
+    if (std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object()->get_id() == node->get_id(); }) != m_inspecting.end())
         return;
     Log("Add node '" << node->name << "' id=" << node->get_id());
 
@@ -62,7 +62,7 @@ void PanelNodeInspector::remove_inspecting_node(data::Node* node)
 {
     Log("Remove node '" << node->name << "' id=" << node->get_id());
 
-    const auto it = std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object_id() == node->get_id(); });
+    const auto it = std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object()->get_id() == node->get_id(); });
     if (it == m_inspecting.end())
     {
         LogInternalMap("Can't remove node");
@@ -84,7 +84,7 @@ bool PanelNodeInspector::is_node_inspecting(data::Node* node) const
 {
     for (auto& data : m_inspecting)
     {
-        if (data.node->get_object_id() == node->get_id())
+        if (data.node->get_object()->get_id() == node->get_id())
             return true;
     }
     return false;

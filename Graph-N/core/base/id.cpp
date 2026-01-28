@@ -55,35 +55,6 @@ std::string GlobalID::uuid()
 }
 
 /////////////////////////////////////////////
-/////   LocalID         /////////////////////
-/////////////////////////////////////////////
-
-std::atomic<lid> LocalID::m_last_id = 0;
-
-LocalID::LocalID()
-{
-    set_id(get_next_id());
-}
-
-LocalID::LocalID(lid id)
-{
-    set_id(id);
-}
-
-LocalID::~LocalID() = default;
-
-void LocalID::set_id(lid id)
-{
-    m_id = id;
-    m_id_str = std::to_string(m_id);
-}
-
-lid LocalID::get_next_id()
-{
-    return ++m_last_id;	// starts from 1
-}
-
-/////////////////////////////////////////////
 /////   HashID          /////////////////////
 /////////////////////////////////////////////
 
@@ -107,38 +78,4 @@ void HashID::set_id(hid id)
     m_id_str = std::to_string(m_id);
 }
 
-/////////////////////////////////////////////
-/////   InstanceID      /////////////////////
-/////////////////////////////////////////////
-
-std::map<lid, iid> InstanceID::m_ids;
-
-InstanceID::InstanceID(lid workflow_id)
-    : m_workflow_id(workflow_id)
-{
-    m_workflow_id_str = std::to_string(m_workflow_id);
-    generate_id();
-//    Log("InstanceID: Wf=" << m_workflow_id << ", iid=" << m_id);
-}
-
-InstanceID::~InstanceID() = default;
-
-void InstanceID::erase_key(lid workflow_id)
-{
-    m_ids.erase(workflow_id);
-}
-
-void InstanceID::generate_id()
-{
-    auto last = m_ids[m_workflow_id];
-    if (0 == last)
-    {
-        m_ids[m_workflow_id] = 1;
-    }
-    else
-    {
-        m_ids[m_workflow_id] = ++last;
-    }
-}
-
-}
+} // namespace base

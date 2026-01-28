@@ -3,7 +3,7 @@
 #include "core/workflow/workflow.h"
 #include "core/workflow/pin_instance.h"
 #include "core/managers/nodes_manager.h"
-#include "core/managers/settings_manager.h"
+#include "core/managers/workflows_manager.h"
 
 namespace data
 {
@@ -17,7 +17,9 @@ void NodeInstance::init()
     m_input.reserve(m_object->required.pins.size() + m_object->optional.pins.size());
     m_output.reserve(m_object->output.size());
 
-    const auto add_pins = [this](Workflow* wf, const std::vector<data::Pin*>& source, std::vector<PinInstance*>& dest)
+    auto wf = g::pWfsManager->access(m_wid);
+
+    const auto add_pins = [this, wf](const std::vector<data::Pin*>& source, std::vector<PinInstance*>& dest)
     {
         for (auto& pin : source)
         {
@@ -25,10 +27,10 @@ void NodeInstance::init()
         }
     };
 
-    add_pins(m_wf, m_object->required.pins, m_input);
-    add_pins(m_wf, m_object->optional.pins, m_input);
-    add_pins(m_wf, m_object->hidden.pins, m_input);
-    add_pins(m_wf, m_object->output, m_output);
+    add_pins(m_object->required.pins, m_input);
+    add_pins(m_object->optional.pins, m_input);
+    add_pins(m_object->hidden.pins, m_input);
+    add_pins(m_object->output, m_output);
 }
 
 const std::string& NodeInstance::get_name() const
@@ -45,16 +47,6 @@ void NodeInstance::set_name(std::string name)
     else
         m_name = std::move(name);
     w_name = -1.0f;
-}
-
-void NodeInstance::add_pin()
-{
-    m_saved_width = 0.0f;
-}
-
-void NodeInstance::remove_pin()
-{
-    m_saved_width = 0.0f;
 }
 
 float NodeInstance::calc_node_width(bool ro)

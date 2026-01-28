@@ -3,11 +3,11 @@
 using byte = uint8_t;
 using app_version_type = uint64_t;
 using time_type = uint64_t;
-using lid = uint32_t;	// local ID
-using hid = size_t;		// hash id, based on unique node/pin name
-using iid = uint32_t;	// instance id, to save in json
-using gid = uint64_t;	// app global id, to use in graph, based on workflow id
-using wid = uint64_t;   // workflow id - hash id, based in uuid
+//using lid = uint32_t;	// local ID
+using hid = size_t;		// hash id for pin/node, based on node/pin name
+using iid = uint32_t;	// node/pin instance id, unique for each workflow
+//using gid = uint64_t;	// app global id, to use in graph, based on workflow id
+using wid = uint32_t;   // workflow id - crc32 of uuid
 using byte_buff = std::vector<byte>;
 using primitive = std::variant<int64_t, uint64_t, double, std::string, bool, std::monostate>;
 

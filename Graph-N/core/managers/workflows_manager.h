@@ -56,7 +56,7 @@ public:
     data::Workflow* access(wid id) const;
 
 private:
-    data::Workflow* create(WfData&& pdata);
+    data::Workflow* create(WfData&& data);
 
     data::Workflow* find(wid id) const;
     WfData& find_data(wid id) const;

@@ -5,7 +5,6 @@
 namespace data
 {
 
-class Workflow;
 class PinInstance;
 struct Node;
 
@@ -22,13 +21,6 @@ public:
 
     const std::string& get_name() const;
     void set_name(std::string name);
-
-    // reroute
-    void add_pin();
-    void remove_pin();
-
-    void move(ImVec2 pos) { m_pos = pos; }
-    const ImVec2& get_pos() const { return m_pos; }
 
 protected:
     Node* find_obj(hid obj_id) const override;
@@ -54,7 +46,6 @@ public:
 private:
     float m_saved_width = -1.0f;
     std::string m_name;
-    ImVec2 m_pos;
 };
 
 } // namespace data

@@ -5,10 +5,9 @@
 
 namespace data
 {
-struct Nodes final : public base::LocalID
+struct Nodes final
 {
-    Nodes() = default;
-    ~Nodes() override = default;
+    NO_COPY_MOVE_CTORS(Nodes);
 
     Node* node = nullptr;
     bool is_node = false;

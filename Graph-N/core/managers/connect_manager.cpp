@@ -123,7 +123,7 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std:
 
             if (res && 200 == res->status)
             {
-                Log("Thread " << data->conn_th_id << "Start reading nodes: " << res->body.size() << " bytes");
+                Log("Thread " << data->conn_th_id << ". Start reading nodes: " << res->body.size() << " bytes");
                 data->state = ConnectState::Connected;
                 data->data = std::move(res->body);
                 return data;

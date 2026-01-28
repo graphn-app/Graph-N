@@ -28,18 +28,17 @@ struct DlgData
     std::vector<std::string> buffer;
 };
 
-class BaseDlg : public base::LocalID
+class BaseDlg
 {
 public:
     BaseDlg(DlgObj obj)
         : m_obj(obj)
     {}
-    ~BaseDlg() = default;
+    virtual ~BaseDlg() = default;
 
     NO_COPY_MOVE(BaseDlg);
 
     void set_focused() { m_focused = true; }
-    inline lid get_dlg_id() const { return base::LocalID::get_id(); }
 
     DlgCode show_dialog(bool& focused)
     {
@@ -60,9 +59,6 @@ public:
     {}
 
     virtual void stop_all_threads() { LogF; }
-
-private:
-    lid get_id() const override { return 0; } // closed due to name confusing, call get_dlg_id instead
 
 protected:
     virtual DlgCode show(bool& focused) = 0;

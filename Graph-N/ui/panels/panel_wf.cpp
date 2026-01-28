@@ -77,16 +77,17 @@ DlgCode PanelWorkflow::show(bool& focused)
     return end_panel(opened);
 }
 
-void PanelWorkflow::add_node(data::Node* node, std::optional<ImVec2> pos)
+void PanelWorkflow::add_node(data::Node* node, std::optional<ImVec2> /*pos*/)
 {
     auto wf = g::pWfsManager->access(m_wf);
     auto node_inst = wf->add_node(node);
     node_inst->calc_node_width(false /*ro*/);
 
-    if (pos.has_value())
-        node_inst->move(pos.value());
-    else
-        node_inst->move(ImVec2(100, 100));
+    // TODO
+    //if (pos.has_value())
+    //    node_inst->move(pos.value());
+    //else
+    //    node_inst->move(ImVec2(100, 100));
     m_nodes.push_back(node_inst);
 }
 

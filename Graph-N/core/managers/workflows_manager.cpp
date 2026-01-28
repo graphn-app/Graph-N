@@ -37,7 +37,7 @@ bool WfsManager::init()
 
         auto wf = create(std::move(wd));
         if (wf->get_uuid() == active)
-            m_active = wf->get_uuid_hash();
+            m_active = wf->get_id();
     }
 
     std::for_each(labels.begin(), labels.end(), [&lbs = m_labels](const std::string& label) { Log("Wf label: " << label); lbs.push_back(label); });
@@ -66,11 +66,8 @@ WfInfo WfsManager::create()
 {
     WfData data;
     data.name = "Workflow " + std::to_string(++m_wf_name_counter);
-    data.uuid = tools::str::generate_uuid_v4();
-    data.id = tools::str::hash_string(data.uuid);
-
-    const auto wf = create(std::move(data));
-    return from_data(wf->get_data());;
+    auto wf = create(std::move(data));
+    return from_data(wf->get_data());
 }
 
 data::Workflow* WfsManager::create(WfData&& data)
@@ -79,7 +76,6 @@ data::Workflow* WfsManager::create(WfData&& data)
     auto wf_ptr = wf.get();
     wf_ptr->init();
     auto& new_data = wf_ptr->get_data();
-    Log("Workflow created: " << new_data.name << "###" << new_data.uuid);
     m_wfs[new_data.id] = std::move(wf);
     g::pDbManager->wf_update_meta(new_data);
     return wf_ptr;
@@ -87,13 +83,31 @@ data::Workflow* WfsManager::create(WfData&& data)
 
 data::Workflow* WfsManager::find(wid id) const
 {
-    const auto it = m_wfs.find(id);
-    if (it == m_wfs.end())
+    const auto search_rw = [this, id]() -> data::Workflow*
+    {
+        const auto it = m_wfs.find(id);
+        if (it == m_wfs.end())
+            return nullptr;
+        return it->second.get();
+    };
+
+    const auto search_ro = [this, id]() -> data::Workflow*
+    {
+        const auto it = std::find_if(m_wfs_ro.begin(), m_wfs_ro.end(), [id](const std::unique_ptr<data::Workflow>& ptr) { return ptr->get_id() == id; });
+        if (it == m_wfs_ro.end())
+            return nullptr;
+        return (*it).get();
+    };
+
+    auto wf = search_rw();
+    if (nullptr == wf)
+        wf = search_ro();
+    if (nullptr == wf)
     {
         LogInternalLogic("Wf id=" << id << " not found");
         return nullptr;
     }
-    return it->second.get();
+    return wf;
 }
 
 WfData& WfsManager::find_data(wid id) const
