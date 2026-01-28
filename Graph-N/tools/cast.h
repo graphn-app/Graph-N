@@ -146,9 +146,9 @@ constexpr wchar_t to_wchar(T param)
 }
 
 template <typename T>
-constexpr uintptr_t to_ptr(T* param)
+constexpr std::uintptr_t to_ptr(T* param)
 {
-    return uintptr_t(param);
+    return std::uintptr_t(param);
 }
 
 template <typename DEST>
@@ -158,7 +158,7 @@ constexpr DEST* ptrs(void* param)
 }
 
 template <typename DEST>
-constexpr DEST* ptrs(uintptr_t param)
+constexpr DEST* ptrs(std::uintptr_t param)
 {
     return reinterpret_cast<DEST*>(param);
 }

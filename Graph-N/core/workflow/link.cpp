@@ -18,12 +18,12 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
 {
     if (nullptr == i1 || nullptr == i2 || i1->get_object() == nullptr || i2->get_object() == nullptr)
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Null link");
+        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Null link");
     }
 
     if (i1->get_workflow_id() != i2->get_workflow_id())
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Different workflow");
+        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Different workflow");
     }
 
     const auto p1 = i1->get_object();
@@ -62,7 +62,7 @@ Link* Link::link(PinInstance* i1, PinInstance* i2)
 {
     if (!can_link(i1, i2))
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Check can link before entablish connection");
+        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Check can link before entablish connection");
     }
 
     auto wf = g::pWfsManager->access(i1->get_workflow_id());
@@ -93,7 +93,7 @@ Link* Link::link(PinInstance* i1, PinInstance* i2)
     link->m_input = (p1->input ? i1 : i2);
     link->m_output = (p1->output ? i1 : i2);
 
-    Log("Linked: wid=" << link->m_workflow_id << ", iid=" << link->m_iid << ", in=" << link->m_input << ", out=" << link->m_output);
+    LogS("Linked: wid=" << link->m_workflow_id << ", iid=" << link->m_iid << ", in=" << link->m_input << ", out=" << link->m_output);
     return link;
 }
 

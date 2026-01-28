@@ -37,7 +37,6 @@ private:
 
 	std::ofstream m_logfs;
 	std::string m_log_path;
-	std::string m_proc_id;
 
     std::atomic_bool m_do_flush = false;
     std::atomic_bool m_do_close = false;
@@ -85,8 +84,7 @@ public:
 	std::string extract_buffer() { return std::move(m_buffer); }
     const std::string& get_buffer() const { return std::move(m_buffer); }
 
-	void log_line_start_file(const char* file, int32_t line);
-	void log_line_start_foo(const char* foo, int32_t line);
+	void log_line_start(const void* this_, const char* foo, int32_t line);
 
 	LogWriter& operator << (const char* str);
 	LogWriter& operator << (const std::string& str);
@@ -146,12 +144,12 @@ struct LogGuard final
 #endif
 
 
-#define Log(message) \
+#define LogFull(ptr, message) \
 	if (glog::Logger::get_log_enabled()) \
     { \
         try { \
             glog::LogWriter log_writer__; \
-			log_writer__.log_line_start_foo(__FUNCTION__, __LINE__); \
+			log_writer__.log_line_start(ptr, __FUNCTION__, __LINE__); \
 			log_writer__ << message << glog::LogLineEnd(); \
             glog::Logger::instance().write(log_writer__); \
         } \
@@ -167,7 +165,10 @@ struct LogGuard final
         } \
 	}
 
-#define LOG_SOMETHING_HAPPENED(category, log_prefix, message, do_throw) \
+#define Log(message)    LogFull(this, message)
+#define LogS(message)   LogFull(nullptr, message)
+
+#define LOG_SOMETHING_HAPPENED(ptr, category, log_prefix, message, do_throw) \
     { \
         glog::LogWriter log_writer_1__; \
         log_writer_1__ << message; \
@@ -177,7 +178,7 @@ struct LogGuard final
         { \
             try { \
                 glog::LogWriter log_writer_2__; \
-			    log_writer_2__.log_line_start_foo(__FUNCTION__, __LINE__); \
+			    log_writer_2__.log_line_start(ptr, __FUNCTION__, __LINE__); \
 			    log_writer_2__ << "[" << log_prefix << "] " << buffer__ << glog::LogLineEnd(); \
                 glog::Logger::instance().write(log_writer_2__); \
             } \
@@ -200,25 +201,36 @@ struct LogGuard final
     }
 
 
-#define LogWarn(message)                            Log("[WARNING] " << message)
-#define LogExcep(category, message)                 LOG_SOMETHING_HAPPENED(category, "EXCEPTION", message, false)
-#define LogError(category, message)                 LOG_SOMETHING_HAPPENED(category, "ERROR", message, false)
-#define LogInternalLogic(message)                   LOG_SOMETHING_HAPPENED(ExcepCategory::Logic, "INTERNAL_LOGIC_ERROR", message, false)
-#define LogInternalMap(message)                     LOG_SOMETHING_HAPPENED(ExcepCategory::InconsistentMap, "INTERNAL_LOGIC_ERROR:MAP", message, false)
-#define LogInternalPtr(message)                     LOG_SOMETHING_HAPPENED(ExcepCategory::InconsistentObjPtr, "INTERNAL_LOGIC_ERROR:OBJPTR", message, false)
-#define LogUnhandledJson(message)	                Log("[JSON_UNHANDLED] " << message)
-#define LogInvalidJson(message)		                Log("[JSON_INVALID] " << message)
+#define LogWarn(message)                             Log("[WARNING] " << message)
+#define LogWarnS(message)                            LogS("[WARNING] " << message)
+#define LogExcep(category, message)                  LOG_SOMETHING_HAPPENED(this, category, "EXCEPTION", message, false)
+#define LogExcepS(category, message)                 LOG_SOMETHING_HAPPENED(nullptr, category, "EXCEPTION", message, false)
+#define LogError(category, message)                  LOG_SOMETHING_HAPPENED(this, category, "ERROR", message, false)
+#define LogErrorS(category, message)                 LOG_SOMETHING_HAPPENED(nullptr, category, "ERROR", message, false)
+#define LogInternalLogic(message)                    LOG_SOMETHING_HAPPENED(this, ExcepCategory::Logic, "INTERNAL_LOGIC_ERROR", message, false)
+#define LogInternalLogicS(message)                   LOG_SOMETHING_HAPPENED(nullptr, ExcepCategory::Logic, "INTERNAL_LOGIC_ERROR", message, false)
+#define LogInternalMap(message)                      LOG_SOMETHING_HAPPENED(this, ExcepCategory::InconsistentMap, "INTERNAL_LOGIC_ERROR:MAP", message, false)
+#define LogInternalMapS(message)                     LOG_SOMETHING_HAPPENED(nullptr, ExcepCategory::InconsistentMap, "INTERNAL_LOGIC_ERROR:MAP", message, false)
+#define LogInternalPtr(message)                      LOG_SOMETHING_HAPPENED(this, ExcepCategory::InconsistentObjPtr, "INTERNAL_LOGIC_ERROR:OBJPTR", message, false)
+#define LogInternalPtrS(message)                     LOG_SOMETHING_HAPPENED(nullptr, ExcepCategory::InconsistentObjPtr, "INTERNAL_LOGIC_ERROR:OBJPTR", message, false)
+#define LogUnhandledJson(message)	                 Log("[JSON_UNHANDLED] " << message)
+#define LogUnhandledJsonS(message)	                 LogS("[JSON_UNHANDLED] " << message)
+#define LogInvalidJson(message)		                 Log("[JSON_INVALID] " << message)
+#define LogInvalidJsonS(message)		             LogS("[JSON_INVALID] " << message)
 
-#define LogAndThrow(category, message)              LOG_SOMETHING_HAPPENED(category, "EXCEPTION", message, true)
-#define LogAndThrowInternalError(category, message) LOG_SOMETHING_HAPPENED(category, "INTERNAL_LOGIC_ERROR", message, true)
+#define LogAndThrow(category, message)               LOG_SOMETHING_HAPPENED(this, category, "EXCEPTION", message, true)
+#define LogAndThrowS(category, message)              LOG_SOMETHING_HAPPENED(nullptr, category, "EXCEPTION", message, true)
+#define LogAndThrowInternalError(category, message)  LOG_SOMETHING_HAPPENED(this, category, "INTERNAL_LOGIC_ERROR", message, true)
+#define LogAndThrowInternalErrorS(category, message) LOG_SOMETHING_HAPPENED(nullptr, category, "INTERNAL_LOGIC_ERROR", message, true)
 
-#define LogFS						Log("")
-#define LogFS_In					Log(" > in")
-#define LogFS_Out    				Log(" < out")
+#define LogF						Log("")
+#define LogFS						LogS("")
 
-#define LogF						Log(glog::LogPtr(this))
-#define LogF_In						Log(glog::LogPtr(this) << " > in")
-#define LogF_Out    				Log(glog::LogPtr(this) << " < out")
+#define LogF_In						Log(" > in")
+#define LogFS_In					LogS(" > in")
+
+#define LogF_Out    				Log(" < out")
+#define LogFS_Out    				LogS(" < out")
 
 
 // Helper to convert types that fmt doesn't handle by default (like enums)
@@ -268,6 +280,7 @@ std::string format_log_msg(Args&&... args)
     return fmt::to_string(out);
 }
 #define LogV(...)				    Log(format_log_msg(__VA_ARGS__))
+#define LogVS(...)				    LogS(format_log_msg(__VA_ARGS__))
 
 #ifdef _WIN32
 #define LogERR						uint32_t(GetLastError())

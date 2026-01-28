@@ -40,7 +40,7 @@ bool WfsManager::init()
             m_active = wf->get_id();
     }
 
-    std::for_each(labels.begin(), labels.end(), [&lbs = m_labels](const std::string& label) { Log("Wf label: " << label); lbs.push_back(label); });
+    std::for_each(labels.begin(), labels.end(), [this, &lbs = m_labels](const std::string& label) { Log("Wf label: " << label); lbs.push_back(label); });
     return true;
 }
 

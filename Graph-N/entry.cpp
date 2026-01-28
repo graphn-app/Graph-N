@@ -58,7 +58,7 @@ int32_t do_main(std::atomic_bool& request_focus)
     int32_t ret = main_app->run(callback, request_focus);
     if (0 == ret)
         ret = g::pGraphN->override_exit_code();
-    Log("App exit code: " << ret);
+    LogS("App exit code: " << ret);
 
     g::pTextures = nullptr;
     g::pMain = nullptr;
@@ -80,7 +80,7 @@ int32_t main(int32_t, char**)
         AppInstance instance(
             [&request_focus](const std::string&)
             {
-                Log("Another instance tried to launch");
+                LogS("Another instance tried to launch");
                 request_focus = true;
             }
         );
@@ -91,12 +91,12 @@ int32_t main(int32_t, char**)
     }
     catch (const std::exception& ex)
     {
-        LogExcep(ExcepCategory::Main, "Main routine, err " << ex.what());
+        LogExcepS(ExcepCategory::Main, "Main routine, err " << ex.what());
         throw;
     }
     catch (...)
     {
-        LogExcep(ExcepCategory::Main, "Main routine unknown exception");
+        LogExcepS(ExcepCategory::Main, "Main routine unknown exception");
         throw;
     }
 

@@ -285,7 +285,7 @@ bool MainRoutine_Win32::create_render_target()
 void MainRoutine_Win32::init_imgui_diloag_texture()
 {
     ifd::FileDialog::Instance().CreateTexture =
-        [d3d_device = m_d3d_device.get()](uint8_t* data, int32_t w, int32_t h, char fmt) -> void*
+        [this, d3d_device = m_d3d_device.get()](uint8_t* data, int32_t w, int32_t h, char fmt) -> void*
     {
         D3D11_TEXTURE2D_DESC desc;
         ZeroMemory(&desc, sizeof(desc));
@@ -374,7 +374,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
     {
         if (SIZE_MINIMIZED == wParam)
         {
-            Log("Windows is minimized");
+            LogS("Windows is minimized");
             if (g::pGraphN)
                 g::pGraphN->handle_wnd_minimized();
             return 0;
@@ -393,7 +393,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
 
         if (SIZE_RESTORED == wParam && g::pGraphN)
         {
-            Log("Windows is restored");
+            LogS("Windows is restored");
             g::pGraphN->handle_wnd_restored();
         }
     }
@@ -403,13 +403,13 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
             return 0;
         if (SC_CLOSE == wParam && g::pGraphN)
         {
-            Log("Exit by pressing X button");
+            LogS("Exit by pressing X button");
             g::pGraphN->handle_wnd_on_close();
             return 0;
         }
         break;
     case WM_DESTROY:
-        Log("WM_DESTROY");
+        LogS("WM_DESTROY");
         ::PostQuitMessage(0);
         return 0;
     case WM_TIMER:

@@ -102,7 +102,7 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std:
 {
     LogFS;
 
-    Log("Thread " << data->conn_th_id << ". Connecting to " APP_COMFYUI ". " << data->host << ":" << data->port << ", ct=" << data->conn_timeout << ", rt=" << data->read_timeout);
+    LogS("Thread " << data->conn_th_id << ". Connecting to " APP_COMFYUI ". " << data->host << ":" << data->port << ", ct=" << data->conn_timeout << ", rt=" << data->read_timeout);
     using namespace std::chrono_literals;
     while (!data->stop_thread_flag)
     {
@@ -116,20 +116,20 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std:
             const auto res = cli.Get(comfyui_api::object_info);
             if (data->stop_thread_flag)
             {
-                Log("Thread " << data->conn_th_id << ". Connection thread aborted");
+                LogS("Thread " << data->conn_th_id << ". Connection thread aborted");
                 data->state = ConnectState::Disconnected;
                 return data;
             }
 
             if (res && 200 == res->status)
             {
-                Log("Thread " << data->conn_th_id << ". Start reading nodes: " << res->body.size() << " bytes");
+                LogS("Thread " << data->conn_th_id << ". Start reading nodes: " << res->body.size() << " bytes");
                 data->state = ConnectState::Connected;
                 data->data = std::move(res->body);
                 return data;
             }
 
-            Log("Thread " << data->conn_th_id << ". Connect failed. Err: " << httplib::to_string(res.error()));
+            LogS("Thread " << data->conn_th_id << ". Connect failed. Err: " << httplib::to_string(res.error()));
 
             for (int32_t i = 0; i < 10; ++i)
             { 
@@ -140,18 +140,18 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std:
         }
         catch (const std::exception& e)
         {
-            LogExcep(ExcepCategory::ComfyUI, "Thread " << data->conn_th_id << ". Connection failed with err " << e.what());
+            LogExcepS(ExcepCategory::ComfyUI, "Thread " << data->conn_th_id << ". Connection failed with err " << e.what());
         }
     }
 
     if (data->stop_thread_flag)
     {
-        Log("Thread " << data->conn_th_id << ". Connection thread aborted");
+        LogS("Thread " << data->conn_th_id << ". Connection thread aborted");
         data->state = ConnectState::Disconnected;
         return data;
     }
 
-    LogAndThrow(ExcepCategory::Logic, "Thread " << data->conn_th_id << ". Unexpected exit flow");
+    LogAndThrowS(ExcepCategory::Logic, "Thread " << data->conn_th_id << ". Unexpected exit flow");
 }
 
 } // namespace mngr

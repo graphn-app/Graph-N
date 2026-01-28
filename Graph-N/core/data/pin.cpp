@@ -262,7 +262,7 @@ struct Clamp
         const auto new_val = std::clamp(*old_val, min, max);
         if (*old_val != new_val)
         {
-            LogWarn("Pin '" << pin.name << ", value clump (" << old_val << ") != (" << new_val << ")");
+            LogWarnS("Pin '" << pin.name << ", value clump (" << old_val << ") != (" << new_val << ")");
         }
         p = new_val;
     }

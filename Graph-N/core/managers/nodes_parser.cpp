@@ -193,7 +193,7 @@ static TYPE json_to_number(nlohmann::json& data)
         return {};
     }
 
-    LogInternalLogic("json data unknown type " << data.type_name() << " (number expected)");
+    LogInternalLogicS("json data unknown type " << data.type_name() << " (number expected)");
     return {};
 }
 
@@ -220,7 +220,7 @@ static std::string json_to_string(nlohmann::json& data)
         return {};
     }
 
-    LogInternalLogic("json data unknown type " << data.type_name() << " (string expected)");
+    LogInternalLogicS("json data unknown type " << data.type_name() << " (string expected)");
     return {};
 }
 
@@ -244,7 +244,7 @@ static bool json_to_bool(nlohmann::json& data)
         return false;
     }
 
-    LogInternalLogic("json data unknown type " << data.type_name() << " (bool expected)");
+    LogInternalLogicS("json data unknown type " << data.type_name() << " (bool expected)");
     return false;
 }
 
@@ -270,18 +270,18 @@ static primitive get_from_pin_type(const data::Node& node, data::Pin& pin, nlohm
         break;
     }
 
-    LogUnhandledJson("Wrong pin type. node=" << node.name << ", pin=" << pin.name << ", attr=" << attr << ", type=" << json.type_name());
+    LogUnhandledJsonS("Wrong pin type. node=" << node.name << ", pin=" << pin.name << ", attr=" << attr << ", type=" << json.type_name());
     return {};
 }
 
 void NodesParser::prepare_parsers_map()
 {
-    const auto log_err_type = [](const data::Node& node, data::Pin& pin, const nlohmann::json& json, const char* attr)
+    const auto log_err_type = [this](const data::Node& node, data::Pin& pin, const nlohmann::json& json, const char* attr)
     {
         LogUnhandledJson("Unknown type node=" << node.name << ", pin=" << pin.name << ", attr=" << attr << ", type=" << json.type_name());
     };
 
-    const auto log_err_value = [](const data::Node& node, data::Pin& pin, const std::string& value, const char* attr)
+    const auto log_err_value = [this](const data::Node& node, data::Pin& pin, const std::string& value, const char* attr)
     {
         LogUnhandledJson("Unknown type node=" << node.name << ", pin=" << pin.name << ", attr=" << attr << ", value=" << value);
     };
@@ -585,7 +585,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
         //}
     }
 
-    const auto parse_order = [&node](data::Node::Input& input, const json& array)
+    const auto parse_order = [this, &node](data::Node::Input& input, const json& array)
     {
         for (const auto& item : array)
         {
@@ -696,7 +696,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
     using add_new_callback = std::function<bool(const nlohmann::json& item, data::Pin* pin)>;
     using add_def_callback = std::function<void(data::Pin* pin)>;
 
-    const auto parse_output_attr = [&json_node, &node](const char* attr_name, add_new_callback new_cb, add_def_callback def_cb)
+    const auto parse_output_attr = [this, &json_node, &node](const char* attr_name, add_new_callback new_cb, add_def_callback def_cb)
     {
         if (json_node.contains(attr_name))
         {
@@ -801,7 +801,7 @@ void NodesParser::parse_others(data::Node& node, nlohmann::json& json_node)
 {
     // python_module, experimental, deprecated, api_node
 
-    const auto get_bool = [&node, &json_node](const char* json_name, bool& value)
+    const auto get_bool = [this, &node, &json_node](const char* json_name, bool& value)
     {
         if (!json_node.contains(json_name))
             return;
@@ -814,7 +814,7 @@ void NodesParser::parse_others(data::Node& node, nlohmann::json& json_node)
         }
     };
 
-    const auto get_string = [&node, &json_node](const char* json_name, std::string& value)
+    const auto get_string = [this, &node, &json_node](const char* json_name, std::string& value)
     {
         if (!json_node.contains(json_name))
             return;

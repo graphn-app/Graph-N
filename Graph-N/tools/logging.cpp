@@ -125,7 +125,7 @@ void Logger::log_start()
     if (m_logfs.is_open() && !m_logfs.bad() && tools::path::exists(m_log_path))
     {
 #ifdef _WIN32
-        m_proc_id = "[" + std::to_string(GetCurrentProcessId()) + "] ";
+        const uint32_t proc_id = cast::to_u32(GetCurrentProcessId());
 #elif defined __APPLE__
 #error Not implemented
 #elif defined __linux__
@@ -137,12 +137,13 @@ void Logger::log_start()
 
         LogWriter writer;
         writer
-            << "trylock__\n"
-            << m_proc_id << "Log started: " << tools::dt::get_app_start_time().as_log_line() << "\n"
-            << m_proc_id << "App version: " << ver::ver_as_string() << "\n"
-            << m_proc_id << "Generated client id: " << base::GlobalID::client_id() << "\n"
+            << "\n\n"
+            << "[" << proc_id << "]\n"
+            << "Log started: " << tools::dt::get_app_start_time().as_log_line() << "\n"
+            << "App version: " << ver::ver_as_string() << "\n"
+            << "Generated client id: " << base::GlobalID::client_id() << "\n"
 #ifdef _WIN32
-            << m_proc_id << "Command line: " << " " << GetCommandLineA() << "\n"
+            << "Command line: " << " " << GetCommandLineA() << "\n"
 #elif defined __APPLE__
 #error Not implemented
 #elif defined __linux__
@@ -222,7 +223,7 @@ void Logger::working_thread()
             {
                 while (!temp_buffer.empty())
                 {
-                    m_logfs << m_proc_id << temp_buffer.front();
+                    m_logfs << temp_buffer.front();
                     temp_buffer.pop();
                 }
 
@@ -247,48 +248,14 @@ LogWriter::LogWriter()
     m_buffer.reserve(512);
 }
 
-void LogWriter::log_line_start_file(const char * file, int32_t line)
-{
-    if (nullptr == file)
-    {
-#ifdef _WIN32
-        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{}] {} [ln:{}]  "),
-            ::GetThreadId(::GetCurrentThread()),
-            tools::dt::from_current_date().as_log_line(),
-            line);
-#elif defined __APPLE__
-#error Not implemented
-#elif defined __linux__
-#error Not implemented
-#endif
-    }
-    else
-    {
-        std::string sfile;
-        static const auto app_dir = fs::get_root_directory_path().string();
-        if (strlen(file) > app_dir.size() + 1)  // cut directory/
-            file += app_dir.size() + 1;
-
-#ifdef _WIN32
-        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{}] {} [{}:{}]  "),
-            ::GetThreadId(::GetCurrentThread()),
-            tools::dt::from_current_date().as_log_line(),
-            file, line);
-#elif defined __APPLE__
-#error Not implemented
-#elif defined __linux__
-#error Not implemented
-#endif
-    }
-}
-
-void LogWriter::log_line_start_foo(const char * foo, int32_t line)
+void LogWriter::log_line_start(const void* this_, const char* foo, int32_t line)
 {
     if (nullptr == foo)
     {
 #ifdef _WIN32
-        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{}] {} [ln:{}]  "),
+        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{:0>5} {:0>12X} {} ln:{}] "),
             ::GetThreadId(::GetCurrentThread()),
+            cast::to_ptr(this_),
             tools::dt::from_current_date().as_log_line(),
             line);
 #elif defined __APPLE__
@@ -300,8 +267,9 @@ void LogWriter::log_line_start_foo(const char * foo, int32_t line)
     else
     {
 #ifdef _WIN32
-        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{}] {} [{}:{}]  "),
+        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{:0>5} {:0>12X} {} {}:{}] "),
             ::GetThreadId(::GetCurrentThread()),
+            cast::to_ptr(this_),
             tools::dt::from_current_date().as_log_line(),
             foo, line);
 #elif defined __APPLE__
@@ -422,13 +390,13 @@ LogWriter& LogWriter::operator << (const LogLineEnd&)
 
 LogWriter& LogWriter::operator << (const LogHex& hex_item)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), hex_item.i);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("0x{:0>16X}"), hex_item.i);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const LogPtr& ptr)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), ptr.ptr);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("0x{:0>16X}"), cast::to_ptr(ptr.ptr));
     return *this;
 }
 
