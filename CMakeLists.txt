@@ -169,6 +169,18 @@ else()
 endif()
 
 # ------------------------------------------------------------------------------
+# RelWithDebugInfo
+# ------------------------------------------------------------------------------
+
+if(MSVC)
+    # /INCREMENTAL:NO
+    # /OPT:REF
+    # /OPT:ICF    
+    string(APPEND CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO " /INCREMENTAL:NO /OPT:REF /OPT:ICF")
+    string(APPEND CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO " /INCREMENTAL:NO /OPT:REF /OPT:ICF")
+endif()
+
+# ------------------------------------------------------------------------------
 # Graph-N App
 # ------------------------------------------------------------------------------
 # Look for sources directly in Graph-N folder (no 'src' subfolder)
@@ -184,14 +196,6 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N" PREFIX "Header Files" FI
 
 # app
 add_executable(Graph-N WIN32 ${GRAPHN_SOURCES} ${GRAPHN_HEADERS} ${GRAPHN_RESOURCES})
-
-if(MSVC)
-    # /INCREMENTAL:NO
-    # /OPT:REF
-    # /OPT:ICF    
-    string(APPEND CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO " /INCREMENTAL:NO /OPT:REF /OPT:ICF")
-    string(APPEND CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO " /INCREMENTAL:NO /OPT:REF /OPT:ICF")
-endif()
 
 if(MSVC)
     # enable /EHa, this will override /EHsc
@@ -237,7 +241,6 @@ target_include_directories(Graph-N SYSTEM PRIVATE
     "${IMGUI_DIR}/backends"
 )
 
-# Your own headers (checked for warnings)
 target_include_directories(Graph-N PRIVATE "Graph-N")
 
 # --- Linking ---
@@ -248,6 +251,7 @@ if(WIN32)
         SQLiteCpp
         sqlite3
 		fmt::fmt
+		Shell32
     )
 else()
     target_link_libraries(Graph-N PRIVATE
@@ -274,6 +278,47 @@ else()
 endif()
 
 # ------------------------------------------------------------------------------
+# Mask Editor
+# ------------------------------------------------------------------------------
+# Look for sources directly in Graph-N folder (no 'src' subfolder)
+file(GLOB_RECURSE MASKEDITOR_SOURCES "Graph-N_MaskEditor/*.cpp")
+
+# resources
+set(MASKEDITOR_RESOURCES "Graph-N_MaskEditor/res/maskeditor.rc")
+
+# source tree for Visual Studio
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_MaskEditor" PREFIX "Source Files" FILES ${MASKEDITOR_SOURCES})
+
+# app
+add_executable(Graph-N_MaskEditor WIN32 ${MASKEDITOR_SOURCES} ${MASKEDITOR_RESOURCES})
+
+if(MSVC)
+    # Force main() entry point even for GUI subsystem (fixes linker error in Release)
+    target_link_options(Graph-N_MaskEditor PRIVATE "/ENTRY:mainCRTStartup")
+
+    # STRICT MODE: Warnings as Errors (/WX), High Warning Level (/W4)
+    target_compile_options(Graph-N_MaskEditor PRIVATE /W4 /WX /utf-8)
+endif()
+
+# --- Include Directories ---
+# SYSTEM flag tells compiler to ignore warnings in these headers
+target_include_directories(Graph-N_MaskEditor SYSTEM PRIVATE
+	"Graph-N_MaskEditor"
+	"WebView"
+    "cpp-httplib"
+    "nlohmann/include"
+)
+
+# --- Linking ---
+if(WIN32)
+    target_link_libraries(Graph-N_MaskEditor PRIVATE
+		fmt::fmt
+		"${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_MaskEditor/res/WebView2Loader.dll.lib"
+		shlwapi
+    )
+endif()
+
+# ------------------------------------------------------------------------------
 # Debug Workflow Automation
 # ------------------------------------------------------------------------------
 
@@ -287,6 +332,15 @@ add_custom_command(TARGET Graph-N POST_BUILD
     COMMENT "Copying Debug executable to work_dir..."
 )
 
+add_custom_command(TARGET Graph-N_MaskEditor POST_BUILD
+    COMMAND $<$<CONFIG:Debug>:${CMAKE_COMMAND}> 
+            $<$<CONFIG:Debug>:-E> 
+            $<$<CONFIG:Debug>:copy_if_different> 
+            $<$<CONFIG:Debug>:$<TARGET_FILE:Graph-N_MaskEditor>> 
+            $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N_MaskEditor>>
+    COMMENT "Copying Debug executable to work_dir..."
+)
+
 # debug run - Visual Studio (F5)
 set_target_properties(Graph-N PROPERTIES 
     # run from work_dir
@@ -295,6 +349,14 @@ set_target_properties(Graph-N PROPERTIES
     # Debug -> run from work_dir/Graph-N.exe
     # Release -> run from bin/Graph-N.exe
     VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N>>"
+)
+set_target_properties(Graph-N_MaskEditor PROPERTIES 
+    # run from work_dir
+    VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
+    
+    # Debug -> run from work_dir/Graph-N.exe
+    # Release -> run from bin/Graph-N.exe
+    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N_MaskEditor>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N_MaskEditor>>"
 )
 
 # ------------------------------------------------------------------------------

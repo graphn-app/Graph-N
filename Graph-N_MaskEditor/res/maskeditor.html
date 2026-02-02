@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Graph-N Mask Editor</title>
+    <style>
+        :root {
+            --bg: #1e1e1e; --panel: #2d2d30; --border: #3e3e42; 
+            --text: #cccccc; --accent: #007acc; --hover: #3e3e42;
+            --danger: #d73a49; --success: #2ea043;
+        }
+        body { 
+            margin: 0; background: var(--bg); color: var(--text); 
+            font-family: 'Segoe UI', sans-serif; height: 100vh; 
+            display: flex; flex-direction: column; overflow: hidden; user-select: none; 
+        }
+        
+        /* WORKSPACE */
+        #workspace {
+            flex-grow: 1; position: relative; overflow: hidden; 
+            background-color: #1e1e1e;
+            background-image: 
+                linear-gradient(45deg, #252525 25%, transparent 25%), 
+                linear-gradient(-45deg, #252525 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #252525 75%), 
+                linear-gradient(-45deg, transparent 75%, #252525 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        /* CANVAS STACK */
+        .canvas-stack { 
+            position: absolute; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            transform-origin: center center; 
+            box-shadow: 0 0 50px rgba(0,0,0,0.5); 
+        }
+        canvas { position: absolute; top: 0; left: 0; image-rendering: pixelated; }
+        #imageCanvas { z-index: 1; }
+        #maskCanvas { z-index: 2; opacity: 0.6; mix-blend-mode: normal; }
+        #uiCanvas { z-index: 3; pointer-events: none; }
+
+        /* CURSOR PREVIEW */
+        #cursorPreview {
+            position: fixed; pointer-events: none; z-index: 9999;
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 2px rgba(0,0,0,0.8);
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        /* TOOLBARS GLOBAL */
+        .toolbar {
+            background: var(--panel); border: 1px solid var(--border);
+            display: grid; /* GRID LAYOUT FOR BOTH BARS */
+            grid-template-columns: 1fr auto 1fr; /* Left - Center - Right */
+            padding: 0 10px;
+            z-index: 100;
+            cursor: default; 
+            align-items: center;
+        }
+        
+        /* TOP BAR */
+        #top-bar { 
+            border-bottom: 1px solid var(--border); 
+            height: 44px; 
+        }
+
+        /* BOTTOM BAR */
+        #bottom-bar { 
+            border-top: 1px solid var(--border); 
+            height: 40px;
+            padding-bottom: 5px; 
+        }
+
+        /* Alignment helpers for Grid areas */
+        .bar-left { display: flex; justify-self: start; align-items: center; gap: 10px; height: 100%; }
+        .bar-center { display: flex; justify-self: center; align-items: center; height: 100%; }
+        .bar-right { display: flex; justify-self: end; align-items: center; height: 100%; }
+
+        .tool-group { display: flex; gap: 4px; border-right: 1px solid var(--border); padding-right: 10px; margin-right: 10px; align-items: center; height: 100%; }
+        .tool-group:last-child { border: none; margin-right: 0; padding-right: 0;}
+        .tool-col { display: flex; flex-direction: column; gap: 2px; justify-content: center; }
+
+        /* BUTTONS */
+        button {
+            background: transparent; color: var(--text); border: 1px solid transparent;
+            padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 13px; min-width: 30px;
+            transition: all 0.1s;
+            height: 28px; 
+            display: flex; align-items: center; justify-content: center;
+        }
+        button:hover { background: var(--hover); }
+        button.active { background: var(--accent); color: white; border-color: var(--accent); }
+        button:active { transform: translateY(1px); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); }
+        
+        button.danger:hover { background: var(--danger); color: white; }
+        
+        .btn-output { background: #2d2d30; color: var(--success); border: 1px solid var(--success); font-weight: bold; }
+        .btn-output:hover { background: var(--success); color: white; }
+
+        /* SWITCHERS */
+        .mode-switch { display: flex; background: #222; border-radius: 4px; padding: 2px; border: 1px solid var(--border); align-items: center; }
+        .mode-switch button { border-radius: 2px; padding: 0 10px; font-weight: 600; font-size: 11px; height: 24px; border: none; }
+        .mode-switch button.active { background: var(--accent); color: white; }
+        .mode-switch button:not(.active):hover { background: var(--hover); }
+
+        /* INPUTS */
+        input[type=range] { accent-color: var(--accent); cursor: pointer; width: 80px; height: 4px; vertical-align: middle;}
+        input[type=number] {
+            background: #222; border: 1px solid #444; color: #fff;
+            width: 40px; border-radius: 2px; padding: 2px;
+            font-family: monospace; font-size: 11px; text-align: center;
+        }
+        input[type=number]:focus { border-color: var(--accent); outline: none; }
+        input[type=color] { -webkit-appearance: none; border: none; width: 32px; height: 28px; padding: 0; background: none; cursor: pointer; }
+        input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type=color]::-webkit-color-swatch { border: 1px solid var(--border); border-radius: 3px; }
+
+        .label-row { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #888; width: 100%; gap: 5px;}
+        
+        /* OVERLAYS & INFO */
+        #status-bar-overlay { 
+            font-size: 11px; color: #aaa; 
+            position: absolute; bottom: 5px; right: 10px; 
+            pointer-events: none; z-index: 50; text-shadow: 0 0 2px black;
+        }
+        
+        #res-info { font-size: 11px; color: #888; font-family: monospace; }
+
+        /* Control Sets */
+        #editor-controls, #sam-controls { display: flex; align-items: center; gap: 10px;}
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="cursorPreview"></div>
+
+    <div id="top-bar" class="toolbar">
+        
+        <div class="bar-left">
+            <div class="mode-switch">
+                <button id="modeEditor" class="active">Mask Editor</button>
+                <button id="modeSAM" title="Check server connection...">SAM Detector</button>
+            </div>
+        </div>
+
+        <div class="bar-center">
+            <div class="tool-group">
+				<button id="btnPreview" title="Toggle Preview Mode (P)">&#128065; Preview</button> 
+            </div>
+            <div class="tool-group">
+                <button id="btnUndo" title="Undo (Ctrl+Z)">&#8617;</button>
+                <button id="btnRedo" title="Redo (Ctrl+Y)">&#8618;</button>
+            </div>
+
+            <div class="tool-group">
+                <button id="btnFlipH" title="Flip Horizontal">&#8596;</button>
+                <button id="btnFlipV" title="Flip Vertical">&#8597;</button>
+                <button id="btnRotL" title="Rotate Left">&#8634;</button>
+                <button id="btnRotR" title="Rotate Right">&#8635;</button>
+            </div>
+
+            <div class="tool-group" style="border:none">
+                <button id="btnInvert" title="Invert Mask">Invert</button>
+                <button id="btnClearMask" class="danger" title="Clear Mask Canvas">Clear Mask</button>
+                <button id="btnClearDots" class="hidden danger" title="Clear SAM Points">Clear Dots</button>
+            </div>
+        </div>
+
+        <div class="bar-right">
+            <div class="tool-group" style="border: none;">
+                <button id="btnSaveHost" class="btn-output" title="Send back to Graph-N">Save to node</button>
+                <button id="btnExport" class="btn-output" title="Save as PNG to disk">Export to file</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="workspace">
+        <div id="canvasContainer" class="canvas-stack">
+            <canvas id="imageCanvas"></canvas>
+            <canvas id="maskCanvas"></canvas>
+            <canvas id="uiCanvas"></canvas>
+        </div>
+        <div id="status-bar-overlay">Space+Drag: Pan | Wheel: Zoom | Alt+Wheel: Brush Size</div>
+    </div>
+
+    <div id="bottom-bar" class="toolbar">
+        
+        <div class="bar-left">
+            <span id="res-info">Loading...</span>
+        </div>
+
+        <div class="bar-center">
+            
+            <div id="editor-controls">
+                <div class="tool-group">
+                    <button id="btnDraw" class="active" title="Brush (B)">Draw</button>
+                    <button id="btnErase" title="Eraser (E)">Erase</button>
+                </div>
+                
+                <div class="tool-group">
+                    <span style="font-size:10px; color:#888">Shape</span>
+                    <div class="tool-col">
+                        <div style="display:flex; gap:2px">
+                            <button id="btnShapeCircle" class="active" title="Circle" style="width: 20px; padding:0;">&#9679;</button>
+                            <button id="btnShapeSquare" title="Square" style="width: 20px; padding:0;">&#9632;</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tool-group">
+                    <span style="font-size:10px; color:#888">Mask color</span>
+                    <div class="tool-col">
+                        <input type="color" id="clrPicker" value="#ffffff" title="Mask Color">
+                    </div>
+                </div>
+
+                <div class="tool-group">
+                    <div class="tool-col">
+                        <div class="label-row">
+                            <span>Size</span> 
+                            <input type="number" id="numSize" min="1" max="500" value="30">
+                        </div>
+                        <input type="range" id="rngSize" min="1" max="500" value="30">
+                    </div>
+                </div>
+                
+                <div class="tool-group">
+                    <div class="tool-col">
+                        <div class="label-row">
+                            <span>Hardness</span> 
+                            <input type="number" id="numHard" min="0" max="100" value="100">
+                        </div>
+                        <input type="range" id="rngHard" min="0" max="100" value="100">
+                    </div>
+                </div>
+
+                <div class="tool-group" style="border:none">
+                    <div class="tool-col">
+                        <div class="label-row">
+                            <span>Opacity</span> 
+                            <input type="number" id="numOpacity" min="1" max="100" value="100">
+                        </div>
+                        <input type="range" id="rngOpacity" min="1" max="100" value="100">
+                    </div>
+                </div>
+            </div>
+
+            <div id="sam-controls" class="hidden">
+                 <div class="tool-group">
+                    <div class="tool-col">
+                        <div class="label-row">
+                            <span>Confidence</span> 
+                            <input type="number" id="numConf" min="0.01" max="1.00" step="0.01" value="0.50">
+                        </div>
+                        <input type="range" id="rngConf" min="1" max="100" value="50">
+                    </div>
+                </div>
+
+                <div class="tool-group">
+                    <span style="font-size:10px; color:#888">Point colors</span>
+                    <div class="tool-col">
+                        <div style="display: flex; gap: 5px;">
+                            <div style="text-align:center">
+                                <input type="color" id="clrPos" value="#00ff00" title="Positive Point Color">
+                                <!--div style="font-size:9px; color:#666">POS</div-->
+                            </div>
+                            <div style="text-align:center">
+                                <input type="color" id="clrNeg" value="#ff0000" title="Negative Point Color">
+                                <!--div style="font-size:9px; color:#666">NEG</div-->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                 <div class="tool-group">
+                    <div class="tool-col">
+                        <div class="label-row">
+                            <span>Pt. Size</span> 
+                            <input type="number" id="numPtSize" min="1" max="5" value="2">
+                        </div>
+                        <input type="range" id="rngPtSize" min="1" max="5" value="2">
+                    </div>
+                </div>
+                
+                <div class="tool-group">
+                    <span style="font-size:10px; color:#888">Mode</span>
+                    <div class="tool-col">
+                        <div class="mode-switch">
+                            <button id="btnSamReplace" class="active" title="Replace existing mask">NEW</button>
+                            <button id="btnSamAdd" title="Add to existing mask">ADD</button>
+                            <button id="btnSamSub" title="Subtract from mask">SUB</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tool-group" style="border:none">
+                    <button id="btnDetect" class="active" style="padding: 0 20px; font-weight: bold; height: 32px; background: var(--accent); color: white; border-radius: 4px;">DETECT</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bar-right"></div>
+    </div>
+
+    <script>
+        const API_BASE = "http://app.local";
+        const TEST_IMAGE = `${API_BASE}/input.png?t=` + Date.now();
+
+        // === STATE ===
+        const state = {
+            appMode: 'editor', // 'editor' | 'sam'
+            previewMode: false,
+            samBlendMode: 'replace',
+            
+            isDrawing: false,
+            isPanning: false,
+            isSpacePressed: false,
+            mode: 'draw', 
+            shape: 'circle',
+            brushSize: 30,
+            brushHardness: 100,
+            brushOpacity: 1.0,
+            maskColor: '#000000',
+            
+            confidence: 0.50,
+            samPointSize: 2,
+            samColorPos: '#0000ff',
+            samColorNeg: '#ff0000',
+            samPoints: [], 
+            samHistory: [], 
+            samHistoryStep: -1,
+
+            scale: 0.9,
+            rotation: 0, 
+            flipH: 1, flipV: 1,
+            panX: 0, panY: 0,
+            lastX: 0, lastY: 0,
+            history: [],
+            historyStep: -1
+        };
+
+        const container = document.getElementById('canvasContainer');
+        const imgCanvas = document.getElementById('imageCanvas');
+        const maskCanvas = document.getElementById('maskCanvas');
+        const uiCanvas = document.getElementById('uiCanvas');
+        
+        const ctxImg = imgCanvas.getContext('2d');
+        const ctxMask = maskCanvas.getContext('2d', { willReadFrequently: true });
+        const ctxUI = uiCanvas.getContext('2d');
+
+        const cursor = document.getElementById('cursorPreview');
+        const workspace = document.getElementById('workspace');
+
+        // === UI BINDINGS ===
+        const ui = {
+            rngSize: document.getElementById('rngSize'), numSize: document.getElementById('numSize'),
+            rngHard: document.getElementById('rngHard'), numHard: document.getElementById('numHard'),
+            rngOp: document.getElementById('rngOpacity'), numOp: document.getElementById('numOpacity'),
+            clrPicker: document.getElementById('clrPicker'),
+            
+            rngConf: document.getElementById('rngConf'), numConf: document.getElementById('numConf'),
+            rngPtSize: document.getElementById('rngPtSize'), numPtSize: document.getElementById('numPtSize'),
+            clrPos: document.getElementById('clrPos'), clrNeg: document.getElementById('clrNeg'),
+            btnDetect: document.getElementById('btnDetect'),
+            
+            panelEditor: document.getElementById('editor-controls'),
+            panelSAM: document.getElementById('sam-controls'),
+            modeEditor: document.getElementById('modeEditor'),
+            modeSAM: document.getElementById('modeSAM'),
+            statusBar: document.getElementById('status-bar-overlay'),
+            resInfo: document.getElementById('res-info'),
+            
+            btnClearMask: document.getElementById('btnClearMask'),
+            btnClearDots: document.getElementById('btnClearDots')
+        };
+
+        // === INIT ===
+        async function init() {
+            try {
+                const res = await fetch(`${API_BASE}/sam`);
+                if (res.status !== 200) throw new Error("SAM not active");
+            } catch (e) {
+                console.warn("SAM Detector disabled:", e);
+                ui.modeSAM.disabled = true;
+                ui.modeSAM.title = "SAM Detector is not available: check ComfyUI is running and Impact Pack is installed";
+            }
+
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.src = TEST_IMAGE;
+            img.onload = () => {
+                const w = img.width;
+                const h = img.height;
+                
+                [imgCanvas, maskCanvas, uiCanvas].forEach(c => { c.width = w; c.height = h; });
+                
+                container.style.width = w + 'px';
+                container.style.height = h + 'px';
+                ui.resInfo.innerText = `${w}x${h}px`;
+                
+                ctxImg.drawImage(img, 0, 0);
+                
+                loadInitialMask();
+                updateTransform();
+                syncUI();
+            };
+        }
+
+        async function loadInitialMask() {
+            try {
+                const res = await fetch(`${API_BASE}/mask.png?t=` + Date.now());
+                if (res.ok) {
+                    const maskImg = new Image();
+                    maskImg.crossOrigin = "Anonymous";
+                    maskImg.src = URL.createObjectURL(await res.blob());
+                    maskImg.onload = () => {
+                        ctxMask.drawImage(maskImg, 0, 0);
+                        saveHistory(); 
+                    };
+                } else {
+                    ctxMask.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+                    saveHistory(); 
+                }
+            } catch (e) { saveHistory(); }
+        }
+
+        // === PREVIEW MODE ===
+        const btnPreview = document.getElementById('btnPreview');
+        function renderPreview() {
+            if (!state.previewMode) {
+                if (state.appMode === 'editor') ctxUI.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+                else renderSamPoints(); 
+                
+                imgCanvas.style.visibility = 'visible';
+                maskCanvas.style.visibility = 'visible';
+                return;
+            }
+
+            imgCanvas.style.visibility = 'hidden';
+            maskCanvas.style.visibility = 'hidden';
+            ctxUI.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+
+            ctxUI.drawImage(maskCanvas, 0, 0);
+            ctxUI.globalCompositeOperation = 'source-in';
+            ctxUI.drawImage(imgCanvas, 0, 0);
+            ctxUI.globalCompositeOperation = 'source-over';
+
+            if (state.appMode === 'sam') renderSamPoints();
+        }
+
+        function togglePreview() {
+            state.previewMode = !state.previewMode;
+            btnPreview.classList.toggle('active', state.previewMode);
+            renderPreview();
+        }
+        btnPreview.onclick = togglePreview;
+
+        // === MODE SWITCHING ===
+        function switchAppMode(mode) {
+            state.appMode = mode;
+            
+            ui.modeEditor.classList.toggle('active', mode === 'editor');
+            ui.modeSAM.classList.toggle('active', mode === 'sam');
+            
+            if (mode === 'sam') ui.btnClearDots.classList.remove('hidden');
+            else ui.btnClearDots.classList.add('hidden');
+
+            if (mode === 'editor') {
+                ui.panelEditor.classList.remove('hidden');
+                ui.panelSAM.classList.add('hidden');
+                ui.statusBar.innerText = "Space+Drag: Pan | Wheel: Zoom | Alt+Wheel: Brush Size";
+                ctxUI.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+                workspace.style.cursor = 'none'; 
+                updateCursor();
+            } else {
+                ui.panelEditor.classList.add('hidden');
+                ui.panelSAM.classList.remove('hidden');
+                ui.statusBar.innerText = "Left Click: Add + Point | Right Click: Add - Point | Space+Drag: Pan";
+                cursor.style.display = 'none';
+                workspace.style.cursor = 'crosshair'; 
+                renderSamPoints();
+            }
+            if(state.previewMode) renderPreview();
+        }
+
+        ui.modeEditor.onclick = () => switchAppMode('editor');
+        ui.modeSAM.onclick = () => switchAppMode('sam');
+
+        // === HISTORY SYSTEM ===
+        function saveHistory() {
+            if (state.historyStep < state.history.length - 1) {
+                state.history = state.history.slice(0, state.historyStep + 1);
+            }
+            if (state.history.length > 30) state.history.shift();
+            state.history.push(ctxMask.getImageData(0, 0, maskCanvas.width, maskCanvas.height));
+            state.historyStep = state.history.length - 1;
+            updateHistoryButtons();
+        }
+
+        function saveSamHistory() {
+             if (state.samHistoryStep < state.samHistory.length - 1) {
+                state.samHistory = state.samHistory.slice(0, state.samHistoryStep + 1);
+             }
+             const snapshot = JSON.parse(JSON.stringify(state.samPoints));
+             state.samHistory.push(snapshot);
+             state.samHistoryStep = state.samHistory.length - 1;
+             updateHistoryButtons();
+        }
+
+        function undo() {
+            if (state.appMode === 'editor') {
+                if (state.historyStep > 0) {
+                    state.historyStep--;
+                    ctxMask.putImageData(state.history[state.historyStep], 0, 0);
+                    updateHistoryButtons();
+                    if(state.previewMode) renderPreview();
+                }
+            } else {
+                if (state.samHistoryStep > 0) {
+                    state.samHistoryStep--;
+                    state.samPoints = JSON.parse(JSON.stringify(state.samHistory[state.samHistoryStep]));
+                    renderSamPoints();
+                    updateHistoryButtons();
+                    if(state.previewMode) renderPreview();
+                }
+            }
+        }
+
+        function redo() {
+             if (state.appMode === 'editor') {
+                if (state.historyStep < state.history.length - 1) {
+                    state.historyStep++;
+                    ctxMask.putImageData(state.history[state.historyStep], 0, 0);
+                    updateHistoryButtons();
+                    if(state.previewMode) renderPreview();
+                }
+            } else {
+                 if (state.samHistoryStep < state.samHistory.length - 1) {
+                    state.samHistoryStep++;
+                    state.samPoints = JSON.parse(JSON.stringify(state.samHistory[state.samHistoryStep]));
+                    renderSamPoints();
+                    updateHistoryButtons();
+                    if(state.previewMode) renderPreview();
+                }
+            }
+        }
+
+        function updateHistoryButtons() {
+            const step = state.appMode === 'editor' ? state.historyStep : state.samHistoryStep;
+            const len = state.appMode === 'editor' ? state.history.length : state.samHistory.length;
+            document.getElementById('btnUndo').style.opacity = step > 0 ? 1 : 0.3;
+            document.getElementById('btnRedo').style.opacity = step < len - 1 ? 1 : 0.3;
+        }
+
+        // === TRANSFORM & COORDS ===
+        function updateTransform() {
+            container.style.transform = `
+                translate(calc(-50% + ${state.panX}px), calc(-50% + ${state.panY}px)) 
+                scale(${state.scale}) 
+                rotate(${state.rotation}deg)
+                scaleX(${state.flipH}) scaleY(${state.flipV})
+            `;
+            if (state.appMode === 'editor') updateCursor();
+        }
+
+        function getLocalCoords(e) {
+            const rect = maskCanvas.getBoundingClientRect();
+            const scaleX = maskCanvas.width / rect.width;
+            const scaleY = maskCanvas.height / rect.height;
+            let x = (e.clientX - rect.left) * scaleX;
+            let y = (e.clientY - rect.top) * scaleY;
+            if (state.flipH < 0) x = maskCanvas.width - x;
+            if (state.flipV < 0) y = maskCanvas.height - y;
+            return { x, y };
+        }
+
+        // === BRUSH DRAWING ===
+        function hexToRgb(hex) {
+            let bigint = parseInt(hex.slice(1), 16);
+            return `${(bigint >> 16) & 255},${(bigint >> 8) & 255},${bigint & 255}`;
+        }
+
+        function drawDot(x, y) {
+            ctxMask.globalCompositeOperation = state.mode === 'erase' ? 'destination-out' : 'source-over';
+            ctxMask.globalAlpha = state.brushOpacity;
+            const radius = state.brushSize / 2;
+            const rgb = hexToRgb(state.maskColor);
+
+            if (state.shape === 'square') {
+                ctxMask.fillStyle = state.maskColor;
+                ctxMask.fillRect(x - radius, y - radius, state.brushSize, state.brushSize);
+            } else {
+                if (state.brushHardness >= 95) {
+                    ctxMask.fillStyle = state.maskColor;
+                    ctxMask.beginPath();
+                    ctxMask.arc(x, y, radius, 0, Math.PI * 2);
+                    ctxMask.fill();
+                } else {
+                    const hardRadius = radius * (state.brushHardness / 100);
+                    const grad = ctxMask.createRadialGradient(x, y, hardRadius, x, y, radius);
+                    grad.addColorStop(0, `rgba(${rgb}, 1)`); 
+                    grad.addColorStop(1, `rgba(${rgb}, 0)`);
+                    ctxMask.fillStyle = grad;
+                    ctxMask.fillRect(x - radius, y - radius, state.brushSize, state.brushSize);
+                }
+            }
+            ctxMask.globalAlpha = 1.0;
+            ctxMask.globalCompositeOperation = 'source-over';
+            if(state.previewMode) renderPreview();
+        }
+
+        function drawLine(x1, y1, x2, y2) {
+            const dx = x2 - x1, dy = y2 - y1;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            let stepFactor = state.brushHardness > 90 ? 0.25 : 0.1; 
+            const stepSize = Math.max(0.5, state.brushSize * stepFactor); 
+            const steps = Math.ceil(dist / stepSize);
+            for(let i=0; i<steps; i++) {
+                const t = i / steps;
+                drawDot(x1 + dx*t, y1 + dy*t);
+            }
+            drawDot(x2, y2);
+        }
+
+        // === SAM LOGIC ===
+        const samModes = {
+            replace: document.getElementById('btnSamReplace'),
+            add: document.getElementById('btnSamAdd'),
+            subtract: document.getElementById('btnSamSub')
+        };
+        function setSamMode(mode) {
+            state.samBlendMode = mode;
+            Object.values(samModes).forEach(b => b.classList.remove('active'));
+            samModes[mode].classList.add('active');
+        }
+        samModes.replace.onclick = () => setSamMode('replace');
+        samModes.add.onclick = () => setSamMode('add');
+        samModes.subtract.onclick = () => setSamMode('subtract');
+
+        function renderSamPoints() {
+            if(state.previewMode) return;
+            
+            ctxUI.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+            state.samPoints.forEach(pt => {
+                ctxUI.fillStyle = pt.positive ? state.samColorPos : state.samColorNeg;
+                //ctxUI.strokeStyle = "#fff";
+                //ctxUI.lineWidth = 1;
+                const sz = state.samPointSize;
+                ctxUI.beginPath();
+                ctxUI.arc(pt.x, pt.y, sz, 0, Math.PI*2);
+                ctxUI.fill();
+                //ctxUI.stroke();
+            });
+        }
+
+        async function runSamDetect() {
+            if (state.samPoints.length === 0) return;
+            
+            const payload = {
+                points: state.samPoints.map(p => ({ x: p.x, y: p.y, label: p.positive ? 1 : 0 })),
+                threshold: state.confidence
+            };
+
+            const btn = ui.btnDetect;
+            const originalText = btn.innerText;
+            btn.innerText = "PROCESSING...";
+            btn.disabled = true;
+            document.body.style.cursor = "wait";
+
+            try {
+                const res = await fetch(`${API_BASE}/detect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const maskImg = new Image();
+                    maskImg.onload = () => {
+                        saveHistory(); 
+                        
+                        // Process Transparent
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = maskCanvas.width;
+                        tempCanvas.height = maskCanvas.height;
+                        const tCtx = tempCanvas.getContext('2d');
+                        tCtx.drawImage(maskImg, 0, 0);
+                        
+                        const id = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                        const d = id.data;
+                        for (let i = 0; i < d.length; i += 4) {
+                            if (d[i] + d[i+1] + d[i+2] < 30) d[i+3] = 0; 
+                            else { d[i]=255; d[i+1]=255; d[i+2]=255; d[i+3]=255; }
+                        }
+                        tCtx.putImageData(id, 0, 0);
+
+                        // Apply
+                        if (state.samBlendMode === 'replace') {
+                            ctxMask.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+                            ctxMask.drawImage(tempCanvas, 0, 0);
+                        } 
+                        else if (state.samBlendMode === 'add') {
+                            ctxMask.globalCompositeOperation = 'source-over';
+                            ctxMask.drawImage(tempCanvas, 0, 0);
+                        } 
+                        else if (state.samBlendMode === 'subtract') {
+                            ctxMask.globalCompositeOperation = 'destination-out';
+                            ctxMask.drawImage(tempCanvas, 0, 0);
+                        }
+                        ctxMask.globalCompositeOperation = 'source-over';
+                        
+                        if(state.previewMode) renderPreview();
+                    };
+                    maskImg.src = URL.createObjectURL(blob);
+                } else { 
+                    if(res.status === 500) {
+                        alert("SAM Failed: Check ComfyUI is running and Impact Pack is installed");
+                    } else {
+                        console.error("SAM Failed with status", res.status); 
+                    }
+                }
+            } catch (e) { alert("Connection Error. Is server running?"); } 
+            finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                document.body.style.cursor = "default";
+            }
+        }
+
+        ui.btnDetect.onclick = runSamDetect;
+
+        // === EVENTS ===
+        workspace.addEventListener('contextmenu', e => e.preventDefault());
+
+        workspace.addEventListener('mousedown', (e) => {
+            if (e.button === 1 || state.isSpacePressed) {
+                state.isPanning = true;
+                state.lastX = e.clientX;
+                state.lastY = e.clientY;
+                cursor.style.display = 'none';
+                workspace.style.cursor = 'grab';
+                e.preventDefault();
+                return;
+            }
+
+            const c = getLocalCoords(e);
+
+            if (state.appMode === 'sam') {
+                saveSamHistory();
+                if (e.button === 0) state.samPoints.push({ x: c.x, y: c.y, positive: true });
+                else if (e.button === 2) state.samPoints.push({ x: c.x, y: c.y, positive: false });
+                
+                if(state.previewMode) renderPreview(); 
+                else renderSamPoints();
+                return;
+            }
+
+            if (state.appMode === 'editor' && e.button === 0) {
+                saveHistory(); 
+                state.isDrawing = true;
+                state.lastX = c.x;
+                state.lastY = c.y;
+                drawDot(c.x, c.y);
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            state.isDrawing = false;
+            state.isPanning = false;
+            if(state.isSpacePressed) workspace.style.cursor = 'grab';
+            else if(state.appMode === 'sam') workspace.style.cursor = 'crosshair';
+            else workspace.style.cursor = 'none';
+        });
+
+        workspace.addEventListener('mousemove', (e) => {
+            if (state.isPanning) {
+                state.panX += e.clientX - state.lastX;
+                state.panY += e.clientY - state.lastY;
+                state.lastX = e.clientX;
+                state.lastY = e.clientY;
+                updateTransform();
+                return;
+            }
+            
+            if (state.appMode === 'editor') {
+                updateCursor(e);
+                if (state.isDrawing) {
+                    const c = getLocalCoords(e);
+                    drawLine(state.lastX, state.lastY, c.x, c.y);
+                    state.lastX = c.x;
+                    state.lastY = c.y;
+                }
+            }
+        });
+
+        workspace.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (state.appMode === 'editor' && e.altKey) {
+                const delta = e.deltaY > 0 ? -5 : 5;
+                state.brushSize = Math.max(1, Math.min(500, state.brushSize + delta));
+                syncUI();
+                updateCursor(e);
+            } else {
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                state.scale *= delta;
+                state.scale = Math.min(Math.max(0.1, state.scale), 20);
+                updateTransform();
+            }
+        }, { passive: false });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !e.repeat) {
+                state.isSpacePressed = true;
+                workspace.style.cursor = 'grab';
+                cursor.style.display = 'none';
+                e.preventDefault();
+            }
+            if (e.code === 'KeyP' && !e.ctrlKey) togglePreview();
+            if (e.ctrlKey && e.code === 'KeyZ') { undo(); e.preventDefault(); }
+            if (e.ctrlKey && e.code === 'KeyY') { redo(); e.preventDefault(); }
+            
+            if (state.appMode === 'editor' && !e.ctrlKey) {
+                if (e.code === 'KeyB') { state.mode='draw'; syncUI(); }
+                if (e.code === 'KeyE') { state.mode='erase'; syncUI(); }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                state.isSpacePressed = false;
+                if(state.appMode === 'sam') workspace.style.cursor = 'crosshair';
+                else {
+                    workspace.style.cursor = 'none';
+                    updateCursor(); 
+                }
+            }
+        });
+
+        // === UI HELPERS ===
+        function syncUI() {
+            ui.rngSize.value = ui.numSize.value = state.brushSize;
+            ui.rngHard.value = ui.numHard.value = state.brushHardness;
+            ui.rngOp.value = ui.numOp.value = Math.round(state.brushOpacity * 100);
+            ui.clrPicker.value = state.maskColor;
+            
+            document.getElementById('btnDraw').classList.toggle('active', state.mode === 'draw');
+            document.getElementById('btnErase').classList.toggle('active', state.mode === 'erase');
+
+            ui.rngConf.value = Math.round(state.confidence * 100);
+            ui.numConf.value = state.confidence;
+            ui.rngPtSize.value = ui.numPtSize.value = state.samPointSize;
+            ui.clrPos.value = state.samColorPos;
+            ui.clrNeg.value = state.samColorNeg;
+        }
+
+        function bindDualInput(slider, number, stateKey, maxVal, isFloat = false) {
+            const update = (val) => {
+                let v = parseFloat(val);
+                if (isNaN(v)) v = isFloat ? 100 : 0;
+                
+                if(isFloat && slider.id.includes("Conf")) { 
+                     if (val > 1) v = val / 100; 
+                     state[stateKey] = v;
+                     slider.value = Math.round(v * 100);
+                     number.value = v.toFixed(2);
+                } else if(isFloat) { 
+                     v = Math.max(0, Math.min(maxVal, v));
+                     state[stateKey] = v / 100.0;
+                     slider.value = v;
+                     number.value = v;
+                } else {
+                     v = Math.max(0, Math.min(maxVal, v));
+                     if(stateKey === 'brushSize') v = Math.max(1, v);
+                     state[stateKey] = v;
+                     slider.value = v;
+                     number.value = v;
+                }
+                
+                if(state.appMode === 'editor') updateCursor();
+                if(state.appMode === 'sam' && stateKey === 'samPointSize') renderSamPoints();
+            };
+            slider.oninput = (e) => update(e.target.value);
+            number.oninput = (e) => update(e.target.value);
+            number.onchange = (e) => update(e.target.value);
+        }
+
+        bindDualInput(ui.rngSize, ui.numSize, 'brushSize', 500);
+        bindDualInput(ui.rngHard, ui.numHard, 'brushHardness', 100);
+        bindDualInput(ui.rngOp, ui.numOp, 'brushOpacity', 100, true);
+        bindDualInput(ui.rngConf, ui.numConf, 'confidence', 100, true);
+        bindDualInput(ui.rngPtSize, ui.numPtSize, 'samPointSize', 10);
+        
+        ui.clrPicker.oninput = (e) => { state.maskColor = e.target.value; updateCursor(); };
+        ui.clrPos.oninput = (e) => { state.samColorPos = e.target.value; renderSamPoints(); };
+        ui.clrNeg.oninput = (e) => { state.samColorNeg = e.target.value; renderSamPoints(); };
+
+        document.getElementById('btnDraw').onclick = () => { state.mode='draw'; syncUI(); };
+        document.getElementById('btnErase').onclick = () => { state.mode='erase'; syncUI(); };
+        document.getElementById('btnUndo').onclick = undo;
+        document.getElementById('btnRedo').onclick = redo;
+        document.getElementById('btnShapeCircle').onclick = (e) => { state.shape='circle'; document.querySelectorAll('#editor-controls .tool-group:nth-child(2) button').forEach(b=>b.classList.remove('active')); e.target.classList.add('active'); updateCursor(); };
+        document.getElementById('btnShapeSquare').onclick = (e) => { state.shape='square'; document.querySelectorAll('#editor-controls .tool-group:nth-child(2) button').forEach(b=>b.classList.remove('active')); e.target.classList.add('active'); updateCursor(); };
+
+        document.getElementById('btnFlipH').onclick = () => { state.flipH *= -1; updateTransform(); };
+        document.getElementById('btnFlipV').onclick = () => { state.flipV *= -1; updateTransform(); };
+        document.getElementById('btnRotL').onclick = () => { state.rotation -= 90; updateTransform(); };
+        document.getElementById('btnRotR').onclick = () => { state.rotation += 90; updateTransform(); };
+        
+        ui.btnClearMask.onclick = () => {
+             saveHistory(); ctxMask.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+             if(state.previewMode) renderPreview();
+        };
+        ui.btnClearDots.onclick = () => {
+             saveSamHistory(); state.samPoints = []; 
+             if(state.previewMode) renderPreview(); else renderSamPoints();
+        };
+
+        document.getElementById('btnInvert').onclick = () => {
+            saveHistory();
+            const id = ctxMask.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+            const d = id.data;
+            for (let i = 0; i < d.length; i += 4) {
+                d[i] = 255 - d[i]; d[i+1] = 255 - d[i+1]; d[i+2] = 255 - d[i+2]; d[i+3] = 255 - d[i+3]; 
+            }
+            ctxMask.putImageData(id, 0, 0);
+            if(state.previewMode) renderPreview();
+        };
+
+        function generateOutput(asBase64) {
+            const tmpCanvas = document.createElement('canvas');
+            tmpCanvas.width = maskCanvas.width;
+            tmpCanvas.height = maskCanvas.height;
+            const tCtx = tmpCanvas.getContext('2d');
+            tCtx.fillStyle = "black";
+            tCtx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
+            tCtx.drawImage(maskCanvas, 0, 0);
+
+            if (asBase64) return tmpCanvas.toDataURL("image/png");
+            
+            tmpCanvas.toBlob(async (blob) => {
+                if (!blob) return;
+                try {
+                    await fetch(`${API_BASE}/save_mask`, {
+                        method: "POST",
+                        body: blob,
+                        headers: { "Content-Type": "image/png" }
+                    });
+                } catch (e) { console.error(e); }
+            }, "image/png");
+        }
+
+        document.getElementById('btnSaveHost').onclick = () => generateOutput(false);
+        document.getElementById('btnExport').onclick = () => {
+            const a = document.createElement('a'); a.href = generateOutput(true); a.download = 'mask_export.png'; a.click();
+        };
+
+        function updateCursor(e) {
+            if (state.appMode !== 'editor' || state.isPanning) { cursor.style.display = 'none'; return; }
+            
+            const mouseX = e ? e.clientX : state.lastX;
+            const mouseY = e ? e.clientY : state.lastY;
+            if(e && e.target.closest('.toolbar')) { cursor.style.display = 'none'; return; }
+
+            cursor.style.display = 'block';
+            cursor.style.left = mouseX + 'px';
+            cursor.style.top = mouseY + 'px';
+            
+            const visualSize = state.brushSize * state.scale;
+            cursor.style.width = visualSize + 'px';
+            cursor.style.height = visualSize + 'px';
+            cursor.style.borderRadius = state.shape === 'circle' ? '50%' : '0';
+            
+            const c = state.mode === 'erase' ? '#d73a49' : state.maskColor;
+            cursor.style.borderColor = c;
+            
+            if (state.shape === 'circle' && state.brushHardness < 100) {
+                 cursor.style.boxShadow = `inset 0 0 0 1px ${c}55, 0 0 2px black`;
+            } else {
+                 cursor.style.boxShadow = '0 0 2px black';
+            }
+        }
+
+        saveSamHistory(); // init sam history
+        init();
+    </script>
+</body>
+</html>
