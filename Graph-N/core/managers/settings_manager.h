@@ -26,6 +26,9 @@ public:
     inline bool ui_nodes_pane_tree_view_load() const { return *std::get_if<bool>(&m_ui_nodes_tree_view.value); }
     inline void ui_nodes_pane_tree_view_save(bool tree_view) { save_option(m_ui_nodes_tree_view, bool(tree_view)); }
 
+    inline const std::string& ui_nodes_label_load() const { return *std::get_if<std::string>(&m_ui_nodes_labels.value); }
+    inline void ui_nodes_label_save(const std::string& labels) { save_option(m_ui_nodes_labels, std::string(labels)); }
+
     // comfyui
     inline const std::string& comfyui_host_load() const { return *std::get_if<std::string>(&m_comfyui_host.value); }
     inline void comfyui_host_save(const std::string& host) { save_option(m_comfyui_host, host); }
@@ -77,9 +80,6 @@ public:
     inline std::optional<bool> node_advanced_load(hid node_id) const { return node_bool_load(node_id, NodeOption::Advanced); }
     void node_advanced_save(hid pin_id, bool value) const { node_save(pin_id, NodeOption::Advanced, value); }
 
-    std::optional<bool> node_starred_load(hid node_id) const { return node_bool_load(node_id, NodeOption::Starred); }
-    void node_starred_save(hid node_id, bool value) const { node_save(node_id, NodeOption::Starred, value); }
-
     // stats
     inline int64_t stat_threshold_warn_load(MetricLimit type) const { return *std::get_if<int64_t>(&m_stat_limits_warn[cast::to_szt(type)].value); }
     inline int64_t stat_threshold_crit_load(MetricLimit type) const { return *std::get_if<int64_t>(&m_stat_limits_crit[cast::to_szt(type)].value); }
@@ -123,6 +123,7 @@ private:
         return it->second.sval;
     }
     void node_save(hid node_id, NodeOption opt, bool value) const;
+    void node_save(hid node_id, NodeOption opt, const std::string& value) const;
 
 private:
     // app
@@ -131,6 +132,7 @@ private:
     // ui
     OptionValue m_ui_open_wnds; // int
     OptionValue m_ui_nodes_tree_view; // int
+    OptionValue m_ui_nodes_labels; // str
     std::vector<OptionValue> m_ui_colors; // int
 
     // comfyui

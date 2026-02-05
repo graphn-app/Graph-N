@@ -101,6 +101,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
         Log("Parsed: " << m_parsed_item << " item. Adding internal nodes");
         //add_internal_nodes(*copy.get());
         sort_nodes(*copy.get());
+        copy->init_labels();
         Log("Nodes loading and parsing done");
         return copy;
     }
@@ -1036,32 +1037,10 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 
 void NodesParser::sort_nodes(NodesManager& manager)
 {
-    const auto find_first_sortable = [](const char* str)   // ignore non-ascii like smiles and icons
-    {
-        while (*str && cast::to_uchar(*str) > 127)
-            str++;
-        while (*str && ' ' == *str)
-            str++;
-        return str;
-    };
-
-    const auto sort_callback = [&find_first_sortable](const data::Nodes* lhs, const data::Nodes* rhs)
-    {
-        if (!lhs->is_node && rhs->is_node)
-            return true;
-        if (lhs->is_node && !rhs->is_node)
-            return false;
-
-        const char* lhs_sort = find_first_sortable(lhs->name_or_category.c_str());
-        const char* rhs_sort = find_first_sortable(rhs->name_or_category.c_str());
-
-        return tools::str::to_lower_ascii(lhs_sort) < tools::str::to_lower_ascii(rhs_sort);
-    };
-
     std::function<void(std::vector<data::Nodes*>& nodes)> sort_tree;
-    sort_tree = [&sort_tree, &sort_callback](std::vector<data::Nodes*>& nodes)
+    sort_tree = [&sort_tree](std::vector<data::Nodes*>& nodes)
     {
-        std::sort(nodes.begin(), nodes.end(), sort_callback);
+        NodesManager::sort_nodes(nodes);
 
         for (auto node : nodes)
         {
@@ -1070,7 +1049,7 @@ void NodesParser::sort_nodes(NodesManager& manager)
     };
 
     sort_tree(manager.m_nodes_tree);
-    std::sort(manager.m_nodes_plain.begin(), manager.m_nodes_plain.end(), sort_callback);
+    NodesManager::sort_nodes(manager.m_nodes_plain);
 }
 
 } // namespace mngr

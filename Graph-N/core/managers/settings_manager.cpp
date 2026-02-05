@@ -19,6 +19,7 @@ bool SettingsManager::init()
     // ui
     m_ui_open_wnds =                                  { "flow_open_windows",        int64_t(ui::ViewPanelsResetAll) };
     m_ui_nodes_tree_view =                            { "flow_nodes_tree_view",     bool(true) };
+    m_ui_nodes_labels =                               { "flow_node_labels",         std::string("") };
 
     // comfyui
     m_comfyui_host =                                  { "comfyui_host",             std::string("127.0.0.1") };
@@ -135,6 +136,7 @@ bool SettingsManager::init()
     values.push_back(&m_app_vsync);
     values.push_back(&m_ui_open_wnds);
     values.push_back(&m_ui_nodes_tree_view);
+    values.push_back(&m_ui_nodes_labels);
     values.push_back(&m_comfyui_host);
     values.push_back(&m_comfyui_port);
     values.push_back(&m_comfyui_conn_time);
@@ -317,6 +319,13 @@ void SettingsManager::node_options_preload()
 void SettingsManager::node_save(hid node_id, NodeOption opt, bool value) const
 {
     g::pDbManager->node_option_save(node_id, opt, { value ? 1 : 0 });
+}
+
+void SettingsManager::node_save(hid node_id, NodeOption opt, const std::string& value) const
+{
+    DbValue dbval;
+    dbval.sval = value;
+    g::pDbManager->node_option_save(node_id, opt, std::move(dbval));
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -27,9 +27,9 @@ void PanelEmptyWithDescr::show_empty_panel_descr(
     if (*header_descr)
         ImGui::Separator(); // Visually separate help from state
 
-                        // --- Center the "Empty State" in the remaining space ---
+    // --- Center the "Empty State" in the remaining space ---
 
-                        // Calculate total height to center vertically
+    // Calculate total height to center vertically
     const float line_h = ImGui::GetTextLineHeight();
     const float spacing = ImGui::GetStyle().ItemSpacing.y;
     // Icon + Title + Spacing + Subtitle + Help1 + Help2
@@ -104,6 +104,7 @@ bool PanelWithList::draw_list(
         for (int32_t idx = clipper.DisplayStart; idx < clipper.DisplayEnd; idx++)
         {
             auto& item = items[idx];
+            bool allow_tt = true;
 
             if (item.is_separator)
             {
@@ -114,14 +115,28 @@ bool PanelWithList::draw_list(
             ImGui::PushID(&item);
             ImGui::BeginGroup();
 
-            ImGui::SetCursorPosX(0);
-            ImGui::InvisibleButton("btn", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetTextLineHeightWithSpacing()));
-            
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone))
-                m_hovered_item = idx;
-            const bool long_delay = ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal);
+            bool l_clicked = false;
+            bool l_dbl_clicked = false;
+            bool l_released = false;            
+            bool r_clicked = false;
+            bool r_released = false;
 
-            ImGui::SameLine();
+            if (!item.renaming)
+            {
+                ImGui::SetCursorPosX(0);
+                ImGui::InvisibleButton("btn", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetTextLineHeightWithSpacing()));
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone))
+                    m_hovered_item = idx;
+
+                l_clicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+                l_dbl_clicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+                l_released = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+                r_clicked = ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+                r_released = ImGui::IsMouseReleased(ImGuiMouseButton_Right);
+
+                ImGui::SameLine();
+            }
             ImGui::SetCursorPosX(indent * item.depth);
 
             bool is_selected = item.selected || m_hovered_item == idx;
@@ -141,7 +156,7 @@ bool PanelWithList::draw_list(
             }
             else
             {
-                if (is_selected && !item.can_expand)
+                if (is_selected)
                 {
                     ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
 
@@ -178,19 +193,23 @@ bool PanelWithList::draw_list(
 
             if (item.renaming)
             {
+                allow_tt = false;
+
                 if (item.need_focus)
                     ImGui::SetKeyboardFocusHere();
                 item.need_focus = false;
 
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 const bool enter_pressed = ImGuiEx::InputText("##newname", &item.name, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
-                if (ImGui::IsItemActive() && ImGui::IsKeyPressed(ImGuiKey_Escape))
+                if (ImGui::IsKeyPressed(ImGuiKey_Escape))
                 {
                     item.name = item.name_backup;
                     item.name_backup = {};
                     item.renaming = false;
                 }
-                if (enter_pressed || ImGui::IsItemDeactivatedAfterEdit())
+
+                if (enter_pressed || ImGui::IsItemDeactivated() ||
+                    ((ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right)) && !ImGui::IsItemHovered()))
                 {
                     if (item.name != item.name_backup)
                     {
@@ -217,18 +236,51 @@ bool PanelWithList::draw_list(
                 if (is_selected || m_hovered_item == idx)
                     ImGui::PopStyleColor();
 
+                if (!ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+                    allow_tt = false;
+
                 ImRect name_rect = ImGui::GetItemRect();
                 name_rect.Min.y -= 2;
                 name_rect.Max.x = ImGui::GetWindowPos().x + ImGui::GetContentRegionAvail().x - ImGui::GetStyle().FramePadding.x;
                 name_rect.Max.y += 3;
 
-                if (m_hovered_item == idx)
-                {
-                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                    {
-                        const auto mouse = ImGui::GetMousePos();
+                const auto mouse = ImGui::GetMousePos();
+                const bool mouse_on_icon = ico_rect.Contains(mouse);
+                const bool mouse_on_name = name_rect.Contains(mouse);
+                bool handler_processed = false;
 
-                        if (ico_rect.Contains(mouse) && (item.can_expand || item.icon_can_click))
+                if (item.continue_processing_ico_handler || mouse_on_icon && item.on_icon_handler != nullptr)
+                {
+                    if (item.on_icon_handler(item, l_clicked, l_dbl_clicked, l_released, r_clicked, r_released, handler_processed))
+                    {
+                        dirty = true;
+                        dirty_item.icon_clicked = true;
+                        dirty_item.index = idx;
+                    }
+                }
+                if (!handler_processed && item.continue_processing_item_handler || mouse_on_name && item.on_item_handler != nullptr)
+                {
+                    if (item.on_item_handler(item, l_clicked, l_dbl_clicked, l_released, r_clicked, r_released, handler_processed))
+                    {
+                        dirty = true;
+                        dirty_item.item_clicked = true;
+                        dirty_item.index = idx;
+                    }
+                }
+                if (!handler_processed && allow_tt && item.on_hover_handler != nullptr)
+                {
+                    if (item.on_hover_handler(item, handler_processed))
+                    {
+                        dirty = true;
+                        dirty_item.item_handled = true;
+                        dirty_item.index = idx;
+                    }
+                }
+                if (!handler_processed && m_hovered_item == idx)
+                {
+                    if (l_clicked)
+                    {
+                        if (mouse_on_icon && (item.can_expand || item.icon_can_click))
                         {
                             dirty = true;
                             dirty_item.index = idx;
@@ -245,7 +297,7 @@ bool PanelWithList::draw_list(
                             }
                         }
 
-                        if (!dirty && (item.can_lclick || item.can_expand))
+                        else if (!dirty && (item.can_lclick || item.can_expand))
                         {
                             dirty = true;
                             if (item.can_expand)
@@ -260,13 +312,19 @@ bool PanelWithList::draw_list(
                             dirty_item.index = idx;
                         }
                     }
-                    else if (item.can_rclick && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                    if (item.can_rclick && r_clicked)
                     {
                         dirty = true;
                         dirty_item.rclicked = true;
                         dirty_item.index = idx;
                     }
-                    else if (long_delay)
+                    if (mouse_on_name && item.can_dblclick && l_dbl_clicked)
+                    {
+                        dirty = true;
+                        dirty_item.dblclicked = true;
+                        dirty_item.index = idx;
+                    }
+                    if (allow_tt)
                     {
                         go_tooltip(idx, tt_callbacks);
                     }

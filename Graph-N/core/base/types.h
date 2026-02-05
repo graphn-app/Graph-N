@@ -72,7 +72,7 @@ enum class NodeOption
     _none,
 
     Advanced,
-    Starred,
+    Labels,
 
     _count,
     _first = _none + 1,
@@ -296,10 +296,27 @@ struct PanelListItem final
     bool icon_active = false;
     bool icon_can_click = false;
 
+    std::function<bool(PanelListItem&, bool&)> on_hover_handler = nullptr;
+
+    std::function<bool(PanelListItem&, bool, bool, bool, bool, bool, bool&)> on_icon_handler = nullptr;
+    bool continue_processing_ico_handler = false;
+
     bool can_rclick = false;
     bool can_lclick = false;
+    bool can_dblclick = false;
 
-    void* ptr = nullptr;    // user data
+    std::function<bool(PanelListItem&, bool, bool, bool, bool, bool, bool&)> on_item_handler = nullptr;
+    bool continue_processing_item_handler = false;
+
+    uint32_t label = 0;
+    void* ptr = nullptr;
+
+    struct State
+    {
+        bool changed = false;
+        void* ptr = nullptr;
+    };
+    std::unique_ptr<State> state;
 };
 
 struct PanelItemState final
@@ -307,7 +324,10 @@ struct PanelItemState final
     size_t index = 0;
     bool rclicked = false;
     bool lclicked = false;
+    bool dblclicked = false;
     bool renamed = false;
+    bool item_clicked = false;
+    bool item_handled = false;
     bool icon_clicked = false;
     bool expanded = false;
 };

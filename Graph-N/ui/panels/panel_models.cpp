@@ -31,7 +31,7 @@ DlgCode PanelModels::show(bool& focused)
     bool opened = true;
     if (begin_panel(opened, focused) && opened)
     {
-        if (g::pNodesManager->get_models_tree().empty())
+        if (true)//g::pNodesManager->get_models_tree().empty())
         {
             show_empty_panel_descr(
                 ICON_LC_INFO " Model Library.",
