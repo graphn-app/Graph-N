@@ -109,7 +109,7 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::RestartButton)] =                     { "color_restart_button", int64_t(IM_COL32(120, 0, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::UrlTextDefault)] =                    { "color_url_text_default", int64_t(IM_COL32(51, 127, 229, 255)) };
     m_ui_colors[cast::to_szt(AppColor::UrlTextHovered)] =                    { "color_url_text_hovered", int64_t(IM_COL32(102, 153, 255, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::Starred)] =                           { "color_starred", int64_t(IM_COL32(255, 215, 0, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::FolderIcon)] =                        { "color_folder_icon", int64_t(IM_COL32(255, 210, 88, 255)) };
 
 
     m_stat_limits_warn.resize(cast::to_szt(MetricLimit::_count));

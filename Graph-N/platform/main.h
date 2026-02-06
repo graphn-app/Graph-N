@@ -24,6 +24,7 @@ public:
     virtual int32_t run(flow_callback& callback, std::atomic_bool& request_focus) = 0;
 
     ImFont* get_regular_font() const { return m_font_regular; }
+    ImFont* get_small_font() const { return m_font_small; }
     ImFont* get_bold_font() const { return m_font_bold; }
     ImFont* get_icons_font() const { return m_font_icons; }
 
@@ -39,6 +40,7 @@ protected:
 private:
     bool m_vsync = true;
     ImFont* m_font_regular = nullptr;
+    ImFont* m_font_small = nullptr;
     ImFont* m_font_bold = nullptr;
     ImFont* m_font_icons = nullptr;
 };

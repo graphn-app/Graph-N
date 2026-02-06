@@ -44,8 +44,8 @@ void NodesManager::calc_number_inside(const std::string& filter)
                 const bool category_unfiltered = force_unfilter || (!filter.empty() && node->search.find(filter) != std::string::npos);
                 node->nodes_inside_unfiltered = 0;
                 calculator(node->children, filter.empty() ? &node->nodes_inside : &node->nodes_inside_unfiltered, category_unfiltered);
-                node->name_or_category = node->name_or_category.substr(0, node->name_or_category_len) +
-                    " [" + std::to_string(filter.empty() ? node->nodes_inside : node->nodes_inside_unfiltered) + "]";
+      //          node->name_or_category = node->name_or_category.substr(0, node->name_or_category_len) +
+       //             " [" + std::to_string(filter.empty() ? node->nodes_inside : node->nodes_inside_unfiltered) + "]";
                 if (count != nullptr)
                     *count += filter.empty() ? node->nodes_inside : node->nodes_inside_unfiltered;
             }
@@ -145,7 +145,7 @@ void NodesManager::init_labels()
     }
 }
 
-std::string NodesManager::create_label()
+uint32_t NodesManager::create_label()
 {
     std::string label = "new label";
     size_t label_idx = 1;
@@ -162,6 +162,8 @@ std::string NodesManager::create_label()
     }
 
     m_last_label_id++;
+    m_nodes_in_label[m_last_label_id];
+
     Log("New node label added: " << label << " = " << m_last_label_id);
 
     m_labels.push_back({ label, m_last_label_id });
@@ -169,7 +171,7 @@ std::string NodesManager::create_label()
         { return tools::str::to_lower_ascii(l.first) < tools::str::to_lower_ascii(r.first); });
 
     save_labels();
-    return label;
+    return m_last_label_id;
 }
 
 bool NodesManager::rename_label(uint32_t label_id, const std::string& new_name)

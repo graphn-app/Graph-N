@@ -92,6 +92,29 @@ void MainRoutine::prepare_fonts()
     config.GlyphOffset.y = 4.0f;
     io.Fonts->AddFontFromFileTTF(path_icons.c_str(), 18.0f, &config, ranges_icons);
 
+    // ================= SMALL FONT =================
+
+    // Base small
+    config.MergeMode = false;
+    config.PixelSnapH = false;
+    config.GlyphMinAdvanceX = 0.0f;
+    config.GlyphOffset.y = 0.0f;
+    m_font_small = io.Fonts->AddFontFromFileTTF(path_inter_reg.c_str(), 13.0f, &config, ranges.Data);
+
+    // Merge Emoji -> small
+    config.MergeMode = true;
+    config.PixelSnapH = true;
+    config.GlyphMinAdvanceX = 18.0f;
+    config.GlyphOffset.y = 1.0f;
+    io.Fonts->AddFontFromFileTTF(path_emoji.c_str(), 13.0f, &config, ranges.Data);
+
+    // Merge icons -> small
+    config.MergeMode = true;
+    config.PixelSnapH = true;
+    config.GlyphMinAdvanceX = 18.0f;
+    config.GlyphOffset.y = 4.0f;
+    io.Fonts->AddFontFromFileTTF(path_icons.c_str(), 13.0f, &config, ranges_icons);
+
     // ================= ICONS FONT =================
 
     config.MergeMode = false;
@@ -104,7 +127,7 @@ void MainRoutine::prepare_fonts()
     io.Fonts->Build();
 
     // ZERO WIDTH HACK
-    ImFont* fonts_to_fix[] = { m_font_regular, m_font_bold };
+    ImFont* fonts_to_fix[] = { m_font_regular, m_font_small, m_font_bold };
     for (ImFont* font : fonts_to_fix)
     {
         for (auto& glyph : font->Glyphs)

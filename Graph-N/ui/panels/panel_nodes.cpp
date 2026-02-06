@@ -36,56 +36,82 @@ void PanelNodes::init()
 
     g::pFlow->subscribe_comfyui_validity_state(this);
 
-    {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_TAGS;
-        button.tooltip = "Toggle Labels";
-        button.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
-        button.long_indent_after = true;
-        add_button(std::move(button));
-    }
-    {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
-        button.tooltip = "Expand All";
-        button.on_click = std::bind(&PanelNodes::on_expand_all, this, std::placeholders::_1);
-        button.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
-        add_button(std::move(button));
-    }
-    {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
-        button.tooltip = "Collapse All";
-        button.on_click = std::bind(&PanelNodes::on_collapse_all, this, std::placeholders::_1);
-        button.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
-        add_button(std::move(button));
-    }
-    {
-        PanelToolbar::Button button;
-        button.icon = g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE;
-        button.tooltip = "Toggle Flat/Category View";
-        button.on_click = std::bind(&PanelNodes::on_view, this, std::placeholders::_1);
-        button.on_preview = std::bind(&PanelNodes::on_pre_view, this, std::placeholders::_1);
-        button.long_indent_after = true;
-        add_button(std::move(button));
-    }
-    {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_FOLDER_SYNC;
-        button.tooltip = "Refresh Node List";
-        button.on_click = std::bind(&PanelNodes::on_sync, this, std::placeholders::_1);
-        button.on_preview = std::bind(&PanelNodes::on_pre_sync, this, std::placeholders::_1);
-        add_button(std::move(button));
-    }
-    finalize_toolbar();
-
     m_tt_callbacks.on_alloc_tt_data = std::bind(&PanelNodes::on_alloc_tt_data, this, std::placeholders::_1);
     m_tt_callbacks.on_release_tt_data = std::bind(&PanelNodes::on_release_tt_data, this, std::placeholders::_1);
     m_tt_callbacks.on_show_tt = std::bind(&PanelNodes::on_show_tt, this, std::placeholders::_1);
     m_tt_callbacks.on_pre_tt = std::bind(&PanelNodes::on_pre_tt, this, std::placeholders::_1);
     m_tt_callbacks.on_post_tt = std::bind(&PanelNodes::on_post_tt, this, std::placeholders::_1);
 
+    create_toolbar();
     rebuild_items();
+}
+
+void PanelNodes::create_toolbar()
+{
+    clear_toolbar();
+
+    if (m_labels_mode)
+    {
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_MOVE_LEFT;
+            button.tooltip = "Back to Nodes library";
+            button.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
+            button.long_indent_after = true;
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_PLUS;
+            button.tooltip = "New Label";
+            button.on_click = std::bind(&PanelNodes::on_new_label, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }
+    }
+    else
+    {
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_TAGS;
+            button.tooltip = "Manage Labels";
+            button.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
+            button.long_indent_after = true;
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
+            button.tooltip = "Expand All";
+            button.on_click = std::bind(&PanelNodes::on_expand_all, this, std::placeholders::_1);
+            button.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
+            button.tooltip = "Collapse All";
+            button.on_click = std::bind(&PanelNodes::on_collapse_all, this, std::placeholders::_1);
+            button.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.icon = g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE;
+            button.tooltip = "Toggle Flat/Category View";
+            button.on_click = std::bind(&PanelNodes::on_view, this, std::placeholders::_1);
+            button.long_indent_after = true;
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_FOLDER_SYNC;
+            button.tooltip = "Refresh Node List";
+            button.on_click = std::bind(&PanelNodes::on_sync, this, std::placeholders::_1);
+            button.on_preview = std::bind(&PanelNodes::on_pre_sync, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }        
+    }
+    finalize_toolbar();
 }
 
 void PanelNodes::invalidate_comfyui_objects()
@@ -137,7 +163,7 @@ DlgCode PanelNodes::show(bool& focused)
                     "to several labels at once.",
                     "",
                     "Use the context menu, double-click",
-                    "or press Del, F2, F4",
+                    "or press Del, F2",
                     "to manage them.",
                 },
                 {
@@ -146,7 +172,7 @@ DlgCode PanelNodes::show(bool& focused)
                 "click here",
                 [this]()
                 {
-                    g::pNodesManager->create_label();
+                    m_new_label = g::pNodesManager->create_label();
                     rebuild_items();
                 }
             );
@@ -293,6 +319,17 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
     m_panel_items.clear();
     m_panel_items.reserve(labels.size() + g::pNodesManager->get_node_items_total());
 
+    const auto add_separator = [&items = m_panel_items](const char* sep_name)
+    {
+        PanelListItem item;
+        item.is_separator = true;
+        item.name = sep_name;
+        items.push_back(std::move(item));
+    };
+
+    if (!labels.empty())
+        add_separator("Labels");
+
     for (auto& label : labels)
     {
         size_t nodes_count = 0;
@@ -304,7 +341,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         }
 
         PanelListItem label_item;
-        label_item.name = label.first + " [" + std::to_string(nodes_count) + "]";
+        label_item.name = label.first;
+        label_item.name_p2 = std::to_string(nodes_count);
         label_item.can_expand = true;
         label_item.expanded = (force_expand_all || expanded_labels.count(label.second) > 0);
         const bool label_expanded = label_item.expanded;
@@ -332,17 +370,13 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         }
     }
 
-    if (!labels.empty())
-    {
-        PanelListItem item;
-        item.is_separator = true;
-        m_panel_items.push_back(std::move(item));
-    }
-
     if (g::pOptsManager->ui_nodes_pane_tree_view_load())
     {
+        add_separator("Folders");
+
         std::function<void(const std::vector<data::NodeItem*>&, int32_t)> go_tree;
-        go_tree = [&go_tree, &on_icon_handler, &labels, &panel_items = m_panel_items, &expanded_nodes, force_expand_all, &inspector = m_inspector]
+        go_tree = [&go_tree, &on_icon_handler, &labels, &panel_items = m_panel_items, &expanded_nodes, force_expand_all, &inspector = m_inspector,
+            is_filter_empty = data()->buffer[PanelNodesData::BuffFilter].empty()]
             (const std::vector<data::NodeItem*>& nodes, int32_t depth)
         {
             for (auto node : nodes)
@@ -352,6 +386,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     PanelListItem item;
                     item.depth = depth;
                     item.name = node->name_or_category;
+                    item.name_p2 = std::to_string(is_filter_empty ? node->nodes_inside : node->nodes_inside_unfiltered);
                     item.can_expand = true;
                     item.expanded = force_expand_all || expanded_nodes.count(node) > 0;
                     item.icon = item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
@@ -384,6 +419,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
     }
     else
     {
+        add_separator("Plain view");
+
         auto& plain = g::pNodesManager->get_nodes_plain();
 
         for (auto node_item : plain)
@@ -531,17 +568,11 @@ void PanelNodes::rebuild_labels()
             item.need_focus = true;
             handler_processed = true;
         }
-        else if (ImGui::IsKeyPressed(ImGuiKey_F4))
-        {
-            g::pNodesManager->create_label();
-            dirty = true;
-            handler_processed = true;
-        }
 
         return dirty;
     };
 
-    const auto on_item_handler = []
+    const auto on_item_handler = [&new_label_id = m_new_label]
         (PanelListItem& item, bool /*l_clicked*/, bool /*l_dbl_clicked*/, bool /*l_released*/, bool /*r_clicked*/, bool r_released, bool& handler_processed)
     {
         bool dirty = false, close = false;
@@ -557,7 +588,7 @@ void PanelNodes::rebuild_labels()
             handler_processed = true;
             if (ImGui::MenuItem("Add new label"))
             {
-                g::pNodesManager->create_label();
+                new_label_id = g::pNodesManager->create_label();
                 close = dirty = true;
             }
             ImGui::Separator();
@@ -599,6 +630,13 @@ void PanelNodes::rebuild_labels()
         item.label = label.second;
         item.on_item_handler = on_item_handler;
         item.on_hover_handler = on_hover_handler;
+        if (m_new_label == label.second)
+        {
+            item.renaming = true;
+            item.need_focus = true;
+            item.name_backup = item.name;
+            m_new_label = 0;
+        }
         m_panel_items.push_back(std::move(item));
     }
 }
@@ -675,6 +713,12 @@ void PanelNodes::add_node_to_wf(data::NodeItem* node_item)
     g::pFlow->wf_add_node_to_active_panel(node_item->node);
 }
 
+void PanelNodes::on_new_label(PanelToolbar::Button& /*button*/)
+{
+    m_new_label = g::pNodesManager->create_label();
+    rebuild_items();
+}
+
 void PanelNodes::on_expand_all(PanelToolbar::Button& /*button*/)
 {
     rebuild_items(true);
@@ -692,18 +736,13 @@ void PanelNodes::on_collapse_all(PanelToolbar::Button& /*button*/)
 void PanelNodes::on_labels_mode(PanelToolbar::Button& /*button*/)
 {
     m_labels_mode = !m_labels_mode;
+    create_toolbar();
     rebuild_items();
 }
 
 void PanelNodes::on_pre_expand_collapse(PanelToolbar::Button& button)
 {
-    button.enabled = !m_labels_mode &&
-        (!g::pNodesManager->get_labels().empty() || g::pOptsManager->ui_nodes_pane_tree_view_load());
-}
-
-void PanelNodes::on_pre_view(PanelToolbar::Button& button)
-{
-    button.enabled = !m_labels_mode;
+    button.enabled = g::pOptsManager->ui_nodes_pane_tree_view_load();
 }
 
 void PanelNodes::on_view(PanelToolbar::Button& button)
@@ -727,7 +766,7 @@ void PanelNodes::on_sync(PanelToolbar::Button& /*button*/)
 
 void PanelNodes::on_pre_sync(PanelToolbar::Button& button)
 {
-    button.enabled = !m_labels_mode && g::pFlow->get_online();    
+    button.enabled = g::pFlow->get_online();    
 }
 
 } // namespace ui

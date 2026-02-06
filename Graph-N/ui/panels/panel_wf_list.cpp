@@ -270,7 +270,7 @@ void PanelWfList::rebuild()
             {
                 PanelListItem item;
                 item.depth = 1;
-                item.dbl_check_if_selected = true;
+               // item.dbl_check_if_selected = true;
                 item.selected = (wf.id == m_active);
                 item.name = item.name_backup = wf.name;
                 item.can_lclick = item.can_rclick = true;
@@ -298,7 +298,7 @@ void PanelWfList::rebuild()
                 {
                     PanelListItem wf_item;
                     wf_item.depth = 1;
-                    wf_item.dbl_check_if_selected = true;
+                    //wf_item.dbl_check_if_selected = true;
                     wf_item.selected = (wf.id == m_active);
                     wf_item.name = wf_item.name_backup = wf.name;
                     wf_item.can_lclick = wf_item.can_rclick = true;

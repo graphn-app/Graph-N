@@ -172,7 +172,7 @@ enum class AppColor
     RestartButton,
     UrlTextDefault,
     UrlTextHovered,
-    Starred,
+    FolderIcon,
 
     Pin_Int,
     Pin_Float,
@@ -279,11 +279,12 @@ struct PanelListItem final
     int32_t depth = 0;
 
     bool is_separator = false;
-    bool dbl_check_if_selected = false;
+    bool is_empty = false;
 
     bool selected = false;
     
     std::string name;
+    std::string name_p2;
     std::string name_backup;
     bool renaming = false;
     bool need_focus = false;

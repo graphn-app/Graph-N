@@ -50,6 +50,8 @@ private:
 
     void add_node_to_wf(data::NodeItem* node_item);
 
+    void create_toolbar();
+
     void rebuild_items(bool force_expand_all = false);
     void rebuild_labels();
 
@@ -63,13 +65,13 @@ private:
     void on_post_tt(int32_t idx);
 
     void on_labels_mode(PanelToolbar::Button& button);
+    void on_new_label(PanelToolbar::Button& button);
     void on_expand_all(PanelToolbar::Button& button);
     void on_collapse_all(PanelToolbar::Button& button);
     void on_view(PanelToolbar::Button& button);
     void on_sync(PanelToolbar::Button& button);
     void on_pre_expand_collapse(PanelToolbar::Button& button);
     void on_pre_sync(PanelToolbar::Button& button);
-    void on_pre_view(PanelToolbar::Button& button);
 
 private:
     PanelNodeInspector* m_inspector = nullptr;
@@ -81,6 +83,7 @@ private:
     int32_t m_tt_idx = -1;
     std::vector<PanelListItem> m_panel_items;
     bool m_labels_mode = false;
+    uint32_t m_new_label = 0;
 };
 
 

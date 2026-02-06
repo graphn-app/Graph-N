@@ -108,7 +108,12 @@ bool PanelWithList::draw_list(
 
             if (item.is_separator)
             {
-                ImGui::Separator();
+                ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), item.name.c_str());
+                continue;
+            }
+            if (item.is_empty)
+            {
+                ImGui::TextUnformatted("");
                 continue;
             }
 
@@ -146,11 +151,9 @@ bool PanelWithList::draw_list(
                 is_selected = false;
                 if (item.icon != nullptr)
                 {
-                    if (m_hovered_item == idx)
-                        ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
+                    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(m_hovered_item == idx ? AppColor::SelectedItem : AppColor::FolderIcon));
                     ImGui::TextUnformatted(item.icon);
-                    if (m_hovered_item == idx)
-                        ImGui::PopStyleColor();
+                    ImGui::PopStyleColor();
                     ImGui::SameLine();
                 }
             }
@@ -159,20 +162,11 @@ bool PanelWithList::draw_list(
                 if (is_selected)
                 {
                     ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
-
-                    if (item.dbl_check_if_selected)
-                    {
-                        ImGui::TextUnformatted(ICON_LC_CHECK_CHECK);
-                        ImGui::SameLine();
-                        ImGui::SetCursorPosX(indent * item.depth + dbl_check_w);
-                    }
                 }
 
                 if (item.icon != nullptr && (item.icon_can_click && idx == m_hovered_item || item.icon_active))
                 {
-                    //if (item.icon_active) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::Starred));
                     ImGui::TextUnformatted(item.icon);
-                    //if (item.icon_active) ImGui::PopStyleColor();
                 }
                 else
                 {
@@ -232,7 +226,19 @@ bool PanelWithList::draw_list(
             {
                 if (is_selected || m_hovered_item == idx)
                     ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
+                if (item.can_expand)
+                    ImGui::PushFont(g::pMain->get_bold_font());
                 ImGui::TextUnformatted(item.name.c_str(), item.name.c_str() + item.name.size());
+                if (item.can_expand)
+                {
+                    ImGui::PopFont();
+                    ImGui::SameLine();
+                    ImGui::BeginDisabled();
+                    ImGui::PushFont(g::pMain->get_small_font());
+                    ImGui::TextUnformatted(item.name_p2.c_str(), item.name_p2.c_str() + item.name_p2.size());
+                    ImGui::PopFont();
+                    ImGui::EndDisabled();
+                }
                 if (is_selected || m_hovered_item == idx)
                     ImGui::PopStyleColor();
 
