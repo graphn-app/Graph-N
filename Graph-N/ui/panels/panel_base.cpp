@@ -170,9 +170,9 @@ bool PanelWithList::draw_list(
 
                 if (item.icon != nullptr && (item.icon_can_click && idx == m_hovered_item || item.icon_active))
                 {
-                    if (item.icon_active) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::Starred));
+                    //if (item.icon_active) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::Starred));
                     ImGui::TextUnformatted(item.icon);
-                    if (item.icon_active) ImGui::PopStyleColor();
+                    //if (item.icon_active) ImGui::PopStyleColor();
                 }
                 else
                 {
@@ -258,7 +258,7 @@ bool PanelWithList::draw_list(
                         dirty_item.index = idx;
                     }
                 }
-                if (!handler_processed && item.continue_processing_item_handler || mouse_on_name && item.on_item_handler != nullptr)
+                if (!dirty && !handler_processed && item.continue_processing_item_handler || mouse_on_name && item.on_item_handler != nullptr)
                 {
                     if (item.on_item_handler(item, l_clicked, l_dbl_clicked, l_released, r_clicked, r_released, handler_processed))
                     {
@@ -267,7 +267,7 @@ bool PanelWithList::draw_list(
                         dirty_item.index = idx;
                     }
                 }
-                if (!handler_processed && allow_tt && item.on_hover_handler != nullptr)
+                if (!dirty && !handler_processed && allow_tt && item.on_hover_handler != nullptr)
                 {
                     if (item.on_hover_handler(item, handler_processed))
                     {
@@ -276,7 +276,7 @@ bool PanelWithList::draw_list(
                         dirty_item.index = idx;
                     }
                 }
-                if (!handler_processed && m_hovered_item == idx)
+                if (!dirty && !handler_processed && m_hovered_item == idx)
                 {
                     if (l_clicked)
                     {
@@ -297,7 +297,7 @@ bool PanelWithList::draw_list(
                             }
                         }
 
-                        else if (!dirty && (item.can_lclick || item.can_expand))
+                        if (!dirty && (item.can_lclick || item.can_expand))
                         {
                             dirty = true;
                             if (item.can_expand)
@@ -312,13 +312,13 @@ bool PanelWithList::draw_list(
                             dirty_item.index = idx;
                         }
                     }
-                    if (item.can_rclick && r_clicked)
+                    if (!dirty && item.can_rclick && r_clicked)
                     {
                         dirty = true;
                         dirty_item.rclicked = true;
                         dirty_item.index = idx;
                     }
-                    if (mouse_on_name && item.can_dblclick && l_dbl_clicked)
+                    if (!dirty && mouse_on_name && item.can_dblclick && l_dbl_clicked)
                     {
                         dirty = true;
                         dirty_item.dblclicked = true;

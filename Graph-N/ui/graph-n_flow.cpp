@@ -506,7 +506,7 @@ void GraphN_Flow::on_menu_wf(PanelWorkflow* wf_panel)
 // WF public ->
 void GraphN_Flow::wf_create()
 {
-    auto info = g::pWfsManager->create();
+    auto info = g::pWfsManager->create(false /*skip_name*/);
     g::pWfsManager->set_active(info.id);
     auto panel = create_wf_panel(info);
     activate_wf_panel(panel);
@@ -515,9 +515,18 @@ void GraphN_Flow::wf_create()
 
 void GraphN_Flow::wf_activate(wid id)
 {
+    if (0 == id && !m_panels_wf.empty())
+        id = m_panels_wf.begin()->get()->get_workflow();
+
     g::pWfsManager->set_active(id);
     auto panel = find_wf_panel(id);
+    if (nullptr == panel && id != 0)
+    {
+        auto info = g::pWfsManager->get_info(id);
+        panel = create_wf_panel(info);
+    }
     activate_wf_panel(panel);
+
     m_panel_wf_list->rebuild();
 }
 
@@ -550,8 +559,10 @@ void GraphN_Flow::wf_delete(wid id)
     {
         close_wf_panel(panel);
     }
-    
-    m_panel_wf_list->reload();
+    else
+    {
+        m_panel_wf_list->reload();
+    }
 }
 
 void GraphN_Flow::wf_restore(wid id)
@@ -672,6 +683,9 @@ void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
             break;
         }
     }
+
+    if (m_wf_focused == wf_panel)
+        wf_activate(0);
 }
 
 void GraphN_Flow::rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name)
@@ -769,18 +783,16 @@ void GraphN_Flow::show_panel_wf()
     for (auto it = m_panels_wf.begin(); it != m_panels_wf.end();)
     {
         auto& panel = *it;
+        ++it;
         bool focused = false;
         if (panel->show_dialog(focused) != DlgCode::Progress)
         {
             close_wf_panel(panel.get());
         }
-        else if (focused)
+        else if (focused && panel.get() != m_wf_focused)
         {
-            activate_wf_panel(panel.get());
-            ++it;
+            wf_activate(panel->get_workflow());
         }
-        else
-            ++it;
     }
 }
 

@@ -62,10 +62,11 @@ WfInfo WfsManager::from_data(const WfData& data) const
     return info;
 }
 
-WfInfo WfsManager::create()
+WfInfo WfsManager::create(bool skip_name)
 {
     WfData data;
-    data.name = "Workflow " + std::to_string(++m_wf_name_counter);
+    if (!skip_name)
+        data.name = "Workflow " + std::to_string(++m_wf_name_counter);
     auto wf = create(std::move(data));
     return from_data(wf->get_data());
 }
@@ -117,9 +118,17 @@ WfData& WfsManager::find_data(wid id) const
 
 void WfsManager::set_active(wid id)
 {
-    auto& data = find_data(id);
-    g::pOptsManager->wf_active_save(data.uuid);
-    m_active = data.id;
+    if (0 == id)
+    {
+        g::pOptsManager->wf_active_save("");
+        m_active = 0;
+    }
+    else
+    {
+        auto& data = find_data(id);
+        g::pOptsManager->wf_active_save(data.uuid);
+        m_active = data.id;
+    }    
     Log("Wf id=" << id << " activated");
 }
 

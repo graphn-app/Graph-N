@@ -38,8 +38,6 @@ public:
 
     NO_COPY_MOVE(BaseDlg);
 
-    void set_focused() { m_focused = true; }
-
     DlgCode show_dialog(bool& focused)
     {
         if (m_close_called)
@@ -101,17 +99,9 @@ protected:
         return exit_code;
     }
 
-    void set_focus()
-    {
-        if (m_focused)
-            ImGui::SetNextWindowFocus();
-        m_focused = false;
-    }
-
 private:
     DlgObj m_obj;
     DlgCode m_exit_code = DlgCode::Progress;
-    bool m_focused = false;
     bool m_close_called = false;
 };
 

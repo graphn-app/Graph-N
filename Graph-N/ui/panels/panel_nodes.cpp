@@ -30,7 +30,7 @@ void PanelNodes::init()
     PanelBase::init();
     data()->buffer.resize(PanelNodesData::_buf_count);
 
-    auto wf_id = g::pWfsManager->create().id;
+    auto wf_id = g::pWfsManager->create(true /*skip_name*/).id;
     m_wf = g::pWfsManager->access(wf_id);
     g::pWfsManager->set_read_only(wf_id);
 
@@ -39,7 +39,7 @@ void PanelNodes::init()
     {
         PanelToolbar::Button button;
         button.icon = ICON_LC_TAGS;
-        button.tooltip = "Toggle Labels view";
+        button.tooltip = "Toggle Labels";
         button.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
         button.long_indent_after = true;
         add_button(std::move(button));

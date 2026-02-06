@@ -174,8 +174,15 @@ void PanelWfList::show_wfs()
 
 void PanelWfList::reload()
 {
+    const auto sort_callback = [](const WfInfo& left, const WfInfo& right)
+    {
+        return tools::str::to_lower_ascii(left.name) < tools::str::to_lower_ascii(right.name);
+    };
+
     m_wfs = g::pWfsManager->get_wfs();
+    std::sort(m_wfs.begin(), m_wfs.end(), sort_callback);
     m_deleted = g::pWfsManager->get_deleted();
+    std::sort(m_deleted.begin(), m_deleted.end(), sort_callback);
     m_labels = g::pWfsManager->get_labels();
     rebuild();
 }
@@ -184,14 +191,10 @@ void PanelWfList::rebuild()
 {
     LogF;
 
-    // keep selected/expanded state
-    std::set<wid> selected;
     std::set<std::string> expanded;
     for (auto& item : m_panel_items)
     {
-        if (item.selected)
-            selected.insert(((WfInfo*)item.ptr)->id);
-        else if (item.expanded)
+        if (item.expanded)
             expanded.insert(item.name);
     }
 
@@ -238,10 +241,14 @@ void PanelWfList::rebuild()
         for (auto& wf : m_wfs)
         {
             PanelListItem item;
-            item.dbl_check_if_selected = true;
             item.selected = (m_active == wf.id);
-            item.name = item.name_backup = wf.name;
-            item.can_lclick = item.can_rclick = true;
+            if (item.selected)
+            {
+                item.icon = ICON_LC_CHECK_CHECK;
+                item.icon_active = true;
+            }
+            item.name = wf.name;
+            item.can_lclick = true;
             
             item.ptr = &wf;
             m_panel_items.push_back(std::move(item));
@@ -337,7 +344,7 @@ void PanelWfList::handle_dirty(const PanelItemState& dirty_item)
 
         if (dirty_item.lclicked)
         {
-            g::pFlow->wf_activate(m_active);
+            g::pFlow->wf_activate(info->id);
         }
         else if (dirty_item.rclicked)
         {

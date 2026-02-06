@@ -21,7 +21,7 @@ public:
     void free() override;
     void stop_all_threads() override;
 
-    WfInfo create();
+    WfInfo create(bool skip_name);
     inline void cleanup(wid id) const { find_data(id).json.clear(); }
 
     inline wid get_active() const { return m_active; }

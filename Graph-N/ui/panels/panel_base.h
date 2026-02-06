@@ -34,6 +34,8 @@ public:
     const char* get_panel_name() const { return m_panel_name.c_str(); }
     const char* get_panel_id() const { return m_panel_id.c_str(); }
 
+    inline void set_focused() { m_activate = true; }
+
 protected:
     void set_name(const std::string& new_name) { m_panel_name = new_name; }
     void set_id(const std::string& new_id) { m_panel_id = new_id; }
@@ -55,6 +57,12 @@ protected:
             ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, data()->clr_active_wf);
             ImGui::PushStyleColor(ImGuiCol_TitleBgActive, data()->clr_active_wf);
             ImGui::PushStyleColor(ImGuiCol_TitleBg, data()->clr_active_wf);
+        }
+
+        if (m_activate)
+        {
+            m_activate = false;
+            ImGui::SetWindowFocus(name->c_str());
         }
 
         opened = true;
@@ -92,6 +100,7 @@ private:
     float m_panel_w = 0.0f;
     bool m_need_focus = false;
     bool m_always_active = false;
+    bool m_activate = false;
     //  ImGuiWindowClass m_class;
 };
 
