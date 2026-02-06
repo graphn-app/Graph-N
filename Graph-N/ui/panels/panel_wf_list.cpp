@@ -21,8 +21,10 @@ void PanelWfList::init()
     LogF;
     PanelBase::init();
 
-    setup_button_state_active();
-    rebuild();
+    m_tt_callbacks.on_show_tt = std::bind(&PanelWfList::on_show_tt, this, std::placeholders::_1);
+
+    create_toolbar();
+    rebuild_items();
 }
 
 void PanelWfList::free()
@@ -30,88 +32,89 @@ void PanelWfList::free()
     LogF;
     m_active = 0;
     m_wfs.clear();
-    m_deleted.clear();
-    m_labels.clear();
     m_panel_items.clear();
-    m_panel_items_deleted.clear();
-    m_panel_items_labels.clear();
-    m_renaming_wf = -1;
+    m_new_label = 0;
 }
 
-void PanelWfList::setup_button_state_active()
+void PanelWfList::create_toolbar()
 {
     clear_toolbar();
+    if (!m_deleted_mode && !m_labels_mode)
     {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_PLUS;
-        button.tooltip = "New Project";
-        button.on_click = std::bind(&PanelWfList::on_add_new_wf, this, std::placeholders::_1);
-        add_button(std::move(button));
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_PLUS;
+            button.tooltip = "New Project";
+            button.on_click = std::bind(&PanelWfList::on_add_new_wf, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_PEN_LINE;
+            button.tooltip = "Rename Project";
+            button.on_click = std::bind(&PanelWfList::on_rename_wf, this, std::placeholders::_1);
+            button.on_preview = std::bind(&PanelWfList::on_pre_rename_wf, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_TRASH;
+            button.tooltip = "Remove to Trash";
+            button.on_click = std::bind(&PanelWfList::on_delete_wf, this, std::placeholders::_1);
+            button.on_preview = std::bind(&PanelWfList::on_pre_delete_wf, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.empty_indent = true;
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_TAGS;
+            button.tooltip = "Manage labels";
+            button.on_click = std::bind(&PanelWfList::on_labels_mode, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_TRASH_2;
+            button.tooltip = "Trash (Auto-purge on exit)\nView deleted Projects";
+            button.on_click = std::bind(&PanelWfList::on_deleted_mode, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }
     }
+    else if (m_deleted_mode)
     {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_PEN_LINE;
-        button.tooltip = "Rename Project";
-        button.on_click = std::bind(&PanelWfList::on_rename_wf, this, std::placeholders::_1);
-        button.on_preview = std::bind(&PanelWfList::on_pre_rename_wf, this, std::placeholders::_1);
-        add_button(std::move(button));
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_MOVE_LEFT;
+            button.tooltip = "Back to Projects";
+            button.on_click = std::bind(&PanelWfList::on_deleted_mode, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }
     }
+    else if (m_labels_mode)
     {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_SCAN_EYE;
-        button.tooltip = "Locate active workflow";
-        button.on_click = std::bind(&PanelWfList::on_locate_wf, this, std::placeholders::_1);
-        button.on_preview = std::bind(&PanelWfList::on_pre_locate_wf, this, std::placeholders::_1);
-        add_button(std::move(button));
-    }
-    {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_TRASH;
-        button.tooltip = "Remove to Trash (Auto-purge on exit)";
-        button.on_click = std::bind(&PanelWfList::on_delete_wf, this, std::placeholders::_1);
-        button.on_preview = std::bind(&PanelWfList::on_pre_delete_wf, this, std::placeholders::_1);
-        button.long_indent_after = true;
-        add_button(std::move(button));
-    }
-    {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_TAG;
-        button.tooltip = "Manage labels";
-        button.on_click = std::bind(&PanelWfList::on_manage_label, this, std::placeholders::_1);
-        add_button(std::move(button));
-    }
-    {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_TRASH_2;
-        button.tooltip = "Trash.\nView deleted Projects";
-        button.on_click = std::bind(&PanelWfList::on_view_deleted, this, std::placeholders::_1);
-        add_button(std::move(button));
-    }
-    finalize_toolbar();
-}
-
-void PanelWfList::setup_button_state_deleted()
-{
-    clear_toolbar();
-    {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_TRASH;
-        button.tooltip = "Close Trash";
-        button.on_click = std::bind(&PanelWfList::on_view_deleted, this, std::placeholders::_1);
-        add_button(std::move(button));
-    }
-    finalize_toolbar();
-}
-
-void PanelWfList::setup_button_state_labels()
-{
-    clear_toolbar();
-    {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_PLUS;
-        button.tooltip = "Add new label";
-        button.on_click = std::bind(&PanelWfList::on_add_label, this, std::placeholders::_1);
-        add_button(std::move(button));
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_MOVE_LEFT;
+            button.tooltip = "Back to Projects";
+            button.on_click = std::bind(&PanelWfList::on_labels_mode, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.empty_indent = true;
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.icon = ICON_LC_PLUS;
+            button.tooltip = "Add new label";
+            button.on_click = std::bind(&PanelWfList::on_add_label, this, std::placeholders::_1);
+            add_button(std::move(button));
+        }
     }
     finalize_toolbar();
 }
@@ -128,7 +131,7 @@ DlgCode PanelWfList::show(bool& focused)
     {
         draw_toolbar();
 
-        if (m_wfs.empty())
+        if (!m_labels_mode && !m_deleted_mode && m_wfs.empty())
         {
             show_empty_panel_descr(
                 "",
@@ -144,7 +147,46 @@ DlgCode PanelWfList::show(bool& focused)
                     "Use the Main Menu to",
                     "import or export .json files."
                 }
-                );
+            );
+        }
+        else if (m_labels_mode && g::pWfsManager->get_labels().empty())
+        {
+            show_empty_panel_descr(
+                "",
+                {
+                    ICON_LC_TAGS,
+                    "Organize your Projects using labels.",
+                    "A single Project can belong",
+                    "to several labels at once.",
+                    "",
+                    "Use the context menu, double-click",
+                    "or press Del, F2",
+                    "to manage them.",
+                },
+                {
+                    "To get started,",
+                },
+                "click here",
+                [this]()
+                {
+                    m_new_label = g::pWfsManager->create_label();
+                    rebuild_items();
+                }
+            );
+        }
+        else if (m_deleted_mode && m_wfs.empty())
+        {
+            show_empty_panel_descr(
+                "",
+                {
+                    ICON_LC_TRASH_2,
+                    "Your deleted Projects are kept here",
+                    "You can restore them,",
+                    "otherwise they will be purged",
+                    "upon the next app restart.",
+                },
+                {}
+            );
         }
         else
             show_wfs();
@@ -158,202 +200,425 @@ void PanelWfList::show_wfs()
     if (ImGui::BeginChild("WfsGroup", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
     {
         PanelItemState state;
-        if (m_deleted_view)
-        {
-            if (draw_list(m_panel_items_deleted, state))
-                handle_dirty(state);
-        }
-        else
-        {
-            if (draw_list(m_panel_items, state))
-                handle_dirty(state);
-        }
+        if (draw_list(m_panel_items, state, (m_deleted_mode ? &m_tt_callbacks : nullptr)))
+            handle_dirty(state);
     }
     ImGui::EndChild();
 }
 
-void PanelWfList::reload()
+void PanelWfList::rebuild_items()
 {
     const auto sort_callback = [](const WfInfo& left, const WfInfo& right)
     {
         return tools::str::to_lower_ascii(left.name) < tools::str::to_lower_ascii(right.name);
     };
 
-    m_wfs = g::pWfsManager->get_wfs();
-    std::sort(m_wfs.begin(), m_wfs.end(), sort_callback);
-    m_deleted = g::pWfsManager->get_deleted();
-    std::sort(m_deleted.begin(), m_deleted.end(), sort_callback);
-    m_labels = g::pWfsManager->get_labels();
-    rebuild();
-}
+    if (m_labels_mode)
+    {
+        rebuild_labels();
+        return;
+    }
 
-void PanelWfList::rebuild()
-{
+    if (m_deleted_mode)
+    {
+        m_wfs = g::pWfsManager->get_deleted();
+        std::sort(m_wfs.begin(), m_wfs.end(), sort_callback);
+
+        rebuild_trash();
+        return;
+    }
+
     LogF;
 
-    std::set<std::string> expanded;
+    m_wfs = g::pWfsManager->get_wfs();
+    std::sort(m_wfs.begin(), m_wfs.end(), sort_callback);
+
+    struct WfLabelState : public PanelListItem::State
+    {
+        std::set<uint32_t> active_labels;
+    };
+
+    const auto on_icon_handler = [&labels_mode = m_labels_mode]
+        (PanelListItem& item, bool /*l_clicked*/, bool /*l_dbl_clicked*/, bool l_released, bool /*r_clicked*/, bool r_released, bool& handler_processed)
+    {        
+        bool dirty = false;
+        auto& labels = g::pWfsManager->get_labels();
+        if (!item.continue_processing_ico_handler && (l_released || r_released))
+        {
+            if (labels.empty())
+            {
+                item.continue_processing_ico_handler = false;
+                labels_mode = true;
+                return true;
+            }
+
+            handler_processed = true;
+            item.state = std::make_unique<WfLabelState>();
+            item.state->ptr = item.ptr;
+            WfLabelState* state = ((WfLabelState*)item.state.get());
+            for (auto& label : labels)
+            {
+                if (g::pWfsManager->get_is_wf_in_label(cast::from_ptr<wid>(item.ptr), label.second))
+                {
+                    state->active_labels.insert(label.second);
+                }
+            }
+
+            ImGui::OpenPopup("WfLablesMenu");
+        }
+
+        ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(ImGui::GetContentRegionAvail().x, 200));
+        if (ImGui::BeginPopup("WfLablesMenu"))
+        {
+            handler_processed = true;
+            item.continue_processing_ico_handler = true;
+
+            ImGui::TextDisabled("Add/remove labels:");
+            ImGui::Separator();
+
+            for (auto& label : labels)
+            {
+                WfLabelState* state = ((WfLabelState*)item.state.get());
+                bool wf_in_label = (state->active_labels.count(label.second) > 0);
+
+                ImGui::PushID(label.second);
+                if (ImGui::Checkbox(label.first.c_str(), &wf_in_label))
+                {
+                    item.state->changed = true;
+                    if (wf_in_label)
+                        state->active_labels.insert(label.second);
+                    else
+                        state->active_labels.erase(label.second);
+                }
+                ImGui::PopID();
+            }
+
+            ImGui::Separator();
+            if (!item.state->changed)
+                ImGui::BeginDisabled();
+            if (ImGui::Button("Apply", ImVec2(-FLT_MIN, 0)))
+            {
+                item.continue_processing_ico_handler = false;
+                ImGui::CloseCurrentPopup();
+
+                if (item.state->changed && item.state->ptr == item.ptr)
+                {
+                    dirty = true;
+                    g::pWfsManager->set_wf_labels(cast::from_ptr<wid>(item.ptr), ((WfLabelState*)item.state.get())->active_labels);            
+                }
+            }
+            if (!item.state->changed)
+                ImGui::EndDisabled();
+
+            ImGui::EndPopup();
+        }
+        else
+            item.continue_processing_ico_handler = false;
+
+        if (!item.continue_processing_ico_handler)
+            item.state.reset();
+        return dirty;
+    };
+
+    const auto get_wf_name = [&wfs = m_wfs](wid id)
+    {
+        for (auto& wf : wfs)
+        {
+            if (id == wf.id)
+                return wf.name;
+        }
+        return std::string("");
+    };
+
+    std::set<uint32_t> expanded;
     for (auto& item : m_panel_items)
     {
         if (item.expanded)
-            expanded.insert(item.name);
+            expanded.insert(item.label);
     }
 
+    auto& labels = g::pWfsManager->get_labels();
     m_panel_items.clear();
-    m_panel_items_deleted.clear();
-    m_panel_items_labels.clear();
-
-    m_panel_items.reserve(m_wfs.size() + m_labels.size() + 1);
-    m_panel_items_deleted.reserve(m_deleted.size());
-    m_panel_items_labels.reserve(m_labels.size());
-
+    m_panel_items.reserve(m_wfs.size() * 2);
     m_active = g::pWfsManager->get_active();
 
-    for (const auto& label : m_labels)
+    if (!labels.empty())
     {
-        PanelListItem item;
-        item.name = label;
-        item.icon = ICON_LC_MINUS;
-        item.icon_can_click = true;
-        m_panel_items_labels.push_back(std::move(item));
-    }
-    if (m_new_label_state)
-    {
-        PanelListItem item;
-        item.name = "New label";
-        item.renaming = true;
-        item.need_focus = true;
-        m_panel_items_labels.push_back(std::move(item));
-        m_new_label_state = false;
-    }
+        PanelListItem label_all;
+        label_all.name = "All";
+        label_all.name_p2 = std::to_string(m_wfs.size());
+        label_all.can_expand = true;
+        label_all.expanded = (expanded.count(0) > 0);
+        bool label_expanded = label_all.expanded;
+        label_all.icon = label_expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
+        label_all.label = 0;
+        m_panel_items.push_back(std::move(label_all));
 
-    for (auto& wf : m_deleted)
-    {
-        PanelListItem item;
-        item.name = wf.name;
-        item.icon = ICON_LC_UNDO_2;
-        item.icon_can_click = true;
-        item.ptr = &wf;
-        m_panel_items_deleted.push_back(std::move(item));
-    }
-
-    if (m_labels.empty())
-    {
-        for (auto& wf : m_wfs)
+        if (label_expanded)
         {
-            PanelListItem item;
-            item.selected = (m_active == wf.id);
-            if (item.selected)
-            {
-                item.icon = ICON_LC_CHECK_CHECK;
-                item.icon_active = true;
-            }
-            item.name = wf.name;
-            item.can_lclick = true;
-            
-            item.ptr = &wf;
-            m_panel_items.push_back(std::move(item));
-        }
-    }
-    else
-    {
-        {
-            PanelListItem item_all;
-            item_all.name = "All";
-            item_all.can_expand = true;
-            item_all.expanded = expanded.count("All") > 0;
-            m_panel_items.push_back(std::move(item_all));
-        }
-
-        if (expanded.count("All") > 0)
-        {
-            for (auto& wf : m_wfs)
+            for (auto& info : m_wfs)
             {
                 PanelListItem item;
                 item.depth = 1;
-               // item.dbl_check_if_selected = true;
-                item.selected = (wf.id == m_active);
-                item.name = item.name_backup = wf.name;
-                item.can_lclick = item.can_rclick = true;
-                item.ptr = &wf;
+                item.name = info.name;
+                item.icon = ICON_LC_TAG;
+                item.icon_tooltip = "Manage Project labels";
+                item.icon_can_click = true;
+                item.can_lclick = true;
+                item.selected = (info.id == m_active);
+                item.on_icon_handler = on_icon_handler;
+                item.ptr = cast::to_void(info.id);
                 m_panel_items.push_back(std::move(item));
             }
         }
 
-        for (const auto& label : m_labels)
+        for (auto& label : labels)
         {
-            {
-                PanelListItem label_item;
-                label_item.name = label;
-                label_item.can_expand = true;
-                label_item.expanded = expanded.count(label) > 0;
-                m_panel_items.push_back(std::move(label_item));
-            }
+            auto& wfs_in_label = g::pWfsManager->get_wfs_in_label(label.second);
 
-            if (expanded.count(label) == 0)
-                continue;
+            PanelListItem label_item;
+            label_item.name = label.first;
+            label_item.name_p2 = std::to_string(wfs_in_label.size());
+            label_item.can_expand = true;
+            label_item.expanded = (expanded.count(label.second) > 0);
+            label_expanded = label_item.expanded;
+            label_item.icon = label_item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
+            label_item.label = label.second;
+            m_panel_items.push_back(std::move(label_item));
 
-            for (auto& wf : m_wfs)
+            if (label_expanded)
             {
-                if (g::pWfsManager->is_in_label(wf.id, label.c_str()))
+                for (auto wf_id : wfs_in_label)
                 {
-                    PanelListItem wf_item;
-                    wf_item.depth = 1;
-                    //wf_item.dbl_check_if_selected = true;
-                    wf_item.selected = (wf.id == m_active);
-                    wf_item.name = wf_item.name_backup = wf.name;
-                    wf_item.can_lclick = wf_item.can_rclick = true;
-                    wf_item.ptr = &wf;
-                    m_panel_items.push_back(std::move(wf_item));
+                    PanelListItem item;
+                    item.depth = 1;
+                    item.name = get_wf_name(wf_id);
+                    item.icon = ICON_LC_TAG;
+                    item.icon_tooltip = "Manage Project labels";
+                    item.icon_can_click = true;
+                    item.can_lclick = true;
+                    item.selected = (wf_id == m_active);
+                    item.on_icon_handler = on_icon_handler;
+                    item.ptr = cast::to_void(wf_id);
+                    m_panel_items.push_back(std::move(item));
                 }
             }
+        }
+    }
+    else
+    {
+        for (auto& info : m_wfs)
+        {
+            PanelListItem item;
+            item.name = info.name;
+            item.icon = ICON_LC_TAG;
+            item.icon_tooltip = "Manage Project labels";
+            item.icon_can_click = true;
+            item.can_lclick = true;
+            item.selected = (info.id == m_active);
+            item.on_icon_handler = on_icon_handler;
+            item.ptr = cast::to_void(info.id);
+            m_panel_items.push_back(std::move(item));
         }
     }
 }
 
 void PanelWfList::handle_dirty(const PanelItemState& dirty_item)
 {
-    Log("Dirty. del-view=" << m_deleted_view << ",  idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
-
-    if (m_deleted_view && dirty_item.index >= m_panel_items_deleted.size() || !m_deleted_view && dirty_item.index >= m_panel_items.size())
+    if (dirty_item.index >= m_panel_items.size())
     {
         LogError(ExcepCategory::Logic, "Index out of bounds");
     }
 
     if (dirty_item.expanded)
     {
-        rebuild();
+        rebuild_items();
+        return;
     }
 
-    else if (m_deleted_view && dirty_item.icon_clicked)
+    if (m_labels_mode)
     {
-        auto& item = m_panel_items_deleted[dirty_item.index];
-        auto* info = ((WfInfo*)item.ptr);
-        g::pFlow->wf_restore(info->id);
+        handle_dirty_labels(dirty_item);
+        return;
     }
 
-    else if (m_labels_view && dirty_item.icon_clicked)
+    if (m_deleted_mode)
     {
-        auto& item = m_panel_items_deleted[dirty_item.index];
-        g::pFlow->wf_remove_label(item.name);
+        handle_dirty_trash(dirty_item);
+        return;
     }
 
-    else if (!m_deleted_view && !m_labels_view)
-    {
-        auto& item = m_panel_items[dirty_item.index];
-        auto* info = ((WfInfo*)item.ptr);
+    Log("Dirty. idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
 
-        if (dirty_item.lclicked)
-        {
-            g::pFlow->wf_activate(info->id);
+    auto& item = m_panel_items[dirty_item.index];
+    wid id = cast::from_ptr<wid>(item.ptr);
+
+    if (dirty_item.lclicked)
+    {
+        g::pFlow->wf_activate(id);
+    }
+    else if (dirty_item.renamed)
+    {
+        g::pFlow->wf_rename(id, item.name);
+    }
+    else if (dirty_item.icon_clicked)
+    {
+        rebuild_items();
+    }
+}
+
+void PanelWfList::rebuild_labels()
+{
+    LogF;
+
+    const auto on_hover_handler = []
+        (PanelListItem& item, bool& handler_processed)
+    {
+        bool dirty = false;
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete))
+        {            
+            g::pWfsManager->remove_label(item.label);
+            dirty = true;
+            handler_processed = true;
         }
-        else if (dirty_item.rclicked)
+        else if (ImGui::IsKeyPressed(ImGuiKey_F2))
         {
-            // TODO
+            item.name_backup = item.name;
+            item.renaming = true;
+            item.need_focus = true;
+            handler_processed = true;
         }
-        else if (dirty_item.renamed)
+
+        return dirty;
+    };
+
+    const auto on_item_handler = [&new_label_id = m_new_label]
+        (PanelListItem& item, bool /*l_clicked*/, bool /*l_dbl_clicked*/, bool /*l_released*/, bool /*r_clicked*/, bool r_released, bool& handler_processed)
+    {
+        bool dirty = false, close = false;
+        if (!item.continue_processing_item_handler && r_released)
         {
-            g::pFlow->wf_rename(info->id, item.name);
+            ImGui::OpenPopup("LablesMenu");
+            handler_processed = true;
         }
+
+        ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(ImGui::GetContentRegionAvail().x, 200));
+        if (ImGui::BeginPopup("LablesMenu"))
+        {
+            handler_processed = true;
+            if (ImGui::MenuItem("Add new label"))
+            {
+                new_label_id = g::pWfsManager->create_label();
+                close = dirty = true;
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Rename label"))
+            {
+                item.name_backup = item.name;
+                item.renaming = true;
+                item.need_focus = true;
+                close = true;
+            }
+            if (ImGui::MenuItem("Delete label"))
+            {
+                g::pWfsManager->remove_label(item.label);
+                close = dirty = true;
+            }
+
+            item.continue_processing_item_handler = !close;
+            if (close)
+                ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+            return dirty;
+        }
+        else
+        item.continue_processing_item_handler = false;
+
+        return dirty;
+    };
+
+    auto& labels = g::pWfsManager->get_labels();
+
+    m_panel_items.clear();
+    m_panel_items.reserve(labels.size());
+
+    for (auto& label : labels)
+    {
+        PanelListItem item;
+        item.can_dblclick = true;
+        item.name = label.first;
+        item.label = label.second;
+        item.on_item_handler = on_item_handler;
+        item.on_hover_handler = on_hover_handler;
+        if (m_new_label == label.second)
+        {
+            item.renaming = true;
+            item.need_focus = true;
+            item.name_backup = item.name;
+            m_new_label = 0;
+        }
+        m_panel_items.push_back(std::move(item));
+    }
+}
+
+void PanelWfList::handle_dirty_labels(const PanelItemState& dirty_item)
+{
+    Log("Dirty label: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
+
+    if (dirty_item.dblclicked)
+    {
+        if (dirty_item.index >= m_panel_items.size())
+        {
+            LogError(ExcepCategory::Logic, "Index out of bounds");
+        }
+
+        auto& panel_item = m_panel_items[dirty_item.index];
+        panel_item.renaming = true;
+        panel_item.need_focus = true;
+        panel_item.name_backup = panel_item.name;
+    }
+    else if (dirty_item.item_clicked || dirty_item.item_handled || dirty_item.icon_clicked)
+    {
+        rebuild_items();
+    }
+    else if (dirty_item.renamed)
+    {
+        auto& panel_item = m_panel_items[dirty_item.index];
+        if (!g::pWfsManager->rename_label(panel_item.label, panel_item.name))
+            panel_item.name = panel_item.name_backup;
+        panel_item.name_backup = {};
+        rebuild_items();
+    }
+}
+
+void PanelWfList::rebuild_trash()
+{
+    LogF;
+
+    m_panel_items.clear();
+    m_panel_items.reserve(m_wfs.size());
+
+    for (auto& info : m_wfs)
+    {
+        PanelListItem item;
+        item.name = info.name;
+        item.icon = ICON_LC_UNDO_2;
+        item.icon_tooltip = "Undelete Project";
+        item.icon_can_click = true;
+        item.can_lclick = true;
+        item.ptr = cast::to_void(info.id);
+        m_panel_items.push_back(std::move(item));
+    }
+}
+
+void PanelWfList::handle_dirty_trash(const PanelItemState& dirty_item)
+{
+    Log("Dirty trash: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
+
+    if (dirty_item.icon_clicked || dirty_item.lclicked)
+    {
+        wid id = cast::from_ptr<wid>(m_panel_items[dirty_item.index].ptr);
+        g::pFlow->wf_restore(id);
     }
 }
 
@@ -364,21 +629,19 @@ void PanelWfList::on_add_new_wf(PanelToolbar::Button& /*button*/)
 
 void PanelWfList::on_rename_wf(PanelToolbar::Button& /*button*/)
 {
-    m_renaming_wf = cast::to_i64(m_active);
-    rebuild();
+    for (auto& item : m_panel_items)
+    {
+        if (cast::from_ptr<wid>(item.ptr) == m_active)
+        {
+            item.renaming = true;
+            item.need_focus = true;
+            item.name_backup = item.name;
+            break;
+        }
+    }
 }
 
 void PanelWfList::on_pre_rename_wf(PanelToolbar::Button& button)
-{
-    button.enabled = (m_active != 0);
-}
-
-void PanelWfList::on_locate_wf(PanelToolbar::Button& /*button*/)
-{
-    g::pFlow->wf_locate(m_active);
-}
-
-void PanelWfList::on_pre_locate_wf(PanelToolbar::Button& button)
 {
     button.enabled = (m_active != 0);
 }
@@ -393,28 +656,34 @@ void PanelWfList::on_pre_delete_wf(PanelToolbar::Button& button)
     button.enabled = (m_active != 0);
 }
 
-void PanelWfList::on_view_deleted(PanelToolbar::Button& /*button*/)
+void PanelWfList::on_deleted_mode(PanelToolbar::Button& button)
 {
-    m_deleted_view = !m_deleted_view;
-    if (m_deleted_view)
-        setup_button_state_deleted();
-    else
-        setup_button_state_active();
+    m_deleted_mode = !m_deleted_mode;
+    create_toolbar();
+    rebuild_items();
+    button.reset_state = true;
 }
 
-void PanelWfList::on_manage_label(PanelToolbar::Button& /*button*/)
+void PanelWfList::on_labels_mode(PanelToolbar::Button& button)
 {
-    m_labels_view = !m_labels_view;
-    if (m_deleted_view)
-        setup_button_state_labels();
-    else
-        setup_button_state_active();
+    m_labels_mode = !m_labels_mode;
+    create_toolbar();
+    rebuild_items();
+    button.reset_state = true;
 }
 
 void PanelWfList::on_add_label(PanelToolbar::Button& /*button*/)
 {
-    m_new_label_state = true;
-    rebuild();
+    m_new_label = g::pWfsManager->create_label();
+    rebuild_items();
+}
+
+void PanelWfList::on_show_tt(int32_t /*idx*/)
+{
+    if (m_deleted_mode)
+    {
+        ImGui::TextUnformatted("Undelete Project");
+    }
 }
 
 } // namespace ui

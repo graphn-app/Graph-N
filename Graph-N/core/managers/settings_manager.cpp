@@ -36,6 +36,7 @@ bool SettingsManager::init()
     m_wf_widget_input_numbers =                       { "wf_widget_input_numbers",  cast::to_i64(WidgetInput::Slider) };
     m_wf_widget_input_bools =                         { "wf_widget_input_bools",    cast::to_i64(WidgetInput::Select) };
     m_wf_active =                                     { "wf_active",                std::string("") };
+    m_wf_labels =                                     { "wf_labels",                std::string("") };
 
     m_ui_colors.resize(cast::to_szt(AppColor::_count));
 
@@ -151,6 +152,7 @@ bool SettingsManager::init()
     values.push_back(&m_wf_widget_input_numbers);
     values.push_back(&m_wf_widget_input_bools);
     values.push_back(&m_wf_active);
+    values.push_back(&m_wf_labels);
     values.push_back(&m_stat_as_progress);
     values.push_back(&m_stat_enabled_disks);
 

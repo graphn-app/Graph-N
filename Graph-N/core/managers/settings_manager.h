@@ -73,6 +73,9 @@ public:
     inline const std::string& wf_active_load() const { return *std::get_if<std::string>(&m_wf_active.value); }
     inline void wf_active_save(const std::string& active) { save_option(m_wf_active, active); }
 
+    inline const std::string& wf_labels_load() const { return *std::get_if<std::string>(&m_wf_labels.value); }
+    inline void wf_labels_save(const std::string& labels) { save_option(m_wf_labels, std::string(labels)); }
+
     // nodes
     void node_options_preload();
     inline void node_options_release() { m_hashed_node_options.clear(); }
@@ -152,6 +155,7 @@ private:
     OptionValue m_wf_widget_input_numbers; // int
     OptionValue m_wf_widget_input_bools; // int
     OptionValue m_wf_active; // str
+    OptionValue m_wf_labels; // str
 
     // nodes
     std::map<std::pair<hid, int32_t>, DbValue> m_hashed_node_options;

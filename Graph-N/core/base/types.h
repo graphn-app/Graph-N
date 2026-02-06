@@ -249,7 +249,6 @@ struct WfData final
     wid id = 0;     // hash of 'uuid'. Curr session only. Don't save info db
 
     std::string name;
-
     std::string json;
 
     uint32_t history_pos = 0;
@@ -260,9 +259,6 @@ struct WfData final
 
     std::string created_at;
     std::string saved_at;
-
-    std::set<std::string> labels;
-    std::string labels_raw;
 
     bool ro = false;
 };
@@ -290,6 +286,7 @@ struct PanelListItem final
     bool need_focus = false;
 
     const char* icon = nullptr;
+    const char* icon_tooltip = nullptr;
 
     bool can_expand = false;    // exclusive ability
     bool expanded = false;

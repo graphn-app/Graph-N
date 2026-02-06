@@ -18,7 +18,6 @@ inline constexpr auto gdb_val_opt = "option";
 inline constexpr auto gdb_val_json = "json";
 inline constexpr auto gdb_val_uuid = "uuid";
 inline constexpr auto gdb_val_nodes = "nodes";
-inline constexpr auto gdb_val_labels = "labels";
 inline constexpr auto gdb_val_history_steps = "history_steps";
 inline constexpr auto gdb_val_history_pos = "history_pos";
 inline constexpr auto gdb_val_deleted = "deleted";
@@ -59,13 +58,11 @@ ________________________________________________________________________________
 
 
 _______________________________________________________________________________________________________________________________________________________________________
-WORKFLOW_META: | id        | uuid          | name            | labels     | deleted | keep             | history_steps  | history_pos        | at
+WORKFLOW_META: | id        | uuid          | name            | deleted | keep             | history_steps  | history_pos        | at
 _______________|--------------------------------------------------------------------------------------------------------------------------------------------------------
-               | int       | str           | str             | str        | int     | int              | int            | int                | datetime
+               | int       | str           | str             | int     | int              | int            | int                | datetime
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-               | prim      | WF id as uuid | name (caption)  | wf labels  | flag    | force not delete | history length | curr history pos   | create/update time
-                                                                                    | usually if       |
-                                                                                    | history is empty |
+               | prim      | WF id as uuid | name (caption)  | flag    | force not delete | history length | curr history pos   | create/update time
 _______________________________________________________________________________________________________________________________________________________________________
 
 
@@ -178,7 +175,6 @@ bool DbManager::init()
 						{} INTEGER PRIMARY KEY AUTOINCREMENT,
 						{} TEXT NOT NULL UNIQUE,
 						{} TEXT,
-                        {} TEXT,
 						{} INTEGER,
 						{} INTEGER,
 						{} INTEGER,
@@ -186,7 +182,7 @@ bool DbManager::init()
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
 				)", gdb_tbl_wf_meta, gdb_val_id,
-                    gdb_val_uuid, gdb_val_name, gdb_val_labels, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep,
+                    gdb_val_uuid, gdb_val_name, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep,
                     gdb_val_when));
 
         m_db->exec(fmt::format(R"(
@@ -396,11 +392,11 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
     {
         SQLite::Statement query(*m_db,
             fmt::format(FMT_COMPILE(R"(
-                    SELECT {}, {}, {}, {}, {}, {}, {}, {}
+                    SELECT {}, {}, {}, {}, {}, {}, {}
                     FROM {}
                     WHERE {} = 0 AND ({} > 0 OR {} = 0 AND {} = 1)
                 )"),
-                gdb_val_uuid, gdb_val_name, gdb_val_labels, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep, gdb_val_when,
+                gdb_val_uuid, gdb_val_name, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep, gdb_val_when,
                 gdb_tbl_wf_meta,
                 gdb_val_deleted, gdb_val_history_steps, gdb_val_history_steps, gdb_val_keep));
 
@@ -412,7 +408,6 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
             WfData wfd;
             wfd.uuid = query.getColumn(0).getString();
             wfd.name = query.getColumn(1).getString();
-            wfd.labels_raw = query.getColumn(2).getString();
             wfd.history_steps = query.getColumn(3).getInt();
             wfd.history_pos = query.getColumn(4).getInt();
             wfd.deleted = query.getColumn(5).getInt() == 1;
@@ -420,7 +415,7 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
             wfd.created_at = query.getColumn(7).getString();
             wfd.saved_at = query.getColumn(8).getString();
 
-            Log("Workflow loaded: " << wfd.name << "###" << wfd.uuid << ", lb=" << wfd.labels_raw << ", hs=" << wfd.history_steps
+            Log("Workflow loaded: " << wfd.name << "###" << wfd.uuid << ", hs=" << wfd.history_steps
                 << ", hp=" << wfd.history_pos << ", d=" << wfd.deleted << ", ct=" << wfd.created_at << ", st=" << wfd.saved_at);
             wfs.push_back(wfd);
         }
@@ -482,7 +477,6 @@ void DbManager::wf_update_meta(const WfData& wf)
     w.history_steps = wf.history_steps;
     w.deleted = wf.deleted;
     w.keep = wf.keep;
-    w.labels_raw = wf.labels_raw;
 
     data.type = WriteType::WfMeta;
     data.data = std::move(w);
@@ -620,22 +614,21 @@ void DbManager::write_wf_meta(SQLite::Database& db, const WfData* data)
         SQLite::Statement query(db,
             fmt::format(FMT_COMPILE(R"(
                         REPLACE INTO {}
-                               ({}, {}, {}, {}, {}, {}, {})
-                        VALUES (?,  ?,  ?,  ?,  ?,  ?,  ?)
+                               ({}, {}, {}, {}, {}, {})
+                        VALUES (?,  ?,  ?,  ?,  ?,  ?)
                 )"),
                 gdb_tbl_wf_meta,
-                gdb_val_uuid, gdb_val_name, gdb_val_labels, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep
+                gdb_val_uuid, gdb_val_name, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep
             ));
 
         query.bindNoCopy(1, data->uuid);
         query.bindNoCopy(2, data->name);
-        query.bindNoCopy(3, data->labels_raw);
-        query.bind(4, data->history_steps);
-        query.bind(5, data->history_pos);
-        query.bind(6, data->deleted);
-        query.bind(7, data->keep);
+        query.bind(3, data->history_steps);
+        query.bind(4, data->history_pos);
+        query.bind(5, data->deleted);
+        query.bind(6, data->keep);
         query.exec();
-        Log("Workflow meta upd: '" << data->name << "', uuid=" << data->uuid << ", lb=" << data->labels_raw << ", hs=" << data->history_steps << ", hp=" << data->history_pos << ", d=" << data->deleted);
+        Log("Workflow meta upd: '" << data->name << "', uuid=" << data->uuid << ", hs=" << data->history_steps << ", hp=" << data->history_pos << ", d=" << data->deleted);
     }
     catch (const SQLite::Exception& ex)
     {

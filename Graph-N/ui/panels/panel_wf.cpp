@@ -63,11 +63,10 @@ DlgCode PanelWorkflow::show(bool& focused)
             show_empty_panel_descr(
                 "",
                 {},
-                {
-                    "Empty Canvas.",
-                    "Press Space, Right Click or load from " ICON_LC_BOOK_OPEN " Nodes Library to add the first node.",
-                    "Drag and drop an image or .json file here to load a workflow."
-                }
+                    {
+                        "Empty Canvas.",
+                        "Right Click or load from " ICON_LC_BOOK_OPEN " Nodes Library to add the first node."
+                    }
                 );
         }
         else

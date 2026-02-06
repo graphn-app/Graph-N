@@ -510,7 +510,7 @@ void GraphN_Flow::wf_create()
     g::pWfsManager->set_active(info.id);
     auto panel = create_wf_panel(info);
     activate_wf_panel(panel);
-    m_panel_wf_list->reload();
+    m_panel_wf_list->rebuild_items();
 }
 
 void GraphN_Flow::wf_activate(wid id)
@@ -527,7 +527,7 @@ void GraphN_Flow::wf_activate(wid id)
     }
     activate_wf_panel(panel);
 
-    m_panel_wf_list->rebuild();
+    m_panel_wf_list->rebuild_items();
 }
 
 void GraphN_Flow::wf_locate(wid id)
@@ -540,7 +540,7 @@ void GraphN_Flow::wf_locate(wid id)
     }
     wf_activate(id);
     panel->restore_pos();
-    m_panel_wf_list->reload();
+    m_panel_wf_list->rebuild_items();
 }
 
 void GraphN_Flow::wf_delete(wid id)
@@ -552,23 +552,20 @@ void GraphN_Flow::wf_delete(wid id)
         activate_wf_panel(nullptr);
     }
 
-    g::pWfsManager->mark_deleted(id);
+    g::pWfsManager->delete_wf(id);
 
     auto panel = find_wf_panel(id);
     if (panel != nullptr)
     {
         close_wf_panel(panel);
     }
-    else
-    {
-        m_panel_wf_list->reload();
-    }
+    m_panel_wf_list->rebuild_items();    
 }
 
 void GraphN_Flow::wf_restore(wid id)
 {
-    g::pWfsManager->undelete(id);
-    m_panel_wf_list->reload();
+    g::pWfsManager->undelete_wf(id);
+    m_panel_wf_list->rebuild_items();
 }
 
 void GraphN_Flow::wf_rename(wid id, const std::string& new_name)
@@ -579,31 +576,7 @@ void GraphN_Flow::wf_rename(wid id, const std::string& new_name)
     if (panel != nullptr)
         rename_wf_panel(panel, new_name);
 
-    m_panel_wf_list->reload();
-}
-
-void GraphN_Flow::wf_add_label(wid id, const std::string& label)
-{
-    g::pWfsManager->add_to_label(id, label.c_str());
-    m_panel_wf_list->reload();
-}
-
-void GraphN_Flow::wf_remove_label(wid id, const std::string& label)
-{
-    g::pWfsManager->remove_from_label(id, label.c_str());
-    m_panel_wf_list->reload();
-}
-
-void GraphN_Flow::wf_add_label(const std::string& label)
-{
-    g::pWfsManager->add_label(label.c_str());
-    m_panel_wf_list->reload();
-}
-
-void GraphN_Flow::wf_remove_label(const std::string& label)
-{
-    g::pWfsManager->delete_label(label.c_str());
-    m_panel_wf_list->reload();
+    m_panel_wf_list->rebuild_items();
 }
 
 void GraphN_Flow::wf_add_node_to_active_panel(data::Node* node)
@@ -629,7 +602,7 @@ void GraphN_Flow::init_workflow_panels()
             auto info = g::pWfsManager->get_info(active);
             auto panel = create_wf_panel(info);
             activate_wf_panel(panel);
-            m_panel_wf_list->reload();
+            m_panel_wf_list->rebuild_items();
         }
     }
 }

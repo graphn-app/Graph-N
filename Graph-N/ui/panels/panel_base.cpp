@@ -160,13 +160,19 @@ bool PanelWithList::draw_list(
             else
             {
                 if (is_selected)
-                {
                     ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
-                }
 
                 if (item.icon != nullptr && (item.icon_can_click && idx == m_hovered_item || item.icon_active))
                 {
                     ImGui::TextUnformatted(item.icon);
+                    if (item.icon_tooltip != nullptr)
+                    {
+                        if (is_selected)
+                            ImGui::PopStyleColor();
+                        ImGuiEx::TooltipOnLastControl(item.icon_tooltip, nullptr);
+                        if (is_selected)
+                            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
+                    }
                 }
                 else
                 {
@@ -264,7 +270,7 @@ bool PanelWithList::draw_list(
                         dirty_item.index = idx;
                     }
                 }
-                if (!dirty && !handler_processed && item.continue_processing_item_handler || mouse_on_name && item.on_item_handler != nullptr)
+                if (!dirty && !handler_processed && (item.continue_processing_item_handler || mouse_on_name && item.on_item_handler != nullptr))
                 {
                     if (item.on_item_handler(item, l_clicked, l_dbl_clicked, l_released, r_clicked, r_released, handler_processed))
                     {
@@ -389,8 +395,9 @@ bool PanelWithList::release_tooltip(int32_t tt_index, const TtCallbacks* tt_call
 
 void PanelToolbar::add_button(Button&& button)
 {
-    if (0.0f == button.ico_width)
-        button.ico_width = ImGui::CalcTextSize(button.icon).x;
+    //FontGuard fg(g::pMain->get_icons_font());
+    //if (0.0f == button.ico_width)
+    //    button.ico_width = ImGui::CalcTextSize(button.icon).x;
     m_buttons.push_back(std::move(button));
 }
 
@@ -404,12 +411,12 @@ void PanelToolbar::finalize_toolbar()
     c.z = std::min(c.z * 0.8f, 1.0f); // B
     m_clr_pressed = ImGui::ColorConvertFloat4ToU32(c);
 
-    const auto& style = ImGui::GetStyle();
-    m_toolbar_w = 0.0f;
-    for (auto& btn : m_buttons)
-    {
-        m_toolbar_w += btn.ico_width + style.ItemSpacing.x * 2 + style.ItemSpacing.x * (btn.long_indent_after ? 3 : 1);
-    }
+    //const auto& style = ImGui::GetStyle();
+    //m_toolbar_w = 0.0f;
+    //for (auto& btn : m_buttons)
+    //{
+    //    m_toolbar_w += btn.ico_width + style.ItemSpacing.x * (btn.long_indent_after ? 3 : 1);
+    //}
 }
 
 void PanelToolbar::clear_toolbar()
@@ -419,9 +426,6 @@ void PanelToolbar::clear_toolbar()
 
 void PanelToolbar::draw_toolbar()
 {
-    const float start_pos = ImGui::GetContentRegionAvail().x - m_toolbar_w;
-    ImGui::SetCursorPosX(start_pos);
-
     FontGuard fg(g::pMain->get_icons_font());
     const auto tooltip = [&fg](const char* text)
     {
@@ -442,13 +446,28 @@ void PanelToolbar::draw_toolbar()
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
 
-    for (auto& button : m_buttons)
+    float start_pos = ImGui::GetContentRegionAvail().x - 40;
+    ImVec2 btn_size = {};
+
+    for (auto it = m_buttons.rbegin(); it != m_buttons.rend(); ++it)
     {
+        auto button = *it;
+
+        if (button.empty_indent)
+        {
+            start_pos -= style.ItemSpacing.x * 2;
+            continue;
+        }
+
+        ImGui::SetCursorPosX(start_pos);
+
         if (button.on_preview) button.on_preview(button);
         if (!button.enabled) ImGui::BeginDisabled();
 
         ImGui::PushStyleColor(ImGuiCol_Text, 0);
         const bool pressed = ImGui::Button(button.icon);
+        btn_size = ImGui::GetItemRectSize();
+        const auto btn_pos = ImGui::GetItemRectMin();
         ImGui::PopStyleColor();
         tooltip(button.tooltip);
 
@@ -461,13 +480,17 @@ void PanelToolbar::draw_toolbar()
             color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
 
         fg.push();
-        ImGui::GetWindowDrawList()->AddText(ImGui::GetItemRectMin(), color, button.icon);
+        ImGui::GetWindowDrawList()->AddText(btn_pos, color, button.icon);
 
         if (pressed && button.on_click) button.on_click(button);
         if (!button.enabled) ImGui::EndDisabled();
         if (button.on_postview) button.on_postview(button);
 
-        ImGui::SameLine(0.0f, style.ItemSpacing.x * (button.long_indent_after ? 3 : 1));
+        if (button.reset_state)
+            break;
+
+        start_pos -= btn_size.x + style.ItemSpacing.x;
+        ImGui::SameLine();
     }
 
     ImGui::PopStyleColor(3);

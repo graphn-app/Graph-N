@@ -22,6 +22,8 @@ public:
     void stop_all_threads() override;
 
     WfInfo create(bool skip_name);
+    data::Workflow* access(wid id) const;
+
     inline void cleanup(wid id) const { find_data(id).json.clear(); }
 
     inline wid get_active() const { return m_active; }
@@ -30,7 +32,7 @@ public:
     void set_read_only(wid id);
 
     inline WfInfo get_info(wid id) const { return from_data(find_data(id)); }
-    inline WfData get_data(wid id) const { return find_data(id); }
+    inline WfData& get_data(wid id) const { return find_data(id); }
 
     void update_name(wid id, const std::string& name);
     void update_history(wid id, uint32_t history_pos, uint32_t history_steps);
@@ -41,36 +43,39 @@ public:
     std::vector<WfInfo> get_wfs() const;
     std::vector<WfInfo> get_deleted() const;
 
-    void mark_deleted(wid id);
-    void undelete(wid id);
+    void delete_wf(wid id);
+    void undelete_wf(wid id);
+    bool is_deleted(wid id) const;
 
-    const std::vector<std::string>& get_labels() const { return m_labels; }
-    std::string add_label(const char* label);
-    void delete_label(const char* label);
+    inline const std::list<std::pair<std::string, uint32_t>>& get_labels() const { return m_labels; }
+    const std::list<wid>& get_wfs_in_label(uint32_t label_id) const;
+    bool get_is_wf_in_label(wid wf_id, uint32_t label_id) const;
 
-    void add_to_label(wid id, const char* label);
-    void remove_from_label(wid id, const char* label);
+    uint32_t create_label();
+    bool rename_label(uint32_t label_id, const std::string& new_name);
+    void remove_label(uint32_t label_id);
 
-    bool is_in_label(wid id, const char* label) const;
-
-    data::Workflow* access(wid id) const;
+    void set_wf_labels(wid wf_id, std::set<uint32_t> labels);
 
 private:
     data::Workflow* create(WfData&& data);
-
     data::Workflow* find(wid id) const;
     WfData& find_data(wid id) const;
-
     WfInfo from_data(const WfData& data) const;
-
     std::vector<WfInfo> get_infos(bool deleted) const;
+    void init_labels();
+    void save_labels() const;
+    void sort_wfs(std::list<wid>& wfs);
 
 private:
     std::map<wid, std::unique_ptr<data::Workflow>> m_wfs;
     std::list<std::unique_ptr<data::Workflow>> m_wfs_ro;
-    std::vector<std::string> m_labels;
     uint32_t m_wf_name_counter = 0;
     wid m_active = 0;
+
+    std::list<std::pair<std::string, uint32_t>> m_labels;
+    uint32_t m_last_label_id = 0;
+    std::map<uint32_t, std::list<wid>> m_wfs_in_label;
 };
 
 } // namespace mngr

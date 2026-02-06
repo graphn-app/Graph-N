@@ -57,13 +57,17 @@ void PanelNodes::create_toolbar()
             button.icon = ICON_LC_MOVE_LEFT;
             button.tooltip = "Back to Nodes library";
             button.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
-            button.long_indent_after = true;
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.empty_indent = true;
             add_button(std::move(button));
         }
         {
             PanelToolbar::Button button;
             button.icon = ICON_LC_PLUS;
-            button.tooltip = "New Label";
+            button.tooltip = "Add new label";
             button.on_click = std::bind(&PanelNodes::on_new_label, this, std::placeholders::_1);
             add_button(std::move(button));
         }
@@ -75,7 +79,11 @@ void PanelNodes::create_toolbar()
             button.icon = ICON_LC_TAGS;
             button.tooltip = "Manage Labels";
             button.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
-            button.long_indent_after = true;
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.empty_indent = true;
             add_button(std::move(button));
         }
         {
@@ -99,7 +107,11 @@ void PanelNodes::create_toolbar()
             button.icon = g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE;
             button.tooltip = "Toggle Flat/Category View";
             button.on_click = std::bind(&PanelNodes::on_view, this, std::placeholders::_1);
-            button.long_indent_after = true;
+            add_button(std::move(button));
+        }
+        {
+            PanelToolbar::Button button;
+            button.empty_indent = true;
             add_button(std::move(button));
         }
         {
@@ -220,11 +232,11 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
     };
 
     const auto on_icon_handler = [&labels_mode = m_labels_mode]
-        (PanelListItem& item, bool /*l_clicked*/, bool /*l_dbl_clicked*/, bool l_released, bool /*r_clicked*/, bool /*r_released*/, bool& handler_processed)
+        (PanelListItem& item, bool /*l_clicked*/, bool /*l_dbl_clicked*/, bool l_released, bool /*r_clicked*/, bool r_released, bool& handler_processed)
     {        
         bool dirty = false;
         auto& labels = g::pNodesManager->get_labels();
-        if (!item.continue_processing_ico_handler && l_released)
+        if (!item.continue_processing_ico_handler && (l_released || r_released))
         {
             if (labels.empty())
             {
@@ -360,6 +372,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     item.depth = 1;
                     item.name = node_item->name_or_category;
                     item.icon = ICON_LC_TAG;
+                    item.icon_tooltip = "Manage node labels";
                     item.on_icon_handler = on_icon_handler;
                     item.can_lclick = item.can_rclick = item.icon_can_click = true;
                     item.selected = m_inspector->is_node_inspecting(node_item->node);
@@ -372,7 +385,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
     if (g::pOptsManager->ui_nodes_pane_tree_view_load())
     {
-        add_separator("Folders");
+        if (!labels.empty())
+            add_separator("Folders");
 
         std::function<void(const std::vector<data::NodeItem*>&, int32_t)> go_tree;
         go_tree = [&go_tree, &on_icon_handler, &labels, &panel_items = m_panel_items, &expanded_nodes, force_expand_all, &inspector = m_inspector,
@@ -407,6 +421,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     item.selected = inspector->is_node_inspecting(node->node);
                     item.name = node->name_or_category;
                     item.icon = ICON_LC_TAG;
+                    item.icon_tooltip = "Manage node labels";
                     item.on_icon_handler = on_icon_handler;
                     item.can_lclick = item.can_rclick = item.icon_can_click = true;
                     item.ptr = node;
@@ -419,7 +434,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
     }
     else
     {
-        add_separator("Plain view");
+        if (!labels.empty())
+            add_separator("Plain view");
 
         auto& plain = g::pNodesManager->get_nodes_plain();
 
@@ -432,6 +448,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 item.can_lclick = item.can_rclick = item.icon_can_click = true;
                 item.on_icon_handler = on_icon_handler;
                 item.icon = ICON_LC_TAG;
+                item.icon_tooltip = "Manage node labels";
                 item.selected = m_inspector->is_node_inspecting(node_item->node);
                 item.ptr = node_item;
                 m_panel_items.push_back(std::move(item));
@@ -442,13 +459,10 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
 void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
 {
-    if (m_labels_mode)
+    if (dirty_item.index >= m_panel_items.size())
     {
-        handle_dirty_labels(dirty_item);
-        return;
+        LogError(ExcepCategory::Logic, "Index out of bounds");
     }
-
-    Log("Dirty: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
 
     if (dirty_item.expanded)
     {
@@ -456,10 +470,13 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
         return;
     }
 
-    if (dirty_item.index >= m_panel_items.size())
+    if (m_labels_mode)
     {
-        LogError(ExcepCategory::Logic, "Index out of bounds");
+        handle_dirty_labels(dirty_item);
+        return;
     }
+
+    Log("Dirty: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
 
     auto& panel_item = m_panel_items[dirty_item.index];
     data::NodeItem* node_item = (data::NodeItem*)panel_item.ptr;
@@ -643,7 +660,7 @@ void PanelNodes::rebuild_labels()
 
 void PanelNodes::handle_dirty_labels(const PanelItemState& dirty_item)
 {
-    Log("Dirty: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
+    Log("Dirty label: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
 
     if (dirty_item.dblclicked)
     {
@@ -733,11 +750,12 @@ void PanelNodes::on_collapse_all(PanelToolbar::Button& /*button*/)
     rebuild_items();
 }
 
-void PanelNodes::on_labels_mode(PanelToolbar::Button& /*button*/)
+void PanelNodes::on_labels_mode(PanelToolbar::Button& button)
 {
     m_labels_mode = !m_labels_mode;
     create_toolbar();
     rebuild_items();
+    button.reset_state = true;
 }
 
 void PanelNodes::on_pre_expand_collapse(PanelToolbar::Button& button)

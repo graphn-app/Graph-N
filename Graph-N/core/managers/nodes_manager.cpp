@@ -123,11 +123,11 @@ void NodesManager::init_labels()
             std::vector<hid> node_ids = obj["nodes"];
             for (auto node_id : node_ids)
             {
-                for (auto node_obj : m_nodes_plain)
+                for (auto node_item : m_nodes_plain)
                 {
-                    if (node_obj->is_node && node_obj->node->get_id() == node_id)
+                    if (node_item->is_node && node_item->node->get_id() == node_id)
                     {
-                        nodes_in_label.push_back(node_obj);
+                        nodes_in_label.push_back(node_item);
                         break;
                     }
                 }

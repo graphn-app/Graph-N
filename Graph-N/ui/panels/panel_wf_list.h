@@ -31,42 +31,38 @@ public:
     void free() override;
     void stop_all_threads() override;
 
-    void reload();
-    void rebuild();
+    void rebuild_items();
 
 private:
     DlgCode show(bool& focused) override;
     void show_wfs();
 
-    void setup_button_state_active();
-    void setup_button_state_deleted();
-    void setup_button_state_labels();
+    void create_toolbar();
 
+    void rebuild_labels();
+    void rebuild_trash();
     void handle_dirty(const PanelItemState& dirty_item);
+    void handle_dirty_labels(const PanelItemState& dirty_item);
+    void handle_dirty_trash(const PanelItemState& dirty_item);
 
     void on_add_new_wf(PanelToolbar::Button& button);
     void on_rename_wf(PanelToolbar::Button& button);
     void on_pre_rename_wf(PanelToolbar::Button& button);
-    void on_locate_wf(PanelToolbar::Button& button);
-    void on_pre_locate_wf(PanelToolbar::Button& button);
     void on_delete_wf(PanelToolbar::Button& button);
     void on_pre_delete_wf(PanelToolbar::Button& button);
-    void on_view_deleted(PanelToolbar::Button& button);
-    void on_manage_label(PanelToolbar::Button& button);
+    void on_deleted_mode(PanelToolbar::Button& button);
+    void on_labels_mode(PanelToolbar::Button& button);
     void on_add_label(PanelToolbar::Button& button);
+    void on_show_tt(int32_t idx);
 
 private:
-    std::vector<WfInfo> m_wfs;
-    std::vector<WfInfo> m_deleted;
-    std::vector<std::string> m_labels;
-    std::vector<PanelListItem> m_panel_items;
-    std::vector<PanelListItem> m_panel_items_deleted;
-    std::vector<PanelListItem> m_panel_items_labels;
     wid m_active = 0;
-    bool m_deleted_view = false;
-    bool m_labels_view = false;
-    bool m_new_label_state = false;
-    int64_t m_renaming_wf = -1;
+    std::vector<WfInfo> m_wfs;
+    std::vector<PanelListItem> m_panel_items;
+    bool m_deleted_mode = false;
+    bool m_labels_mode = false;
+    uint32_t m_new_label = 0;
+    PanelWithList::TtCallbacks m_tt_callbacks;
 };
 
 

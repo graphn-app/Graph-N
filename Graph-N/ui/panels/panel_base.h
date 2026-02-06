@@ -164,14 +164,17 @@ public:
 
     struct Button
     {
+        bool empty_indent = false;
+
         const char* icon = nullptr;
-        float ico_width = 0.0f;
+        //float ico_width = 0.0f;
         const char* tooltip = nullptr;
-        bool long_indent_after = false;
         bool enabled = true;
         std::function<void(Button&)> on_click = nullptr;
         std::function<void(Button&)> on_preview = nullptr;
         std::function<void(Button&)> on_postview = nullptr;
+
+        bool reset_state = false;
     };
 
     // handler can return new icon and tooltip
@@ -183,7 +186,7 @@ private:
     std::vector<Button> m_buttons;
     ImU32 m_clr_hover = 0;
     ImU32 m_clr_pressed = 0;
-    float m_toolbar_w = 0.0f;
+   // float m_toolbar_w = 0.0f;
 };
 
 
