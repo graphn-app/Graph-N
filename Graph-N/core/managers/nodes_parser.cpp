@@ -985,7 +985,7 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
 
 void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 {
-    const auto search_branch = [](std::vector<data::Nodes*>* items, const std::string& category)
+    const auto search_branch = [](std::vector<data::NodeItem*>* items, const std::string& category)
     {
         for (auto it = items->begin(); it != items->end(); ++it)
         {
@@ -996,7 +996,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
     };
 
     const auto cats = tools::str::split(node->category, '/');
-    std::vector<data::Nodes*>* root = &manager.m_nodes_tree;
+    std::vector<data::NodeItem*>* root = &manager.m_nodes_tree;
 
     auto cat = cats.begin();
     for (; cat != cats.end(); ++cat)
@@ -1009,7 +1009,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 
     for (; cat != cats.end(); ++cat)
     {
-        auto branch_ptr = std::make_unique<data::Nodes>();
+        auto branch_ptr = std::make_unique<data::NodeItem>();
         auto branch = branch_ptr.get();
         manager.m_node_holders.push_back(std::move(branch_ptr));
 
@@ -1021,7 +1021,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
         root = &branch->children;
     }
 
-    auto branch_ptr = std::make_unique<data::Nodes>();
+    auto branch_ptr = std::make_unique<data::NodeItem>();
     auto branch = branch_ptr.get();
     manager.m_node_holders.push_back(std::move(branch_ptr));
 
@@ -1037,8 +1037,8 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 
 void NodesParser::sort_nodes(NodesManager& manager)
 {
-    std::function<void(std::vector<data::Nodes*>& nodes)> sort_tree;
-    sort_tree = [&sort_tree](std::vector<data::Nodes*>& nodes)
+    std::function<void(std::vector<data::NodeItem*>& nodes)> sort_tree;
+    sort_tree = [&sort_tree](std::vector<data::NodeItem*>& nodes)
     {
         NodesManager::sort_nodes(nodes);
 

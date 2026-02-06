@@ -7,7 +7,7 @@
 namespace data
 {
 struct Node;
-struct Nodes;
+struct NodeItem;
 class NodeInstance;
 class Workflow;
 }
@@ -48,7 +48,7 @@ public:
 private:
     DlgCode show(bool& focused) override;
 
-    void add_node_to_wf(data::Nodes* holder);
+    void add_node_to_wf(data::NodeItem* node_item);
 
     void rebuild_items(bool force_expand_all = false);
     void rebuild_labels();

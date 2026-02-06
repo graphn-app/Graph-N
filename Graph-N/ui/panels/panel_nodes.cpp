@@ -213,7 +213,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             NodeLabelState* state = ((NodeLabelState*)item.state.get());
             for (auto& label : labels)
             {
-                if (g::pNodesManager->get_is_node_in_label((data::Nodes*)item.ptr, label.second))
+                if (g::pNodesManager->get_is_node_in_label((data::NodeItem*)item.ptr, label.second))
                 {
                     state->active_labels.insert(label.second);
                 }
@@ -259,7 +259,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 if (item.state->changed && item.state->ptr == item.ptr)
                 {
                     dirty = true;
-                    g::pNodesManager->set_node_labels((data::Nodes*)item.ptr, ((NodeLabelState*)item.state.get())->active_labels);            
+                    g::pNodesManager->set_node_labels((data::NodeItem*)item.ptr, ((NodeLabelState*)item.state.get())->active_labels);            
                 }
             }
             if (!item.state->changed)
@@ -275,7 +275,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         return dirty;
     };
 
-    std::set<data::Nodes*> expanded_nodes;
+    std::set<data::NodeItem*> expanded_nodes;
     std::set<uint32_t> expanded_labels;
     for (auto& item : m_panel_items)
     {
@@ -284,7 +284,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             if (item.label != 0)
                 expanded_labels.insert(item.label);
             else
-                expanded_nodes.insert((data::Nodes*)item.ptr);
+                expanded_nodes.insert((data::NodeItem*)item.ptr);
         }
     }
 
@@ -297,9 +297,9 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
     {
         size_t nodes_count = 0;
         auto& nodes_in_label = g::pNodesManager->get_nodes_in_label(label.second);
-        for (auto node_obj : nodes_in_label)
+        for (auto node_item : nodes_in_label)
         {
-            if (!node_obj->filtered)
+            if (!node_item->filtered)
                 nodes_count++;
         }
 
@@ -314,18 +314,18 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
         if (label_expanded)
         {
-            for (auto node_obj : nodes_in_label)
+            for (auto node_item : nodes_in_label)
             {
-                if (!node_obj->filtered)
+                if (!node_item->filtered)
                 {
                     PanelListItem item;
                     item.depth = 1;
-                    item.name = node_obj->name_or_category;
+                    item.name = node_item->name_or_category;
                     item.icon = ICON_LC_TAG;
                     item.on_icon_handler = on_icon_handler;
                     item.can_lclick = item.can_rclick = item.icon_can_click = true;
-                    item.selected = m_inspector->is_node_inspecting(node_obj->node);
-                    item.ptr = node_obj;
+                    item.selected = m_inspector->is_node_inspecting(node_item->node);
+                    item.ptr = node_item;
                     m_panel_items.push_back(std::move(item));
                 }
             }
@@ -341,9 +341,9 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
     if (g::pOptsManager->ui_nodes_pane_tree_view_load())
     {
-        std::function<void(const std::vector<data::Nodes*>&, int32_t)> go_tree;
+        std::function<void(const std::vector<data::NodeItem*>&, int32_t)> go_tree;
         go_tree = [&go_tree, &on_icon_handler, &labels, &panel_items = m_panel_items, &expanded_nodes, force_expand_all, &inspector = m_inspector]
-            (const std::vector<data::Nodes*>& nodes, int32_t depth)
+            (const std::vector<data::NodeItem*>& nodes, int32_t depth)
         {
             for (auto node : nodes)
             {
@@ -386,17 +386,17 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
     {
         auto& plain = g::pNodesManager->get_nodes_plain();
 
-        for (auto nodes : plain)
+        for (auto node_item : plain)
         {
-            if (nodes->is_node && !nodes->filtered)
+            if (node_item->is_node && !node_item->filtered)
             {
                 PanelListItem item;
-                item.name = nodes->name_or_category;
+                item.name = node_item->name_or_category;
                 item.can_lclick = item.can_rclick = item.icon_can_click = true;
                 item.on_icon_handler = on_icon_handler;
                 item.icon = ICON_LC_TAG;
-                item.selected = m_inspector->is_node_inspecting(nodes->node);
-                item.ptr = nodes;
+                item.selected = m_inspector->is_node_inspecting(node_item->node);
+                item.ptr = node_item;
                 m_panel_items.push_back(std::move(item));
             }
         }
@@ -425,10 +425,10 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
     }
 
     auto& panel_item = m_panel_items[dirty_item.index];
-    data::Nodes* nodes = (data::Nodes*)panel_item.ptr;
+    data::NodeItem* node_item = (data::NodeItem*)panel_item.ptr;
 
 #ifndef TEST
-    if (nullptr == nodes || !nodes->is_node)
+    if (nullptr == node_item || !node_item->is_node)
     {
         LogError(ExcepCategory::Logic, "Null dirty item or dirty item is folder");
     }
@@ -441,14 +441,14 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
     else if (dirty_item.rclicked)
     {
 #ifdef TEST
-        if (panel_item.can_expand && !nodes->is_node)
+        if (panel_item.can_expand && !node_item->is_node)
         {
             m_inspector->reset_inspecting_nodes();
             for (auto& unsel_panel_item : m_panel_items)
             {
                 unsel_panel_item.selected = false;
             }
-            for (auto child : nodes->children)
+            for (auto child : node_item->children)
             {
                 if (child->is_node)
                 {
@@ -470,9 +470,9 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
         if (ImGui::IsKeyDown(ImGuiMod_Ctrl) || ImGui::IsKeyDown(ImGuiMod_Shift))
         {
             if (panel_item.selected)
-                m_inspector->remove_inspecting_node(nodes->node);
+                m_inspector->remove_inspecting_node(node_item->node);
             else
-                m_inspector->add_inspecting_node(nodes->node);
+                m_inspector->add_inspecting_node(node_item->node);
             panel_item.selected = !panel_item.selected;
         }
         else
@@ -482,7 +482,7 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
                 item.selected = false;
             }
             m_inspector->reset_inspecting_nodes();
-            m_inspector->add_inspecting_node(nodes->node);
+            m_inspector->add_inspecting_node(node_item->node);
             panel_item.selected = true;
         }
 
@@ -502,7 +502,7 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
     }
     else if (dirty_item.lclicked)
     {
-        add_node_to_wf(nodes);
+        add_node_to_wf(node_item);
     }
     else
     {
@@ -641,7 +641,7 @@ void PanelNodes::on_alloc_tt_data(int32_t idx)
     if (m_tt_node != nullptr)
         m_wf->remove_node(m_tt_node);
     m_tt_idx = idx;
-    m_tt_node = m_wf->add_node(((data::Nodes*)m_panel_items[idx].ptr)->node);
+    m_tt_node = m_wf->add_node(((data::NodeItem*)m_panel_items[idx].ptr)->node);
     m_tt_width = m_tt_node->calc_node_width(true /*ro*/);
 }
 
@@ -670,9 +670,9 @@ void PanelNodes::on_post_tt(int32_t /*idx*/)
     ImGui::PopStyleColor(2);
 }
 
-void PanelNodes::add_node_to_wf(data::Nodes* holder)
+void PanelNodes::add_node_to_wf(data::NodeItem* node_item)
 {
-    g::pFlow->wf_add_node_to_active_panel(holder->node);
+    g::pFlow->wf_add_node_to_active_panel(node_item->node);
 }
 
 void PanelNodes::on_expand_all(PanelToolbar::Button& /*button*/)

@@ -33,8 +33,8 @@ void NodesManager::init_from_copy(NodesManager& copy)
 
 void NodesManager::calc_number_inside(const std::string& filter)
 {
-    std::function<void(std::vector<data::Nodes*>&, uint32_t*, bool)> calculator;
-    calculator = [&calculator, &filter](std::vector<data::Nodes*>& nodes, uint32_t* count, bool force_unfilter)
+    std::function<void(std::vector<data::NodeItem*>&, uint32_t*, bool)> calculator;
+    calculator = [&calculator, &filter](std::vector<data::NodeItem*>& nodes, uint32_t* count, bool force_unfilter)
     {
         for (auto node : nodes)
         {
@@ -226,15 +226,15 @@ void NodesManager::remove_label(uint32_t label_id)
     save_labels();
 }
 
-void NodesManager::set_node_labels(data::Nodes* node, std::set<uint32_t> labels)
+void NodesManager::set_node_labels(data::NodeItem* node_item, std::set<uint32_t> labels)
 {
     bool changed = false;
     for (auto& [label_id, nodes] : m_nodes_in_label)
     {
-        const auto it = std::find(nodes.begin(), nodes.end(), node);
+        const auto it = std::find(nodes.begin(), nodes.end(), node_item);
         if (it == nodes.end() && labels.count(label_id) > 0)
         {
-            nodes.push_back(node);
+            nodes.push_back(node_item);
             sort_nodes(nodes);
             changed = true;
         }
@@ -280,21 +280,21 @@ void NodesManager::save_labels() const
     g::pOptsManager->ui_nodes_label_save(j.dump());
 }
 
-const std::list<data::Nodes*>& NodesManager::get_nodes_in_label(uint32_t label_id) const
+const std::list<data::NodeItem*>& NodesManager::get_nodes_in_label(uint32_t label_id) const
 {
     auto it = m_nodes_in_label.find(label_id);
     if (it == m_nodes_in_label.end())
     {
-        static std::list<data::Nodes*> empty;
+        static std::list<data::NodeItem*> empty;
         return empty;
     }
     return it->second;
 }
 
-bool NodesManager::get_is_node_in_label(data::Nodes* node, uint32_t label_id) const
+bool NodesManager::get_is_node_in_label(data::NodeItem* node_item, uint32_t label_id) const
 {
     auto& nodes = get_nodes_in_label(label_id);
-    return std::find(nodes.begin(), nodes.end(), node) != nodes.end();
+    return std::find(nodes.begin(), nodes.end(), node_item) != nodes.end();
 }
 
 static const char* find_first_sortable(const char* str)   // ignore non-ascii like smiles and icons
@@ -306,7 +306,7 @@ static const char* find_first_sortable(const char* str)   // ignore non-ascii li
     return str;
 };
 
-static bool sort_callback(const data::Nodes* lhs, const data::Nodes* rhs)
+static bool sort_callback(const data::NodeItem* lhs, const data::NodeItem* rhs)
 {
     if (!lhs->is_node && rhs->is_node)
         return true;
@@ -319,12 +319,12 @@ static bool sort_callback(const data::Nodes* lhs, const data::Nodes* rhs)
     return tools::str::to_lower_ascii(lhs_sort) < tools::str::to_lower_ascii(rhs_sort);
 };
 
-void NodesManager::sort_nodes(std::vector<data::Nodes*>& nodes)
+void NodesManager::sort_nodes(std::vector<data::NodeItem*>& nodes)
 {
     std::sort(nodes.begin(), nodes.end(), sort_callback);
 }
 
-void NodesManager::sort_nodes(std::list<data::Nodes*>& nodes)
+void NodesManager::sort_nodes(std::list<data::NodeItem*>& nodes)
 {
     nodes.sort(sort_callback);
 }
