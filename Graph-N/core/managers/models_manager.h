@@ -19,7 +19,7 @@ struct ModelItem final
 
     std::list<hid> nodes;
 
-    std::list<std::unique_ptr<data::ModelItem>> children;
+    std::vector<std::unique_ptr<data::ModelItem>> children;
 
     uint32_t models_inside = 0;
     uint32_t models_inside_unfiltered = 0;
@@ -45,12 +45,17 @@ public:
     void load_models();
     void set_nodes(std::unordered_map<std::string, std::list<hid>>&& nodes_map);
 
+    const std::vector<std::unique_ptr<data::ModelItem>>& get_models() const;
+
+    void calc_number_inside(const std::string& filter);
+
 private:
     void load_models_th();
     std::unique_ptr<data::ModelItem> add_file(std::string root_folder, std::filesystem::path file_path);
     void parse_file_info(data::ModelItem* item, std::string info);
-    void rebuild_models(const std::list<std::unique_ptr<data::ModelItem>>& models);
+    void rebuild_models(const std::vector<std::unique_ptr<data::ModelItem>>& models);
     void sync_to_nodes();
+    void sort_models();
 
 private:
     std::thread m_th;
@@ -58,7 +63,7 @@ private:
     std::atomic_bool m_nodes_ready = false;
     std::atomic_bool m_stop_flag = false;
 
-    std::list<std::unique_ptr<data::ModelItem>> m_model_items;
+    std::vector<std::unique_ptr<data::ModelItem>> m_model_items;
     std::unordered_map<std::string, std::list<hid>> m_model_to_nodes_map;
 };
 

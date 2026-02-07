@@ -72,7 +72,8 @@ void ModelsManager::load_models_th()
             return;
         }
 
-        std::list<std::unique_ptr<data::ModelItem>> models;
+        std::vector<std::unique_ptr<data::ModelItem>> models;
+        models.reserve(requests.size() * 2);
 
         for (auto& req : requests)
         {
@@ -131,7 +132,11 @@ void ModelsManager::load_models_th()
             LogS("Models thread aborted");
             return;
         }
+
         sync_to_nodes();
+        sort_models();
+        calc_number_inside("");
+        
         m_models_ready = true;
     }
     catch (const std::exception& ex)
@@ -232,11 +237,11 @@ void ModelsManager::parse_file_info(data::ModelItem* item, std::string info)
     }
 }
 
-void ModelsManager::rebuild_models(const std::list<std::unique_ptr<data::ModelItem>>& models)
+void ModelsManager::rebuild_models(const std::vector<std::unique_ptr<data::ModelItem>>& models)
 {
-    std::function<data::ModelItem*(const std::list<std::unique_ptr<data::ModelItem>>&, const std::string&, int32_t, int32_t)> find_item;
+    std::function<data::ModelItem*(const std::vector<std::unique_ptr<data::ModelItem>>&, const std::string&, int32_t, int32_t)> find_item;
     find_item = [&find_item]
-        (const std::list<std::unique_ptr<data::ModelItem>>& models, const std::string& name, int32_t search_depth, int32_t curr_depth) -> data::ModelItem*
+        (const std::vector<std::unique_ptr<data::ModelItem>>& models, const std::string& name, int32_t search_depth, int32_t curr_depth) -> data::ModelItem*
     {
         if (search_depth < curr_depth)
             return nullptr;
@@ -254,10 +259,11 @@ void ModelsManager::rebuild_models(const std::list<std::unique_ptr<data::ModelIt
     };
 
     m_model_items.clear();
+    m_model_items.reserve(models.size());
 
-    std::function<void(const std::list<std::unique_ptr<data::ModelItem>>&, std::list<std::unique_ptr<data::ModelItem>>&, int32_t)> add_items;
+    std::function<void(const std::vector<std::unique_ptr<data::ModelItem>>&, std::vector<std::unique_ptr<data::ModelItem>>&, int32_t)> add_items;
     add_items = [this, &add_items, &find_item]
-        (const std::list<std::unique_ptr<data::ModelItem>>& models, std::list<std::unique_ptr<data::ModelItem>>& dest, int32_t depth)
+        (const std::vector<std::unique_ptr<data::ModelItem>>& models, std::vector<std::unique_ptr<data::ModelItem>>& dest, int32_t depth)
     {
         for (auto it = models.begin(); it != models.end(); ++it)
         {
@@ -281,12 +287,13 @@ void ModelsManager::rebuild_models(const std::list<std::unique_ptr<data::ModelIt
     };
 
     add_items(models, m_model_items, 0);
+    m_model_items.shrink_to_fit();
 }
 
 void ModelsManager::sync_to_nodes()
 {
-    std::function<void(std::list<std::unique_ptr<data::ModelItem>>& models)> go_models;
-    go_models = [this, &go_models](std::list<std::unique_ptr<data::ModelItem>>& models)
+    std::function<void(std::vector<std::unique_ptr<data::ModelItem>>& models)> go_models;
+    go_models = [this, &go_models](std::vector<std::unique_ptr<data::ModelItem>>& models)
     {
         for (auto& model : models)
         {
@@ -312,6 +319,80 @@ void ModelsManager::sync_to_nodes()
     go_models(m_model_items);
 
     m_model_to_nodes_map = {};
+}
+
+void ModelsManager::sort_models()
+{
+    const auto sort_callback = [](const std::unique_ptr<data::ModelItem>& lhs, const std::unique_ptr<data::ModelItem>& rhs)
+    {
+        if (!lhs->is_model && rhs->is_model)
+            return true;
+        if (lhs->is_model && !rhs->is_model)
+            return false;
+
+        return tools::str::to_lower_ascii(lhs->name) < tools::str::to_lower_ascii(rhs->name);
+    };
+
+    std::function<void(std::vector<std::unique_ptr<data::ModelItem>>&)> go_sort;
+    go_sort = [&go_sort, &sort_callback](std::vector<std::unique_ptr<data::ModelItem>>& models)
+    {
+        std::sort(models.begin(), models.end(), sort_callback);
+        for (auto& model : models)
+        {
+            go_sort(model->children);
+        }
+    };
+
+    go_sort(m_model_items);
+}
+
+const std::vector<std::unique_ptr<data::ModelItem>>& ModelsManager::get_models() const
+{
+    if (!m_models_ready)
+    {
+        static std::vector<std::unique_ptr<data::ModelItem>> models;
+        return models;
+    }
+    return m_model_items;
+}
+
+void ModelsManager::calc_number_inside(const std::string& filter)
+{
+    std::function<void(std::vector<std::unique_ptr<data::ModelItem>>&, uint32_t*, bool)> calculator;
+    calculator = [&calculator, &filter](std::vector<std::unique_ptr<data::ModelItem>>& models, uint32_t* count, bool force_unfilter)
+    {
+        for (auto& model : models)
+        {
+            model->models_inside = model->models_inside_unfiltered = 0;
+            if (!model->children.empty())
+            {
+                const bool category_unfiltered = force_unfilter || (!filter.empty() && model->search.find(filter) != std::string::npos);
+                model->models_inside_unfiltered = 0;
+                calculator(model->children, filter.empty() ? &model->models_inside : &model->models_inside_unfiltered, category_unfiltered);
+                if (count != nullptr)
+                    *count += filter.empty() ? model->models_inside : model->models_inside_unfiltered;
+            }
+            else if (model->is_model)
+            {
+                if (force_unfilter || filter.empty())
+                {
+                    model->filtered = false;
+                    if (count != nullptr)
+                        (*count)++;
+                }
+                else
+                {
+                    model->filtered = (model->search.find(filter) == std::string::npos);
+                    if (count != nullptr)
+                        *count += model->filtered ? 0 : 1;
+                }
+            }
+        }
+    };
+
+    uint32_t count = 0;
+    calculator(m_model_items, &count, false);
+    Log("Filter = (" << filter << "), count=" << count);
 }
 
 } // namespace mngr
