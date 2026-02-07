@@ -6,6 +6,7 @@
 #include "core/managers/nodes_manager.h"
 #include "core/managers/connect_manager.h"
 #include "core/managers/workflows_manager.h"
+#include "core/managers/models_manager.h"
 #include "core/base/id.h"
 
 namespace g
@@ -19,6 +20,7 @@ mngr::DbManager* pDbManager = nullptr;
 mngr::NodesManager* pNodesManager = nullptr;
 mngr::ConnectManager* pConnectManager = nullptr;
 mngr::WfsManager* pWfsManager = nullptr;
+mngr::ModelsManager* pModelsManager = nullptr;
 
 void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line)
 {
@@ -47,6 +49,9 @@ bool GraphN::init_graphn()
 
     m_managers.push_back(std::make_unique<mngr::NodesManager>());
     g::pNodesManager = (mngr::NodesManager*)m_managers.back().get();
+
+    m_managers.push_back(std::make_unique<mngr::ModelsManager>());
+    g::pModelsManager = (mngr::ModelsManager*)m_managers.back().get();
 
     m_managers.push_back(std::make_unique<mngr::NodesManager>());
     g::pNodesManager = (mngr::NodesManager*)m_managers.back().get();
@@ -98,6 +103,9 @@ void GraphN::exit_graphn()
     g::pOptsManager = nullptr;
     g::pDbManager = nullptr;
     g::pConnectManager = nullptr;
+
+    auto temp = fs::get_temp_directory_path();
+    tools::path::remove(temp);
 
     LogF_Out;
 }

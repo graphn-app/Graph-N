@@ -58,7 +58,7 @@ void Logger::set_log_enabled(bool enable)
 
     if (enable)
     {
-        tools::path::make_file_path(path, true /*overwrite*/);
+        tools::path::make_file_path(path, true /*overwrite*/, "");
         instance().log_start();
     }
     else

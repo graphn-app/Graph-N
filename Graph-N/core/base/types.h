@@ -344,6 +344,8 @@ constexpr const char* interrupt         = "/interrupt";             // post
 constexpr const char* free              = "/free";                  // post
 constexpr const char* upload_image      = "/upload/image";          // post
 constexpr const char* upload_mask       = "/upload/mask";           // post
+constexpr const char* models            = "/api/experiment/models"; // get
+constexpr const char* model_meta        = "/api/view_metadata";     // get
 }
 
 namespace w

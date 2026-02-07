@@ -239,6 +239,65 @@ std::string generate_uuid_v4()
     return ss.str();
 }
 
+std::vector<byte> base64_decode(const std::string& base64)
+{
+    constexpr const std::string_view base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    std::vector<byte> out;
+    out.reserve(base64.size() * 3 / 4);
+
+    std::vector<int32_t> T(256, -1);
+    for (int i = 0; i < 64; i++)
+    {
+        T[base64_chars[i]] = i;
+    }
+
+    int val = 0, valb = -8;
+    for (byte c : base64)
+    {
+        if (T[c] == -1)
+            break;
+        val = (val << 6) + T[c];
+        valb += 6;
+        if (valb >= 0)
+        {
+            out.push_back(char((val >> valb) & 0xFF));
+            valb -= 8;
+        }
+    }
+    return out;
+}
+
+std::vector<byte> base64_decode(const char* base64, size_t len)
+{
+    constexpr const std::string_view base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    std::vector<byte> out;
+    out.reserve(len * 3 / 4);
+
+    std::vector<int32_t> T(256, -1);
+    for (int i = 0; i < 64; i++)
+    {
+        T[base64_chars[i]] = i;
+    }
+
+    int val = 0, valb = -8;
+    for (size_t idx = 0; idx < len; idx++)
+    {
+        const char c = base64[idx];
+        if (T[c] == -1)
+            break;
+        val = (val << 6) + T[c];
+        valb += 6;
+        if (valb >= 0)
+        {
+            out.push_back(char((val >> valb) & 0xFF));
+            valb -= 8;
+        }
+    }
+    return out;
+}
+
 } // namespace str
 
 namespace path
@@ -393,9 +452,9 @@ bool make_folder(const std::filesystem::path& dirpath)
     return true;
 }
 
-bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write /*= ""*/)
+bool make_file(const std::filesystem::path& filepath, bool overwrite, const char* data_to_write, size_t data_len)
 {
-    LogVS(filepath, overwrite, data_to_write.size());
+    LogVS(filepath, overwrite, data_len);
 
     if (filepath.empty())
         return false;
@@ -414,9 +473,9 @@ bool make_file(const std::filesystem::path& filepath, bool overwrite, const std:
         return false;
     }
 
-    if (!data_to_write.empty())
+    if (data_len > 0)
     {
-        file.write(data_to_write.data(), data_to_write.size());
+        file.write(data_to_write, data_len);
         if (file.fail())
         {
             LogErrorS(ExcepCategory::FileSystem, "Write failed " << filepath);
@@ -424,11 +483,28 @@ bool make_file(const std::filesystem::path& filepath, bool overwrite, const std:
         }
     }
 
-    LogS("Created file " << filepath << " and written " << data_to_write.size() << " bytes");
+    LogS("Created file " << filepath << " and written " << data_len << " bytes");
     return true;
 }
 
-bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write /*= ""*/)
+bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::vector<byte>& data_to_write)
+{
+    return make_file(filepath, overwrite, (const char*)data_to_write.data(), data_to_write.size());
+}
+
+bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write)
+{
+    return make_file(filepath, overwrite, data_to_write.data(), data_to_write.size());
+}
+
+bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const std::vector<byte>& data_to_write)
+{
+    if (!make_folder(filepath.parent_path()))
+        return false;
+    return make_file(filepath, overwrite, data_to_write);
+}
+
+bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write)
 {
     if (!make_folder(filepath.parent_path()))
         return false;

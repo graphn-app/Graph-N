@@ -27,6 +27,9 @@ uint32_t crc32(const std::string& data);
 
 std::string generate_uuid_v4();
 
+std::vector<byte> base64_decode(const std::string& base64);
+std::vector<byte> base64_decode(const char* base64, size_t len);
+
 } // namespace str
 
 namespace path
@@ -40,8 +43,10 @@ std::optional<std::filesystem::path> copy(const std::filesystem::path& from, con
 std::optional<std::filesystem::path> move(const std::filesystem::path& from, const std::filesystem::path& to, bool overwrite, bool rename);
 
 bool make_folder(const std::filesystem::path& dirpath);
-bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write = "");
-bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write = "");
+bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::vector<byte>& data_to_write);
+bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const std::vector<byte>& data_to_write);
+bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write);
+bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write);
 
 std::vector<char> read_file(const std::filesystem::path& filepath);
 

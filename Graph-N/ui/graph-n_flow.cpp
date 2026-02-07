@@ -18,8 +18,9 @@
 #include "core/managers/nodes_parser.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/workflows_manager.h"
+#include "core/managers/models_manager.h"
 
-#define TEST
+//#define TEST
 
 namespace w
 {
@@ -779,6 +780,8 @@ void GraphN_Flow::show_menu_bar_connecting()
         {
             m_windows &= ~ViewConnect;
             m_windows |= ViewParsingNodes;
+
+            g::pModelsManager->load_models();
 
             g::pOptsManager->node_options_preload();
             m_nodes_parser = std::make_unique<mngr::NodesParser>();

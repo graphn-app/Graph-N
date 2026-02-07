@@ -1,8 +1,7 @@
 
 #include "core/managers/nodes_parser.h"
+#include "core/managers/models_manager.h"
 #include "core/data/pin.h"
-#include "core/data/implemented_nodes/note.h"
-#include "core/data/implemented_nodes/markdown_note.h"
 #include "ui/graph-n_flow.h"
 
 namespace mngr
@@ -82,14 +81,16 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
         auto nodes = nlohmann::json::parse(m_json_data);
         m_parsed_items_total = nodes.size();
 
-        auto copy = std::make_shared<NodesManager>();
+        auto nodes_manager = std::make_shared<NodesManager>();
         prepare_parsers_map();
+
+        std::unordered_map<std::string, std::list<hid>> models_map;
 
         const auto items = nodes.items();
         for (auto&[node_class, node_info] : items)
         {
             m_parsed_item++;
-            parse_node(*copy.get(), node_class, node_info);
+            parse_node(*nodes_manager.get(), node_class, node_info, models_map);
 
             if (m_stop_thread_flag)
             {
@@ -98,12 +99,13 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
             }
         }
 
+        g::pModelsManager->set_nodes(std::move(models_map));
+
         Log("Parsed: " << m_parsed_item << " item. Adding internal nodes");
-        //add_internal_nodes(*copy.get());
-        sort_nodes(*copy.get());
-        copy->init_labels();
+        sort_nodes(*nodes_manager.get());
+        nodes_manager->init_labels();
         Log("Nodes loading and parsing done");
-        return copy;
+        return nodes_manager;
     }
     catch (std::exception& e)
     {
@@ -113,7 +115,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
     return {};
 }
 
-void NodesParser::parse_node(NodesManager& manager, const std::string& node_class, nlohmann::json& json_node)
+void NodesParser::parse_node(NodesManager& manager, const std::string& node_class, nlohmann::json& json_node, std::unordered_map<std::string, std::list<hid>>& models_map)
 {
     try
     {
@@ -125,7 +127,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
         parse_output(manager, *node.get(), json_node);        // output, output_is_list, output_name, output_node, output_tooltips
         parse_others(*node.get(), json_node);                // python_module, experimental, deprecated, api_node
 
-        node->finalize();
+        node->finalize(models_map);
         put_in_tree(manager, node.get());
         manager.m_nodes.emplace(node->get_id(), std::move(node));
         Log("Node " << node_class << " parse: end");
@@ -152,7 +154,11 @@ void NodesParser::parse_names(data::Node& node, const std::string& node_class, n
         node.description = json_node["description"];
 
     if (json_node.contains("category") && json_node["category"].is_string())
+    {
         node.category = json_node["category"];
+        if (node.category.empty())
+            node.category = "_no_category";
+    }
 }
 
 static std::optional<primitive> get_combo_item(const nlohmann::json& json)
@@ -858,130 +864,130 @@ void NodesParser::parse_others(data::Node& node, nlohmann::json& json_node)
         LogUnhandledJson("/unhandled node's attr. Node=" << node.name << ", attr=" << name);
     }
 }
-
-void NodesParser::add_internal_nodes(NodesManager& manager)
-{
-    // Reroute
-    {
-        constexpr auto node_class = "Reroute";
-        auto node = std::make_unique<data::Node>(node_class);
-        node->name = node_class;
-        node->display_name = node_class;
-        node->category = "utils";
-        node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
-
-        // Input: ANY (*)
-        auto in = std::make_unique<data::Pin>(node.get(), "*");
-        in->name = "*";
-        in->input = true;
-        in->required = true;
-        in->initialize("*");
-        in->finalize();
-        node->required.pins.push_back(in.get());
-        node->required.order.push_back("*");
-        manager.m_pins.emplace(in->get_id(), std::move(in));
-
-        // Output: ANY (*)
-        auto out = std::make_unique<data::Pin>(node.get(), 0);
-        out->name = "*";
-        out->output = true;
-        out->initialize("*");
-        out->finalize();
-        node->output.push_back(out.get());
-        manager.m_pins.emplace(out->get_id(), std::move(out));
-
-        node->has_input = true;
-        node->has_output = true;
-        node->finalize();
-
-        put_in_tree(manager, node.get());
-        manager.m_nodes.emplace(node->get_id(), std::move(node));
-    }
-
-    // Primitive
-    {
-        constexpr auto node_class = "Primitive";
-        auto node = std::make_unique<data::Node>(node_class);
-        node->name = node_class;
-        node->display_name = node_class;
-        node->category = "utils";
-        node->description = "Primitive values like numbers, strings, and booleans.";
-
-        // Output: ANY (*)
-        auto out = std::make_unique<data::Pin>(node.get(), 0);
-        out->name = "connect to widget input";
-        out->output = true;
-        out->initialize("*");
-        out->finalize();
-        node->output.push_back(out.get());
-        manager.m_pins.emplace(out->get_id(), std::move(out));
-
-        node->has_input = false;
-        node->has_output = true;
-        node->finalize();
-
-        put_in_tree(manager, node.get());
-        manager.m_nodes.emplace(node->get_id(), std::move(node));
-    }
-
-    // Note
-    {
-        constexpr auto node_class = "Note";
-        auto node = std::make_unique<data::NodeNote>(node_class);
-        node->name = node_class;
-        node->display_name = node_class;
-        node->category = "utils";
-        node->description = "Node to add annotations to a workflow.";
-
-        auto in = std::make_unique<data::Pin>(node.get(), "Note");
-        in->name = "Note";
-        in->input = true;
-        in->required = true;
-        in->multiline = true;
-        in->placeholder = "Put note here";
-        in->initialize("STRING");
-        in->finalize();
-        node->required.pins.push_back(in.get());
-        node->required.order.push_back("STRING");
-        manager.m_pins.emplace(in->get_id(), std::move(in));
-
-        node->has_input = true;
-        node->has_output = false;
-        node->finalize();
-
-        put_in_tree(manager, node.get());
-        manager.m_nodes.emplace(node->get_id(), std::move(node));
-    }
-
-    // Markdown Note
-    {
-        constexpr auto node_class = "Markdown Note";
-        auto node = std::make_unique<data::NodeMarkdownNote>(node_class);
-        node->name = node_class;
-        node->display_name = node_class;
-        node->category = "utils";
-        node->description = "Node to add annotations to a workflow. It supports text formatting using Markdown syntax.";
-
-        auto in = std::make_unique<data::Pin>(node.get(), "Markdown Note");
-        in->name = "Markdown Note";
-        in->input = true;
-        in->required = true;
-        in->multiline = true;
-        in->placeholder = "Put markdown note here";
-        in->initialize("STRING");
-        in->finalize();
-        node->required.pins.push_back(in.get());
-        node->required.order.push_back("STRING");
-        manager.m_pins.emplace(in->get_id(), std::move(in));
-
-        node->has_input = true;
-        node->has_output = false;
-        node->finalize();
-
-        put_in_tree(manager, node.get());
-        manager.m_nodes.emplace(node->get_id(), std::move(node));
-    }
-}
+//
+//void NodesParser::add_internal_nodes(NodesManager& manager)
+//{
+//    // Reroute
+//    {
+//        constexpr auto node_class = "Reroute";
+//        auto node = std::make_unique<data::Node>(node_class);
+//        node->name = node_class;
+//        node->display_name = node_class;
+//        node->category = "utils";
+//        node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
+//
+//        // Input: ANY (*)
+//        auto in = std::make_unique<data::Pin>(node.get(), "*");
+//        in->name = "*";
+//        in->input = true;
+//        in->required = true;
+//        in->initialize("*");
+//        in->finalize();
+//        node->required.pins.push_back(in.get());
+//        node->required.order.push_back("*");
+//        manager.m_pins.emplace(in->get_id(), std::move(in));
+//
+//        // Output: ANY (*)
+//        auto out = std::make_unique<data::Pin>(node.get(), 0);
+//        out->name = "*";
+//        out->output = true;
+//        out->initialize("*");
+//        out->finalize();
+//        node->output.push_back(out.get());
+//        manager.m_pins.emplace(out->get_id(), std::move(out));
+//
+//        node->has_input = true;
+//        node->has_output = true;
+//        node->finalize();
+//
+//        put_in_tree(manager, node.get());
+//        manager.m_nodes.emplace(node->get_id(), std::move(node));
+//    }
+//
+//    // Primitive
+//    {
+//        constexpr auto node_class = "Primitive";
+//        auto node = std::make_unique<data::Node>(node_class);
+//        node->name = node_class;
+//        node->display_name = node_class;
+//        node->category = "utils";
+//        node->description = "Primitive values like numbers, strings, and booleans.";
+//
+//        // Output: ANY (*)
+//        auto out = std::make_unique<data::Pin>(node.get(), 0);
+//        out->name = "connect to widget input";
+//        out->output = true;
+//        out->initialize("*");
+//        out->finalize();
+//        node->output.push_back(out.get());
+//        manager.m_pins.emplace(out->get_id(), std::move(out));
+//
+//        node->has_input = false;
+//        node->has_output = true;
+//        node->finalize();
+//
+//        put_in_tree(manager, node.get());
+//        manager.m_nodes.emplace(node->get_id(), std::move(node));
+//    }
+//
+//    // Note
+//    {
+//        constexpr auto node_class = "Note";
+//        auto node = std::make_unique<data::NodeNote>(node_class);
+//        node->name = node_class;
+//        node->display_name = node_class;
+//        node->category = "utils";
+//        node->description = "Node to add annotations to a workflow.";
+//
+//        auto in = std::make_unique<data::Pin>(node.get(), "Note");
+//        in->name = "Note";
+//        in->input = true;
+//        in->required = true;
+//        in->multiline = true;
+//        in->placeholder = "Put note here";
+//        in->initialize("STRING");
+//        in->finalize();
+//        node->required.pins.push_back(in.get());
+//        node->required.order.push_back("STRING");
+//        manager.m_pins.emplace(in->get_id(), std::move(in));
+//
+//        node->has_input = true;
+//        node->has_output = false;
+//        node->finalize();
+//
+//        put_in_tree(manager, node.get());
+//        manager.m_nodes.emplace(node->get_id(), std::move(node));
+//    }
+//
+//    // Markdown Note
+//    {
+//        constexpr auto node_class = "Markdown Note";
+//        auto node = std::make_unique<data::NodeMarkdownNote>(node_class);
+//        node->name = node_class;
+//        node->display_name = node_class;
+//        node->category = "utils";
+//        node->description = "Node to add annotations to a workflow. It supports text formatting using Markdown syntax.";
+//
+//        auto in = std::make_unique<data::Pin>(node.get(), "Markdown Note");
+//        in->name = "Markdown Note";
+//        in->input = true;
+//        in->required = true;
+//        in->multiline = true;
+//        in->placeholder = "Put markdown note here";
+//        in->initialize("STRING");
+//        in->finalize();
+//        node->required.pins.push_back(in.get());
+//        node->required.order.push_back("STRING");
+//        manager.m_pins.emplace(in->get_id(), std::move(in));
+//
+//        node->has_input = true;
+//        node->has_output = false;
+//        node->finalize();
+//
+//        put_in_tree(manager, node.get());
+//        manager.m_nodes.emplace(node->get_id(), std::move(node));
+//    }
+//}
 
 void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 {
@@ -1011,7 +1017,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
     {
         auto branch_ptr = std::make_unique<data::NodeItem>();
         auto branch = branch_ptr.get();
-        manager.m_node_holders.push_back(std::move(branch_ptr));
+        manager.m_node_items.push_back(std::move(branch_ptr));
 
         root->push_back(branch);
         branch->is_node = false;
@@ -1023,7 +1029,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 
     auto branch_ptr = std::make_unique<data::NodeItem>();
     auto branch = branch_ptr.get();
-    manager.m_node_holders.push_back(std::move(branch_ptr));
+    manager.m_node_items.push_back(std::move(branch_ptr));
 
     root->push_back(branch);
     branch->is_node = true;

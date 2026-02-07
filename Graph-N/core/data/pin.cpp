@@ -206,7 +206,7 @@ void Pin::finalize()
     if (!is_widget() && advanced)
     {
         LogInvalidJson("Non-widget pin can't be advanced");
-        LogAndThrowInternalError(ExcepCategory::Logic, "Non-widget pin can't be advanced");
+        //LogAndThrowInternalError(ExcepCategory::Logic, "Non-widget pin can't be advanced");
     }
 
     def_state.value = def;

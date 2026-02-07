@@ -13,7 +13,7 @@ struct Node : public base::HashID
     using base::HashID::HashID;
     ~Node() override;
 
-    void finalize();
+    void finalize(std::unordered_map<std::string, std::list<hid>>& models_map);
 
     bool has_input = false;
     struct Input final

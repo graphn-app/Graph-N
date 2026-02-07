@@ -23,7 +23,7 @@ public:
 
 private:
     std::shared_ptr<NodesManager> parse_thread();
-    void parse_node(NodesManager& manager, const std::string& node_class, nlohmann::json& node);
+    void parse_node(NodesManager& manager, const std::string& node_class, nlohmann::json& node, std::unordered_map<std::string, std::list<hid>>& models_map);
     void parse_names(data::Node& node, const std::string& node_class, nlohmann::json& json_node);
     void parse_input(NodesManager& manager, data::Node& node, nlohmann::json& json_node);
     void parse_output(NodesManager& manager, data::Node& node, nlohmann::json& json_node);
@@ -32,7 +32,6 @@ private:
     void sort_nodes(NodesManager& manager);
     void prepare_parsers_map();
     void parse_by_key(const data::Node& node, data::Pin& pin, nlohmann::json& json, const std::string& key);
-    void add_internal_nodes(NodesManager& manager);
 
 private:
     std::string m_json_data;

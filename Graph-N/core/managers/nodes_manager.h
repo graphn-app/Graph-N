@@ -5,7 +5,6 @@
 
 namespace data
 {
-
 struct NodeItem final
 {
     NO_COPY_MOVE_CTORS(NodeItem);
@@ -40,7 +39,7 @@ public:
 
     const std::vector<data::NodeItem*>& get_nodes_tree() const { return m_nodes_tree; }
     const std::vector<data::NodeItem*>& get_nodes_plain() const { return m_nodes_plain; }
-    size_t get_node_items_total() const { return m_node_holders.size(); }
+    size_t get_node_items_total() const { return m_node_items.size(); }
 
     void calc_number_inside(const std::string& filter);
 
@@ -68,7 +67,7 @@ private:
 private:
     std::unordered_map<hid, std::unique_ptr<data::Node>> m_nodes;
     std::unordered_map<hid, std::unique_ptr<data::Pin>> m_pins;
-    std::list<std::unique_ptr<data::NodeItem>> m_node_holders;
+    std::list<std::unique_ptr<data::NodeItem>> m_node_items;
 
     std::vector<data::NodeItem*> m_nodes_tree;			// tree view
     std::vector<data::NodeItem*> m_nodes_plain;		// plain view: sorted by display name

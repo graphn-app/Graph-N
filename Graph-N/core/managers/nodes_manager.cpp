@@ -9,7 +9,7 @@ void NodesManager::free()
 {
     m_nodes.clear();
     m_pins.clear();
-    m_node_holders.clear();
+    m_node_items.clear();
     m_nodes_tree.clear();
     m_nodes_plain.clear();
     m_labels.clear();
@@ -22,7 +22,7 @@ void NodesManager::init_from_copy(NodesManager& copy)
     free();
     m_nodes = std::move(copy.m_nodes);
     m_pins = std::move(copy.m_pins);
-    m_node_holders = std::move(copy.m_node_holders);
+    m_node_items = std::move(copy.m_node_items);
     m_nodes_tree = std::move(copy.m_nodes_tree);
     m_nodes_plain = std::move(copy.m_nodes_plain);
     m_labels = std::move(copy.m_labels);
