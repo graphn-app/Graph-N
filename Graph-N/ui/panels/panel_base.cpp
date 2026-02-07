@@ -96,19 +96,26 @@ bool PanelWithList::draw_list(
     static const float dbl_check_w = ImGui::CalcTextSize(ICON_LC_CHECK_CHECK).x + ImGui::GetStyle().ItemSpacing.x;
     const float indent = dbl_check_w;
 
-    ImGuiListClipper clipper;
-    clipper.Begin(cast::to_i32(items.size()));
+    const int32_t size = cast::to_i32(items.size());
+    const bool clipper_needed = size > 300;
 
-    while (clipper.Step())
+    ImGuiListClipper clipper;
+    if (clipper_needed)
+        clipper.Begin(size);
+
+    while (!clipper_needed && size > 0 || clipper_needed && clipper.Step())
     {
-        for (int32_t idx = clipper.DisplayStart; idx < clipper.DisplayEnd; idx++)
+        const int32_t start = (clipper_needed ? clipper.DisplayStart : 0);
+        const int32_t end = (clipper_needed ? clipper.DisplayEnd : size);
+
+        for (int32_t idx = start; idx < end; idx++)
         {
             auto& item = items[idx];
             bool allow_tt = true;
 
             if (item.is_separator)
             {
-                ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), item.name.c_str());
+                ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), 0.0f, item.name.c_str(), item.name.size());
                 continue;
             }
             if (item.is_empty)
@@ -346,6 +353,9 @@ bool PanelWithList::draw_list(
             ImGui::EndGroup();
             ImGui::PopID();
         }
+
+        if (!clipper_needed)
+            break;
     }
 
     if (release_tooltip(m_hovered_item, tt_callbacks))
