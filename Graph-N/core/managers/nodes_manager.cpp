@@ -76,10 +76,7 @@ data::Node* NodesManager::find_node(hid id) const
 {
     const auto it = m_nodes.find(id);
     if (it == m_nodes.end())
-    {
-        LogInternalMap("Node id=" << id << " not found");
         return nullptr;
-    }
     return it->second.get();
 }
 
@@ -87,10 +84,7 @@ data::Pin* NodesManager::find_pin(hid id) const
 {
     const auto it = m_pins.find(id);
     if (it == m_pins.end())
-    {
-        LogInternalMap("Pin id=" << id << " not found");
         return nullptr;
-    }
     return it->second.get();
 }
 

@@ -26,6 +26,11 @@ struct ModelItem final
     uint32_t models_inside = 0;
     uint32_t models_inside_unfiltered = 0;
     bool filtered = false;
+
+    hid def_node = 0;
+    bool def_node_installed = false;
+    bool service_component = false;
+    bool copy_to_cb_only = false;
 };
 
 }
@@ -45,7 +50,8 @@ public:
     void stop_all_threads() override;
 
     void load_models();
-    void set_nodes(std::unordered_map<std::string, std::list<hid>>&& nodes_map);
+    inline void set_nodes_map(std::unordered_map<std::string, std::list<hid>>&& nodes_map) { m_model_to_nodes_map = std::move(nodes_map); }
+    inline void set_nodes_ready() { m_nodes_ready = true;; }
 
     const std::vector<std::unique_ptr<data::ModelItem>>& get_models() const;
 
@@ -58,6 +64,7 @@ private:
     void rebuild_models(const std::vector<std::unique_ptr<data::ModelItem>>& models);
     void sync_to_nodes();
     void sort_models();
+    void setup_model_behaviour();
 
 private:
     std::thread m_th;

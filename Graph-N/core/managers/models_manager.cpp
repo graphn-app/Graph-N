@@ -1,6 +1,7 @@
 
 #include "core/managers/models_manager.h"
 #include "core/managers/settings_manager.h"
+#include "core/managers/nodes_manager.h"
 
 namespace mngr
 {
@@ -31,12 +32,6 @@ void ModelsManager::load_models()
     m_models_ready = false;
     m_stop_flag = false;
     m_th = std::thread(&ModelsManager::load_models_th, this);
-}
-
-void ModelsManager::set_nodes(std::unordered_map<std::string, std::list<hid>>&& nodes_map)
-{
-    m_model_to_nodes_map = std::move(nodes_map);
-    m_nodes_ready = true;
 }
 
 void ModelsManager::load_models_th()
@@ -137,6 +132,7 @@ void ModelsManager::load_models_th()
 
         sync_to_nodes();
         sort_models();
+        setup_model_behaviour();
         calc_number_inside("");
 
         g::pOptsManager->model_starred_release();
@@ -352,6 +348,93 @@ void ModelsManager::sort_models()
     };
 
     go_sort(m_model_items);
+}
+
+void ModelsManager::setup_model_behaviour()
+{
+    std::map<data::ModelItem*, std::list<data::ModelItem*>> root_to_files;
+
+    std::function<void(bool, const std::vector<std::unique_ptr<data::ModelItem>>&, data::ModelItem*)> go_models;
+    go_models = [&root_to_files, &go_models](bool is_root, const std::vector<std::unique_ptr<data::ModelItem>>& models, data::ModelItem* root_item)
+    {
+        data::ModelItem* root = root_item;
+        for (auto& model : models)
+        {
+            if (model->is_model)
+            {
+                root_to_files[root].push_back(model.get());
+            }
+            else
+            {
+                if (is_root)
+                    root = model.get();
+                go_models(false, model->children, root);
+            }
+        }
+    };
+    go_models(true, m_model_items, nullptr);
+
+    struct Behaviour final
+    {
+        const char* node_name = nullptr;
+        bool service_component = false;
+        bool copy_to_cb_only = false;
+    };
+
+    const std::unordered_map<std::string, Behaviour> loaders =
+    {
+        { "checkpoints",        { "CheckpointLoaderSimple", false, false } },
+        { "loras",              { "LoraLoader", false, false } },
+        { "vae",                { "VAELoader", false, false } },
+        { "text_encoders",      { "CLIPLoader", false, false } },
+        { "diffusion_models",   { "UNETLoader", false, false } },
+        { "clip_vision",        { "CLIPVisionLoader", false, false } },
+        { "style_models",       { "StyleModelLoader", false, false } },
+        { "vae_approx",         { "VAEApproxLoader", false, false } },
+        { "controlnet",         { "ControlNetLoader", false, false } },
+        { "gligen",             { "GLIGENLoader", false, false } },
+        { "upscale_models",     { "UpscaleModelLoader", false, false } },
+        { "hypernetworks",      { "HypernetworkLoader", false, false } },
+        { "photomaker",         { "PhotoMakerLoader", false, false } },
+        { "sams",               { "SAMModelLoader", false, false } },
+        { "onnx",               { "UltralyticsDetectorProvider", false, false } },
+        { "ultralytics_bbox",   { "UltralyticsDetectorProvider", false, false } },
+        { "ultralytics_segm",   { "UltralyticsDetectorProvider", false, false } },
+        { "unet_gguf",          { "UnetLoaderGGUF", false, false } },
+        { "ipadapter",          { "IPAdapterModelLoader", false, false } },
+        { "voices",             { "LoadAudio", false, false } },
+
+        { "latent_upscale_models",  { "", true, false } },
+        { "model_patches",          { "", true, false } },
+        { "inspire_prompts",        { "", true, false } },
+        { "VHS_video_formats",      { "", true, false } },
+
+        { "embeddings",             { "", false, true } }
+    };
+
+    for (auto& [root, files] : root_to_files)
+    {
+        if (nullptr == root)
+        {
+            LogWarn("No root directory defined");
+            continue;
+        }
+        auto it = loaders.find(root->name);
+        if (it != loaders.end())
+        {
+            root->service_component = it->second.service_component;
+            for (auto file : files)
+            {
+                if (*it->second.node_name)
+                {
+                    file->def_node = tools::str::hash_fnv1a(it->second.node_name);
+                    file->def_node_installed = g::pNodesManager->find_node(file->def_node) != nullptr;
+                }
+                file->service_component = it->second.service_component;
+                file->copy_to_cb_only = it->second.copy_to_cb_only;
+            }
+        }
+    }
 }
 
 const std::vector<std::unique_ptr<data::ModelItem>>& ModelsManager::get_models() const

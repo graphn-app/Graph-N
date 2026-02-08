@@ -38,6 +38,8 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
                 Log(APP_COMFYUI " data copied");
                 g::pFlow->resolve_comfyui_objects();
                 Log(APP_COMFYUI " listeners notified to resolve data");
+
+                g::pModelsManager->set_nodes_ready();
             }
         }
         m_stop_thread_flag = false;
@@ -102,7 +104,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
             }
         }
 
-        g::pModelsManager->set_nodes(std::move(models_map));
+        g::pModelsManager->set_nodes_map(std::move(models_map));
 
         Log("Parsed: " << m_parsed_item << " item. Adding internal nodes");
         sort_nodes(*nodes_manager.get());
