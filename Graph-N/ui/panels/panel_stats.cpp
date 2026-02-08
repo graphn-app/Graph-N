@@ -7,7 +7,7 @@ namespace ui
 {
 
 PanelStats::PanelStats()
-    : PanelBase(DlgObj::PanelStats, ICON_LC_CHART_BAR " Stats", ICON_LC_CHART_BAR, "29C805C1-AA12-4FC2-9954-F7849E5DBFDA")
+    : PanelBase(DlgObj::PanelStats, ICON_LC_CHART_BAR " Stats", ICON_LC_CHART_BAR, DlgObjID[cast::to_szt(DlgObj::PanelStats)])
 {}
 
 PanelStats::~PanelStats()

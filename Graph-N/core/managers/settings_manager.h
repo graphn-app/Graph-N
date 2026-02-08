@@ -26,9 +26,6 @@ public:
     inline bool ui_nodes_pane_tree_view_load() const { return *std::get_if<bool>(&m_ui_nodes_tree_view.value); }
     inline void ui_nodes_pane_tree_view_save(bool tree_view) { save_option(m_ui_nodes_tree_view, bool(tree_view)); }
 
-    inline const std::string& ui_nodes_label_load() const { return *std::get_if<std::string>(&m_ui_nodes_labels.value); }
-    inline void ui_nodes_label_save(const std::string& labels) { save_option(m_ui_nodes_labels, std::string(labels)); }
-
     // comfyui
     inline const std::string& comfyui_host_load() const { return *std::get_if<std::string>(&m_comfyui_host.value); }
     inline void comfyui_host_save(const std::string& host) { save_option(m_comfyui_host, host); }
@@ -73,15 +70,22 @@ public:
     inline const std::string& wf_active_load() const { return *std::get_if<std::string>(&m_wf_active.value); }
     inline void wf_active_save(const std::string& active) { save_option(m_wf_active, active); }
 
-    inline const std::string& wf_labels_load() const { return *std::get_if<std::string>(&m_wf_labels.value); }
-    inline void wf_labels_save(const std::string& labels) { save_option(m_wf_labels, std::string(labels)); }
+    // items
+    void pin_advanced_preload();
+    void pin_advanced_release() { m_item_preload_pin_adv.clear(); }
+    inline std::optional<bool> pin_advanced_load(hid pin_id) const { auto it = m_item_preload_pin_adv.find(pin_id); return (it == m_item_preload_pin_adv.end() ? std::nullopt : std::optional<bool>(it->second)); }
+    void pin_advanced_save(hid pin_id, bool is_adv) const { item_save(pin_id, DbItemOptionType::PinAdvanced, is_adv); }
 
-    // nodes
-    void node_options_preload();
-    inline void node_options_release() { m_hashed_node_options.clear(); }
+    void model_starred_preload();
+    void model_starred_release() { m_item_preload_model_starred.clear(); }
+    inline std::optional<bool> model_starred_load(hid model_id) const { auto it = m_item_preload_model_starred.find(model_id); return (it == m_item_preload_model_starred.end() ? std::nullopt : std::optional<bool>(it->second)); }
+    void model_starred_save(hid model_id, bool is_starred) const { item_save(model_id, DbItemOptionType::ModelStarred, is_starred); }
 
-    inline std::optional<bool> node_advanced_load(hid node_id) const { return node_bool_load(node_id, NodeOption::Advanced); }
-    void node_advanced_save(hid pin_id, bool value) const { node_save(pin_id, NodeOption::Advanced, value); }
+    inline std::string wf_labels_load(hid id) const { auto val = item_load(id, DbItemOptionType::WfLabels); return (val.has_value() ? std::move(val.value().sval) : ""); }
+    void wf_labels_save(hid id, std::string&& labels) const { item_save(id, DbItemOptionType::ModelStarred, std::move(labels)); }
+
+    std::string nodes_labels_load(hid id) const { auto val = item_load(id, DbItemOptionType::NodeLabels); return (val.has_value() ? std::move(val.value().sval) : ""); }
+    void nodes_labels_save(hid id, std::string&& labels) const { item_save(id, DbItemOptionType::NodeLabels, std::move(labels)); }
 
     // stats
     inline int64_t stat_threshold_warn_load(MetricLimit type) const { return *std::get_if<int64_t>(&m_stat_limits_warn[cast::to_szt(type)].value); }
@@ -111,31 +115,19 @@ private:
     void save_option(OptionValue& option, bool new_bool);
     void save_option(OptionValue& option, const std::filesystem::path& new_path);
 
-    inline std::optional<bool> node_bool_load(hid node_id, NodeOption opt) const
-    {
-        const auto it = m_hashed_node_options.find(std::make_pair(node_id, cast::to_i32(opt)));
-        if (it == m_hashed_node_options.end())
-            return std::nullopt;
-        return it->second.ival == 1;
-    }
-    inline std::optional<std::string>node_string_load(hid node_id, NodeOption opt) const
-    {
-        const auto it = m_hashed_node_options.find(std::make_pair(node_id, cast::to_i32(opt)));
-        if (it == m_hashed_node_options.end())
-            return std::nullopt;
-        return it->second.sval;
-    }
-    void node_save(hid node_id, NodeOption opt, bool value) const;
-    void node_save(hid node_id, NodeOption opt, const std::string& value) const;
+    std::optional<DbValue> item_load(hid id, DbItemOptionType type) const;
+    void item_save(hid id, DbItemOptionType type, int64_t value) const;
+    void item_save(hid id, DbItemOptionType type, std::string&& value) const;
 
 private:
+    std::string m_empty;
+
     // app
     OptionValue m_app_vsync; // int
 
     // ui
     OptionValue m_ui_open_wnds; // int
     OptionValue m_ui_nodes_tree_view; // int
-    OptionValue m_ui_nodes_labels; // str
     std::vector<OptionValue> m_ui_colors; // int
 
     // comfyui
@@ -155,10 +147,10 @@ private:
     OptionValue m_wf_widget_input_numbers; // int
     OptionValue m_wf_widget_input_bools; // int
     OptionValue m_wf_active; // str
-    OptionValue m_wf_labels; // str
 
-    // nodes
-    std::map<std::pair<hid, int32_t>, DbValue> m_hashed_node_options;
+    // items
+    std::map<hid, bool> m_item_preload_pin_adv;
+    std::map<hid, bool> m_item_preload_model_starred;
 
     // stats
     std::vector<OptionValue> m_stat_limits_warn;

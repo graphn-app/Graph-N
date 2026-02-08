@@ -19,7 +19,6 @@ bool SettingsManager::init()
     // ui
     m_ui_open_wnds =                                  { "flow_open_windows",        int64_t(ui::ViewPanelsResetAll) };
     m_ui_nodes_tree_view =                            { "flow_nodes_tree_view",     bool(true) };
-    m_ui_nodes_labels =                               { "flow_node_labels",         std::string("") };
 
     // comfyui
     m_comfyui_host =                                  { "comfyui_host",             std::string("127.0.0.1") };
@@ -36,7 +35,6 @@ bool SettingsManager::init()
     m_wf_widget_input_numbers =                       { "wf_widget_input_numbers",  cast::to_i64(WidgetInput::Slider) };
     m_wf_widget_input_bools =                         { "wf_widget_input_bools",    cast::to_i64(WidgetInput::Select) };
     m_wf_active =                                     { "wf_active",                std::string("") };
-    m_wf_labels =                                     { "wf_labels",                std::string("") };
 
     m_ui_colors.resize(cast::to_szt(AppColor::_count));
 
@@ -111,6 +109,7 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::UrlTextDefault)] =                    { "color_url_text_default", int64_t(IM_COL32(51, 127, 229, 255)) };
     m_ui_colors[cast::to_szt(AppColor::UrlTextHovered)] =                    { "color_url_text_hovered", int64_t(IM_COL32(102, 153, 255, 255)) };
     m_ui_colors[cast::to_szt(AppColor::FolderIcon)] =                        { "color_folder_icon", int64_t(IM_COL32(255, 210, 88, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Starred)] =                           { "color_starred", int64_t(IM_COL32(255, 215, 0, 255)) };
 
 
     m_stat_limits_warn.resize(cast::to_szt(MetricLimit::_count));
@@ -137,7 +136,6 @@ bool SettingsManager::init()
     values.push_back(&m_app_vsync);
     values.push_back(&m_ui_open_wnds);
     values.push_back(&m_ui_nodes_tree_view);
-    values.push_back(&m_ui_nodes_labels);
     values.push_back(&m_comfyui_host);
     values.push_back(&m_comfyui_port);
     values.push_back(&m_comfyui_conn_time);
@@ -152,7 +150,6 @@ bool SettingsManager::init()
     values.push_back(&m_wf_widget_input_numbers);
     values.push_back(&m_wf_widget_input_bools);
     values.push_back(&m_wf_active);
-    values.push_back(&m_wf_labels);
     values.push_back(&m_stat_as_progress);
     values.push_back(&m_stat_enabled_disks);
 
@@ -176,12 +173,12 @@ bool SettingsManager::init()
 
 void SettingsManager::init_options(std::vector<OptionValue*>& values)
 {
-    auto db_values = g::pDbManager->option_load_all();
+    auto db_values = g::pDbManager->app_option_load_all();
     bool do_update = false;
 
     for (auto& val : values)
     {
-        auto it = std::find_if(db_values.begin(), db_values.end(), [&val](DbOption& db_opt) { return db_opt.name == val->db_name; });
+        auto it = std::find_if(db_values.begin(), db_values.end(), [&val](DbAppOptionData& db_opt) { return db_opt.name == val->db_name; });
         if (it != db_values.end())
         {
             if (std::holds_alternative<int64_t>(val->value))
@@ -198,7 +195,7 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
         else
         {
             do_update = true;
-            DbOption db_opt;
+            DbAppOptionData db_opt;
             db_opt.name = val->db_name;
 
             if (std::holds_alternative<int64_t>(val->value))
@@ -218,7 +215,7 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
 
     if (do_update)
     {
-        g::pDbManager->option_save_all(std::move(db_values));
+        g::pDbManager->app_option_save_all(std::move(db_values));
     }
 }
 
@@ -252,7 +249,7 @@ void SettingsManager::save_option(OptionValue& option, const std::string& new_st
     else if (*std::get_if<std::string>(&option.value) != new_str)
     {
         *std::get_if<std::string>(&option.value) = new_str;
-        g::pDbManager->option_save(option.db_name, { new_str });
+        g::pDbManager->app_option_save(option.db_name, { new_str });
     }
 }
 
@@ -265,7 +262,7 @@ void SettingsManager::save_option(OptionValue& option, int64_t new_int)
     else if (*std::get_if<int64_t>(&option.value) != new_int)
     {
         *std::get_if<int64_t>(&option.value) = new_int;
-        g::pDbManager->option_save(option.db_name, { new_int });
+        g::pDbManager->app_option_save(option.db_name, { new_int });
     }
 }
 
@@ -278,7 +275,7 @@ void SettingsManager::save_option(OptionValue& option, bool new_bool)
     else if (*std::get_if<bool>(&option.value) != new_bool)
     {
         *std::get_if<bool>(&option.value) = new_bool;
-        g::pDbManager->option_save(option.db_name, { new_bool ? 1 : 0 });
+        g::pDbManager->app_option_save(option.db_name, { new_bool ? 1 : 0 });
     }
 }
 
@@ -291,7 +288,7 @@ void SettingsManager::save_option(OptionValue& option, const std::filesystem::pa
     else if (*std::get_if<std::filesystem::path>(&option.value) != new_path)
     {
         *std::get_if<std::filesystem::path>(&option.value) = new_path;
-        g::pDbManager->option_save(option.db_name, { new_path.u8string() });
+        g::pDbManager->app_option_save(option.db_name, { new_path.u8string() });
     }
 }
 
@@ -305,29 +302,40 @@ void SettingsManager::ui_open_wnds_save(int64_t windows)
 }
 
 //////////////////////////////////////////////////////////////////////
-////////       Nodes                     /////////////////////////////
+////////       Items                     /////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-void SettingsManager::node_options_preload()
+void SettingsManager::pin_advanced_preload()
 {
-    node_options_release();
-    const auto res = g::pDbManager->node_option_load_all();
-    for (auto& [id, opt, value] : res)
+    auto vals = g::pDbManager->item_option_load_all(DbItemOptionType::PinAdvanced);
+    for (auto& val : vals)
     {
-        m_hashed_node_options[std::make_pair(id, cast::to_i32(opt))] = value;
+        m_item_preload_pin_adv[val.first] = val.second.ival == 1;
     }
 }
 
-void SettingsManager::node_save(hid node_id, NodeOption opt, bool value) const
+void SettingsManager::model_starred_preload()
 {
-    g::pDbManager->node_option_save(node_id, opt, { value ? 1 : 0 });
+    auto vals = g::pDbManager->item_option_load_all(DbItemOptionType::ModelStarred);
+    for (auto& val : vals)
+    {
+        m_item_preload_model_starred[val.first] = val.second.ival == 1;
+    }
 }
 
-void SettingsManager::node_save(hid node_id, NodeOption opt, const std::string& value) const
+std::optional<DbValue> SettingsManager::item_load(hid id, DbItemOptionType type) const
 {
-    DbValue dbval;
-    dbval.sval = value;
-    g::pDbManager->node_option_save(node_id, opt, std::move(dbval));
+    return g::pDbManager->item_option_load(id, type);
+}
+
+void SettingsManager::item_save(hid id, DbItemOptionType type, int64_t value) const
+{
+    g::pDbManager->item_option_save(id, type, DbValue(value));
+}
+
+void SettingsManager::item_save(hid id, DbItemOptionType type, std::string&& value) const
+{
+    g::pDbManager->item_option_save(id, type, DbValue(std::move(value)));
 }
 
 //////////////////////////////////////////////////////////////////////

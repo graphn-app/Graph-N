@@ -15,17 +15,18 @@ public:
     void stop_all_threads() override;
 
     inline bool get_is_first_run() const { return m_first_run; }
-
+    void begin_transaction();
+    void end_transaction();
 
     void exception_save(ExcepCategory category, std::string&& message, const char* file, int32_t line);
 
-    void option_save(const std::string& key, DbValue&& value);
-    std::vector<DbOption> option_load_all();
-    void option_save_all(std::vector<DbOption>&& opts);
+    void app_option_save(const std::string& key, DbValue&& value);
+    std::vector<DbAppOptionData> app_option_load_all();
+    void app_option_save_all(std::vector<DbAppOptionData>&& opts);
 
-    void node_option_save(hid node_hash, NodeOption opt, DbValue&& value);
-    std::optional<DbValue> node_option_load(hid node_hash, NodeOption opt);
-    std::vector<std::tuple<hid, NodeOption, DbValue>> node_option_load_all();
+    void item_option_save(hid id, DbItemOptionType type, DbValue&& value);
+    std::optional<DbValue> item_option_load(hid id, DbItemOptionType type);
+    std::vector<std::pair<hid, DbValue>> item_option_load_all(DbItemOptionType type);
 
     std::vector<WfData> wf_load_meta_and_purge();
     void wf_load_json(WfData& wf);
@@ -35,7 +36,7 @@ public:
 private:
     enum class WriteType
     {
-        Exception, Option, Node, WfMeta, WfJson, WfPurge
+        Exception, AppOption, Item, WfMeta, WfJson, WfPurge
     };
     struct ExcepData final
     {
@@ -44,24 +45,24 @@ private:
         std::string file;
         int32_t line = 0;
     };
-    struct NodeData final
+    struct ItemData final
     {
-        hid node_hash = 0;
-        NodeOption opt;
+        hid hash = 0;
+        DbItemOptionType type;
         DbValue value;
     };
     struct WriteData final
     {
         WriteType type;
-        std::variant<ExcepData, DbOption, NodeData, WfData> data;
+        std::variant<ExcepData, DbAppOptionData, ItemData, WfData> data;
     };
 
 private:
     void write_thread(std::filesystem::path db_path);
     void write_data(SQLite::Database& db, const ExcepData* data);
-    void write_data(SQLite::Database& db, const DbOption* data);
-    void write_data(SQLite::Database& db, const NodeData* data);
-    void delete_data(SQLite::Database& db, const NodeData* data);
+    void write_data(SQLite::Database& db, const DbAppOptionData* data);
+    void write_data(SQLite::Database& db, const ItemData* data);
+    void delete_data(SQLite::Database& db, const ItemData* data);
     void write_wf_meta(SQLite::Database& db, const WfData* data);
     void write_wf_json(SQLite::Database& db, const WfData* data);
     void delete_wf_json(SQLite::Database& db, const WfData* data);
@@ -73,6 +74,9 @@ private:
     std::condition_variable m_cv;
     std::atomic_bool m_stop_thread_flag = false;
     std::queue<WriteData> m_write_queue;
+
+    std::list<WriteData> m_transaction_queue;
+    std::atomic_bool m_transaction_flag = false;
 
     std::unique_ptr<SQLite::Database> m_db;
     bool m_first_run = true;

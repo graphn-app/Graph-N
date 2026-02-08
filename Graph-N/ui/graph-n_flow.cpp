@@ -783,7 +783,6 @@ void GraphN_Flow::show_menu_bar_connecting()
 
             g::pModelsManager->load_models();
 
-            g::pOptsManager->node_options_preload();
             m_nodes_parser = std::make_unique<mngr::NodesParser>();
 #ifdef TEST
             auto test_json_path = fs::get_root_directory_path();
@@ -817,7 +816,6 @@ void GraphN_Flow::show_menu_bar_connecting()
 
         if (m_nodes_parser->is_parse_finished())
         {
-            g::pOptsManager->node_options_release();
             if (m_nodes_parser->is_parse_failed())
             {
                 text = "Failed to parse loaded nodes";
@@ -863,7 +861,7 @@ void GraphN_Flow::show_panels()
     const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
 
-    if (ImGui::Begin("MainDockSpaceWindow", nullptr, window_flags))
+    if (ImGui::Begin(DlgObjID[cast::to_szt(DlgObj::MainDockSpaceWindow)], nullptr, window_flags))
     {
         const ImGuiID dockspace_id = ImGui::GetID(APP_CAPTION "_DockSpace");
         m_main_dock_id = dockspace_id;

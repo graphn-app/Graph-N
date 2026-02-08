@@ -70,7 +70,8 @@ DlgCode OptionsDlgs::show(bool& /*focused*/)
     ImGui::SetNextWindowSize(ImVec2(data()->width, data()->height), ImGuiCond_Always);
 
     bool opened = true;
-    if (ImGui::Begin("Options##Opt", &opened, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
+    if (ImGui::Begin(DlgObjID[cast::to_szt(DlgObj::OptionsDlg)], &opened,
+        ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
     {
         ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
 
@@ -82,21 +83,21 @@ DlgCode OptionsDlgs::show(bool& /*focused*/)
 
 void OptionsDlgs::show_left_pane()
 {
-    if (ImGui::BeginChild("left_pane##Opt", ImVec2(150, -FLT_MIN), true))
+    if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::OptLeftPane)], ImVec2(150, -FLT_MIN), true))
     {
         const auto avail_h = ImGui::GetContentRegionAvail().y;
 
-        if (ImGui::Selectable(APP_COMFYUI "##LeftPane", OptPane::ComfyUi == m_opts_data.pane.left_selected_item))
+        if (ImGui::Selectable(DlgObjID[cast::to_szt(DlgObj::OptLeftPane_ComfyUI)], OptPane::ComfyUi == m_opts_data.pane.left_selected_item))
         {
             m_opts_data.pane.left_selected_item = OptPane::ComfyUi;
             m_opts_data.pane.show_inner_child = true;
         }
-        if (ImGui::Selectable("Workflow##LeftPane", OptPane::Wf == m_opts_data.pane.left_selected_item))
+        if (ImGui::Selectable(DlgObjID[cast::to_szt(DlgObj::OptLeftPane_Workflow)], OptPane::Wf == m_opts_data.pane.left_selected_item))
         {
             m_opts_data.pane.left_selected_item = OptPane::Wf;
             m_opts_data.pane.show_inner_child = true;
         }
-        if (ImGui::Selectable("Stats##LeftPane", OptPane::Stats == m_opts_data.pane.left_selected_item))
+        if (ImGui::Selectable(DlgObjID[cast::to_szt(DlgObj::OptLeftPane_Stats)], OptPane::Stats == m_opts_data.pane.left_selected_item))
         {
             m_opts_data.pane.left_selected_item = OptPane::Stats;
             m_opts_data.pane.show_inner_child = true;
@@ -119,11 +120,11 @@ void OptionsDlgs::show_right_pane()
 {
     ImGui::SameLine();
     ImGui::BeginGroup();
-    if (ImGui::BeginChild("right_pane##Opt"))
+    if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::OptRightPane)]))
     {
         if (m_opts_data.pane.show_inner_child)
         {
-            if (ImGui::BeginChild("right_pane2##Opt", ImVec2(-FLT_MIN, -FLT_MIN), true))
+            if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::OptRightPane_Sub)], ImVec2(-FLT_MIN, -FLT_MIN), true))
             {
                 if (m_opts_data.pane.left_selected_item != OptPane::_none)
                 {

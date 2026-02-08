@@ -229,7 +229,7 @@ void WfsManager::init_labels()
     m_wfs_in_label.clear();
     m_last_label_id = 0;
 
-    auto labels = g::pOptsManager->wf_labels_load();
+    auto labels = g::pOptsManager->wf_labels_load(tools::str::hash_fnv1a(DlgObjID[cast::to_szt(DlgObj::PanelWfList)]));
     if (labels.empty())
         return;
 
@@ -408,7 +408,7 @@ void WfsManager::save_labels() const
         j.push_back(std::move(jlabel));
     }
 
-    g::pOptsManager->wf_labels_save(j.dump());
+    g::pOptsManager->wf_labels_save(tools::str::hash_fnv1a(DlgObjID[cast::to_szt(DlgObj::PanelWfList)]), j.dump());
 }
 
 const std::list<wid>& WfsManager::get_wfs_in_label(uint32_t label_id) const

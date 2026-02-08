@@ -9,7 +9,7 @@ namespace ui
 {
 
 PanelTextEditor::PanelTextEditor()
-    : PanelBase(DlgObj::PanelTextEditor, ICON_LC_TEXT_INITIAL " Editor", ICON_LC_TEXT_INITIAL, "28677371-A471-4242-AA17-A3830EC4D528")
+    : PanelBase(DlgObj::PanelTextEditor, ICON_LC_TEXT_INITIAL " Editor", ICON_LC_TEXT_INITIAL, DlgObjID[cast::to_szt(DlgObj::PanelTextEditor)])
 {}
 
 PanelTextEditor::~PanelTextEditor()

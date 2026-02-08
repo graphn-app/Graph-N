@@ -1,6 +1,7 @@
 
 #include "core/managers/nodes_parser.h"
 #include "core/managers/models_manager.h"
+#include "core/managers/settings_manager.h"
 #include "core/data/pin.h"
 #include "ui/graph-n_flow.h"
 
@@ -78,6 +79,8 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
     LogF;
     try
     {
+        g::pOptsManager->pin_advanced_preload();
+
         auto nodes = nlohmann::json::parse(m_json_data);
         m_parsed_items_total = nodes.size();
 
@@ -105,11 +108,14 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
         sort_nodes(*nodes_manager.get());
         nodes_manager->init_labels();
         Log("Nodes loading and parsing done");
+
+        g::pOptsManager->pin_advanced_release();
         return nodes_manager;
     }
     catch (std::exception& e)
     {
         LogExcep(ExcepCategory::ComfyUI, "Parse error: " << e.what());
+        g::pOptsManager->pin_advanced_release();
         m_parse_failed = true;
     }
     return {};

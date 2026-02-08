@@ -43,6 +43,8 @@ void ModelsManager::load_models_th()
 {
     try
     {
+        g::pOptsManager->model_starred_preload();
+
         httplib::Client cli(g::pOptsManager->comfyui_host_load(), cast::to_i32(g::pOptsManager->comfyui_port_load()));
         cli.set_keep_alive(true);
 
@@ -136,11 +138,13 @@ void ModelsManager::load_models_th()
         sync_to_nodes();
         sort_models();
         calc_number_inside("");
-        
+
+        g::pOptsManager->model_starred_release();
         m_models_ready = true;
     }
     catch (const std::exception& ex)
     {
+        g::pOptsManager->model_starred_release();
         LogExcep(ExcepCategory::ComfyUI, "Models thread err " << ex.what());
     }
 }
@@ -171,6 +175,10 @@ std::unique_ptr<data::ModelItem> ModelsManager::add_file(std::string root_folder
     auto file = std::make_unique<data::ModelItem>();
     file->is_model = true;
     file->name = file_path.filename().u8string();
+    file->id = tools::str::hash_fnv1a(file->name);
+    const auto starred = g::pOptsManager->model_starred_load(file->id);
+    if (starred.has_value())
+        file->starred = starred.value();
     parent->children.push_back(std::move(file));
 
     return root;

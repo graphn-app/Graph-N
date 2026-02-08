@@ -171,7 +171,10 @@ bool PanelWithList::draw_list(
 
                 if (item.icon != nullptr && (item.icon_can_click && idx == m_hovered_item || item.icon_active))
                 {
+                    if (item.icon_active) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::Starred));
                     ImGui::TextUnformatted(item.icon);
+                    if (item.icon_active) ImGui::PopStyleColor();
+
                     if (item.icon_tooltip != nullptr)
                     {
                         if (is_selected)

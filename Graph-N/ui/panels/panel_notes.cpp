@@ -5,7 +5,7 @@ namespace ui
 {
 
 PanelNotes::PanelNotes()
-    : PanelBase(DlgObj::PanelNotes, ICON_LC_SCROLL_TEXT " Notes", ICON_LC_SCROLL_TEXT, "E25BB488-3298-4FB7-A5BD-9999C05AC2B8")
+    : PanelBase(DlgObj::PanelNotes, ICON_LC_SCROLL_TEXT " Notes", ICON_LC_SCROLL_TEXT, DlgObjID[cast::to_szt(DlgObj::PanelNotes)])
 {}
 
 PanelNotes::~PanelNotes()

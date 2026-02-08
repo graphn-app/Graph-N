@@ -15,7 +15,7 @@ namespace ui
 {
 
 PanelNodes::PanelNodes(PanelNodeInspector* inspector)
-    : PanelBase(DlgObj::PanelNodes, ICON_LC_BOOK_OPEN " Node Library", ICON_LC_BOOK_OPEN, "02EE3A92-9ED3-44AD-A285-95FD52C78BE3")
+    : PanelBase(DlgObj::PanelNodes, ICON_LC_BOOK_OPEN " Node Library", ICON_LC_BOOK_OPEN, DlgObjID[cast::to_szt(DlgObj::PanelNodes)])
     , m_inspector(inspector)
 {}
 
@@ -205,7 +205,7 @@ DlgCode PanelNodes::show(bool& focused)
         }
 
         ImGuiEx::Spacing(3);
-        if (ImGui::BeginChild("NodesGroup", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+        if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::PanelNodes_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0)))
         {
             PanelItemState state;
             if (draw_list(m_panel_items, state, &m_tt_callbacks))
@@ -257,11 +257,11 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 }
             }
 
-            ImGui::OpenPopup("NodeLablesMenu");
+            ImGui::OpenPopup(DlgObjID[cast::to_szt(DlgObj::PanelNodes_LabelsMenu)]);
         }
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(ImGui::GetContentRegionAvail().x, 200));
-        if (ImGui::BeginPopup("NodeLablesMenu"))
+        if (ImGui::BeginPopup(DlgObjID[cast::to_szt(DlgObj::PanelNodes_LabelsMenu)]))
         {
             handler_processed = true;
             item.continue_processing_ico_handler = true;
@@ -595,12 +595,12 @@ void PanelNodes::rebuild_labels()
         bool dirty = false, close = false;
         if (!item.continue_processing_item_handler && r_released)
         {
-            ImGui::OpenPopup("LablesMenu");
+            ImGui::OpenPopup(DlgObjID[cast::to_szt(DlgObj::PanelNodes_LabelsMenu)]);
             handler_processed = true;
         }
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(ImGui::GetContentRegionAvail().x, 200));
-        if (ImGui::BeginPopup("LablesMenu"))
+        if (ImGui::BeginPopup(DlgObjID[cast::to_szt(DlgObj::PanelNodes_LabelsMenu)]))
         {
             handler_processed = true;
             if (ImGui::MenuItem("Add new label"))

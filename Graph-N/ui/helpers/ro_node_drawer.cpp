@@ -269,7 +269,7 @@ void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_w
             if (ImGui::InvisibleButton("##pin", size))
             {
                 obj->advanced = !obj->advanced;
-                g::pOptsManager->node_advanced_save(obj->get_id(), obj->advanced);
+                g::pOptsManager->pin_advanced_save(obj->get_id(), obj->advanced);
             }
             ImGui::SameLine(0, w::pin_r_offset);
         }

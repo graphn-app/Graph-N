@@ -5,7 +5,7 @@ namespace ui
 {
 
 PanelTemplates::PanelTemplates()
-    : PanelBase(DlgObj::PanelTemplates, ICON_LC_LAYOUT_TEMPLATE " Templates", ICON_LC_LAYOUT_TEMPLATE, "3FE3C15E-401A-4732-A098-098D329E2BA0")
+    : PanelBase(DlgObj::PanelTemplates, ICON_LC_LAYOUT_TEMPLATE " Templates", ICON_LC_LAYOUT_TEMPLATE, DlgObjID[cast::to_szt(DlgObj::PanelTemplates)])
 {}
 
 PanelTemplates::~PanelTemplates()

@@ -17,7 +17,7 @@ inline constexpr auto gdb_val_str = "value_str";
 inline constexpr auto gdb_val_opt = "option";
 inline constexpr auto gdb_val_json = "json";
 inline constexpr auto gdb_val_uuid = "uuid";
-inline constexpr auto gdb_val_nodes = "nodes";
+inline constexpr auto gdb_val_type = "type";
 inline constexpr auto gdb_val_history_steps = "history_steps";
 inline constexpr auto gdb_val_history_pos = "history_pos";
 inline constexpr auto gdb_val_deleted = "deleted";
@@ -25,7 +25,7 @@ inline constexpr auto gdb_val_keep = "keep";
 
 inline constexpr auto gdb_tbl_err = "ERRORS";
 inline constexpr auto gdb_tbl_opt = "SETTINGS";
-inline constexpr auto gdb_tbl_nodes = "NODES";
+inline constexpr auto gdb_tbl_items = "ITEMPROPS";
 inline constexpr auto gdb_tbl_wf_meta = "WORKFLOW_META";
 inline constexpr auto gdb_tbl_wf_json = "WORKFLOW_JSON";
 
@@ -49,11 +49,11 @@ ________________________________________________________________________________
 
 
 _______________________________________________________________________________________________________________________________________________________________
-NODES:    | id        | hash                    | option            | value_int      | value_str    | at
+ITEMPROPS:| id        | hash                    | type                  | value_int      | value_str    | at
 __________|----------------------------------------------------------------------------------------------------------------------------------------------------
-          | int       | str                     | int               | int            | str          | datetime
+          | int       | str                     | int                   | int            | str          | datetime
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-          | prim      | hid as string           | enum NodeOption   | option value, int or str      | create/update time
+          | prim      | hid as string           | enum DbItemOptionType | option value, int or str      | create/update time
 _______________________________________________________________________________________________________________________________________________________________
 
 
@@ -99,18 +99,7 @@ bool DbManager::init()
 {
     auto path = fs::get_root_directory_path();
     path /= APP_CAPTION_LOW ".db";
-/*
-    const auto make_trigger = [](const char* table, const char* when)
-    {
-        return fmt::format(R"(
-					        CREATE TRIGGER trg_upd_{}
-                            AFTER UPDATE ON {}
-                                BEGIN
-                                UPDATE {} SET {} = CURRENT_TIMESTAMP WHERE {} = NEW.{};
-                            END;					
-				)", table, table, table, when, gdb_val_id, gdb_val_id);
-    };
-*/
+
     try
     {
         m_db = std::make_unique<SQLite::Database>(path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
@@ -126,7 +115,7 @@ bool DbManager::init()
 
         SQLite::Transaction transaction(*m_db);
 
-        m_db->exec(fmt::format(R"(
+        m_db->exec(fmt::format(FMT_COMPILE(R"(
 					CREATE TABLE IF NOT EXISTS {} (
 						{} INTEGER PRIMARY KEY AUTOINCREMENT,
 						{} TEXT,
@@ -135,11 +124,11 @@ bool DbManager::init()
 						{} TEXT,
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
-				)", gdb_tbl_err, gdb_val_id,
+			   )"), gdb_tbl_err, gdb_val_id,
                     gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message,
                     gdb_val_when));
 
-        m_db->exec(fmt::format(R"(
+        m_db->exec(fmt::format(FMT_COMPILE(R"(
 					CREATE TABLE IF NOT EXISTS {} (
 						{} INTEGER PRIMARY KEY AUTOINCREMENT,
 						{} TEXT NOT NULL UNIQUE,
@@ -147,13 +136,11 @@ bool DbManager::init()
 						{} TEXT,
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
-				)", gdb_tbl_opt, gdb_val_id,
+			   )"), gdb_tbl_opt, gdb_val_id,
                     gdb_val_name, gdb_val_int, gdb_val_str,
                     gdb_val_when));
 
-        //m_db->exec(make_trigger(gdb_tbl_opt, gdb_val_when));
-
-        m_db->exec(fmt::format(R"(
+        m_db->exec(fmt::format(FMT_COMPILE(R"(
 					CREATE TABLE IF NOT EXISTS {} (
 						{} INTEGER PRIMARY KEY AUTOINCREMENT,
 						{} TEXT,
@@ -163,14 +150,12 @@ bool DbManager::init()
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE({}, {}) ON CONFLICT REPLACE
 					);
-				)", gdb_tbl_nodes, gdb_val_id,
-                    gdb_val_hash, gdb_val_opt, gdb_val_int, gdb_val_str,
+			   )"), gdb_tbl_items, gdb_val_id,
+                    gdb_val_hash, gdb_val_type, gdb_val_int, gdb_val_str,
                     gdb_val_when,
-                    gdb_val_hash, gdb_val_opt));
+                    gdb_val_hash, gdb_val_type));
 
-        //m_db->exec(make_trigger(gdb_tbl_nodes, gdb_val_when));
-
-        m_db->exec(fmt::format(R"(
+        m_db->exec(fmt::format(FMT_COMPILE(R"(
 					CREATE TABLE IF NOT EXISTS {} (
 						{} INTEGER PRIMARY KEY AUTOINCREMENT,
 						{} TEXT NOT NULL UNIQUE,
@@ -181,22 +166,20 @@ bool DbManager::init()
 						{} INTEGER,
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
-				)", gdb_tbl_wf_meta, gdb_val_id,
+			   )"), gdb_tbl_wf_meta, gdb_val_id,
                     gdb_val_uuid, gdb_val_name, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep,
                     gdb_val_when));
 
-        m_db->exec(fmt::format(R"(
+        m_db->exec(fmt::format(FMT_COMPILE(R"(
 					CREATE TABLE IF NOT EXISTS {} (
 						{} INTEGER PRIMARY KEY AUTOINCREMENT,
 						{} TEXT NOT NULL UNIQUE,
 						{} TEXT,
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
-				)", gdb_tbl_wf_json, gdb_val_id,
+			   )"), gdb_tbl_wf_json, gdb_val_id,
                     gdb_val_uuid, gdb_val_json,
                     gdb_val_when));
-
-        //m_db->exec(make_trigger(gdb_tbl_wf, gdb_val_updated_at));
 
         transaction.commit();
 
@@ -211,6 +194,36 @@ bool DbManager::init()
 
     Log("Database initialized: " << path);
     return true;
+}
+
+void DbManager::begin_transaction()
+{
+    if (m_transaction_flag)
+        LogWarn("Transaction already started");
+    m_transaction_flag = true;
+}
+
+void DbManager::end_transaction()
+{
+    if (!m_transaction_flag)
+    {
+        LogInternalLogic("Transaction wasn't started");
+        return;
+    }
+
+    m_transaction_flag = false;
+    if (m_transaction_queue.empty())
+        return;
+
+    {
+        std::lock_guard<std::mutex> lock(m_lock);
+        for (auto& tra : m_transaction_queue)
+        {
+            m_write_queue.push(std::move(tra));
+        }
+        m_transaction_queue.clear();
+    }
+    m_cv.notify_all();
 }
 
 void DbManager::exception_save(ExcepCategory category, std::string&& message, const char* file, int32_t line)
@@ -232,24 +245,28 @@ void DbManager::exception_save(ExcepCategory category, std::string&& message, co
     m_cv.notify_all();
 }
 
-void DbManager::option_save(const std::string& key, DbValue&& value)
+void DbManager::app_option_save(const std::string& key, DbValue&& value)
 {
     WriteData data;
-    DbOption o;
+    DbAppOptionData o;
     o.name = key;
     o.val = std::move(value);
 
-    data.type = WriteType::Option;
+    data.type = WriteType::AppOption;
     data.data = std::move(o);
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        m_write_queue.push(std::move(data));
+        if (!m_transaction_flag)
+            m_write_queue.push(std::move(data));
+        else
+            m_transaction_queue.push_back(std::move(data));
     }
-    m_cv.notify_all();
+    if (!m_transaction_flag)
+        m_cv.notify_all();
 }
 
-std::vector<DbOption> DbManager::option_load_all()
+std::vector<DbAppOptionData> DbManager::app_option_load_all()
 {
     try
     {
@@ -261,14 +278,14 @@ std::vector<DbOption> DbManager::option_load_all()
                 gdb_val_name, gdb_val_str, gdb_val_int,
                 gdb_tbl_opt));
 
-        std::vector<DbOption> ret;
+        std::vector<DbAppOptionData> ret;
         ret.reserve(200);
         while (query.executeStep())
         {
             if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull())
                 continue;
 
-            DbOption db_opt;
+            DbAppOptionData db_opt;
             db_opt.name = query.getColumn(0).getString();
             db_opt.val.sval = query.getColumn(1).getString();
             db_opt.val.ival = query.getColumn(2).getInt64();
@@ -284,40 +301,48 @@ std::vector<DbOption> DbManager::option_load_all()
     return {};
 }
 
-void DbManager::option_save_all(std::vector<DbOption>&& opts)
+void DbManager::app_option_save_all(std::vector<DbAppOptionData>&& opts)
 {
     {
         std::lock_guard<std::mutex> lock(m_lock);
         for (auto& o : opts)
         {
             WriteData data;
-            data.type = WriteType::Option;
+            data.type = WriteType::AppOption;
             data.data = std::move(o);
-            m_write_queue.push(std::move(data));
+            if (!m_transaction_flag)
+                m_write_queue.push(std::move(data));
+            else
+                m_transaction_queue.push_back(std::move(data));
         }
     }
-    m_cv.notify_all();
+    if (!m_transaction_flag)
+        m_cv.notify_all();
 }
 
-void DbManager::node_option_save(hid node_hash, NodeOption opt, DbValue&& value)
+void DbManager::item_option_save(hid id, DbItemOptionType type, DbValue&& value)
 {
     WriteData data;
-    NodeData n;
-    n.node_hash = node_hash;
-    n.opt = opt;
-    n.value = std::move(value);
+    ItemData item;
+    item.hash = id;
+    item.type = type;
+    item.value = std::move(value);
 
-    data.type = WriteType::Node;
-    data.data = std::move(n);
+    data.type = WriteType::Item;
+    data.data = std::move(item);
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        m_write_queue.push(std::move(data));
+        if (!m_transaction_flag)
+            m_write_queue.push(std::move(data));
+        else
+            m_transaction_queue.push_back(std::move(data));
     }
-    m_cv.notify_all();
+    if (!m_transaction_flag)
+        m_cv.notify_all();
 }
 
-std::optional<DbValue> DbManager::node_option_load(hid node_hash, NodeOption opt)
+std::optional<DbValue> DbManager::item_option_load(hid id, DbItemOptionType type)
 {
     try
     {
@@ -328,11 +353,11 @@ std::optional<DbValue> DbManager::node_option_load(hid node_hash, NodeOption opt
                     WHERE {}=? AND {}=?
                 )"),
                 gdb_val_str, gdb_val_int,
-                gdb_tbl_nodes,
-                gdb_val_hash, gdb_val_opt));
+                gdb_tbl_items,
+                gdb_val_hash, gdb_val_type));
 
-        query.bind(1, std::to_string(node_hash));
-        query.bind(2, cast::to_i32(opt));
+        query.bind(1, std::to_string(id));
+        query.bind(2, cast::to_i32(type));
 
         if (!query.executeStep())
             return std::nullopt;
@@ -345,35 +370,36 @@ std::optional<DbValue> DbManager::node_option_load(hid node_hash, NodeOption opt
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite load " << LOG_NOPT_KEY(node_hash, opt) << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite load " << LOG_NOPT_KEY(id, type) << ", " << LOG_EXP(ex));
     }
     return std::nullopt;
 }
 
-std::vector<std::tuple<hid, NodeOption, DbValue>> DbManager::node_option_load_all()
+std::vector<std::pair<hid, DbValue>> DbManager::item_option_load_all(DbItemOptionType type)
 {
     try
     {
         SQLite::Statement query(*m_db,
             fmt::format(FMT_COMPILE(R"(
-                    SELECT {}, {}, {}, {}
+                    SELECT {}, {}, {}
                     FROM {}
+                    WHERE {} = ?
                 )"),
-                gdb_val_hash, gdb_val_opt, gdb_val_str, gdb_val_int,
-                gdb_tbl_nodes));
+                gdb_val_hash, gdb_val_str, gdb_val_int,
+                gdb_tbl_items,
+                gdb_val_type));
+        query.bind(1, cast::to_i32(type));
 
-        std::vector<std::tuple<hid, NodeOption, DbValue>> ret;
+        std::vector<std::pair<hid, DbValue>> ret;
         ret.reserve(100);
         while(query.executeStep())
         {
-            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() || query.getColumn(2).isNull() && query.getColumn(3).isNull())
+            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull())
                 continue;
 
             const std::string hash = query.getColumn(0).getString();
-            const NodeOption opt = cast::to_enum<NodeOption>(query.getColumn(1).getInt());
-            DbValue v(query.getColumn(2).getString(), query.getColumn(3).getInt());
-
-            ret.emplace_back(std::strtoull(hash.c_str(), nullptr, 10), opt, std::move(v));
+            DbValue v(query.getColumn(1).getString(), query.getColumn(2).getInt());
+            ret.emplace_back(std::strtoull(hash.c_str(), nullptr, 10), std::move(v));
         }
 
         return ret;
@@ -432,9 +458,13 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        m_write_queue.push(data);
+        if (!m_transaction_flag)
+            m_write_queue.push(data);
+        else
+            m_transaction_queue.push_back(std::move(data));
     }
-    m_cv.notify_all();
+    if (!m_transaction_flag)
+        m_cv.notify_all();
 
     return wfs;
 }
@@ -483,9 +513,13 @@ void DbManager::wf_update_meta(const WfData& wf)
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        m_write_queue.push(std::move(data));
+        if (!m_transaction_flag)
+            m_write_queue.push(std::move(data));
+        else
+            m_transaction_queue.push_back(std::move(data));
     }
-    m_cv.notify_all();
+    if (!m_transaction_flag)
+        m_cv.notify_all();
 }
 
 void DbManager::wf_update_json(WfData& wf)
@@ -499,13 +533,17 @@ void DbManager::wf_update_json(WfData& wf)
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        m_write_queue.push(std::move(data));
+        if (!m_transaction_flag)
+            m_write_queue.push(std::move(data));
+        else
+            m_transaction_queue.push_back(std::move(data));
     }
-    m_cv.notify_all();
+    if (!m_transaction_flag)
+        m_cv.notify_all();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
-/////////// wring thread                   //////////////////////////////////////////
+/////////// write thread                   //////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////
 
 void DbManager::write_data(SQLite::Database& db, const ExcepData* data)
@@ -533,7 +571,7 @@ void DbManager::write_data(SQLite::Database& db, const ExcepData* data)
     }
 }
 
-void DbManager::write_data(SQLite::Database& db, const DbOption* data)
+void DbManager::write_data(SQLite::Database& db, const DbAppOptionData* data)
 {
     try
     {
@@ -558,7 +596,7 @@ void DbManager::write_data(SQLite::Database& db, const DbOption* data)
     }
 }
 
-void DbManager::write_data(SQLite::Database& db, const NodeData* data)
+void DbManager::write_data(SQLite::Database& db, const ItemData* data)
 {
     try
     {
@@ -568,23 +606,23 @@ void DbManager::write_data(SQLite::Database& db, const NodeData* data)
                                 ({}, {}, {}, {})
                         VALUES  (?,  ?,  ?,  ?)
                 )"),
-                gdb_tbl_nodes,
-                gdb_val_hash, gdb_val_opt, gdb_val_int, gdb_val_str));
+                gdb_tbl_items,
+                gdb_val_hash, gdb_val_type, gdb_val_int, gdb_val_str));
 
-        query.bind(1, std::to_string(data->node_hash));
-        query.bind(2, cast::to_i32(data->opt));
+        query.bind(1, std::to_string(data->hash));
+        query.bind(2, cast::to_i32(data->type));
         query.bind(3, data->value.ival);
         query.bindNoCopy(4, data->value.sval);
         query.exec();
-        Log("Upd " << LOG_NOPT_KEY_VAL(data->node_hash, data->opt, data->value));
+        Log("Upd " << LOG_NOPT_KEY_VAL(data->hash, data->type, data->value));
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_NOPT_KEY_VAL(data->node_hash, data->opt, data->value) << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_NOPT_KEY_VAL(data->hash, data->type, data->value) << ", " << LOG_EXP(ex));
     }
 }
 
-void DbManager::delete_data(SQLite::Database& db, const NodeData* data)
+void DbManager::delete_data(SQLite::Database& db, const ItemData* data)
 {
     try
     {
@@ -593,17 +631,17 @@ void DbManager::delete_data(SQLite::Database& db, const NodeData* data)
                         DELETE FROM {}
                             WHERE {} = ? AND {} = ?
                 )"),
-                gdb_tbl_nodes,
-                gdb_val_hash, gdb_val_opt));
+                gdb_tbl_items,
+                gdb_val_hash, gdb_val_type));
 
-        query.bind(1, std::to_string(data->node_hash));
-        query.bind(2, cast::to_i32(data->opt));
+        query.bind(1, std::to_string(data->hash));
+        query.bind(2, cast::to_i32(data->type));
         query.exec();
-        Log("Del " << LOG_NOPT_KEY(data->node_hash, data->opt));
+        Log("Del " << LOG_NOPT_KEY(data->hash, data->type));
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_NOPT_KEY_VAL(data->node_hash, data->opt, data->value) << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_NOPT_KEY_VAL(data->hash, data->type, data->value) << ", " << LOG_EXP(ex));
     }
 }
 
@@ -725,6 +763,7 @@ void DbManager::purge_wf(SQLite::Database& db)
 void DbManager::write_thread(std::filesystem::path db_path)
 {
     using namespace std::chrono_literals;
+    constexpr const auto wait_period = 5s;
 
     SQLite::Database db(db_path, SQLite::OPEN_READWRITE);
     db.exec("PRAGMA journal_mode = WAL;");
@@ -735,7 +774,7 @@ void DbManager::write_thread(std::filesystem::path db_path)
         std::queue<WriteData> q;
         {
             std::unique_lock<std::mutex> lock(m_lock);
-            m_cv.wait_for(lock, std::chrono::milliseconds(1s), [this] { return m_stop_thread_flag || !m_write_queue.empty(); });
+            m_cv.wait_for(lock, std::chrono::milliseconds(wait_period), [this] { return m_stop_thread_flag || !m_write_queue.empty(); });
 
             if (m_stop_thread_flag && m_write_queue.empty())
                 break; 
@@ -758,12 +797,12 @@ void DbManager::write_thread(std::filesystem::path db_path)
                 case WriteType::Exception:
                     write_data(db, std::get_if<ExcepData>(&data.data));
                     break;
-                case WriteType::Option:
-                    write_data(db, std::get_if<DbOption>(&data.data));
+                case WriteType::AppOption:
+                    write_data(db, std::get_if<DbAppOptionData>(&data.data));
                     break;
-                case WriteType::Node:
+                case WriteType::Item:
                     {
-                        auto node_data = std::get_if<NodeData>(&data.data);
+                        auto node_data = std::get_if<ItemData>(&data.data);
                         if (node_data->value.empty())
                             delete_data(db, node_data);
                         else

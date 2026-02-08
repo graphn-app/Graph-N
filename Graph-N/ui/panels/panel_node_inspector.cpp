@@ -13,7 +13,7 @@ namespace ui
 {
 
 PanelNodeInspector::PanelNodeInspector()
-    : PanelBase(DlgObj::PanelNodeInspector, ICON_LC_TANGENT " Node Inspector", ICON_LC_TANGENT, "B25FAE70-E031-4C9A-A682-8E182609536E")
+    : PanelBase(DlgObj::PanelNodeInspector, ICON_LC_TANGENT " Node Inspector", ICON_LC_TANGENT, DlgObjID[cast::to_szt(DlgObj::PanelNodeInspector)])
 {}
 
 PanelNodeInspector::~PanelNodeInspector()
