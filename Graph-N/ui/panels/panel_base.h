@@ -132,7 +132,7 @@ public:
         std::function<void(int32_t)> on_alloc_tt_data;
         std::function<void(int32_t)> on_release_tt_data;
         std::function<void(int32_t)> on_show_tt;
-        std::function<void(int32_t)> on_pre_tt;
+        std::function<bool(int32_t)> on_pre_tt;
         std::function<void(int32_t)> on_post_tt;
     };
 

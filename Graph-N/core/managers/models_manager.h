@@ -13,8 +13,8 @@ struct ModelItem final
 
     hid id = 0;
     std::string name;
-    std::string file_name;
     std::string search;
+    std::string file_name;
 
     std::string descr;
     std::filesystem::path image_path;
@@ -24,7 +24,6 @@ struct ModelItem final
     std::vector<std::unique_ptr<data::ModelItem>> children;
 
     uint32_t models_inside = 0;
-    uint32_t models_inside_unfiltered = 0;
     bool filtered = false;
 
     hid def_node = 0;
@@ -51,9 +50,10 @@ public:
 
     void load_models();
     inline void set_nodes_map(std::unordered_map<std::string, std::list<hid>>&& nodes_map) { m_model_to_nodes_map = std::move(nodes_map); }
-    inline void set_nodes_ready() { m_nodes_ready = true;; }
+    inline void set_nodes_ready() { m_nodes_ready = true; }
 
     const std::vector<std::unique_ptr<data::ModelItem>>& get_models() const;
+    inline bool has_service_components() const { return m_service_components_found; }
 
     void calc_number_inside(const std::string& filter);
 
@@ -72,6 +72,7 @@ private:
     std::atomic_bool m_nodes_ready = false;
     std::atomic_bool m_stop_flag = false;
 
+    bool m_service_components_found = false;
     std::vector<std::unique_ptr<data::ModelItem>> m_model_items;
     std::unordered_map<std::string, std::list<hid>> m_model_to_nodes_map;
 };

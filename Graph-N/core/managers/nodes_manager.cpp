@@ -38,16 +38,13 @@ void NodesManager::calc_number_inside(const std::string& filter)
     {
         for (auto node : nodes)
         {
-            node->nodes_inside = node->nodes_inside_unfiltered = 0;
+            node->nodes_inside = 0;
             if (!node->children.empty())
             {
                 const bool category_unfiltered = force_unfilter || (!filter.empty() && node->search.find(filter) != std::string::npos);
-                node->nodes_inside_unfiltered = 0;
-                calculator(node->children, filter.empty() ? &node->nodes_inside : &node->nodes_inside_unfiltered, category_unfiltered);
-      //          node->name_or_category = node->name_or_category.substr(0, node->name_or_category_len) +
-       //             " [" + std::to_string(filter.empty() ? node->nodes_inside : node->nodes_inside_unfiltered) + "]";
+                calculator(node->children, &node->nodes_inside, category_unfiltered);
                 if (count != nullptr)
-                    *count += filter.empty() ? node->nodes_inside : node->nodes_inside_unfiltered;
+                    *count += node->nodes_inside;
             }
             else if (node->is_node)
             {

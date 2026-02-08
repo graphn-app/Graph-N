@@ -160,7 +160,7 @@ constexpr std::uintptr_t to_ptr(T* param)
 template <typename T>
 constexpr T* ptrs(void* param)
 {
-    return static_cast<T*>(param);
+    return reinterpret_cast<T*>(param);
 }
 
 template <typename T>

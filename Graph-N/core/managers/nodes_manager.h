@@ -19,7 +19,6 @@ struct NodeItem final
     std::vector<NodeItem*> children;
 
     uint32_t nodes_inside = 0;
-    uint32_t nodes_inside_unfiltered = 0;
     bool filtered = false;
 };
 }

@@ -379,8 +379,9 @@ void PanelWithList::go_tooltip(int32_t tt_index, const TtCallbacks* tt_callbacks
 
     if (tt_callbacks && tt_callbacks->on_show_tt)
     {
-        if (tt_callbacks->on_pre_tt) tt_callbacks->on_pre_tt(tt_index);
-        if (ImGui::BeginTooltip())
+        bool show_tt = true;
+        if (tt_callbacks->on_pre_tt) show_tt = tt_callbacks->on_pre_tt(tt_index);
+        if (show_tt && ImGui::BeginTooltip())
         {
             tt_callbacks->on_show_tt(tt_index);
             ImGui::EndTooltip();

@@ -195,7 +195,7 @@ DlgCode PanelNodes::show(bool& focused)
         ImGui::Spacing();
 
         ImGui::SetNextItemWidth(-FLT_MIN);
-        if (ImGuiEx::InputTextWithHint("##filter nodes", "filter nodes", &data()->buffer[PanelNodesData::BuffFilter],
+        if (ImGuiEx::InputTextWithHint("##filternodes", "filter nodes", &data()->buffer[PanelNodesData::BuffFilter],
             ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
         {
             data()->buffer[PanelNodesData::BuffFilterLowered] = tools::str::to_lower_ascii(data()->buffer[PanelNodesData::BuffFilter]);
@@ -248,10 +248,10 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             handler_processed = true;
             item.state = std::make_unique<NodeLabelState>();
             item.state->ptr = item.ptr;
-            NodeLabelState* state = ((NodeLabelState*)item.state.get());
+            NodeLabelState* state = cast::ptrs<NodeLabelState>(item.state.get());
             for (auto& label : labels)
             {
-                if (g::pNodesManager->get_is_node_in_label((data::NodeItem*)item.ptr, label.second))
+                if (g::pNodesManager->get_is_node_in_label(cast::ptrs<data::NodeItem>(item.ptr), label.second))
                 {
                     state->active_labels.insert(label.second);
                 }
@@ -297,7 +297,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 if (item.state->changed && item.state->ptr == item.ptr)
                 {
                     dirty = true;
-                    g::pNodesManager->set_node_labels((data::NodeItem*)item.ptr, ((NodeLabelState*)item.state.get())->active_labels);            
+                    g::pNodesManager->set_node_labels(cast::ptrs<data::NodeItem>(item.ptr), cast::ptrs<NodeLabelState>(item.state.get())->active_labels);
                 }
             }
             if (!item.state->changed)
@@ -322,7 +322,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             if (item.label != 0)
                 expanded_labels.insert(item.label);
             else
-                expanded_nodes.insert((data::NodeItem*)item.ptr);
+                expanded_nodes.insert(cast::ptrs<data::NodeItem>(item.ptr));
         }
     }
 
@@ -395,12 +395,19 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         {
             for (auto node : nodes)
             {
+                bool show_node = !node->filtered;
+                if (show_node && !node->is_node)
+                    show_node = is_filter_empty || !is_filter_empty && node->nodes_inside > 0;
+
+                if (!show_node)
+                    continue;
+
                 if (!node->is_node)
                 {
                     PanelListItem item;
                     item.depth = depth;
                     item.name = node->name_or_category;
-                    item.name_p2 = std::to_string(is_filter_empty ? node->nodes_inside : node->nodes_inside_unfiltered);
+                    item.name_p2 = std::to_string(node->nodes_inside);
                     item.can_expand = true;
                     item.expanded = force_expand_all || expanded_nodes.count(node) > 0;
                     item.icon = item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
@@ -414,7 +421,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     if (item_expanded)
                         go_tree(node->children, depth + 1);
                 }
-                else if (!node->filtered)
+                else
                 {
                     PanelListItem item;
                     item.depth = depth;
@@ -479,7 +486,7 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
     Log("Dirty: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
 
     auto& panel_item = m_panel_items[dirty_item.index];
-    data::NodeItem* node_item = (data::NodeItem*)panel_item.ptr;
+    data::NodeItem* node_item = cast::ptrs<data::NodeItem>(panel_item.ptr);
 
 #ifndef TEST
     if (nullptr == node_item || !node_item->is_node)
@@ -696,7 +703,7 @@ void PanelNodes::on_alloc_tt_data(int32_t idx)
     if (m_tt_node != nullptr)
         m_wf->remove_node(m_tt_node);
     m_tt_idx = idx;
-    m_tt_node = m_wf->add_node(((data::NodeItem*)m_panel_items[idx].ptr)->node);
+    m_tt_node = m_wf->add_node(cast::ptrs<data::NodeItem>(m_panel_items[idx].ptr)->node);
     m_tt_width = m_tt_node->calc_node_width(true /*ro*/);
 }
 
@@ -714,10 +721,11 @@ void PanelNodes::on_show_tt(int32_t idx)
         m_tt_node_drawer.draw(m_tt_node, true, m_tt_width);
 }
 
-void PanelNodes::on_pre_tt(int32_t /*idx*/)
+bool PanelNodes::on_pre_tt(int32_t /*idx*/)
 {
     ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
+    return true;
 }
 
 void PanelNodes::on_post_tt(int32_t /*idx*/)

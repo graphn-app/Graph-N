@@ -2,24 +2,62 @@
 #pragma once
 #include "ui/panels/panel_base.h"
 
+namespace data
+{
+struct ModelItem;
+}
+
 namespace ui
 {
 
+struct PanelModelsData final : public PanelCommonData
+{
+    enum Buffer
+    {
+        BuffFilter,
+        BuffFilterLowered,
+
+        _buf_count
+    };
+};
+
 class PanelModels final : 
     public PanelEmptyWithDescr,
-    public PanelBase<PanelCommonData>
+    public PanelWithList,
+    public PanelToolbar,
+    public PanelBase<PanelModelsData>
 {
 public:
     PanelModels();
     ~PanelModels() override;
 
     void init() override;
+    void rebuild_items(bool force_expand_all = false);
     void stop_all_threads() override;
 
 private:
     DlgCode show(bool& focused) override;
 
+    void create_toolbar();
+    void handle_dirty(const PanelItemState& dirty_item);
+
+    void on_alloc_tt_data(int32_t idx);
+    void on_release_tt_data(int32_t idx);
+    void on_show_tt(int32_t idx);
+    bool on_pre_tt(int32_t idx);
+    void on_post_tt(int32_t idx);
+
+    void on_expand_all(PanelToolbar::Button& button);
+    void on_collapse_all(PanelToolbar::Button& button);
+    void on_sync(PanelToolbar::Button& button);
+    void on_pre_sync(PanelToolbar::Button& button);
+
+    void add_model_to_wf(data::ModelItem* node_item);
+
 private:
+    PanelWithList::TtCallbacks m_tt_callbacks;
+    std::vector<PanelListItem> m_panel_items;
+    size_t m_prev_model_items_count = 0;
 };
 
 

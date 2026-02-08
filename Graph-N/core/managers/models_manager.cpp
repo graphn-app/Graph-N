@@ -77,11 +77,6 @@ void ModelsManager::load_models_th()
             std::string req_path = comfyui_api::models;
             req_path += "/" + req;
             res = cli.Get(req_path);
-            if (m_stop_flag)
-            {
-                LogS("Models thread aborted");
-                return;
-            }
             if (!res || res->status != 200 || res->body.empty())
             {
                 LogS("Can't requests model " << req_path << ",  err " << res->status << ", body: " << res->body.size());
@@ -89,30 +84,42 @@ void ModelsManager::load_models_th()
             }
 
             j = nlohmann::json::parse(res->body);
-            for (const auto& jitem : j)
+            if (j.empty())
             {
-                if (jitem.contains("name"))
+                auto root = std::make_unique<data::ModelItem>();
+                root->is_model = false;
+                root->name = req;
+                root->search = tools::str::to_lower_ascii(root->name);
+                models.push_back(std::move(root));
+            }
+            else
+            {
+                for (const auto& jitem : j)
                 {
-                    std::filesystem::path filename = std::string(jitem["name"]);
-                    auto item = add_file(req, filename);
-                    if (item->name.empty())
-                        continue;
-
-                    req_path = comfyui_api::model_meta;
-                    req_path += "/" + req;
-                    httplib::Params params;
-                    params.emplace("filename", filename.filename().u8string());
-                    res = cli.Get(req_path, params, httplib::Headers());
-                    if (res && res->status == 200 && !res->body.empty())
-                        parse_file_info(item.get(), std::move(res->body));
-
-                    models.push_back(std::move(item));
-                    if (m_stop_flag)
+                    if (jitem.contains("name"))
                     {
-                        LogS("Models thread aborted");
-                        return;
+                        std::filesystem::path filename = std::string(jitem["name"]);
+                        auto item = add_file(req, filename);
+                        if (item->name.empty())
+                            continue;
+
+                        req_path = comfyui_api::model_meta;
+                        req_path += "/" + req;
+                        httplib::Params params;
+                        params.emplace("filename", filename.filename().u8string());
+                        res = cli.Get(req_path, params, httplib::Headers());
+                        if (res && res->status == 200 && !res->body.empty())
+                            parse_file_info(item.get(), std::move(res->body));
+
+                        models.push_back(std::move(item));
                     }
                 }
+            }
+
+            if (m_stop_flag)
+            {
+                LogS("Models thread aborted");
+                return;
             }
         }
 
@@ -150,6 +157,7 @@ std::unique_ptr<data::ModelItem> ModelsManager::add_file(std::string root_folder
     auto root = std::make_unique<data::ModelItem>();
     root->is_model = false;
     root->name = root_folder;
+    root->search = tools::str::to_lower_ascii(root->name);
 
     data::ModelItem* parent = root.get();
     const auto parts = std::distance(file_path.begin(), file_path.end());
@@ -162,6 +170,7 @@ std::unique_ptr<data::ModelItem> ModelsManager::add_file(std::string root_folder
             auto fn = std::make_unique<data::ModelItem>();
             fn->is_model = false;
             fn->name = (*part).u8string();
+            fn->search = tools::str::to_lower_ascii(fn->name);
             auto ptr = fn.get();
             parent->children.push_back(std::move(fn));
             parent = ptr;
@@ -171,6 +180,7 @@ std::unique_ptr<data::ModelItem> ModelsManager::add_file(std::string root_folder
     auto file = std::make_unique<data::ModelItem>();
     file->is_model = true;
     file->name = file_path.filename().u8string();
+    file->search = tools::str::to_lower_ascii(file->name);
     file->id = tools::str::hash_fnv1a(file->name);
     const auto starred = g::pOptsManager->model_starred_load(file->id);
     if (starred.has_value())
@@ -277,7 +287,10 @@ void ModelsManager::rebuild_models(const std::vector<std::unique_ptr<data::Model
             {
                 auto new_item = std::make_unique<data::ModelItem>();
                 new_item->is_model = model->is_model;
+                new_item->starred = model->starred;
+                new_item->id = model->id;
                 new_item->name = std::move(model->name);
+                new_item->search = std::move(model->search);
                 new_item->file_name = std::move(model->file_name);
                 new_item->descr = std::move(model->descr);
                 new_item->image_path = std::move(model->image_path);
@@ -367,7 +380,10 @@ void ModelsManager::setup_model_behaviour()
             else
             {
                 if (is_root)
+                {
                     root = model.get();
+                    root_to_files[root];
+                }
                 go_models(false, model->children, root);
             }
         }
@@ -412,6 +428,8 @@ void ModelsManager::setup_model_behaviour()
         { "embeddings",             { "", false, true } }
     };
 
+    m_service_components_found = false;
+
     for (auto& [root, files] : root_to_files)
     {
         if (nullptr == root)
@@ -423,6 +441,9 @@ void ModelsManager::setup_model_behaviour()
         if (it != loaders.end())
         {
             root->service_component = it->second.service_component;
+            if (root->service_component)
+                m_service_components_found = true;
+
             for (auto file : files)
             {
                 if (*it->second.node_name)
@@ -450,18 +471,17 @@ const std::vector<std::unique_ptr<data::ModelItem>>& ModelsManager::get_models()
 void ModelsManager::calc_number_inside(const std::string& filter)
 {
     std::function<void(std::vector<std::unique_ptr<data::ModelItem>>&, uint32_t*, bool)> calculator;
-    calculator = [&calculator, &filter](std::vector<std::unique_ptr<data::ModelItem>>& models, uint32_t* count, bool force_unfilter)
+    calculator = [this, &calculator, &filter](std::vector<std::unique_ptr<data::ModelItem>>& models, uint32_t* count, bool force_unfilter)
     {
         for (auto& model : models)
         {
-            model->models_inside = model->models_inside_unfiltered = 0;
+            model->models_inside = 0;
             if (!model->children.empty())
             {
                 const bool category_unfiltered = force_unfilter || (!filter.empty() && model->search.find(filter) != std::string::npos);
-                model->models_inside_unfiltered = 0;
-                calculator(model->children, filter.empty() ? &model->models_inside : &model->models_inside_unfiltered, category_unfiltered);
+                calculator(model->children, &model->models_inside, category_unfiltered);
                 if (count != nullptr)
-                    *count += filter.empty() ? model->models_inside : model->models_inside_unfiltered;
+                    *count += model->models_inside;
             }
             else if (model->is_model)
             {
@@ -474,6 +494,8 @@ void ModelsManager::calc_number_inside(const std::string& filter)
                 else
                 {
                     model->filtered = (model->search.find(filter) == std::string::npos);
+                    if (model->filtered && !model->file_name.empty())
+                        model->filtered = (model->file_name.find(filter) == std::string::npos);
                     if (count != nullptr)
                         *count += model->filtered ? 0 : 1;
                 }

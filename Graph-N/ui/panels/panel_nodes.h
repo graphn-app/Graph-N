@@ -61,7 +61,7 @@ private:
     void on_alloc_tt_data(int32_t idx);
     void on_release_tt_data(int32_t idx);
     void on_show_tt(int32_t idx);
-    void on_pre_tt(int32_t idx);
+    bool on_pre_tt(int32_t idx);
     void on_post_tt(int32_t idx);
 
     void on_labels_mode(PanelToolbar::Button& button);
