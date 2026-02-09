@@ -97,7 +97,7 @@ bool PanelWithList::draw_list(
     const float indent = dbl_check_w;
 
     const int32_t size = cast::to_i32(items.size());
-    const bool clipper_needed = size > 300;
+    const bool clipper_needed = size > 100;
 
     ImGuiListClipper clipper;
     if (clipper_needed)

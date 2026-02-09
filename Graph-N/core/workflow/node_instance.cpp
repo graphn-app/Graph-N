@@ -10,7 +10,7 @@ namespace data
 
 NodeInstance::~NodeInstance() {};
 
-void NodeInstance::init()
+void NodeInstance::init(const std::string& select)
 {
     Instance<data::Node>::init();
 
@@ -19,11 +19,24 @@ void NodeInstance::init()
 
     auto wf = g::pWfsManager->access(m_wid);
 
-    const auto add_pins = [this, wf](const std::vector<data::Pin*>& source, std::vector<PinInstance*>& dest)
+    const auto add_pins = [this, wf, &select](const std::vector<data::Pin*>& source, std::vector<PinInstance*>& dest)
     {
         for (auto& pin : source)
         {
-            dest.push_back(wf->add_pin(this, pin));
+            auto pin_instance = wf->add_pin(this, pin);
+            if (!select.empty())
+            {
+                const auto& ptrs = pin_instance->get_object()->combo_items_ptr;
+                for (int32_t i = 0; i < ptrs.size(); i++)
+                {
+                    if (ptrs[i] == select)
+                    {
+                        pin_instance->m_state->combo_index = i;
+                        break;
+                    }
+                }
+            }
+            dest.push_back(pin_instance);
         }
     };
 

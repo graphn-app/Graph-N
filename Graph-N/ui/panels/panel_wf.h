@@ -34,7 +34,7 @@ public:
         m_active = active;
     }
 
-    void add_node(data::Node* node, std::optional<ImVec2> pos);
+    void add_node(data::Node* node, const std::string& select = "", std::optional<ImVec2> pos = std::nullopt);
 
 private:
     DlgCode show(bool& focused) override;

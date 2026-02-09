@@ -46,12 +46,12 @@ iid Workflow::get_new_child_id()
     return ++m_last_child_id;
 }
 
-NodeInstance* Workflow::add_node(data::Node* node)
+NodeInstance* Workflow::add_node(data::Node* node, const std::string& select /*= ""*/)
 {
     const auto id = get_new_child_id();
     auto instance = std::make_unique<NodeInstance>(node, m_wf_data.id, id);
     auto ptr = instance.get();
-    ptr->init();
+    ptr->init(select);
     m_nodes.push_back(std::move(instance));
     Log("Node added wid=" << m_wf_data.id << ", hid=" << node->get_id() << ", iid=" << id);
     return ptr;

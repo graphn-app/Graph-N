@@ -55,6 +55,7 @@ enum class DlgObj
     PanelNotes,
     PanelModels,
     PanelModels_ItemsList,
+    PanelModels_ItemMenu,
     PanelTextEditor,
     PanelMarkdownPreview,
 
@@ -87,6 +88,7 @@ constexpr const char* DlgObjID[static_cast<size_t>(DlgObj::_count)] =
     "E25BB488-3298-4FB7-A5BD-9999C05AC2B8",                     // PanelNotes
     "BE4E0091-6B9C-447F-B8FB-39DCDE0D6237",                     // PanelModels
     "51B65039-85B0-4388-B521-BD616B636269",                     // PanelModels_ItemsList
+    "C6287EE2-BC97-4F8D-AE27-B39F59751D10",                     // PanelModels_ItemMenu
     "28677371-A471-4242-AA17-A3830EC4D528",                     // PanelTextEditor
     "D92D3506-6C6B-4613-BAB2-AEF2B33E81CE",                     // PanelMarkdownPreview
 };

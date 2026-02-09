@@ -14,7 +14,7 @@ public:
     using Instance<data::Node>::Instance;
     ~NodeInstance() override;
 
-    void init() override;
+    void init(const std::string& select);
 
     float calc_node_width(bool ro);
     float recalc_node_width(bool ro, float avail_width, bool allow_extend, bool allow_compress, bool use_big_pin_icon);

@@ -76,10 +76,10 @@ DlgCode PanelWorkflow::show(bool& focused)
     return end_panel(opened);
 }
 
-void PanelWorkflow::add_node(data::Node* node, std::optional<ImVec2> /*pos*/)
+void PanelWorkflow::add_node(data::Node* node, const std::string& select /*= ""*/, std::optional<ImVec2> /*pos*/ /*= std::nullopt*/)
 {
     auto wf = g::pWfsManager->access(m_wf);
-    auto node_inst = wf->add_node(node);
+    auto node_inst = wf->add_node(node, select);
     node_inst->calc_node_width(false /*ro*/);
 
     // TODO

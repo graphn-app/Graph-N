@@ -198,53 +198,59 @@ void ModelsManager::parse_file_info(data::ModelItem* item, std::string info)
     }
 
     const auto j = nlohmann::json::parse(info);
+    const auto append_info = [item, &j](const char* key, const char* title)
+    {
+        if (j.contains(key))
+        {
+            if (!item->info.info.empty()) item->info.info += "\n";
+            item->info.info += title + std::string(j[key]);
+        }
+    };
+    const auto append_info_to = [&j](const char* key, std::string& to)
+    {
+        if (j.contains(key))
+        {
+            to = std::string(j[key]);
+        }
+    };
+
     if (j.contains("modelspec.title"))
     {
-        item->descr = "Filename: " + item->name + "\n";
+        item->info.info = "Filename: " + item->name;
         item->file_name = item->name;
         item->name = j["modelspec.title"];
     }
-    if (j.contains("modelspec.author"))
-    {
-        if (!item->descr.empty())
-            item->descr += "\n";
-        item->descr += "Author: " + std::string(j["modelspec.author"]);
-    }
-    if (j.contains("modelspec.architecture"))
-    {
-        if (!item->descr.empty())
-            item->descr += "\n";
-        item->descr += "Architecture: " + std::string(j["modelspec.architecture"]);
-    }
-    if (j.contains("modelspec.date"))
-    {
-        if (!item->descr.empty())
-            item->descr += "\n";
-        item->descr += "Date: " + std::string(j["modelspec.date"]);
-    }
-    if (j.contains("modelspec.description"))
-    {
-        if (!item->descr.empty())
-            item->descr += "\n";
-        item->descr += std::string(j["modelspec.description"]);
-    }
-    if (j.contains("modelspec.thumbnail"))
+
+    append_info("modelspec.author", "Author: ");
+    append_info("modelspec.architecture", "Architecture: ");
+    append_info("modelspec.license", "License: ");
+    append_info("modelspec.resolution", "Resolution: ");
+    append_info("modelspec.language", "Language: ");
+    append_info("modelspec.date", "Date: ");
+    append_info_to("modelspec.description", item->info.descr);
+    append_info_to("modelspec.tags", item->info.tags);
+    append_info_to("modelspec.trigger_phrase", item->info.trigger_phrase);
+
+    if (j.contains("modelspec.thumbnail") && j.contains("modelspec.hash_sha256"))
     {
         auto temp = fs::get_temp_directory_path();
         if (tools::path::make_folder(temp))
         {
             auto filename = tools::str::generate_uuid_v4() + ".image";
-            std::string image = j["modelspec.thumbnail"];
+            const std::string image = j["modelspec.thumbnail"];
             auto pos = image.find(",");
             if (pos != std::string::npos)
             {
                 const char* base64 = image.c_str() + ++pos;
                 const size_t len = image.size() - pos;
-                const auto binary = tools::str::base64_decode(base64, len);
-                temp /= filename;
-                if (tools::path::make_file(temp, true, binary))
+                const auto binary = tools::str::base64_decode(base64);
+                if (!binary.empty())
                 {
-                    item->image_path = temp;
+                    temp /= filename;
+                    if (tools::path::make_file(temp, true, binary))
+                    {
+                        item->info.image_path = temp;
+                    }
                 }
             }
         }
@@ -292,8 +298,7 @@ void ModelsManager::rebuild_models(const std::vector<std::unique_ptr<data::Model
                 new_item->name = std::move(model->name);
                 new_item->search = std::move(model->search);
                 new_item->file_name = std::move(model->file_name);
-                new_item->descr = std::move(model->descr);
-                new_item->image_path = std::move(model->image_path);
+                new_item->info = std::move(model->info);
 
                 item = new_item.get();
                 dest.push_back(std::move(new_item));
@@ -425,7 +430,7 @@ void ModelsManager::setup_model_behaviour()
         { "inspire_prompts",        { "", true, false } },
         { "VHS_video_formats",      { "", true, false } },
 
-        { "embeddings",             { "", false, true } }
+        { "embeddings",             { "", false, true } },
     };
 
     m_service_components_found = false;
@@ -448,6 +453,7 @@ void ModelsManager::setup_model_behaviour()
             {
                 if (*it->second.node_name)
                 {
+                    file->def_node_name = it->second.node_name;
                     file->def_node = tools::str::hash_fnv1a(it->second.node_name);
                     file->def_node_installed = g::pNodesManager->find_node(file->def_node) != nullptr;
                 }

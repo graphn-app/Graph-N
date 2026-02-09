@@ -4,6 +4,21 @@
 
 namespace data
 {
+struct ModelInfo final
+{
+    std::string info;
+    std::string descr;
+    std::string tags;
+    std::string trigger_phrase;
+    std::filesystem::path image_path;
+    int32_t textures_id = 0;
+
+    bool empty()
+    {
+        return info.empty() && descr.empty() && tags.empty() && trigger_phrase.empty() && image_path.empty();
+    }
+};
+
 struct ModelItem final
 {
     NO_COPY_MOVE_CTORS(ModelItem);
@@ -16,8 +31,7 @@ struct ModelItem final
     std::string search;
     std::string file_name;
 
-    std::string descr;
-    std::filesystem::path image_path;
+    ModelInfo info;
 
     std::list<hid> nodes;
 
@@ -27,6 +41,7 @@ struct ModelItem final
     bool filtered = false;
 
     hid def_node = 0;
+    std::string def_node_name;
     bool def_node_installed = false;
     bool service_component = false;
     bool copy_to_cb_only = false;

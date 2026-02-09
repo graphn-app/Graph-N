@@ -4,6 +4,7 @@
 
 namespace data
 {
+struct Node;
 struct ModelItem;
 }
 
@@ -42,17 +43,15 @@ private:
     void handle_dirty(const PanelItemState& dirty_item);
 
     void on_alloc_tt_data(int32_t idx);
-    void on_release_tt_data(int32_t idx);
     void on_show_tt(int32_t idx);
     bool on_pre_tt(int32_t idx);
-    void on_post_tt(int32_t idx);
 
     void on_expand_all(PanelToolbar::Button& button);
     void on_collapse_all(PanelToolbar::Button& button);
     void on_sync(PanelToolbar::Button& button);
     void on_pre_sync(PanelToolbar::Button& button);
 
-    void add_model_to_wf(data::ModelItem* node_item);
+    void add_model_to_wf(data::Node* node, data::ModelItem* model);
 
 private:
     PanelWithList::TtCallbacks m_tt_callbacks;

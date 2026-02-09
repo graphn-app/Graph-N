@@ -580,11 +580,11 @@ void GraphN_Flow::wf_rename(wid id, const std::string& new_name)
     m_panel_wf_list->rebuild_items();
 }
 
-void GraphN_Flow::wf_add_node_to_active_panel(data::Node* node)
+void GraphN_Flow::wf_add_node_to_active_panel(data::Node* node, const std::string& select /*= ""*/)
 {
     if (nullptr == m_wf_focused)
         g::pFlow->wf_create();
-    m_wf_focused->add_node(node, {});
+    m_wf_focused->add_node(node, select, {});
 }
 // <- WF public
 

@@ -99,7 +99,7 @@ public:
     void wf_delete(wid id);
     void wf_restore(wid id);
     void wf_rename(wid id, const std::string& new_name);
-    void wf_add_node_to_active_panel(data::Node* node);
+    void wf_add_node_to_active_panel(data::Node* node, const std::string& select = "");
     // WF public
 
 private:
