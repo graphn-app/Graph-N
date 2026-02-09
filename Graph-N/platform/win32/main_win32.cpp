@@ -1,6 +1,7 @@
 
 #ifdef _WIN32
 #include "platform/win32/main_win32.h"
+#include "platform/textures.h"
 #include "tools/exception_handler.h"
 #include "ui/helpers/ImFileDialog.h"
 #include "imgui_impl_win32.h"
@@ -415,6 +416,8 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
     case WM_TIMER:
         if (g::pGraphN)
             g::pGraphN->handle_1sec_timer();
+        if (g::pTextures)
+            g::pTextures->handle_1s_timer();
         break;
     }
     return ::DefWindowProcW(hWnd, msg, wParam, lParam);

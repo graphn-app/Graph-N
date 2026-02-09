@@ -60,6 +60,7 @@ int32_t do_main(std::atomic_bool& request_focus)
         ret = g::pGraphN->override_exit_code();
     LogS("App exit code: " << ret);
 
+    g::pTextures->cleanup_all();
     g::pTextures = nullptr;
     g::pMain = nullptr;
     g::pGraphN = nullptr;
