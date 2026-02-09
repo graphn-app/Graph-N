@@ -30,6 +30,8 @@ std::string generate_uuid_v4();
 std::vector<byte> base64_decode(const std::string& base64);
 std::vector<byte> base64_decode(const char* base64, size_t len);
 
+std::string sha256(const std::vector<byte>& src);
+
 } // namespace str
 
 namespace path
