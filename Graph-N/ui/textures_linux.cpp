@@ -1,7 +1,7 @@
-﻿
+
 #ifdef __linux__
 #include "GLFW/glfw3.h"
-#include "platform/linux/textures_linux.h"
+#include "ui/textures_linux.h"
 
 namespace platform
 {

@@ -2,8 +2,8 @@
 #include "ui/panels/panel_models.h"
 #include "core/managers/models_manager.h"
 #include "core/managers/nodes_manager.h"
-#include "platform/textures.h"
-#include "platform/main.h"
+#include "ui/textures.h"
+#include "main.h"
 #include "ui/graph-n_flow.h"
 #include "ui/helpers/font_guard.h"
 

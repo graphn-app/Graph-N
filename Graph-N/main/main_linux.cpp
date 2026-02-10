@@ -1,6 +1,6 @@
 
 #ifdef __linux__
-#include "platform/linux/main_linux.h"
+#include "main/main_linux.h"
 
 namespace platform
 {

@@ -1,5 +1,5 @@
 
-#include "platform/main.h"
+#include "main.h"
 
 namespace platform
 {

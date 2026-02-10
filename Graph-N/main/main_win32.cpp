@@ -1,7 +1,7 @@
 
 #ifdef _WIN32
-#include "platform/win32/main_win32.h"
-#include "platform/textures.h"
+#include "main/main_win32.h"
+#include "ui/textures.h"
 #include "tools/exception_handler.h"
 #include "ui/helpers/ImFileDialog.h"
 #include "imgui_impl_win32.h"

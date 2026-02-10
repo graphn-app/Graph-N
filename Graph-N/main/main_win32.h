@@ -2,7 +2,7 @@
 #pragma once
 #ifdef _WIN32
 
-#include "platform/main.h"
+#include "main.h"
 #include <d3d11.h>
 
 namespace platform

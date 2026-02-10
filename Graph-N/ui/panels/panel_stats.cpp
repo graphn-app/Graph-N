@@ -1,7 +1,7 @@
 
 #include "ui/panels/panel_stats.h"
 #include "ui/graph-n_flow.h"
-#include "platform/main.h"
+#include "main.h"
 
 namespace ui
 {

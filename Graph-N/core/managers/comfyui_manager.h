@@ -5,7 +5,7 @@
 namespace mngr
 {
 
-class ComfyUIManager final : public Manager
+class ComfyUIManager : public Manager
 {
 public:
     ComfyUIManager();
@@ -17,6 +17,8 @@ public:
 
     void run();
 
+protected:
+    virtual bool run_server() = 0;
 };
 
 } // namespace mngr

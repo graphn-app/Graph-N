@@ -1,7 +1,7 @@
 
 #pragma once
 #ifdef _WIN32
-#include "platform/textures.h"
+#include "ui/textures.h"
 
 struct ID3D11Device;
 

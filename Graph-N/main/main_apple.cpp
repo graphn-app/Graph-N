@@ -1,6 +1,6 @@
 
 #ifdef __APPLE__
-#include "platform/apple/main_apple.h"
+#include "main/main_apple.h"
 
 namespace platform
 {

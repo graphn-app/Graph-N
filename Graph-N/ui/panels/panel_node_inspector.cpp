@@ -7,7 +7,7 @@
 #include "core/workflow/workflow.h"
 #include "core/managers/workflows_manager.h"
 #include "ui/graph-n_flow.h"
-#include "platform/main.h"
+#include "main.h"
 
 namespace ui
 {

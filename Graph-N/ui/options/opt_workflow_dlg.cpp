@@ -1,6 +1,6 @@
 
 #include "ui/options/opt_workflow_dlg.h"
-#include "platform/main.h"
+#include "main.h"
 #include "core/managers/settings_manager.h"
 
 namespace ui

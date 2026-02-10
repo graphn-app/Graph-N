@@ -1,13 +1,19 @@
 
 #include "ui/graph-n_flow.h"
-#include "platform/main.h"
+#include "main.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/connect_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/models_manager.h"
-#include "core/managers/comfyui_manager.h"
+#if defined _WIN32
+#include "core/managers/comfyui_manager_win32.h"
+#elif defined __linux__
+#include "core/managers/comfyui_manager_linux.h"
+#elif defined __APPLE__
+#include "core/managers/comfyui_manager_apple.h"
+#endif
 #include "core/base/id.h"
 
 namespace g
@@ -64,7 +70,13 @@ bool GraphN::init_graphn()
     m_managers.push_back(std::make_unique<mngr::WfsManager>());
     g::pWfsManager = (mngr::WfsManager*)m_managers.back().get();
 
-    m_managers.push_back(std::make_unique<mngr::ComfyUIManager>());
+#if defined _WIN32
+    m_managers.push_back(std::make_unique<mngr::ComfyUIManager_Win32>());
+#elif defined __linux__
+    m_managers.push_back(std::make_unique<mngr::ComfyUIManager_Linux>());
+#elif defined __APPLE__
+    m_managers.push_back(std::make_unique<mngr::ComfyUIManager_Apple>());
+#endif
     g::pComfyUIManager = (mngr::ComfyUIManager*)m_managers.back().get();
 
     bool success = true;

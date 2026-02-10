@@ -2,7 +2,7 @@
 #include "ui/panels/panel_nodes.h"
 #include "ui/panels/panel_node_inspector.h"
 #include "ui/graph-n_flow.h"
-#include "platform/main.h"
+#include "main.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/data/node.h"

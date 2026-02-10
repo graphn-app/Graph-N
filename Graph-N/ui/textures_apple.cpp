@@ -1,7 +1,7 @@
-﻿
+
 #ifdef __APPLE__
 #include "GLFW/glfw3.h"
-#include "platform/apple/textures_apple.h"
+#include "ui/textures_apple.h"
 
 namespace platform
 {

@@ -1,7 +1,7 @@
 
 #ifdef _WIN32
-#include "platform/win32/textures_win32.h"
-#include "platform/win32/main_win32.h"
+#include "ui/textures_win32.h"
+#include "main/main_win32.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 

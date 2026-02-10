@@ -1,23 +1,23 @@
 
 #pragma once
-#ifdef __APPLE__
+#ifdef __linux__
 
-#include "platform/main.h"
+#include "main.h"
 
 namespace platform
 {
 
-class MainRoutine_Apple final : public MainRoutine_Apple
+class MainRoutine_Linux final : public MainRoutine
 {
-    friend class Textures_Apple;
+    friend class Textures_Linux;
 
 public:
-    MainRoutine_Apple() = default;
-    ~MainRoutine_Apple() override = default;
+    MainRoutine_Linux() = default;
+    ~MainRoutine_Linux() override = default;
 
 private:
     /*
-        MainRoutine_Apple overrides
+        MainRoutine overrides
     */
 
     bool init() override;
@@ -33,4 +33,4 @@ private:
 
 } // namespace platform
 
-#endif // #ifdef __APPLE__
+#endif // #ifdef __linux__

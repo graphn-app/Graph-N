@@ -1,13 +1,13 @@
 
 #ifdef _WIN32
-#include "platform/win32/main_win32.h"
-#include "platform/win32/textures_win32.h"
+#include "main/main_win32.h"
+#include "ui/textures_win32.h"
 #elif defined __linux__
-#include "platform/linux/main_linux.h"
-#include "platform/linux/textures_linux.h"
+#include "main/main_linux.h"
+#include "ui/textures_linux.h"
 #elif defined __APPLE__
-#include "platform/apple/main_apple.h"
-#include "platform/apple/textures_apple.h"
+#include "main/main_apple.h"
+#include "ui/textures_apple.h"
 #endif
 
 #include "app_instance.h"
