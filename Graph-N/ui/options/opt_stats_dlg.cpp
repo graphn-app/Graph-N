@@ -108,13 +108,13 @@ void OptStatsDlg::show(OptsData& data)
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalFPS, buffer_i[BuffFpsW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalFPS, buffer_i[BuffFpsC]);
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "RAM thresholds");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "RAM Thresholds");
     changed = show_thresholds("##LRAMWarning", "##LRAMCritical", buffer_i[BuffLRamW], buffer_i[BuffLRamC], true, false, 0.5f, 10.0f, "%.1f GB");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalRAM, buffer_i[BuffLRamW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalRAM, buffer_i[BuffLRamC]);
 
     const auto old_pos = ImGui::GetCursorPosX();
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Disks thresholds");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Disks Thresholds");
 
     int32_t disks = 1;
     const float avail_x = ImGui::GetContentRegionAvail().x - data.input_offset_x - data.help_mark_w;
@@ -153,22 +153,22 @@ void OptStatsDlg::show(OptsData& data)
     ImGui::Separator();
     ImGui::Spacing();
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "RAM thresholds");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "RAM Thresholds");
     changed = show_thresholds("##SRAMWarning", "##SRAMCritical", buffer_i[BuffSRamW], buffer_i[BuffSRamC], true, false, 1.0f, 10.0f, "%.1f GB");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerRAM, buffer_i[BuffSRamW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerRAM, buffer_i[BuffSRamC]);
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "VRAM thresholds");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "VRAM Thresholds");
     changed = show_thresholds("##VRAMWarning", "##VRAMCritical", buffer_i[BuffVRamW], buffer_i[BuffVRamC], true, false, 0.1f, 5.0f, "%.1f GB");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerVRAM, buffer_i[BuffVRamW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerVRAM, buffer_i[BuffVRamC]);
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "PyTorch VRAM thresholds");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "PyTorch VRAM Thresholds");
     changed = show_thresholds("##PyTorchWarning", "##PyTorchCritical", buffer_i[BuffPyTorchW], buffer_i[BuffPyTorchC], true, false, 0.1f, 5.0f, "%.1f GB");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerPyTorch, buffer_i[BuffPyTorchW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerPyTorch, buffer_i[BuffPyTorchC]);
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Ping thresholds");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Ping Thresholds");
     changed = show_thresholds("##pingWarning", "##PingCritical", buffer_i[BuffPingW], buffer_i[BuffPingC], false, false, 50.0f, 500.0f, "%.0f ms");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerPing, buffer_i[BuffPingW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerPing, buffer_i[BuffPingC]);

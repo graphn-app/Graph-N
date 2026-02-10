@@ -13,9 +13,9 @@ public:
 
     bool init() override;
 
-    // app
-    inline bool app_vsync_load() const { return *std::get_if<bool>(&m_app_vsync.value); }
-    inline void app_vsync_save(bool enabled) { save_option(m_app_vsync, bool(enabled)); }
+    // general
+    inline bool general_vsync_load() const { return *std::get_if<bool>(&m_general_vsync.value); }
+    inline void general_vsync_save(bool enabled) { save_option(m_general_vsync, bool(enabled)); }
 
     // ui
     inline ImU32 color_load(AppColor color) const { return cast::to_u32(*std::get_if<int64_t>(&m_ui_colors[cast::to_szt(color)].value)); }
@@ -42,6 +42,9 @@ public:
     inline bool comfyui_start_server_load() const { return *std::get_if<bool>(&m_comfyui_start_server.value); }
     inline void comfyui_start_server_save(bool start) { save_option(m_comfyui_start_server, bool(start)); }
 
+    inline const std::string& comfyui_python_load() const { return *std::get_if<std::string>(&m_comfyui_python.value); }
+    inline void comfyui_python_save(const std::string& python) { save_option(m_comfyui_python, python); }
+
     inline bool comfyui_kill_server_load() const { return *std::get_if<bool>(&m_comfyui_kill_server.value); }
     inline void comfyui_kill_server_save(bool kill) { save_option(m_comfyui_kill_server, bool(kill)); }
 
@@ -51,14 +54,17 @@ public:
     inline bool comfyui_capture_output_load() const { return *std::get_if<bool>(&m_comfyui_capture_output.value); }
     inline void comfyui_capture_output_save(bool capture) { save_option(m_comfyui_capture_output, bool(capture)); }
 
-    inline bool comfyui_get_parse_address_load() const { return *std::get_if<bool>(&m_comfyui_parse_address.value); }
+    inline bool comfyui_autohide_output_load() const { return *std::get_if<bool>(&m_comfyui_auto_hide_output.value); }
+    inline void comfyui_autohide_output_save(bool hide) { save_option(m_comfyui_auto_hide_output, bool(hide)); }
+
+    inline bool comfyui_parse_address_load() const { return *std::get_if<bool>(&m_comfyui_parse_address.value); }
     inline void comfyui_parse_address_save(bool parse) { save_option(m_comfyui_parse_address, bool(parse)); }
 
-    inline const std::filesystem::path& comfyui_main_py_load() const { return *std::get_if<std::filesystem::path>(&m_comfy_main_py.value); }
-    inline void comfyui_main_py_save(const std::filesystem::path& main) { save_option(m_comfy_main_py, main); }
+    inline const std::filesystem::path& comfyui_main_py_load() const { return *std::get_if<std::filesystem::path>(&m_comfyui_main_py.value); }
+    inline void comfyui_main_py_save(const std::filesystem::path& main_py) { save_option(m_comfyui_main_py, main_py); }
 
-    inline const std::string& comfyui_command_load() const { return *std::get_if<std::string>(&m_comfy_command.value); }
-    inline void comfyui_command_save(const std::string& cmd) { save_option(m_comfy_command, cmd); }
+    inline const std::string& comfyui_command_load() const { return *std::get_if<std::string>(&m_comfyui_command.value); }
+    inline void comfyui_command_save(const std::string& cmd) { save_option(m_comfyui_command, cmd); }
 
     // wf
     inline WidgetInput wf_widget_input_numbers_load() const { return cast::to_enum<WidgetInput>(*std::get_if<int64_t>(&m_wf_widget_input_numbers.value)); }
@@ -69,6 +75,12 @@ public:
 
     inline const std::string& wf_active_load() const { return *std::get_if<std::string>(&m_wf_active.value); }
     inline void wf_active_save(const std::string& active) { save_option(m_wf_active, active); }
+
+    inline bool wf_show_grid_load() const { return *std::get_if<bool>(&m_wf_show_grid.value); }
+    inline void wf_show_grid_save(bool show) { save_option(m_wf_show_grid, bool(show)); }
+
+    inline bool wf_snap_nodes_load() const { return *std::get_if<bool>(&m_wf_snap_nodes.value); }
+    inline void wf_snap_nodes_save(bool snap) { save_option(m_wf_snap_nodes, bool(snap)); }
 
     // items
     void pin_advanced_preload();
@@ -122,8 +134,8 @@ private:
 private:
     std::string m_empty;
 
-    // app
-    OptionValue m_app_vsync; // int
+    // general
+    OptionValue m_general_vsync; // int
 
     // ui
     OptionValue m_ui_open_wnds; // int
@@ -136,17 +148,21 @@ private:
     OptionValue m_comfyui_conn_time; // int
     OptionValue m_comfyui_read_time; // int
     OptionValue m_comfyui_start_server; // int
+    OptionValue m_comfyui_python; // str
     OptionValue m_comfyui_kill_server; // int
     OptionValue m_comfyui_hide_console; // int
     OptionValue m_comfyui_capture_output; // int
+    OptionValue m_comfyui_auto_hide_output; // int
     OptionValue m_comfyui_parse_address; // int
-    OptionValue m_comfy_main_py; // path
-    OptionValue m_comfy_command; // str
+    OptionValue m_comfyui_main_py; // path
+    OptionValue m_comfyui_command; // str
 
     // wf
     OptionValue m_wf_widget_input_numbers; // int
     OptionValue m_wf_widget_input_bools; // int
     OptionValue m_wf_active; // str
+    OptionValue m_wf_show_grid; // int
+    OptionValue m_wf_snap_nodes; // int
 
     // items
     std::map<hid, bool> m_item_preload_pin_adv;

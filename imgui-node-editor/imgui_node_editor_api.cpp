@@ -65,7 +65,7 @@ void ax::NodeEditor::DestroyEditor(EditorContext* ctx)
         SetCurrentEditor(lastContext);
 }
 
-const ax::NodeEditor::Config& ax::NodeEditor::GetConfig(EditorContext* ctx)
+ax::NodeEditor::Config& ax::NodeEditor::EditConfig(EditorContext* ctx)
 {
     if (ctx == nullptr)
         ctx = GetCurrentEditor();
@@ -81,6 +81,11 @@ const ax::NodeEditor::Config& ax::NodeEditor::GetConfig(EditorContext* ctx)
         static Config s_EmptyConfig;
         return s_EmptyConfig;
     }
+}
+
+const ax::NodeEditor::Config& ax::NodeEditor::GetConfig(EditorContext* ctx)
+{
+    return EditConfig(ctx);
 }
 
 void ax::NodeEditor::SetCurrentEditor(EditorContext* ctx)

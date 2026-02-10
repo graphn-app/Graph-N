@@ -35,6 +35,7 @@ enum class DlgObj
 
     OptionsDlg,
     OptLeftPane,
+    OptLeftPane_General,
     OptLeftPane_ComfyUI,
     OptLeftPane_Workflow,
     OptLeftPane_Stats,
@@ -68,6 +69,7 @@ constexpr const char* DlgObjID[static_cast<size_t>(DlgObj::_count)] =
 
     "Options##C0121D08-41AA-4BC6-90D9-DCE1D70BDE80",            // OptionsDlg: with caption
     "08D470FA-B8EC-47F4-AE0E-55129C3CEFFC",                     // OptLeftPane
+    "General##DB6089DD-55D1-4604-B263-D45A71A1E665",            // OptLeftPane_General: with caption
     APP_COMFYUI "##AE6E9261-EA70-4AB3-A97D-1FC87C94B73C",       // OptLeftPane_ComfyUI: with caption
     "Workflow##7CFEE878-C390-46B1-BDDF-99BCC4EF2FB4",           // OptLeftPane_Workflow: with caption
     "Stats##9D71FAC2-2ECC-4A15-A7B2-B611B23B6E26",              // OptLeftPane_Stats: with caption
@@ -97,6 +99,7 @@ enum class OptPane
 {
     _none,
 
+    General,
     ComfyUi,
     Stats,
     Wf,

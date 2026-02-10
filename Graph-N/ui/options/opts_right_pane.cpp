@@ -13,7 +13,8 @@ void OptRightPane::show_help_mark(const char*& out, float offset, bool same_line
 {
     if (same_line)
         ImGui::SameLine();
-    ImGui::SetCursorPosX(offset);
+    if (offset != -1)
+        ImGui::SetCursorPosX(offset);
     ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptHelpMark));
     ImGui::TextUnformatted(" [?]");
     ImGui::PopStyleColor();

@@ -1,6 +1,7 @@
 
 #include "ui/options/opts_dlg.h"
 #include "ui/options/opts_right_pane.h"
+#include "ui/options/opt_general_dlg.h"
 #include "ui/options/opt_comfyui_dlg.h"
 #include "ui/options/opt_workflow_dlg.h"
 #include "ui/options/opt_stats_dlg.h"
@@ -29,7 +30,7 @@ void OptionsDlgs::init()
     data()->x = main_viewport->WorkSize.x / 2 - 300;
     data()->y = main_viewport->WorkSize.y / 2 - 400;
     data()->width = 650;
-    data()->height = 680;
+    data()->height = 750;
 
     data()->clr_title = g::pOptsManager->color_load(AppColor::OptDlgTitleBg);
     data()->clr_bg = g::pOptsManager->color_load(AppColor::OptDlgBg);
@@ -45,6 +46,7 @@ void OptionsDlgs::init()
 
     m_opts_data.pane.show_inner_child = (m_opts_data.pane.left_selected_item != OptPane::_none);
 
+    m_right_panes[OptPane::General] = std::make_unique<OptGeneralDlg>();
     m_right_panes[OptPane::ComfyUi] = std::make_unique<OptComfyDlg>();
     m_right_panes[OptPane::Wf] = std::make_unique<OptWorkflowDlg>();
     m_right_panes[OptPane::Stats] = std::make_unique<OptStatsDlg>();
@@ -73,10 +75,11 @@ DlgCode OptionsDlgs::show(bool& /*focused*/)
     if (ImGui::Begin(DlgObjID[cast::to_szt(DlgObj::OptionsDlg)], &opened,
         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
     {
-        ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
-
         show_left_pane();
         show_right_pane();
+
+        if (m_opts_data.enable_always_on_top)
+            ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
     }
     return cleanup_and_exit(opened);
 }
@@ -87,6 +90,11 @@ void OptionsDlgs::show_left_pane()
     {
         const auto avail_h = ImGui::GetContentRegionAvail().y;
 
+        if (ImGui::Selectable(DlgObjID[cast::to_szt(DlgObj::OptLeftPane_General)], OptPane::General == m_opts_data.pane.left_selected_item))
+        {
+            m_opts_data.pane.left_selected_item = OptPane::General;
+            m_opts_data.pane.show_inner_child = true;
+        }
         if (ImGui::Selectable(DlgObjID[cast::to_szt(DlgObj::OptLeftPane_ComfyUI)], OptPane::ComfyUi == m_opts_data.pane.left_selected_item))
         {
             m_opts_data.pane.left_selected_item = OptPane::ComfyUi;

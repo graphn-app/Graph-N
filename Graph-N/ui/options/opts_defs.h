@@ -5,6 +5,8 @@ struct OptsData final
 {
     NO_COPY_MOVE_CTORS(OptsData);
 
+    bool enable_always_on_top = true;
+
     const float input_offset_x = 150;
     const float help_mark_w = 29.0f;
 

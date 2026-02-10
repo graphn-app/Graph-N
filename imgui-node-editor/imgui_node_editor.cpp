@@ -1437,7 +1437,9 @@ void ed::EditorContext::End()
     // ImGui::PopClipRect();
 
     // Draw grid
+    
 # if 1 // #FIXME
+    if (m_Config.DrawGrid)
     {
         //auto& style = ImGui::GetStyle();
 

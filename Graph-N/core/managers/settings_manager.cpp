@@ -14,11 +14,11 @@ SettingsManager::~SettingsManager()
 bool SettingsManager::init()
 {
     // app
-    m_app_vsync =                                     { "app_vsync_enabled",        bool(true) };
+    m_general_vsync =                                 { "vsync_enabled",            bool(true) };
 
     // ui
-    m_ui_open_wnds =                                  { "flow_open_windows",        int64_t(ui::ViewPanelsResetAll) };
-    m_ui_nodes_tree_view =                            { "flow_nodes_tree_view",     bool(true) };
+    m_ui_open_wnds =                                  { "open_windows",             int64_t(ui::ViewPanelsResetAll) };
+    m_ui_nodes_tree_view =                            { "nodes_tree_view",          bool(true) };
 
     // comfyui
     m_comfyui_host =                                  { "comfyui_host",             std::string("127.0.0.1") };
@@ -26,15 +26,21 @@ bool SettingsManager::init()
     m_comfyui_conn_time =                             { "comfyui_conn_time",        int64_t(1) };
     m_comfyui_read_time =                             { "comfyui_read_time",        int64_t(5) };
     m_comfyui_start_server =                          { "comfyui_start_server",     bool(false) };
+    m_comfyui_python =                                { "comfyui_python",           std::string("python.exe") };
     m_comfyui_kill_server =                           { "comfyui_kill_server",      bool(false) };
     m_comfyui_parse_address =                         { "comfyui_parse_address",    bool(false) };
     m_comfyui_hide_console =                          { "comfyui_hide_console",     bool(false) };
     m_comfyui_capture_output =                        { "comfyui_capture_output",   bool(false) };
-    m_comfy_main_py =                                 { "comfyui_main_py",          std::filesystem::path("") };
-    m_comfy_command =                                 { "comfyui_command",          std::string("") };
-    m_wf_widget_input_numbers =                       { "wf_widget_input_numbers",  cast::to_i64(WidgetInput::Slider) };
-    m_wf_widget_input_bools =                         { "wf_widget_input_bools",    cast::to_i64(WidgetInput::Select) };
-    m_wf_active =                                     { "wf_active",                std::string("") };
+    m_comfyui_auto_hide_output =                      { "comfy_auto_hide_output",   bool(true) };
+    m_comfyui_main_py =                               { "comfyui_main_py",          std::filesystem::path("") };
+    m_comfyui_command =                               { "comfyui_command",          std::string("") };
+
+    // wf
+    m_wf_widget_input_numbers =                       { "widget_input_numbers",     cast::to_i64(WidgetInput::Slider) };
+    m_wf_widget_input_bools =                         { "widget_input_bools",       cast::to_i64(WidgetInput::Select) };
+    m_wf_active =                                     { "active_wf",                std::string("") };
+    m_wf_show_grid =                                  { "show_grid",                bool(true) };
+    m_wf_snap_nodes =                                 { "snap_nodes",               bool(false) };
 
     m_ui_colors.resize(cast::to_szt(AppColor::_count));
 
@@ -133,7 +139,7 @@ bool SettingsManager::init()
 
     std::vector<OptionValue*> values;
     values.reserve(100);
-    values.push_back(&m_app_vsync);
+    values.push_back(&m_general_vsync);
     values.push_back(&m_ui_open_wnds);
     values.push_back(&m_ui_nodes_tree_view);
     values.push_back(&m_comfyui_host);
@@ -141,15 +147,19 @@ bool SettingsManager::init()
     values.push_back(&m_comfyui_conn_time);
     values.push_back(&m_comfyui_read_time);
     values.push_back(&m_comfyui_start_server);
+    values.push_back(&m_comfyui_python);
     values.push_back(&m_comfyui_kill_server);
     values.push_back(&m_comfyui_parse_address);
     values.push_back(&m_comfyui_hide_console);
     values.push_back(&m_comfyui_capture_output);
-    values.push_back(&m_comfy_main_py);
-    values.push_back(&m_comfy_command);
+    values.push_back(&m_comfyui_auto_hide_output);
+    values.push_back(&m_comfyui_main_py);
+    values.push_back(&m_comfyui_command);
     values.push_back(&m_wf_widget_input_numbers);
     values.push_back(&m_wf_widget_input_bools);
     values.push_back(&m_wf_active);
+    values.push_back(&m_wf_show_grid);
+    values.push_back(&m_wf_snap_nodes);
     values.push_back(&m_stat_as_progress);
     values.push_back(&m_stat_enabled_disks);
 

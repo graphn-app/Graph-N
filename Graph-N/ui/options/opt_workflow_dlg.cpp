@@ -23,11 +23,6 @@ void OptWorkflowDlg::init(OptsData& data)
 
 void OptWorkflowDlg::show(OptsData& data)
 {
-    show_input_styles(data);
-}
-
-void OptWorkflowDlg::show_input_styles(OptsData& data)
-{
     const char* help_text = nullptr;
 
     const auto draw_selected = [](bool selected, bool& hovered, int32_t id, const char* text)
@@ -72,7 +67,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     double d_min = 5.0;
     double d_max = 142.0;
 
-    if (draw_selected(WidgetInput::Direct == data.wf.numbers, data.wf.hovered_items[idx], idx + 1, "Input Field:"))
+    if (draw_selected(WidgetInput::Direct == data.wf.numbers, data.wf.hovered_items[idx], idx + 1, "Input field:"))
     {
         data.wf.numbers = WidgetInput::Direct;
         g::pOptsManager->wf_widget_input_numbers_save(data.wf.numbers);
@@ -90,7 +85,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
         g::pOptsManager->wf_widget_input_numbers_save(data.wf.numbers);
     }
     idx++;
-    show_help_mark(help_text, data.input_offset_x, true, "Ctrl+Click to type value.");
+    show_help_mark(help_text, data.input_offset_x, true, "Ctrl+click to type value.");
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(-FLT_MIN);
@@ -103,7 +98,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
         g::pOptsManager->wf_widget_input_numbers_save(data.wf.numbers);
     }
     idx++;
-    show_help_mark(help_text, data.input_offset_x, true, "Ctrl+Click or Double Click to type value.");
+    show_help_mark(help_text, data.input_offset_x, true, "Ctrl+click or double click to type value.");
     ImGui::SameLine();
     ImGui::SetCursorPosX(data.input_offset_x + data.help_mark_w);
     ImGui::SetNextItemWidth(-FLT_MIN);
@@ -132,7 +127,7 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
         data.wf.b_sample = b_val;
 
 
-    if (draw_selected(WidgetInput::Toggle == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Toggle Button:"))
+    if (draw_selected(WidgetInput::Toggle == data.wf.booleans, data.wf.hovered_items[idx], idx + 1, "Toggle button:"))
     {
         data.wf.booleans = WidgetInput::Toggle;
         g::pOptsManager->wf_widget_input_bools_save(data.wf.booleans);
@@ -143,6 +138,23 @@ void OptWorkflowDlg::show_input_styles(OptsData& data)
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (ImGuiEx::BooleanButtons2("##WfBool2", b_val ? "Value: on" : "Value: off", &b_val))
         data.wf.b_sample = b_val;
+
+
+    ///////////////       editor
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Editor");
+    ImGui::Spacing();
+
+    // show grid
+    b_val = g::pOptsManager->wf_show_grid_load();
+    if (ImGui::Checkbox("Show grid##WfShowGrid", &b_val))
+        g::pOptsManager->wf_show_grid_save(b_val);
+    show_help_mark(help_text, data.input_offset_x, true, "Shows or hides the background grid in the workflow editor.");
+
+    // snap nodes
+    b_val = g::pOptsManager->wf_snap_nodes_load();
+    if (ImGui::Checkbox("Snap to grid##WfSnapNodes", &b_val))
+        g::pOptsManager->wf_snap_nodes_save(b_val);
+    show_help_mark(help_text, data.input_offset_x, true, "Snaps nodes to the grid while dragging."); // \nHold Alt to temporarily invert this behavior.
 
 
     ///////////////       help

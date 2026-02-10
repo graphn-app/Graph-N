@@ -107,6 +107,8 @@ struct Config
     int                     ContextMenuButtonIndex; // Mouse button index context menu action will react to (0-left, 1-right, 2-middle)
     bool                    EnableSmoothZoom;
     float                   SmoothZoomPower;
+    bool                    AlignPointToGrid;
+    bool                    DrawGrid;
 
     Config()
         : SettingsFile("NodeEditor.json")
@@ -129,6 +131,8 @@ struct Config
 # else
         , SmoothZoomPower(1.3f)
 # endif
+        , AlignPointToGrid(false)
+        , DrawGrid(false)
     {
     }
 };
@@ -287,6 +291,7 @@ IMGUI_NODE_EDITOR_API EditorContext* GetCurrentEditor();
 IMGUI_NODE_EDITOR_API EditorContext* CreateEditor(const Config* config = nullptr);
 IMGUI_NODE_EDITOR_API void DestroyEditor(EditorContext* ctx);
 IMGUI_NODE_EDITOR_API const Config& GetConfig(EditorContext* ctx = nullptr);
+IMGUI_NODE_EDITOR_API Config& EditConfig(EditorContext* ctx = nullptr);
 
 IMGUI_NODE_EDITOR_API Style& GetStyle();
 IMGUI_NODE_EDITOR_API const char* GetStyleColorName(StyleColor colorIndex);

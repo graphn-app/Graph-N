@@ -12,6 +12,7 @@ enum
     BuffHost,
     BuffCmd,
     BuffPath,
+    BuffPython,
 
     _buff_s_count,
 };
@@ -38,6 +39,7 @@ void OptComfyDlg::init(OptsData& data)
     (*data.comfyui.buffer_s)[BuffHost] = g::pOptsManager->comfyui_host_load();
     (*data.comfyui.buffer_s)[BuffPath] = g::pOptsManager->comfyui_main_py_load().u8string();
     (*data.comfyui.buffer_s)[BuffCmd] = g::pOptsManager->comfyui_command_load();
+    (*data.comfyui.buffer_s)[BuffPython] = g::pOptsManager->comfyui_python_load();
 
     data.comfyui.buffer_i->resize(_buff_i_count);
     (*data.comfyui.buffer_i)[BuffPort] = g::pOptsManager->comfyui_port_load();
@@ -47,30 +49,56 @@ void OptComfyDlg::init(OptsData& data)
 
 void OptComfyDlg::show(OptsData& data)
 {
+    constexpr const float padding = 6.0f;
+    float avail_x, item_w, offset;
     const char* help_text = nullptr;
-    show_connection_opts(data, help_text);
-    show_interaction_opts(data, help_text);
+    begin_group(data, padding, avail_x, item_w, offset);
+    show_connection_opts(data, help_text, padding, avail_x, item_w, offset);
+    end_group(padding);
+    begin_group(data, padding, avail_x, item_w, offset);
+    show_interaction_opts(data, help_text, padding, avail_x, item_w, offset);
+    end_group(padding);
 
     ImGui::Dummy(ImVec2(0.0f, 50.0f));
     show_help_text(help_text);
 }
 
-void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
+void OptComfyDlg::begin_group(OptsData& data, float padding, float& avail_x, float& item_w, float& offset)
 {
-    auto& buffer_s = *data.comfyui.buffer_s;
-    auto& buffer_i = *data.comfyui.buffer_i;
-
-    constexpr const float padding = 6.0f;
     ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(padding, padding));
 
     ImGui::BeginGroup();
 
-    const auto avail_x = ImGui::GetContentRegionAvail().x;
-    const auto item_w = avail_x - data.input_offset_x - data.help_mark_w;
-    const auto offset = data.input_offset_x + data.help_mark_w;
+    avail_x = ImGui::GetContentRegionAvail().x;
+    item_w = avail_x - data.input_offset_x - data.help_mark_w;
+    offset = data.input_offset_x + data.help_mark_w;
+}
+
+void OptComfyDlg::end_group(float padding)
+{
+    ImGui::EndGroup();
+
+    ImVec2 p_min = ImGui::GetItemRectMin();
+    ImVec2 p_max = ImGui::GetItemRectMax();
+
+    p_min.x -= padding;
+    p_min.y -= padding;
+    p_max.x += padding; 
+    p_max.y += padding;
+
+    ImGui::GetWindowDrawList()->AddRect(p_min, p_max, IM_COL32(100, 100, 100, 255), 4.0f);
+
+    ImGui::Dummy(ImVec2(0, padding));
+}
+
+void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text, float padding, float avail_x, float item_w, float offset)
+{
+    auto& buffer_s = *data.comfyui.buffer_s;
+    auto& buffer_i = *data.comfyui.buffer_i;
+
 
     ///////////////       ComfyUI address
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), item_w, APP_COMFYUI " Address");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), avail_x - padding, APP_COMFYUI " Address");
     ImGui::Spacing();
 
 
@@ -96,7 +124,7 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
 
 
     ///////////////////       connection timeout
-    ImGui::TextUnformatted("Connect Timeout:");
+    ImGui::TextUnformatted("Connect timeout:");
     show_help_mark(help_text, data.input_offset_x, true, "Max time (seconds) to wait for the server to accept a connection.\n\nLocal servers usually connect instantly (1-2s).");
     ImGui::SameLine();
     ImGui::SetCursorPosX(offset);
@@ -105,7 +133,7 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
 
 
     ///////////////////       read timeout
-    ImGui::TextUnformatted("Read Timeout:");
+    ImGui::TextUnformatted("Read timeout:");
     show_help_mark(help_text, data.input_offset_x, true, "Max time (seconds) to wait for a response (e.g., JSON workflow).\n\nIncrease this if loading large workflows over a slow network.");
     ImGui::SameLine();
     ImGui::SetCursorPosX(offset);
@@ -141,41 +169,40 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text)
         if (!g::pFlow->get_online())
             g::pFlow->reconnect();
     }
-
-    ImGui::EndGroup();
-
-    ImVec2 p_min = ImGui::GetItemRectMin();
-    ImVec2 p_max = ImGui::GetItemRectMax();
-
-    p_min.x -= padding;
-    p_min.y -= padding;
-    p_max.x += padding; 
-    p_max.y += padding;
-
-    ImGui::GetWindowDrawList()->AddRect(p_min, p_max, IM_COL32(100, 100, 100, 255), 4.0f);
-
-    ImGui::Dummy(ImVec2(0, padding));
 }
 
-void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
+void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text, float padding, float avail_x, float item_w, float offset)
 {
     auto& buffer_s = *data.comfyui.buffer_s;
 
     /////////////       comfyui interaction
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), APP_COMFYUI " Server Interaction");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), avail_x - padding, APP_COMFYUI " Server Interaction");
     ImGui::Spacing();
 
 
+    /////////////       python
+    ImGui::TextUnformatted("Python path:");
+    show_help_mark(help_text, data.input_offset_x, true, "Change this if you have a custom Python path.");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(offset);
+    ImGui::SetNextItemWidth(item_w);
+    ImGuiEx::InputText("##ComfyUIPython", &buffer_s[BuffPython], ImGuiInputTextFlags_AlwaysOverwrite | ImGuiInputTextFlags_EscapeClearsAll);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        g::pOptsManager->comfyui_python_save(buffer_s[BuffPython]);
+
+
     /////////////       comfyui main.py path
-    ImGui::TextUnformatted("Server Path:");
+    ImGui::TextUnformatted("Server path:");
     show_help_mark(help_text, data.input_offset_x, true, "Full path to main.py or the " APP_COMFYUI " root directory.\n" APP_CAPTION " uses this to launch and manage the server process.");
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 28.0f - ImGui::GetStyle().ItemSpacing.x);
+    ImGui::SetCursorPosX(offset);
+    ImGui::SetNextItemWidth(item_w - 28.0f - ImGui::GetStyle().ItemSpacing.x);
     ImGuiEx::InputText("##ComfyUIPath", &buffer_s[BuffPath], ImGuiInputTextFlags_ReadOnly);
     ImGui::SameLine();
     ImGui::PushStyleColor(ImGuiCol_PopupBg, g::pOptsManager->color_load(AppColor::OptDlgBg));
     if (ImGui::Button("...##ComfyUIPathSelect", ImVec2(28.0f, 0.0f)))
     {
+        data.enable_always_on_top = false;
         ifd::FileDialog::Instance().Open("ComfyuiMainpyPath", APP_COMFYUI " main.py path", "main.py (main.py){main.py}", false);
     }
     if (ifd::FileDialog::Instance().IsDone("ComfyuiMainpyPath"))
@@ -186,22 +213,24 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
             buffer_s[BuffPath] = g::pOptsManager->comfyui_main_py_load().u8string();
         }
         ifd::FileDialog::Instance().Close();
+        data.enable_always_on_top = true;
     }
     ImGui::PopStyleColor();
 
 
     /////////////       comfyui command line
-    ImGui::TextUnformatted("Launch Args:");
+    ImGui::TextUnformatted("Launch args:");
     show_help_mark(help_text, data.input_offset_x, true, "Additional command line arguments (e.g., --cpu, --lowvram, --fast).\n\nCheck your .bat files for recommended flags.");
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGui::SetCursorPosX(offset);
+    ImGui::SetNextItemWidth(item_w);
     ImGuiEx::InputText("##ComfyUICmd", &buffer_s[BuffCmd], ImGuiInputTextFlags_AlwaysOverwrite | ImGuiInputTextFlags_EscapeClearsAll);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->comfyui_command_save(buffer_s[BuffCmd]);
 
 
     ///////////// disable if no path
-    if (buffer_s[BuffPath].empty())
+    if (buffer_s[BuffPath].empty() || buffer_s[BuffPython].empty())
         ImGui::BeginDisabled();
 
 
@@ -227,7 +256,7 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
 
 
     /////////////       hide console
-    show_help_mark(help_text, data.input_offset_x, false, "Hide the black command prompt window (cmd.exe).\n\nRequires 'Capture Output' to be enabled to see server logs.");
+    show_help_mark(help_text, data.input_offset_x, false, "Hide the black command prompt window (cmd.exe).\n\nRequires 'Capture output' to be enabled to see server logs.");
     ImGui::SameLine();
     b_val = g::pOptsManager->comfyui_hide_console_load();
     if (ImGui::Checkbox("Hide console window##ComfyUIHide", &b_val))
@@ -238,7 +267,7 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
     show_help_mark(help_text, data.input_offset_x, false, "Redirect server stdout and stderr to the " APP_CAPTION " Logs panel.\n\nAllows monitoring errors and progress without the system console.");
     ImGui::SameLine();
     b_val = g::pOptsManager->comfyui_capture_output_load();
-    if (ImGui::Checkbox("Capture Output##ComfyUICapture", &b_val))
+    if (ImGui::Checkbox("Capture output##ComfyUICapture", &b_val))
         g::pOptsManager->comfyui_capture_output_save(b_val);
 
 
@@ -247,11 +276,18 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
         ImGui::BeginDisabled();
 
 
-    /////////////       parse address
-    show_help_mark(help_text, data.input_offset_x, false, "Attempt to find the listening IP and Port by parsing the server startup logs.\n\nIf disabled, the manual address settings above will be used.");
+    /////////////       auto hide output
+    show_help_mark(help_text, data.input_offset_x, false, "Automatically shows the Logs panel when " APP_COMFYUI " is disconnected and hides it after a successful connection. You can always toggle the panel manually from the main menu.");
     ImGui::SameLine();
-    b_val = g::pOptsManager->comfyui_get_parse_address_load();
-    if (ImGui::Checkbox("Auto-Detect Port##ComfyUIParse", &b_val))
+    b_val = g::pOptsManager->comfyui_autohide_output_load();
+    if (ImGui::Checkbox("Autohide Logs panel##ComfyUIHideLog", &b_val))
+        g::pOptsManager->comfyui_autohide_output_save(b_val);
+
+    /////////////       parse address
+    show_help_mark(help_text, data.input_offset_x, false, "Attempt to find the listening IP and port by parsing the server startup logs.\n\nIf disabled, the manual address settings above will be used.");
+    ImGui::SameLine();
+    b_val = g::pOptsManager->comfyui_parse_address_load();
+    if (ImGui::Checkbox("Auto-detect port##ComfyUIParse", &b_val))
         g::pOptsManager->comfyui_parse_address_save(b_val);
 
 
@@ -264,9 +300,29 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text)
         ImGui::EndDisabled();
 
     ///////////// disable if no path
-    if (buffer_s[BuffPath].empty())
+    if (buffer_s[BuffPath].empty() || buffer_s[BuffPython].empty())
         ImGui::EndDisabled();
 
+    /////////////// apply
+    ImGuiEx::Spacing(2);
+
+    ImGui::SetCursorPosX(offset);
+    if (buffer_s[BuffPath].empty() || buffer_s[BuffPython].empty())
+        ImGui::BeginDisabled();
+    else
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, g::pOptsManager->color_load(AppColor::OptBtnNormal));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, g::pOptsManager->color_load(AppColor::OptBtnHover));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  g::pOptsManager->color_load(AppColor::OptBtnPressed));
+    }
+    const bool click = ImGui::Button("Start ComfyUI##start", ImVec2(item_w, 0));
+    if (buffer_s[BuffPath].empty() || buffer_s[BuffPython].empty())
+        ImGui::EndDisabled();
+    else
+        ImGui::PopStyleColor(3);
+    if (click)
+    {
+    }
 }
 
 }

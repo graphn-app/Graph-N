@@ -1295,6 +1295,7 @@ struct EditorContext
     ~EditorContext();
 
     const Config& GetConfig() const { return m_Config; }
+    Config& GetConfig() { return m_Config; }
 
     Style& GetStyle() { return m_Style; }
 
@@ -1460,10 +1461,17 @@ struct EditorContext
 
     float AlignPointToGrid(float p) const
     {
-        if (!ImGui::GetIO().KeyAlt)
+        const bool enable_align = GetConfig().AlignPointToGrid;
+        const bool alt_pressed = ImGui::GetIO().KeyAlt;
+
+        if (enable_align || !enable_align && alt_pressed)
             return p - ImFmod(p, 16.0f);
-        else
-            return p;
+        return p;
+
+        //if (!ImGui::GetIO().KeyAlt)
+        //    return p - ImFmod(p, 16.0f);
+        //else
+        //    return p;
     }
 
     ImVec2 AlignPointToGrid(const ImVec2& p) const

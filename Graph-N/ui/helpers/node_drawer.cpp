@@ -65,6 +65,8 @@ void NodeDrawer::free()
 
 void NodeDrawer::pre_draw_all(const char* id)
 {
+    ed::EditConfig(m_context).AlignPointToGrid = g::pOptsManager->wf_snap_nodes_load();
+    ed::EditConfig(m_context).DrawGrid = g::pOptsManager->wf_show_grid_load();
     ed::SetCurrentEditor(m_context);
     ed::Begin(id, ImVec2(0, 0));
 }
