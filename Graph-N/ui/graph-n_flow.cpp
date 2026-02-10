@@ -19,6 +19,7 @@
 #include "core/managers/db_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/models_manager.h"
+#include "core/managers/comfyui_manager.h"
 
 //#define TEST
 
@@ -121,6 +122,7 @@ void GraphN_Flow::reconnect()
     LogF;
     m_windows |= ViewConnect;
     g::pConnectManager->connect();
+    g::pComfyUIManager->run();
 }
 
 void GraphN_Flow::subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener)

@@ -7,6 +7,7 @@
 #include "core/managers/connect_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/models_manager.h"
+#include "core/managers/comfyui_manager.h"
 #include "core/base/id.h"
 
 namespace g
@@ -21,6 +22,7 @@ mngr::NodesManager* pNodesManager = nullptr;
 mngr::ConnectManager* pConnectManager = nullptr;
 mngr::WfsManager* pWfsManager = nullptr;
 mngr::ModelsManager* pModelsManager = nullptr;
+mngr::ComfyUIManager* pComfyUIManager = nullptr;
 
 void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line)
 {
@@ -61,6 +63,9 @@ bool GraphN::init_graphn()
 
     m_managers.push_back(std::make_unique<mngr::WfsManager>());
     g::pWfsManager = (mngr::WfsManager*)m_managers.back().get();
+
+    m_managers.push_back(std::make_unique<mngr::ComfyUIManager>());
+    g::pComfyUIManager = (mngr::ComfyUIManager*)m_managers.back().get();
 
     bool success = true;
     std::for_each(m_managers.begin(), m_managers.end(), [&success](std::unique_ptr<mngr::Manager>& manager)

@@ -23,6 +23,8 @@ public:
     void stop_all_threads() override;
 
     ConnectState check_status();
+    inline ConnectState check_quick_status() const { return m_quick_state; }
+
     std::string& get_nodes_raw() { return m_nodes_raw; }
 
     void connect();
@@ -41,7 +43,7 @@ private:
         std::string data;
     };
 
-    static std::shared_ptr<ConnectData> connect_thread(std::shared_ptr<ConnectData> data);
+    static std::shared_ptr<ConnectData> connect_thread(std::shared_ptr<ConnectData> data, std::atomic<ConnectState>& quick_state, int32_t& actual_thread_id);
 
 private:
     std::shared_ptr<ConnectData> m_conn_data;
@@ -50,6 +52,8 @@ private:
     std::future<std::shared_ptr<ConnectData>> m_future;
     std::string m_nodes_raw;
     int32_t m_conn_th_id = 0;
+    int32_t m_actual_thread_id = 0;
+    std::atomic<ConnectState> m_quick_state = ConnectState::Disconnected;
 };
 
 } // namespace mngr
