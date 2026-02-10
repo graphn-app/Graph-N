@@ -87,7 +87,7 @@ void PanelStats::th_api()
 #ifdef _WIN32
             MEMORYSTATUSEX info;
             info.dwLength = sizeof(MEMORYSTATUSEX);
-            if (GlobalMemoryStatusEx(&info))
+            if (::GlobalMemoryStatusEx(&info))
             {
                 m_lram_free = info.ullAvailPhys;
                 m_lram_total = info.ullTotalPhys;
@@ -109,7 +109,7 @@ void PanelStats::th_api()
                     continue;
 
                 ULARGE_INTEGER free_bytes = {}, total_bytes = {}, total_free = {};
-                if (GetDiskFreeSpaceExA(disk.disk_opt->first.c_str(), &free_bytes, &total_bytes, &total_free))
+                if (::GetDiskFreeSpaceExA(disk.disk_opt->first.c_str(), &free_bytes, &total_bytes, &total_free))
                 {
                     std::lock_guard<std::mutex> lock(m_lock);
                     disk.free = free_bytes.QuadPart;

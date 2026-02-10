@@ -30,12 +30,12 @@ bool MainRoutine_Win32::init()
     tools::set_exception_translator();
 
     m_wc = { sizeof(WNDCLASSEXW), CS_CLASSDC, MainRoutine_Win32::wnd_proc, 0L, 0L,
-        GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, APP_CAPTION_W, nullptr };
+        ::GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, APP_CAPTION_W, nullptr };
     m_wc.hbrBackground = NULL;
     ::RegisterClassExW(&m_wc);
 
-    const int32_t screen_w = GetSystemMetrics(SM_CXSCREEN);
-    const int32_t screen_y = GetSystemMetrics(SM_CYSCREEN);
+    const int32_t screen_w = ::GetSystemMetrics(SM_CXSCREEN);
+    const int32_t screen_y = ::GetSystemMetrics(SM_CYSCREEN);
 
     const auto initial_width = 1024;
     const auto initial_height = 768;
@@ -55,7 +55,7 @@ bool MainRoutine_Win32::init()
         return false;
     }
 
-    m_hicon.reset((HICON)LoadImage(m_wc.hInstance, MAKEINTRESOURCE(101), IMAGE_ICON, 32, 32, LR_LOADTRANSPARENT));
+    m_hicon.reset((HICON)::LoadImage(m_wc.hInstance, MAKEINTRESOURCE(101), IMAGE_ICON, 32, 32, LR_LOADTRANSPARENT));
     ::SendMessage(m_hwnd, WM_SETICON, ICON_BIG, (LPARAM)m_hicon.get());
     ::SendMessage(m_hwnd, WM_SETICON, ICON_SMALL, (LPARAM)m_hicon.get());
 
@@ -92,7 +92,7 @@ bool MainRoutine_Win32::init()
     prepare_fonts();
 
     // app obj
-    SetWindowLongPtr(m_hwnd, GWLP_USERDATA, (LONG_PTR)this);
+    ::SetWindowLongPtr(m_hwnd, GWLP_USERDATA, (LONG_PTR)this);
 
     return true;
 }
@@ -105,11 +105,11 @@ int32_t MainRoutine_Win32::run(flow_callback& callback, std::atomic_bool& reques
     while (!done)
     {
         // wait for evert or timer, but not longer than 20ms
-        MsgWaitForMultipleObjectsEx(0, NULL, 20, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+        ::MsgWaitForMultipleObjectsEx(0, NULL, 20, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
 
         // Poll and handle messages (inputs, window resize, etc.)
         // See the wnd_proc() function below for our to dispatch events to the Win32 backend.
-        MSG msg;
+        ::MSG msg;
         while (::PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             {
@@ -200,7 +200,7 @@ bool MainRoutine_Win32::create_device_d3d(HWND hWnd)
 {
     // Setup swap chain
     DXGI_SWAP_CHAIN_DESC sd;
-    ZeroMemory(&sd, sizeof(sd));
+    ::ZeroMemory(&sd, sizeof(sd));
     sd.BufferCount = 2;
     sd.BufferDesc.Width = 0;
     sd.BufferDesc.Height = 0;
@@ -224,9 +224,9 @@ bool MainRoutine_Win32::create_device_d3d(HWND hWnd)
     ID3D11DeviceContext* pd3dDeviceContext = nullptr;
     IDXGISwapChain* pSwapChain = nullptr;
 
-    HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &pSwapChain, &pd3dDevice, &featureLevel, &pd3dDeviceContext);
+    HRESULT res = ::D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &pSwapChain, &pd3dDevice, &featureLevel, &pd3dDeviceContext);
     if (DXGI_ERROR_UNSUPPORTED == res) // Try high-performance WARP software driver if hardware is not available.
-        res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &pSwapChain, &pd3dDevice, &featureLevel, &pd3dDeviceContext);
+        res = ::D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &pSwapChain, &pd3dDevice, &featureLevel, &pd3dDeviceContext);
     if (res != S_OK)
     {
         LogError(ExcepCategory::DirectX, "Failed D3D11CreateDevice with error: " << LogERR);
@@ -289,7 +289,7 @@ void MainRoutine_Win32::init_imgui_diloag_texture()
         [this, d3d_device = m_d3d_device.get()](uint8_t* data, int32_t w, int32_t h, char fmt) -> void*
     {
         D3D11_TEXTURE2D_DESC desc;
-        ZeroMemory(&desc, sizeof(desc));
+        ::ZeroMemory(&desc, sizeof(desc));
         desc.Width = w;
         desc.Height = h;
         desc.MipLevels = 1;
@@ -359,14 +359,14 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
     {
     case WM_ENTERSIZEMOVE:
     {
-        MainRoutine_Win32* routine = (MainRoutine_Win32*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+        MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
         if (routine != nullptr)
             routine->m_moving = true;
     }
     break;
     case WM_EXITSIZEMOVE:
     {
-        MainRoutine_Win32* routine = (MainRoutine_Win32*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+        MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
         if (routine != nullptr)
             routine->m_moving = false;
     }
@@ -381,7 +381,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
             return 0;
         }
 
-        MainRoutine_Win32* routine = (MainRoutine_Win32*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+        MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
         if (routine != nullptr)
         {
             routine->cleanup_render_target();
@@ -455,9 +455,9 @@ void MainRoutine_Win32::wnd_maximize()
 {
     Log("Window maximize cmd");
     WINDOWPLACEMENT pl = {};
-    GetWindowPlacement(m_hwnd, &pl);
+    ::GetWindowPlacement(m_hwnd, &pl);
     pl.showCmd = SW_SHOWMAXIMIZED;
-    SetWindowPlacement(m_hwnd, &pl);
+    ::SetWindowPlacement(m_hwnd, &pl);
 }
 
 void MainRoutine_Win32::wnd_show()

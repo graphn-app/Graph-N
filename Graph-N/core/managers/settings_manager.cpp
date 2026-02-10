@@ -34,6 +34,7 @@ bool SettingsManager::init()
     m_comfyui_auto_hide_output =                      { "comfy_auto_hide_output",   bool(true) };
     m_comfyui_main_py =                               { "comfyui_main_py",          std::filesystem::path("") };
     m_comfyui_command =                               { "comfyui_command",          std::string("") };
+    m_comfyui_workdir =                               { "comfyui_workdir",          std::string("") };
 
     // wf
     m_wf_widget_input_numbers =                       { "widget_input_numbers",     cast::to_i64(WidgetInput::Slider) };
@@ -155,6 +156,7 @@ bool SettingsManager::init()
     values.push_back(&m_comfyui_auto_hide_output);
     values.push_back(&m_comfyui_main_py);
     values.push_back(&m_comfyui_command);
+    values.push_back(&m_comfyui_workdir);
     values.push_back(&m_wf_widget_input_numbers);
     values.push_back(&m_wf_widget_input_bools);
     values.push_back(&m_wf_active);

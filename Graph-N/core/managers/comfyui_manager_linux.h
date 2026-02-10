@@ -17,7 +17,7 @@ public:
     void stop_all_threads() override;
 
 protected:
-    bool run_server() override;
+    void run_server() override;
 };
 
 } // namespace mngr

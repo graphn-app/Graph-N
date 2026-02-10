@@ -759,7 +759,7 @@ std::vector<std::string> scan_for_disks()
     std::vector<std::string> ret;
 #ifdef _WIN32
     char buffer[512];
-    const DWORD len = GetLogicalDriveStringsA(sizeof(buffer), buffer);
+    const DWORD len = ::GetLogicalDriveStringsA(sizeof(buffer), buffer);
     if (0 == len)
     {
         LogErrorS(ExcepCategory::API, "GetLogicalDriveStringsA failed, err " << LogERR);
@@ -770,7 +770,7 @@ std::vector<std::string> scan_for_disks()
     while (*drive)
     {
         // Filter: Only fixed drives (HDD/SSD). Ignore USB/Network to avoid lag.
-        if (DRIVE_FIXED == GetDriveTypeA(drive))
+        if (DRIVE_FIXED == ::GetDriveTypeA(drive))
         {
             ret.push_back(drive);
         }

@@ -21,7 +21,7 @@ ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32
         return nullptr;
 
     D3D11_TEXTURE2D_DESC desc;
-    ZeroMemory(&desc, sizeof(desc));
+    ::ZeroMemory(&desc, sizeof(desc));
     desc.Width = cast::to_u32(width);
     desc.Height = cast::to_u32(height);
     desc.ArraySize = 1;
@@ -49,7 +49,7 @@ ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32
     if (!generate_mips)
     {
         D3D11_SUBRESOURCE_DATA init_data;
-        ZeroMemory(&init_data, sizeof(init_data));
+        ::ZeroMemory(&init_data, sizeof(init_data));
         init_data.pSysMem = image_data.get();
         init_data.SysMemPitch = desc.Width * 4;
         init_data.SysMemSlicePitch = 0;
@@ -74,7 +74,7 @@ ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32
     }
 
     D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc;
-    ZeroMemory(&srv_desc, sizeof(srv_desc));
+    ::ZeroMemory(&srv_desc, sizeof(srv_desc));
     srv_desc.Format = desc.Format;
     srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
     srv_desc.Texture2D.MostDetailedMip = 0;

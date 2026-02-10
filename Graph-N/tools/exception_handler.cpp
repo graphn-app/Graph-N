@@ -38,14 +38,14 @@ wchar_t SehException::dump_path[MAX_PATH * 2 + 1];
 static void dump_mini_dump(HANDLE hdumpfile, PEXCEPTION_POINTERS excp_info)
 {
     MINIDUMP_EXCEPTION_INFORMATION eInfo;
-    eInfo.ThreadId = GetCurrentThreadId();
+    eInfo.ThreadId = ::GetCurrentThreadId();
     eInfo.ExceptionPointers = excp_info;
     eInfo.ClientPointers = FALSE;
 
     // Use nullptr for eInfo if excp_info is null, don't raise new exception
     PMINIDUMP_EXCEPTION_INFORMATION peInfo = excp_info ? &eInfo : nullptr;
 
-    MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hdumpfile,
+    ::MiniDumpWriteDump(::GetCurrentProcess(), ::GetCurrentProcessId(), hdumpfile,
         MINIDUMP_TYPE(MiniDumpNormal | MiniDumpWithDataSegs | MiniDumpWithHandleData | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithProcessThreadData),
         peInfo, nullptr, nullptr);
 }
@@ -77,13 +77,13 @@ int32_t __cdecl record_exception_info(PEXCEPTION_POINTERS pExceptPtrs)
     // Fallback logic for demo purposes (assuming your fs logic works):
     try
     {
-        HANDLE hdump = CreateFileW(SehException::dump_path,
+        HANDLE hdump = ::CreateFileW(SehException::dump_path,
             GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH, NULL);
 
         if (hdump != INVALID_HANDLE_VALUE)
         {
             dump_mini_dump(hdump, pExceptPtrs);
-            CloseHandle(hdump);
+            ::CloseHandle(hdump);
         }
     }
     catch (...)
@@ -124,7 +124,7 @@ void set_exception_translator()
     _set_se_translator(SEHTranslator);
 
     // Handle crashes outside any try/catch
-    SetUnhandledExceptionFilter(SEHFilter);
+    ::SetUnhandledExceptionFilter(SEHFilter);
 
     // Prevent CRT from showing "Debug Error" dialogs in release
     _set_abort_behavior(0, _WRITE_ABORT_MSG);

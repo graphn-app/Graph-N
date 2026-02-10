@@ -66,6 +66,9 @@ public:
     inline const std::string& comfyui_command_load() const { return *std::get_if<std::string>(&m_comfyui_command.value); }
     inline void comfyui_command_save(const std::string& cmd) { save_option(m_comfyui_command, cmd); }
 
+    inline const std::string& comfyui_workdir_load() const { return *std::get_if<std::string>(&m_comfyui_workdir.value); }
+    inline void comfyui_workdir_save(const std::string& cmd) { save_option(m_comfyui_workdir, cmd); }
+
     // wf
     inline WidgetInput wf_widget_input_numbers_load() const { return cast::to_enum<WidgetInput>(*std::get_if<int64_t>(&m_wf_widget_input_numbers.value)); }
     inline void wf_widget_input_numbers_save(WidgetInput numbers) { save_option(m_wf_widget_input_numbers, cast::to_i64<>(numbers)); }
@@ -156,6 +159,7 @@ private:
     OptionValue m_comfyui_parse_address; // int
     OptionValue m_comfyui_main_py; // path
     OptionValue m_comfyui_command; // str
+    OptionValue m_comfyui_workdir; // str
 
     // wf
     OptionValue m_wf_widget_input_numbers; // int

@@ -9,7 +9,7 @@ std::filesystem::path get_this_app_filepath()
 
     while (true)
     {
-        const DWORD length = GetModuleFileNameW(NULL, buff.data(), cast::to_u32(buff.size()));
+        const DWORD length = ::GetModuleFileNameW(NULL, buff.data(), cast::to_u32(buff.size()));
         if (0 == length)
         {
             LogAndThrowS(ExcepCategory::API, "Failed to call WinAPI");

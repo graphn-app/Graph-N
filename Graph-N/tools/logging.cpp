@@ -146,7 +146,7 @@ void Logger::log_start()
 #ifdef _WIN32
             << "Process ID: " << cast::to_u32(::GetCurrentProcessId()) << "\n"
             << "Main thread ID: " << cast::to_u32(::GetCurrentThreadId()) << "\n"
-            << "Command line: " << " " << GetCommandLineA() << "\n"
+            << "Command line: " << " " << ::GetCommandLineA() << "\n"
 #elif defined __APPLE__
 #error Not implemented
 #elif defined __linux__
@@ -188,7 +188,7 @@ void Logger::write(LogWriter& writer)
     auto buffer = writer.extract_buffer();
 
 #if defined _WIN32 && defined _DEBUG
-    OutputDebugStringA((APP_CAPTION "__: " + buffer).c_str());
+    ::OutputDebugStringA((APP_CAPTION "__: " + buffer).c_str());
 #endif
 
     std::lock_guard<std::mutex> lock(m_lock);

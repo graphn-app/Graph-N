@@ -26,9 +26,8 @@ void ComfyUIManager_Linux::free()
     LogF;
 }
 
-bool ComfyUIManager_Linux::run_server()
+void ComfyUIManager_Linux::run_server()
 {
-    return true;
 }
 
 } // namespace mngr

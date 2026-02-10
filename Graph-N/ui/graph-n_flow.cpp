@@ -772,6 +772,13 @@ void GraphN_Flow::show_panel_wf()
     }
 }
 
+void GraphN_Flow::handle_comfyui_runserver_error(int32_t error, const std::string& title, const std::string& description)
+{
+    (void)error;
+    (void)title;
+    (void)description;
+}
+
 void GraphN_Flow::show_menu_bar_connecting()
 {
     std::string text;

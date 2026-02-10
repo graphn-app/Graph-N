@@ -84,6 +84,7 @@ public:
     inline void set_online(bool online) { m_online = online; }
 
     void reconnect();
+    void handle_comfyui_runserver_error(int32_t error, const std::string& title, const std::string& description);
 
     void open_settings_dlg(OptPane section = OptPane::_none);
 

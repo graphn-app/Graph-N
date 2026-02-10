@@ -26,9 +26,8 @@ void ComfyUIManager_Apple::free()
     LogF;
 }
 
-bool ComfyUIManager_Apple::run_server()
+void ComfyUIManager_Apple::run_server()
 {
-    return true;
 }
 
 } // namespace mngr
