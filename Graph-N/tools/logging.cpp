@@ -1,5 +1,6 @@
 
 #include "core/base/version.h"
+#include "core/managers/db_manager.h"
 
 namespace glog
 {
@@ -11,7 +12,7 @@ std::atomic_bool Logger::m_enabled = false;
 
 void Logger::cleanup()
 {
-    auto path = fs::get_log_directory_path();
+    const auto path = fs::get_log_directory_path();
     auto list = tools::path::enumerate_directory(path, false, false, true, false);
 
     constexpr int32_t to_save = 5 + 1;
@@ -124,25 +125,27 @@ void Logger::log_start()
     m_logfs.open(m_log_path.c_str(), std::ios::out | std::ios::app);
     if (m_logfs.is_open() && !m_logfs.bad() && tools::path::exists(m_log_path))
     {
-#ifdef _WIN32
-        const uint32_t proc_id = cast::to_u32(GetCurrentProcessId());
-#elif defined __APPLE__
-#error Not implemented
-#elif defined __linux__
-#error Not implemented
-#endif
-
         m_enabled = true;        
         m_working_thread = std::thread(&Logger::working_thread, this);
+
+        const auto db_meta = mngr::DbManager::read_db_metadata();
 
         LogWriter writer;
         writer
             << "\n\n"
-            << "[" << proc_id << "]\n"
             << "Log started: " << tools::dt::get_app_start_time().as_log_line() << "\n"
             << "App version: " << ver::ver_as_string() << "\n"
+            << "Db meta: "
+        ;
+        if (db_meta.db_ver != 0)
+            writer << "db ver " << db_meta.db_ver << ", app ver " << db_meta.app_ver << ", last run " << db_meta.last_run << "\n";
+        else
+            writer << "\n";
+        writer
             << "Generated client id: " << base::GlobalID::client_id() << "\n"
 #ifdef _WIN32
+            << "Process ID: " << cast::to_u32(::GetCurrentProcessId()) << "\n"
+            << "Main thread ID: " << cast::to_u32(::GetCurrentThreadId()) << "\n"
             << "Command line: " << " " << GetCommandLineA() << "\n"
 #elif defined __APPLE__
 #error Not implemented

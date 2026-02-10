@@ -5,11 +5,20 @@
 namespace mngr
 {
 
+struct DbMetadata
+{
+    uint32_t db_ver;
+    std::string app_ver;
+    std::string last_run;
+};
+
 class DbManager final : public Manager
 {
 public:
     DbManager() = default;
     ~DbManager() override;
+
+    static DbMetadata read_db_metadata();
 
     bool init() override;
     void stop_all_threads() override;
@@ -58,6 +67,7 @@ private:
     };
 
 private:
+    void backup_thread(std::filesystem::path db_path, std::unique_ptr<SQLite::Database> db);
     void write_thread(std::filesystem::path db_path);
     void write_data(SQLite::Database& db, const ExcepData* data);
     void write_data(SQLite::Database& db, const DbAppOptionData* data);
@@ -70,6 +80,7 @@ private:
 
 private:
     std::thread m_th;
+    std::thread m_th_backup;
     std::mutex m_lock;
     std::condition_variable m_cv;
     std::atomic_bool m_stop_thread_flag = false;

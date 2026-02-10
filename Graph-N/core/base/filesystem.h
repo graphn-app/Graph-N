@@ -8,6 +8,7 @@ std::filesystem::path get_root_directory_path();
 std::filesystem::path get_log_directory_path();
 std::filesystem::path get_res_directory_path();
 std::filesystem::path get_temp_directory_path();
+std::filesystem::path get_backup_directory_path();
 std::filesystem::path get_crash_dump_directory_path();
 
 }

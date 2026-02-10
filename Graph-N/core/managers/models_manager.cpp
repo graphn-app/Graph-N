@@ -46,12 +46,12 @@ void ModelsManager::load_models_th()
         auto res = cli.Get(comfyui_api::models);
         if (m_stop_flag)
         {
-            LogS("Models thread aborted");
+            Log("Models thread aborted");
             return;
         }
         if (!res || res->status != 200 || res->body.empty())
         {
-            LogS("Models thread stopped, server reply: " << res->status << ", body: " << res->body.size());
+            Log("Models thread stopped, server reply: " << res->status << ", body: " << res->body.size());
             return;
         }
 
@@ -65,7 +65,7 @@ void ModelsManager::load_models_th()
 
         if (m_stop_flag)
         {
-            LogS("Models thread aborted");
+            Log("Models thread aborted");
             return;
         }
 
@@ -79,7 +79,7 @@ void ModelsManager::load_models_th()
             res = cli.Get(req_path);
             if (!res || res->status != 200 || res->body.empty())
             {
-                LogS("Can't requests model " << req_path << ",  err " << res->status << ", body: " << res->body.size());
+                Log("Can't requests model " << req_path << ",  err " << res->status << ", body: " << res->body.size());
                 continue;
             }
 
@@ -118,7 +118,7 @@ void ModelsManager::load_models_th()
 
             if (m_stop_flag)
             {
-                LogS("Models thread aborted");
+                Log("Models thread aborted");
                 return;
             }
         }
@@ -133,7 +133,7 @@ void ModelsManager::load_models_th()
 
         if (m_stop_flag)
         {
-            LogS("Models thread aborted");
+            Log("Models thread aborted");
             return;
         }
 

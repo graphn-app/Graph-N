@@ -77,7 +77,7 @@ std::string dt::as_filename() const
 std::string dt::as_full_date() const
 {
     // YYYY/MMM/DD_HH:MM:SS.mmm
-    return fmt::format("{:04}/{}/{:02}_{:02}:{:02}:{:02}.{:03}",
+    return fmt::format("{:04}/{}/{:02} {:02}:{:02}:{:02}.{:03}",
         m_year, month_name(3), m_day,
         m_hour, m_minute, m_second, m_millisecond);
 }

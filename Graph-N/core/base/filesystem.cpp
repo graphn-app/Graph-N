@@ -62,6 +62,13 @@ std::filesystem::path get_temp_directory_path()
     return root;
 }
 
+std::filesystem::path get_backup_directory_path()
+{
+    auto root = get_root_directory_path();
+    root /= "backup";
+    return root;
+}
+
 std::filesystem::path get_crash_dump_directory_path()
 {
     auto root = get_root_directory_path();

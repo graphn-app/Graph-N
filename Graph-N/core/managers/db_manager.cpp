@@ -1,5 +1,6 @@
 
 #include "core/managers/db_manager.h"
+#include "core/base/version.h"
 
 namespace mngr
 {
@@ -23,6 +24,10 @@ inline constexpr auto gdb_val_history_pos = "history_pos";
 inline constexpr auto gdb_val_deleted = "deleted";
 inline constexpr auto gdb_val_keep = "keep";
 
+inline constexpr auto gdb_valname_app_ver = "app_ver";
+inline constexpr auto gdb_valname_last_run = "last_run";
+
+inline constexpr auto gdb_tbl_meta = "METADATA";
 inline constexpr auto gdb_tbl_err = "ERRORS";
 inline constexpr auto gdb_tbl_opt = "SETTINGS";
 inline constexpr auto gdb_tbl_items = "ITEMPROPS";
@@ -30,6 +35,15 @@ inline constexpr auto gdb_tbl_wf_meta = "WORKFLOW_META";
 inline constexpr auto gdb_tbl_wf_json = "WORKFLOW_JSON";
 
 /*
+_______________________________________________________________________________________________________________________________________________________________
+METADATA: | id        | name           | val_int      | val_str
+__________|------------------------------------------------------------------------------------------------------------------------------------------------------
+          | int       | str            | int          | str
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+          | prim      | app_ver        | 0            | app version
+          | prim      | last_run       | 0            | last run time 
+_______________________________________________________________________________________________________________________________________________________________
+
 _______________________________________________________________________________________________________________________________________________________________
 ERRORS: | id        | file           | line      | category                      | message              | at
 ________|------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -93,6 +107,46 @@ void DbManager::stop_all_threads()
     m_cv.notify_all();
     if (m_th.joinable())
         m_th.join();
+    if (m_th_backup.joinable())
+        m_th_backup.join();
+}
+
+DbMetadata DbManager::read_db_metadata()
+{
+    auto path = fs::get_root_directory_path();
+    path /= APP_CAPTION_LOW ".db";
+    if (!tools::path::exists(path))
+        return {};
+
+    DbMetadata meta;
+
+    try
+    {
+        auto db = std::make_unique<SQLite::Database>(path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
+        meta.db_ver = db->execAndGet("PRAGMA user_version");
+
+        SQLite::Statement query(*db,
+            fmt::format(FMT_COMPILE(R"(
+                    SELECT {}, {}, {}
+                    FROM {}
+                )"),
+                gdb_val_name, gdb_val_str, gdb_val_int,
+                gdb_tbl_meta));
+
+        while (query.executeStep())
+        {
+            if (query.getColumn(0).getString() == gdb_valname_app_ver)
+                meta.app_ver = query.getColumn(1).getString();
+            else if (query.getColumn(0).getString() == gdb_valname_last_run)
+                meta.last_run = query.getColumn(1).getString();
+        }
+
+        return meta;
+    }
+    catch (const SQLite::Exception&)
+    {
+    }
+    return {};
 }
 
 bool DbManager::init()
@@ -102,7 +156,9 @@ bool DbManager::init()
 
     try
     {
+        auto backup_db = std::make_unique<SQLite::Database>(path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
         m_db = std::make_unique<SQLite::Database>(path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
+
         m_db->exec("PRAGMA journal_mode = WAL;");
         m_db->exec("PRAGMA synchronous = NORMAL;");
 
@@ -114,6 +170,44 @@ bool DbManager::init()
         }
 
         SQLite::Transaction transaction(*m_db);
+
+        m_db->exec("PRAGMA user_version = " + std::to_string(ver::app_major) + ";");
+
+        m_db->exec(fmt::format(FMT_COMPILE(R"(
+					CREATE TABLE IF NOT EXISTS {} (
+						{} INTEGER PRIMARY KEY AUTOINCREMENT,
+						{} TEXT NOT NULL UNIQUE,
+						{} TEXT,
+						{} INTEGER
+					);
+			   )"), gdb_tbl_meta, gdb_val_id,
+                    gdb_val_name, gdb_val_str, gdb_val_int));
+
+        SQLite::Statement query_appver(*m_db,
+            fmt::format(FMT_COMPILE(R"(
+                        REPLACE INTO {}
+                                ({}, {}, {})
+                        VALUES  (?,  ?,  ?)
+                )"),
+                gdb_tbl_meta,
+                gdb_val_name, gdb_val_str, gdb_val_int));
+        query_appver.bindNoCopy(1, gdb_valname_app_ver);
+        query_appver.bind(2, ver::ver_as_string());
+        query_appver.bind(3, 0);
+        query_appver.exec();
+
+        SQLite::Statement query_lastrun(*m_db,
+            fmt::format(FMT_COMPILE(R"(
+                        REPLACE INTO {}
+                                ({}, {}, {})
+                        VALUES  (?,  ?,  ?)
+                )"),
+                gdb_tbl_meta,
+                gdb_val_name, gdb_val_str, gdb_val_int));
+        query_lastrun.bindNoCopy(1, gdb_valname_last_run);
+        query_lastrun.bind(2, tools::dt::from_current_date().as_full_date());
+        query_lastrun.bind(3, 0);
+        query_lastrun.exec();
 
         m_db->exec(fmt::format(FMT_COMPILE(R"(
 					CREATE TABLE IF NOT EXISTS {} (
@@ -185,6 +279,7 @@ bool DbManager::init()
 
         m_stop_thread_flag = false;
         m_th = std::thread(&DbManager::write_thread, this, path);
+        m_th_backup = std::thread(&DbManager::backup_thread, this, path, std::move(backup_db));
     }
     catch (const SQLite::Exception& ex)
     {
@@ -540,6 +635,53 @@ void DbManager::wf_update_json(WfData& wf)
     }
     if (!m_transaction_flag)
         m_cv.notify_all();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+/////////// backup thread                   //////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+
+void DbManager::backup_thread(std::filesystem::path db_path, std::unique_ptr<SQLite::Database> db)
+{
+    try
+    {
+        if (db_path.empty())
+            return;
+
+        auto backup = fs::get_backup_directory_path();
+        if (!tools::path::make_folder(backup))
+            return;
+
+        auto list = tools::path::enumerate_directory(backup, false, false, true, false);
+        constexpr int32_t to_save = 2;
+        int32_t to_delete = cast::to_i32(list.size()) - to_save;
+        if (to_delete > 0)
+        {
+            const auto sort_callback = [](const std::filesystem::path& lhs, const std::filesystem::path& rhs)
+            {
+                return lhs.wstring() < rhs.wstring();
+            };
+            std::sort(list.begin(), list.end(), sort_callback);
+
+            for (const auto& file : list)
+            {
+                tools::path::remove(file);
+                if (--to_delete <= 0)
+                    break;
+            }
+        }
+
+        backup /= tools::dt::get_app_start_time().as_filename() + ".db";
+        auto path = backup.generic_u8string();
+        tools::str::replace_this(path, "'", "''");
+        const std::string command = fmt::format("VACUUM INTO '{}';", path);
+        db->exec(command);
+        Log("Db backuped up to " << path);
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::SQLite, "SQLite backup err: " << LOG_EXP(ex));
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
