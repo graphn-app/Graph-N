@@ -107,7 +107,7 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text, f
     ImGui::SameLine();
     ImGui::SetCursorPosX(offset);
     ImGui::SetNextItemWidth(item_w);
-    m_data_changed = ImGuiEx::InputText("##ComfyUIHost", &buffer_s[BuffHost], ImGuiInputTextFlags_AutoSelectAll) || m_data_changed;
+    m_data_changed = ImGuiEx::InputText("##ComfyUIHost", &buffer_s[BuffHost], ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank) || m_data_changed;
 
 
     ///////////////       port
@@ -145,7 +145,7 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text, f
     ImGuiEx::Spacing(2);
 
     ImGui::SetCursorPosX(offset);
-    if (!m_data_changed)
+    if (!m_data_changed || buffer_s[BuffHost].empty())
         ImGui::BeginDisabled();
     else
     {
@@ -154,7 +154,7 @@ void OptComfyDlg::show_connection_opts(OptsData& data, const char*& help_text, f
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,  g::pOptsManager->color_load(AppColor::OptBtnPressed));
     }
     const bool click = ImGui::Button("Save/Apply connection settings##applyconn", ImVec2(item_w, 0));
-    if (!m_data_changed)
+    if (!m_data_changed || buffer_s[BuffHost].empty())
         ImGui::EndDisabled();
     else
         ImGui::PopStyleColor(3);
@@ -230,8 +230,8 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text, 
 
 
     ///////////// disable if no path
-    if (buffer_s[BuffPath].empty() || buffer_s[BuffPython].empty())
-        ImGui::BeginDisabled();
+    //if (buffer_s[BuffPath].empty() || buffer_s[BuffPython].empty())
+    //    ImGui::BeginDisabled();
 
 
     /////////////       start server
@@ -239,20 +239,36 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text, 
     ImGui::SameLine();
     bool b_val = g::pOptsManager->comfyui_start_server_load();
     if (ImGui::Checkbox("Auto-start server##ComfyUIStart", &b_val))
+    {
         g::pOptsManager->comfyui_start_server_save(b_val);
+        if (!b_val)
+        {
+            g::pOptsManager->comfyui_kill_server_save(false);
+            g::pOptsManager->comfyui_hide_console_save(false);
+            g::pOptsManager->comfyui_capture_output_save(false);
+            g::pOptsManager->comfyui_autohide_output_save(false);
+            g::pOptsManager->comfyui_parse_address_save(false);
+        }
+    }
 
 
     ///////////// disable if no start
-    if (!g::pOptsManager->comfyui_start_server_load())
-        ImGui::BeginDisabled();
+    //if (!g::pOptsManager->comfyui_start_server_load())
+    //    ImGui::BeginDisabled();
 
 
     /////////////       stop server
-    show_help_mark(help_text, data.input_offset_x, false, "Terminate the " APP_COMFYUI " process when closing ." APP_CAPTION ".\n\nPrevents orphan python processes running in the background.");
+    show_help_mark(help_text, data.input_offset_x, false, "Terminate the " APP_COMFYUI " process when closing " APP_CAPTION ".\n\nPrevents orphan python processes running in the background.");
     ImGui::SameLine();
     b_val = g::pOptsManager->comfyui_kill_server_load();
     if (ImGui::Checkbox("Auto-stop on exit##ComfyUIStop", &b_val))
+    {
         g::pOptsManager->comfyui_kill_server_save(b_val);
+        if (b_val)
+            g::pOptsManager->comfyui_start_server_save(true);
+        else
+            g::pOptsManager->comfyui_hide_console_save(false);
+    }
 
 
     /////////////       hide console
@@ -260,7 +276,15 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text, 
     ImGui::SameLine();
     b_val = g::pOptsManager->comfyui_hide_console_load();
     if (ImGui::Checkbox("Hide console window##ComfyUIHide", &b_val))
+    {
         g::pOptsManager->comfyui_hide_console_save(b_val);
+        if (b_val)
+        {
+            g::pOptsManager->comfyui_start_server_save(true);
+            g::pOptsManager->comfyui_kill_server_save(true);
+            g::pOptsManager->comfyui_capture_output_save(true);
+        }
+    }
 
 
     /////////////       capture output
@@ -268,12 +292,21 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text, 
     ImGui::SameLine();
     b_val = g::pOptsManager->comfyui_capture_output_load();
     if (ImGui::Checkbox("Capture output##ComfyUICapture", &b_val))
+    {
         g::pOptsManager->comfyui_capture_output_save(b_val);
+        if (b_val)
+            g::pOptsManager->comfyui_start_server_save(true);
+        else
+        {
+            g::pOptsManager->comfyui_hide_console_save(false);
+            g::pOptsManager->comfyui_parse_address_save(false);
+        }
+    }
 
 
     ///////////// disable if no catch
-    if (!g::pOptsManager->comfyui_capture_output_load())
-        ImGui::BeginDisabled();
+    //if (!g::pOptsManager->comfyui_capture_output_load())
+    //    ImGui::BeginDisabled();
 
 
     /////////////       auto hide output
@@ -281,27 +314,41 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text, 
     ImGui::SameLine();
     b_val = g::pOptsManager->comfyui_autohide_output_load();
     if (ImGui::Checkbox("Autohide Logs panel##ComfyUIHideLog", &b_val))
+    {
         g::pOptsManager->comfyui_autohide_output_save(b_val);
+        if (b_val)
+        {
+            g::pOptsManager->comfyui_start_server_save(true);
+            g::pOptsManager->comfyui_capture_output_save(true);
+        }
+    }
 
     /////////////       parse address
     show_help_mark(help_text, data.input_offset_x, false, "Attempt to find the listening IP and port by parsing the server startup logs.\n\nIf disabled, the manual address settings above will be used.");
     ImGui::SameLine();
     b_val = g::pOptsManager->comfyui_parse_address_load();
     if (ImGui::Checkbox("Auto-detect port##ComfyUIParse", &b_val))
+    {
         g::pOptsManager->comfyui_parse_address_save(b_val);
+        if (b_val)
+        {
+            g::pOptsManager->comfyui_start_server_save(true);
+            g::pOptsManager->comfyui_capture_output_save(true);
+        }
+    }
 
 
     ///////////// disable if no catch
-    if (!g::pOptsManager->comfyui_capture_output_load())
-        ImGui::EndDisabled();
+    //if (!g::pOptsManager->comfyui_capture_output_load())
+    //    ImGui::EndDisabled();
 
-    ///////////// disable if no start
-    if (!g::pOptsManager->comfyui_start_server_load())
-        ImGui::EndDisabled();
+    /////////////// disable if no start
+    //if (!g::pOptsManager->comfyui_start_server_load())
+    //    ImGui::EndDisabled();
 
-    ///////////// disable if no path
-    if (buffer_s[BuffPath].empty() || buffer_s[BuffPython].empty())
-        ImGui::EndDisabled();
+    /////////////// disable if no path
+    //if (buffer_s[BuffPath].empty() || buffer_s[BuffPython].empty())
+    //    ImGui::EndDisabled();
 
     /////////////// apply
     ImGuiEx::Spacing(2);
@@ -322,6 +369,11 @@ void OptComfyDlg::show_interaction_opts(OptsData& data, const char*& help_text, 
         ImGui::PopStyleColor(3);
     if (click)
     {
+        tools::str::trim_this(buffer_s[BuffPath]);
+        tools::str::trim_this(buffer_s[BuffPython]);
+        tools::str::trim_this(buffer_s[BuffCmd]);
+        if (buffer_s[BuffPath].empty() || buffer_s[BuffPython].empty())
+            return;
     }
 }
 
