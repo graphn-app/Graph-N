@@ -66,6 +66,14 @@ std::vector<std::filesystem::path> enumerate_directory(const std::filesystem::pa
 std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::path& path,
     bool recursively, bool include_dirs, bool include_files, bool relative_pathes, char slash);
 
+using FdSelectResultSg = std::function<void(bool, std::filesystem::path&&)>;
+using FdSelectResultMt = std::function<void(bool, std::list<std::filesystem::path>&&)>;
+void select_file_open(std::list<std::pair<std::wstring, std::wstring>>&& filters, FdSelectResultSg& callback);
+void select_files_open(std::list<std::pair<std::wstring, std::wstring>>&& filters, FdSelectResultMt& callback);
+void select_file_save(std::list<std::pair<std::wstring, std::wstring>>&& filters, std::filesystem::path init_file, FdSelectResultSg& callback);
+void select_dir(FdSelectResultSg& callback);
+void select_dirs(FdSelectResultMt& callback);
+
 }	// namespace path
 
 namespace api

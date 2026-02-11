@@ -35,10 +35,6 @@ enum class DlgObj
 
     OptionsDlg,
     OptLeftPane,
-    OptLeftPane_General,
-    OptLeftPane_ComfyUI,
-    OptLeftPane_Workflow,
-    OptLeftPane_Stats,
     OptRightPane,
     OptRightPane_Sub,
 
@@ -69,10 +65,6 @@ constexpr const char* DlgObjID[static_cast<size_t>(DlgObj::_count)] =
 
     "Options##C0121D08-41AA-4BC6-90D9-DCE1D70BDE80",            // OptionsDlg: with caption
     "08D470FA-B8EC-47F4-AE0E-55129C3CEFFC",                     // OptLeftPane
-    "General##DB6089DD-55D1-4604-B263-D45A71A1E665",            // OptLeftPane_General: with caption
-    APP_COMFYUI "##AE6E9261-EA70-4AB3-A97D-1FC87C94B73C",       // OptLeftPane_ComfyUI: with caption
-    "Workflow##7CFEE878-C390-46B1-BDDF-99BCC4EF2FB4",           // OptLeftPane_Workflow: with caption
-    "Stats##9D71FAC2-2ECC-4A15-A7B2-B611B23B6E26",              // OptLeftPane_Stats: with caption
     "EDAC954E-79AD-4E89-B9E9-68B4B24453A1",                     // OptRightPane
     "C5757F45-AD33-4319-B436-450D8EAD813D",                     // OptRightPane_Sub
 
@@ -97,16 +89,16 @@ constexpr const char* DlgObjID[static_cast<size_t>(DlgObj::_count)] =
 
 enum class OptPane
 {
-    _none,
+    Application,
+    Connection,
+    LocalServer,
+    Interface,
+    Diagnostics,
+    KeyBindings,
 
-    General,
-    ComfyUi,
-    Stats,
-    Wf,
-
-    _count = Wf,
-    _first = _none + 1,
-    _last = _count
+    _count,
+    _first = Application,
+    _last = KeyBindings
 };
 
 enum DlgCtrl

@@ -13,9 +13,22 @@ public:
 
     bool init() override;
 
-    // general
-    inline bool general_vsync_load() const { return *std::get_if<bool>(&m_general_vsync.value); }
-    inline void general_vsync_save(bool enabled) { save_option(m_general_vsync, bool(enabled)); }
+    // app
+    inline bool app_autoupdate_load() const { return *std::get_if<bool>(&m_app_autoupdate.value); }
+    inline void app_autoupdate_save(bool enabled) { save_option(m_app_autoupdate, bool(enabled)); }
+
+    inline bool app_vsync_load() const { return *std::get_if<bool>(&m_app_vsync.value); }
+    inline void app_vsync_save(bool enabled) { save_option(m_app_vsync, bool(enabled)); }
+
+    inline bool app_fps_limit_load() const { return *std::get_if<bool>(&m_app_fps_limit.value); }
+    inline void app_fps_limit_save(bool enabled) { save_option(m_app_fps_limit, bool(enabled)); }
+
+    inline int64_t app_fps_limit_val_load() const { return *std::get_if<int64_t>(&m_app_fps_limit_val.value); }
+    void app_fps_limit_val_save(int64_t limit) { save_option(m_app_fps_limit_val, int64_t(limit)); }
+
+    inline int64_t app_scale_load() const { return *std::get_if<int64_t>(&m_app_scale.value); }
+    void app_scale_save(int64_t scale) { save_option(m_app_scale, int64_t(scale)); }
+
 
     // ui
     inline ImU32 color_load(AppColor color) const { return cast::to_u32(*std::get_if<int64_t>(&m_ui_colors[cast::to_szt(color)].value)); }
@@ -25,6 +38,9 @@ public:
 
     inline bool ui_nodes_pane_tree_view_load() const { return *std::get_if<bool>(&m_ui_nodes_tree_view.value); }
     inline void ui_nodes_pane_tree_view_save(bool tree_view) { save_option(m_ui_nodes_tree_view, bool(tree_view)); }
+
+    inline int64_t ui_theme_load() const { return *std::get_if<int64_t>(&m_ui_theme.value); }
+    void ui_theme_save(int64_t theme) { save_option(m_ui_theme, int64_t(theme)); }
 
     // comfyui
     inline const std::string& comfyui_host_load() const { return *std::get_if<std::string>(&m_comfyui_host.value); }
@@ -63,11 +79,14 @@ public:
     inline const std::filesystem::path& comfyui_main_py_load() const { return *std::get_if<std::filesystem::path>(&m_comfyui_main_py.value); }
     inline void comfyui_main_py_save(const std::filesystem::path& main_py) { save_option(m_comfyui_main_py, main_py); }
 
-    inline const std::string& comfyui_command_load() const { return *std::get_if<std::string>(&m_comfyui_command.value); }
-    inline void comfyui_command_save(const std::string& cmd) { save_option(m_comfyui_command, cmd); }
+    inline const std::string& comfyui_args_load() const { return *std::get_if<std::string>(&m_comfyui_args.value); }
+    inline void comfyui_args_save(const std::string& cmd) { save_option(m_comfyui_args, cmd); }
 
-    inline const std::string& comfyui_workdir_load() const { return *std::get_if<std::string>(&m_comfyui_workdir.value); }
-    inline void comfyui_workdir_save(const std::string& cmd) { save_option(m_comfyui_workdir, cmd); }
+    inline const std::filesystem::path& comfyui_workdir_load() const { return *std::get_if<std::filesystem::path>(&m_comfyui_workdir.value); }
+    inline void comfyui_workdir_save(const std::filesystem::path& path) { save_option(m_comfyui_workdir, path); }
+
+    inline const std::filesystem::path& comfyui_output_load() const { return *std::get_if<std::filesystem::path>(&m_comfyui_output.value); }
+    inline void comfyui_output_save(const std::filesystem::path& path) { save_option(m_comfyui_output, path); }
 
     // wf
     inline WidgetInput wf_widget_input_numbers_load() const { return cast::to_enum<WidgetInput>(*std::get_if<int64_t>(&m_wf_widget_input_numbers.value)); }
@@ -84,6 +103,9 @@ public:
 
     inline bool wf_snap_nodes_load() const { return *std::get_if<bool>(&m_wf_snap_nodes.value); }
     inline void wf_snap_nodes_save(bool snap) { save_option(m_wf_snap_nodes, bool(snap)); }
+
+    inline int64_t wf_link_thickness_load() const { return *std::get_if<int64_t>(&m_wf_link_thickness.value); }
+    inline void wf_link_thickness_save(int64_t timeout) { save_option(m_wf_link_thickness, int64_t(timeout)); }
 
     // items
     void pin_advanced_preload();
@@ -137,13 +159,18 @@ private:
 private:
     std::string m_empty;
 
-    // general
-    OptionValue m_general_vsync; // int
+    // app
+    OptionValue m_app_autoupdate; // int
+    OptionValue m_app_vsync; // int
+    OptionValue m_app_fps_limit; // int
+    OptionValue m_app_fps_limit_val; // int
+    OptionValue m_app_scale; // int
 
     // ui
     OptionValue m_ui_open_wnds; // int
     OptionValue m_ui_nodes_tree_view; // int
     std::vector<OptionValue> m_ui_colors; // int
+    OptionValue m_ui_theme; // int. 0 - sys default, 1 - dark, 2 - light
 
     // comfyui
     OptionValue m_comfyui_host; // str
@@ -158,8 +185,9 @@ private:
     OptionValue m_comfyui_auto_hide_output; // int
     OptionValue m_comfyui_parse_address; // int
     OptionValue m_comfyui_main_py; // path
-    OptionValue m_comfyui_command; // str
-    OptionValue m_comfyui_workdir; // str
+    OptionValue m_comfyui_args; // str
+    OptionValue m_comfyui_workdir; // path
+    OptionValue m_comfyui_output; // path
 
     // wf
     OptionValue m_wf_widget_input_numbers; // int
@@ -167,6 +195,7 @@ private:
     OptionValue m_wf_active; // str
     OptionValue m_wf_show_grid; // int
     OptionValue m_wf_snap_nodes; // int
+    OptionValue m_wf_link_thickness; // int
 
     // items
     std::map<hid, bool> m_item_preload_pin_adv;

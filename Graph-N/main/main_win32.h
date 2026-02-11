@@ -8,6 +8,9 @@
 namespace platform
 {
 
+#define USER_MESSAGE        (WM_APP + 1)
+using UserMsgCallback = std::function<void(WPARAM, LPARAM)>;
+
 class MainRoutine_Win32 final : public MainRoutine
 {
     friend class Textures_Win32;
@@ -17,6 +20,8 @@ public:
     ~MainRoutine_Win32() override;
 
     inline double get_frame_render_time() const override { return m_frame_render_time; }
+    inline HWND get_hwnd() const { return m_hwnd; }
+    inline void set_user_msg_callback(UserMsgCallback callback) { m_user_msg_callback = callback; }
 
 private:
     /*
@@ -47,6 +52,8 @@ private:
     void wake_up();
 
 private:
+    UserMsgCallback m_user_msg_callback = nullptr;
+
     // DX11
     std::unique_ptr<ID3D11Device, std::function <void(ID3D11Device*)>> m_d3d_device;
     std::unique_ptr<ID3D11DeviceContext, std::function <void(ID3D11DeviceContext*)>> m_d3d_device_context;

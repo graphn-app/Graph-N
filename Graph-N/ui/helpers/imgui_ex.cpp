@@ -421,30 +421,37 @@ bool DragUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t ma
 }
 
 template <typename TYPE>
-bool SliderTypeSmart(const char* label, TYPE* value, TYPE min, TYPE max, ImGuiDataType_ type, const char* format)
+bool SliderTypeSmart(const char* label, TYPE* value, TYPE min, TYPE max, ImGuiDataType_ type, const char* format, TYPE step)
 {
     if (ImGui::SliderScalar(label, type, value, &min, &max, format))
     {
         if (*value < min) *value = min;
         if (*value > max) *value = max;
+
+        if (step != 0)
+        {
+            const auto s = cast::to_float(step);
+            const auto v = cast::to_float(*value);
+            *value = static_cast<TYPE>(roundf(v / s) * s);
+        }
         return true;
     }
     return false;
 }
 
-bool SliderDoubleSmart(const char* label, double* value, double min, double max, const char* format)
+bool SliderDoubleSmart(const char* label, double* value, double min, double max, const char* format, double step /*= 0*/)
 {
-    return SliderTypeSmart(label, value, min, max, ImGuiDataType_Double, format);
+    return SliderTypeSmart(label, value, min, max, ImGuiDataType_Double, format, step);
 }
 
-bool SliderIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format)
+bool SliderIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format, int64_t step /*= 0*/)
 {
-    return SliderTypeSmart(label, value, min, max, ImGuiDataType_S64, format);
+    return SliderTypeSmart(label, value, min, max, ImGuiDataType_S64, format, step);
 }
 
-bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format)
+bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format, uint64_t step /*= 0*/)
 {
-    return SliderTypeSmart(label, value, min, max, ImGuiDataType_U64, format);
+    return SliderTypeSmart(label, value, min, max, ImGuiDataType_U64, format, step);
 }
 
 bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* value, ImVec2 size_arg /*= ImVec2(0, 0)*/)

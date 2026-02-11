@@ -252,6 +252,7 @@ if(WIN32)
         sqlite3
 		fmt::fmt
 		Shell32
+		wbemuuid
     )
 else()
     target_link_libraries(Graph-N PRIVATE

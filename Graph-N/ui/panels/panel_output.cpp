@@ -42,7 +42,7 @@ DlgCode PanelOutput::show(bool& focused)
                 "Open settings",
                 []()
                 {
-                    g::pFlow->open_settings_dlg(OptPane::ComfyUi);
+                    g::pFlow->open_settings_dlg(OptPane::LocalServer);
                 }             
                 );
     }

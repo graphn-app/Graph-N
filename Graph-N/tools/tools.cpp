@@ -1,4 +1,8 @@
 
+#ifdef _WIN32
+#include "main/main_win32.h"
+#endif
+
 namespace tools
 {
 namespace str
@@ -749,6 +753,241 @@ std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::pa
     }
     return out;
 }
+
+#ifdef _WIN32
+struct FdData
+{
+    HWND hwnd = nullptr;
+    bool read = false;
+    bool sel_directory = false;
+    bool allow_multiselect = false;
+    std::list<std::pair<std::wstring, std::wstring>> filters;
+    std::filesystem::path init_file;
+    FdSelectResultSg callback_sg = nullptr;
+    FdSelectResultMt callback_mt = nullptr;
+    std::list<std::filesystem::path> results;
+};
+
+bool select_files(HWND hwnd, bool read, bool sel_directory, bool allow_multiselect, 
+    const std::list<std::pair<std::wstring, std::wstring>>& filters, const std::filesystem::path& init_file,
+    std::list<std::filesystem::path>& results)
+{
+    results.clear();
+    bool result = false;
+    HRESULT hr = S_OK;
+    CComPtr<IFileDialog> pFileDlg;
+    if (read)
+        hr = pFileDlg.CoCreateInstance(__uuidof(FileOpenDialog));
+    else
+        hr = pFileDlg.CoCreateInstance(__uuidof(FileSaveDialog));
+    if (SUCCEEDED(hr))
+    {
+        DWORD dwOptions = 0;
+        pFileDlg->GetOptions(&dwOptions);
+        if (!read)
+        {
+            dwOptions |= FOS_OVERWRITEPROMPT | FOS_DEFAULTNOMINIMODE;
+            dwOptions &= ~FOS_NOREADONLYRETURN;
+        }
+        else
+        {
+            dwOptions |= FOS_FORCEPREVIEWPANEON;
+        }
+        if (allow_multiselect)
+            dwOptions |= FOS_ALLOWMULTISELECT;
+        if (sel_directory)
+            dwOptions |= FOS_PICKFOLDERS;
+        pFileDlg->SetOptions(dwOptions | FOS_FORCEFILESYSTEM);
+        pFileDlg->SetTitle(APP_CAPTION_W);
+        if (!read && !sel_directory && !init_file.empty())
+            pFileDlg->SetFileName(init_file.wstring().c_str());
+
+        if (!filters.empty())
+        {
+            std::vector<COMDLG_FILTERSPEC> types;
+            for (auto& filter : filters)
+            {
+                types.push_back({ filter.first.c_str(), filter.second.c_str() });
+            }
+            pFileDlg->SetFileTypes(cast::to_u32(types.size()), types.data());
+        }
+
+        hr = pFileDlg->Show(hwnd);
+        if (SUCCEEDED(hr))
+        {
+            CComPtr<IShellItemArray> pItemArray;
+            if (read)
+            {
+                CComPtr<IFileOpenDialog> dlg;
+                hr = pFileDlg->QueryInterface(&dlg);
+                if (SUCCEEDED(hr))
+                {
+                    hr = dlg->GetResults(&pItemArray);
+                    if (SUCCEEDED(hr))
+                    {
+                        DWORD dwNumItems = 0;
+                        hr = pItemArray->GetCount(&dwNumItems);
+                        if (SUCCEEDED(hr))
+                        {
+                            for (DWORD i = 0; i < dwNumItems; ++i)
+                            {
+                                CComPtr<IShellItem> pItem;
+                                hr = pItemArray->GetItemAt(i, &pItem);
+                                if (SUCCEEDED(hr))
+                                {
+                                    PWSTR pszFilePath = nullptr;
+                                    hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+                                    if (SUCCEEDED(hr))
+                                    {
+                                        results.push_back(pszFilePath);
+                                        result = true;
+                                            
+                                        CoTaskMemFree(pszFilePath);
+                                    }
+                                    else
+                                    {
+                                        LogWarnS("GetDisplayName failed: " << LogHEX(hr));
+                                    }
+                                }
+                                else
+                                {
+                                    LogWarnS("pItemArray->GetItemAt failed: " << LogHEX(hr));
+                                }
+                            }
+                        }
+                        else
+                        {
+                            LogWarnS("pItemArray->GetCount failed: " << LogHEX(hr));
+                        }
+                    }
+                    else
+                    {
+                        LogWarnS("GetResults failed: " << LogHEX(hr));
+                    }
+                }
+                else
+                {
+                    LogWarnS("QueryInterface to IFileOpenDialog failed: " << LogHEX(hr));
+                }
+            }
+            else
+            {
+                CComPtr<IShellItem> pItem;
+                hr = pFileDlg->GetResult(&pItem);
+                if (SUCCEEDED(hr))
+                {
+                    PWSTR pszFilePath = nullptr;
+                    hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+                    if (SUCCEEDED(hr))
+                    {
+                        result = true;
+                        results.push_back(pszFilePath);                        
+                        CoTaskMemFree(pszFilePath);
+                    }
+                    else
+                    {
+                        LogWarnS("GetDisplayName failed: " << LogHEX(hr));
+                    }
+                }
+                else
+                {
+                    LogWarnS("GetResult failed: " << LogHEX(hr));
+                }
+            }
+        }
+        else
+        {
+            LogWarnS("pFileOpen->Show filed: " << LogHEX(hr));
+        }
+    }
+    else
+    {
+        LogWarnS("CoCreateInstance failed: " << LogHEX(hr));
+    }
+
+    return result;
+}
+
+void select_files_result_handler(WPARAM, LPARAM l)
+{
+    std::unique_ptr<FdData> data((FdData*)l);
+    if (data->callback_mt != nullptr)
+        data->callback_mt(!data->results.empty(), std::move(data->results));
+    else if (data->callback_sg != nullptr)
+        data->callback_sg(!data->results.empty(), std::move(*data->results.begin()));
+}
+
+void select_files_th(std::unique_ptr<FdData> data)
+{    
+    const auto res = select_files(data->hwnd, data->read, data->sel_directory, data->allow_multiselect, data->filters, data->init_file, data->results);
+    if (!res)
+        data->results.clear();
+    ((platform::MainRoutine_Win32*)g::pMain)->set_user_msg_callback(select_files_result_handler);
+    auto h = data->hwnd;
+    ::PostMessage(h, USER_MESSAGE, 0, (LPARAM)data.release());
+}
+
+#endif // #ifdef _WIN32
+
+void select_file_open(std::list<std::pair<std::wstring, std::wstring>>&& filters, FdSelectResultSg& callback)
+{
+    auto data = std::make_unique<FdData>();
+    data->hwnd = ((platform::MainRoutine_Win32*)g::pMain)->get_hwnd();
+    data->read = true;
+    data->sel_directory = false;
+    data->allow_multiselect = false;
+    data->filters = std::move(filters);
+    data->callback_sg = callback;
+    std::thread(select_files_th, std::move(data)).detach();
+}
+
+void select_files_open(std::list<std::pair<std::wstring, std::wstring>>&& filters, FdSelectResultMt& callback)
+{
+    auto data = std::make_unique<FdData>();
+    data->hwnd = ((platform::MainRoutine_Win32*)g::pMain)->get_hwnd();
+    data->read = true;
+    data->sel_directory = false;
+    data->allow_multiselect = true;
+    data->filters = std::move(filters);
+    data->callback_mt = callback;
+    std::thread(select_files_th, std::move(data)).detach();
+}
+
+void select_file_save(std::list<std::pair<std::wstring, std::wstring>>&& filters, std::filesystem::path init_file, FdSelectResultSg& callback)
+{
+    auto data = std::make_unique<FdData>();
+    data->hwnd = ((platform::MainRoutine_Win32*)g::pMain)->get_hwnd();
+    data->read = false;
+    data->sel_directory = false;
+    data->allow_multiselect = false;
+    data->filters = std::move(filters);
+    data->init_file = std::move(init_file);
+    data->callback_sg = callback;
+    std::thread(select_files_th, std::move(data)).detach();
+}
+
+void select_dir(FdSelectResultSg& callback)
+{
+    auto data = std::make_unique<FdData>();
+    data->hwnd = ((platform::MainRoutine_Win32*)g::pMain)->get_hwnd();
+    data->read = true;
+    data->sel_directory = true;
+    data->allow_multiselect = false;
+    data->callback_sg = callback;
+    std::thread(select_files_th, std::move(data)).detach();
+}
+
+void select_dirs(FdSelectResultMt& callback)
+{
+    auto data = std::make_unique<FdData>();
+    data->hwnd = ((platform::MainRoutine_Win32*)g::pMain)->get_hwnd();
+    data->read = true;
+    data->sel_directory = true;
+    data->allow_multiselect = true;
+    data->callback_mt = callback;
+    std::thread(select_files_th, std::move(data)).detach();
+}
+
 
 }	// namespace path
 

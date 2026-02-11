@@ -158,7 +158,7 @@ DlgCode PanelNodes::show(bool& focused)
                 "Open settings",
                 []()
                 {
-                    g::pFlow->open_settings_dlg(OptPane::ComfyUi);
+                    g::pFlow->open_settings_dlg(OptPane::Connection);
                 }
             );
             return end_panel(true);

@@ -531,7 +531,7 @@ void PanelStats::show_performance(float val_offset)
 {
     ImGui::TextUnformatted("V-Sync");
     ImGui::SameLine(val_offset);
-    ImGui::TextUnformatted(g::pOptsManager->general_vsync_load() ? "enabled" : "disabled");
+    ImGui::TextUnformatted(g::pOptsManager->app_vsync_load() ? "enabled" : "disabled");
 
     print_fps(val_offset);
 

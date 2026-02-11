@@ -39,7 +39,7 @@ void ComfyUIManager_Win32::run_server()
 {
     const auto& mainpy = g::pOptsManager->comfyui_main_py_load();
     const auto& python = g::pOptsManager->comfyui_python_load();
-    const auto& cmd = g::pOptsManager->comfyui_command_load();
+    const auto& args = g::pOptsManager->comfyui_args_load();
     const auto& workdir = g::pOptsManager->comfyui_workdir_load();
 
     bool capture_log = g::pOptsManager->comfyui_capture_output_load();
@@ -59,7 +59,7 @@ void ComfyUIManager_Win32::run_server()
     STARTUPINFOA si;
     prepare(si, capture_log, hide_console, hpipe_wr);
 
-    if (!create_process(si, pi, python, mainpy.u8string(), cmd, workdir, hide_console))
+    if (!create_process(si, pi, python, mainpy.u8string(), args, workdir.u8string(), hide_console))
     {
         m_hpipe.reset();
         m_hjob.reset();

@@ -3,7 +3,7 @@
 #include "main/main_win32.h"
 #include "ui/textures.h"
 #include "tools/exception_handler.h"
-#include "ui/helpers/ImFileDialog.h"
+//#include "ui/helpers/ImFileDialog`.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include <d3d11.h>
@@ -28,6 +28,19 @@ MainRoutine_Win32::~MainRoutine_Win32() = default;
 bool MainRoutine_Win32::init()
 {
     tools::set_exception_translator();
+
+    HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE);
+    if (FAILED(hr))
+    {
+        LogError(ExcepCategory::API, "Failed to initialize COM, err: " << LogHEX(hr));
+        return false;
+    }
+    hr = CoInitializeSecurity(nullptr, -1, nullptr, nullptr, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE, nullptr);
+    if (FAILED(hr))
+    {
+        LogError(ExcepCategory::API, "Failed to initialize security, err: " << LogHEX(hr));
+        return false;
+    }
 
     m_wc = { sizeof(WNDCLASSEXW), CS_CLASSDC, MainRoutine_Win32::wnd_proc, 0L, 0L,
         ::GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, APP_CAPTION_W, nullptr };
@@ -194,6 +207,8 @@ void MainRoutine_Win32::free()
         ::DestroyWindow(m_hwnd);
     if (m_wc.hInstance != nullptr)
         ::UnregisterClassW(m_wc.lpszClassName, m_wc.hInstance);
+
+    CoUninitialize();
 }
 
 bool MainRoutine_Win32::create_device_d3d(HWND hWnd)
@@ -285,6 +300,7 @@ bool MainRoutine_Win32::create_render_target()
 
 void MainRoutine_Win32::init_imgui_diloag_texture()
 {
+/*
     ifd::FileDialog::Instance().CreateTexture =
         [this, d3d_device = m_d3d_device.get()](uint8_t* data, int32_t w, int32_t h, char fmt) -> void*
     {
@@ -343,6 +359,7 @@ void MainRoutine_Win32::init_imgui_diloag_texture()
             pSRV->Release();
         }
     };
+*/
 }
 
 // Win32 message handler
@@ -419,6 +436,15 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         if (g::pTextures)
             g::pTextures->handle_1s_timer();
         break;
+    case USER_MESSAGE:
+        {
+            MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            if (routine != nullptr && routine->m_user_msg_callback != nullptr)
+            {
+                routine->m_user_msg_callback(wParam, lParam);
+                routine->m_user_msg_callback = nullptr;
+            }
+        }
     }
     return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 }

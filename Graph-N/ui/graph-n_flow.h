@@ -86,7 +86,7 @@ public:
     void reconnect();
     void handle_comfyui_runserver_error(int32_t error, const std::string& title, const std::string& description);
 
-    void open_settings_dlg(OptPane section = OptPane::_none);
+    void open_settings_dlg(OptPane section = OptPane::_count);
 
     void subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener);
 

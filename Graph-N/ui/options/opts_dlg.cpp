@@ -1,10 +1,6 @@
 
 #include "ui/options/opts_dlg.h"
 #include "ui/options/opts_right_pane.h"
-#include "ui/options/opt_general_dlg.h"
-#include "ui/options/opt_comfyui_dlg.h"
-#include "ui/options/opt_workflow_dlg.h"
-#include "ui/options/opt_stats_dlg.h"
 #include "core/managers/settings_manager.h"
 
 namespace ui
@@ -29,38 +25,22 @@ void OptionsDlgs::init()
     const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
     data()->x = main_viewport->WorkSize.x / 2 - 300;
     data()->y = main_viewport->WorkSize.y / 2 - 400;
-    data()->width = 650;
-    data()->height = 750;
+    data()->width = 800;
+    data()->height = 700;
 
     data()->clr_title = g::pOptsManager->color_load(AppColor::OptDlgTitleBg);
     data()->clr_bg = g::pOptsManager->color_load(AppColor::OptDlgBg);
 
-    m_opts_data.buffer_i.resize(cast::to_szt(OptPane::_count));
-    m_opts_data.buffer_s.resize(cast::to_szt(OptPane::_count));
+    m_opts_data.left_pane_w = 150.0f;
 
-    m_opts_data.comfyui.buffer_s = &m_opts_data.buffer_s[cast::to_szt(OptPane::ComfyUi)];
-    m_opts_data.comfyui.buffer_i = &m_opts_data.buffer_i[cast::to_szt(OptPane::ComfyUi)];
-
-    m_opts_data.stats.buffer_s = &m_opts_data.buffer_s[cast::to_szt(OptPane::Stats)];
-    m_opts_data.stats.buffer_i = &m_opts_data.buffer_i[cast::to_szt(OptPane::Stats)];
-
-    m_opts_data.pane.show_inner_child = (m_opts_data.pane.left_selected_item != OptPane::_none);
-
-    m_right_panes[OptPane::General] = std::make_unique<OptGeneralDlg>();
-    m_right_panes[OptPane::ComfyUi] = std::make_unique<OptComfyDlg>();
-    m_right_panes[OptPane::Wf] = std::make_unique<OptWorkflowDlg>();
-    m_right_panes[OptPane::Stats] = std::make_unique<OptStatsDlg>();
-
-    for (uint64_t i = cast::to_u64(OptPane::_first); i <= cast::to_u64(OptPane::_last); i++)
-    {
-        m_right_panes[cast::to_enum<OptPane>(i)]->init(m_opts_data);
-    }
+    m_right_pane = std::make_unique<OptRightPane>();
+    m_right_pane->init(m_opts_data);
 }
 
 void OptionsDlgs::select_right_pane(OptPane pane)
 {
-    m_opts_data.pane.left_selected_item = pane;
-    m_opts_data.pane.show_inner_child = true;
+    m_opts_data.left_selected_item = cast::to_szt(pane);
+    m_opts_data.show_inner_child = true;
 }
 
 DlgCode OptionsDlgs::show(bool& /*focused*/)
@@ -76,39 +56,37 @@ DlgCode OptionsDlgs::show(bool& /*focused*/)
         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
     {
         show_left_pane();
+        m_opts_data.show_inner_child = (m_opts_data.left_selected_item >= cast::to_szt(OptPane::_first) && m_opts_data.left_selected_item <= cast::to_szt(OptPane::_last));
         show_right_pane();
 
-        if (m_opts_data.enable_always_on_top)
-            ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+       // if (m_opts_data.enable_always_on_top)
+       //     ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
     }
     return cleanup_and_exit(opened);
 }
 
 void OptionsDlgs::show_left_pane()
 {
-    if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::OptLeftPane)], ImVec2(150, -FLT_MIN), true))
+    constexpr const char* opt_list[cast::to_szt(OptPane::_count)] =
+    {
+        "Application",
+        "Connection",
+        "Local Server",
+        "Interface",
+        "Diagnostics",
+        "Key Bindings",
+    };
+
+    if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::OptLeftPane)], ImVec2(m_opts_data.left_pane_w, -FLT_MIN), true))
     {
         const auto avail_h = ImGui::GetContentRegionAvail().y;
 
-        if (ImGui::Selectable(DlgObjID[cast::to_szt(DlgObj::OptLeftPane_General)], OptPane::General == m_opts_data.pane.left_selected_item))
+        for (size_t i = cast::to_szt(OptPane::_first); i <= cast::to_szt(OptPane::_last); i++)
         {
-            m_opts_data.pane.left_selected_item = OptPane::General;
-            m_opts_data.pane.show_inner_child = true;
-        }
-        if (ImGui::Selectable(DlgObjID[cast::to_szt(DlgObj::OptLeftPane_ComfyUI)], OptPane::ComfyUi == m_opts_data.pane.left_selected_item))
-        {
-            m_opts_data.pane.left_selected_item = OptPane::ComfyUi;
-            m_opts_data.pane.show_inner_child = true;
-        }
-        if (ImGui::Selectable(DlgObjID[cast::to_szt(DlgObj::OptLeftPane_Workflow)], OptPane::Wf == m_opts_data.pane.left_selected_item))
-        {
-            m_opts_data.pane.left_selected_item = OptPane::Wf;
-            m_opts_data.pane.show_inner_child = true;
-        }
-        if (ImGui::Selectable(DlgObjID[cast::to_szt(DlgObj::OptLeftPane_Stats)], OptPane::Stats == m_opts_data.pane.left_selected_item))
-        {
-            m_opts_data.pane.left_selected_item = OptPane::Stats;
-            m_opts_data.pane.show_inner_child = true;
+            if (ImGui::Selectable(opt_list[i], i == m_opts_data.left_selected_item))
+            {
+                m_opts_data.left_selected_item = i;
+            }
         }
         
         ImGui::SetCursorPosY(avail_h - ImGui::GetTextLineHeight());
@@ -130,29 +108,25 @@ void OptionsDlgs::show_right_pane()
     ImGui::BeginGroup();
     if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::OptRightPane)]))
     {
-        if (m_opts_data.pane.show_inner_child)
+        if (m_opts_data.show_inner_child)
         {
             if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::OptRightPane_Sub)], ImVec2(-FLT_MIN, -FLT_MIN), true))
             {
-                if (m_opts_data.pane.left_selected_item != OptPane::_none)
+                try
                 {
-                    try
-                    {
-                        m_right_panes[m_opts_data.pane.left_selected_item]->show(m_opts_data);
-                    }
-                    catch (const std::exception& ex)
-                    {
-                        LogExcep(ExcepCategory::UI, "Options: " << ex.what());
-                    }
+                    m_right_pane->init_sizes();
+                    m_right_pane->show(m_opts_data);
                 }
-
+                catch (const std::exception& ex)
+                {
+                    LogExcep(ExcepCategory::UI, "Options: " << ex.what());
+                }
             }
             ImGui::EndChild();
         }
     }
     ImGui::EndChild();
     ImGui::EndGroup();
-
 }
 
 }

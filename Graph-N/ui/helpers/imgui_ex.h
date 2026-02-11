@@ -57,9 +57,9 @@ bool DragDoubleSmart(const char* label, double* value, double min, double max, c
 bool DragIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format);
 bool DragUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format);
 
-bool SliderDoubleSmart(const char* label, double* value, double min, double max, const char* format);
-bool SliderIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format);
-bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format);
+bool SliderDoubleSmart(const char* label, double* value, double min, double max, const char* format, double step = 0);
+bool SliderIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format, int64_t step = 0);
+bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format, uint64_t step = 0);
 
 // two regular left/right buttons
 bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* value, ImVec2 size_arg = ImVec2(0, 0));

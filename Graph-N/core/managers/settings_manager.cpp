@@ -14,11 +14,16 @@ SettingsManager::~SettingsManager()
 bool SettingsManager::init()
 {
     // app
-    m_general_vsync =                                 { "vsync_enabled",            bool(true) };
+    m_app_vsync =                                      { "vsync_enabled",           bool(true) };
+    m_app_fps_limit =                                  { "fps_limit",               bool(false) };
+    m_app_fps_limit_val =                              { "fps_limit_value",         int64_t(30) };
+    m_app_autoupdate =                                 { "autoupdate",              bool(true) };
+    m_app_scale =                                      { "ui_scale",                int64_t(100) };
 
     // ui
     m_ui_open_wnds =                                  { "open_windows",             int64_t(ui::ViewPanelsResetAll) };
     m_ui_nodes_tree_view =                            { "nodes_tree_view",          bool(true) };
+    m_ui_theme =                                      { "theme",                    int64_t(0) };
 
     // comfyui
     m_comfyui_host =                                  { "comfyui_host",             std::string("127.0.0.1") };
@@ -33,8 +38,9 @@ bool SettingsManager::init()
     m_comfyui_capture_output =                        { "comfyui_capture_output",   bool(false) };
     m_comfyui_auto_hide_output =                      { "comfy_auto_hide_output",   bool(true) };
     m_comfyui_main_py =                               { "comfyui_main_py",          std::filesystem::path("") };
-    m_comfyui_command =                               { "comfyui_command",          std::string("") };
-    m_comfyui_workdir =                               { "comfyui_workdir",          std::string("") };
+    m_comfyui_args =                                  { "comfyui_args",             std::string("") };
+    m_comfyui_workdir =                               { "comfyui_workdir",          std::filesystem::path("") };
+    m_comfyui_output =                                { "comfyui_output",           std::filesystem::path("") };
 
     // wf
     m_wf_widget_input_numbers =                       { "widget_input_numbers",     cast::to_i64(WidgetInput::Slider) };
@@ -42,6 +48,7 @@ bool SettingsManager::init()
     m_wf_active =                                     { "active_wf",                std::string("") };
     m_wf_show_grid =                                  { "show_grid",                bool(true) };
     m_wf_snap_nodes =                                 { "snap_nodes",               bool(false) };
+    m_wf_link_thickness =                             { "link_thickness",           int64_t(2) };
 
     m_ui_colors.resize(cast::to_szt(AppColor::_count));
 
@@ -140,7 +147,10 @@ bool SettingsManager::init()
 
     std::vector<OptionValue*> values;
     values.reserve(100);
-    values.push_back(&m_general_vsync);
+    values.push_back(&m_app_vsync);
+    values.push_back(&m_app_fps_limit);
+    values.push_back(&m_app_fps_limit_val);
+    values.push_back(&m_app_autoupdate);
     values.push_back(&m_ui_open_wnds);
     values.push_back(&m_ui_nodes_tree_view);
     values.push_back(&m_comfyui_host);
@@ -155,7 +165,7 @@ bool SettingsManager::init()
     values.push_back(&m_comfyui_capture_output);
     values.push_back(&m_comfyui_auto_hide_output);
     values.push_back(&m_comfyui_main_py);
-    values.push_back(&m_comfyui_command);
+    values.push_back(&m_comfyui_args);
     values.push_back(&m_comfyui_workdir);
     values.push_back(&m_wf_widget_input_numbers);
     values.push_back(&m_wf_widget_input_bools);

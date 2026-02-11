@@ -30,7 +30,7 @@ void ComfyUIManager::run()
     }
     if (!tools::path::exists(g::pOptsManager->comfyui_workdir_load()))
     {
-        g::pFlow->handle_comfyui_runserver_error(0, "Can't start ComfyUI server", g::pOptsManager->comfyui_workdir_load() + " not found");
+        g::pFlow->handle_comfyui_runserver_error(0, "Can't start ComfyUI server", g::pOptsManager->comfyui_workdir_load().u8string() + " not found");
         return;
     }
 

@@ -1,31 +1,809 @@
 #include "ui/options/opts_right_pane.h"
+#include "ui/graph-n_flow.h"
 #include "core/managers/settings_manager.h"
 
 namespace ui
 {
+
+enum
+{
+    BuffHost,
+    BuffMainpy,
+    BuffPython,
+    BuffWorkDir,
+    BuffOutput,
+    BuffArgs,
+    BuffDetectRes,
+
+    _s_count
+};
+
+enum
+{
+    BuffFpsLimit,
+    BuffScale,
+    BuffConnOptChanged,
+    BuffPort,
+    BuffConnTm,
+    BuffReadTm,
+    BuffFpsW,
+    BuffFpsC,
+    BuffLRamW,
+    BuffLRamC,
+    BuffSRamW,
+    BuffSRamC,
+    BuffVRamW,
+    BuffVRamC,
+    BuffDiskW,
+    BuffDiskC,
+    BuffPyTorchW,
+    BuffPyTorchC,
+    BuffPingW,
+    BuffPingC,   
+    BuffLinkThickness,
+    BuffShowDetectRes,
+    BuffDetectResOK,
+
+    _i_count
+};
 
 OptRightPane::~OptRightPane()
 {
     LogF;
 }
 
-void OptRightPane::show_help_mark(const char*& out, float offset, bool same_line, const char* help_text)
+void OptRightPane::init(OptsData& data)
 {
-    if (same_line)
-        ImGui::SameLine();
-    if (offset != -1)
-        ImGui::SetCursorPosX(offset);
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptHelpMark));
-    ImGui::TextUnformatted(" [?]");
+    m_data = &data;
+
+    m_data->buffer_s.resize(_s_count);
+    m_data->buffer_i.resize(_i_count);
+
+    m_data->buffer_s[BuffHost] = g::pOptsManager->comfyui_host_load();
+    m_data->buffer_s[BuffMainpy] = g::pOptsManager->comfyui_main_py_load().u8string();
+    m_data->buffer_s[BuffPython] = g::pOptsManager->comfyui_python_load();
+    m_data->buffer_s[BuffArgs] = g::pOptsManager->comfyui_args_load();
+    m_data->buffer_s[BuffWorkDir] = g::pOptsManager->comfyui_workdir_load().u8string();
+    m_data->buffer_s[BuffOutput] = g::pOptsManager->comfyui_output_load().u8string();
+
+    m_data->buffer_i[BuffFpsLimit] = g::pOptsManager->app_fps_limit_val_load();
+    m_data->buffer_i[BuffScale] = g::pOptsManager->app_scale_load();
+    m_data->buffer_i[BuffConnOptChanged] = 0;
+    m_data->buffer_i[BuffPort] = g::pOptsManager->comfyui_port_load();
+    m_data->buffer_i[BuffConnTm] = g::pOptsManager->comfyui_connect_timeout_load();
+    m_data->buffer_i[BuffReadTm] = g::pOptsManager->comfyui_read_timeout_load();
+    m_data->buffer_i[BuffFpsW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalFPS);
+    m_data->buffer_i[BuffFpsC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalFPS);
+    m_data->buffer_i[BuffLRamW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalRAM);
+    m_data->buffer_i[BuffLRamC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalRAM);
+    m_data->buffer_i[BuffSRamW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerRAM);
+    m_data->buffer_i[BuffSRamC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerRAM);
+    m_data->buffer_i[BuffVRamW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerVRAM);
+    m_data->buffer_i[BuffVRamC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerVRAM);
+    m_data->buffer_i[BuffDiskW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalDisk);
+    m_data->buffer_i[BuffDiskC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalDisk);
+    m_data->buffer_i[BuffPyTorchW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPyTorch);
+    m_data->buffer_i[BuffPyTorchC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPyTorch);
+    m_data->buffer_i[BuffPingW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPing);
+    m_data->buffer_i[BuffPingC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPing);
+    m_data->buffer_i[BuffLinkThickness] = g::pOptsManager->wf_link_thickness_load();
+
+    m_data->input.hovered_items.resize(20);
+    m_data->input.numbers = g::pOptsManager->wf_widget_input_numbers_load();
+    m_data->input.booleans = g::pOptsManager->wf_widget_input_bools_load();
+}
+
+void OptRightPane::init_sizes()
+{
+    m_data->input_offset_x = 180.0f;
+    m_data->input_small_offset_x = 300.0f;
+    m_data->help_mark_w = 29.0f;
+    m_data->browse_btn_w = 28.0f;
+
+    const float right_pane_w = ImGui::GetContentRegionAvail().x + ImGui::GetStyle().ItemSpacing.x * 2;
+
+    m_data->input_w = right_pane_w - m_data->input_offset_x - ImGui::GetStyle().ItemSpacing.x;
+    m_data->input_small_w = right_pane_w - m_data->input_small_offset_x - ImGui::GetStyle().ItemSpacing.x;
+    m_data->input_with_browse_w = m_data->input_w - m_data->browse_btn_w - ImGui::GetStyle().ItemSpacing.x;
+    m_data->full_row_input_w = right_pane_w - ImGui::GetStyle().ItemSpacing.x * 2;
+    m_data->full_row_input_with_browse_w = m_data->full_row_input_w - m_data->browse_btn_w - ImGui::GetStyle().ItemSpacing.x;
+
+}
+
+void OptRightPane::show(OptsData& /*data*/)
+{
+    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(230, 230, 230, 255));
+
+    const char* help_text = nullptr;
+    switch (cast::to_enum<OptPane>(m_data->left_selected_item))
+    {
+    case OptPane::Application:
+        show_general(help_text);
+        show_rendering(help_text);
+        break;
+    case OptPane::Connection:
+        show_connection(help_text);
+        break;
+    case OptPane::LocalServer:
+        show_local_server(help_text);
+        break;
+    case OptPane::Interface:
+        show_widget_input(help_text);
+        show_canvas(help_text);
+        break;
+    case OptPane::Diagnostics:
+        show_thresholds(help_text);
+        break;
+    case OptPane::KeyBindings:
+        show_keys(help_text);
+        break;
+    }
+
     ImGui::PopStyleColor();
+
+    show_help_text(help_text);
+}
+
+// autoupdate
+void OptRightPane::show_general(const char*& /*help_text*/)
+{
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Common");
+    ImGui::Spacing();
+
+    // auto update
+    bool b_val = g::pOptsManager->app_autoupdate_load();
+    if (ImGui::Checkbox("Check for " APP_CAPTION " updates on startup", &b_val))
+        g::pOptsManager->app_autoupdate_save(b_val);
+}
+
+// vsync
+void OptRightPane::show_rendering(const char*& help_text)
+{
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Rendering");
+    ImGui::Spacing();
+
+    // vsync
+    bool b_val = g::pOptsManager->app_vsync_load();
+    if (ImGui::Checkbox("Enable VSync", &b_val))
+        g::pOptsManager->app_vsync_save(b_val);
+    show_help_mark(help_text,
+        "Synchronizes the frame rate with your monitor's refresh rate.\n"
+        "Keep this enabled for a smooth, tear-free image.\n"
+        "Disable it only if you have a weak GPU and experience stuttering, as it allows the interface to run at its own pace.\n\n"
+        "Note: Disabling vsync will show artificially high FPS and increase GPU load; refer to Latency for real performance.");
+
+    // frame rate limit
+    if (g::pOptsManager->app_vsync_load())
+        ImGui::BeginDisabled();
+
+    b_val = g::pOptsManager->app_fps_limit_load();
+    if (ImGui::Checkbox("Frame Rate Limit:", &b_val))
+        g::pOptsManager->app_fps_limit_save(b_val);
+    show_help_mark(help_text,
+        "Caps the maximum frame rate to save power and reduce GPU temperature.");
+
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    ImGuiEx::SliderIntSmart("##FpsLimit", &m_data->buffer_i[BuffFpsLimit], 30, 240, "%u FPS");
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        g::pOptsManager->app_fps_limit_val_save(m_data->buffer_i[BuffFpsLimit]);
+
+    if (g::pOptsManager->app_vsync_load())
+        ImGui::EndDisabled();
+
+    // scale
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("UI scale");
+    show_help_mark(help_text,
+        "Adjusts the global scale of the user interface. Useful for High-DPI (4K) displays to make text and controls legible.");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    ImGuiEx::SliderIntSmart("##scale", &m_data->buffer_i[BuffScale], 50, 200, "%u %%", 10);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        g::pOptsManager->app_scale_save(m_data->buffer_i[BuffScale]);
+}
+
+// comfyui connection
+void OptRightPane::show_connection(const char*& help_text)
+{
+    ///////////////       ComfyUI address
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), APP_COMFYUI " Address");
+    ImGui::Spacing();
+
+
+    ///////////////       host
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Host:");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    m_data->buffer_i[BuffConnOptChanged] =
+        ImGuiEx::InputTextWithHint("##ComfyUIHost", "127.0.0.1", &m_data->buffer_s[BuffHost], ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank) ||
+        m_data->buffer_i[BuffConnOptChanged];
+
+    ///////////////       port
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Port:");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    m_data->buffer_i[BuffConnOptChanged] =
+        ImGuiEx::SliderIntSmart("##ComfyUIPort", &m_data->buffer_i[BuffPort], 1, 65535, "%u") ||
+        m_data->buffer_i[BuffConnOptChanged];
+
+
+    /////////////////       timeouts
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), APP_COMFYUI " Server Timeouts");
+    ImGui::Spacing();
+
+
+    ///////////////////       connection timeout
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Connect timeout:");
+    show_help_mark(help_text,
+        "Max time (seconds) to wait for the server to accept a connection.\n\n"
+        "Local servers usually connect instantly (1-2s).");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    m_data->buffer_i[BuffConnOptChanged] =
+        ImGuiEx::SliderIntSmart("##ComfyUIConnTime", &m_data->buffer_i[BuffConnTm], 0, 30, "%llu sec") ||
+        m_data->buffer_i[BuffConnOptChanged];
+
+
+    ///////////////////       read timeout
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Read timeout:");
+    show_help_mark(help_text,
+        "Max time (seconds) to wait for a response (e.g., JSON workflow).\n\n"
+        "Increase this if loading large workflows over a slow network.");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    m_data->buffer_i[BuffConnOptChanged] =
+        ImGuiEx::SliderIntSmart("##ComfyUIReadTime", &m_data->buffer_i[BuffReadTm], 0, 30, "%llu sec") ||
+        m_data->buffer_i[BuffConnOptChanged];
+
+
+    /////////////// apply
+    if (show_full_row_button("Save/Apply connection settings", m_data->buffer_i[BuffConnOptChanged] && !m_data->buffer_s[BuffHost].empty()))
+    {
+        g::pOptsManager->comfyui_host_save(m_data->buffer_s[BuffHost]);
+        g::pOptsManager->comfyui_port_save(m_data->buffer_i[BuffPort]);
+        g::pOptsManager->comfyui_connect_timeout_save(m_data->buffer_i[BuffConnTm]);
+        g::pOptsManager->comfyui_read_timeout_save(m_data->buffer_i[BuffReadTm]);
+        m_data->buffer_i[BuffConnOptChanged] = 0;
+
+        if (!g::pFlow->get_online())
+            g::pFlow->reconnect();
+    }
+}
+
+// local comfyui paths
+void OptRightPane::show_local_server(const char*& help_text)
+{
+    /////////////////       server paths
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), APP_COMFYUI " Server Paths");
+    ImGui::Spacing();
+
+    // Detect
+    ImGui::TextWrapped("These settings allow " APP_CAPTION " to launch and manage the " APP_COMFYUI " server automatically.\n"
+        "You can configure the paths manually below, or launch " APP_COMFYUI " externally and click 'Import Config from Active Process' to auto-detect the settings.");
+    const auto y = ImGui::GetCursorPosY();
+    if (show_full_row_button("Detect and import config from active process", true))
+    {
+        import_from_comfyui();
+    }
+    if (m_data->buffer_i[BuffShowDetectRes])
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, m_data->buffer_i[BuffDetectResOK] ? IM_COL32(0, 150, 0, 255) : IM_COL32(200, 0, 0, 255));
+        ImGui::TextWrapped(m_data->buffer_s[BuffDetectRes].c_str());
+        ImGui::PopStyleColor();
+    }
+    ImGui::Spacing();
+
+    // work dir
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Working directory:");
+    show_help_mark(help_text,
+        "The root directory for execution context.\n"
+        "Usually the folder containing the 'ComfyUI' directory or the 'python_embeded' folder.");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_with_browse_w);
+    ImGuiEx::InputTextWithHint("##workdir", "C:\\" APP_COMFYUI "_install", &m_data->buffer_s[BuffWorkDir], ImGuiInputTextFlags_AlwaysOverwrite);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        g::pOptsManager->comfyui_workdir_save(m_data->buffer_s[BuffWorkDir]);
+    ImGui::SameLine();
+    if (ImGui::Button("...##browseworkdir", ImVec2(m_data->browse_btn_w, 0)))
+        browse_for_workdir();
+
+    // python
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Python path:");
+    show_help_mark(help_text,
+        "Path to the Python interpreter executable.\n"
+        "For portable installations, point to the embedded 'python.exe', not the system one.");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_with_browse_w);
+    ImGuiEx::InputTextWithHint("##python", "C:\\" APP_COMFYUI "_install\\python_embedded\\scripts\\python.exe", &m_data->buffer_s[BuffPython], ImGuiInputTextFlags_AlwaysOverwrite);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        g::pOptsManager->comfyui_python_save(m_data->buffer_s[BuffPython]);
+    ImGui::SameLine();
+    if (ImGui::Button("...##browsepython", ImVec2(m_data->browse_btn_w, 0)))
+        browse_for_python();
+
+    // main.py
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Server path:");
+    show_help_mark(help_text,
+        "Full path to the 'main.py' script located in the " APP_COMFYUI " root folder");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_with_browse_w);
+    ImGuiEx::InputTextWithHint("##mainpy", "C:\\" APP_COMFYUI "_install\\" APP_COMFYUI "\\main.py", &m_data->buffer_s[BuffMainpy], ImGuiInputTextFlags_AlwaysOverwrite);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        g::pOptsManager->comfyui_main_py_save(m_data->buffer_s[BuffMainpy]);
+    ImGui::SameLine();
+    if (ImGui::Button("...##browsemainpy", ImVec2(m_data->browse_btn_w, 0)))
+        browse_for_mainpy();
+
+    // args
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Launch args:");
+    show_help_mark(help_text,
+        "Additional command-line arguments passed to the server (e.g., --lowvram, --cpu, --preview-method auto).");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    ImGuiEx::InputTextWithHint("##args", "--windows-standalone-build --disable-auto-launch --enable-cors-header \"*\"",
+        &m_data->buffer_s[BuffArgs], ImGuiInputTextFlags_AlwaysOverwrite);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        g::pOptsManager->comfyui_args_save(m_data->buffer_s[BuffArgs]);
+
+    // start
+    if (show_full_row_button("Start " APP_COMFYUI, !m_data->buffer_s[BuffMainpy].empty() && !m_data->buffer_s[BuffPython].empty() && !m_data->buffer_s[BuffWorkDir].empty()))
+    {
+        run_server();
+    }
+
+    ImGuiEx::Spacing(3);
+
+    /////////////       auto start
+    bool b_val = g::pOptsManager->comfyui_start_server_load();
+    if (ImGui::Checkbox("Auto-start server", &b_val))
+    {
+        g::pOptsManager->comfyui_start_server_save(b_val);
+        if (!b_val)
+        {
+            g::pOptsManager->comfyui_kill_server_save(false);
+            g::pOptsManager->comfyui_hide_console_save(false);
+            g::pOptsManager->comfyui_capture_output_save(false);
+            g::pOptsManager->comfyui_autohide_output_save(false);
+            g::pOptsManager->comfyui_parse_address_save(false);
+        }
+    }
+    show_help_mark(help_text,
+        "Automatically launch the " APP_COMFYUI " server when " APP_CAPTION " starts.");
+
+    /////////////       auto kill
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->full_row_input_w / 2);
+    b_val = g::pOptsManager->comfyui_kill_server_load();
+    if (ImGui::Checkbox("Auto-stop on exit", &b_val))
+    {
+        g::pOptsManager->comfyui_kill_server_save(b_val);
+        if (b_val)
+            g::pOptsManager->comfyui_start_server_save(true);
+        else
+            g::pOptsManager->comfyui_hide_console_save(false);
+    }
+    show_help_mark(help_text,
+        "Terminate the " APP_COMFYUI " process when closing " APP_CAPTION ".\n\n"
+        "Prevents orphan python processes running in the background.");
+
+    /////////////       hide console
+    b_val = g::pOptsManager->comfyui_hide_console_load();
+    if (ImGui::Checkbox("Hide console", &b_val))
+    {
+        g::pOptsManager->comfyui_hide_console_save(b_val);
+        if (b_val)
+        {
+            g::pOptsManager->comfyui_start_server_save(true);
+            g::pOptsManager->comfyui_kill_server_save(true);
+            g::pOptsManager->comfyui_capture_output_save(true);
+        }
+    }
+    show_help_mark(help_text,
+        "Hides the system command prompt window.\n"
+        "Requires 'Capture output' to be enabled to view server logs within " APP_CAPTION ".");
+
+    /////////////       capture output
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->full_row_input_w / 2);
+    b_val = g::pOptsManager->comfyui_capture_output_load();
+    if (ImGui::Checkbox("Capture output", &b_val))
+    {
+        g::pOptsManager->comfyui_capture_output_save(b_val);
+        if (b_val)
+            g::pOptsManager->comfyui_start_server_save(true);
+        else
+        {
+            g::pOptsManager->comfyui_hide_console_save(false);
+            g::pOptsManager->comfyui_parse_address_save(false);
+        }
+    }
+    show_help_mark(help_text,
+        "Redirect server stdout and stderr to the " APP_CAPTION " Logs panel.\n\n"
+        "Allows monitoring errors and progress without the system console.");
+
+    /////////////       auto hide log panel
+    b_val = g::pOptsManager->comfyui_autohide_output_load();
+    if (ImGui::Checkbox("Autohide Logs panel", &b_val))
+    {
+        g::pOptsManager->comfyui_autohide_output_save(b_val);
+        if (b_val)
+        {
+            g::pOptsManager->comfyui_start_server_save(true);
+            g::pOptsManager->comfyui_capture_output_save(true);
+        }
+    }
+    show_help_mark(help_text,
+        "Automatically shows the Logs panel when " APP_COMFYUI " is disconnected and hides it after a successful connection.\n"
+        "You can always toggle the panel manually from the main menu.");
+
+    /////////////       parse address
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->full_row_input_w / 2);
+    b_val = g::pOptsManager->comfyui_parse_address_load();
+    if (ImGui::Checkbox("Auto-detect host/port", &b_val))
+    {
+        g::pOptsManager->comfyui_parse_address_save(b_val);
+        if (b_val)
+        {
+            g::pOptsManager->comfyui_start_server_save(true);
+            g::pOptsManager->comfyui_capture_output_save(true);
+        }
+    }
+    show_help_mark(help_text,
+        "Attempt to find the listening IP and port by parsing the server startup logs.\n\n"
+        "Overrides manual Connection settings if successful.");
+
+    ImGui::Spacing();
+
+    // output folder
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Output directory:");
+    show_help_mark(help_text,
+        "Optional.\n"
+        "Path to the " APP_COMFYUI " output folder. Enables direct disk access for instant image loading, bypassing network requests.");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_with_browse_w);
+    ImGuiEx::InputTextWithHint("##output", "C:\\" APP_COMFYUI "_install\\" APP_COMFYUI "\\output", &m_data->buffer_s[BuffOutput], ImGuiInputTextFlags_AlwaysOverwrite);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        g::pOptsManager->comfyui_output_save(m_data->buffer_s[BuffOutput]);
+    ImGui::SameLine();
+    if (ImGui::Button("...##browseoutput", ImVec2(m_data->browse_btn_w, 0)))
+        browse_for_outputdir();
+}
+
+// input styles
+void OptRightPane::show_widget_input(const char*& help_text)
+{
+    const auto draw_selected = [](bool selected, bool& hovered, int32_t id, const char* text)
+    {
+        if (selected)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
+            ImGui::TextUnformatted(ICON_LC_CHECK_CHECK);
+            ImGui::SameLine();
+            ImGui::TextUnformatted(text);
+            ImGui::PopStyleColor();
+        }
+        else
+        {
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x);
+            ImGui::PushID(id);
+            if (hovered)    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(text);
+            if (hovered)    ImGui::PopStyleColor();
+            ImGui::PopID();
+            hovered = ImGui::IsItemHovered();
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+                return true;
+        }
+        return false;
+    };
+
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSubtitleSep));
+    ImGui::TextUnformatted("Default Input Styles");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    ///////////////  
+    int32_t idx = 0;
+
+    ///////////////       numbers
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Numbers");
+    ImGui::Spacing();
+
+
+    double d_min = 5.0;
+    double d_max = 142.0;
+
+    if (draw_selected(WidgetInput::Direct == m_data->input.numbers, m_data->input.hovered_items[idx], idx + 1, "Input field:"))
+    {
+        m_data->input.numbers = WidgetInput::Direct;
+        g::pOptsManager->wf_widget_input_numbers_save(m_data->input.numbers);
+    }
+    idx++;
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGuiEx::InputDoubleSmart("##WfNumbers0", &m_data->input.d_sample, 0.01, d_min, d_max, " Value: %.4f", "%.4f");
+
+
+    if (draw_selected(WidgetInput::Slider == m_data->input.numbers, m_data->input.hovered_items[idx], idx + 1, "Slider:"))
+    {
+        m_data->input.numbers = WidgetInput::Slider;
+        g::pOptsManager->wf_widget_input_numbers_save(m_data->input.numbers);
+    }
+    idx++;
+    show_help_mark(help_text, "Ctrl+click to type value.");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    ImGuiEx::SliderDoubleSmart("##WfNumbers1", &m_data->input.d_sample, d_min, d_max, "Value: %.4f");
+
+
+    if (draw_selected(WidgetInput::Drag == m_data->input.numbers, m_data->input.hovered_items[idx], idx + 1, "Scrubber:"))
+    {
+        m_data->input.numbers = WidgetInput::Drag;
+        g::pOptsManager->wf_widget_input_numbers_save(m_data->input.numbers);
+    }
+    idx++;
+    show_help_mark(help_text, "Ctrl+click or double click to type value.");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    ImGuiEx::DragDoubleSmart("##WfNumbers2", &m_data->input.d_sample, d_min, d_max, "Value: %.4f");
+
+
+    ImGui::Spacing();
+
+
+    ///////////////       booleans
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Booleans");
+    ImGui::Spacing();
+
+
+    bool b_val = !!m_data->input.b_sample;
+
+    if (draw_selected(WidgetInput::Select == m_data->input.booleans, m_data->input.hovered_items[idx], idx + 1, "Selectable:"))
+    {
+        m_data->input.booleans = WidgetInput::Select;
+        g::pOptsManager->wf_widget_input_bools_save(m_data->input.booleans);
+    }
+    idx++;
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    if (ImGuiEx::BooleanToggleLED(b_val ? "Value: on##WfBool1" : "Value: off##WfBool1", &b_val, false, false))
+        m_data->input.b_sample = b_val;
+
+
+    if (draw_selected(WidgetInput::Toggle == m_data->input.booleans, m_data->input.hovered_items[idx], idx + 1, "Toggle button:"))
+    {
+        m_data->input.booleans = WidgetInput::Toggle;
+        g::pOptsManager->wf_widget_input_bools_save(m_data->input.booleans);
+    }
+    idx++;
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    if (ImGuiEx::BooleanButtons2("##WfBool2", b_val ? "Value: on" : "Value: off", &b_val))
+        m_data->input.b_sample = b_val;
+
+}
+
+// grid, snap, theme
+void OptRightPane::show_canvas(const char*& help_text)
+{
+    // Canvas
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Canvas");
+
+    // show grid
+    bool b_val = g::pOptsManager->wf_show_grid_load();
+    if (ImGui::Checkbox("Show grid", &b_val))
+        g::pOptsManager->wf_show_grid_save(b_val);
+    show_help_mark(help_text, "Toggles the visibility of the background grid in the node editor.");
+
+    // snap nodes
+    b_val = g::pOptsManager->wf_snap_nodes_load();
+    if (ImGui::Checkbox("Snap to grid", &b_val))
+        g::pOptsManager->wf_snap_nodes_save(b_val);
+    show_help_mark(help_text, "Aligns nodes to the nearest grid lines when dragging."); // \nHold Alt to temporarily invert this behavior.
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Link Thickness:");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    ImGuiEx::SliderIntSmart("##Thickness", &m_data->buffer_i[BuffLinkThickness], 1, 5, "%u");
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        g::pOptsManager->wf_link_thickness_save(m_data->buffer_i[BuffLinkThickness]);
+
+    //// theme
+    //ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Theme");
+
+    //const auto theme = g::pOptsManager->ui_theme_load();
+    //if (ImGui::RadioButton("System default", 0 == theme))
+    //    g::pOptsManager->ui_theme_save(0);
+    //if (ImGui::RadioButton("Dark", 1 == theme))
+    //    g::pOptsManager->ui_theme_save(1);
+    //if (ImGui::RadioButton("Light", 2 == theme))
+    //    g::pOptsManager->ui_theme_save(2);
+}
+
+// stats
+void OptRightPane::show_thresholds(const char*& /*help_text*/)
+{
+    const auto bytes_to_gb = [](int64_t bytes) -> double
+    {
+        return cast::to_double(bytes) / (1024.0 * 1024.0 * 1024.0);
+    };
+
+    const auto gb_to_bytes = [](double gb) -> int64_t
+    {
+        return cast::to_i64(gb * 1024.0 * 1024.0 * 1024.0);
+    };
+
+    const auto show_thresholds = [&bytes_to_gb, &gb_to_bytes, data = m_data](
+        const char* warn_name, const char* crit_name,
+        int64_t& warn, int64_t& crit, bool convert_bytes, bool div_by_100,
+        float min, float max, const char* format)
+    {
+        std::pair<bool, bool> changed = std::make_pair(false, false);
+        const float slider_w = data->input_w / 2;
+
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(data->input_offset_x);
+
+        ImGui::SetNextItemWidth(slider_w);
+        double val = convert_bytes ? bytes_to_gb(warn) : div_by_100 ? cast::to_double(warn) / 100 : cast::to_double(warn);
+        if (ImGuiEx::SliderDoubleSmart(warn_name, &val, min, max, format))
+            warn = convert_bytes ? gb_to_bytes(val) : div_by_100 ? cast::to_i64(val * 100) : cast::to_i64(val);
+        changed.first = ImGui::IsItemDeactivatedAfterEdit();
+
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(slider_w);
+        val = convert_bytes ? bytes_to_gb(crit) : div_by_100 ? cast::to_double(crit) / 100 : cast::to_double(crit);
+        if (ImGuiEx::SliderDoubleSmart(crit_name, &val, min, max, format))
+            crit = convert_bytes ? gb_to_bytes(val) : div_by_100 ? cast::to_i64(val * 100) : cast::to_i64(val);
+        changed.second = ImGui::IsItemDeactivatedAfterEdit();
+
+        return changed;
+    };
+
+    ImGui::TextWrapped(
+        "Set limits for system resources.\n"
+        "Values exceeding these limits will be highlighted in red in the Stats panel.");
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Threasholds");
+
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::TextUnformatted("Warning");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x + ImGui::GetStyle().ItemSpacing.x + m_data->input_w / 2);
+    ImGui::TextUnformatted("Critical");
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Latency (" APP_CAPTION "):");
+    auto changed = show_thresholds("##LatencyWarning", "##LatencyCritical", m_data->buffer_i[BuffFpsW], m_data->buffer_i[BuffFpsC], false, true, 0.01f, 20.0f, "%.2f ms");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsC]);
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("RAM (this PC):");
+    changed = show_thresholds("##LRAMWarning", "##LRAMCritical", m_data->buffer_i[BuffLRamW], m_data->buffer_i[BuffLRamC], true, false, 0.5f, 10.0f, "%.1f GB");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalRAM, m_data->buffer_i[BuffLRamW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalRAM, m_data->buffer_i[BuffLRamC]);
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("RAM (server):");
+    changed = show_thresholds("##SRAMWarning", "##SRAMCritical", m_data->buffer_i[BuffSRamW], m_data->buffer_i[BuffSRamC], true, false, 1.0f, 10.0f, "%.1f GB");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerRAM, m_data->buffer_i[BuffSRamW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerRAM, m_data->buffer_i[BuffSRamC]);
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("VRAM (server):");
+    changed = show_thresholds("##VRAMWarning", "##VRAMCritical", m_data->buffer_i[BuffVRamW], m_data->buffer_i[BuffVRamC], true, false, 0.1f, 5.0f, "%.1f GB");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerVRAM, m_data->buffer_i[BuffVRamW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerVRAM, m_data->buffer_i[BuffVRamC]);
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("PyTorch VRAM (server):");
+    changed = show_thresholds("##PyTorchWarning", "##PyTorchCritical", m_data->buffer_i[BuffPyTorchW], m_data->buffer_i[BuffPyTorchC], true, false, 0.1f, 5.0f, "%.1f GB");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerPyTorch, m_data->buffer_i[BuffPyTorchW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerPyTorch, m_data->buffer_i[BuffPyTorchC]);
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Ping to server:");
+    changed = show_thresholds("##pingWarning", "##PingCritical", m_data->buffer_i[BuffPingW], m_data->buffer_i[BuffPingC], false, false, 50.0f, 500.0f, "%.0f ms");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerPing, m_data->buffer_i[BuffPingW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerPing, m_data->buffer_i[BuffPingC]);
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Disks (this PC):");
+    changed = show_thresholds("##DiskWarning", "##DiskCritical", m_data->buffer_i[BuffDiskW], m_data->buffer_i[BuffDiskC], true, false, 1.0f, 40.0f, "%.0f GB");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalDisk, m_data->buffer_i[BuffDiskW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalDisk, m_data->buffer_i[BuffDiskC]);
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Monitored drives:");
+    const float disk_w = m_data->input_w / 2;
+
+    ImGui::SameLine();
+    for (auto& disk : g::pOptsManager->stat_disks_enabled_load())
+    {
+        ImGui::SetCursorPosX(m_data->input_offset_x);
+        if (ImGui::Checkbox(disk.first.c_str(), &disk.second))
+            g::pOptsManager->stat_disks_enabled_save();
+    }
+
+    //int32_t disks = 1;
+    //for (auto& disk : g::pOptsManager->stat_disks_enabled_load())
+    //{
+    //    if (2 == disks)
+    //    {
+    //        ImGui::SameLine();
+    //        ImGui::SetCursorPosX(m_data->input_offset_x + ImGui::GetStyle().ItemSpacing.x + disk_w);
+    //    }
+
+    //    if (ImGui::Checkbox(disk.first.c_str(), &disk.second))
+    //    {
+    //        g::pOptsManager->stat_disks_enabled_save();
+    //    }
+
+    //    if (++disks > 2)
+    //    {
+    //        disks = 1;
+    //        ImGui::SetCursorPosX(m_data->input_offset_x);
+    //    }
+    //}
+}
+
+// key bindings
+void OptRightPane::show_keys(const char*& /*help_text*/)
+{}
+
+////////////////////////  helpers
+
+void OptRightPane::show_help_mark(const char*& help_text, const char* hint)
+{
+    ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptHelpMark));
+    const auto pos = ImGui::GetCursorPosX();
+    ImGui::TextUnformatted("[?]");
+    ImGui::PopStyleColor();
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(pos);
+    ImGui::InvisibleButton("[?]hover", ImVec2(m_data->help_mark_w, m_data->help_mark_w));
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
-        out = help_text;
+        help_text = hint;
 }
 
 void OptRightPane::show_help_text(const char* help_text)
 {
     if (help_text != nullptr)
     {
+        ImGui::Dummy(ImVec2(0.0f, 50.0f));
+
         ImGui::Separator();
         ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptHelpText));
         ImGui::PushTextWrapPos(0.0f);
@@ -33,6 +811,91 @@ void OptRightPane::show_help_text(const char* help_text)
         ImGui::PopTextWrapPos();
         ImGui::PopStyleColor();
     }
+}
+
+bool OptRightPane::show_full_row_button(const char* text, bool enabled)
+{
+    ImGuiEx::Spacing(2);
+
+    if (!enabled)
+        ImGui::BeginDisabled();
+    else
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, g::pOptsManager->color_load(AppColor::OptBtnNormal));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, g::pOptsManager->color_load(AppColor::OptBtnHover));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  g::pOptsManager->color_load(AppColor::OptBtnPressed));
+    }
+    const bool click = ImGui::Button(text, ImVec2(m_data->full_row_input_w, 0));
+    if (!enabled)
+        ImGui::EndDisabled();
+    else
+        ImGui::PopStyleColor(3);
+    return click;
+}
+
+void OptRightPane::browse_for_python()
+{
+    tools::path::FdSelectResultSg callback = [this](bool result, std::filesystem::path&& path)
+    {
+        if (result)
+        {
+            m_data->buffer_s[BuffPython] = path.u8string();
+            g::pOptsManager->comfyui_python_save(m_data->buffer_s[BuffPython]);
+        }
+    };
+    tools::path::select_file_open({{ L"Executable (*.exe)", L"*.exe" }}, callback);
+}
+
+void OptRightPane::browse_for_mainpy()
+{
+    tools::path::FdSelectResultSg callback = [this](bool result, std::filesystem::path&& path)
+    {
+        if (result)
+        {
+            m_data->buffer_s[BuffMainpy] = path.u8string();
+            g::pOptsManager->comfyui_main_py_save(m_data->buffer_s[BuffMainpy]);
+        }
+    };
+    tools::path::select_file_open({{ L"main.py", L"main.py" }}, callback);
+}
+
+void OptRightPane::browse_for_workdir()
+{
+    tools::path::FdSelectResultSg callback = [this](bool result, std::filesystem::path&& path)
+    {
+        if (result)
+        {
+            m_data->buffer_s[BuffWorkDir] = std::move(path.u8string());
+            g::pOptsManager->comfyui_workdir_save(m_data->buffer_s[BuffWorkDir]);
+        }
+    };
+    tools::path::select_dir(callback);
+}
+
+void OptRightPane::browse_for_outputdir()
+{
+    tools::path::FdSelectResultSg callback = [this](bool result, std::filesystem::path&& path)
+    {
+        if (result)
+        {
+            m_data->buffer_s[BuffOutput] = std::move(path.u8string());
+            g::pOptsManager->comfyui_output_save(m_data->buffer_s[BuffOutput]);
+        }
+    };
+    tools::path::select_dir(callback);
+}
+
+void OptRightPane::run_server()
+{}
+
+void OptRightPane::import_from_comfyui()
+{
+    //m_data->buffer_i[BuffShowDetectRes] = 1;
+    //m_data->buffer_i[BuffDetectResOK] = 0;
+    // m_data->buffer_s[BuffDetectRes] = "Configuration imported successfully: Python path and arguments have been updated.";
+    //m_data->buffer_s[BuffDetectRes] = "No running " APP_COMFYUI " process detected. Please launch " APP_COMFYUI " manually or configure the paths below.";
+    //m_data->buffer_s[BuffDetectRes] = "Detected " APP_COMFYUI " process, but failed to retrieve launch arguments. Please configure the paths manually.";
+    //m_data->buffer_s[BuffDetectRes] = "Detected " APP_COMFYUI ", but could not read process data (access denied). Please configure paths manually.";
 }
 
 }

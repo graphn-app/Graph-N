@@ -24,7 +24,11 @@
 #include <sys/stat.h>
 #include <windows.h>
 #include <shellapi.h>
+#include <shobjidl_core.h>
+#include <atlbase.h>
 #include <lmcons.h>
+#include <comdef.h>
+#include <Wbemidl.h>
 #else
 #include <unistd.h>
 #include <pwd.h>
