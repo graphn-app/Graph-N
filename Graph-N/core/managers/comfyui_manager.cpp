@@ -20,7 +20,7 @@ void ComfyUIManager::run()
     }
     if (!tools::path::exists(g::pOptsManager->comfyui_python_load()))
     {
-        g::pFlow->handle_comfyui_runserver_error(0, "Can't start ComfyUI server", g::pOptsManager->comfyui_python_load() + " not found");
+        g::pFlow->handle_comfyui_runserver_error(0, "Can't start ComfyUI server", g::pOptsManager->comfyui_python_load().u8string() + " not found");
         return;
     }
     if (!tools::path::exists(g::pOptsManager->comfyui_main_py_load()))

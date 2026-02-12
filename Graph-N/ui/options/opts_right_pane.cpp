@@ -12,7 +12,8 @@ enum
     BuffPython,
     BuffWorkDir,
     BuffOutput,
-    BuffArgs,
+    BuffPythonArgs,
+    BuffComfyUIArgs,
     BuffDetectRes,
 
     _s_count
@@ -61,8 +62,9 @@ void OptRightPane::init(OptsData& data)
 
     m_data->buffer_s[BuffHost] = g::pOptsManager->comfyui_host_load();
     m_data->buffer_s[BuffMainpy] = g::pOptsManager->comfyui_main_py_load().u8string();
-    m_data->buffer_s[BuffPython] = g::pOptsManager->comfyui_python_load();
-    m_data->buffer_s[BuffArgs] = g::pOptsManager->comfyui_args_load();
+    m_data->buffer_s[BuffPython] = g::pOptsManager->comfyui_python_load().u8string();
+    m_data->buffer_s[BuffPythonArgs] = g::pOptsManager->comfyui_python_args_load();
+    m_data->buffer_s[BuffComfyUIArgs] = g::pOptsManager->comfyui_comfyui_args_load();
     m_data->buffer_s[BuffWorkDir] = g::pOptsManager->comfyui_workdir_load().u8string();
     m_data->buffer_s[BuffOutput] = g::pOptsManager->comfyui_output_load().u8string();
 
@@ -336,6 +338,19 @@ void OptRightPane::show_local_server(const char*& help_text)
     if (ImGui::Button("...##browsepython", ImVec2(m_data->browse_btn_w, 0)))
         browse_for_python();
 
+    // Python args
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Python launch args:");
+    show_help_mark(help_text,
+        "Additional command-line arguments passed to the python.exe (e.g., -s).");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    ImGuiEx::InputTextWithHint("##pythonargs", "-s",
+        &m_data->buffer_s[BuffPythonArgs], ImGuiInputTextFlags_AlwaysOverwrite);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        g::pOptsManager->comfyui_python_args_save(m_data->buffer_s[BuffPythonArgs]);
+
     // main.py
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Server path:");
@@ -351,18 +366,18 @@ void OptRightPane::show_local_server(const char*& help_text)
     if (ImGui::Button("...##browsemainpy", ImVec2(m_data->browse_btn_w, 0)))
         browse_for_mainpy();
 
-    // args
+    // main.py args
     ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Launch args:");
+    ImGui::TextUnformatted("ComfyUI args:");
     show_help_mark(help_text,
         "Additional command-line arguments passed to the server (e.g., --lowvram, --cpu, --preview-method auto).");
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_w);
-    ImGuiEx::InputTextWithHint("##args", "--windows-standalone-build --disable-auto-launch --enable-cors-header \"*\"",
-        &m_data->buffer_s[BuffArgs], ImGuiInputTextFlags_AlwaysOverwrite);
+    ImGuiEx::InputTextWithHint("##confyuiargs", "--windows-standalone-build --disable-auto-launch --enable-cors-header \"*\"",
+        &m_data->buffer_s[BuffComfyUIArgs], ImGuiInputTextFlags_AlwaysOverwrite);
     if (ImGui::IsItemDeactivatedAfterEdit())
-        g::pOptsManager->comfyui_args_save(m_data->buffer_s[BuffArgs]);
+        g::pOptsManager->comfyui_comfyui_args_save(m_data->buffer_s[BuffComfyUIArgs]);
 
     // start
     if (show_full_row_button("Start " APP_COMFYUI, !m_data->buffer_s[BuffMainpy].empty() && !m_data->buffer_s[BuffPython].empty() && !m_data->buffer_s[BuffWorkDir].empty()))
@@ -885,17 +900,379 @@ void OptRightPane::browse_for_outputdir()
     tools::path::select_dir(callback);
 }
 
-void OptRightPane::run_server()
-{}
-
 void OptRightPane::import_from_comfyui()
 {
-    //m_data->buffer_i[BuffShowDetectRes] = 1;
-    //m_data->buffer_i[BuffDetectResOK] = 0;
-    // m_data->buffer_s[BuffDetectRes] = "Configuration imported successfully: Python path and arguments have been updated.";
-    //m_data->buffer_s[BuffDetectRes] = "No running " APP_COMFYUI " process detected. Please launch " APP_COMFYUI " manually or configure the paths below.";
-    //m_data->buffer_s[BuffDetectRes] = "Detected " APP_COMFYUI " process, but failed to retrieve launch arguments. Please configure the paths manually.";
-    //m_data->buffer_s[BuffDetectRes] = "Detected " APP_COMFYUI ", but could not read process data (access denied). Please configure paths manually.";
+    m_data->buffer_i[BuffShowDetectRes] = 1;
+    m_data->buffer_i[BuffDetectResOK] = 0;
+    m_data->buffer_s[BuffDetectRes] = "Please configure the paths below manually.";
+
+    constexpr const char* msg_success = "Configuration imported successfully.";
+    constexpr const char* msg_err_no_proc = "No running " APP_COMFYUI " process detected. Please launch " APP_COMFYUI " manually or configure the paths below.";
+    constexpr const char* msg_err_no_args = "Detected " APP_COMFYUI ", but could not read process data. Please configure paths manually.";
+
+#ifdef _WIN32
+    CComPtr<IWbemLocator> locator;
+    auto hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (void**)&locator);
+    if (FAILED(hres))
+    {
+        LogWarn("Failed to create IWbemLocator, err: " << LogHEX(hres));
+        return;
+    }
+
+    CComPtr<IWbemServices> service;
+    hres = locator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &service);
+    if (FAILED(hres))
+    {
+        LogWarn("Failed to connect ROOT\\CIMV2, err: " << LogHEX(hres));
+        return;
+    }
+
+    hres = CoSetProxyBlanket(service, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+    if (FAILED(hres))
+    {
+        LogWarn("Failed to configure service, err: " << LogHEX(hres));
+        return;
+    }
+
+    CComPtr<IEnumWbemClassObject> enumerator;
+    hres = service->ExecQuery(_bstr_t(L"WQL"),
+        _bstr_t(L"SELECT CommandLine, ExecutablePath, ParentProcessId FROM Win32_Process WHERE Name LIKE '%python%'"),
+        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
+    if (FAILED(hres))
+    {
+        LogWarn("Failed to query python processes, err: " << LogHEX(hres));
+        return;
+    }
+
+    CComVariant var;
+    DWORD parent_proc = 0;
+    std::filesystem::path python_path, mainpy_path, work_dir, output_dir;
+    std::wstring python_args, cmdexe_args, comfyui_args;
+
+    if (enumerator != nullptr)
+    {
+        ULONG ret;
+        CComPtr<IWbemClassObject> object;
+        while (S_OK == enumerator->Next(WBEM_INFINITE, 1, &object, &ret))
+        {
+            var.Clear();
+            hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
+            if (FAILED(hres))
+            {
+                LogWarn("Failed to get python CommandLine, err: " << LogHEX(hres));
+                break;
+            }
+
+            if (VT_BSTR == var.vt && wcsstr(var.bstrVal, L"main.py") != nullptr)
+            {
+                python_args = var.bstrVal;
+
+                var.Clear();
+                hres = object->Get(L"ExecutablePath", 0, &var, nullptr, nullptr);
+                if (FAILED(hres) || var.vt != VT_BSTR)
+                {
+                    LogWarn("Failed to get python ExecutablePath, err: " << LogHEX(hres));
+                    break;
+                }
+                python_path = var.bstrVal;
+                if (!python_path.is_absolute())
+                    continue;
+
+                var.Clear();
+                hres = object->Get(L"ParentProcessId", 0, &var, nullptr, nullptr);
+                if (FAILED(hres) || (var.vt != VT_UI4 && var.vt != VT_I4))
+                {
+                    LogWarn("Failed to get python ParentProcessId, err: " << LogHEX(hres));
+                    break;
+                }
+                parent_proc = var.uintVal;
+                break;
+            }
+        }
+    }
+
+    if (0 == parent_proc)
+    {
+        m_data->buffer_s[BuffDetectRes] = msg_err_no_proc;
+        return;
+    }
+
+    bool comfyexe_found = false, cmdexe_found = false;
+
+    while (parent_proc != 0)
+    {
+        enumerator.Release();
+        auto req = fmt::format("SELECT Name, CommandLine, ExecutablePath, ParentProcessId FROM Win32_Process WHERE ProcessId = {}", parent_proc);
+        hres = service->ExecQuery(_bstr_t(L"WQL"), _bstr_t(req.c_str()), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
+        if (FAILED(hres) || nullptr == enumerator)
+        {
+            LogWarn("Failed to query parent processes, err: " << LogHEX(hres));
+            break;
+        }
+
+        CComPtr<IWbemClassObject> object;
+        ULONG ret;
+        if (S_OK == enumerator->Next(WBEM_INFINITE, 1, &object, &ret))
+        {
+            var.Clear();
+            hres = object->Get(L"ParentProcessId", 0, &var, nullptr, nullptr);
+            if (FAILED(hres) || (var.vt != VT_UI4 && var.vt != VT_I4))
+            {
+                LogWarn("Failed to get python ParentProcessId, err: " << LogHEX(hres));
+                break;
+            }
+            parent_proc = var.uintVal;
+
+            var.Clear();
+            hres = object->Get(L"Name", 0, &var, nullptr, nullptr);
+            if (FAILED(hres) || var.vt != VT_BSTR)
+            {
+                LogWarn("Failed to get process Name, err: " << LogHEX(hres));
+                break;
+            }
+            if (_wcsicmp(var.bstrVal, L"comfyui.exe") == 0) // ComfyUI Electron installation
+            {
+                comfyexe_found = true;
+                break;
+            }
+            if (_wcsicmp(var.bstrVal, L"cmd.exe") == 0) // probably portable ComfyUI
+            {
+                var.Clear();
+                hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
+                if (FAILED(hres) || var.vt != VT_BSTR)
+                {
+                    LogWarn("Failed to get cmd.exe CommandLine, err: " << LogHEX(hres));
+                    break;
+                }
+                if (wcsstr(var.bstrVal, L".bat") != nullptr) // parent cmd with .bat
+                {
+                    cmdexe_found = true;
+                    cmdexe_args = var.bstrVal;
+                    break;
+                }
+            }
+            else if (wcsstr(var.bstrVal, L"python") != nullptr) // parent python, check args
+            {
+                var.Clear();
+                hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
+                if (FAILED(hres) || var.vt != VT_BSTR)
+                {
+                    LogWarn("Failed to get python CommandLine, err: " << LogHEX(hres));
+                    break;
+                }
+                if (wcsstr(var.bstrVal, L"main.py") != nullptr) // parent python. replace with previously found 
+                {
+                    python_args = var.bstrVal;
+
+                    var.Clear();
+                    hres = object->Get(L"ExecutablePath", 0, &var, nullptr, nullptr);
+                    if (FAILED(hres) || var.vt != VT_BSTR)
+                    {
+                        LogWarn("Failed to get python ExecutablePath, err: " << LogHEX(hres));
+                        break;
+                    }
+                    python_path = var.bstrVal;
+                    break;
+                }
+            }
+        }
+        else
+            break;
+    }
+
+    m_data->buffer_s[BuffDetectRes] = msg_err_no_args;
+    if (python_args.empty() || !tools::path::exists(python_path) || !python_path.is_absolute())
+        return;
+
+    if (!comfyexe_found && cmdexe_found) // portable build ?
+    {
+        int32_t num = 0;
+        auto args = ::CommandLineToArgvW(cmdexe_args.c_str(), &num);
+        if (!args)
+            return;
+
+        std::filesystem::path bat_path;
+        for (int32_t i = 0; i < num; i++)
+        {
+            if (wcsstr(args[i], L".bat") != nullptr)
+            {
+                bat_path = args[i];
+                break;
+            }
+        }
+        LocalFree(args);
+
+        if (bat_path.empty())
+            return;
+
+        work_dir = bat_path.remove_filename();
+        if (!tools::path::exists(work_dir) || !work_dir.is_absolute())
+        {
+            work_dir.clear();
+            Log(work_dir << " not found");
+        }
+        else
+        {
+            auto mainpy_tmp = work_dir / "ComfyUI" / "main.py";
+            if (tools::path::exists(mainpy_tmp))
+            {
+                mainpy_path = mainpy_tmp;
+                mainpy_tmp = work_dir / "ComfyUI" / "output";
+                if (tools::path::exists(mainpy_tmp))
+                    output_dir = std::move(mainpy_tmp);
+            }
+        }
+    }
+
+    if (!comfyexe_found && tools::path::exists(python_path) && python_path.is_absolute() &&
+        (!tools::path::exists(mainpy_path) || !tools::path::exists(work_dir)))
+    {
+        // ok, search around python if it is embedded
+        auto tmp = python_path.parent_path();
+        do
+        {
+            if (tmp.empty() || !tmp.has_relative_path())
+                break;
+            auto mainpy_tmp = tmp / "ComfyUI" / "main.py";
+            if (tools::path::exists(mainpy_tmp))
+            {
+                mainpy_path = mainpy_tmp;
+                work_dir = tmp;
+
+                mainpy_tmp = tmp / "ComfyUI" / "output";
+                if (tools::path::exists(mainpy_tmp))
+                    output_dir = std::move(mainpy_tmp);
+                break;
+            }
+            else
+                tmp = tmp.parent_path();
+        }
+        while (true);
+
+        if (!tools::path::exists(mainpy_path) || !tools::path::exists(work_dir))
+            return;
+    }
+
+    int32_t num = 0;
+    auto args = ::CommandLineToArgvW(python_args.c_str(), &num);
+    if (!args)
+        return;
+
+    std::wstring python_args_tmp = L"-s ";
+    bool to_comfy_args = false;
+    comfyui_args.clear();
+
+    const auto build_arg = [](const std::wstring& arg)
+    {
+        if (!arg.empty() && arg.find_first_of(L" \t\"") == std::wstring::npos)
+            return arg;        
+
+        std::wstring result;
+        result.reserve(arg.size() * 2 + 2);
+        result.push_back(L'\"');
+
+        for (size_t i = 0; i < arg.size(); ++i)
+        {
+            size_t backslashes = 0;
+
+            while (i < arg.size() && arg[i] == L'\\')
+            {
+                backslashes++;
+                i++;
+            }
+
+            if (i == arg.size())
+            {
+                result.append(backslashes * 2, L'\\');
+            }
+            else if (arg[i] == L'\"')
+            {
+                result.append(backslashes * 2 + 1, L'\\');
+                result.push_back(L'\"');
+            }
+            else
+            {
+                result.append(backslashes, L'\\');
+                result.push_back(arg[i]);
+            }
+        }
+
+        result.push_back(L'\"');
+        return result;
+    };
+
+    for (int32_t i = 0; i < num; i++)
+    {
+        if (_wcsicmp(args[i], L"-u") == 0 || _wcsicmp(args[i], L"-s") == 0)  // we will add these flags manually
+            continue;
+        if (wcsstr(args[i], L".exe") != nullptr && !to_comfy_args) // python.exe
+            continue;
+        if (wcsstr(args[i], L"main.py") != nullptr)
+        {
+            if (tools::path::exists(args[i]) && std::filesystem::path(args[i]).is_absolute()) // installer might pass full path
+            {
+                mainpy_path = args[i];
+            }
+            to_comfy_args = true;
+            continue;
+        }
+        else if (to_comfy_args)
+        {
+            comfyui_args += build_arg(args[i]) + L" ";
+
+            // installer might pass full paths
+            if (_wcsicmp(args[i], L"--output-directory") == 0 && i + 1 < num)
+            {
+                std::filesystem::path tmp(args[i + 1]);
+                if (tools::path::exists(tmp) && tmp.is_absolute())
+                    output_dir = std::move(tmp);
+            }
+            else if (_wcsicmp(args[i], L"--base-directory") == 0 && i + 1 < num)
+            {
+                std::filesystem::path tmp(args[i + 1]);
+                if (tools::path::exists(tmp) && tmp.is_absolute())
+                    work_dir = std::move(tmp);
+            }
+        }
+        else
+        {
+            python_args_tmp += build_arg(args[i]) + L" ";
+        }
+    }
+
+    LocalFree(args);
+
+    if (tools::path::exists(python_path) && python_path.is_absolute() &&
+        tools::path::exists(mainpy_path) && mainpy_path.is_absolute() &&
+        tools::path::exists(work_dir) && work_dir.is_absolute() &&
+        !python_args_tmp.empty() && !comfyui_args.empty())
+    {
+        m_data->buffer_s[BuffPython] = python_path.u8string();
+        g::pOptsManager->comfyui_python_save(m_data->buffer_s[BuffPython]);
+        m_data->buffer_s[BuffMainpy] = mainpy_path.u8string();
+        g::pOptsManager->comfyui_main_py_save(m_data->buffer_s[BuffMainpy]);
+        m_data->buffer_s[BuffWorkDir] = work_dir.u8string();
+        g::pOptsManager->comfyui_workdir_save(m_data->buffer_s[BuffWorkDir]);
+        if (tools::path::exists(output_dir))
+        {
+            m_data->buffer_s[BuffOutput] = output_dir.u8string();
+            g::pOptsManager->comfyui_output_save(m_data->buffer_s[BuffOutput]);
+        }
+        m_data->buffer_s[BuffPythonArgs] = _bstr_t(python_args_tmp.c_str());
+        g::pOptsManager->comfyui_python_args_save(m_data->buffer_s[BuffPythonArgs]);
+        m_data->buffer_s[BuffComfyUIArgs] = _bstr_t(comfyui_args.c_str());
+        g::pOptsManager->comfyui_comfyui_args_save(m_data->buffer_s[BuffComfyUIArgs]);
+
+        m_data->buffer_i[BuffDetectResOK] = 1;
+        m_data->buffer_s[BuffDetectRes] = msg_success;
+    }
+
+#else
+    m_data->buffer_s[BuffDetectRes] = "Please configure the paths below manually.";
+#endif
 }
+
+void OptRightPane::run_server()
+{}
 
 }

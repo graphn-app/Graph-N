@@ -58,8 +58,11 @@ public:
     inline bool comfyui_start_server_load() const { return *std::get_if<bool>(&m_comfyui_start_server.value); }
     inline void comfyui_start_server_save(bool start) { save_option(m_comfyui_start_server, bool(start)); }
 
-    inline const std::string& comfyui_python_load() const { return *std::get_if<std::string>(&m_comfyui_python.value); }
-    inline void comfyui_python_save(const std::string& python) { save_option(m_comfyui_python, python); }
+    inline const std::filesystem::path& comfyui_python_load() const { return *std::get_if<std::filesystem::path>(&m_comfyui_python.value); }
+    inline void comfyui_python_save(const std::filesystem::path& python) { save_option(m_comfyui_python, python); }
+
+    inline const std::string& comfyui_python_args_load() const { return *std::get_if<std::string>(&m_comfyui_python_args.value); }
+    inline void comfyui_python_args_save(const std::string& python) { save_option(m_comfyui_python_args, python); }
 
     inline bool comfyui_kill_server_load() const { return *std::get_if<bool>(&m_comfyui_kill_server.value); }
     inline void comfyui_kill_server_save(bool kill) { save_option(m_comfyui_kill_server, bool(kill)); }
@@ -79,8 +82,8 @@ public:
     inline const std::filesystem::path& comfyui_main_py_load() const { return *std::get_if<std::filesystem::path>(&m_comfyui_main_py.value); }
     inline void comfyui_main_py_save(const std::filesystem::path& main_py) { save_option(m_comfyui_main_py, main_py); }
 
-    inline const std::string& comfyui_args_load() const { return *std::get_if<std::string>(&m_comfyui_args.value); }
-    inline void comfyui_args_save(const std::string& cmd) { save_option(m_comfyui_args, cmd); }
+    inline const std::string& comfyui_comfyui_args_load() const { return *std::get_if<std::string>(&m_comfyui_comfyui_args.value); }
+    inline void comfyui_comfyui_args_save(const std::string& cmd) { save_option(m_comfyui_comfyui_args, cmd); }
 
     inline const std::filesystem::path& comfyui_workdir_load() const { return *std::get_if<std::filesystem::path>(&m_comfyui_workdir.value); }
     inline void comfyui_workdir_save(const std::filesystem::path& path) { save_option(m_comfyui_workdir, path); }
@@ -178,14 +181,15 @@ private:
     OptionValue m_comfyui_conn_time; // int
     OptionValue m_comfyui_read_time; // int
     OptionValue m_comfyui_start_server; // int
-    OptionValue m_comfyui_python; // str
+    OptionValue m_comfyui_python; // path
+    OptionValue m_comfyui_python_args; // str
     OptionValue m_comfyui_kill_server; // int
     OptionValue m_comfyui_hide_console; // int
     OptionValue m_comfyui_capture_output; // int
     OptionValue m_comfyui_auto_hide_output; // int
     OptionValue m_comfyui_parse_address; // int
     OptionValue m_comfyui_main_py; // path
-    OptionValue m_comfyui_args; // str
+    OptionValue m_comfyui_comfyui_args; // str
     OptionValue m_comfyui_workdir; // path
     OptionValue m_comfyui_output; // path
 
