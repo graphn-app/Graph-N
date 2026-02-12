@@ -2,6 +2,7 @@
 #include "ui/graph-n_flow.h"
 #include "ui/base_dlg.h"
 #include "ui/options/opts_dlg.h"
+#include "ui/modal_message.h"
 #include "ui/panels/panel_nodes.h"
 #include "ui/panels/panel_node_inspector.h"
 #include "ui/panels/panel_stats.h"
@@ -939,21 +940,78 @@ void GraphN_Flow::show_panels()
 
     if (m_windows & ViewPanelWf)
         show_panel_wf();
+
+    if (m_windows & ViewModal)
+        modal_show();
+    else if (m_windows & ViewModalStop)
+        modal_last_frame();
 }
 
-void GraphN_Flow::modal_begin(std::string /*message*/, int32_t /*buttons*/)
-{}
-
-ModalDlgCtrl GraphN_Flow::GraphN_Flow::modal_show()
+void GraphN_Flow::modal_begin(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def, const std::function<void(ModalDlgCtrl)>& callback)
 {
-    return ModalDlgCtrl::Continue;
+    if (m_modal_message)
+    {
+        LogInternalLogic("Message dialog already open");
+        return;
+    }
+
+    Log("Modal started: " << message);
+    m_msg_callback = callback;
+    m_modal_message = std::make_unique<ModalMessage>();
+    m_modal_message->init(std::move(caption), std::move(message), buttons, def);
+    m_windows |= ViewModal;
 }
 
-void GraphN_Flow::GraphN_Flow::modal_update(std::string /*message*/)
-{}
+void GraphN_Flow::GraphN_Flow::modal_show()
+{
+    if (!m_modal_message)
+    {
+        LogInternalLogic("Message dialog wasn't initialized");
+        return;
+    }
 
-void GraphN_Flow::modal_end()
-{}
+    auto ret = m_modal_message->show();
+    if (ret != ModalDlgCtrl::Continue)
+    {
+        Log("Modal replied: " << ret);
+        if (m_msg_callback != nullptr)
+            m_msg_callback(ret);
+        modal_stop();
+    }
+}
+
+void GraphN_Flow::GraphN_Flow::modal_update(std::string&& message)
+{
+    if (!m_modal_message)
+    {
+        LogInternalLogic("Message dialog wasn't initialized");
+        return;
+    }
+    Log("Modal updated: " << message);
+    m_modal_message->update(std::move(message));
+}
+
+void GraphN_Flow::modal_stop()
+{
+    m_msg_callback = nullptr;
+    m_windows &= ~ViewModal;
+    m_windows |= ViewModalStop;
+}
+
+void GraphN_Flow::modal_last_frame()
+{
+    if (!m_modal_message)
+    {
+        m_windows &= ~(ViewModal | ViewModalStop);
+        LogInternalLogic("Message dialog wasn't initialized");
+        return;
+    }
+
+    m_modal_message->stop();
+    m_modal_message->show();
+    m_windows &= ~(ViewModal | ViewModalStop);
+    m_modal_message.reset();
+}
 
 }
 

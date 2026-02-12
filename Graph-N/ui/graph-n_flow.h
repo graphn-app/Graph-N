@@ -16,6 +16,7 @@ namespace ui
 {
 class BaseDlg;
 class OptionsDlgs;
+class ModalMessage;
 class PanelNodes;
 class PanelNodeInspector;
 class PanelStats;
@@ -60,12 +61,16 @@ enum ViewDialogs
     ViewStyleSelector           = 0x20000000,
     ViewFontSelector            = 0x40000000,
 
-    _ViewNextAvail              = 0x00200000,
+    ViewModal                   = 0x00200000,
+    ViewModalStop               = 0x00400000,
+
+    _ViewNextAvail              = 0x00800000,
 
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWf | ViewPanelWfList | ViewPanelModels |
                                   ViewPanelTemplates | ViewPanelOutput | ViewPanelNotes | ViewPanelTextEditor | ViewPanelMarkdownPreview,
-    ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector
+    ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector,
+    ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewAllMenuBar | ViewPanelWf
 };
 
 class GraphN_Flow final
@@ -104,14 +109,16 @@ public:
     // WF public
 
     // modal msg box
-    void modal_begin(std::string message, int32_t buttons /* ModalDlgCtrl buttons and icons */);
-    ModalDlgCtrl modal_show();
-    void modal_update(std::string message);
-    void modal_end();
+    void modal_begin(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def, const std::function<void(ModalDlgCtrl)>& callback);
+    void modal_show();
+    void modal_update(std::string&& message);
+    void modal_stop();
 
 private:
     void stop_all_threads();
     void prepare_to_quit();
+
+    void modal_last_frame();
 
     void show_menu_bar();
     void show_menu_bar_connecting();
@@ -158,6 +165,9 @@ private:
 
     uint64_t m_windows = ViewNone;
     std::set<BaseDlg*> m_all_dialogs;
+
+    std::unique_ptr<ModalMessage> m_modal_message;
+    std::function<void(ModalDlgCtrl)> m_msg_callback = nullptr;
 
     std::unique_ptr<OptionsDlgs> m_opts_dlg;
     std::unique_ptr<PanelNodes> m_panel_nodes;

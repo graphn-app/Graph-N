@@ -123,6 +123,14 @@ void MainRoutine::prepare_fonts()
     config.GlyphOffset.y = 4.0f;
     m_font_icons = io.Fonts->AddFontFromFileTTF(path_icons.c_str(), 24.0f, &config, ranges_icons);
 
+    // ================= BIG ICONS FONT =================
+
+    config.MergeMode = false;
+    config.PixelSnapH = false;
+    config.GlyphMinAdvanceX = 0.0f;
+    config.GlyphOffset.y = 4.0f;
+    m_font_big_icons = io.Fonts->AddFontFromFileTTF(path_icons.c_str(), 40.0f, &config, ranges_icons);
+
     // build
     io.Fonts->Build();
 

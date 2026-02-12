@@ -95,6 +95,7 @@ bool GraphN::init_graphn()
     g::pMain->set_vsync_enabled(g::pOptsManager->app_vsync_load());
 
     m_flow_step = Flow::Init;
+    Log("Next step: init");
     return true;
 }
 
@@ -129,23 +130,16 @@ void GraphN::exit_graphn()
 
 int32_t GraphN::override_exit_code()
 {
+    LogV(m_exit_code);
     return m_exit_code;
 }
-
-void GraphN::handle_wnd_minimized()
-{}
-
-void GraphN::handle_wnd_restored()
-{}
 
 void GraphN::handle_wnd_on_close()
 {
     LogF;
     m_flow_step = Flow::PrepareToExit;
+    Log("Next step: PrepareToExit");
 }
-
-void GraphN::handle_1sec_timer()
-{}
 
 bool GraphN::flow()
 {
@@ -170,6 +164,7 @@ bool GraphN::flow()
             if (m_graphn_flow)
                 m_graphn_flow->exit();
             m_flow_step = Flow::DoExit;
+            Log("Next step: DoExit");
             result = true;
             break;
         case Flow::DoExit:
@@ -195,74 +190,89 @@ bool GraphN::init()
 
     _tzset();
 
-    m_flow_step = Flow::GraphN;
+    Log("Creating Graph-N flow");
+    m_graphn_flow = std::make_unique<ui::GraphN_Flow>();
+    g::pFlow = m_graphn_flow.get();
+    if (!g::pFlow->init())
+    {
+        Log("Graph-N flow initialization failed");
+        return false;
+    }
+
+    m_flow_step = Flow::StartServer;
+    Log("Next step: StartServer");
     return true;
 }
 
 bool GraphN::start_server()
 {
+    const auto handler = [this](ModalDlgCtrl res)
+    {
+        if (ModalDlgCtrl::BtnYes == res)
+        {
+            LogS("Starting " APP_COMFYUI " server");
+            g::pComfyUIManager->run(false);
+        }
+        m_question_mode = false;
+        m_question_replied = true;
+    };
+
     if (m_question_mode)
     {
-        const ModalDlgCtrl res = g::pFlow->modal_show();
-        if (res != ModalDlgCtrl::Continue)
-        {
-            m_question_mode = false;
-            if (ModalDlgCtrl::BtnYes == res)
-            {
-                g::pComfyUIManager->run(false);
-            }
-            m_flow_step = Flow::Connect;
-        }
+        g::pFlow->modal_show();
+        return true;
+    }
+    if (m_question_replied)
+    {
+        m_flow_step = Flow::Connect;
+        Log("Next step: Connect");
+        m_question_replied = false;
         return true;
     }
 
     if (!g::pOptsManager->comfyui_start_server_load())
     {
         m_flow_step = Flow::Connect;
+        Log("Next step: Connect");
         return true;
     }
 
     if (g::pComfyUIManager->check_existing_process())
     {
-        g::pFlow->modal_begin(APP_CAPTION " detected a running " APP_COMFYUI " process.\n"
+        Log("Existing " APP_COMFYUI " found. Ask user what to do");
+        g::pFlow->modal_begin("The " APP_COMFYUI " is already running",
+            APP_CAPTION " detected a running " APP_COMFYUI " process.\n"
             "This might be another " APP_COMFYUI " instance running, or a zombie process.\n"
             "Do you want to launch a new server instance anyway?",
-            ModalDlgCtrl::BtnYes | ModalDlgCtrl::BtnNo | ModalDlgCtrl::IcoQues);
+            ModalDlgCtrl::BtnYes | ModalDlgCtrl::BtnNo | ModalDlgCtrl::IcoQues, ModalDlgCtrl::BtnNo, handler);
         m_question_mode = true;
+        m_question_replied = false;
         return true;
     }
 
+    Log("Starting " APP_COMFYUI " server");
     g::pComfyUIManager->run(false);
     m_flow_step = Flow::Connect;
+    Log("Next step: Connect");
     return true;
 }
 
 bool GraphN::connect()
 {
+    LogF;
     g::pFlow->reconnect();
     m_flow_step = Flow::GraphN;
+    Log("Next step: GraphN");
     return true;
 }
 
 bool GraphN::run_graphn()
 {
-    if (nullptr == m_graphn_flow)
-    {
-        Log("Creating Graph-N flow");
-        m_graphn_flow = std::make_unique<ui::GraphN_Flow>();
-        g::pFlow = m_graphn_flow.get();
-        if (!g::pFlow->init())
-        {
-            Log("Graph-N flow initialization failed");
-            return false;
-        }
-    }
-
     const bool res = m_graphn_flow->run();
     if (!res)
     {
-        Log("GraphN flow exited, next flow step: exit");
         m_flow_step = Flow::DoExit;
+        Log("Next step: DoExit");
     }
     return res;
 }

@@ -56,6 +56,8 @@ enum class DlgObj
     PanelTextEditor,
     PanelMarkdownPreview,
 
+    ModalMessage,
+
     _count
 };
 
@@ -85,6 +87,8 @@ constexpr const char* DlgObjID[static_cast<size_t>(DlgObj::_count)] =
     "C6287EE2-BC97-4F8D-AE27-B39F59751D10",                     // PanelModels_ItemMenu
     "28677371-A471-4242-AA17-A3830EC4D528",                     // PanelTextEditor
     "D92D3506-6C6B-4613-BAB2-AEF2B33E81CE",                     // PanelMarkdownPreview
+
+    "84C3F1E0-4342-4A1B-9464-A011057E9FE1",                     // ModalMessage
 };
 
 enum class OptPane
@@ -196,6 +200,10 @@ enum class AppColor
     UrlTextHovered,
     FolderIcon,
     Starred,
+    MsgBoxError,
+    MsgBoxWarning,
+    MsgBoxInfo,
+    MsgBoxQuestion,
 
     Pin_Int,
     Pin_Float,

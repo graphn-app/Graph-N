@@ -54,10 +54,10 @@ public:
 
 public:
     // main wnd handlers
-    void handle_wnd_minimized();
-    void handle_wnd_restored();
+    void handle_wnd_minimized() {}
+    void handle_wnd_restored() {}
     void handle_wnd_on_close();
-    void handle_1sec_timer();
+    void handle_1sec_timer() {}
 
 private:
     // flow
@@ -69,6 +69,7 @@ private:
 private:
     Flow m_flow_step = Flow::_none;
     bool m_question_mode = false;
+    bool m_question_replied = false;
 
     int32_t m_exit_code = 0;
 

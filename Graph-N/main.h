@@ -27,6 +27,7 @@ public:
     ImFont* get_small_font() const { return m_font_small; }
     ImFont* get_bold_font() const { return m_font_bold; }
     ImFont* get_icons_font() const { return m_font_icons; }
+    ImFont* get_big_icons_font() const { return m_font_big_icons; }
 
     virtual void wnd_restore() = 0;
     virtual void wnd_minimize() = 0;
@@ -43,6 +44,7 @@ private:
     ImFont* m_font_small = nullptr;
     ImFont* m_font_bold = nullptr;
     ImFont* m_font_icons = nullptr;
+    ImFont* m_font_big_icons = nullptr;
 };
 
 } // namespace platform
