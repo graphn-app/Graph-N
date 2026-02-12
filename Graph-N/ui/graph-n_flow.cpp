@@ -111,9 +111,6 @@ bool GraphN_Flow::init()
 
     Log("Panels created");
 
-    // start connect to ComfyUI
-    reconnect();
-
     return true;
 }
 
@@ -122,7 +119,6 @@ void GraphN_Flow::reconnect()
     LogF;
     m_windows |= ViewConnect;
     g::pConnectManager->connect();
-    g::pComfyUIManager->run();
 }
 
 void GraphN_Flow::subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener)
@@ -944,6 +940,20 @@ void GraphN_Flow::show_panels()
     if (m_windows & ViewPanelWf)
         show_panel_wf();
 }
+
+void GraphN_Flow::modal_begin(std::string /*message*/, int32_t /*buttons*/)
+{}
+
+ModalDlgCtrl GraphN_Flow::GraphN_Flow::modal_show()
+{
+    return ModalDlgCtrl::Continue;
+}
+
+void GraphN_Flow::GraphN_Flow::modal_update(std::string /*message*/)
+{}
+
+void GraphN_Flow::modal_end()
+{}
 
 }
 

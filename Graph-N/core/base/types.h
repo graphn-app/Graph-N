@@ -101,19 +101,21 @@ enum class OptPane
     _last = KeyBindings
 };
 
-enum DlgCtrl
+enum ModalDlgCtrl
 {
-    _none      = 0,
+    _none       = 0,
 
-    BtnOK      = 0x00001,
-    BtnCancel  = 0x00002,
-    BtnYes     = 0x00004,
-    BtnNo      = 0x00008,
+    BtnOK       = 0x00001,
+    BtnCancel   = 0x00002,
+    BtnYes      = 0x00004,
+    BtnNo       = 0x00008,
 
-    IcoErr     = 0x10000,
-    IcoInfo    = 0x20000,
-    IcoWarn    = 0x40000,
-    IcoQues    = 0x80000,
+    IcoErr      = 0x10000,
+    IcoInfo     = 0x20000,
+    IcoWarn     = 0x40000,
+    IcoQues     = 0x80000,
+
+    Continue    = 0x100000,
 
     _btn_count = 4,
     _ico_count = 4,

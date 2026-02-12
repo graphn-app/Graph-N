@@ -29,14 +29,13 @@ private:
 
     void show_help_mark(const char*& help_text_ptr, const char* hint);
     void show_help_text(const char* help_text);
-    bool show_full_row_button(const char* text, bool enabled);
+    bool show_full_row_button(const char* text, bool enabled, bool half_w);
 
     void import_from_comfyui();
     void browse_for_python();
     void browse_for_mainpy();
     void browse_for_workdir();
     void browse_for_outputdir();
-    void run_server();
 
 private:
     OptsData* m_data = nullptr;

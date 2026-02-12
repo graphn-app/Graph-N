@@ -157,6 +157,12 @@ bool GraphN::flow()
         case Flow::Init:
             result = init();
             break;
+        case Flow::StartServer:
+            result = start_server();
+            break;
+        case Flow::Connect:
+            result = connect();
+            break;
         case Flow::GraphN:
             result = run_graphn();
             break;
@@ -189,6 +195,51 @@ bool GraphN::init()
 
     _tzset();
 
+    m_flow_step = Flow::GraphN;
+    return true;
+}
+
+bool GraphN::start_server()
+{
+    if (m_question_mode)
+    {
+        const ModalDlgCtrl res = g::pFlow->modal_show();
+        if (res != ModalDlgCtrl::Continue)
+        {
+            m_question_mode = false;
+            if (ModalDlgCtrl::BtnYes == res)
+            {
+                g::pComfyUIManager->run(false);
+            }
+            m_flow_step = Flow::Connect;
+        }
+        return true;
+    }
+
+    if (!g::pOptsManager->comfyui_start_server_load())
+    {
+        m_flow_step = Flow::Connect;
+        return true;
+    }
+
+    if (g::pComfyUIManager->check_existing_process())
+    {
+        g::pFlow->modal_begin(APP_CAPTION " detected a running " APP_COMFYUI " process.\n"
+            "This might be another " APP_COMFYUI " instance running, or a zombie process.\n"
+            "Do you want to launch a new server instance anyway?",
+            ModalDlgCtrl::BtnYes | ModalDlgCtrl::BtnNo | ModalDlgCtrl::IcoQues);
+        m_question_mode = true;
+        return true;
+    }
+
+    g::pComfyUIManager->run(false);
+    m_flow_step = Flow::Connect;
+    return true;
+}
+
+bool GraphN::connect()
+{
+    g::pFlow->reconnect();
     m_flow_step = Flow::GraphN;
     return true;
 }

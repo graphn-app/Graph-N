@@ -1,6 +1,7 @@
 #include "ui/options/opts_right_pane.h"
 #include "ui/graph-n_flow.h"
 #include "core/managers/settings_manager.h"
+#include "core/managers/comfyui_manager.h"
 
 namespace ui
 {
@@ -270,16 +271,19 @@ void OptRightPane::show_connection(const char*& help_text)
 
 
     /////////////// apply
-    if (show_full_row_button("Save/Apply connection settings", m_data->buffer_i[BuffConnOptChanged] && !m_data->buffer_s[BuffHost].empty()))
+    if (show_full_row_button("Save/Apply connection settings", m_data->buffer_i[BuffConnOptChanged] && !m_data->buffer_s[BuffHost].empty(), true))
     {
         g::pOptsManager->comfyui_host_save(m_data->buffer_s[BuffHost]);
         g::pOptsManager->comfyui_port_save(m_data->buffer_i[BuffPort]);
         g::pOptsManager->comfyui_connect_timeout_save(m_data->buffer_i[BuffConnTm]);
         g::pOptsManager->comfyui_read_timeout_save(m_data->buffer_i[BuffReadTm]);
         m_data->buffer_i[BuffConnOptChanged] = 0;
-
-        if (!g::pFlow->get_online())
-            g::pFlow->reconnect();
+    }
+    ImGui::SameLine();
+    if (show_full_row_button(g::pFlow->get_online() ? "Reconnect to server" : "Connect to server",
+        !g::pOptsManager->comfyui_host_load().empty(), true))
+    {
+        g::pFlow->reconnect();
     }
 }
 
@@ -294,7 +298,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::TextWrapped("These settings allow " APP_CAPTION " to launch and manage the " APP_COMFYUI " server automatically.\n"
         "You can configure the paths manually below, or launch " APP_COMFYUI " externally and click 'Import Config from Active Process' to auto-detect the settings.");
     const auto y = ImGui::GetCursorPosY();
-    if (show_full_row_button("Detect and import config from active process", true))
+    if (show_full_row_button("Detect and import config from active process", true, false))
     {
         import_from_comfyui();
     }
@@ -315,7 +319,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_with_browse_w);
-    ImGuiEx::InputTextWithHint("##workdir", "C:\\" APP_COMFYUI "_install", &m_data->buffer_s[BuffWorkDir], ImGuiInputTextFlags_AlwaysOverwrite);
+    ImGuiEx::InputTextWithHint("##workdir", "C:\\" APP_COMFYUI "_dir", &m_data->buffer_s[BuffWorkDir], ImGuiInputTextFlags_AlwaysOverwrite);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->comfyui_workdir_save(m_data->buffer_s[BuffWorkDir]);
     ImGui::SameLine();
@@ -331,7 +335,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_with_browse_w);
-    ImGuiEx::InputTextWithHint("##python", "C:\\" APP_COMFYUI "_install\\python_embedded\\scripts\\python.exe", &m_data->buffer_s[BuffPython], ImGuiInputTextFlags_AlwaysOverwrite);
+    ImGuiEx::InputTextWithHint("##python", "C:\\" APP_COMFYUI "_dir\\python_embedded\\python.exe", &m_data->buffer_s[BuffPython], ImGuiInputTextFlags_AlwaysOverwrite);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->comfyui_python_save(m_data->buffer_s[BuffPython]);
     ImGui::SameLine();
@@ -359,7 +363,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_with_browse_w);
-    ImGuiEx::InputTextWithHint("##mainpy", "C:\\" APP_COMFYUI "_install\\" APP_COMFYUI "\\main.py", &m_data->buffer_s[BuffMainpy], ImGuiInputTextFlags_AlwaysOverwrite);
+    ImGuiEx::InputTextWithHint("##mainpy", "C:\\" APP_COMFYUI "_dir\\" APP_COMFYUI "\\main.py", &m_data->buffer_s[BuffMainpy], ImGuiInputTextFlags_AlwaysOverwrite);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->comfyui_main_py_save(m_data->buffer_s[BuffMainpy]);
     ImGui::SameLine();
@@ -374,16 +378,26 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_w);
-    ImGuiEx::InputTextWithHint("##confyuiargs", "--windows-standalone-build --disable-auto-launch --enable-cors-header \"*\"",
+    ImGuiEx::InputTextWithHint("##confyuiargs", "--windows-standalone-build --disable-auto-launch",
         &m_data->buffer_s[BuffComfyUIArgs], ImGuiInputTextFlags_AlwaysOverwrite);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->comfyui_comfyui_args_save(m_data->buffer_s[BuffComfyUIArgs]);
 
     // start
-    if (show_full_row_button("Start " APP_COMFYUI, !m_data->buffer_s[BuffMainpy].empty() && !m_data->buffer_s[BuffPython].empty() && !m_data->buffer_s[BuffWorkDir].empty()))
+    if (show_full_row_button("Start " APP_COMFYUI,
+        !m_data->buffer_s[BuffMainpy].empty() && !m_data->buffer_s[BuffPython].empty() && !m_data->buffer_s[BuffWorkDir].empty(), true))
     {
-        run_server();
+        g::pComfyUIManager->run(true);
     }
+    ImGui::SameLine();
+    std::string caption = "Stop " APP_COMFYUI;
+    if (g::pComfyUIManager->get_process_started())
+        caption = fmt::format("Stop " APP_COMFYUI " [ProcID {}]", g::pComfyUIManager->get_started_proc_id());
+    if (show_full_row_button(caption.c_str(), g::pComfyUIManager->get_process_started(), true))
+    {
+        g::pComfyUIManager->kill();
+    }
+
 
     ImGuiEx::Spacing(3);
 
@@ -828,7 +842,7 @@ void OptRightPane::show_help_text(const char* help_text)
     }
 }
 
-bool OptRightPane::show_full_row_button(const char* text, bool enabled)
+bool OptRightPane::show_full_row_button(const char* text, bool enabled, bool half_w)
 {
     ImGuiEx::Spacing(2);
 
@@ -840,7 +854,10 @@ bool OptRightPane::show_full_row_button(const char* text, bool enabled)
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, g::pOptsManager->color_load(AppColor::OptBtnHover));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,  g::pOptsManager->color_load(AppColor::OptBtnPressed));
     }
-    const bool click = ImGui::Button(text, ImVec2(m_data->full_row_input_w, 0));
+    float w = m_data->full_row_input_w;
+    if (half_w)
+        w = w / 2 - ImGui::GetStyle().ItemSpacing.x / 2;
+    const bool click = ImGui::Button(text, ImVec2(w, 0));
     if (!enabled)
         ImGui::EndDisabled();
     else
@@ -1271,8 +1288,5 @@ void OptRightPane::import_from_comfyui()
     m_data->buffer_s[BuffDetectRes] = "Please configure the paths below manually.";
 #endif
 }
-
-void OptRightPane::run_server()
-{}
 
 }

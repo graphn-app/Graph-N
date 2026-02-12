@@ -36,6 +36,8 @@ public:
     {
         _none,
         Init,
+        StartServer,
+        Connect,
         GraphN,
         PrepareToExit,
         DoExit
@@ -60,10 +62,14 @@ public:
 private:
     // flow
     bool init();
+    bool start_server();
+    bool connect();
     bool run_graphn();
 
 private:
     Flow m_flow_step = Flow::_none;
+    bool m_question_mode = false;
+
     int32_t m_exit_code = 0;
 
     std::unique_ptr<ui::GraphN_Flow> m_graphn_flow;

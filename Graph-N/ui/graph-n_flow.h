@@ -103,6 +103,12 @@ public:
     void wf_add_node_to_active_panel(data::Node* node, const std::string& select = "");
     // WF public
 
+    // modal msg box
+    void modal_begin(std::string message, int32_t buttons /* ModalDlgCtrl buttons and icons */);
+    ModalDlgCtrl modal_show();
+    void modal_update(std::string message);
+    void modal_end();
+
 private:
     void stop_all_threads();
     void prepare_to_quit();

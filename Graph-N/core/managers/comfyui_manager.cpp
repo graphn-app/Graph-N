@@ -9,32 +9,22 @@ namespace mngr
 ComfyUIManager::ComfyUIManager() = default;
 ComfyUIManager::~ComfyUIManager() = default;
 
-void ComfyUIManager::run()
+void ComfyUIManager::run(bool force_start)
 {
-    if (!g::pOptsManager->comfyui_start_server_load())
+    if (!force_start && !g::pOptsManager->comfyui_start_server_load())
         return;
-    if (g::pOptsManager->comfyui_python_load().empty() || g::pOptsManager->comfyui_main_py_load().empty() || g::pOptsManager->comfyui_workdir_load().empty())
+    if (!tools::path::exists(g::pOptsManager->comfyui_python_load()) || !g::pOptsManager->comfyui_python_load().is_absolute() ||
+        !tools::path::exists(g::pOptsManager->comfyui_main_py_load()) || !g::pOptsManager->comfyui_main_py_load().is_absolute() ||
+        !tools::path::exists(g::pOptsManager->comfyui_workdir_load()) || !g::pOptsManager->comfyui_workdir_load().is_absolute())
     {
         g::pFlow->handle_comfyui_runserver_error(0, "Can't start ComfyUI server", "Invalid config");
         return;
     }
-    if (!tools::path::exists(g::pOptsManager->comfyui_python_load()))
-    {
-        g::pFlow->handle_comfyui_runserver_error(0, "Can't start ComfyUI server", g::pOptsManager->comfyui_python_load().u8string() + " not found");
-        return;
-    }
-    if (!tools::path::exists(g::pOptsManager->comfyui_main_py_load()))
-    {
-        g::pFlow->handle_comfyui_runserver_error(0, "Can't start ComfyUI server", g::pOptsManager->comfyui_main_py_load().u8string() + " not found");
-        return;
-    }
-    if (!tools::path::exists(g::pOptsManager->comfyui_workdir_load()))
-    {
-        g::pFlow->handle_comfyui_runserver_error(0, "Can't start ComfyUI server", g::pOptsManager->comfyui_workdir_load().u8string() + " not found");
-        return;
-    }
 
-    run_server();
+    run_server(force_start);
 }
+
+void ComfyUIManager::kill()
+{}
 
 } // namespace mngr

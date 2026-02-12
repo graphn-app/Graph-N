@@ -74,7 +74,7 @@ void ConnectManager::connect()
 {
     LogF;
 
-    stop_all_threads();
+    stop_connect();
 
     m_conn_data = std::make_shared<ConnectData>();
     m_conn_data->host = g::pOptsManager->comfyui_host_load();
@@ -84,9 +84,8 @@ void ConnectManager::connect()
     m_conn_data->conn_th_id = ++m_conn_th_id;
     Log("Starting connection thread " << m_conn_data->conn_th_id);
 
-    m_actual_thread_id = m_conn_data->conn_th_id;
     m_state = ConnectState::Connecting;
-    std::packaged_task<std::shared_ptr<ConnectData>()> task(std::bind(&ConnectManager::connect_thread, m_conn_data, std::ref(m_quick_state), std::ref(m_actual_thread_id)));
+    std::packaged_task<std::shared_ptr<ConnectData>()> task(std::bind(&ConnectManager::connect_thread, m_conn_data));
     m_future = task.get_future();
     m_thread = std::thread(std::move(task));
 }
@@ -99,16 +98,9 @@ void ConnectManager::stop_connect()
         m_state = ConnectState::Disconnected;
 }
 
-std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(
-    std::shared_ptr<ConnectData> data, std::atomic<ConnectState>& quick_state, int32_t& actual_thread_id)
+std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std::shared_ptr<ConnectData> data)
 {
     LogFS;
-
-    const auto update_state = [&quick_state, &actual_thread_id, data](ConnectState state)
-    {
-        if (actual_thread_id == data->conn_th_id)
-            quick_state = state;
-    };
 
     LogS("Thread " << data->conn_th_id << ". Connecting to " APP_COMFYUI ". " << data->host << ":" << data->port << ", ct=" << data->conn_timeout << ", rt=" << data->read_timeout);
     using namespace std::chrono_literals;
@@ -117,7 +109,6 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(
         try
         {
             data->state = ConnectState::Connecting;
-            update_state(data->state);
 
             httplib::Client cli(data->host, data->port);
             cli.set_keep_alive(true);
@@ -129,7 +120,6 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(
             {
                 LogS("Thread " << data->conn_th_id << ". Connection thread aborted");
                 data->state = ConnectState::Disconnected;
-                update_state(data->state);
                 return data;
             }
 
@@ -137,7 +127,6 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(
             {
                 LogS("Thread " << data->conn_th_id << ". Start reading nodes: " << res->body.size() << " bytes");
                 data->state = ConnectState::Connected;
-                update_state(data->state);
                 data->data = std::move(res->body);
                 return data;
             }
@@ -161,7 +150,6 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(
     {
         LogS("Thread " << data->conn_th_id << ". Connection thread aborted");
         data->state = ConnectState::Disconnected;
-        update_state(data->state);
         return data;
     }
 

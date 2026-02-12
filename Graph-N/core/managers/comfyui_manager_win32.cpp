@@ -33,14 +33,17 @@ void ComfyUIManager_Win32::stop_all_threads()
 {
     LogF;
     ComfyUIManager::stop_all_threads();
+    kill();
 }
 
-void ComfyUIManager_Win32::run_server()
+void ComfyUIManager_Win32::run_server(bool /*force_run*/)
 {
     const auto& mainpy = g::pOptsManager->comfyui_main_py_load();
     const auto& python = g::pOptsManager->comfyui_python_load();
-    const auto& args = g::pOptsManager->comfyui_comfyui_args_load();
     const auto& workdir = g::pOptsManager->comfyui_workdir_load();
+    const auto& comfyui_args = g::pOptsManager->comfyui_comfyui_args_load();
+    const auto& python_args = g::pOptsManager->comfyui_python_args_load();
+    (void)comfyui_args;
 
     bool capture_log = g::pOptsManager->comfyui_capture_output_load();
     bool kill_server = g::pOptsManager->comfyui_kill_server_load();
@@ -56,10 +59,10 @@ void ComfyUIManager_Win32::run_server()
     }
 
     PROCESS_INFORMATION pi = {};
-    STARTUPINFOA si;
+    STARTUPINFOA si = {};
     prepare(si, capture_log, hide_console, hpipe_wr);
 
-    if (!create_process(si, pi, python.u8string(), mainpy.u8string(), args, workdir.u8string(), hide_console))
+    if (!create_process(si, pi, python.u8string(), mainpy.u8string(), python_args, workdir.u8string(), hide_console))
     {
         m_hpipe.reset();
         m_hjob.reset();
@@ -74,7 +77,7 @@ void ComfyUIManager_Win32::run_server()
         {
             ::TerminateProcess(pi.hProcess, 0);
             g::pOptsManager->comfyui_kill_server_save(false);
-            run_server();
+            run_server(true);
             g::pOptsManager->comfyui_kill_server_save(true);
         }
         ::CloseHandle(pi.hThread);
@@ -189,6 +192,14 @@ bool ComfyUIManager_Win32::create_process(
 
     return true;
 }
+
+bool ComfyUIManager_Win32::check_existing_process() const
+{
+    return true;
+}
+
+void ComfyUIManager_Win32::kill()
+{}
 
 } // namespace mngr
 
