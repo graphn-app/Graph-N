@@ -5,21 +5,24 @@
 namespace ui
 {
 
-class PanelOutput final : 
+class PanelServerLogs final : 
     public PanelEmptyWithDescr,
     public PanelBase<PanelCommonData>
 {
 public:
-    PanelOutput();
-    ~PanelOutput() override;
+    PanelServerLogs();
+    ~PanelServerLogs() override;
 
     void init() override;
     void stop_all_threads() override;
 
 private:
     DlgCode show(bool& focused) override;
+    void show_toolbar();
+    void show_logs();
 
 private:
+    std::list<std::string> m_logs;
 };
 
 

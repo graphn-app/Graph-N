@@ -23,7 +23,7 @@ class PanelStats;
 class PanelWorkflow;
 class PanelWfList;
 class PanelTemplates;
-class PanelOutput;
+class PanelServerLogs;
 class PanelNotes;
 class PanelModels;
 class PanelTextEditor;
@@ -174,7 +174,7 @@ private:
     std::unique_ptr<PanelNodeInspector> m_panel_node_inspector;
     std::unique_ptr<PanelStats> m_panel_stats;
     std::unique_ptr<PanelTemplates> m_panel_templates;
-    std::unique_ptr<PanelOutput> m_panel_output;
+    std::unique_ptr<PanelServerLogs> m_panel_logs;
     std::unique_ptr<PanelNotes> m_panel_notes;
     std::unique_ptr<PanelModels> m_panel_models;
     std::unique_ptr<PanelWfList> m_panel_wf_list;

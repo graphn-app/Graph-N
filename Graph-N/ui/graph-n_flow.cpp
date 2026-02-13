@@ -10,7 +10,7 @@
 #include "ui/panels/panel_wf_list.h"
 #include "ui/panels/panel_models.h"
 #include "ui/panels/panel_notes.h"
-#include "ui/panels/panel_output.h"
+#include "ui/panels/panel_logs.h"
 #include "ui/panels/panel_templates.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/connect_manager.h"
@@ -96,9 +96,9 @@ bool GraphN_Flow::init()
     m_panel_templates->init();
     m_all_dialogs.insert(m_panel_templates.get());
 
-    m_panel_output = std::make_unique<ui::PanelOutput>();
-    m_panel_output->init();
-    m_all_dialogs.insert(m_panel_output.get());
+    m_panel_logs = std::make_unique<ui::PanelServerLogs>();
+    m_panel_logs->init();
+    m_all_dialogs.insert(m_panel_logs.get());
 
     m_panel_notes = std::make_unique<ui::PanelNotes>();
     m_panel_notes->init();
@@ -447,7 +447,7 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
         m_windows &= ~ViewPanelTemplates;
         Log("Templates panel closed");
         break;
-    case DlgObj::PanelOutput:
+    case DlgObj::PanelServerLogs:
         m_windows &= ~ViewPanelOutput;
         Log("Output panel closed");
         break;
@@ -733,7 +733,7 @@ void GraphN_Flow::show_panel_models()
 
 void GraphN_Flow::show_panel_output()
 {
-    show_panel(m_panel_output.get(), DlgObj::PanelOutput);
+    show_panel(m_panel_logs.get(), DlgObj::PanelServerLogs);
 }
 
 void GraphN_Flow::show_panel_templates()
@@ -901,7 +901,7 @@ void GraphN_Flow::show_panels()
             ImGui::DockBuilderDockWindow(m_panel_notes->get_panel_name(), dock_id_right_bottom);
             ImGui::DockBuilderDockWindow(m_panel_templates->get_panel_name(), dock_id_right_bottom);
 
-            ImGui::DockBuilderDockWindow(m_panel_output->get_panel_name(), dock_id_bottom);
+            ImGui::DockBuilderDockWindow(m_panel_logs->get_panel_name(), dock_id_bottom);
 
             for (auto& wf : m_panels_wf)
             {

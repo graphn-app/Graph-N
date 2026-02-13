@@ -48,7 +48,7 @@ enum class DlgObj
     PanelWfList_ItemsList,
     PanelWfList_LabelsMenu,
     PanelTemplates,
-    PanelOutput,
+    PanelServerLogs,
     PanelNotes,
     PanelModels,
     PanelModels_ItemsList,
@@ -80,7 +80,7 @@ constexpr const char* DlgObjID[static_cast<size_t>(DlgObj::_count)] =
     "438A7FE0-F047-4694-AD2A-366A823FE76F",                     // PanelWfList_ItemsList
     "B2C13784-3F50-403A-A549-F7D817F54636",                     // PanelWfList_LabelsMenu
     "3FE3C15E-401A-4732-A098-098D329E2BA0",                     // PanelTemplates
-    "10AAC62E-FEF9-4834-986C-70A5664DE9C4",                     // PanelOutput
+    "10AAC62E-FEF9-4834-986C-70A5664DE9C4",                     // PanelServerLogs
     "E25BB488-3298-4FB7-A5BD-9999C05AC2B8",                     // PanelNotes
     "BE4E0091-6B9C-447F-B8FB-39DCDE0D6237",                     // PanelModels
     "51B65039-85B0-4388-B521-BD616B636269",                     // PanelModels_ItemsList
