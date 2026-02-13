@@ -21,10 +21,7 @@ void ComfyUIManager::run(bool force_start)
         return;
     }
 
-    run_server(force_start);
+    run_server();
 }
-
-void ComfyUIManager::kill()
-{}
 
 } // namespace mngr

@@ -385,6 +385,19 @@ std::string sha256(const std::vector<byte>& src)
     return ss.str();
 }
 
+#ifdef _WIN32
+std::wstring utf8_to_wide(const std::string& utf8_str)
+{
+    if (utf8_str.empty())
+        return {};
+
+    const auto size_needed = ::MultiByteToWideChar(CP_UTF8, 0, utf8_str.c_str(), cast::to_i32(utf8_str.size()), nullptr, 0);
+    std::wstring wide_str(size_needed, 0);
+    ::MultiByteToWideChar(CP_UTF8, 0, utf8_str.c_str(), cast::to_i32(utf8_str.size()), wide_str.data(), size_needed);
+    return wide_str;
+}
+#endif // #ifdef _WIN32
+
 } // namespace str
 
 namespace path
@@ -988,6 +1001,85 @@ void select_dirs(FdSelectResultMt& callback)
     std::thread(select_files_th, std::move(data)).detach();
 }
 
+#ifdef _WIN32
+std::wstring build_commandline_arg(const std::wstring& arg)
+{
+    if (!arg.empty() && arg.find_first_of(L" \t\"") == std::wstring::npos)
+        return arg;
+
+    std::wstring result;
+    result.reserve(arg.size() * 2 + 2);
+    result.push_back(L'\"');
+
+    for (size_t i = 0; i < arg.size(); ++i)
+    {
+        size_t backslashes = 0;
+
+        while (i < arg.size() && arg[i] == L'\\')
+        {
+            backslashes++;
+            i++;
+        }
+
+        if (i == arg.size())
+        {
+            result.append(backslashes * 2, L'\\');
+        }
+        else if (arg[i] == L'\"')
+        {
+            result.append(backslashes * 2 + 1, L'\\');
+            result.push_back(L'\"');
+        }
+        else
+        {
+            result.append(backslashes, L'\\');
+            result.push_back(arg[i]);
+        }
+    }
+
+    result.push_back(L'\"');
+    return result;
+}
+
+std::string build_commandline_arg(const std::string& arg)
+{
+    if (!arg.empty() && arg.find_first_of(" \t\"") == std::string::npos)
+        return arg;
+
+    std::string result;
+    result.reserve(arg.size() * 2 + 2);
+    result.push_back('\"');
+
+    for (size_t i = 0; i < arg.size(); ++i)
+    {
+        size_t backslashes = 0;
+
+        while (i < arg.size() && arg[i] == '\\')
+        {
+            backslashes++;
+            i++;
+        }
+
+        if (i == arg.size())
+        {
+            result.append(backslashes * 2, '\\');
+        }
+        else if (arg[i] == '\"')
+        {
+            result.append(backslashes * 2 + 1, '\\');
+            result.push_back('\"');
+        }
+        else
+        {
+            result.append(backslashes, '\\');
+            result.push_back(arg[i]);
+        }
+    }
+
+    result.push_back('\"');
+    return result;
+}
+#endif // #ifdef _WIN32
 
 }	// namespace path
 

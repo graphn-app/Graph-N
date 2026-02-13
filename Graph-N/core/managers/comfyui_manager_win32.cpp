@@ -9,6 +9,7 @@ namespace mngr
 
 ComfyUIManager_Win32::ComfyUIManager_Win32()
     : m_hjob(nullptr, ::CloseHandle)
+    , m_hproc(nullptr, ::CloseHandle)
     , m_hpipe(nullptr, ::CloseHandle)
 {}
 
@@ -32,37 +33,31 @@ void ComfyUIManager_Win32::free()
 void ComfyUIManager_Win32::stop_all_threads()
 {
     LogF;
-    ComfyUIManager::stop_all_threads();
-    kill();
+    m_stop_flag = true;
+
+    if (!g::pOptsManager->comfyui_kill_server_load() && !m_console_hidden) // ignore user option if console was hidden
+        enable_autokill(false);
+    kill(false);
 }
 
-void ComfyUIManager_Win32::run_server(bool /*force_run*/)
+void ComfyUIManager_Win32::run_server()
 {
-    const auto& mainpy = g::pOptsManager->comfyui_main_py_load();
-    const auto& python = g::pOptsManager->comfyui_python_load();
-    const auto& workdir = g::pOptsManager->comfyui_workdir_load();
-    const auto& comfyui_args = g::pOptsManager->comfyui_comfyui_args_load();
-    const auto& python_args = g::pOptsManager->comfyui_python_args_load();
-    (void)comfyui_args;
+    kill(true);
 
+    const bool kill = g::pOptsManager->comfyui_kill_server_load();
     bool capture_log = g::pOptsManager->comfyui_capture_output_load();
-    bool kill_server = g::pOptsManager->comfyui_kill_server_load();
-    bool hide_console = false;
-    if (kill_server)
-        hide_console = g::pOptsManager->comfyui_hide_console_load();
+    m_console_hidden = false;
+    if (kill)
+        m_console_hidden = g::pOptsManager->comfyui_hide_console_load();
 
     Handle hpipe_wr(nullptr, ::CloseHandle);
-    if (kill_server)
-    {
-        if (!create_job())
-            hide_console = false;
-    }
+    create_job(kill);
 
     PROCESS_INFORMATION pi = {};
-    STARTUPINFOA si = {};
-    prepare(si, capture_log, hide_console, hpipe_wr);
+    STARTUPINFOW si = {};
+    prepare(si, capture_log, m_console_hidden, hpipe_wr);
 
-    if (!create_process(si, pi, python.u8string(), mainpy.u8string(), python_args, workdir.u8string(), hide_console))
+    if (!create_process(si, pi, m_console_hidden, capture_log, m_hjob != nullptr))
     {
         m_hpipe.reset();
         m_hjob.reset();
@@ -70,22 +65,22 @@ void ComfyUIManager_Win32::run_server(bool /*force_run*/)
     }
     else
     {
-        bool job = false;
-        if (kill_server)
-            job = apply_job(pi.hProcess, pi.hThread);
-        if (kill_server && !job)
-        {
-            ::TerminateProcess(pi.hProcess, 0);
-            g::pOptsManager->comfyui_kill_server_save(false);
-            run_server(true);
-            g::pOptsManager->comfyui_kill_server_save(true);
-        }
+        m_stop_flag = false;
+
+        apply_job(pi.hProcess);
+
+        m_hproc.reset(pi.hProcess);
+        m_procid = pi.dwProcessId;
+
+        if (capture_log)
+            m_log_th = std::thread(&ComfyUIManager_Win32::read_logs_th, this);
+
+        ::ResumeThread(pi.hThread);
         ::CloseHandle(pi.hThread);
-        ::CloseHandle(pi.hProcess);
     }
 }
 
-bool ComfyUIManager_Win32::create_job()
+bool ComfyUIManager_Win32::create_job(bool auto_kill)
 {
     Handle hjob(::CreateJobObject(nullptr, nullptr), ::CloseHandle);
     if (!hjob)
@@ -96,7 +91,7 @@ bool ComfyUIManager_Win32::create_job()
     }
 
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = {};
-    jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    jeli.BasicLimitInformation.LimitFlags = (auto_kill ? JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE : 0);
 
     if (!::SetInformationJobObject(hjob.get(), JobObjectExtendedLimitInformation, &jeli, sizeof(jeli))) 
     {
@@ -109,7 +104,7 @@ bool ComfyUIManager_Win32::create_job()
     return true;
 }
 
-bool ComfyUIManager_Win32::apply_job(HANDLE hproc, HANDLE hthread)
+bool ComfyUIManager_Win32::apply_job(HANDLE hproc)
 {
     if (!::AssignProcessToJobObject(m_hjob.get(), hproc))
     {
@@ -128,11 +123,10 @@ bool ComfyUIManager_Win32::apply_job(HANDLE hproc, HANDLE hthread)
         return false;
     }
     
-    ::ResumeThread(hthread);
     return true;
 }
 
-void ComfyUIManager_Win32::prepare(STARTUPINFOA& si, bool& capture_log, bool hide_console, Handle& hpipe_wr)
+void ComfyUIManager_Win32::prepare(STARTUPINFOW& si, bool& capture_log, bool hide_console, Handle& hpipe_wr)
 {
     if (capture_log)
     {
@@ -166,24 +160,31 @@ void ComfyUIManager_Win32::prepare(STARTUPINFOA& si, bool& capture_log, bool hid
         }
     }
 
-    ZeroMemory(&si, sizeof(STARTUPINFO));
-    si.cb = sizeof(STARTUPINFO);
-    si.hStdError = (capture_log ? hpipe_wr.get() : nullptr);
-    si.hStdOutput = (capture_log ? hpipe_wr.get() : nullptr);
-    si.dwFlags |= STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    si.cb = sizeof(si);
+    si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdError = (capture_log ? hpipe_wr.get() : GetStdHandle(STD_ERROR_HANDLE));
+    si.hStdOutput = (capture_log ? hpipe_wr.get() : GetStdHandle(STD_OUTPUT_HANDLE));
+    si.dwFlags |= (capture_log ? STARTF_USESTDHANDLES : 0) | (hide_console ? STARTF_USESHOWWINDOW : 0);
     si.wShowWindow = (hide_console ? SW_HIDE : SW_SHOWNORMAL);
 }
 
-bool ComfyUIManager_Win32::create_process(
-    STARTUPINFOA& si, PROCESS_INFORMATION& pi, const std::string& python, const std::string& mainpy, const std::string& cmd, const std::string& workdir, bool hide_console)
+bool ComfyUIManager_Win32::create_process(STARTUPINFOW& si, PROCESS_INFORMATION& pi, bool hide_console, bool capture_logs, bool suspended)
 {
-    std::filesystem::path path(mainpy);
-
-    const auto command = fmt::format(FMT_COMPILE("\"{}\" -u -s \"{}\" {}"), python, mainpy, cmd);
-    std::vector<char> cmd_vec(command.begin(), command.end());
+    const auto& python = g::pOptsManager->comfyui_python_load();
+    const auto python_args = tools::str::utf8_to_wide(g::pOptsManager->comfyui_python_args_load());
+    const auto& comfyui = g::pOptsManager->comfyui_main_py_load();
+    const auto comfyui_as_arg = tools::str::utf8_to_wide(tools::path::build_commandline_arg(comfyui.u8string()));
+    const auto comfyui_args = tools::str::utf8_to_wide(g::pOptsManager->comfyui_comfyui_args_load());
+    const auto& workdir = g::pOptsManager->comfyui_workdir_load();
+    
+    const auto command = fmt::format(FMT_COMPILE(L"{} {} {} {} {}"), python.filename().wstring(), (hide_console ? L"-u" : L""), python_args, comfyui_as_arg, comfyui_args);
+    std::vector<wchar_t> cmd_vec(command.begin(), command.end());
     cmd_vec.push_back(0);
 
-    if (!::CreateProcessA(NULL, cmd_vec.data(), NULL, NULL, TRUE, (hide_console ? CREATE_NO_WINDOW : 0), NULL, workdir.c_str(), &si, &pi))
+    if (!::CreateProcessW(python.wstring().c_str(), cmd_vec.data(), nullptr, nullptr,
+        (capture_logs ? TRUE : FALSE),
+        (hide_console ? CREATE_NO_WINDOW : 0) | (suspended ? CREATE_SUSPENDED : 0) | CREATE_UNICODE_ENVIRONMENT,
+        nullptr, workdir.wstring().c_str(), &si, &pi)) 
     {
         LogWarn("Failed to create " APP_COMFYUI " process, err: " << LogERR);
         g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, "Failed to create process");
@@ -193,13 +194,260 @@ bool ComfyUIManager_Win32::create_process(
     return true;
 }
 
-bool ComfyUIManager_Win32::check_existing_process() const
+void ComfyUIManager_Win32::setup_auto_kill(bool enable)
 {
-    return true;
+    enable_autokill(enable);
 }
 
-void ComfyUIManager_Win32::kill()
-{}
+void ComfyUIManager_Win32::enable_autokill(bool enable)
+{
+    if (!m_hjob)
+        return;
+
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = {};
+    if (!::QueryInformationJobObject(m_hjob.get(), JobObjectExtendedLimitInformation, &jeli, sizeof(jeli), nullptr))
+    {
+        LogWarn("Failed to query job info, err: " << LogERR);
+        return;
+    }
+
+    if (enable)
+        jeli.BasicLimitInformation.LimitFlags |= JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    else
+        jeli.BasicLimitInformation.LimitFlags &= ~JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+
+    if (!::SetInformationJobObject(m_hjob.get(), JobObjectExtendedLimitInformation, &jeli, sizeof(jeli)))
+    {
+        LogWarn("Failed to change job flags, err: " << LogERR);
+    }
+    else
+    {
+        Log("Autokill set to " << enable);
+    }
+}
+
+void ComfyUIManager_Win32::kill(bool force_kill)
+{
+    if (m_hproc)
+    {
+        if (force_kill || m_console_hidden || g::pOptsManager->comfyui_kill_server_load())
+        {
+            const auto res = ::TerminateProcess(m_hproc.get(), 0);
+            Log(APP_COMFYUI " termination result: " << res << ", err: " << LogERR);
+            m_hproc.reset();            
+        }
+    }
+
+    m_stop_flag = true;
+    if (m_hpipe && m_log_th.joinable())
+        m_log_th.join();
+
+    m_procid = 0;
+    m_hpipe.reset();
+    m_hjob.reset();
+    m_hproc.reset();
+}
+
+uint32_t ComfyUIManager_Win32::check_existing_process() const
+{
+    CComPtr<IWbemLocator> locator;
+    auto hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (void**)&locator);
+    if (FAILED(hres))
+    {
+        LogWarn("Failed to create IWbemLocator, err: " << LogHEX(hres));
+        return 0;
+    }
+
+    CComPtr<IWbemServices> service;
+    hres = locator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &service);
+    if (FAILED(hres))
+    {
+        LogWarn("Failed to connect ROOT\\CIMV2, err: " << LogHEX(hres));
+        return 0;
+    }
+
+    hres = CoSetProxyBlanket(service, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+    if (FAILED(hres))
+    {
+        LogWarn("Failed to configure service, err: " << LogHEX(hres));
+        return 0;
+    }
+
+    CComPtr<IEnumWbemClassObject> enumerator;
+    hres = service->ExecQuery(_bstr_t(L"WQL"),
+        _bstr_t(L"SELECT CommandLine, ProcessId FROM Win32_Process WHERE Name LIKE '%python%'"),
+        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
+    if (FAILED(hres))
+    {
+        LogWarn("Failed to query python processes, err: " << LogHEX(hres));
+        return 0;
+    }
+
+    if (enumerator != nullptr)
+    {
+        ULONG ret;
+        CComPtr<IWbemClassObject> object;
+        while (S_OK == enumerator->Next(WBEM_INFINITE, 1, &object, &ret))
+        {
+            CComVariant var;
+            hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
+            if (FAILED(hres))
+            {
+                LogWarn("Failed to get python CommandLine, err: " << LogHEX(hres));
+                continue;
+            }
+
+            if (VT_BSTR == var.vt && wcsstr(var.bstrVal, L"main.py") != nullptr)
+            {
+                var.Clear();
+                hres = object->Get(L"ProcessId", 0, &var, nullptr, nullptr);
+                if (FAILED(hres) || (var.vt != VT_UI4 && var.vt != VT_I4))
+                {
+                    LogWarn("Failed to get python ProcessId, err: " << LogHEX(hres));
+                    continue;
+                }
+                return var.uintVal;
+            }
+        }
+    }
+
+    return false;
+}
+
+void ComfyUIManager_Win32::append_log(std::list<std::string>& logs)
+{
+    if (!m_new_data_ready)
+        return;
+
+    std::unique_lock<std::mutex> lock(m_mutex);
+    if (!m_logs.empty())
+        logs.splice(logs.end(), m_logs);    
+    m_new_data_ready = false;
+}
+
+void ComfyUIManager_Win32::read_logs_th()
+{
+    LogFS;
+
+    if (!m_hpipe)
+    {
+        LogInternalLogicS("Can't capture logs, pipe is not ready");
+        return;
+    }
+
+    constexpr const uint32_t wait_interval = 100;
+    DWORD read = 0;
+    char buffer[4096];
+
+    std::string line_accumulator;
+    line_accumulator.reserve(10000);
+
+    std::list<std::string> file_logs;
+    constexpr const uint32_t log_flush_interval = 5000;
+    constexpr const uint32_t log_flush_buffer_size = 10;
+    uint32_t log_flush_time_passed = 0;
+
+    auto path = fs::get_log_directory_path();
+    tools::path::make_folder(path);
+    path /= APP_COMFYUI "_" + tools::dt::get_app_start_time().as_filename() + ".log";
+    std::ofstream logfs;
+    logfs.open(path.string(), std::ios::out | std::ios::app);
+
+    const auto flush_to_file = [&logfs, &file_logs]()
+    {
+        if (logfs.is_open() && !logfs.bad() && !file_logs.empty())
+        {
+            for (const auto& buff : file_logs)
+            {
+                logfs << buff;
+            }
+            logfs.flush();
+            file_logs.clear();
+        }
+    };
+
+    const auto flush_lines = [&line_accumulator, &return_lines = m_logs, &mutex = m_mutex](const std::string& new_data)
+    {
+        line_accumulator.append(new_data);
+
+        std::list<std::string> new_lines;
+        size_t pos = 0;
+
+        while ((pos = line_accumulator.find('\n')) != std::string::npos)
+        {
+            std::string line = line_accumulator.substr(0, pos);
+            line_accumulator.erase(0, pos + 1);
+
+            if (!line.empty() && line.back() == '\r')
+                line.pop_back();
+
+            if (!line.empty())
+                new_lines.push_back(std::move(line));
+        }
+
+        if (!new_lines.empty())
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+            return_lines.splice(return_lines.end(), new_lines);
+            return true;
+        }
+        return false;
+    };
+
+    while (!m_stop_flag)
+    {
+        DWORD bytes_avail = 0;
+        if (!::PeekNamedPipe(m_hpipe.get(), nullptr, 0, nullptr, &bytes_avail, nullptr))
+        {
+            LogS("Pipe is broken");
+            break; 
+        }
+
+        if (bytes_avail > 0)
+        {
+            if (::ReadFile(m_hpipe.get(), buffer, sizeof(buffer), &read, NULL) && read > 0)
+            {
+                std::string chunk(buffer, read);
+
+                if (flush_lines(chunk))
+                    m_new_data_ready = true;
+
+                if (logfs.is_open() && !logfs.bad())
+                    file_logs.push_back(std::move(chunk));
+            }
+        }
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(wait_interval));
+            log_flush_time_passed += wait_interval;
+        }
+
+        if (log_flush_time_passed > log_flush_interval && !file_logs.empty() ||
+            file_logs.size() > log_flush_buffer_size)
+        {
+            log_flush_time_passed = 0;
+            flush_to_file();
+        }
+    }
+
+    if (!line_accumulator.empty())
+    {
+        if (!m_stop_flag)  // comfyui stopped
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_logs.push_back(line_accumulator);
+            m_new_data_ready = true;
+        }
+
+        file_logs.push_back(std::move(line_accumulator));
+    }
+
+    flush_to_file();
+    if (logfs.is_open() && !logfs.bad())
+        logfs.close();
+
+    LogS("Exit. Stop flag: " << (bool)m_stop_flag);
+}
 
 } // namespace mngr
 

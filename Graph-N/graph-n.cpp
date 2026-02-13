@@ -237,13 +237,14 @@ bool GraphN::start_server()
         return true;
     }
 
-    if (g::pComfyUIManager->check_existing_process())
+    const auto running_proc_id = g::pComfyUIManager->check_existing_process();
+    if (running_proc_id != 0)
     {
         Log("Existing " APP_COMFYUI " found. Ask user what to do");
         g::pFlow->modal_begin("The " APP_COMFYUI " is already running",
-            APP_CAPTION " detected a running " APP_COMFYUI " process.\n"
+            fmt::format(APP_CAPTION " detected a running " APP_COMFYUI "\nprocess (PID: {}).\n"
             "This might be another " APP_COMFYUI " instance running, or a zombie process.\n"
-            "Do you want to launch a new server instance anyway?",
+            "Do you want to launch a new server instance anyway?", running_proc_id),
             ModalDlgCtrl::BtnYes | ModalDlgCtrl::BtnNo | ModalDlgCtrl::IcoQues, ModalDlgCtrl::BtnNo, handler);
         m_question_mode = true;
         m_question_replied = false;

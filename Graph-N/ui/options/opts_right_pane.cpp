@@ -392,10 +392,10 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SameLine();
     std::string caption = "Stop " APP_COMFYUI;
     if (g::pComfyUIManager->get_process_started())
-        caption = fmt::format("Stop " APP_COMFYUI " [ProcID {}]", g::pComfyUIManager->get_started_proc_id());
+        caption = fmt::format("Stop " APP_COMFYUI " [PID: {}]", g::pComfyUIManager->get_started_proc_id());
     if (show_full_row_button(caption.c_str(), g::pComfyUIManager->get_process_started(), true))
     {
-        g::pComfyUIManager->kill();
+        g::pComfyUIManager->kill(true);
     }
 
 
@@ -409,6 +409,7 @@ void OptRightPane::show_local_server(const char*& help_text)
         if (!b_val)
         {
             g::pOptsManager->comfyui_kill_server_save(false);
+            g::pComfyUIManager->setup_auto_kill(false);
             g::pOptsManager->comfyui_hide_console_save(false);
             g::pOptsManager->comfyui_capture_output_save(false);
             g::pOptsManager->comfyui_autohide_output_save(false);
@@ -425,6 +426,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     if (ImGui::Checkbox("Auto-stop on exit", &b_val))
     {
         g::pOptsManager->comfyui_kill_server_save(b_val);
+        g::pComfyUIManager->setup_auto_kill(b_val);
         if (b_val)
             g::pOptsManager->comfyui_start_server_save(true);
         else
@@ -443,6 +445,7 @@ void OptRightPane::show_local_server(const char*& help_text)
         {
             g::pOptsManager->comfyui_start_server_save(true);
             g::pOptsManager->comfyui_kill_server_save(true);
+            g::pComfyUIManager->setup_auto_kill(true);
             g::pOptsManager->comfyui_capture_output_save(true);
         }
     }
@@ -977,7 +980,7 @@ void OptRightPane::import_from_comfyui()
             if (FAILED(hres))
             {
                 LogWarn("Failed to get python CommandLine, err: " << LogHEX(hres));
-                break;
+                continue;
             }
 
             if (VT_BSTR == var.vt && wcsstr(var.bstrVal, L"main.py") != nullptr)
@@ -989,7 +992,7 @@ void OptRightPane::import_from_comfyui()
                 if (FAILED(hres) || var.vt != VT_BSTR)
                 {
                     LogWarn("Failed to get python ExecutablePath, err: " << LogHEX(hres));
-                    break;
+                    continue;
                 }
                 python_path = var.bstrVal;
                 if (!python_path.is_absolute())
@@ -1000,7 +1003,7 @@ void OptRightPane::import_from_comfyui()
                 if (FAILED(hres) || (var.vt != VT_UI4 && var.vt != VT_I4))
                 {
                     LogWarn("Failed to get python ParentProcessId, err: " << LogHEX(hres));
-                    break;
+                    continue;
                 }
                 parent_proc = var.uintVal;
                 break;
@@ -1179,45 +1182,6 @@ void OptRightPane::import_from_comfyui()
     bool to_comfy_args = false;
     comfyui_args.clear();
 
-    const auto build_arg = [](const std::wstring& arg)
-    {
-        if (!arg.empty() && arg.find_first_of(L" \t\"") == std::wstring::npos)
-            return arg;        
-
-        std::wstring result;
-        result.reserve(arg.size() * 2 + 2);
-        result.push_back(L'\"');
-
-        for (size_t i = 0; i < arg.size(); ++i)
-        {
-            size_t backslashes = 0;
-
-            while (i < arg.size() && arg[i] == L'\\')
-            {
-                backslashes++;
-                i++;
-            }
-
-            if (i == arg.size())
-            {
-                result.append(backslashes * 2, L'\\');
-            }
-            else if (arg[i] == L'\"')
-            {
-                result.append(backslashes * 2 + 1, L'\\');
-                result.push_back(L'\"');
-            }
-            else
-            {
-                result.append(backslashes, L'\\');
-                result.push_back(arg[i]);
-            }
-        }
-
-        result.push_back(L'\"');
-        return result;
-    };
-
     for (int32_t i = 0; i < num; i++)
     {
         if (_wcsicmp(args[i], L"-u") == 0 || _wcsicmp(args[i], L"-s") == 0)  // we will add these flags manually
@@ -1235,7 +1199,7 @@ void OptRightPane::import_from_comfyui()
         }
         else if (to_comfy_args)
         {
-            comfyui_args += build_arg(args[i]) + L" ";
+            comfyui_args += tools::path::build_commandline_arg(args[i]) + L" ";
 
             // installer might pass full paths
             if (_wcsicmp(args[i], L"--output-directory") == 0 && i + 1 < num)
@@ -1253,7 +1217,7 @@ void OptRightPane::import_from_comfyui()
         }
         else
         {
-            python_args_tmp += build_arg(args[i]) + L" ";
+            python_args_tmp += tools::path::build_commandline_arg(args[i]) + L" ";
         }
     }
 

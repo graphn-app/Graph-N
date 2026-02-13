@@ -88,7 +88,9 @@ int32_t main(int32_t, char**)
         if (!instance.is_primary())
             return 0;
 
-        return do_main(request_focus);
+        const auto ret = do_main(request_focus);
+        glog::Logger::cleanup();
+        return ret;
     }
     catch (const std::exception& ex)
     {

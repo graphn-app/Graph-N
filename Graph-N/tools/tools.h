@@ -32,6 +32,10 @@ std::vector<byte> base64_decode(const char* base64, size_t len);
 
 std::string sha256(const std::vector<byte>& src);
 
+#ifdef _WIN32
+std::wstring utf8_to_wide(const std::string& utf8_str);
+#endif
+
 } // namespace str
 
 namespace path
@@ -73,6 +77,11 @@ void select_files_open(std::list<std::pair<std::wstring, std::wstring>>&& filter
 void select_file_save(std::list<std::pair<std::wstring, std::wstring>>&& filters, std::filesystem::path init_file, FdSelectResultSg& callback);
 void select_dir(FdSelectResultSg& callback);
 void select_dirs(FdSelectResultMt& callback);
+
+#ifdef _WIN32
+std::wstring build_commandline_arg(const std::wstring& arg);
+std::string build_commandline_arg(const std::string& arg);
+#endif
 
 }	// namespace path
 

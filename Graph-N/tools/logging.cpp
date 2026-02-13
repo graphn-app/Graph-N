@@ -10,31 +10,44 @@ std::atomic_bool Logger::m_enabled = false;
 
 /////////////////////////////////////////////////////////////////
 
+static void cleanup(const std::filesystem::path& dir, const std::string& prefix, size_t num)
+{
+    const auto sort_callback = [](const std::filesystem::path& lhs, const std::filesystem::path& rhs)
+    {
+        return lhs.u8string() > rhs.u8string();
+    };
+
+    auto list = tools::path::enumerate_directory(dir, false, false, true, false);
+    std::sort(list.begin(), list.end(), sort_callback);
+
+    std::list<std::filesystem::path> filtered;
+    for (auto& file : list)
+    {
+        if (file.filename().u8string().find(prefix) == 0)
+        {
+            filtered.push_back(std::move(file));
+        }
+    }
+
+    if (filtered.size() <= num + 1)
+        return;
+
+    size_t to_delete = filtered.size() - (num + 1);
+    for (auto it = filtered.rbegin(); it != filtered.rend(); ++it)
+    {
+        if (0 == to_delete)
+            break;
+        
+        tools::path::remove(*it);
+        to_delete--;
+    }
+}
+
 void Logger::cleanup()
 {
     const auto path = fs::get_log_directory_path();
-    auto list = tools::path::enumerate_directory(path, false, false, true, false);
-
-    constexpr int32_t to_save = 5 + 1;
-    int32_t to_delete = cast::to_i32(list.size()) - to_save;
-    if (to_delete <= 0)
-        return;
-
-    const auto sort_callback = [](const std::filesystem::path& lhs, const std::filesystem::path& rhs)
-    {
-        return lhs.wstring() < rhs.wstring();
-    };
-    std::sort(list.begin(), list.end(), sort_callback);
-
-    for (const auto& file : list)
-    {
-        if (file.filename() == m_log_file_mark)
-            continue;
-
-        tools::path::remove(file);
-        if (--to_delete <= 0)
-            break;
-    }
+    glog::cleanup(path, APP_CAPTION, 3);
+    glog::cleanup(path, APP_COMFYUI, 3);
 }
 
 bool Logger::check_log_file_mark()
@@ -98,7 +111,6 @@ void Logger::force_flush()
 
 void Logger::log_start()
 {
-    cleanup();
     if (get_log_enabled())
         return;
 
@@ -107,7 +119,7 @@ void Logger::log_start()
         return;
 
     auto path = fs::get_log_directory_path();
-    path /= tools::dt::get_app_start_time().as_filename() + ".log";
+    path /= APP_CAPTION "_" + tools::dt::get_app_start_time().as_filename() + ".log";
     m_log_path = path.string();
 
     // _tzset();
