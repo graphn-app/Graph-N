@@ -51,6 +51,16 @@ bool SettingsManager::init()
     m_wf_snap_nodes =                                 { "snap_nodes",               bool(false) };
     m_wf_link_thickness =                             { "link_thickness",           int64_t(2) };
 
+    // logs
+    m_log_db_backup_enabled =                         { "db_backup_enabled",        bool(true) };
+    m_log_db_backup_num =                             { "db_backup_save_num",       int64_t(3) };
+    m_log_app_log_enabled =                           { "app_log_enabled",          bool(true) };
+    m_log_app_log_num =                               { "app_log_save_num",         int64_t(3) };
+    m_log_comfyui_log_enabled =                       { "comfyui_log_enabled",      bool(true) };
+    m_log_comfyui_log_num =                           { "comfyui_log_save_num",     int64_t(3) };
+    m_log_comfyui_log_in_ram =                        { "comfyui_log_in_ram",       int64_t(1000) };
+
+    // colors
     m_ui_colors.resize(cast::to_szt(AppColor::_count));
 
     m_ui_colors[cast::to_szt(AppColor::Pin_Int)] =                           { "color_pin_int", int64_t(IM_COL32(40, 200, 40, 255)) };
@@ -130,7 +140,7 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::MsgBoxInfo)] =                        { "color_msg_info", int64_t(IM_COL32(0, 150, 200, 255)) };
     m_ui_colors[cast::to_szt(AppColor::MsgBoxQuestion)] =                    { "color_msg_question", int64_t(IM_COL32(50, 150, 50, 255)) };
 
-
+    // stats
     m_stat_limits_warn.resize(cast::to_szt(MetricLimit::_count));
     m_stat_limits_crit.resize(cast::to_szt(MetricLimit::_count));
     m_stat_limits_warn[cast::to_szt(MetricLimit::LocalRAM)] =                 { "stat_local_ram_warn",      int64_t(2147483648) };     // 2gb
@@ -150,6 +160,7 @@ bool SettingsManager::init()
     m_stat_as_progress =                                                      { "stat_as_progress",         bool(true) };
     m_stat_enabled_disks =                                                    { "stat_enabled_disks",       std::string("") };
 
+    // initialization
     std::vector<OptionValue*> values;
     values.reserve(100);
     values.push_back(&m_app_vsync);
@@ -173,6 +184,13 @@ bool SettingsManager::init()
     values.push_back(&m_comfyui_main_py);
     values.push_back(&m_comfyui_comfyui_args);
     values.push_back(&m_comfyui_workdir);
+    values.push_back(&m_log_db_backup_enabled);
+    values.push_back(&m_log_db_backup_num);
+    values.push_back(&m_log_app_log_enabled);
+    values.push_back(&m_log_app_log_num);
+    values.push_back(&m_log_comfyui_log_enabled);
+    values.push_back(&m_log_comfyui_log_num);
+    values.push_back(&m_log_comfyui_log_in_ram);
     values.push_back(&m_wf_widget_input_numbers);
     values.push_back(&m_wf_widget_input_bools);
     values.push_back(&m_wf_active);
