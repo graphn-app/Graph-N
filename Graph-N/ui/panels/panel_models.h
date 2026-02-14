@@ -46,10 +46,10 @@ private:
     void on_show_tt(int32_t idx);
     bool on_pre_tt(int32_t idx);
 
-    void on_expand_all(PanelToolbar::Button& button);
-    void on_collapse_all(PanelToolbar::Button& button);
-    void on_sync(PanelToolbar::Button& button);
-    void on_pre_sync(PanelToolbar::Button& button);
+    void on_expand_all(PanelToolbar::Element& el);
+    void on_collapse_all(PanelToolbar::Element& el);
+    void on_sync(PanelToolbar::Element& el);
+    void on_pre_sync(PanelToolbar::Element& el);
 
     void add_model_to_wf(data::Node* node, data::ModelItem* model);
 

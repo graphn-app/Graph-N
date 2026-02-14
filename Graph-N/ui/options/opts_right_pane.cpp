@@ -319,7 +319,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_with_browse_w);
-    ImGuiEx::InputTextWithHint("##workdir", "C:\\" APP_COMFYUI "_dir", &m_data->buffer_s[BuffWorkDir], ImGuiInputTextFlags_AlwaysOverwrite);
+    ImGuiEx::InputTextWithHint("##workdir", "C:\\" APP_COMFYUI "_dir", &m_data->buffer_s[BuffWorkDir], ImGuiInputTextFlags_None);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->comfyui_workdir_save(m_data->buffer_s[BuffWorkDir]);
     ImGui::SameLine();
@@ -335,7 +335,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_with_browse_w);
-    ImGuiEx::InputTextWithHint("##python", "C:\\" APP_COMFYUI "_dir\\python_embedded\\python.exe", &m_data->buffer_s[BuffPython], ImGuiInputTextFlags_AlwaysOverwrite);
+    ImGuiEx::InputTextWithHint("##python", "C:\\" APP_COMFYUI "_dir\\python_embedded\\python.exe", &m_data->buffer_s[BuffPython], ImGuiInputTextFlags_None);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->comfyui_python_save(m_data->buffer_s[BuffPython]);
     ImGui::SameLine();
@@ -351,7 +351,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_w);
     ImGuiEx::InputTextWithHint("##pythonargs", "-s",
-        &m_data->buffer_s[BuffPythonArgs], ImGuiInputTextFlags_AlwaysOverwrite);
+        &m_data->buffer_s[BuffPythonArgs], ImGuiInputTextFlags_None);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->comfyui_python_args_save(m_data->buffer_s[BuffPythonArgs]);
 
@@ -363,7 +363,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_with_browse_w);
-    ImGuiEx::InputTextWithHint("##mainpy", "C:\\" APP_COMFYUI "_dir\\" APP_COMFYUI "\\main.py", &m_data->buffer_s[BuffMainpy], ImGuiInputTextFlags_AlwaysOverwrite);
+    ImGuiEx::InputTextWithHint("##mainpy", "C:\\" APP_COMFYUI "_dir\\" APP_COMFYUI "\\main.py", &m_data->buffer_s[BuffMainpy], ImGuiInputTextFlags_None);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->comfyui_main_py_save(m_data->buffer_s[BuffMainpy]);
     ImGui::SameLine();
@@ -379,7 +379,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_w);
     ImGuiEx::InputTextWithHint("##confyuiargs", "--windows-standalone-build --disable-auto-launch",
-        &m_data->buffer_s[BuffComfyUIArgs], ImGuiInputTextFlags_AlwaysOverwrite);
+        &m_data->buffer_s[BuffComfyUIArgs], ImGuiInputTextFlags_None);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->comfyui_comfyui_args_save(m_data->buffer_s[BuffComfyUIArgs]);
 
@@ -515,7 +515,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_with_browse_w);
-    ImGuiEx::InputTextWithHint("##output", "C:\\" APP_COMFYUI "_install\\" APP_COMFYUI "\\output", &m_data->buffer_s[BuffOutput], ImGuiInputTextFlags_AlwaysOverwrite);
+    ImGuiEx::InputTextWithHint("##output", "C:\\" APP_COMFYUI "_install\\" APP_COMFYUI "\\output", &m_data->buffer_s[BuffOutput], ImGuiInputTextFlags_None);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->comfyui_output_save(m_data->buffer_s[BuffOutput]);
     ImGui::SameLine();

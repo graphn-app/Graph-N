@@ -42,78 +42,101 @@ void PanelWfList::create_toolbar()
     if (!m_deleted_mode && !m_labels_mode)
     {
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_PLUS;
-            button.tooltip = "New Project";
-            button.on_click = std::bind(&PanelWfList::on_add_new_wf, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_PLUS;
+            el.tooltip = "New Project";
+            el.on_click = std::bind(&PanelWfList::on_add_new_wf, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_PEN_LINE;
-            button.tooltip = "Rename Project";
-            button.on_click = std::bind(&PanelWfList::on_rename_wf, this, std::placeholders::_1);
-            button.on_preview = std::bind(&PanelWfList::on_pre_rename_wf, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_PEN_LINE;
+            el.tooltip = "Rename Project";
+            el.on_click = std::bind(&PanelWfList::on_rename_wf, this, std::placeholders::_1);
+            el.on_preview = std::bind(&PanelWfList::on_pre_rename_wf, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_TRASH;
-            button.tooltip = "Remove to Trash";
-            button.on_click = std::bind(&PanelWfList::on_delete_wf, this, std::placeholders::_1);
-            button.on_preview = std::bind(&PanelWfList::on_pre_delete_wf, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_TRASH;
+            el.tooltip = "Remove to Trash";
+            el.on_click = std::bind(&PanelWfList::on_delete_wf, this, std::placeholders::_1);
+            el.on_preview = std::bind(&PanelWfList::on_pre_delete_wf, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.empty_indent = true;
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_TAGS;
-            button.tooltip = "Manage labels";
-            button.on_click = std::bind(&PanelWfList::on_labels_mode, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_TAGS;
+            el.tooltip = "Manage labels";
+            el.on_click = std::bind(&PanelWfList::on_labels_mode, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_TRASH_2;
-            button.tooltip = "Trash (Auto-purge on exit)\nView deleted Projects";
-            button.on_click = std::bind(&PanelWfList::on_deleted_mode, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_TRASH_2;
+            el.tooltip = "Trash (Auto-purge on exit)\nView deleted Projects";
+            el.on_click = std::bind(&PanelWfList::on_deleted_mode, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), false);
         }
     }
     else if (m_deleted_mode)
     {
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_MOVE_LEFT;
-            button.tooltip = "Back to Projects";
-            button.on_click = std::bind(&PanelWfList::on_deleted_mode, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_MOVE_LEFT;
+            el.tooltip = "Back to Projects";
+            el.on_click = std::bind(&PanelWfList::on_deleted_mode, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), false);
         }
     }
     else if (m_labels_mode)
     {
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_MOVE_LEFT;
-            button.tooltip = "Back to Projects";
-            button.on_click = std::bind(&PanelWfList::on_labels_mode, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_MOVE_LEFT;
+            el.tooltip = "Back to Projects";
+            el.on_click = std::bind(&PanelWfList::on_labels_mode, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.empty_indent = true;
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_PLUS;
-            button.tooltip = "Add new label";
-            button.on_click = std::bind(&PanelWfList::on_add_label, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_PLUS;
+            el.tooltip = "Add new label";
+            el.on_click = std::bind(&PanelWfList::on_add_label, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), false);
         }
     }
     finalize_toolbar();
@@ -622,12 +645,12 @@ void PanelWfList::handle_dirty_trash(const PanelItemState& dirty_item)
     }
 }
 
-void PanelWfList::on_add_new_wf(PanelToolbar::Button& /*button*/)
+void PanelWfList::on_add_new_wf(PanelToolbar::Element& /*el*/)
 {
     g::pFlow->wf_create();
 }
 
-void PanelWfList::on_rename_wf(PanelToolbar::Button& /*button*/)
+void PanelWfList::on_rename_wf(PanelToolbar::Element& /*el*/)
 {
     for (auto& item : m_panel_items)
     {
@@ -641,38 +664,38 @@ void PanelWfList::on_rename_wf(PanelToolbar::Button& /*button*/)
     }
 }
 
-void PanelWfList::on_pre_rename_wf(PanelToolbar::Button& button)
+void PanelWfList::on_pre_rename_wf(PanelToolbar::Element& el)
 {
-    button.enabled = (m_active != 0);
+    el.enabled = (m_active != 0);
 }
 
-void PanelWfList::on_delete_wf(PanelToolbar::Button& /*button*/)
+void PanelWfList::on_delete_wf(PanelToolbar::Element& /*el*/)
 {
     g::pFlow->wf_delete(m_active);
 }
 
-void PanelWfList::on_pre_delete_wf(PanelToolbar::Button& button)
+void PanelWfList::on_pre_delete_wf(PanelToolbar::Element& el)
 {
-    button.enabled = (m_active != 0);
+    el.enabled = (m_active != 0);
 }
 
-void PanelWfList::on_deleted_mode(PanelToolbar::Button& button)
+void PanelWfList::on_deleted_mode(PanelToolbar::Element& el)
 {
     m_deleted_mode = !m_deleted_mode;
     create_toolbar();
     rebuild_items();
-    button.reset_state = true;
+    el.reset_state = true;
 }
 
-void PanelWfList::on_labels_mode(PanelToolbar::Button& button)
+void PanelWfList::on_labels_mode(PanelToolbar::Element& el)
 {
     m_labels_mode = !m_labels_mode;
     create_toolbar();
     rebuild_items();
-    button.reset_state = true;
+    el.reset_state = true;
 }
 
-void PanelWfList::on_add_label(PanelToolbar::Button& /*button*/)
+void PanelWfList::on_add_label(PanelToolbar::Element& /*el*/)
 {
     m_new_label = g::pWfsManager->create_label();
     rebuild_items();

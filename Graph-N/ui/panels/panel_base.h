@@ -162,31 +162,41 @@ public:
 
     void draw_toolbar();
 
-    struct Button
+    struct Element
     {
-        bool empty_indent = false;
+        bool reset_state = false;   // immediately stop drawing
 
-        const char* icon = nullptr;
-        //float ico_width = 0.0f;
-        const char* tooltip = nullptr;
+        enum class Type { Empty, Button, Input, InputHint };
+        Type type = Type::Button;
+
         bool enabled = true;
-        std::function<void(Button&)> on_click = nullptr;
-        std::function<void(Button&)> on_preview = nullptr;
-        std::function<void(Button&)> on_postview = nullptr;
 
-        bool reset_state = false;
+        std::function<void(Element&)> on_click = nullptr;
+        std::function<void(Element&)> on_preview = nullptr;
+        std::function<void(Element&)> on_postview = nullptr;
+
+        // button
+        const char* icon = nullptr;
+        const char* tooltip = nullptr;
+        bool toggler = false;
+        bool toggled = false;
+
+        // input
+        std::string* buffer = nullptr;
+        const char* hint = nullptr;
+        const char* id = nullptr;
+        float input_w = 0.5f; // in percents of total width
     };
 
-    // handler can return new icon and tooltip
     void clear_toolbar();
-    void add_button(Button&& button);
+    void add_toolbar_element(Element&& el, bool left_aligned);
     void finalize_toolbar();
 
 private:
-    std::vector<Button> m_buttons;
+    std::vector<Element> m_elements_l;
+    std::vector<Element> m_elements_r;
     ImU32 m_clr_hover = 0;
     ImU32 m_clr_pressed = 0;
-   // float m_toolbar_w = 0.0f;
 };
 
 

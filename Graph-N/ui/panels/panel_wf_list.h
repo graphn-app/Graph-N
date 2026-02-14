@@ -45,14 +45,14 @@ private:
     void handle_dirty_labels(const PanelItemState& dirty_item);
     void handle_dirty_trash(const PanelItemState& dirty_item);
 
-    void on_add_new_wf(PanelToolbar::Button& button);
-    void on_rename_wf(PanelToolbar::Button& button);
-    void on_pre_rename_wf(PanelToolbar::Button& button);
-    void on_delete_wf(PanelToolbar::Button& button);
-    void on_pre_delete_wf(PanelToolbar::Button& button);
-    void on_deleted_mode(PanelToolbar::Button& button);
-    void on_labels_mode(PanelToolbar::Button& button);
-    void on_add_label(PanelToolbar::Button& button);
+    void on_add_new_wf(PanelToolbar::Element& el);
+    void on_rename_wf(PanelToolbar::Element& el);
+    void on_pre_rename_wf(PanelToolbar::Element& el);
+    void on_delete_wf(PanelToolbar::Element& el);
+    void on_pre_delete_wf(PanelToolbar::Element& el);
+    void on_deleted_mode(PanelToolbar::Element& el);
+    void on_labels_mode(PanelToolbar::Element& el);
+    void on_add_label(PanelToolbar::Element& el);
     void on_show_tt(int32_t idx);
 
 private:

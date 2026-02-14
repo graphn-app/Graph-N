@@ -53,75 +53,92 @@ void PanelNodes::create_toolbar()
     if (m_labels_mode)
     {
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_MOVE_LEFT;
-            button.tooltip = "Back to Nodes library";
-            button.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_MOVE_LEFT;
+            el.tooltip = "Back to Nodes library";
+            el.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.empty_indent = true;
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_PLUS;
-            button.tooltip = "Add new label";
-            button.on_click = std::bind(&PanelNodes::on_new_label, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_PLUS;
+            el.tooltip = "Add new label";
+            el.on_click = std::bind(&PanelNodes::on_new_label, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), false);
         }
     }
     else
     {
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_TAGS;
-            button.tooltip = "Manage Labels";
-            button.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_TAGS;
+            el.tooltip = "Manage Labels";
+            el.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.empty_indent = true;
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
-            button.tooltip = "Expand All";
-            button.on_click = std::bind(&PanelNodes::on_expand_all, this, std::placeholders::_1);
-            button.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
+            el.tooltip = "Expand All";
+            el.on_click = std::bind(&PanelNodes::on_expand_all, this, std::placeholders::_1);
+            el.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
-            button.tooltip = "Collapse All";
-            button.on_click = std::bind(&PanelNodes::on_collapse_all, this, std::placeholders::_1);
-            button.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
+            el.tooltip = "Collapse All";
+            el.on_click = std::bind(&PanelNodes::on_collapse_all, this, std::placeholders::_1);
+            el.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.icon = g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE;
-            button.tooltip = "Toggle Flat/Category View";
-            button.on_click = std::bind(&PanelNodes::on_view, this, std::placeholders::_1);
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE;
+            el.tooltip = "Toggle Flat/Category View";
+            el.on_click = std::bind(&PanelNodes::on_view, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.empty_indent = true;
-            add_button(std::move(button));
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), false);
         }
         {
-            PanelToolbar::Button button;
-            button.icon = ICON_LC_FOLDER_SYNC;
-            button.tooltip = "Refresh Node List";
-            button.on_click = std::bind(&PanelNodes::on_sync, this, std::placeholders::_1);
-            button.on_preview = std::bind(&PanelNodes::on_pre_sync, this, std::placeholders::_1);
-            add_button(std::move(button));
-        }        
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_FOLDER_SYNC;
+            el.tooltip = "Refresh Node List";
+            el.on_click = std::bind(&PanelNodes::on_sync, this, std::placeholders::_1);
+            el.on_preview = std::bind(&PanelNodes::on_pre_sync, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), false);
+        }  
     }
     finalize_toolbar();
 }
@@ -738,18 +755,18 @@ void PanelNodes::add_node_to_wf(data::NodeItem* node_item)
     g::pFlow->wf_add_node_to_active_panel(node_item->node);
 }
 
-void PanelNodes::on_new_label(PanelToolbar::Button& /*button*/)
+void PanelNodes::on_new_label(PanelToolbar::Element& /*el*/)
 {
     m_new_label = g::pNodesManager->create_label();
     rebuild_items();
 }
 
-void PanelNodes::on_expand_all(PanelToolbar::Button& /*button*/)
+void PanelNodes::on_expand_all(PanelToolbar::Element& /*el*/)
 {
     rebuild_items(true);
 }
 
-void PanelNodes::on_collapse_all(PanelToolbar::Button& /*button*/)
+void PanelNodes::on_collapse_all(PanelToolbar::Element& /*el*/)
 {
     for (auto& item : m_panel_items)
     {
@@ -758,20 +775,20 @@ void PanelNodes::on_collapse_all(PanelToolbar::Button& /*button*/)
     rebuild_items();
 }
 
-void PanelNodes::on_labels_mode(PanelToolbar::Button& button)
+void PanelNodes::on_labels_mode(PanelToolbar::Element& el)
 {
     m_labels_mode = !m_labels_mode;
     create_toolbar();
     rebuild_items();
-    button.reset_state = true;
+    el.reset_state = true;
 }
 
-void PanelNodes::on_pre_expand_collapse(PanelToolbar::Button& button)
+void PanelNodes::on_pre_expand_collapse(PanelToolbar::Element& el)
 {
-    button.enabled = g::pOptsManager->ui_nodes_pane_tree_view_load();
+    el.enabled = g::pOptsManager->ui_nodes_pane_tree_view_load();
 }
 
-void PanelNodes::on_view(PanelToolbar::Button& button)
+void PanelNodes::on_view(PanelToolbar::Element& el)
 {
     auto tree_view = g::pOptsManager->ui_nodes_pane_tree_view_load();
     tree_view = !tree_view;
@@ -780,19 +797,19 @@ void PanelNodes::on_view(PanelToolbar::Button& button)
     rebuild_items();
 
     if (tree_view)
-        button.icon = ICON_LC_FOLDER_TREE;
+        el.icon = ICON_LC_FOLDER_TREE;
     else
-        button.icon = ICON_LC_LIST_TREE;
+        el.icon = ICON_LC_LIST_TREE;
 }
 
-void PanelNodes::on_sync(PanelToolbar::Button& /*button*/)
+void PanelNodes::on_sync(PanelToolbar::Element& /*el*/)
 {
     g::pFlow->reconnect();
 }
 
-void PanelNodes::on_pre_sync(PanelToolbar::Button& button)
+void PanelNodes::on_pre_sync(PanelToolbar::Element& el)
 {
-    button.enabled = g::pFlow->get_online();    
+    el.enabled = g::pFlow->get_online();    
 }
 
 } // namespace ui

@@ -52,11 +52,8 @@ bool SettingsManager::init()
     m_wf_link_thickness =                             { "link_thickness",           int64_t(2) };
 
     // logs
-    m_log_db_backup_enabled =                         { "db_backup_enabled",        bool(true) };
     m_log_db_backup_num =                             { "db_backup_save_num",       int64_t(3) };
-    m_log_app_log_enabled =                           { "app_log_enabled",          bool(true) };
     m_log_app_log_num =                               { "app_log_save_num",         int64_t(3) };
-    m_log_comfyui_log_enabled =                       { "comfyui_log_enabled",      bool(true) };
     m_log_comfyui_log_num =                           { "comfyui_log_save_num",     int64_t(3) };
     m_log_comfyui_log_in_ram =                        { "comfyui_log_in_ram",       int64_t(1000) };
 
@@ -184,11 +181,8 @@ bool SettingsManager::init()
     values.push_back(&m_comfyui_main_py);
     values.push_back(&m_comfyui_comfyui_args);
     values.push_back(&m_comfyui_workdir);
-    values.push_back(&m_log_db_backup_enabled);
     values.push_back(&m_log_db_backup_num);
-    values.push_back(&m_log_app_log_enabled);
     values.push_back(&m_log_app_log_num);
-    values.push_back(&m_log_comfyui_log_enabled);
     values.push_back(&m_log_comfyui_log_num);
     values.push_back(&m_log_comfyui_log_in_ram);
     values.push_back(&m_wf_widget_input_numbers);

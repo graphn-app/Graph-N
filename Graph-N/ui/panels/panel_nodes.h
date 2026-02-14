@@ -64,14 +64,14 @@ private:
     bool on_pre_tt(int32_t idx);
     void on_post_tt(int32_t idx);
 
-    void on_labels_mode(PanelToolbar::Button& button);
-    void on_new_label(PanelToolbar::Button& button);
-    void on_expand_all(PanelToolbar::Button& button);
-    void on_collapse_all(PanelToolbar::Button& button);
-    void on_view(PanelToolbar::Button& button);
-    void on_sync(PanelToolbar::Button& button);
-    void on_pre_expand_collapse(PanelToolbar::Button& button);
-    void on_pre_sync(PanelToolbar::Button& button);
+    void on_labels_mode(PanelToolbar::Element& el);
+    void on_new_label(PanelToolbar::Element& el);
+    void on_expand_all(PanelToolbar::Element& el);
+    void on_collapse_all(PanelToolbar::Element& el);
+    void on_view(PanelToolbar::Element& el);
+    void on_sync(PanelToolbar::Element& el);
+    void on_pre_expand_collapse(PanelToolbar::Element& el);
+    void on_pre_sync(PanelToolbar::Element& el);
 
 private:
     PanelNodeInspector* m_inspector = nullptr;

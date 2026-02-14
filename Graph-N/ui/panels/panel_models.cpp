@@ -43,32 +43,40 @@ void PanelModels::create_toolbar()
     clear_toolbar();
 
     {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
-        button.tooltip = "Expand All";
-        button.on_click = std::bind(&PanelModels::on_expand_all, this, std::placeholders::_1);
-        add_button(std::move(button));
+        PanelToolbar::Element el;
+        el.type = PanelToolbar::Element::Type::Button;
+        el.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
+        el.tooltip = "Expand All";
+        el.on_click = std::bind(&PanelModels::on_expand_all, this, std::placeholders::_1);
+        add_toolbar_element(std::move(el), false);
     }
     {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
-        button.tooltip = "Collapse All";
-        button.on_click = std::bind(&PanelModels::on_collapse_all, this, std::placeholders::_1);
-        add_button(std::move(button));
+        PanelToolbar::Element el;
+        el.type = PanelToolbar::Element::Type::Button;
+        el.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
+        el.tooltip = "Collapse All";
+        el.on_click = std::bind(&PanelModels::on_collapse_all, this, std::placeholders::_1);
+        add_toolbar_element(std::move(el), false);
     }
     {
-        PanelToolbar::Button button;
-        button.empty_indent = true;
-        add_button(std::move(button));
+        PanelToolbar::Element el;
+        el.type = PanelToolbar::Element::Type::Empty;
+        add_toolbar_element(std::move(el), false);
     }
     {
-        PanelToolbar::Button button;
-        button.icon = ICON_LC_FOLDER_SYNC;
-        button.tooltip = "Refresh Models List";
-        button.on_click = std::bind(&PanelModels::on_sync, this, std::placeholders::_1);
-        button.on_preview = std::bind(&PanelModels::on_pre_sync, this, std::placeholders::_1);
-        add_button(std::move(button));
-    }        
+        PanelToolbar::Element el;
+        el.type = PanelToolbar::Element::Type::Button;
+        el.icon = ICON_LC_FOLDER_SYNC;
+        el.tooltip = "Refresh Models List";
+        el.on_click = std::bind(&PanelModels::on_sync, this, std::placeholders::_1);
+        el.on_preview = std::bind(&PanelModels::on_pre_sync, this, std::placeholders::_1);
+        add_toolbar_element(std::move(el), false);
+    }    
+    {
+        PanelToolbar::Element el;
+        el.type = PanelToolbar::Element::Type::Empty;
+        add_toolbar_element(std::move(el), false);
+    }    
     
     finalize_toolbar();
 }
@@ -446,12 +454,12 @@ void PanelModels::add_model_to_wf(data::Node* node, data::ModelItem* model)
         g::pFlow->wf_add_node_to_active_panel(node, model->file_name.empty() ? model->name : model->file_name);
 }
 
-void PanelModels::on_expand_all(PanelToolbar::Button& /*button*/)
+void PanelModels::on_expand_all(PanelToolbar::Element& /*el*/)
 {
     rebuild_items(true);
 }
 
-void PanelModels::on_collapse_all(PanelToolbar::Button& /*button*/)
+void PanelModels::on_collapse_all(PanelToolbar::Element& /*el*/)
 {
     for (auto& item : m_panel_items)
     {
@@ -460,14 +468,14 @@ void PanelModels::on_collapse_all(PanelToolbar::Button& /*button*/)
     rebuild_items();
 }
 
-void PanelModels::on_sync(PanelToolbar::Button& /*button*/)
+void PanelModels::on_sync(PanelToolbar::Element& /*el*/)
 {
     g::pFlow->reconnect();
 }
 
-void PanelModels::on_pre_sync(PanelToolbar::Button& button)
+void PanelModels::on_pre_sync(PanelToolbar::Element& el)
 {
-    button.enabled = g::pFlow->get_online();    
+    el.enabled = g::pFlow->get_online();    
 }
 
 } // namespace ui

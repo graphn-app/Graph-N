@@ -111,20 +111,11 @@ public:
     inline void wf_link_thickness_save(int64_t timeout) { save_option(m_wf_link_thickness, int64_t(timeout)); }
 
     // logs
-    inline bool log_db_backup_enabled_load() const { return *std::get_if<bool>(&m_log_db_backup_enabled.value); }
-    inline void log_db_backup_enabled_save(bool enabled) { save_option(m_log_db_backup_enabled, bool(enabled)); }
-
     inline int64_t log_db_backup_num_load() const { return *std::get_if<int64_t>(&m_log_db_backup_num.value); }
     inline void log_db_backup_num_save(int64_t num) { save_option(m_log_db_backup_num, int64_t(num)); }
 
-    inline bool log_app_log_enabled_load() const { return *std::get_if<bool>(&m_log_app_log_enabled.value); }
-    inline void log_app_log_enabled_save(bool enabled) { save_option(m_log_app_log_enabled, bool(enabled)); }
-
     inline int64_t log_app_log_num_load() const { return *std::get_if<int64_t>(&m_log_app_log_num.value); }
     inline void log_app_log_num_save(int64_t num) { save_option(m_log_app_log_num, int64_t(num)); }
-
-    inline bool log_comfyui_log_enabled_load() const { return *std::get_if<bool>(&m_log_comfyui_log_enabled.value); }
-    inline void log_comfyui_log_enabled_save(bool enabled) { save_option(m_log_comfyui_log_enabled, bool(enabled)); }
 
     inline int64_t log_comfyui_log_num_load() const { return *std::get_if<int64_t>(&m_log_comfyui_log_num.value); }
     inline void log_comfyui_log_num_save(int64_t num) { save_option(m_log_comfyui_log_num, int64_t(num)); }
@@ -224,11 +215,8 @@ private:
     OptionValue m_wf_link_thickness; // int
 
     // logs
-    OptionValue m_log_db_backup_enabled; // int
     OptionValue m_log_db_backup_num; // int
-    OptionValue m_log_app_log_enabled; // int
     OptionValue m_log_app_log_num; // int
-    OptionValue m_log_comfyui_log_enabled; // int
     OptionValue m_log_comfyui_log_num; // int
     OptionValue m_log_comfyui_log_in_ram; // int
 
