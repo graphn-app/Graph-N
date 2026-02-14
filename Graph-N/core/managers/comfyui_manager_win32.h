@@ -23,7 +23,7 @@ public:
     uint32_t get_started_proc_id() const override { return m_procid; }
     void kill(bool force_kill) override;
     void setup_auto_kill(bool enable) override;
-    void append_log(std::list<std::string>& logs) override;
+    void append_log(std::deque<std::string>& logs) override;
 
 protected:
     void run_server() override;

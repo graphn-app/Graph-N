@@ -83,6 +83,8 @@ std::wstring build_commandline_arg(const std::wstring& arg);
 std::string build_commandline_arg(const std::string& arg);
 #endif
 
+void open_file(const std::filesystem::path& path);
+
 }	// namespace path
 
 namespace api

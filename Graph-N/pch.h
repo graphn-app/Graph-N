@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <queue>
+#include <deque>
 #include <stack>
 #include <string>
 #include <variant>

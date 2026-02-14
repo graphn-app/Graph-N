@@ -314,14 +314,17 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
     return false;
 }
 
-void ComfyUIManager_Win32::append_log(std::list<std::string>& logs)
+void ComfyUIManager_Win32::append_log(std::deque<std::string>& logs)
 {
     if (!m_new_data_ready)
         return;
 
     std::unique_lock<std::mutex> lock(m_mutex);
-    if (!m_logs.empty())
-        logs.splice(logs.end(), m_logs);    
+    for (auto it = m_logs.begin(); it != m_logs.end(); ++it)
+    {
+        logs.push_back(std::move(*it));
+    }
+    m_logs.clear();
     m_new_data_ready = false;
 }
 
@@ -347,11 +350,8 @@ void ComfyUIManager_Win32::read_logs_th()
     constexpr const uint32_t log_flush_buffer_size = 10;
     uint32_t log_flush_time_passed = 0;
 
-    auto path = fs::get_log_directory_path();
-    tools::path::make_folder(path);
-    path /= APP_COMFYUI "_" + tools::dt::get_app_start_time().as_filename() + ".log";
     std::ofstream logfs;
-    logfs.open(path.string(), std::ios::out | std::ios::app);
+    logfs.open(get_log_filepath().string(), std::ios::out | std::ios::app);
 
     const auto flush_to_file = [&logfs, &file_logs]()
     {

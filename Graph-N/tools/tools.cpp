@@ -1081,6 +1081,22 @@ std::string build_commandline_arg(const std::string& arg)
 }
 #endif // #ifdef _WIN32
 
+void open_file(const std::filesystem::path& path)
+{
+#ifdef _WIN32
+    const auto res = cast::from_ptr<int32_t>(ShellExecuteW(nullptr, L"open", path.wstring().c_str(), nullptr, nullptr, SW_SHOWNORMAL));
+    if (res <= 32)
+    {
+        LogWarnS("Can't run file '" << path << "', error " << LogERR);
+    }
+    else
+    {
+        LogS("File run " << path);
+    }
+
+#endif // #ifdef _WIN32
+}
+
 }	// namespace path
 
 namespace api

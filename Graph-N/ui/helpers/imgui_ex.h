@@ -75,4 +75,16 @@ bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool l
 
 bool UrlButton(const char* id_label, ImU32 url_clr_def, ImU32 url_clr_hover, const char* tooltip);
 
+struct Toast
+{
+    std::string message;
+    float duration = 0.0f;
+    ImVec2 pos = {};
+    double start_time = 0.0f;
+    bool at_cursor_pos = true;
+    bool expired = true;
+};
+Toast toast_prepare(const char* text, float duration_in_ms = 750.0f, bool at_cursor = false, bool increase_wnd = true);
+void toast_show(Toast& toast);
+
 } // namespace ImGuiEx

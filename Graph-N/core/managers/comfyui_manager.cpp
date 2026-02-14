@@ -21,6 +21,10 @@ void ComfyUIManager::run(bool force_start)
         return;
     }
 
+    m_log_filepath = fs::get_log_directory_path();
+    tools::path::make_folder(m_log_filepath);
+    m_log_filepath /= APP_COMFYUI "_" + tools::dt::get_app_start_time().as_filename() + ".log";
+
     run_server();
 }
 

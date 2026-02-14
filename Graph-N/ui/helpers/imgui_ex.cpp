@@ -714,6 +714,65 @@ bool UrlButton(const char* id_label, ImU32 url_clr_def, ImU32 url_clr_hover, con
     return clicked;
 }
 
+Toast toast_prepare(const char* text, float duration_in_ms, bool at_cursor, bool increase_wnd)
+{
+    Toast t;
+    t.expired = false;
+    if (increase_wnd)
+        t.message = fmt::format("\n     {}     \n\n", text);
+    else
+        t.message = text;
+    t.duration = duration_in_ms / 1000;
+    t.start_time = ImGui::GetTime();
+
+    t.at_cursor_pos = at_cursor;
+    if (at_cursor)
+    {
+        t.pos = ImGui::GetMousePos();
+        t.pos.x += 10;
+        t.pos.y -= 20;
+    }
+    else
+    {
+        ImVec2 child_pos = ImGui::GetWindowPos();
+        ImVec2 child_size = ImGui::GetWindowSize();
+        t.pos.x = child_pos.x + child_size.x * 0.5f;
+        t.pos.y = child_pos.y + child_size.y * 0.5f;
+    }
+    return t;
+}
+
+void toast_show(Toast& toast)
+{
+    if (toast.expired)
+        return;
+
+    const double now = ImGui::GetTime();
+    const double elapsed = now - toast.start_time;
+
+    if (elapsed < toast.duration)
+    {
+        float alpha = 1.0f;
+        if (elapsed > toast.duration * 0.5f)
+            alpha = 1.0f - cast::to_float(((elapsed - toast.duration * 0.7f) / (toast.duration * 0.3f)));
+
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+
+        if (toast.at_cursor_pos)
+            ImGui::SetNextWindowPos(toast.pos);
+        else
+            ImGui::SetNextWindowPos(toast.pos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(toast.message.c_str(), toast.message.c_str() + toast.message.size());
+        ImGui::EndTooltip();
+
+        ImGui::PopStyleVar();
+    }
+    else
+        toast.expired = true;
+}
+
 //
 //// 2. Switch Toggle (Oval Frame, Integrated Track)
 //bool ToggleButton(const char* id_label, const char* label_on, const char* label_off, bool* v, float width = 0.0f)

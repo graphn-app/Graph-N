@@ -521,9 +521,9 @@ void PanelToolbar::draw_toolbar()
             fg.pop();
             ImGui::SetNextItemWidth(avail_w * el.input_w);
             if (Element::Type::Input == el.type)
-                pressed = ImGuiEx::InputText(el.id, el.buffer, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll);
+                pressed = ImGuiEx::InputText(el.id, el.buffer, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll | ImGuiInputTextFlags_AutoSelectAll);
             else
-                pressed = ImGuiEx::InputTextWithHint(el.id, el.hint, el.buffer, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll);
+                pressed = ImGuiEx::InputTextWithHint(el.id, el.hint, el.buffer, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll | ImGuiInputTextFlags_AutoSelectAll);
             pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
 
             if (el.tooltip != nullptr)

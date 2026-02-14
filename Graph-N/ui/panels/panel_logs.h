@@ -17,12 +17,16 @@ public:
     void init() override;
     void stop_all_threads() override;
 
+    inline void get_parsed_address(std::string& host, int64_t& port) const { host = m_host; port = m_port; }
+
 private:
     DlgCode show(bool& focused) override;
     void show_logs();
 
-    void create_toolbar();
+    bool update_logs();
+    void search_for_address(size_t from, size_t to);
 
+    void create_toolbar();
     void on_pre_search(PanelToolbar::Element& el);
     void on_search_up(PanelToolbar::Element& el);
     void on_search_down(PanelToolbar::Element& el);
@@ -30,11 +34,16 @@ private:
     void on_clear(PanelToolbar::Element& el);
 
 private:
-    std::list<std::string> m_logs;
-    std::string m_search;
+    std::deque<std::string> m_logs;    
     bool m_autoscroll = true;
     ImU32 m_clr_hover = 0;
     ImU32 m_clr_pressed = 0;
+    std::string m_search;
+    int32_t m_found_index = -1;
+    bool m_scroll_to_found = false;
+    ImGuiEx::Toast m_toast;
+    std::string m_host;
+    int64_t m_port = 0;
 };
 
 

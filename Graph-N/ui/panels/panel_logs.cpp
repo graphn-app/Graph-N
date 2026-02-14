@@ -44,7 +44,7 @@ DlgCode PanelServerLogs::show(bool& focused)
     bool opened = true;
     if (begin_panel(opened, focused) && opened)
     {
-        if (false) //!g::pComfyUIManager->get_process_started())
+        if (!g::pOptsManager->comfyui_capture_output_load() && m_logs.empty())
         {
             show_empty_panel_descr(
                 ICON_LC_INFO " Server Log.",
@@ -131,16 +131,57 @@ void PanelServerLogs::create_toolbar()
 
     finalize_toolbar();
 }
+
 void PanelServerLogs::on_pre_search(PanelToolbar::Element& el)
 {
     el.enabled = !m_search.empty();
 }
 
 void PanelServerLogs::on_search_up(PanelToolbar::Element& /*el*/)
-{}
+{
+    if (m_logs.empty())
+        return;
+    const int32_t start_from = (-1 == m_found_index ? cast::to_i32(m_logs.size()) - 1 : m_found_index - 1);
+    if (start_from < 0)
+        return;
+
+    const auto search = tools::str::to_lower_ascii(m_search);
+    for (int32_t idx = start_from; idx >= 0; idx--)
+    {
+        const auto line = tools::str::to_lower_ascii(m_logs[idx]);
+        if (line.find(search) != std::string::npos)
+        {
+            m_found_index = idx;
+            m_scroll_to_found = true;
+            return;
+        }
+    }
+
+    m_found_index = -1;
+}
 
 void PanelServerLogs::on_search_down(PanelToolbar::Element& /*el*/)
-{}
+{
+    if (m_logs.empty())
+        return;
+    const int32_t start_from = (-1 == m_found_index ? 0 : m_found_index + 1);
+    if (start_from >= m_logs.size())
+        return;
+
+    const auto search = tools::str::to_lower_ascii(m_search);
+    for (int32_t idx = start_from; idx < m_logs.size(); idx++)
+    {
+        const auto line = tools::str::to_lower_ascii(m_logs[idx]);
+        if (line.find(search) != std::string::npos)
+        {
+            m_found_index = idx;
+            m_scroll_to_found = true;
+            return;
+        }
+    }
+
+    m_found_index = -1;
+}
 
 void PanelServerLogs::on_autoscroll(PanelToolbar::Element& /*el*/)
 {
@@ -148,11 +189,124 @@ void PanelServerLogs::on_autoscroll(PanelToolbar::Element& /*el*/)
 }
 
 void PanelServerLogs::on_clear(PanelToolbar::Element& /*el*/)
-{}
+{
+    m_logs.clear();
+    m_found_index = -1;
+}
+
+bool PanelServerLogs::update_logs()
+{
+    const auto old_size = m_logs.size();
+    g::pComfyUIManager->append_log(m_logs);
+    const auto new_size = m_logs.size();
+    search_for_address(old_size, new_size);
+
+    const size_t keep = g::pOptsManager->log_comfyui_log_in_ram_load();
+    while (m_logs.size() > keep)
+    {
+        m_logs.pop_front();
+    }
+
+    return old_size != new_size;
+}
+
+void PanelServerLogs::search_for_address(size_t from, size_t to)
+{
+    if (!m_host.empty() || g::pFlow->get_online() || !g::pOptsManager->comfyui_parse_address_load())
+        return;
+
+    constexpr const std::string_view key = "To see the GUI go to";
+    constexpr const std::string_view key_address = "http://";
+
+    for (size_t idx = from; idx < to; idx++)
+    {
+        const auto& line = m_logs[idx];
+        const auto key_pos = line.find(key);
+        if (key_pos != std::string::npos)
+        {
+            const auto host_pos = line.find(key_address, key_pos + key.size());
+            if (host_pos != std::string::npos)
+            {
+                const auto port_pos = line.find(":", host_pos + key_address.size());
+                if (host_pos != std::string::npos)
+                {
+                    m_host = line.substr(host_pos, port_pos - host_pos);
+                    m_port = strtoll(line.c_str() + port_pos + 1, nullptr, 10);
+                    Log("Address found: " << m_host << ":" << m_port);
+                    break;
+                }                
+            }
+        }
+    }
+}
 
 void PanelServerLogs::show_logs()
 {
-    g::pComfyUIManager->append_log(m_logs);
+    const bool scroll_to_bottom = update_logs() && m_autoscroll;
+
+    ImGui::Spacing();
+    if (ImGui::BeginChild("ServerLogRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
+    {
+        ImGuiListClipper clipper;
+        clipper.Begin(m_logs.empty() ? 1 : cast::to_i32(m_logs.size()) + 2);
+
+        while (clipper.Step())
+        {
+            for (int32_t line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd; line_no++)
+            {
+                if (0 == line_no)
+                {
+                    auto& path = g::pComfyUIManager->get_log_filepath();
+                    if (path.empty())
+                        ImGui::Selectable("##stub", false);
+                    else
+                    {
+                        if (ImGuiEx::UrlButton(path.u8string().c_str(),
+                            g::pOptsManager->color_load(AppColor::UrlTextDefault), g::pOptsManager->color_load(AppColor::UrlTextHovered), "Open log file"))
+                        {
+                            tools::path::open_file(g::pComfyUIManager->get_log_filepath());
+                        }
+                    }
+                    continue;
+                }
+
+                if (line_no >= m_logs.size())
+                {
+                    ImGui::Selectable("##empty", false);
+                    continue;
+                }
+
+                if (m_found_index == line_no - 1)
+                    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
+
+                ImGui::PushID(line_no);
+                const std::string& line_text = m_logs[line_no - 1];
+                if (ImGui::Selectable(line_text.c_str(), false) || ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                {
+                    ImGui::SetClipboardText(line_text.c_str());
+                    m_toast = ImGuiEx::toast_prepare("Line copied");
+                }
+                ImGui::PopID();
+
+                if (m_found_index == line_no - 1)
+                    ImGui::PopStyleColor();
+            }
+        }
+
+        if (m_found_index >= 0 && m_scroll_to_found)
+        {
+            const float scroll_y = (m_found_index * ImGui::GetTextLineHeightWithSpacing()) - (ImGui::GetWindowHeight() / 2.0f);
+            ImGui::SetScrollY(std::max(0.0f, scroll_y));
+            m_scroll_to_found = false;
+        }
+        else if (scroll_to_bottom || (m_autoscroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()))
+        {
+            ImGui::SetScrollHereY(1.0f);
+        }
+
+        ImGuiEx::toast_show(m_toast);
+    }
+    ImGui::EndChild();
 }
 
 } // namespace ui
