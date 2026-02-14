@@ -460,7 +460,7 @@ void PanelToolbar::draw_toolbar()
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
 
-    float start_pos = ImGui::GetContentRegionAvail().x - 40;
+    float start_pos = ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(ICON_LC_X).x * 1.5f;
     ImVec2 btn_size = {};
 
     for (auto it = m_buttons.rbegin(); it != m_buttons.rend(); ++it)
