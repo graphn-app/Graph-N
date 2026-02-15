@@ -42,6 +42,7 @@ bool SettingsManager::init()
     m_comfyui_comfyui_args =                          { "comfyui_comfyui_args",     std::string("") };
     m_comfyui_workdir =                               { "comfyui_workdir",          std::filesystem::path("") };
     m_comfyui_output =                                { "comfyui_output",           std::filesystem::path("") };
+    m_comfyui_ping_interval =                         { "comfyui_ping_interval",    int64_t(2) };
 
     // wf
     m_wf_widget_input_numbers =                       { "widget_input_numbers",     cast::to_i64(WidgetInput::Slider) };
@@ -152,8 +153,8 @@ bool SettingsManager::init()
     m_stat_limits_crit[cast::to_szt(MetricLimit::ServerVRAM)] =               { "stat_vram_crit",           int64_t(209715200) };      // 200 mb
     m_stat_limits_warn[cast::to_szt(MetricLimit::ServerPyTorch)] =            { "stat_pytorch_warn",        int64_t(524288000) };      // 500 mb
     m_stat_limits_crit[cast::to_szt(MetricLimit::ServerPyTorch)] =            { "stat_pytorch_crit",        int64_t(104857600) };      // 100 mb
-    m_stat_limits_warn[cast::to_szt(MetricLimit::ServerPing)] =               { "stat_ping_warn",           int64_t(150) };
-    m_stat_limits_crit[cast::to_szt(MetricLimit::ServerPing)] =               { "stat_ping_crit",           int64_t(400) };
+    m_stat_limits_warn[cast::to_szt(MetricLimit::ServerPing)] =               { "stat_ping_warn",           int64_t(30) };
+    m_stat_limits_crit[cast::to_szt(MetricLimit::ServerPing)] =               { "stat_ping_crit",           int64_t(100) };
     m_stat_as_progress =                                                      { "stat_as_progress",         bool(true) };
     m_stat_enabled_disks =                                                    { "stat_enabled_disks",       std::string("") };
 
@@ -181,6 +182,8 @@ bool SettingsManager::init()
     values.push_back(&m_comfyui_main_py);
     values.push_back(&m_comfyui_comfyui_args);
     values.push_back(&m_comfyui_workdir);
+    values.push_back(&m_comfyui_output);
+    values.push_back(&m_comfyui_ping_interval);
     values.push_back(&m_log_db_backup_num);
     values.push_back(&m_log_app_log_num);
     values.push_back(&m_log_comfyui_log_num);

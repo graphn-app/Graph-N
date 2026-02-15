@@ -43,7 +43,7 @@ void ModelsManager::load_models_th()
         httplib::Client cli(g::pOptsManager->comfyui_host_load(), cast::to_i32(g::pOptsManager->comfyui_port_load()));
         cli.set_keep_alive(true);
 
-        auto res = cli.Get(comfyui_api::models);
+        auto res = cli.Get(comfyui_http::models);
         if (m_stop_flag)
         {
             Log("Models thread aborted");
@@ -74,7 +74,7 @@ void ModelsManager::load_models_th()
 
         for (auto& req : requests)
         {
-            std::string req_path = comfyui_api::models;
+            std::string req_path = comfyui_http::models;
             req_path += "/" + req;
             res = cli.Get(req_path);
             if (!res || res->status != 200 || res->body.empty())
@@ -103,7 +103,7 @@ void ModelsManager::load_models_th()
                         if (item->name.empty())
                             continue;
 
-                        req_path = comfyui_api::model_meta;
+                        req_path = comfyui_http::model_meta;
                         req_path += "/" + req;
                         httplib::Params params;
                         params.emplace("filename", filename.filename().u8string());

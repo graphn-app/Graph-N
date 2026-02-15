@@ -3,7 +3,6 @@
 #include "main/main_win32.h"
 #include "ui/textures.h"
 #include "tools/exception_handler.h"
-//#include "ui/helpers/ImFileDialog`.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include <d3d11.h>
@@ -13,6 +12,8 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace platform
 {
+
+int64_t MainRoutine_Win32::m_seconds_elapsed = 0;
 
 MainRoutine_Win32::MainRoutine_Win32()
     : m_d3d_device(nullptr, [](ID3D11Device* p) { if (p) p->Release(); })
@@ -432,9 +433,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         return 0;
     case WM_TIMER:
         if (g::pGraphN)
-            g::pGraphN->handle_1sec_timer();
-        if (g::pTextures)
-            g::pTextures->handle_1s_timer();
+            g::pGraphN->handle_1sec_timer(++m_seconds_elapsed);
         break;
     case USER_MESSAGE:
         {

@@ -1,6 +1,6 @@
 
 #pragma once
-#include "core/managers/comfyui_object_validity_listener.h"
+#include "core/listeners.h"
 #include "core/workflow/workflow.h"
 #include "ui/graph-n_flow.h"
 
@@ -9,7 +9,7 @@ namespace data
 
 template <typename BaseObj>                    // base data::Pin or data::Node
 class Instance :
-    public mngr::ComfyUiObjectValidityListener
+    public listener::ComfyUiObjectValidityListener
 {
 public:
     Instance(BaseObj* obj, wid workflow_id, iid instance_id)

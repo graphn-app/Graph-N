@@ -2,7 +2,7 @@
 #pragma once
 #include "ui/panels/panel_base.h"
 #include "ui/helpers/ro_node_drawer.h"
-#include "core/managers/comfyui_object_validity_listener.h"
+#include "core/listeners.h"
 
 namespace data
 {
@@ -24,7 +24,7 @@ struct PanelNodeInspectorData final : public PanelCommonData
 class PanelNodeInspector final :
     public PanelEmptyWithDescr,
     public PanelBase<PanelNodeInspectorData>,
-    public mngr::ComfyUiObjectValidityListener
+    public listener::ComfyUiObjectValidityListener
 {
 public:
     PanelNodeInspector();

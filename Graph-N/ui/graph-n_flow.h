@@ -1,10 +1,15 @@
 
 #pragma once
 
+namespace listener
+{
+struct ComfyUiObjectValidityListener;
+struct Lazy1sTimer;
+}
+
 namespace mngr
 {
 class NodesParser;
-struct ComfyUiObjectValidityListener;
 }
 
 namespace data
@@ -93,10 +98,13 @@ public:
 
     void open_settings_dlg(OptPane section = OptPane::_count);
 
-    void subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener);
+    void subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener);
+    void subscribe_1s_lazy_timer(listener::Lazy1sTimer* listener);
 
     void invalidate_comfyui_objects();
     void resolve_comfyui_objects();
+
+    void handle_1sec_timer(int64_t seconds_elapsed);
 
     // WF public
     void wf_create();
@@ -182,6 +190,7 @@ private:
     PanelWorkflow* m_wf_focused = nullptr;
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
 
-    std::list<mngr::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
+    std::list<listener::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
+    std::list<listener::Lazy1sTimer*> m_timer_listeners;
 };
 }

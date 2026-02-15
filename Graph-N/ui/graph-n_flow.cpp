@@ -15,12 +15,12 @@
 #include "core/managers/settings_manager.h"
 #include "core/managers/connect_manager.h"
 #include "core/managers/nodes_manager.h"
-#include "core/managers/comfyui_object_validity_listener.h"
 #include "core/managers/nodes_parser.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/models_manager.h"
 #include "core/managers/comfyui_manager.h"
+#include "core/listeners.h"
 
 //#define TEST
 
@@ -122,9 +122,14 @@ void GraphN_Flow::reconnect()
     g::pConnectManager->connect();
 }
 
-void GraphN_Flow::subscribe_comfyui_validity_state(mngr::ComfyUiObjectValidityListener* listener)
+void GraphN_Flow::subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener)
 {
     m_comfyui_obj_listeners.push_back(listener);
+}
+
+void GraphN_Flow::subscribe_1s_lazy_timer(listener::Lazy1sTimer* listener)
+{
+    m_timer_listeners.push_back(listener);
 }
 
 void GraphN_Flow::invalidate_comfyui_objects()
@@ -146,6 +151,14 @@ void GraphN_Flow::resolve_comfyui_objects()
     for (auto* listener : m_comfyui_obj_listeners)
     {
         listener->finalize_resolve_comfyui_objects();
+    }
+}
+
+void GraphN_Flow::handle_1sec_timer(int64_t seconds_elapsed)
+{
+    for (auto* listener : m_timer_listeners)
+    {
+        listener->on_1s_timer(seconds_elapsed);
     }
 }
 

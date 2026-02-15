@@ -26,7 +26,7 @@ void OptionsDlgs::init()
     data()->x = main_viewport->WorkSize.x / 2 - 300;
     data()->y = main_viewport->WorkSize.y / 2 - 400;
     data()->width = 800;
-    data()->height = 700;
+    data()->height = 750;
 
     data()->clr_title = g::pOptsManager->color_load(AppColor::OptDlgTitleBg);
     data()->clr_bg = g::pOptsManager->color_load(AppColor::OptDlgBg);

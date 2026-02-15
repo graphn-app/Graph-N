@@ -1,6 +1,5 @@
 
 #pragma once
-#include "core/managers/comfyui_object_validity_listener.h"
 
 namespace data
 {
@@ -11,7 +10,7 @@ class PinInstance;
 class Link;
 
 //TODO - invalidate objects ?
-class Workflow final //: public mngr::ComfyUiObjectValidityListener
+class Workflow final
 {
 public:
     Workflow();
@@ -39,9 +38,6 @@ public:
 
     void remove_node(const NodeInstance* node);
     void remove_link(const Link* link);
-
-    // ComfyUiObjectValidityListener
-    //void finalize_resolve_comfyui_objects() override;
 
 private:
     void remove_pin(const PinInstance* pin);

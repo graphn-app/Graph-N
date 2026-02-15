@@ -1,8 +1,9 @@
 
 #pragma once
 
-namespace mngr
+namespace listener
 {
+
 struct ComfyUiObjectValidityListener
 {
     ComfyUiObjectValidityListener() = default;
@@ -17,4 +18,18 @@ struct ComfyUiObjectValidityListener
 
 inline ComfyUiObjectValidityListener::~ComfyUiObjectValidityListener() = default;
 
-}
+///////////////////////////
+
+struct Lazy1sTimer
+{
+    Lazy1sTimer() = default;
+    virtual ~Lazy1sTimer() = 0;
+
+    NO_COPY_MOVE(Lazy1sTimer);
+
+    virtual void on_1s_timer(int64_t seconds_elapsed) = 0;
+};
+
+inline Lazy1sTimer::~Lazy1sTimer() = default;
+
+} // namespace listener

@@ -2,7 +2,7 @@
 #pragma once
 #include "ui/panels/panel_base.h"
 #include "ui/helpers/ro_node_drawer.h"
-#include "core/managers/comfyui_object_validity_listener.h"
+#include "core/listeners.h"
 
 namespace data
 {
@@ -33,7 +33,7 @@ class PanelNodes final :
     public PanelWithList,
     public PanelToolbar,
     public PanelBase<PanelNodesData>,
-    public mngr::ComfyUiObjectValidityListener
+    public listener::ComfyUiObjectValidityListener
 {
 public:
     PanelNodes(PanelNodeInspector* inspector);

@@ -1,5 +1,6 @@
 
 #include "ui/graph-n_flow.h"
+#include  "ui/textures.h"
 #include "main.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
@@ -141,6 +142,12 @@ void GraphN::handle_wnd_on_close()
     Log("Next step: PrepareToExit");
 }
 
+void GraphN::handle_1sec_timer(int64_t seconds_elapsed)
+{
+    if (g::pFlow != nullptr)
+        g::pFlow->handle_1sec_timer(seconds_elapsed);
+}
+
 bool GraphN::flow()
 {
     bool result = false;
@@ -198,6 +205,8 @@ bool GraphN::init()
         Log("Graph-N flow initialization failed");
         return false;
     }
+
+    g::pTextures->init_ui_ready();
 
     m_flow_step = Flow::StartServer;
     Log("Next step: StartServer");

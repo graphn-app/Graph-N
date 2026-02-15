@@ -130,7 +130,7 @@ void ConnectManager::make_ws_connection()
     drop_ws_connection();
 
     auto opt = g::pOptsManager;
-    m_ws = WebSocket::create_and_connect(opt->comfyui_host_load(),  opt->comfyui_port_load(), opt->comfyui_connect_timeout_load());
+    m_ws = WebSocket::create_and_connect(opt->comfyui_host_load(),  opt->comfyui_port_load(), opt->comfyui_connect_timeout_load(), opt->comfyui_ping_interval_load());
 }
 
 void ConnectManager::drop_ws_connection()

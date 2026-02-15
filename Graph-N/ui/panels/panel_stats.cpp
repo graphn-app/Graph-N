@@ -1,6 +1,7 @@
 
 #include "ui/panels/panel_stats.h"
 #include "ui/graph-n_flow.h"
+#include "core/managers/connect_manager.h"
 #include "main.h"
 
 namespace ui
@@ -26,7 +27,8 @@ void PanelStats::init()
     m_pause = false;
     m_th_api = std::thread(&PanelStats::th_api, this);
     m_th_comfyui = std::thread(&PanelStats::th_comfyui, this);
-    m_th_ws = std::thread(&PanelStats::th_ws, this);
+
+    g::pFlow->subscribe_1s_lazy_timer(this);
 }
 
 void PanelStats::init_disks()
@@ -53,7 +55,6 @@ void PanelStats::stop_all_threads()
     m_stop = true;
     if (m_th_api.joinable())  m_th_api.join();
     if (m_th_comfyui.joinable())  m_th_comfyui.join();
-    if (m_th_ws.joinable())  m_th_ws.join();
     LogF_Out;
 }
 
@@ -153,7 +154,7 @@ void PanelStats::th_comfyui()
         if (accumulated_time >= check_interval)
         {
             httplib::Client cli(g::pOptsManager->comfyui_host_load(), cast::to_i32(g::pOptsManager->comfyui_port_load()));
-            auto res = cli.Get(comfyui_api::system_stats);
+            auto res = cli.Get(comfyui_http::system_stats);
             if (res && 200 == res->status)
             {
                 try
@@ -223,7 +224,7 @@ void PanelStats::th_comfyui()
                 }
             }
 
-            res = cli.Get(comfyui_api::prompt);
+            res = cli.Get(comfyui_http::prompt);
             if (res && 200 == res->status)
             {
                 try
@@ -247,31 +248,9 @@ void PanelStats::th_comfyui()
     }
 }
 
-void PanelStats::th_ws()
+void PanelStats::on_1s_timer(int64_t /*seconds_elapsed*/)
 {
-    //using namespace std::chrono_literals;
-
-    //const auto check_interval_idle = 2000ms;
-    //const auto check_interval_executing = 1000ms;
-    //const auto sleep_step = 150ms;
-    //auto accumulated_time_idle = 0ms;
-    //auto accumulated_time_exec = 0ms;
-    //auto accumulated_time_ping = 0ms;
-
-    //while (!m_stop)
-    //{
-    //    std::this_thread::sleep_for(sleep_step);
-    //    if (m_stop) break;
-
-    //    accumulated_time += sleep_step;
-    //    if (accumulated_time >= check_interval)
-    //    {
-    //        // Do calculations
-    //        // ...
-
-    //        accumulated_time = 0ms;
-    //    }
-    //}
+    g::pConnectManager->check_status(nullptr, &m_ping_mk);
 }
 
 struct FrameSmoother final
@@ -346,7 +325,7 @@ DlgCode PanelStats::show(bool& focused)
         static constexpr const std::string_view queue = "Queue";
         static const float queue_wid = ImGui::CalcTextSize(queue.data()).x;
 
-        static constexpr const std::string_view performance = "Performance";
+        static constexpr const std::string_view performance = APP_CAPTION;
         static const float performance_wid = ImGui::CalcTextSize(performance.data()).x;
 
         static const float val_text_offset = ImGui::CalcTextSize("PyTorch total").x + ImGui::GetStyle().ItemSpacing.x * 3;
@@ -373,11 +352,12 @@ DlgCode PanelStats::show(bool& focused)
             ImGui::TextUnformatted("Status");
             ImGui::SameLine(val_text_offset);
             ImGui::TextUnformatted(m_queue_remaining > 0 ? "Executing" : "Idle");
+            print_ping(val_text_offset);
 
             if (show_bar)
                 show_server_as_bar(val_text_offset);
             else
-                show_server_as_text(val_text_offset);            
+                show_server_as_text(val_text_offset);
         }
 
         ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepCapt), 0.0f, this_pc.data(), this_pc.size(), this_pc_wid);
@@ -388,7 +368,7 @@ DlgCode PanelStats::show(bool& focused)
             show_this_pc_as_text(val_text_offset);        
 
         ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepCapt), 0.0f, performance.data(), performance.size(), performance_wid);
-        show_performance(val_text_offset);
+        show_app_performance(val_text_offset);
 
         ImGui::EndGroup();
         if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
@@ -440,14 +420,6 @@ void PanelStats::show_this_pc_as_text(float val_offset)
 
 void PanelStats::show_server_as_text(float val_offset)
 {
-    if (m_ping > 0)
-    {
-        print_text_stat("Ping", val_offset, m_ping,
-            g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPing),
-            g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPing),
-            true, false);
-    }
-
     if (m_sram_free > 0)
     {
         print_text_stat("RAM", val_offset, m_sram_free,
@@ -527,22 +499,50 @@ void PanelStats::print_fps(float val_offset)
         ImGui::PopStyleColor();
 }
 
-void PanelStats::show_performance(float val_offset)
+void PanelStats::print_ping(float val_offset)
+{
+    bool def_clr = true;
+    const auto color = get_color(m_ping_mk / 1000, def_clr,
+        g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPing),
+        g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPing),
+        true);
+
+    if (!def_clr)
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+    ImGui::TextUnformatted("Ping");
+    ImGui::SameLine(val_offset);
+    if (m_ping_mk > 0)
+    {
+        if (m_ping_mk < 1000)
+            ImGui::Text("%.3f ms", cast::to_float(m_ping_mk) / 1000.0f);
+        else if (m_ping_mk < 1000000)
+            ImGui::Text("%.2f ms", cast::to_float(m_ping_mk) / 1000.0f);
+        else
+            ImGui::Text("%.2f s", cast::to_float(m_ping_mk) / 1000000.0f);
+
+        if (cast::to_float(m_ping_mk) / 1000.0f > g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPing))
+        {
+            ImGui::SameLine();
+            ImGui::TextUnformatted("[?]");
+            ImGuiEx::TooltipOnLastControl(
+                "Critical latency detected.\n"
+                "The backend appears unresponsive. It might be frozen, crashed,\n"
+                "or blocked by a heavy non-interruptible task.", nullptr);
+        }
+    }
+    else
+        ImGui::TextUnformatted("---");
+    if (!def_clr)
+        ImGui::PopStyleColor();
+}
+
+void PanelStats::show_app_performance(float val_offset)
 {
     ImGui::TextUnformatted("V-Sync");
     ImGui::SameLine(val_offset);
     ImGui::TextUnformatted(g::pOptsManager->app_vsync_load() ? "enabled" : "disabled");
 
     print_fps(val_offset);
-
-    if (m_ping > 0)
-    {
-        print_text_stat("Ping", val_offset, m_ping,
-            g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPing),
-            g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPing),
-            true, false);
-    }
-
 }
 
 void PanelStats::print_bar_stat(const char* stat_name, float val_offset, uint64_t free, uint64_t total, int64_t lim_warn, int64_t lim_crit, const char* tt)

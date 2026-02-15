@@ -57,7 +57,7 @@ public:
     void handle_wnd_minimized() {}
     void handle_wnd_restored() {}
     void handle_wnd_on_close();
-    void handle_1sec_timer() {}
+    void handle_1sec_timer(int64_t seconds_elapsed);
 
 private:
     // flow

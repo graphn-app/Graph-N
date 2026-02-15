@@ -91,6 +91,9 @@ public:
     inline const std::filesystem::path& comfyui_output_load() const { return *std::get_if<std::filesystem::path>(&m_comfyui_output.value); }
     inline void comfyui_output_save(const std::filesystem::path& path) { save_option(m_comfyui_output, path); }
 
+    inline int64_t comfyui_ping_interval_load() const { return *std::get_if<int64_t>(&m_comfyui_ping_interval.value); }
+    inline void comfyui_ping_interval_save(int64_t interval) { save_option(m_comfyui_ping_interval, int64_t(interval)); }
+
     // wf
     inline WidgetInput wf_widget_input_numbers_load() const { return cast::to_enum<WidgetInput>(*std::get_if<int64_t>(&m_wf_widget_input_numbers.value)); }
     inline void wf_widget_input_numbers_save(WidgetInput numbers) { save_option(m_wf_widget_input_numbers, cast::to_i64<>(numbers)); }
@@ -205,6 +208,7 @@ private:
     OptionValue m_comfyui_comfyui_args; // str
     OptionValue m_comfyui_workdir; // path
     OptionValue m_comfyui_output; // path
+    OptionValue m_comfyui_ping_interval; // int
 
     // wf
     OptionValue m_wf_widget_input_numbers; // int

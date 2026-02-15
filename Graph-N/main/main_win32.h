@@ -74,6 +74,8 @@ private:
 
     // fps
     double m_frame_render_time = 0;
+
+    static int64_t m_seconds_elapsed;
 };
 
 } // namespace platform

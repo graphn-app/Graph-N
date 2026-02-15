@@ -38,22 +38,23 @@ class WebSocket final : public std::enable_shared_from_this<WebSocket>
 
 public:
     ~WebSocket();
-    static std::shared_ptr<WebSocket> create_and_connect(const std::string& host, int64_t port, int64_t timeout);
+    static std::shared_ptr<WebSocket> create_and_connect(const std::string& host, int64_t port, int64_t timeout, int64_t ping_interval);
     void stop_and_forget();
 
-    inline bool get_state() const { return m_connected; }
+    inline bool get_state() const { return m_connected.load(std::memory_order_relaxed); }
 
     void send(std::string&& text);
 
     std::list<Message> get();
     inline size_t peek() const { return m_inbox_size; }
 
-    void ping();
-    inline int64_t get_latency() const { return m_latency.load(); }
+    inline int64_t get_latency() const { return m_latency.load(std::memory_order_relaxed); }
 
     inline const std::string& get_last_error() const { return m_last_error; }
 
 private:
+    void ping();
+
     void on_resolve(beast::error_code ec, tcp::resolver::results_type results);
     void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type ep);
     void on_handshake(beast::error_code ec);
@@ -70,7 +71,7 @@ private:
     std::atomic_bool m_connected = false;
     std::atomic_int64_t m_latency = 0;
 
-    std::thread m_th;
+    std::thread m_th_working;
 
     net::io_context m_ioc;
     tcp::resolver m_resolver;
@@ -87,6 +88,10 @@ private:
     int64_t m_timeout = 0;
     std::string m_last_error;
 
+    std::thread m_th_ping;
+    int64_t m_ping_interval;
+
+    std::atomic_bool m_stop_flag = false;
 };
 
 } // namespace mngr

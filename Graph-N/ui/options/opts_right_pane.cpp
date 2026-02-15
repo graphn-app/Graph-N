@@ -684,7 +684,7 @@ void OptRightPane::show_canvas(const char*& help_text)
 }
 
 // stats
-void OptRightPane::show_thresholds(const char*& /*help_text*/)
+void OptRightPane::show_thresholds(const char*& help_text)
 {
     const auto bytes_to_gb = [](int64_t bytes) -> double
     {
@@ -726,52 +726,77 @@ void OptRightPane::show_thresholds(const char*& /*help_text*/)
     ImGui::TextWrapped(
         "Set limits for system resources.\n"
         "Values exceeding these limits will be highlighted in red in the Stats panel.");
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Threasholds");
+
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator));
 
     ImGui::SetCursorPosX(m_data->input_offset_x);
-    ImGui::TextUnformatted("Warning");
+    ImGui::TextUnformatted("Warnings");
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x + ImGui::GetStyle().ItemSpacing.x + m_data->input_w / 2);
-    ImGui::TextUnformatted("Critical");
+    ImGui::TextUnformatted("Criticals");
+
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Server Threasholds");
 
     ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Latency (" APP_CAPTION "):");
-    auto changed = show_thresholds("##LatencyWarning", "##LatencyCritical", m_data->buffer_i[BuffFpsW], m_data->buffer_i[BuffFpsC], false, true, 0.01f, 20.0f, "%.2f ms");
-    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsW]);
-    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsC]);
-
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("RAM (this PC):");
-    changed = show_thresholds("##LRAMWarning", "##LRAMCritical", m_data->buffer_i[BuffLRamW], m_data->buffer_i[BuffLRamC], true, false, 0.5f, 10.0f, "%.1f GB");
-    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalRAM, m_data->buffer_i[BuffLRamW]);
-    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalRAM, m_data->buffer_i[BuffLRamC]);
-
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("RAM (server):");
-    changed = show_thresholds("##SRAMWarning", "##SRAMCritical", m_data->buffer_i[BuffSRamW], m_data->buffer_i[BuffSRamC], true, false, 1.0f, 10.0f, "%.1f GB");
+    ImGui::TextUnformatted("RAM:");
+    show_help_mark(help_text,
+        "Thresholds for free/available memory.\n"
+        "If available memory drops below this value, the system status will be flagged.\n"
+        "Warning: Low memory risks slowdowns.\n"
+        "Critical: Out Of Memory (OOM) crashes are imminent.");
+    auto changed = show_thresholds("##SRAMWarning", "##SRAMCritical", m_data->buffer_i[BuffSRamW], m_data->buffer_i[BuffSRamC], true, false, 1.0f, 10.0f, "%.1f GB");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerRAM, m_data->buffer_i[BuffSRamW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerRAM, m_data->buffer_i[BuffSRamC]);
 
     ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("VRAM (server):");
+    ImGui::TextUnformatted("VRAM:");
+    show_help_mark(help_text,
+        "Thresholds for free/available memory.\n"
+        "If available memory drops below this value, the system status will be flagged.\n"
+        "Warning: Low memory risks slowdowns.\n"
+        "Critical: Out Of Memory (OOM) crashes are imminent.");
     changed = show_thresholds("##VRAMWarning", "##VRAMCritical", m_data->buffer_i[BuffVRamW], m_data->buffer_i[BuffVRamC], true, false, 0.1f, 5.0f, "%.1f GB");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerVRAM, m_data->buffer_i[BuffVRamW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerVRAM, m_data->buffer_i[BuffVRamC]);
 
     ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("PyTorch VRAM (server):");
+    ImGui::TextUnformatted("PyTorch VRAM:");
+    show_help_mark(help_text,
+        "Thresholds for free/available memory.\n"
+        "If available memory drops below this value, the system status will be flagged.\n"
+        "Warning: Low memory risks slowdowns.\n"
+        "Critical: Out Of Memory (OOM) crashes are imminent.");
     changed = show_thresholds("##PyTorchWarning", "##PyTorchCritical", m_data->buffer_i[BuffPyTorchW], m_data->buffer_i[BuffPyTorchC], true, false, 0.1f, 5.0f, "%.1f GB");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerPyTorch, m_data->buffer_i[BuffPyTorchW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerPyTorch, m_data->buffer_i[BuffPyTorchC]);
 
     ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Ping to server:");
-    changed = show_thresholds("##pingWarning", "##PingCritical", m_data->buffer_i[BuffPingW], m_data->buffer_i[BuffPingC], false, false, 50.0f, 500.0f, "%.0f ms");
+    ImGui::TextUnformatted("Ping:");
+    show_help_mark(help_text,
+        "Network round-trip time + Server processing time.\n"
+        "Note: High values on localhost usually indicate the ComfyUI backend is blocked by heavy computations (Python GIL), not network issues.");
+    changed = show_thresholds("##pingWarning", "##PingCritical", m_data->buffer_i[BuffPingW], m_data->buffer_i[BuffPingC], false, false, 1.0f, 500.0f, "%.0f ms");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerPing, m_data->buffer_i[BuffPingW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerPing, m_data->buffer_i[BuffPingC]);
 
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "This PC Threasholds");
+
     ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Disks (this PC):");
+    ImGui::TextUnformatted("RAM:");
+    show_help_mark(help_text,
+        "Thresholds for free/available memory.\n"
+        "If available memory drops below this value, the system status will be flagged.\n"
+        "Warning: Low memory risks slowdowns.\n"
+        "Critical: Out Of Memory (OOM) crashes are imminent.");
+    changed = show_thresholds("##LRAMWarning", "##LRAMCritical", m_data->buffer_i[BuffLRamW], m_data->buffer_i[BuffLRamC], true, false, 0.5f, 10.0f, "%.1f GB");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalRAM, m_data->buffer_i[BuffLRamW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalRAM, m_data->buffer_i[BuffLRamC]);
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Disk(s) space:");
+    show_help_mark(help_text,
+        "Minimum free space threshold for selected drives.\n"
+        "Helps prevent generation failures due to full disk (e.g., when saving large batches of images).");
     changed = show_thresholds("##DiskWarning", "##DiskCritical", m_data->buffer_i[BuffDiskW], m_data->buffer_i[BuffDiskC], true, false, 1.0f, 40.0f, "%.0f GB");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalDisk, m_data->buffer_i[BuffDiskW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalDisk, m_data->buffer_i[BuffDiskC]);
@@ -781,12 +806,17 @@ void OptRightPane::show_thresholds(const char*& /*help_text*/)
     const float disk_w = m_data->input_w / 2;
 
     ImGui::SameLine();
-    for (auto& disk : g::pOptsManager->stat_disks_enabled_load())
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    if (ImGui::BeginChild("DrivesList", ImVec2(0, 100), true, ImGuiWindowFlags_HorizontalScrollbar)) 
     {
-        ImGui::SetCursorPosX(m_data->input_offset_x);
-        if (ImGui::Checkbox(disk.first.c_str(), &disk.second))
-            g::pOptsManager->stat_disks_enabled_save();
+        for (auto& disk : g::pOptsManager->stat_disks_enabled_load())
+        {
+            if (ImGui::Checkbox(disk.first.c_str(), &disk.second))
+                g::pOptsManager->stat_disks_enabled_save();
+        }
+        ImGui::EndChild();
     }
+
 
     //int32_t disks = 1;
     //for (auto& disk : g::pOptsManager->stat_disks_enabled_load())
@@ -808,6 +838,19 @@ void OptRightPane::show_thresholds(const char*& /*help_text*/)
     //        ImGui::SetCursorPosX(m_data->input_offset_x);
     //    }
     //}
+
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), APP_CAPTION " performance");
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("UI latency:");
+    show_help_mark(help_text,
+        "Client-side render time (Frame Time).\n"
+        "Indicates how long it takes for " APP_CAPTION " to process and draw one frame.\n"
+        "High values mean the interface itself is lagging (heavy load on your GPU/CPU).");
+    changed = show_thresholds("##LatencyWarning", "##LatencyCritical", m_data->buffer_i[BuffFpsW], m_data->buffer_i[BuffFpsC], false, true, 0.01f, 20.0f, "%.2f ms");
+    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsW]);
+    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsC]);
+
 }
 
 // key bindings

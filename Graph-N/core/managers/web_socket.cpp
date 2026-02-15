@@ -16,16 +16,31 @@ WebSocket::~WebSocket()
     // DO NOT LOG, logger object might be destroyed already
 }
 
-std::shared_ptr<WebSocket> WebSocket::create_and_connect(const std::string& host, int64_t port, int64_t timeout)
+std::shared_ptr<WebSocket> WebSocket::create_and_connect(const std::string& host, int64_t port, int64_t timeout, int64_t ping_interval)
 {
     auto obj = std::shared_ptr<WebSocket>(new WebSocket);
     obj->m_timeout = timeout;
     obj->m_host = host;
 
-    obj->m_th = std::thread([self = obj->shared_from_this()]
+    obj->m_th_working = std::thread([self = obj->shared_from_this()]
         {
             [[maybe_unused]] auto work_guard = net::make_work_guard(self->m_ioc);
             self->m_ioc.run();
+        }
+    );
+
+    obj->m_th_ping = std::thread([self = obj->shared_from_this(), ping_interval]
+        {
+            constexpr const int64_t sleep_time = 100;
+            for (int64_t elapsed = 0; !self->m_stop_flag; elapsed += sleep_time)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time));
+                if (elapsed >= ping_interval * 1000)
+                {
+                    self->ping();
+                    elapsed = 0;
+                }
+            }
         }
     );
 
@@ -37,11 +52,16 @@ std::shared_ptr<WebSocket> WebSocket::create_and_connect(const std::string& host
 
 void WebSocket::stop_and_forget()
 {
-    if (m_th.joinable())
+    if (m_th_ping.joinable())
+    {
+        m_stop_flag = true;
+        m_th_ping.detach();
+    }
+    if (m_th_working.joinable())
     {
         Log("WebSocket thread to stop");
         net::post(m_ioc, [this] { m_ioc.stop(); });
-        m_th.detach();
+        m_th_working.detach();
     }
 }
 
@@ -61,7 +81,7 @@ void WebSocket::send(std::string&& text)
 void WebSocket::ping()
 {
     const auto now = std::chrono::steady_clock::now();
-    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    const auto ms = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
 
     net::post(m_ws.get_executor(),
         [self = shared_from_this(), payload =std::to_string(ms)]()
@@ -125,8 +145,7 @@ void WebSocket::on_handshake(beast::error_code ec)
             try
             {
                 const auto sent = std::stoll(std::string(payload));
-                const auto now = std::chrono::steady_clock::now();
-                const auto curr = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+                const auto curr = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
                 m_latency = cast::to_i64(curr - sent);
             }
             catch(...)

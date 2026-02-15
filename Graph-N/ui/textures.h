@@ -1,5 +1,5 @@
-
 #pragma once
+#include "core/listeners.h"
 
 namespace platform
 {
@@ -11,7 +11,7 @@ using ReleaseTexturesCallback = std::function<void(ImTextureID)>;
 using ImTextureIDPtr = std::shared_ptr<std::remove_pointer_t<ImTextureID>>;
 using ImageData = std::shared_ptr<unsigned char>;
 
-class Textures
+class Textures : public listener::Lazy1sTimer
 {
 public:
     Textures();
@@ -19,6 +19,7 @@ public:
 
     NO_COPY_MOVE(Textures);
 
+    void init_ui_ready();
     virtual void set_main_routine(MainRoutine*) {}
 
     int32_t load_image(const char* path, int32_t max_width, int32_t max_height, int32_t life_time);
@@ -27,7 +28,9 @@ public:
     bool get_image_alive(int32_t image_id);
     void release_image(int32_t image_id);
 
-    void handle_1s_timer();
+    // Lazy1sTimer
+    void on_1s_timer(int64_t seconds_elapsed) override;
+
     void cleanup_all();
 
 protected:
