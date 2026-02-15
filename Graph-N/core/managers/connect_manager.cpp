@@ -1,9 +1,15 @@
 
 #include "core/managers/connect_manager.h"
 #include "core/managers/settings_manager.h"
+#include "core/managers/web_socket.h"
 
 namespace mngr
 {
+
+ConnectManager::ConnectManager()
+{
+    LogF;
+}
 
 ConnectManager::~ConnectManager()
 {
@@ -13,7 +19,6 @@ ConnectManager::~ConnectManager()
 bool ConnectManager::init()
 {
     LogF;
-
     return true;
 }
 
@@ -36,11 +41,18 @@ void ConnectManager::stop_all_threads()
     if (m_thread.joinable())
         m_thread.detach();
 
+    drop_ws_connection();
+
     LogF_Out;
 }
 
-ConnectState ConnectManager::check_status()
+ConnectState ConnectManager::check_status(size_t* inbox /*= nullptr*/, int64_t* latency /*= nullptr*/)
 {
+    if (latency)
+        *latency = -1;
+    if (inbox)
+        *inbox = 0;
+
     using namespace std::chrono_literals;
     if (ConnectState::Connecting == m_state)
     {
@@ -59,12 +71,27 @@ ConnectState ConnectManager::check_status()
                 m_state = ConnectState::Connected;
                 Log("Connected thread " << data->conn_th_id);
                 m_nodes_raw = std::move(data->data);
+
+                make_ws_connection();
             }
             else
             {
                 Log("Connection thread " << data->conn_th_id << " finished with status " << cast::to_u64(data->state));
             }
         }
+    }
+    else if (m_ws)
+    {
+        if (m_ws->get_state())
+        {
+            m_state = ConnectState::Connected;
+            if (latency)
+                *latency = m_ws->get_latency();
+            if (inbox)
+                *inbox = m_ws->peek();
+        }
+        else
+            m_state = ConnectState::Disconnected;
     }
 
     return m_state;
@@ -98,6 +125,21 @@ void ConnectManager::stop_connect()
         m_state = ConnectState::Disconnected;
 }
 
+void ConnectManager::make_ws_connection()
+{
+    drop_ws_connection();
+
+    auto opt = g::pOptsManager;
+    m_ws = WebSocket::create_and_connect(opt->comfyui_host_load(),  opt->comfyui_port_load(), opt->comfyui_connect_timeout_load());
+}
+
+void ConnectManager::drop_ws_connection()
+{
+    if (m_ws != nullptr)
+        m_ws->stop_and_forget();
+    m_ws.reset();
+}
+
 std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std::shared_ptr<ConnectData> data)
 {
     LogFS;
@@ -115,7 +157,7 @@ std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std:
             cli.set_connection_timeout(data->conn_timeout);
             cli.set_read_timeout(data->read_timeout);
 
-            const auto res = cli.Get(comfyui_api::object_info);
+            const auto res = cli.Get(comfyui_http::object_info);
             if (data->stop_thread_flag)
             {
                 LogS("Thread " << data->conn_th_id << ". Connection thread aborted");

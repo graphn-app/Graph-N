@@ -5,6 +5,8 @@
 namespace mngr
 {
 
+class WebSocket;
+
 enum class ConnectState
 {
     Disconnected,
@@ -15,14 +17,14 @@ enum class ConnectState
 class ConnectManager final : public Manager
 {
 public:
-    ConnectManager() = default;
+    ConnectManager();
     ~ConnectManager() override;
 
     bool init() override;
     void free() override;
     void stop_all_threads() override;
 
-    ConnectState check_status();
+    ConnectState check_status(size_t* inbox = nullptr, int64_t* latency = nullptr);
 
     std::string& get_nodes_raw() { return m_nodes_raw; }
 
@@ -44,6 +46,9 @@ private:
 
     static std::shared_ptr<ConnectData> connect_thread(std::shared_ptr<ConnectData> data);
 
+    void make_ws_connection();
+    void drop_ws_connection();
+
 private:
     std::shared_ptr<ConnectData> m_conn_data;
     std::atomic<ConnectState> m_state = ConnectState::Disconnected;
@@ -51,6 +56,8 @@ private:
     std::future<std::shared_ptr<ConnectData>> m_future;
     std::string m_nodes_raw;
     int32_t m_conn_th_id = 0;
+
+    std::shared_ptr<WebSocket> m_ws;
 };
 
 } // namespace mngr

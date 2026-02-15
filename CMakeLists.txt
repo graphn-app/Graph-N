@@ -169,6 +169,11 @@ else()
 endif()
 
 # ------------------------------------------------------------------------------
+# boost - beast & asio
+# ------------------------------------------------------------------------------
+set(BOOST_ROOT "${CMAKE_SOURCE_DIR}/boost")
+
+# ------------------------------------------------------------------------------
 # RelWithDebugInfo
 # ------------------------------------------------------------------------------
 
@@ -199,7 +204,7 @@ add_executable(Graph-N WIN32 ${GRAPHN_SOURCES} ${GRAPHN_HEADERS} ${GRAPHN_RESOUR
 
 if(MSVC)
     # enable /EHa, this will override /EHsc
-    target_compile_options(Graph-N PRIVATE /EHa)
+    target_compile_options(Graph-N PRIVATE /EHa /bigobj)
 endif()
 
 # --- PRECOMPILED HEADERS ---
@@ -216,13 +221,15 @@ if(MSVC)
     # target_compile_options(Graph-N PRIVATE /wd4100) # Unreferenced formal parameter
 endif()
 
-# WebSocket++ Settings: Use Standalone Asio (No Boost)
+# defines
 target_compile_definitions(Graph-N PRIVATE 
-    ASIO_STANDALONE 
-    _WEBSOCKETPP_CPP11_STL_
     _CRT_SECURE_NO_WARNINGS
     _CRT_NON_CONFORMING_SWPRINTFS
     IMGUI_USE_WCHAR32
+	BOOST_ASIO_NO_LIB
+	_WIN32_WINNT=0x0A00
+	WIN32_LEAN_AND_MEAN
+	NOMINMAX
 )
 
 # --- Include Directories ---
@@ -232,8 +239,7 @@ target_include_directories(Graph-N SYSTEM PRIVATE
     "nlohmann/include"
     "stb"
     "cpp-httplib"
-    "websocketpp"
-    "asio/asio/include"
+	"${BOOST_ROOT}"
     "${CMAKE_CURRENT_SOURCE_DIR}/SQLiteCpp/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/sqlite"
     "${NODE_EDITOR_DIR}"
@@ -396,8 +402,6 @@ target_include_directories(UnitTests SYSTEM PRIVATE
     "nlohmann/include"
     "stb"
     "cpp-httplib"
-    "websocketpp"
-    "asio/asio/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/SQLiteCpp/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/sqlite"
     "${NODE_EDITOR_DIR}"
@@ -408,8 +412,6 @@ target_include_directories(UnitTests SYSTEM PRIVATE
 target_precompile_headers(UnitTests PRIVATE "Graph-N/pch.h")
 
 target_compile_definitions(UnitTests PRIVATE 
-    ASIO_STANDALONE 
-    _WEBSOCKETPP_CPP11_STL_
     _CRT_SECURE_NO_WARNINGS
 	IMGUI_DEFINE_MATH_OPERATORS
 )

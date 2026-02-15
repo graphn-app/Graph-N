@@ -373,7 +373,7 @@ struct PanelItemState final
     bool expanded = false;
 };
 
-namespace comfyui_api
+namespace comfyui_http
 {
 constexpr const char* object_info       = "/object_info";           // get
 constexpr const char* embeddings        = "/embeddings";            // get
@@ -389,6 +389,11 @@ constexpr const char* upload_image      = "/upload/image";          // post
 constexpr const char* upload_mask       = "/upload/mask";           // post
 constexpr const char* models            = "/api/experiment/models"; // get
 constexpr const char* model_meta        = "/api/view_metadata";     // get
+}
+
+namespace comfyui_ws
+{
+constexpr const char* root              = "/ws?clientId={}";
 }
 
 namespace w

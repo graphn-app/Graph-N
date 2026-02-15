@@ -1,12 +1,11 @@
-﻿glfw/
-nlohmann/
+﻿nlohmann/
 stb/
 SQLiteCpp/
 cpp-httplib/
 DB_Browser/
-websocketpp/
-asio/
 fmt/
+googletest/
+boost/
 
 bin/
 lib/
