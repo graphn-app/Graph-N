@@ -31,7 +31,7 @@ public:
 
     inline ImGuiExNe::DeferredAction* get_deffered_action() const { return m_deffered_action.get(); }
 
-    void init();
+    void init(wid wf_id);
     void free();
 
     void pre_draw_all(const char* id);
@@ -43,6 +43,8 @@ public:
 
     void draw_links(const std::vector<std::unique_ptr<data::Link>>& links);
     void query_links();
+
+    void locate_node(data::NodeInstance* node);
 
     data::PinInstance* get_ml_widget_active() const;
 
@@ -75,6 +77,7 @@ private:
     const ImU32 m_clr_node_pin_text;
     const ImU32 m_clr_node_border;
 
+    wid m_wf = 0;
     ax::NodeEditor::EditorContext* m_context = nullptr;
     std::unique_ptr<ImGuiExNe::DeferredAction> m_deffered_action;
     data::NodeInstance* m_active_node = nullptr;

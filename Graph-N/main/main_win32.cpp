@@ -88,6 +88,7 @@ bool MainRoutine_Win32::init()
     io.ConfigWindowsMoveFromTitleBarOnly = true;
     io.IniFilename = APP_CAPTION_LOW ".ini";
     io.LogFilename = nullptr;
+    m_ini_config_exists = tools::path::exists(fs::get_root_directory_path() / io.IniFilename);
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();

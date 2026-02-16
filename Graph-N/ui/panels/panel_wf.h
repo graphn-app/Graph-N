@@ -33,6 +33,7 @@ public:
             set_focused();
         m_active = active;
     }
+    inline void locale_node(data::NodeInstance* node) { m_locate = node; }
 
     void add_node(data::Node* node, const std::string& select = "", std::optional<ImVec2> pos = std::nullopt);
 
@@ -47,6 +48,7 @@ private:
     bool m_active = false;
     std::vector<data::NodeInstance*> m_nodes;
     NodeDrawer m_drawer;
+    data::NodeInstance* m_locate = nullptr;
 };
 
 

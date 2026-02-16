@@ -133,6 +133,8 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::UrlTextHovered)] =                    { "color_url_text_hovered", int64_t(IM_COL32(102, 153, 255, 255)) };
     m_ui_colors[cast::to_szt(AppColor::FolderIcon)] =                        { "color_folder_icon", int64_t(IM_COL32(255, 210, 88, 255)) };
     m_ui_colors[cast::to_szt(AppColor::Starred)] =                           { "color_starred", int64_t(IM_COL32(255, 215, 0, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::TextEditorCaption1)] =                { "color_txt_editor_caption1", int64_t(IM_COL32(0, 180, 180, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::TextEditorCaption2)] =                { "color_txt_editor_caption2", int64_t(IM_COL32(100, 100, 100, 255)) };
     m_ui_colors[cast::to_szt(AppColor::MsgBoxError)] =                       { "color_msg_error", int64_t(IM_COL32(170, 15, 15, 255)) };
     m_ui_colors[cast::to_szt(AppColor::MsgBoxWarning)] =                     { "color_msg_warning", int64_t(IM_COL32(190, 150, 50, 255)) };
     m_ui_colors[cast::to_szt(AppColor::MsgBoxInfo)] =                        { "color_msg_info", int64_t(IM_COL32(0, 150, 200, 255)) };

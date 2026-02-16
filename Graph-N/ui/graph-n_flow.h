@@ -15,6 +15,8 @@ class NodesParser;
 namespace data
 {
 struct Node;
+class NodeInstance;
+class PinInstance;
 }
 
 namespace ui
@@ -114,7 +116,11 @@ public:
     void wf_restore(wid id);
     void wf_rename(wid id, const std::string& new_name);
     void wf_add_node_to_active_panel(data::Node* node, const std::string& select = "");
-    // WF public
+    void wf_locate_node(wid id, data::NodeInstance* node);
+
+    // text editor panel public
+    void txt_panel_create(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint);
+    void txt_panel_delete(wid wf, data::NodeInstance* node);
 
     // modal msg box
     void modal_begin(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def, const std::function<void(ModalDlgCtrl)>& callback);
@@ -139,6 +145,7 @@ private:
     void show_panel_node_inspector();
     void show_panel_stats();
     void show_panel_wf();
+    void show_panel_text_editor();
     void show_panel_wf_list();
     void show_panel_models();
     void show_panel_output();
@@ -160,9 +167,16 @@ private:
     PanelWorkflow* find_wf_panel(wid id) const;
     PanelWorkflow* create_wf_panel(const WfInfo& wf);
     void activate_wf_panel(PanelWorkflow* wf_panel);
-    void close_wf_panel(PanelWorkflow* wf_panel);
+    void close_wf_panel(PanelWorkflow* wf_panel);    
     void rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name);
     // WF internal
+
+    // text editor panel internal
+    ImGuiID find_def_txt_panel_dock();
+    void clear_txt_panels(wid wf);
+    void activate_txt_panels(wid wf);
+    void destroy_txt_panels();
+    void destroy_txt_panel(PanelTextEditor* panel);
 
 private:
     bool m_online = false;
@@ -183,12 +197,13 @@ private:
     std::unique_ptr<PanelStats> m_panel_stats;
     std::unique_ptr<PanelTemplates> m_panel_templates;
     std::unique_ptr<PanelServerLogs> m_panel_logs;
-    std::unique_ptr<PanelNotes> m_panel_notes;
+    //std::unique_ptr<PanelNotes> m_panel_notes;
     std::unique_ptr<PanelModels> m_panel_models;
     std::unique_ptr<PanelWfList> m_panel_wf_list;
 
     PanelWorkflow* m_wf_focused = nullptr;
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
+    std::list<std::unique_ptr<PanelTextEditor>> m_panels_text_editor;
 
     std::list<listener::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
     std::list<listener::Lazy1sTimer*> m_timer_listeners;

@@ -5,10 +5,10 @@
 namespace ui
 {
 
-class PanelServerLogs final : 
-    public PanelEmptyWithDescr,
-    public PanelToolbar,
-    public PanelBase<PanelCommonData>
+class PanelServerLogs final
+    : public PanelEmptyWithDescr
+    , public PanelToolbar
+    , public PanelBase<PanelCommonData>
 {
 public:
     PanelServerLogs();

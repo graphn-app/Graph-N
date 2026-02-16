@@ -1,12 +1,14 @@
 
 #include "ui/graph-n_flow.h"
 #include "ui/base_dlg.h"
+#include "main.h"
 #include "ui/options/opts_dlg.h"
 #include "ui/modal_message.h"
 #include "ui/panels/panel_nodes.h"
 #include "ui/panels/panel_node_inspector.h"
 #include "ui/panels/panel_stats.h"
 #include "ui/panels/panel_wf.h"
+#include "ui/panels/panel_text_editor.h"
 #include "ui/panels/panel_wf_list.h"
 #include "ui/panels/panel_models.h"
 #include "ui/panels/panel_notes.h"
@@ -100,15 +102,18 @@ bool GraphN_Flow::init()
     m_panel_logs->init();
     m_all_dialogs.insert(m_panel_logs.get());
 
-    m_panel_notes = std::make_unique<ui::PanelNotes>();
-    m_panel_notes->init();
-    m_all_dialogs.insert(m_panel_notes.get());
+    //m_panel_notes = std::make_unique<ui::PanelNotes>();
+    //m_panel_notes->init();
+    //m_all_dialogs.insert(m_panel_notes.get());
 
     m_panel_models = std::make_unique<ui::PanelModels>();
     m_panel_models->init();
     m_all_dialogs.insert(m_panel_models.get());
 
     init_workflow_panels();
+
+    if (g::pDbManager->get_is_first_run() || !g::pMain->get_ini_config_exists())
+        m_windows |= ViewPanelsResetAll;
 
     Log("Panels created");
 
@@ -450,7 +455,12 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
         Log("Stats panel closed");
         break;
     case DlgObj::PanelWf:
+        if (m_panels_wf.empty())
+            m_windows &= ~ViewPanelWf;
         Log("Wf panel closed");
+        break;
+    case DlgObj::PanelTextEditor:
+        Log("Txt editor panel closed");
         break;
     case DlgObj::PanelWfList:
         m_windows &= ~ViewPanelWfList;
@@ -598,6 +608,14 @@ void GraphN_Flow::wf_add_node_to_active_panel(data::Node* node, const std::strin
         g::pFlow->wf_create();
     m_wf_focused->add_node(node, select, {});
 }
+
+void GraphN_Flow::wf_locate_node(wid id, data::NodeInstance* node)
+{
+    wf_activate(id);
+    if (m_wf_focused != nullptr)
+        m_wf_focused->locale_node(node);
+}
+
 // <- WF public
 
 // WF internal ->
@@ -636,6 +654,7 @@ PanelWorkflow* GraphN_Flow::create_wf_panel(const WfInfo& wf)
     auto& panel_wf = m_panels_wf.back();
     panel_wf->init();
     m_all_dialogs.insert(panel_wf.get());
+    m_windows |= ViewPanelWf;
     return panel_wf.get();
 }
 
@@ -648,7 +667,10 @@ void GraphN_Flow::activate_wf_panel(PanelWorkflow* wf_panel)
             panel->set_active(false);
         }
         if (wf_panel != nullptr)
+        {
             wf_panel->set_active(true);
+            activate_txt_panels(wf_panel->get_workflow());
+        }
 
         m_wf_focused = wf_panel;
     }
@@ -657,9 +679,11 @@ void GraphN_Flow::activate_wf_panel(PanelWorkflow* wf_panel)
 void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
 {
     wf_panel->stop_all_threads();
-    on_dlg_closed(DlgObj::PanelWf);
-
     m_all_dialogs.erase(wf_panel);
+
+    clear_txt_panels(wf_panel->get_workflow());
+    if (m_panels_wf.empty())
+        destroy_txt_panels();
 
     for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
     {
@@ -672,6 +696,9 @@ void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
 
     if (m_wf_focused == wf_panel)
         wf_activate(0);
+
+    on_dlg_closed(DlgObj::PanelWf);
+
 }
 
 void GraphN_Flow::rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name)
@@ -680,6 +707,98 @@ void GraphN_Flow::rename_wf_panel(PanelWorkflow* wf_panel, const std::string& ne
 }
 
 // <- WF internal
+
+void GraphN_Flow::txt_panel_create(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint)
+{
+    PanelTextEditor* current_panel = nullptr;
+    PanelTextEditor* def_panel = nullptr;
+    for (auto& ptr : m_panels_text_editor)
+    {
+        if (ptr->is_current(wf, node, pin))
+        {
+            current_panel = ptr.get();
+            break;
+        }
+        if (ptr->is_default())
+        {
+            def_panel = ptr.get();
+        }
+    }
+
+    if (nullptr == current_panel && nullptr == def_panel)
+    {
+        auto ptr = std::make_unique<PanelTextEditor>(DlgObjID[cast::to_szt(DlgObj::PanelTextEditor)], true);
+        ptr->init();
+        current_panel = ptr.get();
+        m_all_dialogs.insert(ptr.get());
+        m_panels_text_editor.push_back(std::move(ptr));
+        Log("Default text panel created, wf=" << wf);
+    }
+    else if (nullptr == current_panel && def_panel != nullptr)
+    {
+        current_panel = def_panel;
+    }
+
+    m_windows |= ViewPanelTextEditor;
+    current_panel->set_focused();
+    current_panel->update(wf, node, pin, buffer, hint);
+}
+
+void GraphN_Flow::txt_panel_delete(wid wf, data::NodeInstance* node)
+{
+    for (auto& ptr : m_panels_text_editor)
+    {
+        ptr->reset(wf, node);
+    }
+}
+
+ImGuiID GraphN_Flow::find_def_txt_panel_dock()
+{
+    auto wnd = ImGui::FindWindowByName(DlgObjID[cast::to_szt(DlgObj::PanelTextEditor)]);
+    if (wnd != nullptr)
+        return wnd->DockId;
+    return 0;
+}
+
+void GraphN_Flow::clear_txt_panels(wid wf)
+{
+    for (auto& ptr : m_panels_text_editor)
+    {
+        ptr->reset(wf);
+    }
+}
+
+void GraphN_Flow::activate_txt_panels(wid wf)
+{
+    for (auto& ptr : m_panels_text_editor)
+    {
+        ptr->activate(wf);
+    }
+}
+
+void GraphN_Flow::destroy_txt_panels()
+{
+    for (auto& ptr : m_panels_text_editor)
+    {
+        ptr->reset();
+    }
+    m_panels_text_editor.clear();
+    m_windows &= ~ViewPanelTextEditor;
+}
+
+void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel)
+{
+    for (auto it = m_panels_text_editor.begin(); it != m_panels_text_editor.end(); ++it)
+    {
+        if (it->get() == panel)
+        {
+            panel->reset();
+            m_panels_text_editor.erase(it);
+            m_all_dialogs.erase(panel);
+            break;
+        }
+    }
+}
 
 void GraphN_Flow::on_menu_import_json()
 {
@@ -756,12 +875,31 @@ void GraphN_Flow::show_panel_templates()
 
 void GraphN_Flow::show_panel_notes()
 {
-    show_panel(m_panel_notes.get(), DlgObj::PanelNotes);
+    //show_panel(m_panel_notes.get(), DlgObj::PanelNotes);
 }
 
 void GraphN_Flow::show_panel_wf_list()
 {
     show_panel(m_panel_wf_list.get(), DlgObj::PanelWfList);
+}
+
+void GraphN_Flow::show_panel_text_editor()
+{
+    for (auto it = m_panels_text_editor.begin(); it != m_panels_text_editor.end();)
+    {
+        auto& panel = *it;
+        ++it;
+
+        if (panel->is_active())
+        {
+            bool focused;
+            if (panel->show_dialog(focused) != DlgCode::Progress)
+            {
+                destroy_txt_panel(panel.get());
+                on_dlg_closed(DlgObj::PanelTextEditor);
+            }
+        }
+    }
 }
 
 void GraphN_Flow::show_panel_wf()
@@ -770,6 +908,7 @@ void GraphN_Flow::show_panel_wf()
     {
         auto& panel = *it;
         ++it;
+
         bool focused = false;
         if (panel->show_dialog(focused) != DlgCode::Progress)
         {
@@ -880,8 +1019,15 @@ void GraphN_Flow::show_panels()
     const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
 
+    const auto id_as_name = [](std::string& id_ret, const char* panel_id)
+    {
+        id_ret = fmt::format("###{}", panel_id);
+        return id_ret.c_str();
+    };
+
     if (ImGui::Begin(DlgObjID[cast::to_szt(DlgObj::MainDockSpaceWindow)], nullptr, window_flags))
     {
+        static bool focus_fixed = false;
         const ImGuiID dockspace_id = ImGui::GetID(APP_CAPTION "_DockSpace");
         m_main_dock_id = dockspace_id;
 
@@ -889,6 +1035,8 @@ void GraphN_Flow::show_panels()
 
         if (m_windows & ViewPanelsResetAll)
         {
+            focus_fixed = false;
+
             m_windows &= ~ViewPanelsResetAll;
             m_windows |= ViewAllPanels;
             g::pOptsManager->ui_open_wnds_save(m_windows);
@@ -903,32 +1051,45 @@ void GraphN_Flow::show_panels()
             ImGuiID dock_id_right_bottom = ImGui::DockBuilderSplitNode(dock_id_right_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right_top);
             ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.2f, nullptr, &m_main_dock_id);
 
-            ImGui::DockBuilderDockWindow(m_panel_nodes->get_panel_name(), dock_id_left_top);
-            ImGui::DockBuilderDockWindow(m_panel_models->get_panel_name(), dock_id_left_top);
+            std::string id;
 
-            ImGui::DockBuilderDockWindow(m_panel_wf_list->get_panel_name(), dock_id_left_btm);
-            ImGui::DockBuilderDockWindow(m_panel_node_inspector->get_panel_name(), dock_id_left_btm);
+            // left top
+            ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_nodes->get_panel_id()), dock_id_left_top);
+            ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_models->get_panel_id()), dock_id_left_top);
 
-            ImGui::DockBuilderDockWindow(m_panel_stats->get_panel_name(), dock_id_right_top);
+            // left bottom
+            ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_wf_list->get_panel_id()), dock_id_left_btm);
+            ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_templates->get_panel_id()), dock_id_left_btm);
 
-            ImGui::DockBuilderDockWindow(m_panel_notes->get_panel_name(), dock_id_right_bottom);
-            ImGui::DockBuilderDockWindow(m_panel_templates->get_panel_name(), dock_id_right_bottom);
+            // right top
+            ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_stats->get_panel_id()), dock_id_right_top);
 
-            ImGui::DockBuilderDockWindow(m_panel_logs->get_panel_name(), dock_id_bottom);
+            // right bottom
+            //ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_notes->get_panel_id()), dock_id_right_bottom);
+            ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_node_inspector->get_panel_id()), dock_id_right_bottom);
+
+            // bottom
+            ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_logs->get_panel_id()), dock_id_bottom);
+            ImGui::DockBuilderDockWindow(id_as_name(id, DlgObjID[cast::to_szt(DlgObj::PanelTextEditor)]), dock_id_bottom);
 
             for (auto& wf : m_panels_wf)
             {
-                ImGui::DockBuilderDockWindow(wf->get_panel_name(), m_main_dock_id);
+                ImGui::DockBuilderDockWindow(id_as_name(id, wf->get_panel_id()), m_main_dock_id);
+            }
+            for (auto& editor : m_panels_text_editor)
+            {
+                ImGui::DockBuilderDockWindow(id_as_name(id, editor->get_panel_id()), dock_id_bottom);
             }
 
             ImGui::DockBuilderFinish(dockspace_id);
         }
 
-        if (3 == ImGui::GetFrameCount())
+        if (ImGui::GetFrameCount() > 10 && !focus_fixed)
         {
-            ImGui::SetWindowFocus(m_panel_nodes->get_panel_name());
-            ImGui::SetWindowFocus(m_panel_wf_list->get_panel_name());
-            ImGui::SetWindowFocus(m_panel_notes->get_panel_name());
+            focus_fixed = true;
+            std::string id;
+            ImGui::SetWindowFocus(id_as_name(id, m_panel_nodes->get_panel_id()));
+            ImGui::SetWindowFocus(id_as_name(id, m_panel_wf_list->get_panel_id()));
         }
     }
     ImGui::End();
@@ -953,6 +1114,8 @@ void GraphN_Flow::show_panels()
 
     if (m_windows & ViewPanelWf)
         show_panel_wf();
+    if (m_windows & ViewPanelTextEditor)
+        show_panel_text_editor();
 
     if (m_windows & ViewModal)
         modal_show();

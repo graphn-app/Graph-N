@@ -22,6 +22,7 @@ public:
     inline double get_frame_render_time() const override { return m_frame_render_time; }
     inline HWND get_hwnd() const { return m_hwnd; }
     inline void set_user_msg_callback(UserMsgCallback callback) { m_user_msg_callback = callback; }
+    bool get_ini_config_exists() const override { return m_ini_config_exists; }
 
 private:
     /*
@@ -68,6 +69,7 @@ private:
 
     // ImGui
     const ImVec4 m_clear_color;
+    bool m_ini_config_exists = false;
 
     // Graph-N
     flow_callback* m_callback = nullptr;

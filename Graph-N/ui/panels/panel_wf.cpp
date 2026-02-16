@@ -38,7 +38,7 @@ void PanelWorkflow::init()
     PanelBase::init();
 
     m_nodes.reserve(100);
-    m_drawer.init();
+    m_drawer.init(m_wf);
 }
 
 void PanelWorkflow::restore_pos()
@@ -104,6 +104,12 @@ void PanelWorkflow::draw_wf()
         m_drawer.draw_node(node, node->get_object()->w_fit);
         m_drawer.post_draw_node(node);
         ImGui::PopID();
+    }
+
+    if (m_locate != nullptr)
+    {
+        m_drawer.locate_node(m_locate);
+        m_locate = nullptr;
     }
 
     auto wf = g::pWfsManager->access(m_wf);

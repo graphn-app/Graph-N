@@ -104,47 +104,50 @@ void RenderDeferredCombo(DeferredAction& act)
     }
 }
 
-bool InputTextWithHint(DeferredAction& act, void* /*node_id*/, void* pin_id, const char* label, const char* hint, const char* str)
+bool InputTextWithHint(DeferredAction& act, void* node_id, void* pin_id, const char* label, const char* hint, std::string* str)
 {
     ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;
     ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems)
+        return false;
 
     const float height = (ImGui::GetTextLineHeight() * 4) + (style.FramePadding.y * 2.0f);
     const float width = ImGui::CalcItemWidth();
+    const ImVec2 size(width, height);
 
-    const ImVec2 pos = window->DC.CursorPos;
-    const ImRect bb(pos, ImVec2(pos.x + width, pos.y + height));
+    ImGui::PushID(label); 
+    const bool pressed = ImGui::InvisibleButton(label, size);
+    ImGui::PopID();
+    const bool hovered = ImGui::IsItemHovered();
 
-    ImGui::ItemSize(bb, style.FramePadding.y);
-    const ImGuiID id = window->GetID(label);
-    if (!ImGui::ItemAdd(bb, id))
-        return false;
+    const ImVec2 p_min = ImGui::GetItemRectMin();
+    const ImVec2 p_max = ImGui::GetItemRectMax();
 
-    bool hovered, held;
-    const bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
     if (pressed)
     {
-        //act.active_node = node_id;
+        // act.active_node = node_id;
         act.active_pin = pin_id;
+        act.active_node = node_id;
+        act.ml_input.is_active = true;
+        act.ml_input.buffer = str;
+        act.ml_input.hint = hint;
     }
-
-    hovered = (pin_id == act.active_pin);
 
     const ImU32 bg_col = ImGui::GetColorU32(hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
     const ImU32 border_col = ImGui::GetColorU32(ImGuiCol_Border);
 
-    window->DrawList->AddRectFilled(bb.Min, bb.Max, bg_col, style.FrameRounding);
+    window->DrawList->AddRectFilled(p_min, p_max, bg_col, style.FrameRounding);
     if (style.FrameBorderSize > 0.0f)
-        window->DrawList->AddRect(bb.Min, bb.Max, border_col, style.FrameRounding, 0, style.FrameBorderSize);
+        window->DrawList->AddRect(p_min, p_max, border_col, style.FrameRounding, 0, style.FrameBorderSize);
 
-    ImGui::PushClipRect(bb.Min, bb.Max, true); 
+    ImGui::PushClipRect(p_min, p_max, true); 
 
-    const ImVec2 text_pos = bb.Min + style.FramePadding;
+    const ImVec2 text_pos = p_min + style.FramePadding;
 
-    if (str != nullptr && *str != 0)
+    if (str != nullptr && !str->empty())
     {
-        window->DrawList->AddText(text_pos, ImGui::GetColorU32(ImGuiCol_Text), str);
+        window->DrawList->AddText(text_pos, ImGui::GetColorU32(ImGuiCol_Text), str->c_str());
     }
     else if (hint != nullptr && *hint != 0)
     {

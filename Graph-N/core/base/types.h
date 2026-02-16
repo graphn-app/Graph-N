@@ -200,6 +200,8 @@ enum class AppColor
     UrlTextHovered,
     FolderIcon,
     Starred,
+    TextEditorCaption1,
+    TextEditorCaption2,
     MsgBoxError,
     MsgBoxWarning,
     MsgBoxInfo,

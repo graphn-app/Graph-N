@@ -23,15 +23,21 @@ struct FontGuard final
 
     void push()
     {
-        if (!pushed)
-            ImGui::PushFont(font);
-        pushed = true;
+        if (font != nullptr)
+        {
+            if (!pushed)
+                ImGui::PushFont(font);
+            pushed = true;
+        }
     }
     void pop()
     {
-        if (pushed)
-            ImGui::PopFont();
-        pushed = false;
+        if (font != nullptr)
+        {
+            if (pushed)
+                ImGui::PopFont();
+            pushed = false;
+        }
     }
 };
 

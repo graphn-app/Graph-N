@@ -41,10 +41,11 @@ void test_id(std::set<void*>& set, void* ptr)
     }
 }
 
-void NodeDrawer::init()
+void NodeDrawer::init(wid wf_id)
 {
     LogF;
 
+    m_wf = wf_id;
     m_deffered_action = std::make_unique<ImGuiExNe::DeferredAction>();
 
     ed::Config config;
@@ -76,7 +77,18 @@ void NodeDrawer::post_draw_all()
     ed::End();
     ed::SetCurrentEditor(nullptr);
 
-    ImGuiExNe::RenderDeferredCombo(*m_deffered_action.get());
+    if (m_deffered_action->combo.is_active)
+        ImGuiExNe::RenderDeferredCombo(*m_deffered_action.get());
+    else if (m_deffered_action->ml_input.is_active)
+    {
+        g::pFlow->txt_panel_create(
+            m_wf,
+            cast::ptrs<data::NodeInstance>(m_deffered_action->active_node),
+            cast::ptrs<data::PinInstance>(m_deffered_action->active_pin),
+            m_deffered_action->ml_input.buffer,
+            m_deffered_action->ml_input.hint);
+        m_deffered_action->ml_input.is_active = false;
+    }
 }
 
 void NodeDrawer::pre_draw_node(data::NodeInstance* node)
@@ -98,6 +110,13 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
 void NodeDrawer::post_draw_node(data::NodeInstance* /*node*/)
 {
     ed::EndNode();
+}
+
+void NodeDrawer::locate_node(data::NodeInstance* node)
+{
+    ed::ClearSelection();
+    ed::SelectNode(cast::to_ptr(node));
+    ed::NavigateToSelection(false, 0.5f);
 }
 
 data::PinInstance* NodeDrawer::get_ml_widget_active() const
@@ -544,7 +563,7 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
     const auto linked = pin->m_state->links > 0;
     if (linked) ImGui::BeginDisabled();
-    ImGuiExNe::InputTextWithHint(*m_deffered_action.get(), m_active_node, pin, "##value", val->c_str(), placeholder.c_str());
+    ImGuiExNe::InputTextWithHint(*m_deffered_action.get(), m_active_node, pin, "##value", placeholder.c_str(), val);
     if (linked) ImGui::EndDisabled();
     ImGui::PopTextWrapPos();
 

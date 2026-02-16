@@ -752,6 +752,23 @@ void PanelNodes::on_post_tt(int32_t /*idx*/)
 
 void PanelNodes::add_node_to_wf(data::NodeItem* node_item)
 {
+    LogF;
+#ifdef _DEBUG
+    static auto click1 = std::chrono::high_resolution_clock::now();
+    static auto click2 = std::chrono::high_resolution_clock::now();
+    static bool click_t = true;
+    if (click_t)
+        click1 = std::chrono::high_resolution_clock::now();
+    else
+    {
+        click2 = std::chrono::high_resolution_clock::now();
+        auto diff = std::chrono::duration<double, std::milli>(click2 - click1).count();
+        if (diff < 1000)
+            __debugbreak();
+    }
+    click_t = !click_t;
+#endif
+
     g::pFlow->wf_add_node_to_active_panel(node_item->node);
 }
 

@@ -23,31 +23,32 @@ public:
         : BaseDlgWithData(obj)
         , m_need_focus(need_focus)
     {
-        m_panel_id = id;
-        m_panel_name = fmt::format("{}###{}", name, id);
-        m_panel_name_w = ImGui::CalcTextSize(name).x;
-        m_panel_name_shortened = fmt::format("{}###{}", shortened, id);
+        m_id = id;
+        m_name = name;
+        m_name_shortened = shortened;
+        build_names();
     }
 
     ~PanelBase() override = default;
 
-    const char* get_panel_name() const { return m_panel_name.c_str(); }
-    const char* get_panel_id() const { return m_panel_id.c_str(); }
+    inline const char* get_panel_name() const { return m_name_full.c_str(); }
+    inline const char* get_panel_id() const { return m_id.c_str(); }
 
     inline void set_focused() { m_activate = true; }
 
 protected:
-    void set_name(const std::string& new_name) { m_panel_name = new_name; }
-    void set_id(const std::string& new_id) { m_panel_id = new_id; }
+    inline void set_name(const std::string& new_name) { m_name = new_name; build_names(); }
+    inline void set_name_shortened(const std::string& new_name) { m_name_shortened = new_name; build_names(); }
+    inline void set_id(const std::string& new_id) { m_id = new_id; build_names(); }
 
     bool begin_panel(bool& opened, bool& focused, bool save_pos = true, bool always_active = false)
     {
         // m_class.ClassId = cast::to_u32(data()->class_id);
         // ImGui::SetNextWindowClass(&m_class);
 
-        const std::string* name = &m_panel_name;
+        const std::string* name = &m_name_full;
         if (m_panel_w > 0 && m_panel_w < m_panel_name_w + 60.0f)
-            name = &m_panel_name_shortened;
+            name = &m_name_shortened_full;
 
         m_always_active = always_active;
         if (m_always_active)
@@ -77,14 +78,14 @@ protected:
         return expanded;
     }
 
-    DlgCode end_panel(bool opened)
+    inline DlgCode end_panel(bool opened)
     {
         ImGui::End();
         ImGui::PopStyleColor(m_always_active ? 6 : 1);
         return opened ? DlgCode::Progress : DlgCode::Cancel;
     }
 
-    void init() override
+    inline void init() override
     {
         BaseDlgWithData<DataType>::init();
         data()->clr_bg = g::pOptsManager->color_load(AppColor::PanelBg);
@@ -93,9 +94,19 @@ protected:
     }
 
 private:
-    std::string m_panel_id;
-    std::string m_panel_name;
-    std::string m_panel_name_shortened;
+    inline void build_names()
+    {
+        m_name_full = fmt::format("{}###{}", m_name, m_id);
+        m_name_shortened_full = fmt::format("{}###{}", m_name_shortened, m_id);
+        m_panel_name_w = ImGui::CalcTextSize(m_name.c_str()).x;
+    }
+
+private:
+    std::string m_id;
+    std::string m_name;
+    std::string m_name_full;
+    std::string m_name_shortened;
+    std::string m_name_shortened_full;
     float m_panel_name_w = 0.0f;
     float m_panel_w = 0.0f;
     bool m_need_focus = false;
@@ -166,7 +177,7 @@ public:
     {
         bool reset_state = false;   // immediately stop drawing
 
-        enum class Type { Empty, Button, Input, InputHint };
+        enum class Type { Empty, Button, Input, InputHint, Text };
         Type type = Type::Button;
 
         bool enabled = true;
@@ -186,17 +197,25 @@ public:
         const char* hint = nullptr;
         const char* id = nullptr;
         float input_w = 0.5f; // in percents of total width
+
+        // text
+        std::string text;
+        float text_w = 0.0f;
+        ImU32 text_clr = 0;
+        bool text_bold = false;
     };
 
     void clear_toolbar();
     void add_toolbar_element(Element&& el, bool left_aligned);
     void finalize_toolbar();
+    inline void set_use_regular_size_icons() { m_use_big_icons = false; }
 
 private:
     std::vector<Element> m_elements_l;
     std::vector<Element> m_elements_r;
     ImU32 m_clr_hover = 0;
     ImU32 m_clr_pressed = 0;
+    bool m_use_big_icons = true;
 };
 
 

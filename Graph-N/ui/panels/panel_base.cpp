@@ -409,6 +409,9 @@ bool PanelWithList::release_tooltip(int32_t tt_index, const TtCallbacks* tt_call
 
 void PanelToolbar::add_toolbar_element(Element&& el, bool left_aligned)
 {
+    if (el.type == Element::Type::Text)
+        el.text_w = ImGui::CalcTextSize(el.text.c_str()).x;
+
     if (left_aligned)
         m_elements_l.push_back(std::move(el));
     else
@@ -439,7 +442,7 @@ void PanelToolbar::draw_toolbar()
     const float regular_h = ImGui::GetTextLineHeight();
     const float regular_padding_y = style.FramePadding.y;
 
-    FontGuard fg(g::pMain->get_icons_font());
+    FontGuard fg(m_use_big_icons ? g::pMain->get_icons_font() : nullptr);
 
     const float big_h = ImGui::GetTextLineHeight();
     const ImVec2 ico_size = ImGui::CalcTextSize(ICON_LC_X);
@@ -534,6 +537,16 @@ void PanelToolbar::draw_toolbar()
 
             start_pos += avail_w * el.input_w + style.ItemSpacing.x;
         }
+        else if (Element::Type::Text == el.type)
+        {
+            fg.pop();
+            if (el.text_clr != 0) ImGui::PushStyleColor(ImGuiCol_Text, el.text_clr);
+            if (el.text_bold) ImGui::PushFont(g::pMain->get_bold_font());
+            ImGui::TextUnformatted(el.text.c_str(), el.text.c_str() + el.text.size());
+            if (el.text_bold) ImGui::PopFont();
+            if (el.text_clr != 0) ImGui::PopStyleColor();
+            start_pos += ImGui::GetItemRectSize().x + style.ItemSpacing.x;
+        }
 
         if (pressed && el.on_click) el.on_click(el);
         if (!el.enabled) ImGui::EndDisabled();
@@ -617,7 +630,16 @@ void PanelToolbar::draw_toolbar()
             if (-FLT_MIN == regular_el_y)
                 regular_el_y = ImGui::GetItemRectMin().y;
 
-            start_pos -= avail_w * el.input_w + regular_btn_size.x + style.ItemSpacing.x;
+            start_pos -= regular_btn_size.x + style.ItemSpacing.x;
+        }
+        else if (Element::Type::Text == el.type)
+        {
+            fg.pop();
+            start_pos -= el.text_w - style.ItemSpacing.x;
+            ImGui::SetCursorPosX(start_pos);
+
+            ImGui::TextUnformatted(el.text.c_str(), el.text.c_str() + el.text.size());
+            start_pos -= regular_btn_size.x + style.ItemSpacing.x;
         }
 
         if (pressed && el.on_click) el.on_click(el);

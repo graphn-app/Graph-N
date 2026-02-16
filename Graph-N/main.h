@@ -35,6 +35,8 @@ public:
     virtual void wnd_show() = 0;
     virtual void wnd_hide() = 0;
 
+    virtual bool get_ini_config_exists() const = 0;
+
 protected:
     void prepare_fonts();
 
