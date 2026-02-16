@@ -714,7 +714,7 @@ bool UrlButton(const char* id_label, ImU32 url_clr_def, ImU32 url_clr_hover, con
     return clicked;
 }
 
-Toast toast_prepare(const char* text, float duration_in_ms, bool at_cursor, bool increase_wnd)
+Toast toast_prepare(const char* text, ImU32 frame_clr, float duration_in_ms, bool at_cursor, bool increase_wnd)
 {
     Toast t;
     t.expired = false;
@@ -724,6 +724,7 @@ Toast toast_prepare(const char* text, float duration_in_ms, bool at_cursor, bool
         t.message = text;
     t.duration = duration_in_ms / 1000;
     t.start_time = ImGui::GetTime();
+    t.frame_clr = frame_clr;
 
     t.at_cursor_pos = at_cursor;
     if (at_cursor)
@@ -752,6 +753,8 @@ void toast_show(Toast& toast)
 
     if (elapsed < toast.duration)
     {
+        const float rounding = 7.0f;
+
         float alpha = 1.0f;
         if (elapsed > toast.duration * 0.5f)
             alpha = 1.0f - cast::to_float(((elapsed - toast.duration * 0.7f) / (toast.duration * 0.3f)));
@@ -763,9 +766,21 @@ void toast_show(Toast& toast)
         else
             ImGui::SetNextWindowPos(toast.pos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, rounding);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
         ImGui::BeginTooltip();
+        const ImVec2 pos = ImGui::GetWindowPos();
+        const ImVec2 size = ImGui::GetWindowSize();
         ImGui::TextUnformatted(toast.message.c_str(), toast.message.c_str() + toast.message.size());
+
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        const ImVec2 rect_min = ImVec2(pos.x + 3.0f, pos.y + 3.0f);
+        const ImVec2 rect_max = ImVec2(pos.x + size.x - 3.0f, pos.y + size.y - 3.0f);
+        draw_list->AddRect(rect_min, rect_max, toast.frame_clr, rounding, 0, 1.0f);
         ImGui::EndTooltip();
+
+        ImGui::PopStyleVar(2);
 
         ImGui::PopStyleVar();
     }

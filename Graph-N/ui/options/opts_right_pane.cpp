@@ -1023,6 +1023,7 @@ void OptRightPane::import_from_comfyui()
             if (FAILED(hres))
             {
                 LogWarn("Failed to get python CommandLine, err: " << LogHEX(hres));
+                object.Release();
                 continue;
             }
 
@@ -1051,6 +1052,7 @@ void OptRightPane::import_from_comfyui()
                 parent_proc = var.uintVal;
                 break;
             }
+            object.Release();
         }
     }
 
@@ -1138,6 +1140,7 @@ void OptRightPane::import_from_comfyui()
                     break;
                 }
             }
+            object.Release();
         }
         else
             break;

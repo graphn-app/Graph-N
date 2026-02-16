@@ -83,8 +83,9 @@ struct Toast
     double start_time = 0.0f;
     bool at_cursor_pos = true;
     bool expired = true;
+    ImU32 frame_clr = 0;
 };
-Toast toast_prepare(const char* text, float duration_in_ms = 750.0f, bool at_cursor = false, bool increase_wnd = true);
+Toast toast_prepare(const char* text, ImU32 frame_clr = 0, float duration_in_ms = 750.0f, bool at_cursor = false, bool increase_wnd = true);
 void toast_show(Toast& toast);
 
 } // namespace ImGuiEx

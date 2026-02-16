@@ -294,6 +294,7 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
             if (FAILED(hres))
             {
                 LogWarn("Failed to get python CommandLine, err: " << LogHEX(hres));
+                object.Release();
                 continue;
             }
 
@@ -304,10 +305,12 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
                 if (FAILED(hres) || (var.vt != VT_UI4 && var.vt != VT_I4))
                 {
                     LogWarn("Failed to get python ProcessId, err: " << LogHEX(hres));
+                    object.Release();
                     continue;
                 }
                 return var.uintVal;
             }
+            object.Release();
         }
     }
 

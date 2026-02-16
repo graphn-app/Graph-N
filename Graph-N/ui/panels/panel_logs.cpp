@@ -284,7 +284,7 @@ void PanelServerLogs::show_logs()
                 if (ImGui::Selectable(line_text.c_str(), false) || ImGui::IsItemClicked(ImGuiMouseButton_Right))
                 {
                     ImGui::SetClipboardText(line_text.c_str());
-                    m_toast = ImGuiEx::toast_prepare("Line copied");
+                    m_toast = ImGuiEx::toast_prepare("Line copied", g::pOptsManager->color_load(AppColor::SelectedItem));
                 }
                 ImGui::PopID();
 
