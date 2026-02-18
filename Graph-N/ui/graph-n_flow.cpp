@@ -398,6 +398,17 @@ void GraphN_Flow::show_menu_bar()
     {
         if (ImGui::BeginMenu("File##MainMenuBar"))
         {
+            if (ImGui::MenuItem("Import Project from file...##FileMenuBar"))
+            {
+                Log("Menu: Import Project");
+                on_menu_import_json();
+            }
+            if (ImGui::MenuItem("Export Project to file...##FileMenuBar"))
+            {
+                Log("Menu: Export Project");
+                on_menu_export_json();
+            }
+            ImGui::Separator();
             if (ImGui::MenuItem("Options##FileMenuBar"))
             {
                 Log("Menu: Options");
@@ -934,7 +945,9 @@ void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel)
 
 void GraphN_Flow::on_menu_import_json()
 {
-    // TODO
+    tools::path::FdSelectResultMt callback = [this](bool, std::list<std::filesystem::path>&&)
+    {};
+    tools::path::select_files_open({ "ComfyUI Workflows (*.json, *.png, *.webp)", "*.json, *.png, *.webp" }, callback);
 }
 
 void GraphN_Flow::on_menu_export_json()
