@@ -1,6 +1,7 @@
 
 #pragma once
 #include "ui/base_dlg.h"
+#include "ui/graph-n_flow.h"
 
 namespace ui
 {
@@ -19,27 +20,35 @@ template <typename DataType>
 class PanelBase : public BaseDlgWithData<DataType>
 {
 public:
-    PanelBase(DlgObj obj, const char* name, const char* shortened, const char* id, bool need_focus = false)
+    PanelBase(DlgObj obj, const std::string& name, const std::string& id = "", bool need_focus = false)
         : BaseDlgWithData(obj)
         , m_need_focus(need_focus)
     {
-        m_id = id;
+        m_id = id.empty() ? DlgObjID[cast::to_szt(obj)] : id;
+        if (m_id.find("###") == std::string::npos)
+            m_id = "###" + m_id;
+        m_icon = g::pFlow->get_panel_icon(obj);
         m_name = name;
-        m_name_shortened = shortened;
         build_names();
     }
 
     ~PanelBase() override = default;
 
-    inline const char* get_panel_name() const { return m_name_full.c_str(); }
+    inline const char* get_panel_name() const { return m_name.c_str(); }
+    inline const char* get_panel_name_full() const { return m_name_full.c_str(); }
     inline const char* get_panel_id() const { return m_id.c_str(); }
 
     inline void set_focused() { m_activate = true; }
 
 protected:
     inline void set_name(const std::string& new_name) { m_name = new_name; build_names(); }
-    inline void set_name_shortened(const std::string& new_name) { m_name_shortened = new_name; build_names(); }
-    inline void set_id(const std::string& new_id) { m_id = new_id; build_names(); }
+    inline void set_id(const std::string& new_id)
+    {
+        m_id = new_id;
+        if (m_id.find("###") == std::string::npos)
+            m_id = "###" + m_id;
+        build_names();
+    }
 
     bool begin_panel(bool& opened, bool& focused, bool save_pos = true, bool always_active = false)
     {
@@ -48,7 +57,7 @@ protected:
 
         const std::string* name = &m_name_full;
         if (m_panel_w > 0 && m_panel_w < m_panel_name_w + 60.0f)
-            name = &m_name_shortened_full;
+            name = &m_name_shortened_name_full;
 
         m_always_active = always_active;
         if (m_always_active)
@@ -96,17 +105,17 @@ protected:
 private:
     inline void build_names()
     {
-        m_name_full = fmt::format("{}###{}", m_name, m_id);
-        m_name_shortened_full = fmt::format("{}###{}", m_name_shortened, m_id);
-        m_panel_name_w = ImGui::CalcTextSize(m_name.c_str()).x;
+        m_name_full = fmt::format("{} {}{}", m_icon, m_name, m_id);
+        m_name_shortened_name_full = fmt::format("{}{}", m_icon, m_id);
+        m_panel_name_w = ImGui::CalcTextSize(fmt::format("{} {}", m_icon, m_name).c_str()).x;
     }
 
 private:
     std::string m_id;
     std::string m_name;
+    std::string m_icon;
     std::string m_name_full;
-    std::string m_name_shortened;
-    std::string m_name_shortened_full;
+    std::string m_name_shortened_name_full;
     float m_panel_name_w = 0.0f;
     float m_panel_w = 0.0f;
     bool m_need_focus = false;

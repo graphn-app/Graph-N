@@ -8,7 +8,7 @@ namespace ui
 {
 
 PanelWfList::PanelWfList()
-    : PanelBase(DlgObj::PanelWfList, ICON_LC_LIBRARY " Projects", ICON_LC_LIBRARY, DlgObjID[cast::to_szt(DlgObj::PanelWfList)])
+    : PanelBase(DlgObj::PanelWfList, "Projects")
 {}
 
 PanelWfList::~PanelWfList()

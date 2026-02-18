@@ -42,6 +42,15 @@ public:
     inline int64_t ui_theme_load() const { return *std::get_if<int64_t>(&m_ui_theme.value); }
     void ui_theme_save(int64_t theme) { save_option(m_ui_theme, int64_t(theme)); }
 
+    inline ActivityBarMode ui_activity_bar_mode_load() const { return cast::to_enum<ActivityBarMode>(*std::get_if<int64_t>(&m_ui_activity_bar_mode.value)); }
+    inline void ui_activity_bar_mode_save(ActivityBarMode mode) { save_option(m_ui_activity_bar_mode, int64_t(cast::to_i64(mode))); }
+
+    inline bool ui_activity_bar_big_icons_load() const { return *std::get_if<bool>(&m_ui_activity_bar_big_icons.value); }
+    inline void ui_activity_bar_big_icons_save(bool big) { save_option(m_ui_activity_bar_big_icons, bool(big)); }
+
+    inline bool ui_activity_bar_show_restart_load() const { return *std::get_if<bool>(&m_ui_activity_bar_show_restart.value); }
+    inline void ui_activity_bar_show_restart_save(bool show) { save_option(m_ui_activity_bar_show_restart, bool(show)); }
+
     // comfyui
     inline const std::string& comfyui_host_load() const { return *std::get_if<std::string>(&m_comfyui_host.value); }
     inline void comfyui_host_save(const std::string& host) { save_option(m_comfyui_host, host); }
@@ -190,6 +199,9 @@ private:
     OptionValue m_ui_nodes_tree_view; // int
     std::vector<OptionValue> m_ui_colors; // int
     OptionValue m_ui_theme; // int. 0 - sys default, 1 - dark, 2 - light
+    OptionValue m_ui_activity_bar_mode; // int
+    OptionValue m_ui_activity_bar_big_icons; // int
+    OptionValue m_ui_activity_bar_show_restart; // int
 
     // comfyui
     OptionValue m_comfyui_host; // str

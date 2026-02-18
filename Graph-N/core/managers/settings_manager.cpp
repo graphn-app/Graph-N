@@ -24,6 +24,9 @@ bool SettingsManager::init()
     m_ui_open_wnds =                                  { "open_windows",             int64_t(ui::ViewPanelsResetAll) };
     m_ui_nodes_tree_view =                            { "nodes_tree_view",          bool(true) };
     m_ui_theme =                                      { "theme",                    int64_t(0) };
+    m_ui_activity_bar_mode =                          { "activity_bar_mode",        int64_t(cast::to_i64(ActivityBarMode::Smart)) };
+    m_ui_activity_bar_big_icons =                     { "activity_bar_big_icons",   bool(false) };
+    m_ui_activity_bar_show_restart =                  { "activity_bar_add_restart", bool(false) };
 
     // comfyui
     m_comfyui_host =                                  { "comfyui_host",             std::string("127.0.0.1") };
@@ -125,7 +128,7 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::MenubarBg)] =                         { "color_menubar_bg", int64_t(IM_COL32(50, 50, 50, 255)) };
     m_ui_colors[cast::to_szt(AppColor::OptSubtitleSep)] =                    { "color_opt_subtitle_sep", int64_t(IM_COL32(0, 128, 128, 255)) };
     m_ui_colors[cast::to_szt(AppColor::OptSeparator)] =                      { "color_opt_separator", int64_t(IM_COL32(0, 180, 180, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::SelectedItem)] =                      { "color_selected_item", int64_t(IM_COL32(255, 165, 0, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::SelectedItem)] =                      { "color_selected_item", int64_t(IM_COL32(218, 122, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::OptHelpMark)] =                       { "color_opt_help_mark", int64_t(IM_COL32(50, 50, 50, 255)) };
     m_ui_colors[cast::to_szt(AppColor::OptHelpText)] =                       { "color_opt_help_text", int64_t(IM_COL32(0, 128, 128, 200)) };
     m_ui_colors[cast::to_szt(AppColor::RestartButton)] =                     { "color_restart_button", int64_t(IM_COL32(120, 0, 0, 255)) };
@@ -139,6 +142,9 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::MsgBoxWarning)] =                     { "color_msg_warning", int64_t(IM_COL32(190, 150, 50, 255)) };
     m_ui_colors[cast::to_szt(AppColor::MsgBoxInfo)] =                        { "color_msg_info", int64_t(IM_COL32(0, 150, 200, 255)) };
     m_ui_colors[cast::to_szt(AppColor::MsgBoxQuestion)] =                    { "color_msg_question", int64_t(IM_COL32(50, 150, 50, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::ActivityBarBg)] =                     { "color_activity_bar_bg",  int64_t(IM_COL32(24, 24, 27, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::ActivityBarActive)] =                 { "color_activity_bar_active",  int64_t(IM_COL32(0, 150, 150, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::ActivityBarInactive)] =               { "color_activity_bar_inactive",  int64_t(IM_COL32(92, 92, 95, 255)) };
 
     // stats
     m_stat_limits_warn.resize(cast::to_szt(MetricLimit::_count));
@@ -162,13 +168,17 @@ bool SettingsManager::init()
 
     // initialization
     std::vector<OptionValue*> values;
-    values.reserve(100);
+    values.reserve(200);
     values.push_back(&m_app_vsync);
     values.push_back(&m_app_fps_limit);
     values.push_back(&m_app_fps_limit_val);
     values.push_back(&m_app_autoupdate);
     values.push_back(&m_ui_open_wnds);
     values.push_back(&m_ui_nodes_tree_view);
+    values.push_back(&m_ui_theme);
+    values.push_back(&m_ui_activity_bar_mode);
+    values.push_back(&m_ui_activity_bar_big_icons);
+    values.push_back(&m_ui_activity_bar_show_restart);
     values.push_back(&m_comfyui_host);
     values.push_back(&m_comfyui_port);
     values.push_back(&m_comfyui_conn_time);

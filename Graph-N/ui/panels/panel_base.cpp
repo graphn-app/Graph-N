@@ -421,12 +421,7 @@ void PanelToolbar::add_toolbar_element(Element&& el, bool left_aligned)
 void PanelToolbar::finalize_toolbar()
 {
     m_clr_hover = g::pOptsManager->color_load(AppColor::SelectedItem);
-
-    ImVec4 c = ImGui::ColorConvertU32ToFloat4(m_clr_hover);
-    c.x = std::min(c.x * 0.8f, 1.0f); // R
-    c.y = std::min(c.y * 0.8f, 1.0f); // G
-    c.z = std::min(c.z * 0.8f, 1.0f); // B
-    m_clr_pressed = ImGui::ColorConvertFloat4ToU32(c);
+    m_clr_pressed = ImGuiEx::increase_brightness(m_clr_hover);
 }
 
 void PanelToolbar::clear_toolbar()
@@ -506,7 +501,7 @@ void PanelToolbar::draw_toolbar()
                 regular_el_y = btn_pos.y;
 
             ImU32 color;
-            if (el.toggled || ImGui::IsItemActive())
+            if (pressed || el.toggled || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
                 color = m_clr_pressed;
             else if (ImGui::IsItemHovered())
                 color = m_clr_hover;
@@ -598,7 +593,7 @@ void PanelToolbar::draw_toolbar()
                 regular_el_y = btn_pos.y;
 
             ImU32 color;
-            if (el.toggled || ImGui::IsItemActive())
+            if (pressed || el.toggled || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
                 color = m_clr_pressed;
             else if (ImGui::IsItemHovered())
                 color = m_clr_hover;

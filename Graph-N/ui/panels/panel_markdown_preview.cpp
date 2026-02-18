@@ -5,7 +5,7 @@ namespace ui
 {
 
 PanelMarkdownPreview::PanelMarkdownPreview()
-    : PanelBase(DlgObj::PanelMarkdownPreview, ICON_LC_HEADING_1 " Markdown Preview", ICON_LC_HEADING_1, DlgObjID[cast::to_szt(DlgObj::PanelMarkdownPreview)])
+    : PanelBase(DlgObj::PanelMarkdownPreview, "Markdown Preview")
 {}
 
 PanelMarkdownPreview::~PanelMarkdownPreview()

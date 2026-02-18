@@ -133,6 +133,7 @@ void OptRightPane::show(OptsData& /*data*/)
     case OptPane::Interface:
         show_widget_input(help_text);
         show_canvas(help_text);
+        show_activity_bar(help_text);
         break;
     case OptPane::Diagnostics:
         show_thresholds(help_text);
@@ -648,7 +649,13 @@ void OptRightPane::show_widget_input(const char*& help_text)
 void OptRightPane::show_canvas(const char*& help_text)
 {
     // Canvas
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Canvas");
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSubtitleSep));
+    ImGui::TextUnformatted("Canvas");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
 
     // show grid
     bool b_val = g::pOptsManager->wf_show_grid_load();
@@ -681,6 +688,89 @@ void OptRightPane::show_canvas(const char*& help_text)
     //    g::pOptsManager->ui_theme_save(1);
     //if (ImGui::RadioButton("Light", 2 == theme))
     //    g::pOptsManager->ui_theme_save(2);
+}
+
+void OptRightPane::show_activity_bar(const char*& help_text)
+{
+    // activity bar
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSubtitleSep));
+    ImGui::TextUnformatted("Activity Bar");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // mode
+    auto style = g::pOptsManager->ui_activity_bar_mode_load();
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Style");
+
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    if (ImGui::RadioButton("Left only", ActivityBarMode::Left == style))
+    {
+        g::pOptsManager->ui_activity_bar_mode_save(ActivityBarMode::Left);
+        g::pFlow->load_activity_bar_mode();
+    }
+    show_help_mark(help_text, "Force all icons to the left side.");
+
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->full_row_input_w / 2);
+    if (ImGui::RadioButton("Right only", ActivityBarMode::Right == style))
+    {
+        g::pOptsManager->ui_activity_bar_mode_save(ActivityBarMode::Right);
+        g::pFlow->load_activity_bar_mode();
+    }
+    show_help_mark(help_text, "Force all icons to the right side.");
+
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    if (ImGui::RadioButton("Smart", ActivityBarMode::Smart == style))
+    {
+        g::pOptsManager->ui_activity_bar_mode_save(ActivityBarMode::Smart);
+        g::pFlow->load_activity_bar_mode();
+    }
+    show_help_mark(help_text, "Show bars on sides where panels are docked.");
+
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->full_row_input_w / 2);
+    if (ImGui::RadioButton("Hidden", ActivityBarMode::Disable == style))
+    {
+        g::pOptsManager->ui_activity_bar_mode_save(ActivityBarMode::Disable);
+        g::pFlow->load_activity_bar_mode();
+    }
+    show_help_mark(help_text, "Maximize workspace space.");
+
+    // size
+    ImGui::Spacing();
+    auto big_icons = g::pOptsManager->ui_activity_bar_big_icons_load();
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Icons size");
+
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    if (ImGui::RadioButton("Big", big_icons))
+    {
+        g::pOptsManager->ui_activity_bar_big_icons_save(true);
+    }
+
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->full_row_input_w / 2);
+    if (ImGui::RadioButton("Small", !big_icons))
+    {
+        g::pOptsManager->ui_activity_bar_big_icons_save(false);
+    }
+
+    // restart
+    ImGui::Spacing();
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Additional");
+
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    bool b_val = g::pOptsManager->ui_activity_bar_show_restart_load();
+    if (ImGui::Checkbox("Add 'Restart " APP_COMFYUI "' button", &b_val))
+        g::pOptsManager->ui_activity_bar_show_restart_save(b_val);
 }
 
 // stats

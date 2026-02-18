@@ -9,7 +9,7 @@ namespace ui
 {
 
 PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std::string& panel_id, ImGuiID dock)
-    : PanelBase(DlgObj::PanelWf, (ICON_LC_WORKFLOW " " + name).c_str(), ICON_LC_WORKFLOW, panel_id.c_str(), true)
+    : PanelBase(DlgObj::PanelWf, name, panel_id, true)
     , m_wf(workflow_id)
     , m_dock(dock)
 {

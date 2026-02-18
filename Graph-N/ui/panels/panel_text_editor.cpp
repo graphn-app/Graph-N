@@ -10,7 +10,7 @@ namespace ui
 {
 
 PanelTextEditor::PanelTextEditor(const char* panel_id, bool is_def /*= false*/)
-    : PanelBase(DlgObj::PanelTextEditor, ICON_LC_TEXT_INITIAL " Editor", ICON_LC_TEXT_INITIAL, panel_id)
+    : PanelBase(DlgObj::PanelTextEditor, "Editor", panel_id)
     , m_default(is_def)
 {}
 
@@ -65,7 +65,6 @@ void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance
     }
 
     set_name(node->get_name() + " | Editor");
-    set_name_shortened(node->get_name());
     m_need_focus = true;
 }
 

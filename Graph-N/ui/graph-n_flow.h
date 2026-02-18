@@ -24,6 +24,7 @@ namespace ui
 class BaseDlg;
 class OptionsDlgs;
 class ModalMessage;
+class ActivityBar;
 class PanelNodes;
 class PanelNodeInspector;
 class PanelStats;
@@ -71,7 +72,10 @@ enum ViewDialogs
     ViewModal                   = 0x00200000,
     ViewModalStop               = 0x00400000,
 
-    _ViewNextAvail              = 0x00800000,
+    ViewActivityBarL            = 0x00800000,
+    ViewActivityBarR            = 0x01000000,
+
+    _ViewNextAvail              = 0x02000000,
 
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWf | ViewPanelWfList | ViewPanelModels |
@@ -95,6 +99,8 @@ public:
     inline bool get_online() const { return m_online; }
     inline void set_online(bool online) { m_online = online; }
 
+    inline ImGuiID get_main_dockspace_id() { return m_main_dock_id; }
+
     void reconnect();
     void handle_comfyui_runserver_error(int32_t error, const std::string& title, const std::string& description);
 
@@ -107,6 +113,13 @@ public:
     void resolve_comfyui_objects();
 
     void handle_1sec_timer(int64_t seconds_elapsed);
+
+    void load_activity_bar_mode();
+
+    bool is_panel_active(DlgObj panel_obj) const;
+    const char* get_panel_icon(DlgObj panel_obj) const;
+    const char* get_panel_name(DlgObj panel_obj) const;
+    void toggle_panel_visibility(DlgObj panel_obj);
 
     // WF public
     void wf_create();
@@ -137,9 +150,14 @@ private:
     void show_menu_bar();
     void show_menu_bar_connecting();
     void show_menu_bar_queue_controls();
-    void show_options_dlg();
 
     void show_panels();
+
+    void show_options_dlg();
+    void show_activity_bar();
+    void show_debug_windows();
+    void show_modal();
+
     void show_panel(BaseDlg* panel, DlgObj obj);
     void show_panel_nodes();
     void show_panel_node_inspector();
@@ -181,10 +199,9 @@ private:
 private:
     bool m_online = false;
 
-    ImGuiID m_main_dock_id = 0;
-
     std::unique_ptr<mngr::NodesParser> m_nodes_parser;
 
+    ImGuiID m_main_dock_id = 0;
     uint64_t m_windows = ViewNone;
     std::set<BaseDlg*> m_all_dialogs;
 
@@ -192,6 +209,9 @@ private:
     std::function<void(ModalDlgCtrl)> m_msg_callback = nullptr;
 
     std::unique_ptr<OptionsDlgs> m_opts_dlg;
+    std::unique_ptr<ActivityBar> m_activity_bar;
+    ActivityBarMode m_activity_bar_mode;
+
     std::unique_ptr<PanelNodes> m_panel_nodes;
     std::unique_ptr<PanelNodeInspector> m_panel_node_inspector;
     std::unique_ptr<PanelStats> m_panel_stats;

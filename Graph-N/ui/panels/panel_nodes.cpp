@@ -15,7 +15,7 @@ namespace ui
 {
 
 PanelNodes::PanelNodes(PanelNodeInspector* inspector)
-    : PanelBase(DlgObj::PanelNodes, ICON_LC_BOOK_OPEN " Node Library", ICON_LC_BOOK_OPEN, DlgObjID[cast::to_szt(DlgObj::PanelNodes)])
+    : PanelBase(DlgObj::PanelNodes, "Node Library")
     , m_inspector(inspector)
 {}
 

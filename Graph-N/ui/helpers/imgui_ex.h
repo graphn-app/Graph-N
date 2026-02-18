@@ -5,6 +5,8 @@
 namespace ImGuiEx
 {
 
+ImU32 increase_brightness(ImU32 source);
+
 bool TooltipOnLastControl(const char* tt, const char* tt_end, ImGuiHoveredFlags_ delay = ImGuiHoveredFlags_DelayShort,
     bool only_if_modifier_pressed = false, ImGuiKey modifier = ImGuiMod_Ctrl);
 

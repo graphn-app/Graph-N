@@ -24,6 +24,7 @@ private:
     void show_local_server(const char*& help_text);
     void show_widget_input(const char*& help_text);
     void show_canvas(const char*& help_text);
+    void show_activity_bar(const char*& help_text);
     void show_thresholds(const char*& help_text);
     void show_keys(const char*& help_text);
 

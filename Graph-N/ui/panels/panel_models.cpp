@@ -11,7 +11,7 @@ namespace ui
 {
 
 PanelModels::PanelModels()
-    : PanelBase(DlgObj::PanelModels, ICON_LC_COMPONENT " Model Library", ICON_LC_COMPONENT, DlgObjID[cast::to_szt(DlgObj::PanelModels)])
+    : PanelBase(DlgObj::PanelModels, "Model Library")
 {}
 
 PanelModels::~PanelModels()

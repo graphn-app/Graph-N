@@ -4,6 +4,18 @@
 namespace ImGuiEx
 {
 
+ImU32 increase_brightness(ImU32 source)
+{
+    ImVec4 c = ImGui::ColorConvertU32ToFloat4(source);
+    float h, s, v;
+    ImGui::ColorConvertRGBtoHSV(c.x, c.y, c.z, h, s, v);
+    v *= 1.5f;
+    if (v > 1.0f)
+        v = 1.0f;
+    ImGui::ColorConvertHSVtoRGB(h, s, v, c.x, c.y, c.z);
+    return ImGui::ColorConvertFloat4ToU32(c);
+}
+
 bool TooltipOnLastControl(const char* tt, const char* tt_end, ImGuiHoveredFlags_ delay /*= ImGuiHoveredFlags_DelayShort*/,
     bool only_if_modifier_pressed /*= false*/, ImGuiKey modifier /*= ImGuiMod_Ctrl*/)
 {

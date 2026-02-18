@@ -1,0 +1,43 @@
+#pragma once
+#include "ui/base_dlg.h"
+
+namespace ui
+{
+
+class ActivityBar final
+{
+public:
+    ActivityBar();
+    ~ActivityBar();
+
+    void register_panels(const std::vector<DlgObj>& panels);
+    void show(ActivityBarMode mode);
+
+private:
+    void calc_window_sizes(bool left, bool right);
+    void recalc_viewport_size(bool left, bool right);
+
+    enum class Direction { None, Left, Right, Bottom };
+    Direction get_panel_direction(DlgObj panel_obj, ImRect center_rc);
+    void draw_panel_buttons(DlgObj panel_obj, bool active);
+    void draw_additional_buttons();
+
+private:
+    ImU32 m_clr_bg = 0;
+    ImU32 m_clr_inactive = 0;
+
+    ImU32 m_clr_pressed = 0;
+    ImU32 m_clr_hover = 0;
+    ImU32 m_clr_active = 0;
+
+    ImU32 m_clr_restart_inactive = 0;
+    ImU32 m_clr_restart_pressed = 0;
+    ImU32 m_clr_restart_hover = 0;
+
+    std::vector<std::pair<DlgObj, Direction>> m_panels;
+    ActivityBarMode m_mode;
+    ImRect m_left_rc;
+    ImRect m_right_rc;
+};
+
+} // namespace ui

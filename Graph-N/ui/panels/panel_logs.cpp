@@ -10,7 +10,7 @@ namespace ui
 {
 
 PanelServerLogs::PanelServerLogs()
-    : PanelBase(DlgObj::PanelServerLogs, ICON_LC_TERMINAL " Server Logs", ICON_LC_TERMINAL, DlgObjID[cast::to_szt(DlgObj::PanelServerLogs)])
+    : PanelBase(DlgObj::PanelServerLogs, "Server Logs")
 {}
 
 PanelServerLogs::~PanelServerLogs()
