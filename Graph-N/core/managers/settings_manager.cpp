@@ -145,6 +145,9 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::ActivityBarBg)] =                     { "color_activity_bar_bg",  int64_t(IM_COL32(24, 24, 27, 255)) };
     m_ui_colors[cast::to_szt(AppColor::ActivityBarActive)] =                 { "color_activity_bar_active",  int64_t(IM_COL32(0, 150, 150, 255)) };
     m_ui_colors[cast::to_szt(AppColor::ActivityBarInactive)] =               { "color_activity_bar_inactive",  int64_t(IM_COL32(92, 92, 95, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::TabActive)] =                         { "color_tab_active",  int64_t(IM_COL32(0, 100, 100, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::TabInactive)] =                       { "color_tab_inactive",  int64_t(IM_COL32(17, 26, 38, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::TabHovered)] =                        { "color_tab_hovered",  int64_t(IM_COL32(0, 150, 150, 255)) };
 
     // stats
     m_stat_limits_warn.resize(cast::to_szt(MetricLimit::_count));

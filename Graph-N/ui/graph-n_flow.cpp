@@ -131,6 +131,14 @@ bool GraphN_Flow::init()
 
     Log("Panels created");
 
+    //ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = ImGui::GetStyle().Colors[ImGuiCol_TitleBg];
+    ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = ImGui::GetStyle().Colors[ImGuiCol_TitleBg];
+    ImGui::GetStyle().Colors[ImGuiCol_Tab] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabInactive));
+    ImGui::GetStyle().Colors[ImGuiCol_TabUnfocused] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabInactive));
+    ImGui::GetStyle().Colors[ImGuiCol_TabUnfocusedActive] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabInactive));
+    ImGui::GetStyle().Colors[ImGuiCol_TabHovered] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabHovered));
+    ImGui::GetStyle().Colors[ImGuiCol_TabActive] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabActive));
+
     return true;
 }
 
@@ -1276,6 +1284,7 @@ void GraphN_Flow::show_panels()
         std::string id;
         ImGui::SetWindowFocus(id_as_name(id, m_panel_nodes->get_panel_id()));
         ImGui::SetWindowFocus(id_as_name(id, m_panel_wf_list->get_panel_id()));
+        ImGui::SetWindowFocus(nullptr);
     }
 
     if (m_windows & ViewPanelNodes)

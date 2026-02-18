@@ -222,6 +222,9 @@ enum class AppColor
     ActivityBarBg,
     ActivityBarActive,
     ActivityBarInactive,
+    TabActive,
+    TabInactive,
+    TabHovered,
 
     Pin_Int,
     Pin_Float,
