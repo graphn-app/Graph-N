@@ -199,33 +199,32 @@ ActivityBar::Direction ActivityBar::get_panel_direction(DlgObj panel_obj, ImRect
     return Direction::None;
 }
 
+void ActivityBar::show_tooltip(FontGuard* fg, const char* text)
+{
+    if (text != nullptr && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+    {
+        fg->pop();
+        if (ImGui::BeginTooltip())
+        {
+            ImGui::TextUnformatted(text);
+            ImGui::EndTooltip();
+        }
+    }
+}
+
 void ActivityBar::draw_panel_buttons(DlgObj panel_obj, bool active)
 {
     const auto icon = g::pFlow->get_panel_icon(panel_obj);
-    FontGuard fg(g::pOptsManager->ui_activity_bar_big_icons_load() ? g::pMain->get_big_icons_font() : g::pMain->get_icons_font());
-
-    const auto tooltip = [&fg](const char* text)
-    {
-        if (text != nullptr && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-        {
-            fg.pop();
-            if (ImGui::BeginTooltip())
-            {
-                ImGui::TextUnformatted(text);
-                ImGui::EndTooltip();
-            }
-        }
-    };
 
     ImGui::PushStyleColor(ImGuiCol_Button, 0);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
 
-    fg.push();
+    FontGuard fg(g::pOptsManager->ui_activity_bar_big_icons_load() ? g::pMain->get_big_icons_font() : g::pMain->get_icons_font());
     ImGui::PushStyleColor(ImGuiCol_Text, 0);
     const bool pressed = ImGui::Button(icon);
     ImGui::PopStyleColor();
-    tooltip(g::pFlow->get_panel_name(panel_obj));
+    show_tooltip(&fg, g::pFlow->get_panel_name(panel_obj));
 
     auto btn_pos = ImGui::GetItemRectMin();
 
@@ -254,24 +253,11 @@ void ActivityBar::draw_panel_buttons(DlgObj panel_obj, bool active)
 
 void ActivityBar::draw_additional_buttons()
 {
-    FontGuard fg(g::pOptsManager->ui_activity_bar_big_icons_load() ? g::pMain->get_big_icons_font() : g::pMain->get_icons_font());
-
-    const auto tooltip = [&fg](const char* text)
-    {
-        if (text != nullptr && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-        {
-            fg.pop();
-            if (ImGui::BeginTooltip())
-            {
-                ImGui::TextUnformatted(text);
-                ImGui::EndTooltip();
-            }
-        }
-    };
-
     ImGui::PushStyleColor(ImGuiCol_Button, 0);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
+
+    FontGuard fg(g::pOptsManager->ui_activity_bar_big_icons_load() ? g::pMain->get_big_icons_font() : g::pMain->get_icons_font());
 
     // settings
     const auto h = ImGui::CalcTextSize(ICON_LC_X).y;
@@ -281,9 +267,9 @@ void ActivityBar::draw_additional_buttons()
     ImGui::PushStyleColor(ImGuiCol_Text, 0);
     bool pressed = ImGui::Button(ICON_LC_SETTINGS);
     ImGui::PopStyleColor();
-    tooltip("Options");
+    show_tooltip(&fg, "Options");
 
-    auto btn_rc = ImGui::GetItemRect();
+    auto btn_pos = ImGui::GetItemRectMin();
 
     ImU32 color;
     if (pressed || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
@@ -294,42 +280,67 @@ void ActivityBar::draw_additional_buttons()
         color = m_clr_inactive;
 
     fg.push();
-    ImGui::GetWindowDrawList()->AddText(btn_rc.Min, color, ICON_LC_SETTINGS);
+    ImGui::GetWindowDrawList()->AddText(btn_pos, color, ICON_LC_SETTINGS);
 
     if (pressed)
         g::pFlow->open_settings_dlg();
 
+    // ServerLogs
+
+    fg.push();
+    ImGui::SetCursorPosY(ImGui::GetMainViewport()->WorkSize.y - h * 2 - ImGui::GetStyle().ItemSpacing.x * 4);
+
+    ImGui::PushStyleColor(ImGuiCol_Text, 0);
+    pressed = ImGui::Button(g::pFlow->get_panel_icon(DlgObj::PanelServerLogs));
+    ImGui::PopStyleColor();
+    show_tooltip(&fg, g::pFlow->get_panel_name(DlgObj::PanelServerLogs));
+
+    btn_pos = ImGui::GetItemRectMin();
+
+    if (pressed || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        color = m_clr_pressed;
+    else if (ImGui::IsItemHovered())
+        color = m_clr_hover;
+    else if (g::pFlow->is_panel_active(DlgObj::PanelServerLogs))
+        color = m_clr_active;
+    else
+        color = m_clr_inactive;
+
+    fg.push();
+    ImGui::GetWindowDrawList()->AddText(btn_pos, color, g::pFlow->get_panel_icon(DlgObj::PanelServerLogs));
+
+    if (pressed)
+        g::pFlow->toggle_panel_visibility(DlgObj::PanelServerLogs);
+
     // restart
-    if (g::pOptsManager->ui_activity_bar_show_restart_load())
-    {
-        fg.push();
-        ImGui::SetCursorPosY(ImGui::GetMainViewport()->WorkSize.y - h * 2 - ImGui::GetStyle().ItemSpacing.x * 4);
+    //if (g::pOptsManager->ui_activity_bar_show_restart_load())
+    //{
+    //    fg.push();
+    //    ImGui::SetCursorPosY(ImGui::GetMainViewport()->WorkSize.y - h * 2 - ImGui::GetStyle().ItemSpacing.x * 4);
 
-        ImGui::PushStyleColor(ImGuiCol_Text, 0);
-        pressed = ImGui::Button(ICON_LC_POWER);
-        ImGui::PopStyleColor();
-        tooltip("Restart " APP_COMFYUI " server");
+    //    ImGui::PushStyleColor(ImGuiCol_Text, 0);
+    //    pressed = ImGui::Button(ICON_LC_POWER);
+    //    ImGui::PopStyleColor();
+    //    tooltip("Restart " APP_COMFYUI " server");
 
-        btn_rc = ImGui::GetItemRect();
+    //    btn_rc = ImGui::GetItemRect();
 
-        if (pressed || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
-            color = m_clr_restart_pressed;
-        else if (ImGui::IsItemHovered())
-            color = m_clr_restart_hover;
-        else
-            color = m_clr_restart_inactive;
+    //    if (pressed || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+    //        color = m_clr_restart_pressed;
+    //    else if (ImGui::IsItemHovered())
+    //        color = m_clr_restart_hover;
+    //    else
+    //        color = m_clr_restart_inactive;
 
-        fg.push();
-        ImGui::GetWindowDrawList()->AddText(btn_rc.Min, color, ICON_LC_POWER);
+    //    fg.push();
+    //    ImGui::GetWindowDrawList()->AddText(btn_rc.Min, color, ICON_LC_POWER);
 
-        //if (pressed)
-            // TODO: restart
-    }
+    //    //if (pressed)
+    //        // TODO: restart
+    //}
 
     // cleanup
     ImGui::PopStyleColor(3);
-    ImGui::Spacing();
-
 }
 
 } // namespace ui

@@ -4,6 +4,8 @@
 namespace ui
 {
 
+struct FontGuard;
+
 class ActivityBar final
 {
 public:
@@ -21,6 +23,8 @@ private:
     Direction get_panel_direction(DlgObj panel_obj, ImRect center_rc);
     void draw_panel_buttons(DlgObj panel_obj, bool active);
     void draw_additional_buttons();
+
+    void show_tooltip(FontGuard* fg, const char* text);
 
 private:
     ImU32 m_clr_bg = 0;

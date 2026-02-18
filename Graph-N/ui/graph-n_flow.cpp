@@ -116,14 +116,13 @@ bool GraphN_Flow::init()
     // activity bar
     m_activity_bar = std::make_unique<ui::ActivityBar>();
     load_activity_bar_mode();
-    m_activity_bar->register_panels({
+    m_activity_bar->register_panels({ // except PanelServerLogs
         DlgObj::PanelNodes,
         DlgObj::PanelModels,
         DlgObj::PanelNodeInspector,
         DlgObj::PanelWfList,
         DlgObj::PanelTemplates,
         DlgObj::PanelStats,
-        DlgObj::PanelServerLogs,
     });
 
     if (g::pDbManager->get_is_first_run() || !g::pMain->get_ini_config_exists())

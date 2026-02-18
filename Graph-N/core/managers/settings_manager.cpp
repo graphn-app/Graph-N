@@ -126,7 +126,6 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::StatSepSubtitle)] =                   { "color_stat_sep_subtitle", int64_t(IM_COL32(255, 255, 255, 150)) };
     m_ui_colors[cast::to_szt(AppColor::PopupBg)] =                           { "color_popup_bg", int64_t(IM_COL32(50, 50, 50, 255)) };
     m_ui_colors[cast::to_szt(AppColor::MenubarBg)] =                         { "color_menubar_bg", int64_t(IM_COL32(50, 50, 50, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::OptSubtitleSep)] =                    { "color_opt_subtitle_sep", int64_t(IM_COL32(0, 128, 128, 255)) };
     m_ui_colors[cast::to_szt(AppColor::OptSeparator)] =                      { "color_opt_separator", int64_t(IM_COL32(0, 180, 180, 255)) };
     m_ui_colors[cast::to_szt(AppColor::SelectedItem)] =                      { "color_selected_item", int64_t(IM_COL32(218, 122, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::OptHelpMark)] =                       { "color_opt_help_mark", int64_t(IM_COL32(50, 50, 50, 255)) };

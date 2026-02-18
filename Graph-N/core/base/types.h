@@ -203,7 +203,6 @@ enum class AppColor
     StatSepSubtitle,
     PopupBg,
     MenubarBg,
-    OptSubtitleSep,
     OptSeparator,
     OptHelpMark,
     OptHelpText,

@@ -10,8 +10,17 @@ ImU32 increase_brightness(ImU32 source)
     float h, s, v;
     ImGui::ColorConvertRGBtoHSV(c.x, c.y, c.z, h, s, v);
     v *= 1.5f;
-    if (v > 1.0f)
-        v = 1.0f;
+    v = std::max(v, 1.0f);
+    ImGui::ColorConvertHSVtoRGB(h, s, v, c.x, c.y, c.z);
+    return ImGui::ColorConvertFloat4ToU32(c);
+}
+
+ImU32 decrease_brightness(ImU32 source)
+{
+    ImVec4 c = ImGui::ColorConvertU32ToFloat4(source);
+    float h, s, v;
+    ImGui::ColorConvertRGBtoHSV(c.x, c.y, c.z, h, s, v);
+    v *= 0.7f;
     ImGui::ColorConvertHSVtoRGB(h, s, v, c.x, c.y, c.z);
     return ImGui::ColorConvertFloat4ToU32(c);
 }

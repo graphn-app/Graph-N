@@ -94,6 +94,8 @@ void OptRightPane::init(OptsData& data)
     m_data->input.hovered_items.resize(20);
     m_data->input.numbers = g::pOptsManager->wf_widget_input_numbers_load();
     m_data->input.booleans = g::pOptsManager->wf_widget_input_bools_load();
+
+    m_clr_subsep = ImGuiEx::decrease_brightness(g::pOptsManager->color_load(AppColor::OptSeparator));
 }
 
 void OptRightPane::init_sizes()
@@ -553,7 +555,7 @@ void OptRightPane::show_widget_input(const char*& help_text)
         return false;
     };
 
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSubtitleSep));
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSeparator));
     ImGui::TextUnformatted("Default Input Styles");
     ImGui::PopStyleColor();
     ImGui::Separator();
@@ -563,7 +565,7 @@ void OptRightPane::show_widget_input(const char*& help_text)
     int32_t idx = 0;
 
     ///////////////       numbers
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Numbers");
+    ImGuiEx::Separator(m_clr_subsep, "Numbers");
     ImGui::Spacing();
 
 
@@ -612,7 +614,7 @@ void OptRightPane::show_widget_input(const char*& help_text)
 
 
     ///////////////       booleans
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Booleans");
+    ImGuiEx::Separator(m_clr_subsep, "Booleans");
     ImGui::Spacing();
 
 
@@ -651,7 +653,7 @@ void OptRightPane::show_canvas(const char*& help_text)
     // Canvas
     ImGui::Spacing();
     ImGui::Separator();
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSubtitleSep));
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSeparator));
     ImGui::TextUnformatted("Canvas");
     ImGui::PopStyleColor();
     ImGui::Separator();
@@ -695,7 +697,7 @@ void OptRightPane::show_activity_bar(const char*& help_text)
     // activity bar
     ImGui::Spacing();
     ImGui::Separator();
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSubtitleSep));
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSeparator));
     ImGui::TextUnformatted("Activity Bar");
     ImGui::PopStyleColor();
     ImGui::Separator();
@@ -762,15 +764,15 @@ void OptRightPane::show_activity_bar(const char*& help_text)
     }
 
     // restart
-    ImGui::Spacing();
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Additional");
+    //ImGui::Spacing();
+    //ImGui::AlignTextToFramePadding();
+    //ImGui::TextUnformatted("Additional");
 
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(m_data->input_offset_x);
-    bool b_val = g::pOptsManager->ui_activity_bar_show_restart_load();
-    if (ImGui::Checkbox("Add 'Restart " APP_COMFYUI "' button", &b_val))
-        g::pOptsManager->ui_activity_bar_show_restart_save(b_val);
+    //ImGui::SameLine();
+    //ImGui::SetCursorPosX(m_data->input_offset_x);
+    //bool b_val = g::pOptsManager->ui_activity_bar_show_restart_load();
+    //if (ImGui::Checkbox("Add 'Restart " APP_COMFYUI "' button", &b_val))
+    //    g::pOptsManager->ui_activity_bar_show_restart_save(b_val);
 }
 
 // stats

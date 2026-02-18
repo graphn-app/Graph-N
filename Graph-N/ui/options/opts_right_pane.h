@@ -40,6 +40,7 @@ private:
 
 private:
     OptsData* m_data = nullptr;
+    ImU32 m_clr_subsep = 0;
 };
 
 }
