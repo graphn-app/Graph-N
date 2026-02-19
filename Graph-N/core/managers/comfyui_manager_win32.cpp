@@ -77,6 +77,8 @@ void ComfyUIManager_Win32::run_server()
 
         ::ResumeThread(pi.hThread);
         ::CloseHandle(pi.hThread);
+
+        g::pFlow->show_logs_panel(true);
     }
 }
 
@@ -228,6 +230,8 @@ void ComfyUIManager_Win32::enable_autokill(bool enable)
 
 void ComfyUIManager_Win32::kill(bool force_kill)
 {
+    g::pFlow->show_logs_panel(true);
+
     if (m_hproc)
     {
         if (force_kill || m_console_hidden || g::pOptsManager->comfyui_kill_server_load())

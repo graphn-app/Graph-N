@@ -470,7 +470,8 @@ void PanelModels::on_collapse_all(PanelToolbar::Element& /*el*/)
 
 void PanelModels::on_sync(PanelToolbar::Element& /*el*/)
 {
-    g::pFlow->reconnect();
+    //TODO
+    //g::pFlow->reconnect();
 }
 
 void PanelModels::on_pre_sync(PanelToolbar::Element& el)

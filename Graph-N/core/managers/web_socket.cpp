@@ -21,6 +21,7 @@ std::shared_ptr<WebSocket> WebSocket::create_and_connect(const std::string& host
     auto obj = std::shared_ptr<WebSocket>(new WebSocket);
     obj->m_timeout = timeout;
     obj->m_host = host;
+    obj->m_state = ConnectState::Connecting;
 
     obj->m_th_working = std::thread([self = obj->shared_from_this()]
         {
@@ -136,7 +137,7 @@ void WebSocket::on_handshake(beast::error_code ec)
 {
     if (ec)
         return fail(ec, "handshake");
-    m_connected = true;
+    m_state = ConnectState::Connected;
 
     m_ws.control_callback([this](websocket::frame_type kind, beast::string_view payload)
     {
@@ -198,7 +199,7 @@ void WebSocket::on_close(beast::error_code ec)
 
 void WebSocket::fail(beast::error_code ec, char const* what)
 {
-    m_connected = false;
+    m_state = ConnectState::Disconnected;
     m_last_error = fmt::format("WS last error: {}, {}", ec.value(), what);
 }
 } // namespace mngr

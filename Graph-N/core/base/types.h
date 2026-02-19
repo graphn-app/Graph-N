@@ -393,6 +393,13 @@ struct PanelItemState final
     bool expanded = false;
 };
 
+enum class ConnectState
+{
+    Disconnected,
+    Connecting,
+    Connected,
+};
+
 namespace comfyui_http
 {
 constexpr const char* object_info       = "/object_info";           // get

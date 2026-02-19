@@ -17,7 +17,11 @@ bool ModelsManager::init()
 }
 
 void ModelsManager::free()
-{}
+{
+    m_model_items.clear();
+    m_model_to_nodes_map.clear();
+    m_service_components_found = false;
+}
 
 void ModelsManager::stop_all_threads()
 {
@@ -28,6 +32,9 @@ void ModelsManager::stop_all_threads()
 
 void ModelsManager::load_models()
 {
+    stop_all_threads();
+    free();
+
     m_nodes_ready = false;
     m_models_ready = false;
     m_stop_flag = false;

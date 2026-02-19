@@ -821,7 +821,8 @@ void PanelNodes::on_view(PanelToolbar::Element& el)
 
 void PanelNodes::on_sync(PanelToolbar::Element& /*el*/)
 {
-    g::pFlow->reconnect();
+    //TODO
+    //g::pFlow->reconnect();
 }
 
 void PanelNodes::on_pre_sync(PanelToolbar::Element& el)

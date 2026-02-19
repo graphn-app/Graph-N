@@ -360,6 +360,8 @@ bool GraphN_Flow::run()
     show_debug_windows();
     show_panels();
     show_modal();
+
+    check_connection();
     return true;
 }
 
@@ -386,6 +388,56 @@ void GraphN_Flow::prepare_to_quit()
     stop_all_threads();
 
     LogF_Out;
+}
+
+void GraphN_Flow::show_logs_panel(bool show)
+{
+    if (g::pOptsManager->comfyui_autohide_output_load() && g::pOptsManager->comfyui_capture_output_load() &&
+        g::pOptsManager->comfyui_start_server_load() && g::pComfyUIManager->get_process_started())
+    {
+        if (show)
+            m_windows |= ViewPanelOutput;
+        else
+            m_windows &= ~ViewPanelOutput;
+    }
+}
+
+void GraphN_Flow::check_connection()
+{
+    const auto connection_state = g::pConnectManager->check_status();
+    m_online = (ConnectState::Connected == connection_state);
+    if (ConnectState::Disconnected == connection_state)
+    {
+        reconnect();
+        show_logs_panel(true);
+    }
+}
+
+void GraphN_Flow::handle_connected()
+{
+    m_windows &= ~ViewConnect;
+    m_windows |= ViewParsingNodes;
+
+    show_logs_panel(false);
+
+    g::pNodesManager->free();
+    g::pModelsManager->free();
+
+    g::pModelsManager->load_models();
+
+    m_nodes_parser = std::make_unique<mngr::NodesParser>();
+#ifdef TEST
+    auto test_json_path = fs::get_root_directory_path();
+    test_json_path /= "test_json.json";
+    auto test_json_data = tools::path::read_file(test_json_path);
+    std::string test_json_string;
+    test_json_string.reserve(test_json_data.size() + 1);
+    test_json_string = test_json_data.data();
+    test_json_string.at(test_json_data.size()) = 0;
+    m_nodes_parser->parse(std::move(test_json_string));
+#else
+    m_nodes_parser->parse(std::move(g::pConnectManager->get_nodes_raw()));
+#endif
 }
 
 void GraphN_Flow::show_menu_bar()
@@ -1150,34 +1202,16 @@ void GraphN_Flow::show_menu_bar_connecting()
     if (m_windows & ViewConnect)
     {
         const auto status = g::pConnectManager->check_status();
-        if (mngr::ConnectState::Connected == status)
+        if (ConnectState::Connected == status)
         {
-            m_windows &= ~ViewConnect;
-            m_windows |= ViewParsingNodes;
-
-            g::pModelsManager->load_models();
-
-            m_nodes_parser = std::make_unique<mngr::NodesParser>();
-#ifdef TEST
-            auto test_json_path = fs::get_root_directory_path();
-            test_json_path /= "test_json.json";
-            auto test_json_data = tools::path::read_file(test_json_path);
-            std::string test_json_string;
-            test_json_string.reserve(test_json_data.size() + 1);
-            test_json_string = test_json_data.data();
-            test_json_string.at(test_json_data.size()) = 0;
-            m_nodes_parser->parse(std::move(test_json_string));
-#else
-            m_nodes_parser->parse(std::move(g::pConnectManager->get_nodes_raw()));
-#endif
-            m_online = true;
+            handle_connected();
             return;
         }
-        if (mngr::ConnectState::Disconnected == status)
+        if (ConnectState::Disconnected == status)
         {
             text = APP_COMFYUI " disconnected";
         }
-        else if (mngr::ConnectState::Connecting == status)
+        else if (ConnectState::Connecting == status)
         {
             text = fmt::format(FMT_COMPILE("Connecting to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
         }

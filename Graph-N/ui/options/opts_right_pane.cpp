@@ -286,7 +286,8 @@ void OptRightPane::show_connection(const char*& help_text)
     if (show_full_row_button(g::pFlow->get_online() ? "Reconnect to server" : "Connect to server",
         !g::pOptsManager->comfyui_host_load().empty(), true))
     {
-        g::pFlow->reconnect();
+        //TODO
+        //g::pFlow->reconnect();
     }
 }
 

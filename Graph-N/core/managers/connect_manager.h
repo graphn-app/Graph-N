@@ -7,13 +7,6 @@ namespace mngr
 
 class WebSocket;
 
-enum class ConnectState
-{
-    Disconnected,
-    Connecting,
-    Connected,
-};
-
 class ConnectManager final : public Manager
 {
 public:

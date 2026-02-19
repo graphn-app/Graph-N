@@ -270,7 +270,7 @@ bool GraphN::start_server()
 bool GraphN::connect()
 {
     LogF;
-    g::pFlow->reconnect();
+    //g::pFlow->reconnect();
     m_flow_step = Flow::GraphN;
     Log("Next step: GraphN");
     return true;

@@ -105,6 +105,7 @@ public:
     void handle_comfyui_runserver_error(int32_t error, const std::string& title, const std::string& description);
 
     void open_settings_dlg(OptPane section = OptPane::_count);
+    void show_logs_panel(bool show);
 
     void subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener);
     void subscribe_1s_lazy_timer(listener::Lazy1sTimer* listener);
@@ -144,6 +145,9 @@ public:
 private:
     void stop_all_threads();
     void prepare_to_quit();
+
+    void check_connection();
+    void handle_connected();
 
     void modal_last_frame();
 

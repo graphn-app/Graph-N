@@ -41,7 +41,7 @@ public:
     static std::shared_ptr<WebSocket> create_and_connect(const std::string& host, int64_t port, int64_t timeout, int64_t ping_interval);
     void stop_and_forget();
 
-    inline bool get_state() const { return m_connected.load(std::memory_order_relaxed); }
+    inline ConnectState get_state() const { return m_state.load(std::memory_order_relaxed); }
 
     void send(std::string&& text);
 
@@ -68,7 +68,7 @@ private:
     void on_write(beast::error_code ec, std::size_t bytes_transferred);
 
 private:
-    std::atomic_bool m_connected = false;
+    std::atomic<ConnectState> m_state = ConnectState::Disconnected;
     std::atomic_int64_t m_latency = 0;
 
     std::thread m_th_working;
