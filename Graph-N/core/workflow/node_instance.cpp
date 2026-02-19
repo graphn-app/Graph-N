@@ -143,11 +143,15 @@ float NodeInstance::recalc_node_width(bool ro, float avail_width, bool allow_ext
 
     const float max_ico = (use_big_pin_icon ? w::ico_max : w::ico_circle);
     float min_w = w_name + ImGui::GetStyle().ItemSpacing.x * 2;
-    min_w = std::max(min_w, m_object->w_pin_in_max + m_object->w_pin_out_max + 20.0f + (pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2));
-    min_w = std::max(min_w, m_object->w_widget_name_max + m_object->w_widget_value_max);
+    min_w = std::max(min_w, m_object->w_pin_in_max);
+    min_w = std::max(min_w, m_object->w_pin_out_max);
+    min_w = std::max(min_w, m_object->w_widget_name_max);
+    min_w = std::max(min_w, m_object->w_widget_value_max);
+ //   min_w = std::max(min_w, m_object->w_pin_in_max + m_object->w_pin_out_max + 20.0f + (pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2));
+ //   min_w = std::max(min_w, m_object->w_widget_name_max + m_object->w_widget_value_max);
 
-    if (allow_extend)
-        min_w = std::max(avail_width, min_w);
+    if (allow_compress)
+        avail_width = std::max(avail_width, min_w);
 
     if (avail_width < m_object->w_fit && allow_compress)
     {
@@ -172,7 +176,7 @@ float NodeInstance::recalc_node_width(bool ro, float avail_width, bool allow_ext
     else
     {
         w_node = m_object->w_fit;
-        w_node = std::max(min_w, w_node);
+        w_node = std::max(avail_width, w_node);
         w_node_name_off = std::max(0.0f, (w_node / 2) - (w_name / 2));
         w_widget_name = m_object->w_widget_name_max;
         w_widget_value = m_object->w_widget_value_max;
@@ -229,11 +233,11 @@ float NodeInstance::recalc_node_width(bool ro, float avail_width, bool allow_ext
         w_node = (pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_pin_in + w_center + w_pin_out;  
     }
 
-    if (w_node < min_w)
-    {
-        w_center += min_w - w_node;
-        w_node = min_w;
-    }
+    //if (w_node < min_w)
+    //{
+    //    w_center += min_w - w_node;
+    //    w_node = min_w;
+    //}
 
     w_separator = std::max(0.0f, w_node - (pin_l_offset * 2) - (max_ico * 2) - (w::pin_r_offset * 2));
 

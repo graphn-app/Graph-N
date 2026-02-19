@@ -34,11 +34,11 @@ public:
     void init(wid wf_id);
     void free();
 
-    void pre_draw_all(const char* id);
+    void pre_draw_all(const char* id, size_t nodes_count);
     void post_draw_all();
 
     void pre_draw_node(data::NodeInstance* node);
-    void draw_node(data::NodeInstance* node, float ideal_fit_w);
+    void draw_node(data::NodeInstance* node, float node_w, size_t node_idx);
     void post_draw_node(data::NodeInstance* node);
 
     void draw_links(const std::vector<std::unique_ptr<data::Link>>& links);
@@ -68,6 +68,7 @@ private:
     void draw_widget_control_after_generate(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_separator(float offset, bool& opened, bool& temp_open);
 
+    void handle_node_resize();
     void handle_widget_active_state();
 
 private:
@@ -83,6 +84,11 @@ private:
     data::NodeInstance* m_active_node = nullptr;
     float m_curr_node_left_offset = 0.0f;
     data::PinInstance* m_querying_pin = nullptr;
+
+    int32_t m_now_resizing = -1;
+    const float m_grip_area_sz = 15.0f;
+    std::vector<ImRect> m_resizing_grip_positions;
+    std::vector<float> m_resizing_w;
 
     // TODO: remove
     std::set<void*> m_ids_imgui;

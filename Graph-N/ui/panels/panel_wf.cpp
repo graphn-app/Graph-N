@@ -96,12 +96,13 @@ void PanelWorkflow::draw_wf()
     ImGuiConfigFlags old_flags = io.ConfigFlags;
     io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
-    m_drawer.pre_draw_all(get_panel_id());
-    for (auto node : m_nodes)
+    m_drawer.pre_draw_all(get_panel_id(), m_nodes.size());
+    for (size_t node_idx = 0; node_idx < m_nodes.size(); node_idx++)
     {
+        auto& node = m_nodes[node_idx];
         ImGui::PushID(node);
         m_drawer.pre_draw_node(node);
-        m_drawer.draw_node(node, node->get_object()->w_fit);
+        m_drawer.draw_node(node, node->get_object()->w_fit, node_idx);
         m_drawer.post_draw_node(node);
         ImGui::PopID();
     }

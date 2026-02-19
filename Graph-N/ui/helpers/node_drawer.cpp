@@ -65,8 +65,18 @@ void NodeDrawer::free()
     m_context = nullptr;
 }
 
-void NodeDrawer::pre_draw_all(const char* id)
+void NodeDrawer::pre_draw_all(const char* id, size_t nodes_count)
 {
+    m_resizing_grip_positions.clear();
+    m_resizing_grip_positions.resize(nodes_count);    
+
+    if (m_resizing_w.size() != nodes_count)
+    {
+        m_now_resizing = -1;
+        m_resizing_w.clear();
+        m_resizing_w.resize(nodes_count);
+    }
+
     ed::EditConfig(m_context).AlignPointToGrid = g::pOptsManager->wf_snap_nodes_load();
     ed::EditConfig(m_context).DrawGrid = g::pOptsManager->wf_show_grid_load();
     ed::SetCurrentEditor(m_context);
@@ -75,6 +85,10 @@ void NodeDrawer::pre_draw_all(const char* id)
 
 void NodeDrawer::post_draw_all()
 {
+    ed::Suspend();
+    handle_node_resize();
+    ed::Resume();
+
     ed::End();
     ed::SetCurrentEditor(nullptr);
 
@@ -127,7 +141,7 @@ data::PinInstance* NodeDrawer::get_ml_widget_active() const
     return cast::ptrs<data::PinInstance>(m_deffered_action->active_pin);
 }
 
-void NodeDrawer::draw_node(data::NodeInstance* node, float ideal_fit_w)
+void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_idx)
 {
     m_ids_imgui.clear();
     m_ids_nodelib.clear();
@@ -136,11 +150,30 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float ideal_fit_w)
 
     m_active_node = node;
 
-    const ImVec2 node_size = ed::GetNodeSize(cast::to_ptr(node));
-    if (node_size.x > 0 && node_size.y > 0)
-        ideal_fit_w = node_size.x - ed::GetStyle().NodePadding.x - ed::GetStyle().NodePadding.z;
+    ImVec2 node_size, node_pos;
 
-    ideal_fit_w = node->recalc_node_width(false /*ro*/, ideal_fit_w, true /*allow_extend*/, true /*allow_compress*/, false /*use_big_pin_icon*/);
+    if (m_now_resizing == node_idx)
+        node_w = m_resizing_w[node_idx];
+    else
+    {
+        node_size = ed::GetNodeSize(cast::to_ptr(node));
+        if (node_size.x > 0 && node_size.y > 0)
+        {
+            node_pos = ed::GetNodePosition(cast::to_ptr(node));
+            node_w = node_size.x - ed::GetStyle().NodePadding.x - ed::GetStyle().NodePadding.z;
+        }
+    }
+
+    node_w = node->recalc_node_width(false /*ro*/, node_w, true /*allow_extend*/, true /*allow_compress*/, false /*use_big_pin_icon*/);
+
+    if (node_size.x > 0 && node_size.y > 0)
+    {
+        const ImVec2 br = ed::CanvasToScreen(ImVec2(node_pos.x + node_w, node_pos.y + node_size.y));
+
+        m_resizing_w[node_idx] = node_w;
+        m_resizing_grip_positions[node_idx] = { br.x - m_grip_area_sz, br.y - m_grip_area_sz, br.x + m_grip_area_sz, br.y + m_grip_area_sz };
+    }
+
     m_curr_node_left_offset = ImGui::GetCursorPosX();
 
     // --- HEADER ---
@@ -264,7 +297,6 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float ideal_fit_w)
     }
 
     m_active_node = nullptr;
-    //return ideal_fit_w;
 }
 
 void NodeDrawer::draw_node_header(data::NodeInstance* node)
@@ -871,6 +903,43 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin)
     }
 
     ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
+}
+
+void NodeDrawer::handle_node_resize()
+{
+    if (m_resizing_grip_positions.empty())
+        return;
+
+    m_now_resizing = -1;
+    const ImVec2 old_pos = ImGui::GetCursorScreenPos();
+
+    for (int32_t idx = 0; idx < m_resizing_grip_positions.size(); idx++)
+    {
+        ImGui::SetCursorScreenPos(m_resizing_grip_positions[idx].Min);
+
+        ImGui::PushID(idx);
+        ImGui::InvisibleButton("##grip", ImVec2(m_grip_area_sz, m_grip_area_sz));
+        ImGui::PopID();
+
+        const bool active = ImGui::IsItemActive();
+        const bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenOverlapped);
+        if (active || hovered)
+        {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+            if (active && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+            {
+                m_now_resizing = idx;
+                ImVec2 p1 = ed::ScreenToCanvas(ImVec2(0, 0));
+                ImVec2 p2 = ed::ScreenToCanvas(ImGui::GetIO().MouseDelta);
+                ImVec2 canvas_delta = ImVec2(p2.x - p1.x, p2.y - p1.y);
+                m_resizing_w[m_now_resizing] += canvas_delta.x;
+                m_resizing_w[m_now_resizing] = std::max(0.0f, m_resizing_w[m_now_resizing]);
+            }
+        }
+    }
+
+    ImGui::SetCursorScreenPos(old_pos);
 }
 
 } // namespace ui
