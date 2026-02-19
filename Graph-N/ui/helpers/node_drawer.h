@@ -66,7 +66,7 @@ private:
     void draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_control_after_generate(data::PinInstance* pin, float widget_name_width, float widget_value_width);
-    void draw_widget_separator(float offset, float width);
+    void draw_widget_separator(float offset, bool& opened, bool& temp_open);
 
     void handle_widget_active_state();
 

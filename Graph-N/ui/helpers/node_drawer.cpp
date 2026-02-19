@@ -1,6 +1,7 @@
 
 #include "ui/helpers/node_drawer.h"
 #include "ui/helpers/imgui_ex_ne.h"
+#include "main.h"
 #include "core/managers/settings_manager.h"
 #include "core/data/node.h"
 #include "core/data/pin.h"
@@ -231,27 +232,33 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float ideal_fit_w)
         }
         if (advanced > 0)
         {
-            draw_widget_separator(w::pin_l_offset_rw + w::ico_max + w::pin_r_offset, node->w_separator);
-            for (auto pin : input)
+            bool temp_open = false;
+            draw_widget_separator(w::pin_l_offset_rw + w::ico_max + w::pin_r_offset, node->m_show_hidden, temp_open);
+            if (node->m_show_hidden || temp_open)
             {
-                auto obj = pin->get_object();
-                if (obj->advanced)
+                for (auto pin : input)
                 {
-                    ImGui::PushID(pin);
-                    test_id(m_ids_imgui, pin);
-                    draw_input_widget(pin, node->w_widget_name, node->w_widget_value, false);
-
-                    if (obj->control_after_generate)
+                    auto obj = pin->get_object();
+                    if (obj->advanced)
                     {
-                        ImGui::PushID(&pin->m_state->control_after_generate_value);
-                        test_id(m_ids_imgui, &pin->m_state->control_after_generate_value);
-                        draw_input_widget(pin, node->w_widget_name, node->w_widget_value, true);
+                        ImGui::PushID(pin);
+                        test_id(m_ids_imgui, pin);
+                        draw_input_widget(pin, node->w_widget_name, node->w_widget_value, false);
+
+                        if (obj->control_after_generate)
+                        {
+                            ImGui::PushID(&pin->m_state->control_after_generate_value);
+                            test_id(m_ids_imgui, &pin->m_state->control_after_generate_value);
+                            draw_input_widget(pin, node->w_widget_name, node->w_widget_value, true);
+                            ImGui::PopID();
+                        }
                         ImGui::PopID();
                     }
-                    ImGui::PopID();
                 }
             }
         }
+        else
+            node->m_show_hidden = false;
 
         ImGui::Dummy(ImVec2(node->w_node, 10.0f));
     }
@@ -667,10 +674,34 @@ void NodeDrawer::draw_widget_control_after_generate(data::PinInstance* pin, floa
     }
 }
 
-void NodeDrawer::draw_widget_separator(float offset, float width)
+void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_open)
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + offset);
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::NodeWidgetHiddenSep), width, w::hidden_widgets.c_str(), w::hidden_widgets.size(), w::hidden_widgets_len);
+
+    ImGui::PushFont(g::pMain->get_small_font());
+
+    ImGui::PushStyleColor(ImGuiCol_Text, 0);
+    ImGui::PushStyleColor(ImGuiCol_Button, 0);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
+    const bool pressed = ImGui::Button(ICON_LC_CHEVRON_UP);
+    const auto btn_pos = ImGui::GetItemRectMin();
+    ImGui::PopStyleColor(4);
+
+    temp_open = false;
+    ImU32 color = ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Text]);
+    if (pressed)
+    {
+        opened = !opened;
+        ed::SelectNode(cast::to_ptr(m_active_node));
+    }
+    else if (ImGui::IsItemHovered())
+        temp_open = true;
+    else
+        color = g::pOptsManager->color_load(AppColor::ActivityBarInactive);
+
+    ImGui::GetWindowDrawList()->AddText(btn_pos, color, opened || temp_open ? ICON_LC_CHEVRON_UP : ICON_LC_CHEVRON_DOWN);
+    ImGui::PopFont();
 }
 
 void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& links)

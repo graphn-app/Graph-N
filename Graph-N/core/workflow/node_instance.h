@@ -42,6 +42,7 @@ public:
     bool m_has_in_pins = false;
     bool m_has_out_pins = false;
     bool m_has_widgets = false;
+    bool m_show_hidden = false;
 
 private:
     float m_saved_width = -1.0f;
