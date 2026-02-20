@@ -60,6 +60,7 @@ void NodeInstance::set_name(std::string name)
     else
         m_name = std::move(name);
     w_name = -1.0f;
+    m_saved_width = -1.0f;
 }
 
 float NodeInstance::calc_node_width(bool ro)

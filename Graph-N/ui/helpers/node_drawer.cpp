@@ -334,10 +334,41 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
 
 void NodeDrawer::draw_node_header(data::NodeInstance* node)
 {
-    ImGui::SetCursorPosX(m_curr_node_left_offset + node->w_node_name_off);
-    ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_header_text);
-    ImGui::TextUnformatted(node->get_name().c_str(), node->get_name().c_str() + node->get_name().size());
-    ImGui::PopStyleColor();
+
+    if (nullptr == m_renaming_node)
+    {
+        ImGui::SetCursorPosX(m_curr_node_left_offset + node->w_node_name_off);
+        ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_header_text);
+        ImGui::TextUnformatted(node->get_name().c_str(), node->get_name().c_str() + node->get_name().size());
+        ImGui::PopStyleColor();
+    }
+    else if (m_renaming_node == node)
+    {
+        if (m_need_renaming_focus)
+        {
+            ImGui::SetKeyboardFocusHere();
+            m_need_renaming_focus = false;
+        }
+        ImGui::SetCursorPosX(m_curr_node_left_offset + ImGui::GetStyle().ItemSpacing.x);
+        ImGui::SetNextItemWidth(node->w_node - ImGui::GetStyle().ItemSpacing.x * 2);
+        if (ImGuiEx::InputText("##noderename", &m_renaming_buff, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue) ||
+            ImGui::IsItemDeactivatedAfterEdit())
+        {
+            m_renaming_node->set_name(tools::str::trim_this(m_renaming_buff));
+            m_renaming_node = nullptr;
+        }
+        else if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+        {
+            m_renaming_node = nullptr;
+        }
+    }
+
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+    {
+        m_renaming_node = node;
+        m_renaming_buff = node->get_name();
+        m_need_renaming_focus = true;
+    }
 }
 
 void NodeDrawer::draw_node_header_bg(data::NodeInstance* node)
@@ -1097,7 +1128,14 @@ bool NodeDrawer::handle_node_menu()
     if (ImGui::BeginPopup(m_menuid_node))
     {
         bool close = false;
-        if (ImGui::BeginMenu("Node background color"))
+        if (ImGui::MenuItem("Rename"))
+        {
+            m_renaming_node = node;
+            m_renaming_buff = node->get_name();
+            m_need_renaming_focus = true;
+            close = true;
+        }
+        if (ImGui::BeginMenu("Node color"))
         {
             if (ImGui::MenuItem("Reset to default", nullptr, nullptr, node->m_bg_color_custom))
             {

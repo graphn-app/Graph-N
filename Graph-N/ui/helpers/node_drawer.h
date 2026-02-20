@@ -103,12 +103,17 @@ private:
     const char* m_menuid_link;
     const char* m_menuid_activate = nullptr;
     void* m_menu_object = nullptr;
-    ImVec2 m_click_pos;
+    //ImVec2 m_click_pos;
+
+    data::NodeInstance* m_active_node = nullptr;
+
+    data::NodeInstance* m_renaming_node = nullptr;
+    std::string m_renaming_buff;
+    bool m_need_renaming_focus = false;
 
     wid m_wf = 0;
     ax::NodeEditor::EditorContext* m_context = nullptr;
     std::unique_ptr<ImGuiExNe::DeferredAction> m_deffered_action;
-    data::NodeInstance* m_active_node = nullptr;
     float m_curr_node_left_offset = 0.0f;
     float m_curr_node_top_offset = 0.0f;
     data::PinInstance* m_querying_pin = nullptr;
