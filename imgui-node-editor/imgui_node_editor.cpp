@@ -586,6 +586,8 @@ ImLine ed::Pin::GetClosestLine(const Pin* pin) const
 //------------------------------------------------------------------------------
 bool ed::Node::AcceptDrag()
 {
+    if (!m_Draggable)
+        return false;
     m_DragStart = m_Bounds.Min;
     return true;
 }

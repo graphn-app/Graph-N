@@ -22,6 +22,9 @@ public:
     const std::string& get_name() const;
     void set_name(std::string name);
 
+    void toggle_pinned();
+    inline bool pinned() const { return m_pinned; }
+
 protected:
     Node* find_obj(hid obj_id) const override;
 
@@ -52,6 +55,7 @@ public:
     bool m_show_hidden = false;
 
 private:
+    bool m_pinned = false;
     float m_saved_width = -1.0f;
     std::string m_name;
 };

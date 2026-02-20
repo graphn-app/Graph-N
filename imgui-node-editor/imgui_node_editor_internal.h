@@ -388,6 +388,7 @@ struct Node final: Object
     int      m_Channel;
     Pin*     m_LastPin;
     ImVec2   m_DragStart;
+    bool     m_Draggable;
 
     ImU32    m_Color;
     ImU32    m_BorderColor;
@@ -414,6 +415,7 @@ struct Node final: Object
         , m_Channel(0)
         , m_LastPin(nullptr)
         , m_DragStart()
+        , m_Draggable(true)
         , m_Color(IM_COL32_WHITE)
         , m_BorderColor(IM_COL32_BLACK)
         , m_BorderWidth(0)

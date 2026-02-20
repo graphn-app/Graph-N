@@ -196,6 +196,7 @@ enum class AppColor
     NodeBorder,
     NodeWidgetHiddenSep,
     NodeDescription,
+    NodePin,
     StatNorm,
     StatWarn,
     StatCrit,

@@ -202,7 +202,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
     {
         const ImVec2 br = ed::CanvasToScreen(ImVec2(node_pos.x + node_w, node_pos.y + node_size.y));
 
-        m_resizing_w[node_idx] = node_w;
+        m_resizing_w[node_idx] = (node->pinned() ? -1 : node_w);
         m_resizing_grip_positions[node_idx] = { br.x - m_grip_area_sz, br.y - m_grip_area_sz, br.x + m_grip_area_sz, br.y + m_grip_area_sz };
     }
 
@@ -334,13 +334,20 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
 
 void NodeDrawer::draw_node_header(data::NodeInstance* node)
 {
-
     if (nullptr == m_renaming_node)
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + node->w_node_name_off);
         ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_header_text);
         ImGui::TextUnformatted(node->get_name().c_str(), node->get_name().c_str() + node->get_name().size());
         ImGui::PopStyleColor();
+
+        if (node->pinned())
+        {
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodePin));
+            ImGui::TextUnformatted(" " ICON_LC_PIN);
+            ImGui::PopStyleColor();
+        }
     }
     else if (m_renaming_node == node)
     {
@@ -1039,7 +1046,7 @@ bool NodeDrawer::handle_node_resize()
 
         const bool active = ImGui::IsItemActive();
         const bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenOverlapped);
-        if (active || hovered)
+        if (m_resizing_w[idx] >= 0 && (active || hovered))
         {
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
 
@@ -1133,6 +1140,12 @@ bool NodeDrawer::handle_node_menu()
             m_renaming_node = node;
             m_renaming_buff = node->get_name();
             m_need_renaming_focus = true;
+            close = true;
+        }
+        if (ImGui::MenuItem(node->pinned() ? "Unpin" : "Pin"))
+        {
+            node->toggle_pinned();
+            ed::SetNodeDraggable(cast::to_ptr(node), !node->pinned());
             close = true;
         }
         if (ImGui::BeginMenu("Node color"))

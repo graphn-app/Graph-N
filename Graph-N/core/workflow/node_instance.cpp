@@ -63,6 +63,13 @@ void NodeInstance::set_name(std::string name)
     m_saved_width = -1.0f;
 }
 
+void NodeInstance::toggle_pinned()
+{
+    w_name = -1.0f;
+    m_saved_width = -1.0f;
+    m_pinned = !m_pinned;
+}
+
 float NodeInstance::calc_node_width(bool ro)
 {
     const float pin_l_offset = ro ? w::pin_l_offset_ro : w::pin_l_offset_rw;
@@ -136,6 +143,10 @@ float NodeInstance::recalc_node_width(bool ro, float avail_width, bool allow_ext
             w_name = m_object->w_name;
         else
             w_name = ImGui::CalcTextSize(m_name.c_str()).x;
+
+        if (m_pinned)
+            w_name += ImGui::CalcTextSize(" " ICON_LC_PIN "  ").x;
+
     }
     if (m_saved_width == avail_width)
         return w_node;

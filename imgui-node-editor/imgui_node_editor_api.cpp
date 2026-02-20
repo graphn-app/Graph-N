@@ -540,6 +540,12 @@ void ax::NodeEditor::DeselectLink(LinkId linkId)
         s_Editor->DeselectObject(link);
 }
 
+void ax::NodeEditor::SetNodeDraggable(NodeId nodeId, bool canDrag)
+{
+    if (auto node = s_Editor->FindNode(nodeId))
+        node->m_Draggable = canDrag;
+}
+
 bool ax::NodeEditor::DeleteNode(NodeId nodeId)
 {
     if (auto node = s_Editor->FindNode(nodeId))
