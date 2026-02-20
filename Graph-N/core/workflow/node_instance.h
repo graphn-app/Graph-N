@@ -39,6 +39,13 @@ public:
     float w_pin_out = 0.0f;
     float w_separator = 0.0f;
 
+    bool m_pos_set = false;
+    ImVec2 m_pos = {};
+
+    bool m_bg_color_custom = false;
+    ImVec4 m_bg_color;
+    ImU32 m_header_color;
+
     bool m_has_in_pins = false;
     bool m_has_out_pins = false;
     bool m_has_widgets = false;
@@ -50,3 +57,4 @@ private:
 };
 
 } // namespace data
+

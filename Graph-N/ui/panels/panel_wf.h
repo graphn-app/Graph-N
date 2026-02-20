@@ -6,6 +6,7 @@
 namespace data
 {
 struct Node;
+class Link;
 class NodeInstance;
 }
 
@@ -40,6 +41,11 @@ public:
 private:
     DlgCode show(bool& focused) override;
     void draw_wf();
+
+    void on_delete_node(data::NodeInstance* node);
+    void on_delete_link(data::Link* link);
+    void on_copy_node(data::NodeInstance* node);
+    void on_create_group(const ImRect& rc);
 
 private:
     wid m_wf = 0;

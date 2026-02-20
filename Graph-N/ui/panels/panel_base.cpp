@@ -139,12 +139,13 @@ bool PanelWithList::draw_list(
                 ImGui::InvisibleButton("btn", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetTextLineHeightWithSpacing()));
 
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone))
+                {
                     m_hovered_item = idx;
-
-                l_clicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-                l_dbl_clicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+                    l_clicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+                    l_dbl_clicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+                    r_clicked = ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+                }
                 l_released = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
-                r_clicked = ImGui::IsMouseClicked(ImGuiMouseButton_Right);
                 r_released = ImGui::IsMouseReleased(ImGuiMouseButton_Right);
 
                 ImGui::SameLine();

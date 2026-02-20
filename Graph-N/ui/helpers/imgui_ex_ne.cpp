@@ -59,7 +59,10 @@ void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, 
                 {
                     const bool is_selected = (*current_item == i);
                     if (ImGui::Selectable(items[i], is_selected))
+                    {
                         *current_item = i;
+                        ImGui::CloseCurrentPopup();
+                    }
                     if (is_selected)
                         ImGui::SetItemDefaultFocus();
                 }

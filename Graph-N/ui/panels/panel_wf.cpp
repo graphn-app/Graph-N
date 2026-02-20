@@ -30,6 +30,11 @@ void PanelWorkflow::free()
     LogF;
     m_wf = 0;
     m_drawer.free();
+
+    for (auto& node : m_nodes)
+    {
+        node->m_pos_set = false;
+    }
 }
 
 void PanelWorkflow::init()
@@ -38,7 +43,13 @@ void PanelWorkflow::init()
     PanelBase::init();
 
     m_nodes.reserve(100);
-    m_drawer.init(m_wf);
+
+    NodeDrawer::Callbacks callbacks;
+    callbacks.delete_node = std::bind(&PanelWorkflow::on_delete_node, this, std::placeholders::_1);
+    callbacks.copy_node = std::bind(&PanelWorkflow::on_copy_node, this, std::placeholders::_1);
+    callbacks.delete_link = std::bind(&PanelWorkflow::on_delete_link, this, std::placeholders::_1);
+    callbacks.create_group = std::bind(&PanelWorkflow::on_create_group, this, std::placeholders::_1);
+    m_drawer.init(m_wf, callbacks);
 }
 
 void PanelWorkflow::restore_pos()
@@ -76,17 +87,16 @@ DlgCode PanelWorkflow::show(bool& focused)
     return end_panel(opened);
 }
 
-void PanelWorkflow::add_node(data::Node* node, const std::string& select /*= ""*/, std::optional<ImVec2> /*pos*/ /*= std::nullopt*/)
+void PanelWorkflow::add_node(data::Node* node, const std::string& select /*= ""*/, std::optional<ImVec2> pos /*= std::nullopt*/)
 {
     auto wf = g::pWfsManager->access(m_wf);
     auto node_inst = wf->add_node(node, select);
     node_inst->calc_node_width(false /*ro*/);
 
-    // TODO
-    //if (pos.has_value())
-    //    node_inst->move(pos.value());
-    //else
-    //    node_inst->move(ImVec2(100, 100));
+    if (pos.has_value())
+        node_inst->m_pos = pos.value();
+    else
+        node_inst->m_pos = { 100, 100 };
     m_nodes.push_back(node_inst);
 }
 
@@ -120,6 +130,26 @@ void PanelWorkflow::draw_wf()
     m_drawer.post_draw_all();
 
     ImGui::GetIO().ConfigFlags = old_flags;
+}
+
+void PanelWorkflow::on_delete_node(data::NodeInstance* node)
+{
+    (void)node;
+}
+
+void PanelWorkflow::on_delete_link(data::Link* link)
+{
+    (void)link;
+}
+
+void PanelWorkflow::PanelWorkflow::on_copy_node(data::NodeInstance* node)
+{
+    (void)node;
+}
+
+void PanelWorkflow::on_create_group(const ImRect& rc)
+{
+    (void)rc;
 }
 
 } // namespace ui

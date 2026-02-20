@@ -29,9 +29,20 @@ public:
 
     NO_COPY_MOVE(NodeDrawer);
 
-    inline ImGuiExNe::DeferredAction* get_deffered_action() const { return m_deffered_action.get(); }
+    using DeleteNodeCallback = std::function<void(data::NodeInstance*)>;
+    using DeleteLinkCallback = std::function<void(data::Link*)>;
+    using CopyNodeCallback = std::function<void(data::NodeInstance*)>;
+    using CreateGroupCallback = std::function<void(const ImRect&)>;
 
-    void init(wid wf_id);
+    struct Callbacks
+    {
+        DeleteNodeCallback delete_node = nullptr;
+        DeleteLinkCallback delete_link = nullptr;
+        CopyNodeCallback copy_node = nullptr;
+        CreateGroupCallback create_group = nullptr;
+    };
+
+    void init(wid wf_id, const Callbacks& callbacks);
     void free();
 
     void pre_draw_all(const char* id, size_t nodes_count);
@@ -46,10 +57,12 @@ public:
 
     void locate_node(data::NodeInstance* node);
 
+    inline ImGuiExNe::DeferredAction* get_deffered_action() const { return m_deffered_action.get(); }
     data::PinInstance* get_ml_widget_active() const;
 
 private:
     void draw_node_header(data::NodeInstance* node);
+    void draw_node_header_bg(data::NodeInstance* node);
     void draw_input_pin(data::PinInstance* pin);
     void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width, bool draw_control_after_generate = false);
     void draw_output_pin(data::PinInstance* pin);
@@ -68,21 +81,36 @@ private:
     void draw_widget_control_after_generate(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_separator(float offset, bool& opened, bool& temp_open);
 
-    void handle_node_resize();
     void handle_widget_active_state();
+    bool handle_node_resize();
+    bool handle_context_menu();
+    bool handle_canvas_menu();
+    bool handle_node_menu();
+    bool handle_pin_menu();
+    bool handle_link_menu();
 
 private:
-    const ImU32 m_clr_node_header_bg;
+    ImU32 m_clr_node_bg;
+    ImU32 m_clr_node_header_bg;
     const ImU32 m_clr_node_header_text;
-    const ImU32 m_clr_node_body_bg;
     const ImU32 m_clr_node_pin_text;
-    const ImU32 m_clr_node_border;
+
+    Callbacks m_callbacks;
+
+    const char* m_menuid_canvas;
+    const char* m_menuid_node;
+    const char* m_menuid_pin;
+    const char* m_menuid_link;
+    const char* m_menuid_activate = nullptr;
+    void* m_menu_object = nullptr;
+    ImVec2 m_click_pos;
 
     wid m_wf = 0;
     ax::NodeEditor::EditorContext* m_context = nullptr;
     std::unique_ptr<ImGuiExNe::DeferredAction> m_deffered_action;
     data::NodeInstance* m_active_node = nullptr;
     float m_curr_node_left_offset = 0.0f;
+    float m_curr_node_top_offset = 0.0f;
     data::PinInstance* m_querying_pin = nullptr;
 
     int32_t m_now_resizing = -1;

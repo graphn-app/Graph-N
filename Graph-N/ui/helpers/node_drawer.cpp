@@ -16,11 +16,12 @@ namespace ui
 namespace ed = ax::NodeEditor;
 
 NodeDrawer::NodeDrawer()
-    : m_clr_node_header_bg(g::pOptsManager->color_load(AppColor::NodeHeaderBg))
-    , m_clr_node_header_text(g::pOptsManager->color_load(AppColor::NodeHeaderText))
-    , m_clr_node_body_bg(g::pOptsManager->color_load(AppColor::NodeBodyBg))
+    : m_clr_node_header_text(g::pOptsManager->color_load(AppColor::NodeHeaderText))
     , m_clr_node_pin_text(g::pOptsManager->color_load(AppColor::NodePinText))
-    , m_clr_node_border(g::pOptsManager->color_load(AppColor::NodeBorder))
+    , m_menuid_canvas("533177A6-9C98-475D-A152-8F68F4F2353E")
+    , m_menuid_node("C0CFBFD5-658A-4E06-9FBC-A3676228C4D2")
+    , m_menuid_pin("0398C2D2-1ABE-4C0B-92D3-9B41BBAF4867")
+    , m_menuid_link("EF4B02B1-C1ED-4632-A622-C9EAC4A16E8C")
 {
     LogF;
 }
@@ -42,11 +43,12 @@ void test_id(std::set<void*>& set, void* ptr)
     }
 }
 
-void NodeDrawer::init(wid wf_id)
+void NodeDrawer::init(wid wf_id, const Callbacks& callbacks)
 {
     LogF;
 
     m_wf = wf_id;
+    m_callbacks = callbacks;
     m_deffered_action = std::make_unique<ImGuiExNe::DeferredAction>();
 
     ed::Config config;
@@ -80,21 +82,34 @@ void NodeDrawer::pre_draw_all(const char* id, size_t nodes_count)
     ed::EditConfig(m_context).AlignPointToGrid = g::pOptsManager->wf_snap_nodes_load();
     ed::EditConfig(m_context).DrawGrid = g::pOptsManager->wf_show_grid_load();
     ed::SetCurrentEditor(m_context);
+    ed::EnableShortcuts(false);
+
+    m_clr_node_bg = ImGui::ColorConvertFloat4ToU32(ed::GetStyle().Colors[ed::StyleColor_NodeBg]);
+    m_clr_node_header_bg = ImGuiEx::decrease_brightness(m_clr_node_bg);
+
     ed::Begin(id, ImVec2(0, 0));
 }
 
 void NodeDrawer::post_draw_all()
 {
     ed::Suspend();
-    handle_node_resize();
+    bool canvas_busy = handle_context_menu();
+    if (!canvas_busy)
+        canvas_busy = handle_node_resize();
     ed::Resume();
 
     ed::End();
-    ed::SetCurrentEditor(nullptr);
 
-    if (m_deffered_action->combo.is_active)
+    if (m_menuid_activate != nullptr)
+    {
+        ImGui::OpenPopup(m_menuid_activate);
+        m_menuid_activate = nullptr;
+    }
+    if (handle_canvas_menu() || handle_node_menu() || handle_pin_menu() || handle_link_menu())
+        ;
+    else if (!canvas_busy && m_deffered_action->combo.is_active)
         ImGuiExNe::RenderDeferredCombo(*m_deffered_action.get());
-    else if (m_deffered_action->ml_input.is_active)
+    else if (!canvas_busy && m_deffered_action->ml_input.is_active)
     {
         g::pFlow->txt_panel_create(
             m_wf,
@@ -104,6 +119,8 @@ void NodeDrawer::post_draw_all()
             m_deffered_action->ml_input.hint);
         m_deffered_action->ml_input.is_active = false;
     }
+
+    ed::SetCurrentEditor(nullptr);
 }
 
 void NodeDrawer::pre_draw_node(data::NodeInstance* node)
@@ -119,12 +136,27 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
         ed::DeselectNode(cast::to_ptr(node));
     }
 
+    if (node->m_bg_color_custom)
+        ed::PushStyleColor(ed::StyleColor_NodeBg, node->m_bg_color);
+
     ed::BeginNode(cast::to_ptr(node));
+
+    if (!node->m_pos_set)
+    {
+        ed::SetNodePosition(cast::to_ptr(node), node->m_pos);
+        node->m_pos_set = true;
+    }
 }
 
-void NodeDrawer::post_draw_node(data::NodeInstance* /*node*/)
+void NodeDrawer::post_draw_node(data::NodeInstance* node)
 {
     ed::EndNode();
+    node->m_pos = ed::GetNodePosition(cast::to_ptr(node));
+
+    if (node->m_bg_color_custom)
+        ed::PopStyleColor();
+
+    draw_node_header_bg(node);
 }
 
 void NodeDrawer::locate_node(data::NodeInstance* node)
@@ -175,12 +207,13 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
     }
 
     m_curr_node_left_offset = ImGui::GetCursorPosX();
+    m_curr_node_top_offset = ImGui::GetCursorPosY();
 
     // --- HEADER ---
 
-    ImGui::Dummy(ImVec2(node->w_node, w::v_spacing));
+    //ImGui::Dummy(ImVec2(node->w_node, w::v_spacing));
     draw_node_header(node);
-    ImGui::Dummy(ImVec2(node->w_node, w::v_spacing));
+    ImGui::Dummy(ImVec2(node->w_node, ImGui::GetTextLineHeight() * 0.5f));
 
     // --- PINS - INPUT ---
 
@@ -305,6 +338,26 @@ void NodeDrawer::draw_node_header(data::NodeInstance* node)
     ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_header_text);
     ImGui::TextUnformatted(node->get_name().c_str(), node->get_name().c_str() + node->get_name().size());
     ImGui::PopStyleColor();
+}
+
+void NodeDrawer::draw_node_header_bg(data::NodeInstance* node)
+{
+    auto draw_list = ed::GetNodeBackgroundDrawList(cast::to_ptr(node));
+    if (draw_list != nullptr)
+    {
+        auto& style = ed::GetStyle();
+
+        const ImU32 bg_color = (node->m_bg_color_custom ? node->m_header_color : m_clr_node_header_bg);
+        const float header_h = ImGui::GetTextLineHeight() * 1.5f;
+
+        draw_list->AddRectFilled(
+            ImVec2(m_curr_node_left_offset - style.NodePadding.x + style.NodeBorderWidth, m_curr_node_top_offset - style.NodePadding.y + style.NodeBorderWidth),
+            ImVec2(m_curr_node_left_offset + style.NodePadding.x + node->w_node - style.NodeBorderWidth, m_curr_node_top_offset + header_h),
+            bg_color,
+            style.NodeRounding,
+            ImDrawFlags_RoundCornersTop
+        );
+    }
 }
 
 void NodeDrawer::draw_input_pin(data::PinInstance* pin)
@@ -738,6 +791,38 @@ void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_op
 
 void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& links)
 {
+    static int* test = new int(55);
+    static bool test_b = true, test_pos = true;
+    if (test_b)
+    {
+        ed::BeginNode(ed::NodeId(test));
+        ed::Group(ImVec2(200, 200));
+        ed::EndNode();
+
+        if (test_pos)
+            ed::SetNodePosition(ed::NodeId(test), ImVec2(50, 50));
+
+        auto pos1 = ed::GetNodePosition(ed::NodeId(test));
+        auto pos2 = ed::GetNodeSize(ed::NodeId(test));
+        (void)pos1;
+        (void)pos2;
+
+        test_pos = false;
+    }
+
+    static int* test2 = new int(55);
+    static bool test_b2 = true, test_pos2 = true;
+    if (test_b2)
+    {
+        if (ed::BeginGroupHint(ed::NodeId(test2)))
+        {
+        }
+        ed::EndGroupHint();
+    }
+
+
+    //
+
     for (auto& link : links)
     {
         test_id(m_ids_nodelib, link.get());
@@ -905,10 +990,10 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin)
     ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
 }
 
-void NodeDrawer::handle_node_resize()
+bool NodeDrawer::handle_node_resize()
 {
     if (m_resizing_grip_positions.empty())
-        return;
+        return false;
 
     m_now_resizing = -1;
     const ImVec2 old_pos = ImGui::GetCursorScreenPos();
@@ -940,6 +1025,178 @@ void NodeDrawer::handle_node_resize()
     }
 
     ImGui::SetCursorScreenPos(old_pos);
+    return m_now_resizing != -1;
+}
+
+bool NodeDrawer::handle_context_menu()
+{
+    if (ed::ShowBackgroundContextMenu())
+    {        
+        m_menuid_activate = m_menuid_canvas;
+        return true;
+    }
+
+    if (!ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+        return false;
+
+    const auto pin = ed::GetHoveredPin();
+    if (pin)
+    {
+        m_menuid_activate = m_menuid_pin;
+        m_menu_object = cast::ptrs<void>((std::uintptr_t)pin);
+        //m_click_pos = ed::ScreenToCanvas(ImGui::GetMousePos());
+        return true;
+    }
+
+    const auto node = ed::GetHoveredNode();
+    if (node)
+    {
+        m_menuid_activate = m_menuid_node;
+        m_menu_object = cast::ptrs<void>((std::uintptr_t)node);
+        //m_click_pos = ed::ScreenToCanvas(ImGui::GetMousePos());
+        return true;
+    }
+
+    const auto link = ed::GetHoveredLink();
+    if (link)
+    {
+        m_menuid_activate = m_menuid_link;
+        m_menu_object = cast::ptrs<void>((std::uintptr_t)link);
+        //m_click_pos = ed::ScreenToCanvas(ImGui::GetMousePos());
+        return true;
+    }
+
+    //m_menuid_activate = m_menuid_canvas;
+    //m_click_pos = ed::ScreenToCanvas(ImGui::GetMousePos());
+    return true;
+}
+
+bool NodeDrawer::handle_canvas_menu()
+{
+    bool ret = false;
+    if (ImGui::BeginPopup(m_menuid_canvas))
+    {
+        if (ImGui::MenuItem("Back menu"))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+        ret = true;
+    }
+    return ret;
+}
+
+bool NodeDrawer::handle_node_menu()
+{
+    // todo: group click
+    bool ret = false;
+    static float color[4] = { -1.0f };
+    auto node = cast::ptrs<data::NodeInstance>(m_menu_object);
+
+    if (ImGui::BeginPopup(m_menuid_node))
+    {
+        bool close = false;
+        if (ImGui::BeginMenu("Node background color"))
+        {
+            if (ImGui::MenuItem("Reset to default", nullptr, nullptr, node->m_bg_color_custom))
+            {
+                node->m_bg_color_custom = false;
+                close = true;
+            }
+            ImGui::Separator();
+
+            const std::pair<ImU32, const char*> colors[] =
+            {
+                { IM_COL32(165, 42, 42, 255), "Red" },
+                { IM_COL32(42, 165, 42, 255), "Green" },
+                { IM_COL32(42, 42, 165, 255), "Blue" },
+                { IM_COL32(90, 110, 130, 255), "Pale blue" },
+                { IM_COL32(42, 165, 165, 255), "Cyan" },
+                { IM_COL32(105, 42, 165, 255), "Purple" },
+                { IM_COL32(165, 165, 42, 255), "Yellow" },
+                { IM_COL32(110, 70, 40, 255), "Brown" },
+                { IM_COL32(0, 0, 0, 255), "Black" },
+            };
+
+            for (auto& [clr, name] : colors)
+            {
+                ImGui::PushID(clr);
+                bool sel = ImGui::ColorButton("", ImGui::ColorConvertU32ToFloat4(clr), ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder);
+                ImGui::SameLine();
+                if (ImGui::MenuItem(name) || sel)
+                {
+                    node->m_bg_color_custom = true;
+                    node->m_bg_color = ImGui::ColorConvertU32ToFloat4(clr);
+                    node->m_header_color = ImGuiEx::decrease_brightness(ImGui::ColorConvertFloat4ToU32(node->m_bg_color));
+                    close = true;
+                }
+                ImGui::PopID();
+            }
+
+            ImGui::Spacing();
+            if (color[0] < 0.0f)
+            {
+                if (node->m_bg_color_custom)
+                {
+                    color[0] = node->m_bg_color.x; color[1] = node->m_bg_color.y; color[2] = node->m_bg_color.z; color[3] = node->m_bg_color.w;
+                }
+                else
+                {
+                    auto vec = ed::GetStyle().Colors[ed::StyleColor_NodeBg];
+                    color[0] = vec.x; color[1] = vec.y; color[2] = vec.z; color[3] = vec.w;
+                }
+            }
+            if (ImGui::ColorPicker4("###Background color", color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_DefaultOptions_))
+            {
+                node->m_bg_color.x = color[0]; node->m_bg_color.y = color[1]; node->m_bg_color.z = color[2]; node->m_bg_color.w = color[3];
+                node->m_header_color = ImGuiEx::decrease_brightness(ImGui::ColorConvertFloat4ToU32(node->m_bg_color));
+                node->m_bg_color_custom = true;
+            }
+
+            ImGui::EndMenu();
+        }
+
+        if (close)
+            ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+        ret = true;
+    }
+    else
+        color[0] = -1.0f;
+    return ret;
+}
+
+bool NodeDrawer::handle_pin_menu()
+{
+    bool ret = false;
+    if (ImGui::BeginPopup(m_menuid_canvas))
+    {
+        if (ImGui::MenuItem("Back menu"))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+        ret = true;
+    }
+    return ret;
+}
+
+bool NodeDrawer::handle_link_menu()
+{
+    bool ret = false;
+    if (ImGui::BeginPopup(m_menuid_canvas))
+    {
+        if (ImGui::MenuItem("Back menu"))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+        ret = true;
+    }
+    return ret;
 }
 
 } // namespace ui
