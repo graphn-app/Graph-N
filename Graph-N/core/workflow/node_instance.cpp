@@ -70,6 +70,13 @@ void NodeInstance::toggle_pinned()
     m_pinned = !m_pinned;
 }
 
+void NodeInstance::set_mode(NodeMode mode)
+{
+    w_name = -1.0f;
+    m_saved_width = -1.0f;
+    m_mode = mode;
+}
+
 float NodeInstance::calc_node_width(bool ro)
 {
     const float pin_l_offset = ro ? w::pin_l_offset_ro : w::pin_l_offset_rw;
@@ -145,8 +152,9 @@ float NodeInstance::recalc_node_width(bool ro, float avail_width, bool allow_ext
             w_name = ImGui::CalcTextSize(m_name.c_str()).x;
 
         if (m_pinned)
-            w_name += ImGui::CalcTextSize(" " ICON_LC_PIN "  ").x;
-
+            w_name += ImGui::CalcTextSize(" " ICON_LC_X " ").x;
+        if (m_mode != NodeMode::Always)
+            w_name += ImGui::CalcTextSize(" " ICON_LC_X " ").x;
     }
     if (m_saved_width == avail_width)
         return w_node;

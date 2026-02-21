@@ -255,7 +255,7 @@ const char* GraphN_Flow::get_panel_icon(DlgObj panel_obj) const
     case DlgObj::PanelTemplates:
         return ICON_LC_LAYOUT_TEMPLATE;
     case DlgObj::PanelStats:
-        return ICON_LC_CHART_BAR;
+        return ICON_LC_CHART_LINE;
     case DlgObj::PanelServerLogs:
         return ICON_LC_TERMINAL;
     case DlgObj::PanelTextEditor:

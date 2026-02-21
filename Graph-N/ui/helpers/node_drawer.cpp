@@ -70,7 +70,9 @@ void NodeDrawer::free()
 void NodeDrawer::pre_draw_all(const char* id, size_t nodes_count)
 {
     m_resizing_grip_positions.clear();
-    m_resizing_grip_positions.resize(nodes_count);    
+    m_resizing_grip_positions.resize(nodes_count);
+
+    m_active_tt = nullptr;
 
     if (m_resizing_w.size() != nodes_count)
     {
@@ -120,6 +122,9 @@ void NodeDrawer::post_draw_all()
         m_deffered_action->ml_input.is_active = false;
     }
 
+    if (m_active_tt != nullptr)
+        ImGuiEx::TooltipOnLastControl(m_active_tt, nullptr);
+
     ed::SetCurrentEditor(nullptr);
 }
 
@@ -138,6 +143,16 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
 
     if (node->m_bg_color_custom)
         ed::PushStyleColor(ed::StyleColor_NodeBg, node->m_bg_color);
+    if (node->get_mode() == NodeMode::Mute || node->get_mode() == NodeMode::OnEvent || node->get_mode() == NodeMode::OnTrigger)
+    {
+        ed::PushStyleColor(ed::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBorderMuted)));
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * m_mode_alpha);
+    }
+    else if (node->get_mode() == NodeMode::Bypass)
+    {
+        ed::PushStyleColor(ed::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBorderBypassed)));
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * m_mode_alpha);
+    }
 
     ed::BeginNode(cast::to_ptr(node));
 
@@ -155,6 +170,11 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node)
 
     if (node->m_bg_color_custom)
         ed::PopStyleColor();
+    if (node->get_mode() != NodeMode::Always)
+    {
+        ed::PopStyleColor();
+        ImGui::PopStyleVar();
+    }
 
     draw_node_header_bg(node);
 }
@@ -344,9 +364,26 @@ void NodeDrawer::draw_node_header(data::NodeInstance* node)
         if (node->pinned())
         {
             ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodePin));
+            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
             ImGui::TextUnformatted(" " ICON_LC_PIN);
             ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered()) m_active_tt = "Node is pinned to the canvas.";
+        }
+        if (node->get_mode() == NodeMode::Bypass)
+        {
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
+            ImGui::TextUnformatted(" " ICON_LC_SKIP_FORWARD);
+            ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered()) m_active_tt = "Node is bypassed. Inputs pass through to outputs.";
+        }
+        else if (node->get_mode() != NodeMode::Always)
+        {
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
+            ImGui::TextUnformatted(" " ICON_LC_VOLUME_X);
+            ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered()) m_active_tt = "Node is muted. It will not be processed.";
         }
     }
     else if (m_renaming_node == node)
@@ -1148,7 +1185,51 @@ bool NodeDrawer::handle_node_menu()
             ed::SetNodeDraggable(cast::to_ptr(node), !node->pinned());
             close = true;
         }
-        if (ImGui::BeginMenu("Node color"))
+        ImGui::Separator();
+        if (ImGui::MenuItem("Always", nullptr, node->get_mode() == NodeMode::Always))
+        {
+            node->set_mode(NodeMode::Always);
+            close = true;
+        }
+        if (ImGui::MenuItem("Bypass", nullptr, node->get_mode() == NodeMode::Bypass))
+        {
+            node->set_mode(NodeMode::Bypass);
+            close = true;
+        }
+        if (ImGui::MenuItem("Mute", nullptr, node->get_mode() == NodeMode::Mute || node->get_mode() == NodeMode::OnTrigger || node->get_mode() == NodeMode::OnEvent))
+        {
+            node->set_mode(NodeMode::Mute);
+            close = true;
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Remove")) // TODO
+        {
+            close = true;
+        }
+        if (ImGui::MenuItem("Clone")) // TODO
+        {
+            close = true;
+        }
+        if (ImGui::MenuItem("Copy")) // TODO : paste
+        {
+            close = true;
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Collapse")) // TODO : expand
+        {
+            close = true;
+        }
+        if (ImGui::MenuItem("Fit to size")) // TODO
+        {
+            close = true;
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Convert to subgraph")) // TODO : expand
+        {
+            close = true;
+        }
+        ImGui::Separator();
+        if (ImGui::BeginMenu("Color"))
         {
             if (ImGui::MenuItem("Reset to default", nullptr, nullptr, node->m_bg_color_custom))
             {

@@ -196,7 +196,9 @@ enum class AppColor
     NodeBorder,
     NodeWidgetHiddenSep,
     NodeDescription,
-    NodePin,
+    NodeHeaderIcon,
+    NodeBorderMuted,
+    NodeBorderBypassed,
     StatNorm,
     StatWarn,
     StatCrit,
@@ -399,6 +401,15 @@ enum class ConnectState
     Disconnected,
     Connecting,
     Connected,
+};
+
+enum class NodeMode
+{
+    Always,
+    OnEvent,
+    Mute,
+    OnTrigger,
+    Bypass
 };
 
 namespace comfyui_http

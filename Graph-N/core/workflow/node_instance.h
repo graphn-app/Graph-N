@@ -25,6 +25,9 @@ public:
     void toggle_pinned();
     inline bool pinned() const { return m_pinned; }
 
+    void set_mode(NodeMode mode);
+    inline NodeMode get_mode() const { return m_mode; }
+
 protected:
     Node* find_obj(hid obj_id) const override;
 
@@ -55,6 +58,7 @@ public:
     bool m_show_hidden = false;
 
 private:
+    NodeMode m_mode = NodeMode::Always;
     bool m_pinned = false;
     float m_saved_width = -1.0f;
     std::string m_name;

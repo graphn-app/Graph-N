@@ -90,6 +90,12 @@ private:
     bool handle_link_menu();
 
 private:
+    wid m_wf = 0;
+    ax::NodeEditor::EditorContext* m_context = nullptr;
+
+    data::NodeInstance* m_active_node = nullptr;
+    const char* m_active_tt = nullptr;
+
     ImU32 m_clr_node_bg;
     ImU32 m_clr_node_header_bg;
     const ImU32 m_clr_node_header_text;
@@ -105,14 +111,10 @@ private:
     void* m_menu_object = nullptr;
     //ImVec2 m_click_pos;
 
-    data::NodeInstance* m_active_node = nullptr;
-
     data::NodeInstance* m_renaming_node = nullptr;
     std::string m_renaming_buff;
     bool m_need_renaming_focus = false;
 
-    wid m_wf = 0;
-    ax::NodeEditor::EditorContext* m_context = nullptr;
     std::unique_ptr<ImGuiExNe::DeferredAction> m_deffered_action;
     float m_curr_node_left_offset = 0.0f;
     float m_curr_node_top_offset = 0.0f;
@@ -122,6 +124,8 @@ private:
     const float m_grip_area_sz = 15.0f;
     std::vector<ImRect> m_resizing_grip_positions;
     std::vector<float> m_resizing_w;
+
+    const float m_mode_alpha = 0.4f;
 
     // TODO: remove
     std::set<void*> m_ids_imgui;
