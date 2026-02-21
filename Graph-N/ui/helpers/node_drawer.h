@@ -53,7 +53,7 @@ public:
     void post_draw_node(data::NodeInstance* node);
 
     void draw_links(const std::vector<std::unique_ptr<data::Link>>& links);
-    void query_links();
+    bool query_links();
 
     void locate_node(data::NodeInstance* node);
 
@@ -66,8 +66,8 @@ private:
     void draw_input_pin(data::PinInstance* pin);
     void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width, bool draw_control_after_generate = false);
     void draw_output_pin(data::PinInstance* pin);
-    void draw_pin(data::PinInstance* pin);
-    void draw_pin_shape(data::PinInstance* pin);
+    void draw_pin(data::PinInstance* pin, bool force_default_shape);
+    void draw_pin_shape(data::PinInstance* pin, bool force_default);
     void draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width);
@@ -94,12 +94,14 @@ private:
     ax::NodeEditor::EditorContext* m_context = nullptr;
 
     data::NodeInstance* m_active_node = nullptr;
+    data::NodeInstance* m_copied_node = nullptr;
     const char* m_active_tt = nullptr;
 
     ImU32 m_clr_node_bg;
     ImU32 m_clr_node_header_bg;
     const ImU32 m_clr_node_header_text;
     const ImU32 m_clr_node_pin_text;
+    const float m_mode_alpha = 0.4f;
 
     Callbacks m_callbacks;
 
@@ -125,11 +127,10 @@ private:
     std::vector<ImRect> m_resizing_grip_positions;
     std::vector<float> m_resizing_w;
 
-    const float m_mode_alpha = 0.4f;
-
-    // TODO: remove
+#ifdef _DEBUG
     std::set<void*> m_ids_imgui;
     std::set<void*> m_ids_nodelib;
+#endif
 };
 
 

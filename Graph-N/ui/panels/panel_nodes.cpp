@@ -403,7 +403,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
     if (g::pOptsManager->ui_nodes_pane_tree_view_load())
     {
         if (!labels.empty())
-            add_separator("Folders");
+            add_separator("Categories");
 
         std::function<void(const std::vector<data::NodeItem*>&, int32_t)> go_tree;
         go_tree = [&go_tree, &on_icon_handler, &labels, &panel_items = m_panel_items, &expanded_nodes, force_expand_all, &inspector = m_inspector,

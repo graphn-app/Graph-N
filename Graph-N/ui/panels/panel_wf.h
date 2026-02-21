@@ -55,6 +55,7 @@ private:
     std::vector<data::NodeInstance*> m_nodes;
     NodeDrawer m_drawer;
     data::NodeInstance* m_locate = nullptr;
+    bool m_invalidate_links = true;
 };
 
 

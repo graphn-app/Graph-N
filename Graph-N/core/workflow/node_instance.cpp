@@ -77,6 +77,34 @@ void NodeInstance::set_mode(NodeMode mode)
     m_mode = mode;
 }
 
+void NodeInstance::toggle_expanded()
+{
+    w_name = -1.0f;
+    m_saved_width = -1.0f;
+    m_expanded = !m_expanded;
+}
+
+void NodeInstance::invalidate_links()
+{
+    m_has_in_pins_linked = m_has_out_pins_linked = false;
+    for (auto in : m_input)
+    {
+        if (in->m_state->links > 0)
+        {
+            m_has_in_pins_linked = true;
+            break;
+        }
+    }
+    for (auto out : m_output)
+    {
+        if (out->m_state->links > 0)
+        {
+            m_has_out_pins_linked = true;
+            break;
+        }
+    }
+}
+
 float NodeInstance::calc_node_width(bool ro)
 {
     const float pin_l_offset = ro ? w::pin_l_offset_ro : w::pin_l_offset_rw;
@@ -147,17 +175,25 @@ float NodeInstance::recalc_node_width(bool ro, float avail_width, bool allow_ext
     if (w_name <= 0.0f)
     {
         if (m_name.empty())
-            w_name = m_object->w_name;
+            w_name = ImGui::CalcTextSize(m_object->name.c_str()).x + ImGui::GetStyle().ItemSpacing.x;
         else
-            w_name = ImGui::CalcTextSize(m_name.c_str()).x;
+            w_name = ImGui::CalcTextSize(m_name.c_str()).x + ImGui::GetStyle().ItemSpacing.x;
 
         if (m_pinned)
-            w_name += ImGui::CalcTextSize(" " ICON_LC_X " ").x;
+            w_name += ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
         if (m_mode != NodeMode::Always)
-            w_name += ImGui::CalcTextSize(" " ICON_LC_X " ").x;
+            w_name += ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
     }
+
     if (m_saved_width == avail_width)
         return w_node;
+
+    if (!m_expanded)
+    {
+        w_node = w_name + ImGui::GetStyle().ItemSpacing.x * 2;
+        w_node_name_off = std::max(0.0f, (w_node / 2) - (w_name / 2));
+        return w_node;
+    }
 
     const float pin_l_offset = ro ? w::pin_l_offset_ro : w::pin_l_offset_rw;
 
@@ -249,8 +285,21 @@ float NodeInstance::recalc_node_width(bool ro, float avail_width, bool allow_ext
     // no widgets
     else if (m_has_in_pins && m_has_out_pins && !m_has_widgets)
     {
-        w_center = 20.0f;
-        w_node = (pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_pin_in + w_center + w_pin_out;  
+        if (avail_width >= w_node)
+        {
+            w_node = avail_width;
+            w_center = w_node - ((pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_pin_in + w_pin_out);
+        }
+        else
+        {
+            w_center = 20.0f;
+            w_node = (pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_pin_in + w_center + w_pin_out;
+        }
+        if (w_name > w_node)
+        {
+            w_node = w_name + ImGui::GetStyle().ItemSpacing.x * 2;
+            w_center = w_node - ((pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2) + w_pin_in + w_pin_out);
+        }
     }
 
     //if (w_node < min_w)

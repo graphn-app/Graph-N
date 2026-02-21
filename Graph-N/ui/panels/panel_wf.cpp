@@ -109,7 +109,13 @@ void PanelWorkflow::draw_wf()
     m_drawer.pre_draw_all(get_panel_id(), m_nodes.size());
     for (size_t node_idx = 0; node_idx < m_nodes.size(); node_idx++)
     {
-        auto& node = m_nodes[node_idx];
+        auto node = m_nodes[node_idx];
+        if (m_invalidate_links)
+        {
+            node->invalidate_links();
+            m_invalidate_links = false;
+        }
+
         ImGui::PushID(node);
         m_drawer.pre_draw_node(node);
         m_drawer.draw_node(node, node->get_object()->w_fit, node_idx);
@@ -125,7 +131,7 @@ void PanelWorkflow::draw_wf()
 
     auto wf = g::pWfsManager->access(m_wf);
     m_drawer.draw_links(wf->get_links());
-    m_drawer.query_links();
+    m_invalidate_links = m_drawer.query_links();
 
     m_drawer.post_draw_all();
 

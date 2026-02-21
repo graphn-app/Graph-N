@@ -28,6 +28,11 @@ public:
     void set_mode(NodeMode mode);
     inline NodeMode get_mode() const { return m_mode; }
 
+    void toggle_expanded();
+    inline bool expanded() const { return m_expanded; }
+
+    void invalidate_links();
+
 protected:
     Node* find_obj(hid obj_id) const override;
 
@@ -53,11 +58,14 @@ public:
     ImU32 m_header_color;
 
     bool m_has_in_pins = false;
+    bool m_has_in_pins_linked = false;
     bool m_has_out_pins = false;
+    bool m_has_out_pins_linked = false;
     bool m_has_widgets = false;
     bool m_show_hidden = false;
 
 private:
+    bool m_expanded = true;
     NodeMode m_mode = NodeMode::Always;
     bool m_pinned = false;
     float m_saved_width = -1.0f;
