@@ -467,14 +467,14 @@ void NodeDrawer::draw_input_pin(data::PinInstance* pin)
     if (m_active_node->expanded())
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
-        draw_pin(pin, false);
+        draw_pin(pin, false, false);
         ImGui::SameLine(0.0f, w::pin_r_offset);
         ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
     }
     else if (pin->m_state->links > 0)
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset);
-        draw_pin(pin, true);
+        draw_pin(pin, true, false);
     }
 }
 
@@ -484,15 +484,15 @@ void NodeDrawer::draw_output_pin(data::PinInstance* pin)
     {
         ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
         ImGui::SameLine(0, w::pin_r_offset);
-        draw_pin(pin, false);
+        draw_pin(pin, false, false);
     }
     else if (pin->m_state->links > 0)
     {
-        draw_pin(pin, true);
+        draw_pin(pin, true, false);
     }
 }
 
-void NodeDrawer::draw_pin(data::PinInstance* pin, bool force_default_shape)
+void NodeDrawer::draw_pin(data::PinInstance* pin, bool force_default_shape, bool align_to_widget)
 {
     ImGui::PushID(&pin->m_state->pin_color);
 #ifdef _DEBUG
@@ -500,7 +500,7 @@ void NodeDrawer::draw_pin(data::PinInstance* pin, bool force_default_shape)
     test_id(m_ids_nodelib, pin);
 #endif
     ed::BeginPin(cast::to_ptr(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
-    draw_pin_shape(pin, force_default_shape);
+    draw_pin_shape(pin, force_default_shape, align_to_widget);
     ed::EndPin();
     ImGui::PopID();
 }
@@ -517,7 +517,7 @@ void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_wid
         if (m_active_node->expanded())
         {
             ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
-            draw_pin(pin, false);
+            draw_pin(pin, false, true);
             ImGui::SameLine(0, w::pin_r_offset);
             draw_widget(pin, widget_name_width, widget_value_width);
         }
@@ -525,7 +525,7 @@ void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_wid
         {
             ImGui::SameLine();
             ImGui::SetCursorPosX(m_curr_node_left_offset);
-            draw_pin(pin, true);
+            draw_pin(pin, true, true);
         }
     }
 }
@@ -1023,7 +1023,7 @@ bool NodeDrawer::query_links()
     //}
 }
 
-void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool force_default)
+void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool force_default, bool align_to_widget)
 {
     const bool querying = (m_querying_pin != nullptr);
     const bool compatible = (m_querying_pin == pin || (querying && data::Link::can_link(pin, m_querying_pin)));
@@ -1034,13 +1034,14 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool force_default)
     const auto draw_list = ImGui::GetWindowDrawList();
     const float alpha = (!querying || compatible ? 1.0f : 0.4f);
     const auto color = (pin->m_state->pin_color & 0x00FFFFFF) | ((ImU32)(alpha * 255.0f) << 24);
-
-    const float line_height = ImGui::GetTextLineHeight();
     const float radius = (!querying ? 4.0f : (compatible ? 5.0f : 3.0f));
     const float diameter = radius * 2.0f;
-    const float y_offset = std::max(0.0f, (line_height - diameter) * 0.5f); 
-    const ImVec2 cursor_pos = ImGui::GetCursorScreenPos();
-    const ImVec2 pin_center = ImVec2(cursor_pos.x + w::ico_circle / 2, cursor_pos.y + w::ico_circle / 2);
+    ImVec2 cursor_pos = ImGui::GetCursorScreenPos();
+    if (align_to_widget)
+        cursor_pos.y += ImGui::GetTextLineHeightWithSpacing() / 2;
+    else
+        cursor_pos.y += w::ico_circle / 2;
+    const ImVec2 pin_center = ImVec2(cursor_pos.x + w::ico_circle / 2, cursor_pos.y);
 
     switch (type)
     {
@@ -1236,6 +1237,7 @@ bool NodeDrawer::handle_canvas_menu()
 bool NodeDrawer::handle_node_menu()
 {
     // todo: group click
+
     bool ret = false;
     static float color[4] = { -1.0f };
     auto node = cast::ptrs<data::NodeInstance>(m_menu_object);

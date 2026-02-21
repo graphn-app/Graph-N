@@ -166,7 +166,6 @@ float NodeInstance::calc_node_width(bool ro)
         m_object->w_fit = (pin_l_offset * 2) + (w::ico_max * 2) + (w::pin_r_offset * 2) + m_object->w_widget_name_max + m_object->w_widget_value_max;
     }
 
-    //m_object->w_ready = true;
     return m_object->w_fit;
 }
 
