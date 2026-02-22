@@ -8,7 +8,7 @@ namespace data
 {
 struct Node;
 struct NodeItem;
-class NodeInstance;
+class NodeInstanceRo;
 class Workflow;
 }
 
@@ -77,7 +77,7 @@ private:
     PanelNodeInspector* m_inspector = nullptr;
     data::Workflow* m_wf = nullptr;
     PanelWithList::TtCallbacks m_tt_callbacks;
-    data::NodeInstance* m_tt_node = nullptr;
+    data::NodeInstanceRo* m_tt_node = nullptr;
     float m_tt_width = 0.0f;
     RoNodeDrawer m_tt_node_drawer;
     int32_t m_tt_idx = -1;

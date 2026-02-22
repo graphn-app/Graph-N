@@ -22,10 +22,9 @@ public:
     ~Instance() override
     {}
 
-    virtual void init(bool subscribe_validity_state)
+    virtual void init()
     {
-        if (subscribe_validity_state)
-            g::pFlow->subscribe_comfyui_validity_state(this);
+        g::pFlow->subscribe_comfyui_validity_state(this);
         Log("Obj init wid=" << m_wid << ", iid=" << m_iid << ", hid=" << m_hid);
     }
 

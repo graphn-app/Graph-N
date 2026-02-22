@@ -6,6 +6,7 @@ namespace data
 struct Node;
 struct Pin;
 class NodeInstance;
+class NodeInstanceRo;
 class PinInstance;
 class Link;
 
@@ -29,7 +30,9 @@ public:
 
     NodeInstance* add_group(const ImRect& rc, const std::string& name = "");
     NodeInstance* add_node(Node* node, const ImRect& rc = ImRect(0, 0, 0, 0), const std::string& select = "");
+    NodeInstanceRo* add_node_ro(Node* node);
     PinInstance* add_pin(NodeInstance* node, Pin* pin);
+    PinInstance* add_pin(NodeInstanceRo* node, Pin* pin);
     Link* add_link();
 
     NodeInstance* get_node(iid id) const;
@@ -38,6 +41,7 @@ public:
     inline const std::vector<std::unique_ptr<Link>>& get_links() { return m_links; }
 
     void remove_node(const NodeInstance* node);
+    void remove_node(const NodeInstanceRo* node);
     void remove_link(const Link* link);
 
 private:
@@ -48,6 +52,7 @@ private:
     WfData m_wf_data;
     iid m_last_child_id = 0;
     std::vector<std::unique_ptr<NodeInstance>> m_nodes;
+    std::vector<std::unique_ptr<NodeInstanceRo>> m_nodes_ro;
     std::map<iid, std::unique_ptr<PinInstance>> m_pins;
     std::vector<std::unique_ptr<Link>> m_links;
     //TODO

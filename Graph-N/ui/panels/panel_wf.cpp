@@ -91,7 +91,7 @@ void PanelWorkflow::add_node(data::Node* node, const std::string& select, std::o
 {
     auto wf = g::pWfsManager->access(m_wf);
     auto node_inst = wf->add_node(node, pos.has_value() ? pos.value() : ImRect(100, 100, -1, -1), select);
-    node_inst->calc_node_width(false /*ro*/);
+    node_inst->calc_node_width(false, false);
     m_nodes.push_back(node_inst);
 }
 
@@ -112,12 +112,6 @@ void PanelWorkflow::draw_wf()
     for (size_t node_idx = 0; node_idx < m_nodes.size(); node_idx++)
     {
         auto node = m_nodes[node_idx];
-        if (m_invalidate_links)
-        {
-            node->invalidate_links();
-            m_invalidate_links = false;
-        }
-
         ImGui::PushID(node);
         m_drawer.pre_draw_node(node);
         if (node->m_group)
@@ -136,7 +130,7 @@ void PanelWorkflow::draw_wf()
 
     auto wf = g::pWfsManager->access(m_wf);
     m_drawer.draw_links(wf->get_links());
-    m_invalidate_links = m_drawer.query_links();
+    m_drawer.query_links();
 
     m_drawer.post_draw_all();
 

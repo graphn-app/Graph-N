@@ -2,7 +2,7 @@
 #include "ui/panels/panel_node_inspector.h"
 #include "core/data/node.h"
 #include "core/data/pin.h"
-#include "core/workflow/node_instance.h"
+#include "core/workflow/node_instance_ro.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/workflow.h"
 #include "core/managers/workflows_manager.h"
@@ -45,9 +45,9 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
     Log("Add node '" << node->name << "' id=" << node->get_id());
 
     Data data;
-    data.node = m_wf->add_node(node);
-    const auto ideal = data.node->calc_node_width(true /*ro*/);
-    const auto actual = data.node->recalc_node_width(true /*ro*/, 0.0f, false, false, true);
+    data.node = m_wf->add_node_ro(node);
+    const auto ideal = data.node->calc_node_width(true, true);
+    const auto actual = data.node->recalc_node_width(0.0f, true, true);
     data.ideal_size = std::max(ideal, actual);
     if (!node->description.empty())
     {

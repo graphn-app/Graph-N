@@ -242,7 +242,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
         m_active_node->m_size_set = true;
     }
     else
-        node_w = m_active_node->recalc_node_width(false /*ro*/, node_w, true /*allow_extend*/, true /*allow_compress*/, false /*use_big_pin_icon*/);
+        node_w = m_active_node->recalc_node_width(node_w, false, false);
 
     if (node_size.x > 0 && node_size.y > 0)
     {
@@ -267,7 +267,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
 
     ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_pin_text);
 
-    const auto& input = m_active_node->m_input;
+    const auto& input = m_active_node->get_inputs();
     for (auto pin : input)
     {
         if (nullptr == pin || !pin->is_valid())
@@ -285,9 +285,11 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
         }
     }
 
+    const auto last_in_off_y = ImGui::GetCursorPosY();
+
     // --- SPACER ---
 
-    if (!m_active_node->m_output.empty())
+    if (!m_active_node->get_outputs().empty())
     {
         ImGui::SetCursorPosY(pin_y);
         if (m_active_node->expanded() && m_active_node->w_center > 0.0f)
@@ -298,7 +300,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
 
     const auto out_pins_pos = ImGui::GetCursorPosX();
 
-    const auto& output = m_active_node->m_output;
+    const auto& output = m_active_node->get_outputs();
     for (auto pin : output)
     {
         if (nullptr == pin || !pin->is_valid())
@@ -333,6 +335,8 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
 
     if (m_active_node->m_has_widgets)
     {
+        ImGui::SetCursorPosY(std::max(last_in_off_y, ImGui::GetCursorPosY()));
+
         // --- WIDGETS ---
 
         size_t advanced = 0;

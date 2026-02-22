@@ -6,7 +6,7 @@
 #include "core/managers/nodes_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/data/node.h"
-#include "core/workflow/node_instance.h"
+#include "core/workflow/node_instance_ro.h"
 #include "core/workflow/workflow.h"
 
 #define TEST
@@ -720,8 +720,8 @@ void PanelNodes::on_alloc_tt_data(int32_t idx)
     if (m_tt_node != nullptr)
         m_wf->remove_node(m_tt_node);
     m_tt_idx = idx;
-    m_tt_node = m_wf->add_node(cast::ptrs<data::NodeItem>(m_panel_items[idx].ptr)->node);
-    m_tt_width = m_tt_node->calc_node_width(true /*ro*/);
+    m_tt_node = m_wf->add_node_ro(cast::ptrs<data::NodeItem>(m_panel_items[idx].ptr)->node);
+    m_tt_width = m_tt_node->calc_node_width(true, false);
 }
 
 void PanelNodes::on_release_tt_data(int32_t /*idx*/)

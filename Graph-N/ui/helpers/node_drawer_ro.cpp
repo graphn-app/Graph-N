@@ -3,7 +3,7 @@
 #include "core/managers/settings_manager.h"
 #include "core/data/node.h"
 #include "core/data/pin.h"
-#include "core/workflow/node_instance.h"
+#include "core/workflow/node_instance_ro.h"
 #include "core/workflow/pin_instance.h"
 
 namespace ui
@@ -41,12 +41,12 @@ RoNodeDrawer& RoNodeDrawer::operator=(RoNodeDrawer&& other)
     return *this;
 }
 
-float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_w)
+float RoNodeDrawer::draw(data::NodeInstanceRo* node, bool tooltip_mode, float max_w)
 {
     m_node = node;
     m_tt_mode = tooltip_mode;
 
-    max_w = m_node->recalc_node_width(true /*ro*/, max_w, false /*allow_extend*/, false /*allow_compress*/, !m_tt_mode /*use_big_pin_icon*/);
+    max_w = m_node->recalc_node_width(max_w, true, !m_tt_mode /*use_big_pin_icon*/);
     m_curr_node_left_offset = ImGui::GetCursorPosX();
 
     ImGui::PushID(m_node);
@@ -73,7 +73,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
     ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_pin_text);
     ImGui::BeginGroup();            // 3 -> in pins
 
-    const auto& input = m_node->m_input;
+    const auto& input = m_node->get_inputs();
     for (auto pin : input)
     {
         if (nullptr == pin || !pin->is_valid())
@@ -100,7 +100,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
     ImGui::BeginGroup();            // 4 -> out pins
     const auto out_pins_pos = ImGui::GetCursorPosX();
 
-    const auto& output = m_node->m_output;
+    const auto& output = m_node->get_outputs();
     for (auto pin : output)
     {
         if (nullptr == pin || !pin->is_valid())
@@ -207,7 +207,7 @@ float RoNodeDrawer::draw(data::NodeInstance* node, bool tooltip_mode, float max_
     return max_w;
 }
 
-void RoNodeDrawer::draw_node_header(data::NodeInstance* node)
+void RoNodeDrawer::draw_node_header(data::NodeInstanceRo* node)
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + node->w_node_name_off);
     ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_header_text);

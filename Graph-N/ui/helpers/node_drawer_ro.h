@@ -3,7 +3,7 @@
 
 namespace data
 {
-class NodeInstance;
+class NodeInstanceRo;
 class PinInstance;
 }
 
@@ -22,10 +22,10 @@ public:
     RoNodeDrawer(RoNodeDrawer&&);
     RoNodeDrawer& operator=(RoNodeDrawer&&);
 
-    float draw(data::NodeInstance* node, bool tooltip_mode, float max_w);
+    float draw(data::NodeInstanceRo* node, bool tooltip_mode, float max_w);
 
 private:
-    void draw_node_header(data::NodeInstance* node);
+    void draw_node_header(data::NodeInstanceRo* node);
     void draw_input_pin(data::PinInstance* pin);
     void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width, bool draw_control_after_generate = false);
     void draw_output_pin(data::PinInstance* pin);
@@ -50,7 +50,7 @@ private:
     const ImU32 m_clr_node_pin_text;
     const ImU32 m_clr_node_border;
 
-    data::NodeInstance* m_node = nullptr;
+    data::NodeInstanceRo* m_node = nullptr;
     bool m_tt_mode = false;
     float m_curr_node_left_offset = 0.0f;
 };

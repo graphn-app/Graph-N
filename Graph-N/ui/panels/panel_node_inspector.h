@@ -7,7 +7,7 @@
 namespace data
 {
 struct Node;
-class NodeInstance;
+class NodeInstanceRo;
 class PinInstance;
 class Workflow;
 }
@@ -50,7 +50,7 @@ private:
 
     struct Data final
     {
-        data::NodeInstance* node = nullptr;
+        data::NodeInstanceRo* node = nullptr;
         RoNodeDrawer drawer;
         float ideal_size = 0.0f;
         std::string* descr = nullptr;
