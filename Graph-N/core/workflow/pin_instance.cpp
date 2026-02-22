@@ -16,7 +16,7 @@ PinInstance::~PinInstance() = default;
 
 void PinInstance::init()
 {
-    Instance<data::Pin>::init();
+    Instance<data::Pin>::init(true);
     m_state = std::make_unique<PinState>();
     *m_state = m_object->def_state;
 }

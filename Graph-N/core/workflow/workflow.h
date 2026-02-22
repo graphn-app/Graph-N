@@ -27,7 +27,8 @@ public:
     WfData& get_data() { return m_wf_data; }
     const WfData& get_data() const { return m_wf_data; }
 
-    NodeInstance* add_node(Node* node, const std::string& select = "");
+    NodeInstance* add_group(const ImRect& rc, const std::string& name = "");
+    NodeInstance* add_node(Node* node, const ImRect& rc = ImRect(0, 0, 0, 0), const std::string& select = "");
     PinInstance* add_pin(NodeInstance* node, Pin* pin);
     Link* add_link();
 

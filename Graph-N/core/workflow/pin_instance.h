@@ -13,7 +13,7 @@ public:
     PinInstance(iid parent_node, Pin* obj, wid workflow_id, iid instance_id);
     ~PinInstance() override;
 
-    void init() override;
+    void init();
 
     inline iid get_parent_node() const { return m_parent_node; }
 

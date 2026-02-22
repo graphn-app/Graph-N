@@ -33,6 +33,9 @@ public:
 
     void invalidate_links();
 
+    void set_group_color(ImU32 clr);
+    void reset_to_default_colors();
+
 protected:
     Node* find_obj(hid obj_id) const override;
 
@@ -53,9 +56,13 @@ public:
     bool m_pos_set = false;
     ImVec2 m_pos = {};
 
+    bool m_size_set = false;
+    ImVec2 m_size = {}; // size for group, width for node
+
     bool m_bg_color_custom = false;
-    ImVec4 m_bg_color;
-    ImU32 m_header_color;
+    ImVec4 m_bg_color = {};
+    ImU32 m_header_color = 0;
+    ImU32 m_group_caption_color = 0;
 
     bool m_has_in_pins = false;
     bool m_has_in_pins_linked = false;
@@ -63,6 +70,8 @@ public:
     bool m_has_out_pins_linked = false;
     bool m_has_widgets = false;
     bool m_show_hidden = false;
+
+    bool m_group = false;
 
 private:
     bool m_expanded = true;

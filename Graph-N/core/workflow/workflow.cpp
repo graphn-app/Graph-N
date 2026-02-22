@@ -46,14 +46,31 @@ iid Workflow::get_new_child_id()
     return ++m_last_child_id;
 }
 
-NodeInstance* Workflow::add_node(data::Node* node, const std::string& select /*= ""*/)
+NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0, 0, 0, 0)*/, const std::string& select /*= ""*/)
 {
     const auto id = get_new_child_id();
     auto instance = std::make_unique<NodeInstance>(node, m_wf_data.id, id);
+    instance->m_pos = rc.Min;
+    instance->m_size = rc.Max;
     auto ptr = instance.get();
     ptr->init(select);
     m_nodes.push_back(std::move(instance));
     Log("Node added wid=" << m_wf_data.id << ", hid=" << node->get_id() << ", iid=" << id);
+    return ptr;
+}
+
+NodeInstance* Workflow::add_group(const ImRect& rc, const std::string& name /*= ""*/)
+{
+    const auto id = get_new_child_id();
+    auto instance = std::make_unique<NodeInstance>(nullptr, m_wf_data.id, id);
+    instance->m_pos = rc.Min;
+    instance->m_size = ImVec2(-1 == rc.Max.x ? 200 : rc.Max.x, -1 == rc.Max.y ? 200 : rc.Max.y);
+    instance->m_group = true;
+    instance->set_name(name);
+    auto ptr = instance.get();
+    ptr->init("");
+    m_nodes.push_back(std::move(instance));
+    Log("Group added wid=" << m_wf_data.id << ", iid=" << id);
     return ptr;
 }
 

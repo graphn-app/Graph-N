@@ -4,6 +4,7 @@
 #include "core/workflow/pin_instance.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/workflows_manager.h"
+#include "core/managers/settings_manager.h"
 
 namespace data
 {
@@ -12,7 +13,12 @@ NodeInstance::~NodeInstance() {};
 
 void NodeInstance::init(const std::string& select)
 {
-    Instance<data::Node>::init();
+    Instance<data::Node>::init(false);
+
+    reset_to_default_colors();
+
+    if (m_group)
+        return;
 
     m_input.reserve(m_object->required.pins.size() + m_object->optional.pins.size());
     m_output.reserve(m_object->output.size());
@@ -48,14 +54,14 @@ void NodeInstance::init(const std::string& select)
 
 const std::string& NodeInstance::get_name() const
 {
-    if (m_name.empty())
+    if (!m_group && m_name.empty())
         return m_object->display_name.empty() ? m_object->name : m_object->display_name;
     return m_name;
 }
 
 void NodeInstance::set_name(std::string name)
 {
-    if (m_object->name == name)
+    if (!m_group && m_object->name == name)
         m_name.clear();
     else
         m_name = std::move(name);
@@ -86,6 +92,9 @@ void NodeInstance::toggle_expanded()
 
 void NodeInstance::invalidate_links()
 {
+    if (m_group)
+        return;
+
     m_has_in_pins_linked = m_has_out_pins_linked = false;
     for (auto in : m_input)
     {
@@ -105,8 +114,42 @@ void NodeInstance::invalidate_links()
     }
 }
 
+void NodeInstance::set_group_color(ImU32 clr)
+{
+    m_bg_color_custom = true;
+
+    m_bg_color = ImGui::ColorConvertU32ToFloat4(clr);
+
+    m_bg_color.w = 0.9f;
+    m_group_caption_color = ImGui::ColorConvertFloat4ToU32(m_bg_color);
+    m_group_caption_color = ImGuiEx::increase_brightness(m_group_caption_color);
+
+    m_bg_color.w = 0.7f;
+    m_header_color = ImGui::ColorConvertFloat4ToU32(m_bg_color);
+
+    m_bg_color.w = 0.3f;
+}
+
+void NodeInstance::reset_to_default_colors()
+{
+    if (m_group)
+    {
+        set_group_color(g::pOptsManager->color_load(AppColor::GroupBg));
+    }
+    else
+    {
+        m_bg_color_custom = false;
+        m_bg_color = {};
+        m_header_color = 0;
+        m_group_caption_color = 0;
+    }
+}
+
 float NodeInstance::calc_node_width(bool ro)
 {
+    if (m_group)
+        return 0.0f;
+
     const float pin_l_offset = ro ? w::pin_l_offset_ro : w::pin_l_offset_rw;
 
     m_has_out_pins = !m_output.empty();
@@ -187,7 +230,7 @@ float NodeInstance::recalc_node_width(bool ro, float avail_width, bool allow_ext
     if (m_saved_width == avail_width)
         return w_node;
 
-    if (!m_expanded)
+    if (!m_expanded || m_group)
     {
         w_node = w_name + ImGui::GetStyle().ItemSpacing.x * 2;
         w_node_name_off = std::max(0.0f, (w_node / 2) - (w_name / 2));
@@ -301,12 +344,6 @@ float NodeInstance::recalc_node_width(bool ro, float avail_width, bool allow_ext
         }
     }
 
-    //if (w_node < min_w)
-    //{
-    //    w_center += min_w - w_node;
-    //    w_node = min_w;
-    //}
-
     w_separator = std::max(0.0f, w_node - (pin_l_offset * 2) - (max_ico * 2) - (w::pin_r_offset * 2));
 
     m_saved_width = avail_width;
@@ -315,6 +352,8 @@ float NodeInstance::recalc_node_width(bool ro, float avail_width, bool allow_ext
 
 Node* NodeInstance::find_obj(hid obj_id) const
 {
+    if (m_group)
+        return nullptr;
     return g::pNodesManager->find_node(obj_id);
 }
 

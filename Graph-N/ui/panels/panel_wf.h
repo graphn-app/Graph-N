@@ -36,7 +36,8 @@ public:
     }
     inline void locale_node(data::NodeInstance* node) { m_locate = node; }
 
-    void add_node(data::Node* node, const std::string& select = "", std::optional<ImVec2> pos = std::nullopt);
+    void add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos);
+    void add_group(std::optional<ImRect> size);
 
 private:
     DlgCode show(bool& focused) override;
@@ -44,7 +45,7 @@ private:
 
     void on_delete_node(data::NodeInstance* node);
     void on_delete_link(data::Link* link);
-    void on_copy_node(data::NodeInstance* node);
+    void on_copy_node(data::NodeInstance* node, const ImRect& rc);
     void on_create_group(const ImRect& rc);
 
 private:

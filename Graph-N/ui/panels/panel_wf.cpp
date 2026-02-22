@@ -46,7 +46,7 @@ void PanelWorkflow::init()
 
     NodeDrawer::Callbacks callbacks;
     callbacks.delete_node = std::bind(&PanelWorkflow::on_delete_node, this, std::placeholders::_1);
-    callbacks.copy_node = std::bind(&PanelWorkflow::on_copy_node, this, std::placeholders::_1);
+    callbacks.copy_node = std::bind(&PanelWorkflow::on_copy_node, this, std::placeholders::_1, std::placeholders::_2);
     callbacks.delete_link = std::bind(&PanelWorkflow::on_delete_link, this, std::placeholders::_1);
     callbacks.create_group = std::bind(&PanelWorkflow::on_create_group, this, std::placeholders::_1);
     m_drawer.init(m_wf, callbacks);
@@ -87,16 +87,18 @@ DlgCode PanelWorkflow::show(bool& focused)
     return end_panel(opened);
 }
 
-void PanelWorkflow::add_node(data::Node* node, const std::string& select /*= ""*/, std::optional<ImVec2> pos /*= std::nullopt*/)
+void PanelWorkflow::add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos)
 {
     auto wf = g::pWfsManager->access(m_wf);
-    auto node_inst = wf->add_node(node, select);
+    auto node_inst = wf->add_node(node, pos.has_value() ? pos.value() : ImRect(100, 100, -1, -1), select);
     node_inst->calc_node_width(false /*ro*/);
+    m_nodes.push_back(node_inst);
+}
 
-    if (pos.has_value())
-        node_inst->m_pos = pos.value();
-    else
-        node_inst->m_pos = { 100, 100 };
+void PanelWorkflow::add_group(std::optional<ImRect> size)
+{
+    auto wf = g::pWfsManager->access(m_wf);
+    auto node_inst = wf->add_group(size.has_value() ? size.value() : ImRect(100, 100, -1, -1), "New group");
     m_nodes.push_back(node_inst);
 }
 
@@ -118,7 +120,10 @@ void PanelWorkflow::draw_wf()
 
         ImGui::PushID(node);
         m_drawer.pre_draw_node(node);
-        m_drawer.draw_node(node, node->get_object()->w_fit, node_idx);
+        if (node->m_group)
+            m_drawer.draw_group(node, node_idx);
+        else
+            m_drawer.draw_node(node, node->get_object()->w_fit, node_idx);
         m_drawer.post_draw_node(node);
         ImGui::PopID();
     }
@@ -140,7 +145,19 @@ void PanelWorkflow::draw_wf()
 
 void PanelWorkflow::on_delete_node(data::NodeInstance* node)
 {
-    (void)node;
+    auto wf = g::pWfsManager->access(m_wf);
+    if (wf != nullptr)
+    {
+        for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it)
+        {
+            if (*it == node)
+            {
+                m_nodes.erase(it);
+                break;
+            }
+        }
+        wf->remove_node(node);        
+    }
 }
 
 void PanelWorkflow::on_delete_link(data::Link* link)
@@ -148,14 +165,14 @@ void PanelWorkflow::on_delete_link(data::Link* link)
     (void)link;
 }
 
-void PanelWorkflow::PanelWorkflow::on_copy_node(data::NodeInstance* node)
+void PanelWorkflow::PanelWorkflow::on_copy_node(data::NodeInstance* node, const ImRect& rc)
 {
-    (void)node;
+    add_node(node->get_object(), "", rc);
 }
 
 void PanelWorkflow::on_create_group(const ImRect& rc)
 {
-    (void)rc;
+    add_group(rc);
 }
 
 } // namespace ui

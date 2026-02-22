@@ -31,7 +31,7 @@ public:
 
     using DeleteNodeCallback = std::function<void(data::NodeInstance*)>;
     using DeleteLinkCallback = std::function<void(data::Link*)>;
-    using CopyNodeCallback = std::function<void(data::NodeInstance*)>;
+    using CopyNodeCallback = std::function<void(data::NodeInstance*, const ImRect&)>;
     using CreateGroupCallback = std::function<void(const ImRect&)>;
 
     struct Callbacks
@@ -50,6 +50,7 @@ public:
 
     void pre_draw_node(data::NodeInstance* node);
     void draw_node(data::NodeInstance* node, float node_w, size_t node_idx);
+    void draw_group(data::NodeInstance* node, size_t node_idx);
     void post_draw_node(data::NodeInstance* node);
 
     void draw_links(const std::vector<std::unique_ptr<data::Link>>& links);
@@ -61,8 +62,7 @@ public:
     data::PinInstance* get_ml_widget_active() const;
 
 private:
-    void draw_node_header(data::NodeInstance* node);
-    void draw_node_header_bg(data::NodeInstance* node);
+    void draw_node_header();
     void draw_input_pin(data::PinInstance* pin);
     void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width, bool draw_control_after_generate = false);
     void draw_output_pin(data::PinInstance* pin);
@@ -97,9 +97,9 @@ private:
     data::NodeInstance* m_copied_node = nullptr;
     const char* m_active_tt = nullptr;
 
-    ImU32 m_clr_node_bg;
-    ImU32 m_clr_node_header_bg;
-    const ImU32 m_clr_node_header_text;
+    ImU32 m_defclr_node_bg;
+    ImU32 m_defclr_node_header_bg;
+    ImU32 m_clr_node_header_text;
     const ImU32 m_clr_node_pin_text;
     const float m_mode_alpha = 0.4f;
 
@@ -111,7 +111,7 @@ private:
     const char* m_menuid_link;
     const char* m_menuid_activate = nullptr;
     void* m_menu_object = nullptr;
-    //ImVec2 m_click_pos;
+    ImVec2 m_menu_click_pos;
 
     data::NodeInstance* m_renaming_node = nullptr;
     std::string m_renaming_buff;
@@ -126,6 +126,10 @@ private:
     const float m_grip_area_sz = 15.0f;
     std::vector<ImRect> m_resizing_grip_positions;
     std::vector<float> m_resizing_w;
+
+    struct ClickedNode final
+    {
+    };
 
 #ifdef _DEBUG
     std::set<void*> m_ids_imgui;

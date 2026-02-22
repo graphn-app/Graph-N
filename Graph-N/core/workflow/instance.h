@@ -16,15 +16,16 @@ public:
         : m_object(obj)
         , m_wid(workflow_id)
         , m_iid(instance_id)
-        , m_hid(obj->get_id())
+        , m_hid(nullptr == obj ? 0 : obj->get_id())
     {
     }
     ~Instance() override
     {}
 
-    virtual void init()
+    virtual void init(bool subscribe_validity_state)
     {
-        g::pFlow->subscribe_comfyui_validity_state(this);
+        if (subscribe_validity_state)
+            g::pFlow->subscribe_comfyui_validity_state(this);
         Log("Obj init wid=" << m_wid << ", iid=" << m_iid << ", hid=" << m_hid);
     }
 
@@ -40,7 +41,7 @@ public:
         m_hid = 0;
         if (nullptr == m_object)
         {
-            LogInternalPtr("Can't prepare to invalidation - no object")
+            LogInternalPtr("Can't prepare to invalidation - no object");
         }
         m_hid = m_object->get_id();
         m_object = nullptr;

@@ -199,6 +199,7 @@ enum class AppColor
     NodeHeaderIcon,
     NodeBorderMuted,
     NodeBorderBypassed,
+    GroupBg,
     StatNorm,
     StatWarn,
     StatCrit,
