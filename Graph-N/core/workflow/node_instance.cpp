@@ -117,6 +117,8 @@ void NodeInstance::reset_to_default_colors()
 
 void NodeInstance::reset_width()
 {
+    m_size.x = get_ideal_width();
+    m_size_set = false;
     w_name = -1.0f;
     m_saved_width = -1.0f;
 }

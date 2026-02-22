@@ -242,14 +242,15 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
         m_active_node->m_size_set = true;
     }
     else
-        node_w = m_active_node->recalc_node_width(node_w, false, false);
+    node_w = m_active_node->recalc_node_width(node_w, false, false);
 
     if (node_size.x > 0 && node_size.y > 0)
     {
-        const ImVec2 br = ed::CanvasToScreen(ImVec2(node_pos.x + node_w, node_pos.y + node_size.y));
+        const ImVec2 br = ed::CanvasToScreen(ImVec2(node_pos.x + node_w + ed::GetStyle().NodePadding.x + ed::GetStyle().NodeBorderWidth,
+            node_pos.y + node_size.y + ed::GetStyle().NodePadding.y + ed::GetStyle().NodeBorderWidth));
 
         m_resizing_w[node_idx] = (m_active_node->pinned() || !m_active_node->expanded() ? -1 : node_w);
-        m_resizing_grip_positions[node_idx] = { br.x - m_grip_area_sz, br.y - m_grip_area_sz, br.x + m_grip_area_sz, br.y + m_grip_area_sz };
+        m_resizing_grip_positions[node_idx] = { br.x - m_grip_area_sz, br.y - m_grip_area_sz, br.x + m_grip_area_sz, br.y };
     }
 
     m_curr_node_left_offset = ImGui::GetCursorPosX();
@@ -330,14 +331,16 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
 
     ImGui::PopStyleColor();
 
+    m_resizing_grip_positions[node_idx].Min.y -= ImGui::GetCursorPos().y - m_curr_node_top_offset;
+
     if (m_active_node->expanded())
         ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing * 2));
+
+    // --- WIDGETS ---
 
     if (m_active_node->m_has_widgets)
     {
         ImGui::SetCursorPosY(std::max(last_in_off_y, ImGui::GetCursorPosY()));
-
-        // --- WIDGETS ---
 
         size_t advanced = 0;
         for (auto pin : input)
@@ -1219,10 +1222,13 @@ bool NodeDrawer::handle_node_resize()
 
     for (int32_t idx = 0; idx < m_resizing_grip_positions.size(); idx++)
     {
+        if (m_resizing_grip_positions[idx].GetHeight() <= 0)
+            continue;
+
         ImGui::SetCursorScreenPos(m_resizing_grip_positions[idx].Min);
 
         ImGui::PushID(idx);
-        ImGui::InvisibleButton("##grip", ImVec2(m_grip_area_sz, m_grip_area_sz));
+        ImGui::InvisibleButton("##grip", ImVec2(m_grip_area_sz, m_resizing_grip_positions[idx].GetHeight()));
         ImGui::PopID();
 
         const bool active = ImGui::IsItemActive();
@@ -1325,6 +1331,11 @@ bool NodeDrawer::handle_node_menu()
             m_renaming_node = node;
             m_renaming_buff = node->get_name();
             m_need_renaming_focus = true;
+            close = true;
+        }
+        if (ImGui::MenuItem("Reset node width"))
+        {
+            node->reset_width();
             close = true;
         }
         if (ImGui::MenuItem(node->pinned() ? "Unpin" : "Pin"))
