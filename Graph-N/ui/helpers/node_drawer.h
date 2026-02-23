@@ -29,16 +29,22 @@ public:
 
     NO_COPY_MOVE(NodeDrawer);
 
+    using GetAllNodesCallback = std::function<const std::vector<data::NodeInstance*>&()>;
     using DeleteNodeCallback = std::function<void(data::NodeInstance*)>;
+    using DeleteGroupCallback = std::function<void(data::NodeInstance*)>;
     using DeleteLinkCallback = std::function<void(data::Link*)>;
     using CopyNodeCallback = std::function<void(data::NodeInstance*, const ImRect&)>;
+    using CopyGroupCallback = std::function<void(const ImRect&)>;
     using CreateGroupCallback = std::function<void(const ImRect&)>;
 
     struct Callbacks
     {
+        GetAllNodesCallback get_all_nodes = nullptr;
         DeleteNodeCallback delete_node = nullptr;
+        DeleteGroupCallback delete_group = nullptr;
         DeleteLinkCallback delete_link = nullptr;
         CopyNodeCallback copy_node = nullptr;
+        CopyGroupCallback copy_group = nullptr;
         CreateGroupCallback create_group = nullptr;
     };
 
@@ -86,15 +92,21 @@ private:
     bool handle_context_menu();
     bool handle_canvas_menu();
     bool handle_node_menu();
+    bool handle_group_menu();
+    bool handle_multinode_menu();
     bool handle_pin_menu();
     bool handle_link_menu();
+    bool handle_multilink_menu();
+
+    bool show_colors_menu(bool& close, bool& reset, bool use_custom, bool show_alpha, const ImVec4& init);
+
+    std::set<data::NodeInstance*> get_nodes_in_group(data::NodeInstance* group);
 
 private:
     wid m_wf = 0;
     ax::NodeEditor::EditorContext* m_context = nullptr;
 
     data::NodeInstance* m_active_node = nullptr;
-    data::NodeInstance* m_copied_node = nullptr;
     const char* m_active_tt = nullptr;
 
     ImU32 m_defclr_node_bg;
@@ -102,16 +114,18 @@ private:
     ImU32 m_clr_node_header_text;
     const ImU32 m_clr_node_pin_text;
     const float m_mode_alpha = 0.4f;
+    float m_color_buff[4] = { -1.0f };
 
     Callbacks m_callbacks;
 
     const char* m_menuid_canvas;
     const char* m_menuid_node;
+    const char* m_menuid_group;
+    const char* m_menuid_multinode;
     const char* m_menuid_pin;
     const char* m_menuid_link;
+    const char* m_menuid_multilink;
     const char* m_menuid_activate = nullptr;
-    void* m_menu_object = nullptr;
-    ImVec2 m_menu_click_pos;
 
     data::NodeInstance* m_renaming_node = nullptr;
     std::string m_renaming_buff;
@@ -127,9 +141,16 @@ private:
     std::vector<ImRect> m_resizing_grip_positions;
     std::vector<float> m_resizing_w;
 
-    struct ClickedNode final
+    struct NodeAction final
     {
+        std::set<data::NodeInstance*> nodes;
+        std::map<data::NodeInstance*, std::set<data::NodeInstance*>> groups;
+        std::set<data::Link*> links;
+        std::set<data::PinInstance*> pins;
+        ImVec2 click_pos;
     };
+    NodeAction m_menu_objs;
+    NodeAction m_copied_objs;
 
 #ifdef _DEBUG
     std::set<void*> m_ids_imgui;

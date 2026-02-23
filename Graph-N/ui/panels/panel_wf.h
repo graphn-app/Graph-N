@@ -44,9 +44,12 @@ private:
     void draw_wf();
 
     void on_delete_node(data::NodeInstance* node);
+    void on_delete_group(data::NodeInstance* group);
     void on_delete_link(data::Link* link);
     void on_copy_node(data::NodeInstance* node, const ImRect& rc);
+    void on_copy_group(const ImRect& rc);
     void on_create_group(const ImRect& rc);
+    const std::vector<data::NodeInstance*>& on_get_all_nodes() const;
 
 private:
     wid m_wf = 0;

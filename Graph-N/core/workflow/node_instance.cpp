@@ -70,6 +70,13 @@ void NodeInstance::toggle_pinned()
     m_pinned = !m_pinned;
 }
 
+void NodeInstance::pin(bool pin)
+{
+    w_name = -1.0f;
+    m_saved_width = -1.0f;
+    m_pinned = pin;
+}
+
 void NodeInstance::set_mode(NodeMode mode)
 {
     w_name = -1.0f;
@@ -84,40 +91,46 @@ void NodeInstance::toggle_expanded()
     m_expanded = !m_expanded;
 }
 
-void NodeInstance::set_group_color(ImU32 clr)
+void NodeInstance::set_group_color(ImVec4 clr)
 {
-    m_bg_color_custom = true;
+    m_clr_custom = true;
 
-    m_bg_color = ImGui::ColorConvertU32ToFloat4(clr);
+    clr.w = 0.3f;
+    m_clr_group = ImGui::ColorConvertFloat4ToU32(clr);
 
-    m_bg_color.w = 0.9f;
-    m_group_caption_color = ImGui::ColorConvertFloat4ToU32(m_bg_color);
-    m_group_caption_color = ImGuiEx::increase_brightness(m_group_caption_color);
+    clr.w = 0.7f;
+    m_clr_head = ImGui::ColorConvertFloat4ToU32(clr);
 
-    m_bg_color.w = 0.7f;
-    m_header_color = ImGui::ColorConvertFloat4ToU32(m_bg_color);
+    clr.w = 0.9f;
+    m_clr_group_capt = ImGui::ColorConvertFloat4ToU32(clr);
+    m_clr_group_capt = ImGuiEx::increase_brightness(m_clr_group_capt);
+}
 
-    m_bg_color.w = 0.3f;
+void NodeInstance::set_node_color(const ImVec4& clr)
+{
+    m_clr_custom = true;
+    m_clr_node = clr;
+    m_clr_head = ImGuiEx::decrease_brightness(ImGui::ColorConvertFloat4ToU32(m_clr_node));            
 }
 
 void NodeInstance::reset_to_default_colors()
 {
     if (m_group)
     {
-        set_group_color(g::pOptsManager->color_load(AppColor::GroupBg));
+        set_group_color(ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::GroupBg)));
     }
     else
     {
-        m_bg_color_custom = false;
-        m_bg_color = {};
-        m_header_color = 0;
-        m_group_caption_color = 0;
+        m_clr_custom = false;
+        m_clr_node = {};
+        m_clr_head = 0;
+        m_clr_group_capt = 0;
     }
 }
 
 void NodeInstance::reset_width()
 {
-    m_size.x = get_ideal_width();
+    m_rc.Max.x = get_ideal_width();
     m_size_set = false;
     w_name = -1.0f;
     m_saved_width = -1.0f;

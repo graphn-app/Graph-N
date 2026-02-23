@@ -13,20 +13,23 @@ void NodeInstanceBase::init()
 {
     Instance<data::Node>::init();
 
-    m_input.reserve(m_object->required.pins.size() + m_object->optional.pins.size());
-    m_output.reserve(m_object->output.size());
+    if (m_object != nullptr)
+    {
+        m_input.reserve(m_object->required.pins.size() + m_object->optional.pins.size());
+        m_output.reserve(m_object->output.size());
+    }
 }
 
 const std::string& NodeInstanceBase::get_name() const
 {
-    if (m_name.empty())
+    if (m_name.empty() && m_object != nullptr)
         return m_object->display_name.empty() ? m_object->name : m_object->display_name;
     return m_name;
 }
 
 void NodeInstanceBase::set_name(std::string name)
 {
-    if (m_object->name == name)
+    if (m_object != nullptr && m_object->name == name)
         m_name.clear();
     else
         m_name = std::move(name);

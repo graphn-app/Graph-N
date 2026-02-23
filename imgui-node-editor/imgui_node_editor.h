@@ -369,6 +369,8 @@ IMGUI_NODE_EDITOR_API bool IsActive();
 
 IMGUI_NODE_EDITOR_API bool HasSelectionChanged();
 IMGUI_NODE_EDITOR_API int  GetSelectedObjectCount();
+IMGUI_NODE_EDITOR_API int  GetSelectedNodesCount();
+IMGUI_NODE_EDITOR_API int  GetSelectedLinksCount();
 IMGUI_NODE_EDITOR_API int  GetSelectedNodes(NodeId* nodes, int size);
 IMGUI_NODE_EDITOR_API int  GetSelectedLinks(LinkId* links, int size);
 IMGUI_NODE_EDITOR_API bool IsNodeSelected(NodeId nodeId);

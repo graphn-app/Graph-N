@@ -51,8 +51,7 @@ NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0
 {
     const auto id = get_new_child_id();
     auto instance = std::make_unique<NodeInstance>(node, m_wf_data.id, id);
-    instance->m_pos = rc.Min;
-    instance->m_size = rc.Max;
+    instance->m_rc = rc;
     auto ptr = instance.get();
     ptr->init(select);
     m_nodes.push_back(std::move(instance));
@@ -75,8 +74,8 @@ NodeInstance* Workflow::add_group(const ImRect& rc, const std::string& name /*= 
 {
     const auto id = get_new_child_id();
     auto instance = std::make_unique<NodeInstance>(nullptr, m_wf_data.id, id);
-    instance->m_pos = rc.Min;
-    instance->m_size = ImVec2(-1 == rc.Max.x ? 200 : rc.Max.x, -1 == rc.Max.y ? 200 : rc.Max.y);
+    instance->m_rc.Min = rc.Min;
+    instance->m_rc.Max = ImVec2(-1 == rc.Max.x ? 200 : rc.Max.x, -1 == rc.Max.y ? 200 : rc.Max.y);
     instance->m_group = true;
     instance->set_name(name);
     auto ptr = instance.get();
@@ -150,7 +149,7 @@ void Workflow::remove_node(const NodeInstance* node)
     const auto n_it = std::find_if(m_nodes.begin(), m_nodes.end(),
         [id = node->get_instance_id()](const std::unique_ptr<NodeInstance>& node)
         {
-            if (!node || !node->get_object())
+            if (!node)
                 return false;
             return node->get_instance_id() == id;
         }

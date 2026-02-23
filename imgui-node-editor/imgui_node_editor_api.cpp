@@ -469,6 +469,35 @@ int ax::NodeEditor::GetSelectedObjectCount()
     return (int)s_Editor->GetSelectedObjects().size();
 }
 
+int ax::NodeEditor::GetSelectedNodesCount()
+{
+    if (GetSelectedObjectCount() == 0)
+        return 0;
+    int count = 0;
+    auto& sel = s_Editor->GetSelectedObjects();
+    for (auto obj : sel)
+    {
+        if (obj->AsNode())
+            count++;
+    }
+    return count;
+}
+
+int ax::NodeEditor::GetSelectedLinksCount()
+{
+    if (GetSelectedObjectCount() == 0)
+        return 0;
+    int count = 0;
+    auto& sel = s_Editor->GetSelectedObjects();
+    for (auto obj : sel)
+    {
+        if (obj->AsLink())
+            count++;
+    }
+    return count;
+
+}
+
 int ax::NodeEditor::GetSelectedNodes(NodeId* nodes, int size)
 {
     return BuildIdList(s_Editor->GetSelectedObjects(), nodes, size, [](auto object)

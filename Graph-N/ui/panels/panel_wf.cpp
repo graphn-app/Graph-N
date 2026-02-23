@@ -49,6 +49,9 @@ void PanelWorkflow::init()
     callbacks.copy_node = std::bind(&PanelWorkflow::on_copy_node, this, std::placeholders::_1, std::placeholders::_2);
     callbacks.delete_link = std::bind(&PanelWorkflow::on_delete_link, this, std::placeholders::_1);
     callbacks.create_group = std::bind(&PanelWorkflow::on_create_group, this, std::placeholders::_1);
+    callbacks.copy_group = std::bind(&PanelWorkflow::on_copy_group, this, std::placeholders::_1);
+    callbacks.delete_group = std::bind(&PanelWorkflow::on_delete_group, this, std::placeholders::_1);
+    callbacks.get_all_nodes = std::bind(&PanelWorkflow::on_get_all_nodes, this);
     m_drawer.init(m_wf, callbacks);
 }
 
@@ -154,6 +157,23 @@ void PanelWorkflow::on_delete_node(data::NodeInstance* node)
     }
 }
 
+void PanelWorkflow::on_delete_group(data::NodeInstance* group)
+{
+    auto wf = g::pWfsManager->access(m_wf);
+    if (wf != nullptr)
+    {
+        for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it)
+        {
+            if (*it == group)
+            {
+                m_nodes.erase(it);
+                break;
+            }
+        }
+        wf->remove_node(group);        
+    }
+}
+
 void PanelWorkflow::on_delete_link(data::Link* link)
 {
     (void)link;
@@ -164,9 +184,19 @@ void PanelWorkflow::PanelWorkflow::on_copy_node(data::NodeInstance* node, const 
     add_node(node->get_object(), "", rc);
 }
 
+void PanelWorkflow::PanelWorkflow::on_copy_group(const ImRect& rc)
+{
+    add_group(rc);
+}
+
 void PanelWorkflow::on_create_group(const ImRect& rc)
 {
     add_group(rc);
+}
+
+const std::vector<data::NodeInstance*>& PanelWorkflow::on_get_all_nodes() const
+{
+    return m_nodes;
 }
 
 } // namespace ui

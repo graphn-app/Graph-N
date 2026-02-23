@@ -20,6 +20,7 @@ public:
     void set_name(std::string name) override;
 
     void toggle_pinned();
+    void pin(bool pin);
     inline bool pinned() const { return m_pinned; }
 
     void set_mode(NodeMode mode);
@@ -28,7 +29,8 @@ public:
     void toggle_expanded();
     inline bool expanded() const { return m_expanded; }
 
-    void set_group_color(ImU32 clr);
+    void set_group_color(ImVec4 clr);
+    void set_node_color(const ImVec4& clr);
     void reset_to_default_colors();
 
     void reset_width();
@@ -39,15 +41,14 @@ protected:
 
 public:
     bool m_pos_set = false;
-    ImVec2 m_pos = {};
-
     bool m_size_set = false;
-    ImVec2 m_size = {}; // size for group, width for node
+    ImRect m_rc = {}; // size for group, width for node
 
-    bool m_bg_color_custom = false;
-    ImVec4 m_bg_color = {};
-    ImU32 m_header_color = 0;
-    ImU32 m_group_caption_color = 0;
+    bool m_clr_custom = false;
+    ImVec4 m_clr_node = {}; // color for node backgroud
+    ImU32 m_clr_group = 0; // color for group backgroud
+    ImU32 m_clr_head = 0; // color for node/group header background
+    ImU32 m_clr_group_capt = 0; // color for group name
 
     bool m_group = false;
     bool m_show_hidden = false;
