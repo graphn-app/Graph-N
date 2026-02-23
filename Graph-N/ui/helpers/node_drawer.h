@@ -90,14 +90,17 @@ private:
     void handle_widget_active_state();
     bool handle_node_resize();
     bool handle_context_menu();
-    bool handle_canvas_menu();
-    bool handle_node_menu();
-    bool handle_group_menu();
-    bool handle_multinode_menu();
-    bool handle_pin_menu();
-    bool handle_link_menu();
-    bool handle_multilink_menu();
 
+    bool show_context_menu();
+    bool show_canvas_menu();
+    bool show_node_menu();
+    bool show_group_menu();
+    bool show_multinode_menu();
+    bool show_multigroup_menu();
+    bool show_multiobj_menu();
+    bool show_pin_menu();
+    bool show_link_menu();
+    bool show_multilink_menu();
     bool show_colors_menu(bool& close, bool& reset, bool use_custom, bool show_alpha, const ImVec4& init);
 
     std::set<data::NodeInstance*> get_nodes_in_group(data::NodeInstance* group);
@@ -118,15 +121,6 @@ private:
 
     Callbacks m_callbacks;
 
-    const char* m_menuid_canvas;
-    const char* m_menuid_node;
-    const char* m_menuid_group;
-    const char* m_menuid_multinode;
-    const char* m_menuid_pin;
-    const char* m_menuid_link;
-    const char* m_menuid_multilink;
-    const char* m_menuid_activate = nullptr;
-
     data::NodeInstance* m_renaming_node = nullptr;
     std::string m_renaming_buff;
     bool m_need_renaming_focus = false;
@@ -141,6 +135,11 @@ private:
     std::vector<ImRect> m_resizing_grip_positions;
     std::vector<float> m_resizing_w;
 
+    const ImGuiID m_context_menuid;
+    bool m_handle_context_menu = false;
+
+    enum class MenuType { _none, Back, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink };
+
     struct NodeAction final
     {
         std::set<data::NodeInstance*> nodes;
@@ -149,6 +148,7 @@ private:
         std::set<data::PinInstance*> pins;
         ImVec2 click_pos;
     };
+    MenuType m_context_menu_type = MenuType::_none;
     NodeAction m_menu_objs;
     NodeAction m_copied_objs;
 
