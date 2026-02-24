@@ -106,7 +106,7 @@ void NodeDrawer::post_draw_all()
         ImGui::OpenPopup(m_context_menuid);
         m_handle_context_menu = false;
     }
-    if (handle_context_menu())
+    if (show_context_menu())
         ;
     else if (!canvas_busy && m_deffered_action->combo.is_active)
         ImGuiExNe::RenderDeferredCombo(*m_deffered_action.get());
@@ -129,17 +129,6 @@ void NodeDrawer::post_draw_all()
 
 void NodeDrawer::pre_draw_node(data::NodeInstance* node)
 {
-    const bool deferred_node_active = m_deffered_action->active_node == node;
-    if (deferred_node_active)
-    {
-        if (!ed::IsNodeSelected(cast::to_ptr(node)))
-            ed::SelectNode(cast::to_ptr(node), true);
-    }
-    else if (m_deffered_action->active_node != nullptr)
-    {
-        ed::DeselectNode(cast::to_ptr(node));
-    }
-
     if (node->m_group)
     {
         ed::PushStyleColor(ed::StyleColor_GroupBg, ImVec4(0, 0, 0, 0));
@@ -160,16 +149,30 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * m_mode_alpha);
     }
 
-    ed::BeginNode(cast::to_ptr(node));
+    if (node->get_ed_valid())
+        ed::BeginNode(node->get_ed());
+    else
+        node->set_ed(ed::BeginNode(cast::to_ptr(node)));
+
+    const bool deferred_node_active = m_deffered_action->active_node == node;
+    if (deferred_node_active)
+    {
+        if (!ed::IsNodeSelected(node->get_ed()))
+            ed::SelectNode(node->get_ed(), true);
+    }
+    else if (m_deffered_action->active_node != nullptr)
+    {
+        ed::DeselectNode(node->get_ed());
+    }
 
     if (!node->m_pos_set)
     {
-        ed::SetNodePosition(cast::to_ptr(node), node->m_rc.Min);
+        ed::SetNodePosition(node->get_ed(), node->m_rc.Min);
         node->m_pos_set = true;
     }
     if (!node->m_size_set && node->m_group)
     {
-        ed::SetGroupSize(cast::to_ptr(node), node->m_rc.Max);
+        ed::SetGroupSize(node->get_ed(), node->m_rc.Max);
         node->m_size_set = true;
     }
 }
@@ -177,8 +180,8 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
 void NodeDrawer::post_draw_node(data::NodeInstance* node)
 {
     ed::EndNode();
-    node->m_rc.Min = ed::GetNodePosition(cast::to_ptr(node));
-    node->m_rc.Max = ed::GetNodeSize(cast::to_ptr(node));
+    node->m_rc.Min = ed::GetNodePosition(node->get_ed());
+    node->m_rc.Max = ed::GetNodeSize(node->get_ed());
 
     if (node->m_group)
         ed::PopStyleColor(3);
@@ -197,7 +200,7 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node)
 void NodeDrawer::locate_node(data::NodeInstance* node)
 {
     ed::ClearSelection();
-    ed::SelectNode(cast::to_ptr(node));
+    ed::SelectNode(node->get_ed());
     ed::NavigateToSelection(false, 0.5f);
 }
 
@@ -225,10 +228,10 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
         node_w = m_resizing_w[node_idx];
     else
     {
-        node_size = ed::GetNodeSize(cast::to_ptr(m_active_node));
+        node_size = ed::GetNodeSize(m_active_node->get_ed());
         if (node_size.x > 0 && node_size.y > 0)
         {
-            node_pos = ed::GetNodePosition(cast::to_ptr(m_active_node));
+            node_pos = ed::GetNodePosition(m_active_node->get_ed());
             node_w = node_size.x - ed::GetStyle().NodePadding.x - ed::GetStyle().NodePadding.z;
         }
     }
@@ -591,7 +594,10 @@ void NodeDrawer::draw_pin(data::PinInstance* pin, bool force_default_shape, bool
     test_id(m_ids_imgui, &pin->m_state->pin_color);
     test_id(m_ids_nodelib, pin);
 #endif
-    ed::BeginPin(cast::to_ptr(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
+    if (pin->get_ed_valid())
+        ed::BeginPin(pin->get_ed(), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
+    else
+        pin->set_ed(ed::BeginPin(cast::to_ptr(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output));
     draw_pin_shape(pin, force_default_shape, align_to_widget);
     ed::EndPin();
     ImGui::PopID();
@@ -660,7 +666,7 @@ void NodeDrawer::handle_widget_active_state()
 {
     if (ImGui::IsItemActivated())
     {
-        ed::SelectNode(cast::to_ptr(m_active_node));
+        ed::SelectNode(m_active_node->get_ed());
     }
 }
 
@@ -1013,7 +1019,7 @@ void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_op
     if (pressed)
     {
         opened = !opened;
-        ed::SelectNode(cast::to_ptr(m_active_node));
+        ed::SelectNode(m_active_node->get_ed());
     }
     else if (ImGui::IsItemHovered())
         temp_open = true;
@@ -1033,7 +1039,10 @@ void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& link
 #endif
         auto in = link->get_input();
         auto out = link->get_output();
-        ed::Link(cast::to_ptr(link.get()), cast::to_ptr(in), cast::to_ptr(out), in->m_state->pin_color);
+        if (link->get_ed_valid())
+            link->set_ed(ed::Link(link->get_ed(), in->get_ed(), out->get_ed(), in->m_state->pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load())));
+        else
+            link->set_ed(ed::Link(cast::to_ptr(link.get()), in->get_ed(), out->get_ed(), in->m_state->pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load())));
     }
 }
 
@@ -1255,19 +1264,19 @@ bool NodeDrawer::handle_context_menu()
     if (!ImGui::IsMouseReleased(ImGuiMouseButton_Right))
         return false;
 
-    const auto pin = ed::GetHoveredPin();
-    if (pin)
+    const auto pin_id = ed::GetHoveredPin();
+    if (pin_id)
     {
         m_handle_context_menu = true;
         m_menu_objs = {};
         m_context_menu_type = MenuType::Pin;
-        m_menu_objs.pins.insert(cast::ptrs<data::PinInstance>((std::uintptr_t)pin));
+        m_menu_objs.pins.insert(cast::ptrs<data::PinInstance>((std::uintptr_t)pin_id));
         m_menu_objs.click_pos = ed::ScreenToCanvas(ImGui::GetMousePos());
         return true;
     }
 
-    const auto link = ed::GetHoveredLink();
-    if (link)
+    const auto link_id = ed::GetHoveredLink();
+    if (link_id)
     {
         m_handle_context_menu = true;
         m_menu_objs = {};
@@ -1276,7 +1285,7 @@ bool NodeDrawer::handle_context_menu()
         if (sel_links == 1)
         {
             m_context_menu_type = MenuType::Link;
-            m_menu_objs.links.insert(cast::ptrs<data::Link>((std::uintptr_t)link));
+            m_menu_objs.links.insert(cast::ptrs<data::Link>((std::uintptr_t)link_id));
         }
         else
         {
@@ -1285,31 +1294,31 @@ bool NodeDrawer::handle_context_menu()
             links.resize(sel_links);
             ed::GetSelectedLinks(links.data(), cast::to_i32(sel_links));
 
-            for (auto link_id : links)
+            for (auto id : links)
             {
-                m_menu_objs.links.insert(cast::ptrs<data::Link>((std::uintptr_t)link_id));
+                m_menu_objs.links.insert(cast::ptrs<data::Link>((std::uintptr_t)id));
             }
         }
         return true;
     }
 
-    const auto node = ed::GetHoveredNode();
-    if (node)
+    const auto node_id = ed::GetHoveredNode();
+    if (node_id)
     {
         m_handle_context_menu = true;
         m_menu_objs = {};
         m_menu_objs.click_pos = ed::ScreenToCanvas(ImGui::GetMousePos());
 
+        auto node = cast::ptrs<data::NodeInstance>((std::uintptr_t)node_id);
         const int32_t selected_count = ed::GetSelectedNodesCount();
-        if (!ed::IsNodeSelected(node) || 1 == selected_count)
+        if (!ed::IsNodeSelected(node->get_ed()) || 1 == selected_count)
         {
-            ed::SelectNode(node);
-            auto inst = cast::ptrs<data::NodeInstance>((std::uintptr_t)node);
-            if (inst->m_group)
-                m_menu_objs.groups.insert({ inst, get_nodes_in_group(inst) });
+            ed::SelectNode(node->get_ed());
+            if (node->m_group)
+                m_menu_objs.groups.insert({ node, get_nodes_in_group(node) });
             else
-                m_menu_objs.nodes.insert(inst);
-            m_context_menu_type = inst->m_group ? MenuType::Group : MenuType::Node;
+                m_menu_objs.nodes.insert(node);
+            m_context_menu_type = node->m_group ? MenuType::Group : MenuType::Node;
         }
         else
         {
@@ -1317,16 +1326,16 @@ bool NodeDrawer::handle_context_menu()
             nodes.resize(selected_count);
             ed::GetSelectedNodes(nodes.data(), selected_count);
 
-            for (auto node_id : nodes)
+            for (auto id : nodes)
             {
-                auto inst = cast::ptrs<data::NodeInstance>((std::uintptr_t)node_id);
-                if (inst->m_group)
+                node = cast::ptrs<data::NodeInstance>((std::uintptr_t)id);
+                if (node->m_group)
                 {
-                    m_menu_objs.groups.insert({ inst, get_nodes_in_group(inst) });
+                    m_menu_objs.groups.insert({ node, get_nodes_in_group(node) });
                 }
                 else
                 {
-                    m_menu_objs.nodes.insert(inst);
+                    m_menu_objs.nodes.insert(node);
                 }
             }
 
@@ -1432,7 +1441,7 @@ bool NodeDrawer::show_node_menu()
     if (ImGui::MenuItem(node->pinned() ? "Unpin" : "Pin"))
     {
         node->toggle_pinned();
-        ed::SetNodeDraggable(cast::to_ptr(node), !node->pinned());
+        ed::SetNodeDraggable(node->get_ed(), !node->pinned());
         close = true;
     }
     if (ImGui::MenuItem("Group"))
@@ -1461,7 +1470,8 @@ bool NodeDrawer::show_node_menu()
     ImGui::Separator();
     if (ImGui::MenuItem("Remove"))
     {
-        ed::DeleteNode(cast::to_ptr(node));
+        ed::DeleteNode(node->get_ed());
+        node->reset_ed();
         m_callbacks.delete_node(node);
         close = true;
     }
@@ -1550,14 +1560,15 @@ bool NodeDrawer::show_group_menu()
             ed::ClearSelection();
             for (auto node : nodes)
             {
-                ed::SelectNode(cast::to_ptr(node), true);
+                ed::SelectNode(node->get_ed(), true);
             }
         }
     }
     ImGui::Separator();
     if (ImGui::MenuItem(nodes.empty() ? "Remove" : "Remove group"))
     {
-        ed::DeleteNode(cast::to_ptr(group));
+        ed::DeleteNode(group->get_ed());
+        group->reset_ed();
         m_callbacks.delete_group(group);
         close = true;
     }
@@ -1567,11 +1578,13 @@ bool NodeDrawer::show_group_menu()
         {
             for (auto node : nodes)
             {
-                ed::DeleteNode(cast::to_ptr(node));
+                ed::DeleteNode(node->get_ed());
+                node->reset_ed();
                 m_callbacks.delete_node(node);
             }
 
-            ed::DeleteNode(cast::to_ptr(group));
+            ed::DeleteNode(group->get_ed());
+            group->reset_ed();
             m_callbacks.delete_group(group);
 
             close = true;
@@ -1590,7 +1603,7 @@ bool NodeDrawer::show_group_menu()
             for (auto node : nodes)
             {
                 node->pin(true);
-                ed::SetNodeDraggable(cast::to_ptr(node), false);
+                ed::SetNodeDraggable(node->get_ed(), false);
             }
             close = true;
         }
@@ -1599,7 +1612,7 @@ bool NodeDrawer::show_group_menu()
             for (auto node : nodes)
             {
                 node->pin(false);
-                ed::SetNodeDraggable(cast::to_ptr(node), true);
+                ed::SetNodeDraggable(node->get_ed(), true);
             }
             close = true;
         }

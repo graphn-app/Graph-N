@@ -1574,20 +1574,30 @@ void ed::EditorContext::End()
     m_IsFirstFrame = false;
 }
 
-bool ed::EditorContext::DoLink(LinkId id, PinId startPinId, PinId endPinId, ImU32 color, float thickness)
+void* ed::EditorContext::DoLink(void* link, void* startPin, void* endPin, ImU32 color, float thickness)
 {
-    //auto& editorStyle = GetStyle();
+    return DoLink(reinterpret_cast<ax::NodeEditor::Detail::Link*>(link),
+        reinterpret_cast<ax::NodeEditor::Detail::Pin*>(startPin),
+        reinterpret_cast<ax::NodeEditor::Detail::Pin*>(endPin),
+        color, thickness);
+}
 
-    auto startPin = FindPin(startPinId);
-    auto endPin   = FindPin(endPinId);
+void* ed::EditorContext::DoLink(LinkId id, void* startPin, void* endPin, ImU32 color, float thickness)
+{
+    return DoLink(GetLink(id),
+        reinterpret_cast<ax::NodeEditor::Detail::Pin*>(startPin),
+        reinterpret_cast<ax::NodeEditor::Detail::Pin*>(endPin),
+        color, thickness);
+}
 
+void* ed::EditorContext::DoLink(Link* link, Pin* startPin, Pin* endPin, ImU32 color, float thickness)
+{
     if (!startPin || !startPin->m_IsLive || !endPin || !endPin->m_IsLive)
-        return false;
+        return nullptr;
 
     startPin->m_HasConnection = true;
       endPin->m_HasConnection = true;
 
-    auto link           = GetLink(id);
     link->m_StartPin      = startPin;
     link->m_EndPin        = endPin;
     link->m_Color         = color;
@@ -1597,18 +1607,11 @@ bool ed::EditorContext::DoLink(LinkId id, PinId startPinId, PinId endPinId, ImU3
 
     link->UpdateEndpoints();
 
-    return true;
+    return (void*)link;
 }
 
-void ed::EditorContext::SetNodePosition(NodeId nodeId, const ImVec2& position)
+void ed::EditorContext::SetNodePosition(Node* node, const ImVec2& position)
 {
-    auto node = FindNode(nodeId);
-    if (!node)
-    {
-        node = CreateNode(nodeId);
-        node->m_IsLive = false;
-    }
-
     if (node->m_Bounds.Min != position)
     {
         node->m_Bounds.Translate(position - node->m_Bounds.Min);
@@ -1617,15 +1620,8 @@ void ed::EditorContext::SetNodePosition(NodeId nodeId, const ImVec2& position)
     }
 }
 
-void ed::EditorContext::SetGroupSize(NodeId nodeId, const ImVec2& size)
+void ed::EditorContext::SetGroupSize(Node* node, const ImVec2& size)
 {
-    auto node = FindNode(nodeId);
-    if (!node)
-    {
-        node = CreateNode(nodeId);
-        node->m_IsLive = false;
-    }
-
     node->m_Type = NodeType::Group;
 
     if (node->m_GroupBounds.GetSize() != size)
@@ -1637,21 +1633,17 @@ void ed::EditorContext::SetGroupSize(NodeId nodeId, const ImVec2& size)
     }
 }
 
-ImVec2 ed::EditorContext::GetNodePosition(NodeId nodeId)
+ImVec2 ed::EditorContext::GetNodePosition(Node* node)
 {
-    auto node = FindNode(nodeId);
     if (!node)
         return ImVec2(FLT_MAX, FLT_MAX);
-
     return node->m_Bounds.Min;
 }
 
-ImVec2 ed::EditorContext::GetNodeSize(NodeId nodeId)
+ImVec2 ed::EditorContext::GetNodeSize(Node* node)
 {
-    auto node = FindNode(nodeId);
     if (!node)
         return ImVec2(0, 0);
-
     return node->m_Bounds.GetSize();
 }
 
@@ -5164,11 +5156,21 @@ ed::NodeBuilder::~NodeBuilder()
     m_PinSplitter.ClearFreeMemory();
 }
 
-void ed::NodeBuilder::Begin(NodeId nodeId)
+void* ed::NodeBuilder::Begin(NodeId nodeId)
+{
+    return Begin(Editor->GetNode(nodeId));
+}
+
+void ed::NodeBuilder::Begin(void* node)
+{
+    Begin(reinterpret_cast<ax::NodeEditor::Detail::Node*>(node));
+}
+
+void* ed::NodeBuilder::Begin(Node* node)
 {
     IM_ASSERT(nullptr == m_CurrentNode);
 
-    m_CurrentNode = Editor->GetNode(nodeId);
+    m_CurrentNode = node;
 
     Editor->UpdateNodeState(m_CurrentNode);
 
@@ -5244,6 +5246,8 @@ void ed::NodeBuilder::Begin(NodeId nodeId)
         ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(editorStyle.NodePadding.x, editorStyle.NodePadding.y));
         ImGui::BeginGroup();
     }
+
+    return (void*)m_CurrentNode;
 }
 
 void ed::NodeBuilder::End()
@@ -5297,7 +5301,17 @@ void ed::NodeBuilder::End()
     m_CurrentNode = nullptr;
 }
 
-void ed::NodeBuilder::BeginPin(PinId pinId, PinKind kind)
+void* ed::NodeBuilder::BeginPin(PinId pinId, PinKind kind)
+{
+    return BeginPin(Editor->GetPin(pinId, kind), kind);
+}
+
+void ed::NodeBuilder::BeginPin(void* pin, PinKind kind)
+{
+    BeginPin(reinterpret_cast<ax::NodeEditor::Detail::Pin*>(pin), kind);
+}
+
+void* ed::NodeBuilder::BeginPin(Pin* pin, PinKind kind)
 {
     IM_ASSERT(nullptr != m_CurrentNode);
     IM_ASSERT(nullptr == m_CurrentPin);
@@ -5305,7 +5319,7 @@ void ed::NodeBuilder::BeginPin(PinId pinId, PinKind kind)
 
     auto& editorStyle = Editor->GetStyle();
 
-    m_CurrentPin = Editor->GetPin(pinId, kind);
+    m_CurrentPin = pin;
     m_CurrentPin->m_Node = m_CurrentNode;
 
     m_CurrentPin->m_IsLive      = true;
@@ -5337,6 +5351,7 @@ void ed::NodeBuilder::BeginPin(PinId pinId, PinKind kind)
     }
 
     ImGui::BeginGroup();
+    return (void*)m_CurrentPin;
 }
 
 void ed::NodeBuilder::EndPin()

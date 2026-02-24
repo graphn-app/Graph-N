@@ -1197,10 +1197,14 @@ struct NodeBuilder
     NodeBuilder(EditorContext* editor);
     ~NodeBuilder();
 
-    void Begin(NodeId nodeId);
+    void Begin(void* node);
+    void* Begin(Node* node);
+    void* Begin(NodeId nodeId);
     void End();
 
-    void BeginPin(PinId pinId, PinKind kind);
+    void BeginPin(void* pin, PinKind kind);
+    void* BeginPin(Pin* pin, PinKind kind);
+    void* BeginPin(PinId pinId, PinKind kind);
     void EndPin();
 
     void PinRect(const ImVec2& a, const ImVec2& b);
@@ -1304,8 +1308,9 @@ struct EditorContext
     void Begin(const char* id, const ImVec2& size = ImVec2(0, 0));
     void End();
 
-    bool DoLink(LinkId id, PinId startPinId, PinId endPinId, ImU32 color, float thickness);
-
+    void* DoLink(void* link, void* startPin, void* endPin, ImU32 color, float thickness);
+    void* DoLink(LinkId id, void* startPin, void* endPin, ImU32 color, float thickness);
+    void* DoLink(Link* link, Pin* startPin, Pin* endPin, ImU32 color, float thickness);
 
     NodeBuilder& GetNodeBuilder() { return m_NodeBuilder; }
     HintBuilder& GetHintBuilder() { return m_HintBuilder; }
@@ -1321,10 +1326,10 @@ struct EditorContext
     const ImRect& GetViewRect() const { return m_Canvas.ViewRect(); }
     const ImRect& GetRect() const { return m_Canvas.Rect(); }
 
-    void SetNodePosition(NodeId nodeId, const ImVec2& screenPosition);
-    void SetGroupSize(NodeId nodeId, const ImVec2& size);
-    ImVec2 GetNodePosition(NodeId nodeId);
-    ImVec2 GetNodeSize(NodeId nodeId);
+    void SetNodePosition(Node* node, const ImVec2& screenPosition);
+    void SetGroupSize(Node* node, const ImVec2& size);
+    ImVec2 GetNodePosition(Node* node);
+    ImVec2 GetNodeSize(Node* node);
 
     void SetNodeZPosition(NodeId nodeId, float z);
     float GetNodeZPosition(NodeId nodeId);

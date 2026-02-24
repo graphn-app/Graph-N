@@ -64,6 +64,11 @@ public:
         }
     }
 
+    inline bool get_ed_valid() const { return m_ed != nullptr; }
+    inline void* get_ed() const { return m_ed; }
+    inline void set_ed(void* ed) { m_ed = ed; }
+    inline void reset_ed() { m_ed = nullptr; }
+
 protected:
     virtual BaseObj* find_obj(hid obj_id) const = 0;
 
@@ -72,6 +77,9 @@ protected:
     wid m_wid = 0;
     iid m_iid = 0;
     hid m_hid = 0;
+
+private:
+    void* m_ed = nullptr;
 };
 
 } // namespace data

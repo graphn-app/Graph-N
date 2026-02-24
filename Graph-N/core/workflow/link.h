@@ -22,11 +22,18 @@ public:
 
     void unlink();
 
+    inline bool get_ed_valid() const { return m_ed != nullptr; }
+    inline void* get_ed() const { return m_ed; }
+    inline void set_ed(void* ed) { m_ed = ed; }
+    inline void reset_ed() { m_ed = nullptr; }
+
 private:
     wid m_workflow_id = 0;
     iid m_iid = 0;
     const PinInstance* m_input = nullptr;
     const PinInstance* m_output = nullptr;
+
+    void* m_ed = nullptr;
 };
 
 } // namespace data
