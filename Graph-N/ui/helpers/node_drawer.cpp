@@ -1405,16 +1405,47 @@ bool NodeDrawer::show_context_menu()
 bool NodeDrawer::show_canvas_menu()
 {
     bool close = false;
+
+    ImGui::MenuItem("Project name", nullptr, nullptr, false); // TODO
+    ImGui::Separator();
+    if (ImGui::MenuItem("Add node")) // TODO
+    {
+        close = true;
+    }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Undo")) // TODO
+    {
+        close = true;
+    }
+    if (ImGui::MenuItem("Redo")) // TODO
+    {
+        close = true;
+    }
+    ImGui::Separator();
     if (ImGui::MenuItem("Add group"))
     {
         m_callbacks.create_group(ImRect(m_menu_objs.click_pos.x, m_menu_objs.click_pos.y, -1, -1));
         close = true;
     }
-    if (ImGui::MenuItem("Add node")) // TODO
+    if (ImGui::MenuItem("Fit all groups to content")) // TODO
     {
         close = true;
     }
+    ImGui::Separator();
     if (ImGui::MenuItem("Paste", nullptr, false, !m_copied_objs.nodes.empty() || !m_copied_objs.groups.empty())) // TODO
+    {
+        close = true;
+    }
+    if (ImGui::MenuItem("Select all")) // TODO
+    {
+        close = true;
+    }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Duplicate workflow")) // TODO
+    {
+        close = true;
+    }
+    if (ImGui::MenuItem("Reset workflow window position")) // TODO
     {
         close = true;
     }
@@ -1598,7 +1629,7 @@ bool NodeDrawer::show_group_menu()
     ImGui::Separator();
     if (!nodes.empty())
     {
-        if (ImGui::MenuItem("Pin all"))
+        if (ImGui::MenuItem("Pin nodes"))
         {
             for (auto node : nodes)
             {
@@ -1607,7 +1638,7 @@ bool NodeDrawer::show_group_menu()
             }
             close = true;
         }
-        if (ImGui::MenuItem("Unpin all"))
+        if (ImGui::MenuItem("Unpin nodes"))
         {
             for (auto node : nodes)
             {
@@ -1689,7 +1720,16 @@ bool NodeDrawer::show_group_menu()
 bool NodeDrawer::show_multinode_menu()
 {
     bool close = false;
-    if (ImGui::MenuItem("Remove all"))
+    if (ImGui::MenuItem("Reset nodes width"))
+    {
+        close = true;
+    }
+    if (ImGui::MenuItem("Group"))
+    {
+        close = true;
+    }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Remove {} nodes"))
     {
         close = true;
     }
@@ -1697,6 +1737,29 @@ bool NodeDrawer::show_multinode_menu()
     {
         close = true;
     }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Pin nodes"))
+    {
+        close = true;
+    }
+    if (ImGui::MenuItem("Unpin nodes"))
+    {
+        close = true;
+    }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Always"))
+    {
+        close = true;
+    }
+    if (ImGui::MenuItem("Bypass"))
+    {
+        close = true;
+    }
+    if (ImGui::MenuItem("Mute"))
+    {
+        close = true;
+    }
+    ImGui::Separator();
     if (ImGui::MenuItem("Color"))
     {
         close = true;
@@ -1708,14 +1771,20 @@ bool NodeDrawer::show_multinode_menu()
 bool NodeDrawer::show_multigroup_menu()
 {
     bool close = false;
-    if (ImGui::MenuItem("Remove all"))
+    if (ImGui::MenuItem("Remove groups"))
     {
         close = true;
     }
-    if (ImGui::MenuItem("Copy"))
+    if (ImGui::MenuItem("Remove groups and {} nodes inside"))
     {
         close = true;
     }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Fit groups to content"))
+    {
+        close = true;
+    }
+    ImGui::Separator();
     if (ImGui::MenuItem("Color"))
     {
         close = true;
@@ -1735,6 +1804,12 @@ bool NodeDrawer::show_multiobj_menu()
     {
         close = true;
     }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Fit groups to content"))
+    {
+        close = true;
+    }
+    ImGui::Separator();
     if (ImGui::MenuItem("Color"))
     {
         close = true;
@@ -1747,9 +1822,13 @@ bool NodeDrawer::show_pin_menu()
 {
     bool close = false;
 
-    if (ImGui::MenuItem("Pin menu"))
+    if (ImGui::MenuItem("Unlink"))
     {
-        ImGui::CloseCurrentPopup();
+        close = true;
+    }
+    if (ImGui::MenuItem("Rename slot"))
+    {
+        close = true;
     }
 
     return close;
@@ -1759,9 +1838,13 @@ bool NodeDrawer::show_link_menu()
 {
     bool close = false;
 
-    if (ImGui::MenuItem("Link menu"))
+    if (ImGui::MenuItem("Remove link"))
     {
-        ImGui::CloseCurrentPopup();
+        close = true;
+    }
+    if (ImGui::MenuItem("Insert angle"))
+    {
+        close = true;
     }
 
     return close;
@@ -1771,11 +1854,10 @@ bool NodeDrawer::show_multilink_menu()
 {
     bool close = false;
 
-    if (ImGui::MenuItem("MLink menu"))
+    if (ImGui::MenuItem("Remove all links"))
     {
-        ImGui::CloseCurrentPopup();
+        close = true;
     }
-
     return close;
 }
 
