@@ -28,13 +28,49 @@ void NodesManager::init_from_copy(NodesManager& copy)
     m_labels = std::move(copy.m_labels);
     m_last_label_id = copy.m_last_label_id;
     m_nodes_in_label = std::move(copy.m_nodes_in_label);
-    calc_number_inside("");
+    calc_number_inside("", "", "");
 }
 
-void NodesManager::calc_number_inside(const std::string& filter)
+void NodesManager::calc_number_inside(const std::string& filter, const std::string& in_pin, const std::string& out_pin)
 {
+    const auto pin_filter = [](const std::vector<data::Pin*>& pins, const std::string& filter)
+    {
+        for (auto pin : pins)
+        {
+            if (pin->type_any)
+                return true;
+            if (pin->def_state.type_str == filter)
+                return true;
+        }
+        return false;
+    };
+
+    const auto pins_filter = [&in_pin, &out_pin, &pin_filter](data::NodeItem* node_item)
+    {
+        if (in_pin.empty() && out_pin.empty())
+            return true;
+
+        if (!in_pin.empty())
+        {
+            if (pin_filter(node_item->node->required.pins, in_pin) ||
+                pin_filter(node_item->node->optional.pins, in_pin))
+            {
+                return true;
+            }
+        }
+        if (!out_pin.empty())
+        {
+            if (pin_filter(node_item->node->output, out_pin))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
     std::function<void(std::vector<data::NodeItem*>&, uint32_t*, bool)> calculator;
-    calculator = [&calculator, &filter](std::vector<data::NodeItem*>& nodes, uint32_t* count, bool force_unfilter)
+    calculator = [&calculator, &filter, &pins_filter](std::vector<data::NodeItem*>& nodes, uint32_t* count, bool force_unfilter)
     {
         for (auto node : nodes)
         {
@@ -50,15 +86,19 @@ void NodesManager::calc_number_inside(const std::string& filter)
             {
                 if (force_unfilter || filter.empty())
                 {
-                    node->filtered = false;
+                    node->filtered = !pins_filter(node);
                     if (count != nullptr)
                         (*count)++;
                 }
                 else
                 {
                     node->filtered = (node->search.find(filter) == std::string::npos);
-                    if (count != nullptr)
-                        *count += node->filtered ? 0 : 1;
+                    if (!node->filtered)
+                    {
+                        node->filtered = !pins_filter(node);
+                        if (count != nullptr)
+                            *count += node->filtered ? 0 : 1;
+                    }
                 }
             }
         }

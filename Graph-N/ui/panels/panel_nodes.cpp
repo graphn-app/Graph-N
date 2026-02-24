@@ -217,7 +217,7 @@ DlgCode PanelNodes::show(bool& focused)
         {
             data()->buffer[PanelNodesData::BuffFilterLowered] = tools::str::to_lower_ascii(data()->buffer[PanelNodesData::BuffFilter]);
             Log("Filter by: " << data()->buffer[PanelNodesData::BuffFilterLowered]);
-            g::pNodesManager->calc_number_inside(tools::str::trim_this(data()->buffer[PanelNodesData::BuffFilterLowered]));
+            g::pNodesManager->calc_number_inside(tools::str::trim_this(data()->buffer[PanelNodesData::BuffFilterLowered]), "", "");
             rebuild_items(true);
         }
 

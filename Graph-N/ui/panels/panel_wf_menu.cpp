@@ -1,6 +1,8 @@
 
 #include "ui/panels/panel_wf.h"
 #include "core/workflow/node_instance.h"
+#include "core/managers/workflows_manager.h"
+#include "core/managers/nodes_manager.h"
 
 namespace ui
 {
@@ -101,6 +103,8 @@ bool PanelWorkflow::show_context_menu()
     {
         ImGui::OpenPopup(m_context_menuid);
         m_handle_context_menu = false;
+        m_context_menu_nodes_need_focus = true;
+        m_context_menu_nodes_filter.clear();
     }
 
     if (ImGui::BeginPopup(m_context_menuid))
@@ -153,12 +157,18 @@ bool PanelWorkflow::show_context_menu()
 bool PanelWorkflow::show_canvas_menu()
 {
     bool close = false;
-
-    ImGui::MenuItem("Project name", nullptr, nullptr, false); // TODO
+    
+    ImGui::MenuItem(g::pWfsManager->get_data(m_wf).name.c_str(), nullptr, nullptr, false);
     ImGui::Separator();
-    if (ImGui::MenuItem("Add node")) // TODO
+    if (ImGui::BeginMenu("Add node##allnodes")) // TODO
     {
-        close = true;
+        auto node = show_nodes_menu("", "");
+        if (node != nullptr)
+        {
+            close = true;
+            add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
+        }
+        ImGui::EndMenu();
     }
     ImGui::Separator();
     if (ImGui::MenuItem("Undo")) // TODO
@@ -662,5 +672,95 @@ bool PanelWorkflow::show_colors_menu(bool& close, bool& reset, bool use_custom, 
     return ret;
 }
 
+data::Node* PanelWorkflow::show_nodes_menu(const std::string& in_pin_filter, const std::string& out_pin_filter)
+{
+    if (m_context_menu_nodes_need_focus)
+    {
+        ImGui::SetKeyboardFocusHere();
+        m_context_menu_nodes_need_focus = false;
+    }
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (ImGuiEx::InputTextWithHint("##nodes_filter", "filter nodes", &m_context_menu_nodes_filter,
+        ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
+    {
+        g::pNodesManager->calc_number_inside(tools::str::trim_their(m_context_menu_nodes_filter), in_pin_filter, out_pin_filter);
+    }
+
+    auto& nodes = g::pNodesManager->get_nodes_tree();
+
+    data::Node* ret_node = nullptr;
+
+    auto& labels = g::pNodesManager->get_labels();
+    bool labels_shown = false;
+
+    for (auto& label : labels)
+    {
+        size_t nodes_count = 0;
+        auto& nodes_in_label = g::pNodesManager->get_nodes_in_label(label.second);
+        for (auto node_item : nodes_in_label)
+        {
+            if (!node_item->filtered)
+                nodes_count++;
+        }
+
+        if (nodes_count > 0)
+        {
+            labels_shown = true;
+
+            m_context_menu_nodes_buffer.clear();
+            fmt::format_to(std::back_inserter(m_context_menu_nodes_buffer), "{} [{}]", label.first, nodes_count);
+            *(m_context_menu_nodes_buffer.data() + m_context_menu_nodes_buffer.size()) = 0;
+
+            if (ImGui::BeginMenu(m_context_menu_nodes_buffer.data()))
+            {
+                for (auto node_item : nodes_in_label)
+                {
+                    if (!node_item->filtered)
+                    {
+                        if (ImGui::MenuItem(node_item->name_or_category.c_str()))
+                        {
+                            ret_node = node_item->node;
+                        }
+                    }
+                }
+                ImGui::EndMenu();
+            }
+        }
+    }
+
+    if (labels_shown)
+        ImGui::Separator();
+
+    std::function<void(const std::vector<data::NodeItem*>& tree)> nodes_menu;
+    nodes_menu = [&nodes_menu, &ret_node, &mem_buff = m_context_menu_nodes_buffer](const std::vector<data::NodeItem*>& nodes)
+    {
+        for (auto node_item : nodes)
+        {
+            if (node_item->filtered || (!node_item->is_node && 0 == node_item->nodes_inside))
+                continue;
+
+            if (!node_item->is_node)
+            {
+                mem_buff.clear();
+                fmt::format_to(std::back_inserter(mem_buff), "{} [{}]", node_item->name_or_category, node_item->nodes_inside);
+                *(mem_buff.data() + mem_buff.size()) = 0;
+
+                if (ImGui::BeginMenu(mem_buff.data()))
+                {
+                    nodes_menu(node_item->children);
+                    ImGui::EndMenu();
+                }
+            }
+            else
+            {
+                if (ImGui::MenuItem(node_item->name_or_category.c_str()))
+                    ret_node = node_item->node;
+            }
+        }
+    };
+
+    nodes_menu(nodes);
+    return ret_node;
+}
 
 } // namespace ui

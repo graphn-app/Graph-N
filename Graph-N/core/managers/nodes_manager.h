@@ -40,7 +40,7 @@ public:
     const std::vector<data::NodeItem*>& get_nodes_plain() const { return m_nodes_plain; }
     size_t get_node_items_total() const { return m_node_items.size(); }
 
-    void calc_number_inside(const std::string& filter);
+    void calc_number_inside(const std::string& filter, const std::string& in_pin, const std::string& out_pin);
 
     data::Node* find_node(hid id) const;		    // returns nullptr if not found
     data::Pin* find_pin(hid id) const;			    // returns nullptr if not found

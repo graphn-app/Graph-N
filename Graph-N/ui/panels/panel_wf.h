@@ -55,6 +55,7 @@ private:
     bool show_link_menu();
     bool show_multilink_menu();
     bool show_colors_menu(bool& close, bool& reset, bool use_custom, bool show_alpha, const ImVec4& init);
+    data::Node* show_nodes_menu(const std::string& in_pin_filter, const std::string& out_pin_filter);
 
     void delete_node(data::NodeInstance* node);
     void delete_group(data::NodeInstance* group);
@@ -74,6 +75,9 @@ private:
 
     const ImGuiID m_context_menuid;
     bool m_handle_context_menu = false;
+    bool m_context_menu_nodes_need_focus = false;
+    std::string m_context_menu_nodes_filter;
+    fmt::memory_buffer m_context_menu_nodes_buffer;
 
     enum class MenuType { _none, Back, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink };
 
