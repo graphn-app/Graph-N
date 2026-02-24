@@ -1197,14 +1197,12 @@ struct NodeBuilder
     NodeBuilder(EditorContext* editor);
     ~NodeBuilder();
 
-    void Begin(void* node);
-    void* Begin(Node* node);
-    void* Begin(NodeId nodeId);
+    Node* Begin(Node* node);
+    Node* Begin(NodeId nodeId);
     void End();
 
-    void BeginPin(void* pin, PinKind kind);
-    void* BeginPin(Pin* pin, PinKind kind);
-    void* BeginPin(PinId pinId, PinKind kind);
+    Pin* BeginPin(Pin* pin, PinKind kind);
+    Pin* BeginPin(PinId pinId, PinKind kind);
     void EndPin();
 
     void PinRect(const ImVec2& a, const ImVec2& b);
@@ -1308,9 +1306,8 @@ struct EditorContext
     void Begin(const char* id, const ImVec2& size = ImVec2(0, 0));
     void End();
 
-    void* DoLink(void* link, void* startPin, void* endPin, ImU32 color, float thickness);
-    void* DoLink(LinkId id, void* startPin, void* endPin, ImU32 color, float thickness);
-    void* DoLink(Link* link, Pin* startPin, Pin* endPin, ImU32 color, float thickness);
+    Link* DoLink(LinkId id, Pin* startPin, Pin* endPin, ImU32 color, float thickness);
+    Link* DoLink(Link* link, Pin* startPin, Pin* endPin, ImU32 color, float thickness);
 
     NodeBuilder& GetNodeBuilder() { return m_NodeBuilder; }
     HintBuilder& GetHintBuilder() { return m_HintBuilder; }

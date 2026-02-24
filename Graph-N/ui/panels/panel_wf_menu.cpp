@@ -59,9 +59,9 @@ bool PanelWorkflow::context_menu_handler()
         m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
 
         auto nodes = m_drawer.get_selected_nodes();
-        if (!m_drawer.is_node_selected(node->get_ed()) || 1 == nodes.size())
+        if (!m_drawer.is_node_selected(node->ed()) || 1 == nodes.size())
         {
-            m_drawer.select_node(node->get_ed(), false);
+            m_drawer.select_node(node->ed(), false);
             if (node->m_group)
                 m_menu_objs.groups.insert({ node, m_drawer.get_nodes_in_group(node, m_nodes) });
             else
@@ -218,7 +218,7 @@ bool PanelWorkflow::show_node_menu()
     if (ImGui::MenuItem(node->pinned() ? "Unpin" : "Pin"))
     {
         node->toggle_pinned();
-        m_drawer.pin_node(node->get_ed(), node->pinned());
+        m_drawer.pin_node(node->ed(), node->pinned());
         close = true;
     }
     if (ImGui::MenuItem("Group"))
@@ -245,8 +245,8 @@ bool PanelWorkflow::show_node_menu()
     ImGui::Separator();
     if (ImGui::MenuItem("Remove"))
     {
-        m_drawer.delete_node(node->get_ed());
-        node->reset_ed();
+        m_drawer.delete_node(node->ed());
+        node->ed().reset();
         delete_node(node);
         close = true;
     }
@@ -327,18 +327,18 @@ bool PanelWorkflow::show_group_menu()
         }
         if (ImGui::MenuItem("Select nodes"))
         {
-            m_drawer.select_node(nullptr, false);
+            m_drawer.select_node({}, false);
             for (auto node : nodes)
             {
-                m_drawer.select_node(node->get_ed(), true);
+                m_drawer.select_node(node->ed(), true);
             }
         }
     }
     ImGui::Separator();
     if (ImGui::MenuItem(nodes.empty() ? "Remove" : "Remove group"))
     {
-        m_drawer.delete_node(group->get_ed());
-        group->reset_ed();
+        m_drawer.delete_node(group->ed());
+        group->ed().reset();
         delete_group(group);
         close = true;
     }
@@ -348,13 +348,13 @@ bool PanelWorkflow::show_group_menu()
         {
             for (auto node : nodes)
             {
-                m_drawer.delete_node(node->get_ed());
-                node->reset_ed();
+                m_drawer.delete_node(node->ed());
+                node->ed().reset();
                 delete_node(node);
             }
 
-            m_drawer.delete_node(group->get_ed());
-            group->reset_ed();
+            m_drawer.delete_node(group->ed());
+            group->ed().reset();
             delete_group(group);
 
             close = true;
@@ -373,7 +373,7 @@ bool PanelWorkflow::show_group_menu()
             for (auto node : nodes)
             {
                 node->pin(true);
-                m_drawer.pin_node(node->get_ed(), true);
+                m_drawer.pin_node(node->ed(), true);
             }
             close = true;
         }
@@ -382,7 +382,7 @@ bool PanelWorkflow::show_group_menu()
             for (auto node : nodes)
             {
                 node->pin(false);
-                m_drawer.pin_node(node->get_ed(), false);
+                m_drawer.pin_node(node->ed(), false);
             }
             close = true;
         }

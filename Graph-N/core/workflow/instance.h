@@ -4,6 +4,7 @@
 #include "core/workflow/workflow.h"
 #include "core/data/node.h"
 #include "ui/graph-n_flow.h"
+#include "imgui_node_editor_edtype.h"
 
 namespace data
 {
@@ -65,10 +66,8 @@ public:
         }
     }
 
-    inline bool get_ed_valid() const { return m_ed != nullptr; }
-    inline void* get_ed() const { return m_ed; }
-    inline void set_ed(void* ed) { m_ed = ed; }
-    inline void reset_ed() { m_ed = nullptr; }
+    inline EdType& ed() { return m_ed; }
+    inline const EdType& ed() const { return m_ed; }
 
 protected:
     virtual BaseObj* find_obj(hid obj_id) const = 0;
@@ -80,7 +79,7 @@ protected:
     hid m_hid = 0;
 
 private:
-    void* m_ed = nullptr;
+    EdType m_ed;
 };
 
 } // namespace data

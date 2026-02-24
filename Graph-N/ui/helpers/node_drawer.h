@@ -1,5 +1,6 @@
 
 #pragma once
+#include "imgui_node_editor_edtype.h"
 
 namespace data
 {
@@ -57,16 +58,16 @@ public:
 
     std::set<data::Link*> get_selected_links() const;
     std::set<data::NodeInstance*> get_selected_nodes() const;
-    bool is_node_selected(void* node) const;
-    void select_node(void* node, bool append_to_selection) const;
+    bool is_node_selected(const EdType& node) const;
+    void select_node(const EdType& node, bool append_to_selection) const;
 
     std::set<data::NodeInstance*> get_nodes_in_group(data::NodeInstance* group, const std::vector<data::NodeInstance*>& all_nodes) const;
     ImRect calc_group_rect(const ImRect& node_rc) const;
 
-    void pin_node(void* node, bool pin) const;
+    void pin_node(const EdType& node, bool pin) const;
     void rename_node(data::NodeInstance* node);    
 
-    void delete_node(void* node) const;
+    void delete_node(const EdType& node) const;
 
     inline ImU32 get_default_node_color() const { return m_defclr_node_bg; }
 

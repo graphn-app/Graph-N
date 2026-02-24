@@ -1,5 +1,6 @@
 
 #pragma once
+#include "imgui_node_editor_edtype.h"
 
 namespace data
 {
@@ -22,10 +23,8 @@ public:
 
     void unlink();
 
-    inline bool get_ed_valid() const { return m_ed != nullptr; }
-    inline void* get_ed() const { return m_ed; }
-    inline void set_ed(void* ed) { m_ed = ed; }
-    inline void reset_ed() { m_ed = nullptr; }
+    inline EdType& ed() { return m_ed; }
+    inline const EdType& ed() const { return m_ed; }
 
 private:
     wid m_workflow_id = 0;
@@ -33,7 +32,7 @@ private:
     const PinInstance* m_input = nullptr;
     const PinInstance* m_output = nullptr;
 
-    void* m_ed = nullptr;
+    EdType m_ed;
 };
 
 } // namespace data
