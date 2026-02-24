@@ -29,30 +29,11 @@ public:
 
     NO_COPY_MOVE(NodeDrawer);
 
-    using GetAllNodesCallback = std::function<const std::vector<data::NodeInstance*>&()>;
-    using DeleteNodeCallback = std::function<void(data::NodeInstance*)>;
-    using DeleteGroupCallback = std::function<void(data::NodeInstance*)>;
-    using DeleteLinkCallback = std::function<void(data::Link*)>;
-    using CopyNodeCallback = std::function<void(data::NodeInstance*, const ImRect&)>;
-    using CopyGroupCallback = std::function<void(const ImRect&)>;
-    using CreateGroupCallback = std::function<void(const ImRect&)>;
-
-    struct Callbacks
-    {
-        GetAllNodesCallback get_all_nodes = nullptr;
-        DeleteNodeCallback delete_node = nullptr;
-        DeleteGroupCallback delete_group = nullptr;
-        DeleteLinkCallback delete_link = nullptr;
-        CopyNodeCallback copy_node = nullptr;
-        CopyGroupCallback copy_group = nullptr;
-        CreateGroupCallback create_group = nullptr;
-    };
-
-    void init(wid wf_id, const Callbacks& callbacks);
+    void init(wid wf_id);
     void free();
 
     void pre_draw_all(const char* id, size_t nodes_count);
-    void post_draw_all();
+    void post_draw_all(const std::function<bool()>& init_menu_handler, const std::function<bool()>& show_menu_handler);
 
     void pre_draw_node(data::NodeInstance* node);
     void draw_node(data::NodeInstance* node, float node_w, size_t node_idx);
@@ -66,6 +47,28 @@ public:
 
     inline ImGuiExNe::DeferredAction* get_deffered_action() const { return m_deffered_action.get(); }
     data::PinInstance* get_ml_widget_active() const;
+
+    ImVec2 get_mouse_click_pos() const;
+    bool get_bg_menu_active() const;
+
+    data::PinInstance* get_hovered_pin() const;
+    data::NodeInstance* get_hovered_node() const;
+    data::Link* get_hovered_link() const;
+
+    std::set<data::Link*> get_selected_links() const;
+    std::set<data::NodeInstance*> get_selected_nodes() const;
+    bool is_node_selected(void* node) const;
+    void select_node(void* node, bool append_to_selection) const;
+
+    std::set<data::NodeInstance*> get_nodes_in_group(data::NodeInstance* group, const std::vector<data::NodeInstance*>& all_nodes) const;
+    ImRect calc_group_rect(const ImRect& node_rc) const;
+
+    void pin_node(void* node, bool pin) const;
+    void rename_node(data::NodeInstance* node);    
+
+    void delete_node(void* node) const;
+
+    inline ImU32 get_default_node_color() const { return m_defclr_node_bg; }
 
 private:
     void draw_node_header();
@@ -89,21 +92,6 @@ private:
 
     void handle_widget_active_state();
     bool handle_node_resize();
-    bool handle_context_menu();
-
-    bool show_context_menu();
-    bool show_canvas_menu();
-    bool show_node_menu();
-    bool show_group_menu();
-    bool show_multinode_menu();
-    bool show_multigroup_menu();
-    bool show_multiobj_menu();
-    bool show_pin_menu();
-    bool show_link_menu();
-    bool show_multilink_menu();
-    bool show_colors_menu(bool& close, bool& reset, bool use_custom, bool show_alpha, const ImVec4& init);
-
-    std::set<data::NodeInstance*> get_nodes_in_group(data::NodeInstance* group);
 
 private:
     wid m_wf = 0;
@@ -117,9 +105,6 @@ private:
     ImU32 m_clr_node_header_text;
     const ImU32 m_clr_node_pin_text;
     const float m_mode_alpha = 0.4f;
-    float m_color_buff[4] = { -1.0f };
-
-    Callbacks m_callbacks;
 
     data::NodeInstance* m_renaming_node = nullptr;
     std::string m_renaming_buff;
@@ -134,23 +119,6 @@ private:
     const float m_grip_area_sz = 15.0f;
     std::vector<ImRect> m_resizing_grip_positions;
     std::vector<float> m_resizing_w;
-
-    const ImGuiID m_context_menuid;
-    bool m_handle_context_menu = false;
-
-    enum class MenuType { _none, Back, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink };
-
-    struct NodeAction final
-    {
-        std::set<data::NodeInstance*> nodes;
-        std::map<data::NodeInstance*, std::set<data::NodeInstance*>> groups;
-        std::set<data::Link*> links;
-        std::set<data::PinInstance*> pins;
-        ImVec2 click_pos;
-    };
-    MenuType m_context_menu_type = MenuType::_none;
-    NodeAction m_menu_objs;
-    NodeAction m_copied_objs;
 
 #ifdef _DEBUG
     std::set<void*> m_ids_imgui;

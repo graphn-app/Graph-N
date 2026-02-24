@@ -2,6 +2,7 @@
 #pragma once
 #include "core/listeners.h"
 #include "core/workflow/workflow.h"
+#include "core/data/node.h"
 #include "ui/graph-n_flow.h"
 
 namespace data

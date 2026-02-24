@@ -43,13 +43,25 @@ private:
     DlgCode show(bool& focused) override;
     void draw_wf();
 
-    void on_delete_node(data::NodeInstance* node);
-    void on_delete_group(data::NodeInstance* group);
-    void on_delete_link(data::Link* link);
-    void on_copy_node(data::NodeInstance* node, const ImRect& rc);
-    void on_copy_group(const ImRect& rc);
-    void on_create_group(const ImRect& rc);
-    const std::vector<data::NodeInstance*>& on_get_all_nodes() const;
+    bool context_menu_handler();
+    bool show_context_menu();
+    bool show_canvas_menu();
+    bool show_node_menu();
+    bool show_group_menu();
+    bool show_multinode_menu();
+    bool show_multigroup_menu();
+    bool show_multiobj_menu();
+    bool show_pin_menu();
+    bool show_link_menu();
+    bool show_multilink_menu();
+    bool show_colors_menu(bool& close, bool& reset, bool use_custom, bool show_alpha, const ImVec4& init);
+
+    void delete_node(data::NodeInstance* node);
+    void delete_group(data::NodeInstance* group);
+    void delete_link(data::Link* link);
+    //void copy_node(data::NodeInstance* node, const ImRect& rc); // TODO
+    //void copy_group(const ImRect& rc); // TODO
+    void create_group(const ImRect& rc);
 
 private:
     wid m_wf = 0;
@@ -59,6 +71,24 @@ private:
     std::vector<data::NodeInstance*> m_nodes;
     NodeDrawer m_drawer;
     data::NodeInstance* m_locate = nullptr;
+
+    const ImGuiID m_context_menuid;
+    bool m_handle_context_menu = false;
+
+    enum class MenuType { _none, Back, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink };
+
+    struct NodeAction final
+    {
+        std::set<data::NodeInstance*> nodes;
+        std::map<data::NodeInstance*, std::set<data::NodeInstance*>> groups;
+        std::set<data::Link*> links;
+        std::set<data::PinInstance*> pins;
+        ImVec2 click_pos;
+    };
+    MenuType m_context_menu_type = MenuType::_none;
+    NodeAction m_menu_objs;
+    NodeAction m_copied_objs;
+    float m_color_buff[4] = { -1.0f };
 };
 
 

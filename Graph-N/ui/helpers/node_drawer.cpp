@@ -17,8 +17,7 @@ namespace ed = ax::NodeEditor;
 
 NodeDrawer::NodeDrawer()
     : m_clr_node_header_text(g::pOptsManager->color_load(AppColor::NodeHeaderText))
-    , m_clr_node_pin_text(g::pOptsManager->color_load(AppColor::NodePinText))
-    , m_context_menuid(ImHashStr("533177A6-9C98-475D-A152-8F68F4F2353E"))
+    , m_clr_node_pin_text(g::pOptsManager->color_load(AppColor::NodePinText))    
 {
     LogF;
 }
@@ -42,12 +41,11 @@ void test_id(std::set<void*>& set, void* ptr)
 }
 #endif // #ifdef _DEBUG
 
-void NodeDrawer::init(wid wf_id, const Callbacks& callbacks)
+void NodeDrawer::init(wid wf_id)
 {
     LogF;
 
     m_wf = wf_id;
-    m_callbacks = callbacks;
     m_deffered_action = std::make_unique<ImGuiExNe::DeferredAction>();
 
     ed::Config config;
@@ -91,24 +89,20 @@ void NodeDrawer::pre_draw_all(const char* id, size_t nodes_count)
     ed::Begin(id, ImVec2(0, 0));
 }
 
-void NodeDrawer::post_draw_all()
+void NodeDrawer::post_draw_all(const std::function<bool()>& init_menu_handler, const std::function<bool()>& show_menu_handler)
 {
     ed::Suspend();
-    bool canvas_busy = handle_context_menu();
+
+    bool canvas_busy = init_menu_handler();
     if (!canvas_busy)
         canvas_busy = handle_node_resize();
-    ed::Resume();
 
+    ed::Resume();
     ed::End();
 
-    if (m_handle_context_menu)
-    {
-        ImGui::OpenPopup(m_context_menuid);
-        m_handle_context_menu = false;
-    }
-    if (show_context_menu())
-        ;
-    else if (!canvas_busy && m_deffered_action->combo.is_active)
+    canvas_busy = show_menu_handler();
+
+    if (!canvas_busy && m_deffered_action->combo.is_active)
         ImGuiExNe::RenderDeferredCombo(*m_deffered_action.get());
     else if (!canvas_busy && m_deffered_action->ml_input.is_active)
     {
@@ -448,6 +442,7 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             {
                 m_renaming_node = m_active_node;
+                m_renaming_buff = m_active_node->get_name();
                 m_need_renaming_focus = true;
             }
         }
@@ -462,10 +457,11 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
         }
         ImGui::SetCursorPosX(m_curr_node_left_offset + ImGui::GetStyle().ItemSpacing.x * 2);
         ImGui::SetNextItemWidth(m_active_node->m_rc.Max.x - style.NodePadding.x * 2 - style.GroupBorderWidth * 2 - ImGui::GetStyle().ItemSpacing.x * 4);
-        if (ImGuiEx::InputText("##noderename", &m_renaming_buff, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue) ||
+        if (ImGuiEx::InputText("##grouprename", &m_renaming_buff, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue) ||
             ImGui::IsItemDeactivatedAfterEdit())
         {
             m_renaming_node->set_name(tools::str::trim_this(m_renaming_buff));
+            m_renaming_buff.clear();
             m_renaming_node = nullptr;
         }
         else if (ImGui::IsKeyPressed(ImGuiKey_Escape))
@@ -548,6 +544,7 @@ void NodeDrawer::draw_node_header()
             ImGui::IsItemDeactivatedAfterEdit())
         {
             m_renaming_node->set_name(tools::str::trim_this(m_renaming_buff));
+            m_renaming_buff.clear();
             m_renaming_node = nullptr;
         }
         else if (ImGui::IsKeyPressed(ImGuiKey_Escape))
@@ -1250,681 +1247,77 @@ bool NodeDrawer::handle_node_resize()
     return m_now_resizing != -1;
 }
 
-bool NodeDrawer::handle_context_menu()
+bool NodeDrawer::get_bg_menu_active() const
 {
-    if (ed::ShowBackgroundContextMenu())
-    {        
-        m_handle_context_menu = true;
-        m_menu_objs = {};
-        m_context_menu_type = MenuType::Back;
-        m_menu_objs.click_pos = ed::ScreenToCanvas(ImGui::GetMousePos());
-        return true;
-    }
-
-    if (!ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-        return false;
-
-    const auto pin_id = ed::GetHoveredPin();
-    if (pin_id)
-    {
-        m_handle_context_menu = true;
-        m_menu_objs = {};
-        m_context_menu_type = MenuType::Pin;
-        m_menu_objs.pins.insert(cast::ptrs<data::PinInstance>((std::uintptr_t)pin_id));
-        m_menu_objs.click_pos = ed::ScreenToCanvas(ImGui::GetMousePos());
-        return true;
-    }
-
-    const auto link_id = ed::GetHoveredLink();
-    if (link_id)
-    {
-        m_handle_context_menu = true;
-        m_menu_objs = {};
-        m_menu_objs.click_pos = ed::ScreenToCanvas(ImGui::GetMousePos());
-        const auto sel_links = ed::GetSelectedLinksCount();
-        if (sel_links == 1)
-        {
-            m_context_menu_type = MenuType::Link;
-            m_menu_objs.links.insert(cast::ptrs<data::Link>((std::uintptr_t)link_id));
-        }
-        else
-        {
-            m_context_menu_type = MenuType::Multilink;
-            std::vector<ed::LinkId> links;
-            links.resize(sel_links);
-            ed::GetSelectedLinks(links.data(), cast::to_i32(sel_links));
-
-            for (auto id : links)
-            {
-                m_menu_objs.links.insert(cast::ptrs<data::Link>((std::uintptr_t)id));
-            }
-        }
-        return true;
-    }
-
-    const auto node_id = ed::GetHoveredNode();
-    if (node_id)
-    {
-        m_handle_context_menu = true;
-        m_menu_objs = {};
-        m_menu_objs.click_pos = ed::ScreenToCanvas(ImGui::GetMousePos());
-
-        auto node = cast::ptrs<data::NodeInstance>((std::uintptr_t)node_id);
-        const int32_t selected_count = ed::GetSelectedNodesCount();
-        if (!ed::IsNodeSelected(node->get_ed()) || 1 == selected_count)
-        {
-            ed::SelectNode(node->get_ed());
-            if (node->m_group)
-                m_menu_objs.groups.insert({ node, get_nodes_in_group(node) });
-            else
-                m_menu_objs.nodes.insert(node);
-            m_context_menu_type = node->m_group ? MenuType::Group : MenuType::Node;
-        }
-        else
-        {
-            std::vector<ed::NodeId> nodes;
-            nodes.resize(selected_count);
-            ed::GetSelectedNodes(nodes.data(), selected_count);
-
-            for (auto id : nodes)
-            {
-                node = cast::ptrs<data::NodeInstance>((std::uintptr_t)id);
-                if (node->m_group)
-                {
-                    m_menu_objs.groups.insert({ node, get_nodes_in_group(node) });
-                }
-                else
-                {
-                    m_menu_objs.nodes.insert(node);
-                }
-            }
-
-            if (!m_menu_objs.groups.empty() && m_menu_objs.nodes.empty())
-                m_context_menu_type = MenuType::Multigroup;
-            else if (m_menu_objs.groups.empty() && !m_menu_objs.nodes.empty())
-                m_context_menu_type = MenuType::Multinode;
-            else
-                m_context_menu_type = MenuType::Multiobj;
-        }
-        return true;
-    }
-
-    return true;
+    return ed::ShowBackgroundContextMenu();
 }
 
-bool NodeDrawer::show_context_menu()
+ImVec2 NodeDrawer::get_mouse_click_pos() const
 {
-    bool ret = false;
-    if (ImGui::BeginPopup(m_context_menuid))
+    return ed::ScreenToCanvas(ImGui::GetMousePos());
+}
+
+data::PinInstance* NodeDrawer::get_hovered_pin() const
+{
+    return cast::ptrs<data::PinInstance>((std::uintptr_t)ed::GetHoveredPin());
+}
+
+data::NodeInstance* NodeDrawer::get_hovered_node() const
+{
+    return cast::ptrs<data::NodeInstance>((std::uintptr_t)ed::GetHoveredNode());
+}
+
+data::Link* NodeDrawer::get_hovered_link() const
+{
+    return cast::ptrs<data::Link>((std::uintptr_t)ed::GetHoveredLink());
+}
+
+std::set<data::Link*> NodeDrawer::get_selected_links() const
+{
+    std::vector<ed::LinkId> links;
+    const auto count = ed::GetSelectedLinksCount();
+    links.resize(count);
+    ed::GetSelectedLinks(links.data(), count);
+
+    std::set<data::Link*> ret;
+    for (auto id : links)
     {
-        bool close = false;
-        switch (m_context_menu_type)
-        {
-        case MenuType::Back:
-            close = show_canvas_menu();
-            break;
-        case MenuType::Group:
-            close = show_group_menu();
-            break;
-        case MenuType::Node:
-            close = show_node_menu();
-            break;
-        case MenuType::Pin:
-            close = show_pin_menu();
-            break;
-        case MenuType::Link:
-            close = show_link_menu();
-            break;
-        case MenuType::Multigroup:
-            close = show_multigroup_menu();
-            break;
-        case MenuType::Multilink:
-            close = show_multilink_menu();
-            break;
-        case MenuType::Multinode:
-            close = show_multinode_menu();
-            break;
-        case MenuType::Multiobj:
-            close = show_multiobj_menu();
-            break;
-        default:
-            {
-                LogInternalLogic("Unhandled menu type");
-            }
-        }
-
-        if (close)
-            ImGui::CloseCurrentPopup();
-        ImGui::EndPopup();
-        ret = true;
+        ret.insert(cast::ptrs<data::Link>((std::uintptr_t)id));
     }
-
     return ret;
 }
 
-bool NodeDrawer::show_canvas_menu()
+std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes() const
 {
-    bool close = false;
+    std::vector<ed::NodeId> nodes;
+    const auto count = ed::GetSelectedNodesCount();
+    nodes.resize(count);
+    ed::GetSelectedNodes(nodes.data(), count);
 
-    ImGui::MenuItem("Project name", nullptr, nullptr, false); // TODO
-    ImGui::Separator();
-    if (ImGui::MenuItem("Add node")) // TODO
+    std::set<data::NodeInstance*> ret;
+    for (auto id : nodes)
     {
-        close = true;
+        ret.insert(cast::ptrs<data::NodeInstance>((std::uintptr_t)id));
     }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Undo")) // TODO
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Redo")) // TODO
-    {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Add group"))
-    {
-        m_callbacks.create_group(ImRect(m_menu_objs.click_pos.x, m_menu_objs.click_pos.y, -1, -1));
-        close = true;
-    }
-    if (ImGui::MenuItem("Fit all groups to content")) // TODO
-    {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Paste", nullptr, false, !m_copied_objs.nodes.empty() || !m_copied_objs.groups.empty())) // TODO
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Select all")) // TODO
-    {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Duplicate workflow")) // TODO
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Reset workflow window position")) // TODO
-    {
-        close = true;
-    }
-    return close;
-}
-
-bool NodeDrawer::show_node_menu()
-{
-    bool close = false;
-    auto node = *m_menu_objs.nodes.begin();
-
-    if (ImGui::MenuItem("Rename"))
-    {
-        m_renaming_node = node;
-        m_renaming_buff = node->get_name();
-        m_need_renaming_focus = true;
-        close = true;
-    }
-    if (ImGui::MenuItem("Reset width"))
-    {
-        node->reset_width();
-        close = true;
-    }
-    if (ImGui::MenuItem(node->pinned() ? "Unpin" : "Pin"))
-    {
-        node->toggle_pinned();
-        ed::SetNodeDraggable(node->get_ed(), !node->pinned());
-        close = true;
-    }
-    if (ImGui::MenuItem("Group"))
-    {
-        const ImRect rc(ImVec2(node->m_rc.Min.x - ImGui::GetStyle().ItemSpacing.x, node->m_rc.Min.y - ImGui::GetTextLineHeight() * 2 - ImGui::GetStyle().ItemSpacing.y * 2),
-            ImVec2(node->m_rc.Max.x + ImGui::GetStyle().ItemSpacing.x * 2, node->m_rc.Max.y + ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 4));
-        m_callbacks.create_group(rc);
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Always", nullptr, node->get_mode() == NodeMode::Always))
-    {
-        node->set_mode(NodeMode::Always);
-        close = true;
-    }
-    if (ImGui::MenuItem("Bypass", nullptr, node->get_mode() == NodeMode::Bypass))
-    {
-        node->set_mode(NodeMode::Bypass);
-        close = true;
-    }
-    if (ImGui::MenuItem("Mute", nullptr, node->get_mode() == NodeMode::Mute || node->get_mode() == NodeMode::OnTrigger || node->get_mode() == NodeMode::OnEvent))
-    {
-        node->set_mode(NodeMode::Mute);
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Remove"))
-    {
-        ed::DeleteNode(node->get_ed());
-        node->reset_ed();
-        m_callbacks.delete_node(node);
-        close = true;
-    }
-    if (ImGui::MenuItem("Copy"))
-    {
-        m_copied_objs = {};
-        m_copied_objs.nodes.insert(node);
-        close = true;
-    }
-    ImGui::Separator();
-
-    //if (ImGui::MenuItem(node->expanded() ? "Collapse" : "Expand")) // TODO: FIX
-    //{
-    //    node->toggle_expanded();
-    //    close = true;
-    //}
-    ////ImGui::Separator();
-    //if (ImGui::MenuItem("Convert to subgraph")) // TODO
-    //{
-    //    close = true;
-    //}
-    //ImGui::Separator();
-
-    if (ImGui::BeginMenu("Color"))
-    {
-        bool reset = false;
-        if (show_colors_menu(close, reset, node->m_clr_custom, true, node->m_clr_node))
-        {
-            if (reset)
-            {
-                node->reset_to_default_colors();
-            }
-            else
-            {
-                node->m_clr_node.x = m_color_buff[0]; node->m_clr_node.y = m_color_buff[1]; node->m_clr_node.z = m_color_buff[2]; node->m_clr_node.w = m_color_buff[3];
-                node->set_node_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
-            }
-        }
-
-        ImGui::EndMenu();
-    }
-    else
-        m_color_buff[0] = -1.0f;
-
-
-    return close;
-}
-
-bool NodeDrawer::show_group_menu()
-{
-    bool close = false;
-    auto group = m_menu_objs.groups.begin()->first;
-    auto& nodes = m_menu_objs.groups.begin()->second;
-
-    if (ImGui::MenuItem("Rename"))
-    {
-        m_renaming_node = group;
-        m_renaming_buff = group->get_name();
-        m_need_renaming_focus = true;
-        close = true;
-    }
-    if (!nodes.empty())
-    {
-        if (ImGui::MenuItem("Fit"))
-        {
-            if (!nodes.empty())
-            {
-                group->m_rc = ImRect(FLT_MAX, FLT_MAX, -FLT_MIN, -FLT_MIN);
-                for (auto node : nodes)
-                {
-                    group->m_rc.Min.x = std::min(group->m_rc.Min.x, node->m_rc.Min.x);
-                    group->m_rc.Min.y = std::min(group->m_rc.Min.y, node->m_rc.Min.y);
-                    group->m_rc.Max.x = std::max(group->m_rc.Max.x, node->m_rc.Min.x + node->m_rc.Max.x);
-                    group->m_rc.Max.y = std::max(group->m_rc.Max.y, node->m_rc.Min.y + node->m_rc.Max.y);
-                }
-                group->m_rc.Min.x -= ImGui::GetStyle().ItemSpacing.x;
-                group->m_rc.Min.y -= ImGui::GetTextLineHeight() * 2 + ImGui::GetStyle().ItemSpacing.y * 2;
-                group->m_rc.Max.x = group->m_rc.Max.x - group->m_rc.Min.x + ImGui::GetStyle().ItemSpacing.x;
-                group->m_rc.Max.y = group->m_rc.Max.y - group->m_rc.Min.y - ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y;
-                group->m_pos_set = group->m_size_set = false;
-            }
-            close = true;
-        }
-        if (ImGui::MenuItem("Select nodes"))
-        {
-            ed::ClearSelection();
-            for (auto node : nodes)
-            {
-                ed::SelectNode(node->get_ed(), true);
-            }
-        }
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem(nodes.empty() ? "Remove" : "Remove group"))
-    {
-        ed::DeleteNode(group->get_ed());
-        group->reset_ed();
-        m_callbacks.delete_group(group);
-        close = true;
-    }
-    if (!nodes.empty())
-    {
-        if (ImGui::MenuItem(fmt::format("Remove group and {} node(s) inside", nodes.size()).c_str()))
-        {
-            for (auto node : nodes)
-            {
-                ed::DeleteNode(node->get_ed());
-                node->reset_ed();
-                m_callbacks.delete_node(node);
-            }
-
-            ed::DeleteNode(group->get_ed());
-            group->reset_ed();
-            m_callbacks.delete_group(group);
-
-            close = true;
-        }
-    }
-    if (ImGui::MenuItem("Copy"))
-    {
-        m_copied_objs = m_menu_objs;
-        close = true;
-    }
-    ImGui::Separator();
-    if (!nodes.empty())
-    {
-        if (ImGui::MenuItem("Pin nodes"))
-        {
-            for (auto node : nodes)
-            {
-                node->pin(true);
-                ed::SetNodeDraggable(node->get_ed(), false);
-            }
-            close = true;
-        }
-        if (ImGui::MenuItem("Unpin nodes"))
-        {
-            for (auto node : nodes)
-            {
-                node->pin(false);
-                ed::SetNodeDraggable(node->get_ed(), true);
-            }
-            close = true;
-        }
-        ImGui::Separator();
-        if (ImGui::MenuItem("Always"))
-        {
-            for (auto node : nodes)
-            {
-                node->set_mode(NodeMode::Always);
-            }
-            close = true;
-        }
-        if (ImGui::MenuItem("Bypass"))
-        {
-            for (auto node : nodes)
-            {
-                node->set_mode(NodeMode::Bypass);
-            }
-            close = true;
-        }
-        if (ImGui::MenuItem("Mute"))
-        {
-            for (auto node : nodes)
-            {
-                node->set_mode(NodeMode::Mute);
-            }
-            close = true;
-        }
-    }
-    ImGui::Separator();
-    if (ImGui::BeginMenu("Color"))
-    {
-        static bool for_all = false;
-        if (!nodes.empty())
-        {
-            ImGui::Checkbox("Apply for nodes in group", &for_all);
-            ImGui::Separator();
-        }
-        bool reset = false;
-        if (show_colors_menu(close, reset, true, for_all, ImGui::ColorConvertU32ToFloat4(group->m_clr_group)))
-        {
-            if (reset)
-            {
-                group->reset_to_default_colors();
-                if (for_all)
-                {
-                    for (auto node : nodes)
-                    {
-                        node->reset_to_default_colors();
-                    }
-                }
-            }
-            else
-            {
-                group->set_group_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
-                if (for_all)
-                {
-                    for (auto node : nodes)
-                    {
-                        node->set_node_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
-                    }
-                }
-            }
-        }
-
-        ImGui::EndMenu();
-    }
-    else
-        m_color_buff[0] = -1.0f;
-
-    return close;
-}
-
-bool NodeDrawer::show_multinode_menu()
-{
-    bool close = false;
-    if (ImGui::MenuItem("Reset nodes width"))
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Group"))
-    {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Remove {} nodes"))
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Copy"))
-    {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Pin nodes"))
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Unpin nodes"))
-    {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Always"))
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Bypass"))
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Mute"))
-    {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Color"))
-    {
-        close = true;
-    }
-
-    return close;
-}
-
-bool NodeDrawer::show_multigroup_menu()
-{
-    bool close = false;
-    if (ImGui::MenuItem("Remove groups"))
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Remove groups and {} nodes inside"))
-    {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Fit groups to content"))
-    {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Color"))
-    {
-        close = true;
-    }
-
-    return close;
-}
-
-bool NodeDrawer::show_multiobj_menu()
-{
-    bool close = false;
-    if (ImGui::MenuItem("Remove all"))
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Copy"))
-    {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Fit groups to content"))
-    {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Color"))
-    {
-        close = true;
-    }
-
-    return close;
-}
-
-bool NodeDrawer::show_pin_menu()
-{
-    bool close = false;
-
-    if (ImGui::MenuItem("Unlink"))
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Rename slot"))
-    {
-        close = true;
-    }
-
-    return close;
-}
-
-bool NodeDrawer::show_link_menu()
-{
-    bool close = false;
-
-    if (ImGui::MenuItem("Remove link"))
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Insert angle"))
-    {
-        close = true;
-    }
-
-    return close;
-}
-
-bool NodeDrawer::show_multilink_menu()
-{
-    bool close = false;
-
-    if (ImGui::MenuItem("Remove all links"))
-    {
-        close = true;
-    }
-    return close;
-}
-
-bool NodeDrawer::show_colors_menu(bool& close, bool& reset, bool use_custom, bool show_alpha, const ImVec4& init)
-{
-    const std::pair<ImU32, const char*> colors[] =
-    {
-        { IM_COL32(89, 27, 27, 200), "Red" },
-        { IM_COL32(7, 53, 7, 169), "Green" },
-        { IM_COL32(19, 19, 144, 169), "Blue" },
-        { IM_COL32(30, 47, 64, 212), "Pale blue" },
-        { IM_COL32(7, 63, 63, 181), "Cyan" },
-        { IM_COL32(67, 26, 106, 153), "Purple" },
-        { IM_COL32(61, 61, 5, 199), "Yellow" },
-        { IM_COL32(103, 49, 9, 161), "Brown" },
-        { IM_COL32(0, 0, 0, 194), "Black" },
-    };
-
-    reset = close = false;
-    bool ret = false;
-
-    if (ImGui::MenuItem("Reset to default", nullptr, nullptr, use_custom))
-    {
-        reset = close = true;
-        return true;
-    }
-    ImGui::Separator();
-
-    for (auto& [clr, name] : colors)
-    {
-        ImGui::PushID(clr);
-        auto v4 = ImGui::ColorConvertU32ToFloat4(clr);
-        bool sel = ImGui::ColorButton("", v4, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder);
-        ImGui::SameLine();
-        if (ImGui::MenuItem(name) || sel)
-        {
-            m_color_buff[0] = v4.x; m_color_buff[1] = v4.y; m_color_buff[2] = v4.z; m_color_buff[3] = v4.w;
-            ret = true;
-        }
-        ImGui::PopID();
-    }
-
-    ImGui::Spacing();
-    if (m_color_buff[0] < 0.0f)
-    {
-        if (use_custom)
-        {
-            m_color_buff[0] = init.x; m_color_buff[1] = init.y; m_color_buff[2] = init.z; m_color_buff[3] = init.w;
-        }
-        else
-        {
-            auto vec = ed::GetStyle().Colors[ed::StyleColor_NodeBg];
-            m_color_buff[0] = vec.x; m_color_buff[1] = vec.y; m_color_buff[2] = vec.z; m_color_buff[3] = vec.w;
-        }
-    }
-    if (ImGui::ColorPicker4("###Background color", m_color_buff, (show_alpha ? ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview : 0) | ImGuiColorEditFlags_DefaultOptions_))
-    {
-        ret = true;
-    }
-
     return ret;
 }
 
-std::set<data::NodeInstance*> NodeDrawer::get_nodes_in_group(data::NodeInstance* group)
+bool NodeDrawer::is_node_selected(void* node) const
+{
+    return ed::IsNodeSelected(node);
+}
+
+void NodeDrawer::select_node(void* node, bool append_to_selection) const
+{
+    if (node != nullptr)
+        ed::SelectNode(node, append_to_selection);
+    else
+        ed::ClearSelection();
+}
+
+std::set<data::NodeInstance*> NodeDrawer::get_nodes_in_group(data::NodeInstance* group, const std::vector<data::NodeInstance*>& all_nodes) const
 {
     std::set<data::NodeInstance*> ret;
-    auto& all_nodes = m_callbacks.get_all_nodes();
     const float group_capt_height = ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y;
 
     for (auto node : all_nodes)
@@ -1938,6 +1331,29 @@ std::set<data::NodeInstance*> NodeDrawer::get_nodes_in_group(data::NodeInstance*
     }
 
     return ret;
+}
+
+void NodeDrawer::pin_node(void* node, bool pin) const
+{
+    ed::SetNodeDraggable(node, !pin);
+}
+
+void NodeDrawer::rename_node(data::NodeInstance* node)
+{
+    m_renaming_node = node;
+    m_renaming_buff = node->get_name();
+    m_need_renaming_focus = true;
+}
+
+ImRect NodeDrawer::calc_group_rect(const ImRect& node_rc) const
+{
+    return ImRect(ImVec2(node_rc.Min.x - ImGui::GetStyle().ItemSpacing.x, node_rc.Min.y - ImGui::GetTextLineHeight() * 2 - ImGui::GetStyle().ItemSpacing.y * 2),
+        ImVec2(node_rc.Max.x + ImGui::GetStyle().ItemSpacing.x * 2, node_rc.Max.y + ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 4));
+}
+
+void NodeDrawer::delete_node(void* node) const
+{
+    ed::DeleteNode(node);
 }
 
 } // namespace ui
