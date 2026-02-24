@@ -354,7 +354,9 @@ IMGUI_NODE_EDITOR_API bool AcceptDeletedItem(bool deleteDependencies = true);
 IMGUI_NODE_EDITOR_API void RejectDeletedItem();
 IMGUI_NODE_EDITOR_API void EndDelete();
 
+IMGUI_NODE_EDITOR_API EdType SetNodePosition(NodeId nodeId, const ImVec2& editorPosition);
 IMGUI_NODE_EDITOR_API void SetNodePosition(const EdType& edNode, const ImVec2& editorPosition);
+IMGUI_NODE_EDITOR_API EdType SetGroupSize(NodeId nodeId, const ImVec2& size);
 IMGUI_NODE_EDITOR_API void SetGroupSize(const EdType& edNode, const ImVec2& size);
 IMGUI_NODE_EDITOR_API ImVec2 GetNodePosition(const EdType& edNode);
 IMGUI_NODE_EDITOR_API ImVec2 GetNodeSize(const EdType& edNode);

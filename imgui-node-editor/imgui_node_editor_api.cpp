@@ -414,10 +414,20 @@ void ax::NodeEditor::EndDelete()
     context.End();
 }
 
+EdType ax::NodeEditor::SetNodePosition(NodeId nodeId, const ImVec2& position)
+{
+    return s_Editor->SetNodePosition(nodeId, position);
+}
+
 void ax::NodeEditor::SetNodePosition(const EdType& edNode, const ImVec2& position)
 {
     IM_ASSERT(!!edNode);
     s_Editor->SetNodePosition(edNode, position);
+}
+
+EdType ax::NodeEditor::SetGroupSize(NodeId nodeId, const ImVec2& size)
+{
+    return s_Editor->SetGroupSize(nodeId, size);
 }
 
 void ax::NodeEditor::SetGroupSize(const EdType& edNode, const ImVec2& size)

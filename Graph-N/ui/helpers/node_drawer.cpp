@@ -143,6 +143,23 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * m_mode_alpha);
     }
 
+    if (!node->m_pos_set)
+    {
+        if (node->ed())
+            ed::SetNodePosition(node->ed(), node->m_rc.Min);
+        else
+            node->ed() = ed::SetNodePosition(cast::to_ptr(node), node->m_rc.Min);
+        node->m_pos_set = true;
+    }
+    if (!node->m_size_set && node->m_group)
+    {
+        if (node->ed())
+            ed::SetGroupSize(node->ed(), node->m_rc.Max);
+        else
+            node->ed() = ed::SetGroupSize(cast::to_ptr(node), node->m_rc.Max);
+        node->m_size_set = true;
+    }
+
     if (node->ed())
         ed::BeginNode(node->ed());
     else
@@ -157,17 +174,6 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
     else if (m_deffered_action->active_node != nullptr)
     {
         ed::DeselectNode(node->ed());
-    }
-
-    if (!node->m_pos_set)
-    {
-        ed::SetNodePosition(node->ed(), node->m_rc.Min);
-        node->m_pos_set = true;
-    }
-    if (!node->m_size_set && node->m_group)
-    {
-        ed::SetGroupSize(node->ed(), node->m_rc.Max);
-        node->m_size_set = true;
     }
 }
 

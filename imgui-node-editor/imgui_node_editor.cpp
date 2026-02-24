@@ -1609,6 +1609,18 @@ void ed::EditorContext::SetNodePosition(Node* node, const ImVec2& position)
     }
 }
 
+ax::NodeEditor::Detail::Node* ed::EditorContext::SetNodePosition(NodeId nodeId, const ImVec2& position)
+{
+    auto node = FindNode(nodeId);
+    if (!node)
+    {
+        node = CreateNode(nodeId);
+        node->m_IsLive = false;
+    }
+    SetNodePosition(node, position);
+    return node;
+}
+
 void ed::EditorContext::SetGroupSize(Node* node, const ImVec2& size)
 {
     node->m_Type = NodeType::Group;
@@ -1620,6 +1632,18 @@ void ed::EditorContext::SetGroupSize(Node* node, const ImVec2& size)
         node->m_GroupBounds.Floor();
         MakeDirty(NodeEditor::SaveReasonFlags::Size, node);
     }
+}
+
+ax::NodeEditor::Detail::Node* ed::EditorContext::SetGroupSize(NodeId nodeId, const ImVec2& size)
+{
+    auto node = FindNode(nodeId);
+    if (!node)
+    {
+        node = CreateNode(nodeId);
+        node->m_IsLive = false;
+    }
+    SetGroupSize(node, size);
+    return node;
 }
 
 ImVec2 ed::EditorContext::GetNodePosition(Node* node)
