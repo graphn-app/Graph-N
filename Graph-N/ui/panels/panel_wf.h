@@ -22,6 +22,8 @@ public:
     ~PanelWorkflow() override;
 
     void init() override;
+    void handle_new_nodes();
+
     void stop_all_threads() override;
     void free() override;
 
@@ -73,6 +75,7 @@ private:
     std::vector<data::NodeInstance*> m_nodes;
     NodeDrawer m_drawer;
     data::NodeInstance* m_locate = nullptr;
+    bool m_handle_new_nodes = false;
 
     const std::string m_context_menuid;
     bool m_handle_context_menu = false;

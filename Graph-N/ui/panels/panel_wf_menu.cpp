@@ -214,10 +214,11 @@ bool PanelWorkflow::show_canvas_menu()
         close = true;
     }
     ImGui::Separator();
-    //if (ImGui::MenuItem("Paste", nullptr, false, !m_copied_objs.nodes.empty() || !m_copied_objs.groups.empty())) // TODO
-    //{
-    //    close = true;
-    //}
+    if (ImGui::MenuItem("Paste", nullptr, nullptr, g::pWfsManager->copy_has_data()))
+    {
+        g::pWfsManager->copy_end(m_wf, m_menu_objs.click_pos);
+        close = true;
+    }
     if (ImGui::MenuItem("Select all"))
     {
         m_drawer.select_node({}, false);
@@ -233,7 +234,7 @@ bool PanelWorkflow::show_canvas_menu()
         g::pFlow->wf_create_copy_from(m_wf);
         close = true;
     }
-    if (ImGui::MenuItem("Reset workflow window position")) // TODO
+    if (ImGui::MenuItem("Reset workflow window position"))
     {
         restore_pos();
         close = true;
@@ -286,17 +287,18 @@ bool PanelWorkflow::show_node_menu()
     ImGui::Separator();
     if (ImGui::MenuItem("Remove"))
     {
+        g::pWfsManager->copy_del(node);
         m_drawer.delete_node(node->ed());
         node->ed().reset();
         delete_node(node);
         close = true;
     }
-    //if (ImGui::MenuItem("Copy"))
-    //{
-    //    m_copied_objs = {};
-    //    m_copied_objs.nodes.insert(node);
-    //    close = true;
-    //}
+    if (ImGui::MenuItem("Copy"))
+    {
+        g::pWfsManager->copy_begin(m_wf, {});
+        g::pWfsManager->copy_add(node);
+        close = true;
+    }
     ImGui::Separator();
 
     //if (ImGui::MenuItem(node->expanded() ? "Collapse" : "Expand")) // TODO: FIX
@@ -366,6 +368,7 @@ bool PanelWorkflow::show_group_menu()
     ImGui::Separator();
     if (ImGui::MenuItem(nodes.empty() ? "Remove" : "Remove group"))
     {
+        g::pWfsManager->copy_del(group);
         m_drawer.delete_node(group->ed());
         group->ed().reset();
         delete_group(group);
@@ -381,11 +384,13 @@ bool PanelWorkflow::show_group_menu()
         {
             for (auto node : nodes)
             {
+                g::pWfsManager->copy_del(node);
                 m_drawer.delete_node(node->ed());
                 node->ed().reset();
                 delete_node(node);
             }
 
+            g::pWfsManager->copy_del(group);
             m_drawer.delete_node(group->ed());
             group->ed().reset();
             delete_group(group);
@@ -393,11 +398,12 @@ bool PanelWorkflow::show_group_menu()
             close = true;
         }
     }
-    //if (ImGui::MenuItem("Copy"))
-    //{
-    //    m_copied_objs = m_menu_objs;
-    //    close = true;
-    //}
+    if (ImGui::MenuItem("Copy"))
+    {
+        g::pWfsManager->copy_begin(m_wf, {});
+        g::pWfsManager->copy_add(group);
+        close = true;
+    }
     ImGui::Separator();
     if (ImGui::BeginMenu("Color"))
     {
@@ -464,14 +470,20 @@ bool PanelWorkflow::show_multinode_menu()
     {
         for (auto node : m_menu_objs.nodes)
         {
+            g::pWfsManager->copy_del(node);
             m_drawer.delete_node(node->ed());
             node->ed().reset();
             delete_node(node);
         }
         close = true;
     }
-    if (ImGui::MenuItem("Copy")) // TODO
+    if (ImGui::MenuItem("Copy"))
     {
+        g::pWfsManager->copy_begin(m_wf, {});
+        for (auto node : m_menu_objs.nodes)
+        {
+            g::pWfsManager->copy_add(node);
+        }
         close = true;
     }
     ImGui::Separator();
@@ -557,6 +569,7 @@ bool PanelWorkflow::show_multigroup_menu()
     {
         for (const auto& pair : m_menu_objs.groups)
         {
+            g::pWfsManager->copy_del(pair.first);
             m_drawer.delete_node(pair.first->ed());
             pair.first->ed().reset();
             delete_group(pair.first);
@@ -569,12 +582,14 @@ bool PanelWorkflow::show_multigroup_menu()
         {
             for (const auto&[group, nodes] : m_menu_objs.groups)
             {
+                g::pWfsManager->copy_del(group);
                 m_drawer.delete_node(group->ed());
                 group->ed().reset();
                 delete_group(group);
 
                 for (auto node : nodes)
                 {
+                    g::pWfsManager->copy_del(node);
                     m_drawer.delete_node(node->ed());
                     node->ed().reset();
                     delete_node(node);
@@ -583,8 +598,13 @@ bool PanelWorkflow::show_multigroup_menu()
             close = true;
         }
     }
-    if (ImGui::MenuItem("Copy")) // TODO
+    if (ImGui::MenuItem("Copy"))
     {
+        g::pWfsManager->copy_begin(m_wf, {});
+        for (auto& group : m_menu_objs.groups)
+        {
+            g::pWfsManager->copy_add(group.first);
+        }
         close = true;
     }
     ImGui::Separator();
@@ -646,28 +666,31 @@ bool PanelWorkflow::show_multiobj_menu()
     {
         for (auto node : m_menu_objs.nodes)
         {
+            g::pWfsManager->copy_del(node);
             m_drawer.delete_node(node->ed());
             node->ed().reset();
             delete_node(node);
         }
         for (auto& group : m_menu_objs.groups)
         {
+            g::pWfsManager->copy_del(group.first);
             m_drawer.delete_node(group.first->ed());
             group.first->ed().reset();
             delete_group(group.first);
         }
         close = true;
     }
-    if (ImGui::MenuItem("Copy")) // TODO
+    if (ImGui::MenuItem("Copy"))
     {
-        //for (auto node : m_menu_objs.nodes)
-        //{
-
-        //}
-        //for (auto group : m_menu_objs.groups)
-        //{
-
-        //}
+        g::pWfsManager->copy_begin(m_wf, {});
+        for (auto node : m_menu_objs.nodes)
+        {
+            g::pWfsManager->copy_add(node);
+        }
+        for (auto& group : m_menu_objs.groups)
+        {
+            g::pWfsManager->copy_add(group.first);
+        }
         close = true;
     }
     ImGui::Separator();

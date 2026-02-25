@@ -6,6 +6,7 @@
 namespace data
 {
 class Workflow;
+class NodeInstance;
 }
 
 namespace mngr
@@ -59,6 +60,12 @@ public:
 
     void set_wf_labels(wid wf_id, std::set<uint32_t> labels);
 
+    void copy_begin(wid source, std::optional<ImVec2> src_point);
+    void copy_add(data::NodeInstance* node);
+    void copy_del(data::NodeInstance* node);
+    void copy_end(wid dest, std::optional<ImVec2> dest_point);
+    inline bool copy_has_data() const { return !m_copied_nodes.empty(); }
+
 private:
     data::Workflow* create(WfData&& data);
     data::Workflow* find(wid id) const;
@@ -78,6 +85,10 @@ private:
     std::list<std::pair<std::string, uint32_t>> m_labels;
     uint32_t m_last_label_id = 0;
     std::map<uint32_t, std::list<wid>> m_wfs_in_label;
+
+    wid m_copy_src = 0;
+    std::optional<ImVec2> m_copy_point;
+    std::set<data::NodeInstance*> m_copied_nodes;
 };
 
 } // namespace mngr

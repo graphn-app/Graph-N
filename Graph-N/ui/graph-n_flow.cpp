@@ -740,6 +740,18 @@ void GraphN_Flow::wf_create_copy_from(wid source)
     m_panel_wf_list->rebuild_items();
 }
 
+void GraphN_Flow::wf_rebuild(wid id)
+{
+    for (auto& panel : m_panels_wf)
+    {
+        if (panel->get_workflow() == id)
+        {
+            panel->handle_new_nodes();
+            break;
+        }
+    }
+}
+
 void GraphN_Flow::wf_activate(wid id)
 {
     if (0 == id && !m_panels_wf.empty())

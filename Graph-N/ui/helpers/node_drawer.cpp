@@ -336,10 +336,10 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
 
     ImGui::PopStyleColor();
 
-    m_resizing_grip_positions[node_idx].Min.y -= ImGui::GetCursorPos().y - m_curr_node_top_offset;
-
     if (m_active_node->expanded())
         ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing * 2));
+
+   // m_resizing_grip_positions[node_idx].Min.y -= ImGui::GetCursorPos().y - m_curr_node_top_offset + ImGui::GetTextLineHeight();
 
     // --- WIDGETS ---
 
@@ -1409,6 +1409,16 @@ void NodeDrawer::delete_node(const EdType& node) const
 void NodeDrawer::delete_link(const EdType& link) const
 {
     ed::DeleteLink(link);
+}
+
+float NodeDrawer::get_zoom() const
+{
+    return ed::GetCurrentZoom();
+}
+
+ImRect NodeDrawer::get_viewport_rect() const
+{
+    return ImRect(m_context->GetViewRect());
 }
 
 } // namespace ui

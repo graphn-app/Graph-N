@@ -76,6 +76,9 @@ public:
 
     inline ImU32 get_default_node_color() const { return m_defclr_node_bg; }
 
+    float get_zoom() const;
+    ImVec2 get_viewport_pos() const;
+
 private:
     void draw_node_header();
     void draw_input_pin(data::PinInstance* pin);

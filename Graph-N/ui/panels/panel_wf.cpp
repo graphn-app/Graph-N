@@ -68,6 +68,34 @@ void PanelWorkflow::init()
     }
 }
 
+void PanelWorkflow::handle_new_nodes()
+{
+    m_handle_new_nodes = false;
+    auto wf = g::pWfsManager->access(m_wf);
+    auto& nodes = wf->get_nodes();
+    for (auto& node : nodes)
+    {
+        bool is_new = true;
+        for (auto old_node : m_nodes)
+        {
+            if (old_node == node.get())
+            {
+                is_new = false;
+                break;
+            }
+        }
+        if (!is_new)
+            continue;
+
+        node->reset_state();
+
+        if (!node->m_group)
+            node->calc_node_width(false, false);
+        m_nodes.push_back(node.get());
+        m_handle_new_nodes = true;
+    }
+}
+
 void PanelWorkflow::restore_pos()
 {
     m_restore_pos = true;
@@ -127,9 +155,15 @@ void PanelWorkflow::draw_wf()
     io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
     m_drawer.pre_draw_all(get_panel_id(), m_nodes.size());
+
+    if (m_handle_new_nodes)
+        m_drawer.select_node({}, false);
+
     for (size_t node_idx = 0; node_idx < m_nodes.size(); node_idx++)
     {
         auto node = m_nodes[node_idx];
+        const bool is_new = m_handle_new_nodes && !node->ed();
+
         ImGui::PushID(node);
         m_drawer.pre_draw_node(node);
         if (node->m_group)
@@ -138,6 +172,9 @@ void PanelWorkflow::draw_wf()
             m_drawer.draw_node(node, node->get_object()->w_fit, node_idx);
         m_drawer.post_draw_node(node);
         ImGui::PopID();
+
+        if (m_handle_new_nodes && is_new)
+            m_drawer.select_node(node->ed(), true);
     }
 
     if (m_locate != nullptr)
@@ -150,6 +187,7 @@ void PanelWorkflow::draw_wf()
     m_drawer.draw_links(wf->get_links());
     m_drawer.query_links();
 
+    m_handle_new_nodes = false;
     m_drawer.post_draw_all([this]() { return context_menu_handler(); }, [this]() { return show_context_menu(); });
 
     ImGui::GetIO().ConfigFlags = old_flags;
