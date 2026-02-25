@@ -103,19 +103,21 @@ DlgCode PanelWorkflow::show(bool& focused)
     return end_panel(opened);
 }
 
-void PanelWorkflow::add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos)
+data::NodeInstance* PanelWorkflow::add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos)
 {
     auto wf = g::pWfsManager->access(m_wf);
     auto node_inst = wf->add_node(node, pos.has_value() ? pos.value() : ImRect(100, 100, -1, -1), select);
     node_inst->calc_node_width(false, false);
     m_nodes.push_back(node_inst);
+    return node_inst;
 }
 
-void PanelWorkflow::add_group(std::optional<ImRect> size)
+data::NodeInstance* PanelWorkflow::add_group(std::optional<ImRect> size)
 {
     auto wf = g::pWfsManager->access(m_wf);
-    auto node_inst = wf->add_group(size.has_value() ? size.value() : ImRect(100, 100, -1, -1), "New group");
-    m_nodes.push_back(node_inst);
+    auto group_inst = wf->add_group(size.has_value() ? size.value() : ImRect(100, 100, -1, -1), "New group");
+    m_nodes.push_back(group_inst);
+    return group_inst;
 }
 
 void PanelWorkflow::draw_wf()

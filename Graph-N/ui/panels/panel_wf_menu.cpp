@@ -444,13 +444,21 @@ bool PanelWorkflow::show_multinode_menu()
         }
         close = true;
     }
-    if (ImGui::MenuItem("Group")) // TODO
+    if (ImGui::MenuItem("Group"))
     {
+        auto group = add_group(std::nullopt);
+        m_drawer.fit_group_rect(group, m_menu_objs.nodes);
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Remove {} nodes")) // TODO
+    if (ImGui::MenuItem("Remove"))
     {
+        for (auto node : m_menu_objs.nodes)
+        {
+            m_drawer.delete_node(node->ed());
+            node->ed().reset();
+            delete_node(node);
+        }
         close = true;
     }
     if (ImGui::MenuItem("Copy")) // TODO
@@ -458,32 +466,71 @@ bool PanelWorkflow::show_multinode_menu()
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Pin nodes")) // TODO
+    if (ImGui::MenuItem("Pin"))
     {
+        for (auto node : m_menu_objs.nodes)
+        {
+            node->pin(true);
+            m_drawer.pin_node(node->ed(), node->pinned());
+        }
         close = true;
     }
-    if (ImGui::MenuItem("Unpin nodes")) // TODO
+    if (ImGui::MenuItem("Unpin"))
     {
-        close = true;
-    }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Always")) // TODO
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Bypass")) // TODO
-    {
-        close = true;
-    }
-    if (ImGui::MenuItem("Mute")) // TODO
-    {
+        for (auto node : m_menu_objs.nodes)
+        {
+            node->pin(false);
+            m_drawer.pin_node(node->ed(), node->pinned());
+        }
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Color")) // TODO
+    if (ImGui::MenuItem("Always"))
     {
+        for (auto node : m_menu_objs.nodes)
+        {
+            node->set_mode(NodeMode::Always);
+        }
         close = true;
     }
+    if (ImGui::MenuItem("Bypass"))
+    {
+        for (auto node : m_menu_objs.nodes)
+        {
+            node->set_mode(NodeMode::Bypass);
+        }
+        close = true;
+    }
+    if (ImGui::MenuItem("Mute"))
+    {
+        for (auto node : m_menu_objs.nodes)
+        {
+            node->set_mode(NodeMode::Mute);
+        }
+        close = true;
+    }
+    ImGui::Separator();
+    if (ImGui::BeginMenu("Color"))
+    {
+        bool reset = false;
+        if (show_colors_menu(close, reset, true, true, (*m_menu_objs.nodes.begin())->m_clr_node))
+        {
+            for (auto node : m_menu_objs.nodes)
+            {
+                if (reset)
+                    node->reset_to_default_colors();
+                else
+                {
+                    node->m_clr_node.x = m_color_buff[0]; node->m_clr_node.y = m_color_buff[1]; node->m_clr_node.z = m_color_buff[2]; node->m_clr_node.w = m_color_buff[3];
+                    node->set_node_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                }
+            }
+        }
+
+        ImGui::EndMenu();
+    }
+    else
+        m_color_buff[0] = -1.0f;
 
     return close;
 }

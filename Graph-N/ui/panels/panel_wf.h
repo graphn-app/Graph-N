@@ -36,8 +36,8 @@ public:
     }
     inline void locale_node(data::NodeInstance* node) { m_locate = node; }
 
-    void add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos);
-    void add_group(std::optional<ImRect> size);
+    data::NodeInstance* add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos);
+    data::NodeInstance* add_group(std::optional<ImRect> size);
 
 private:
     DlgCode show(bool& focused) override;
