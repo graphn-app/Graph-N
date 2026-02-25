@@ -537,25 +537,95 @@ bool PanelWorkflow::show_multinode_menu()
 
 bool PanelWorkflow::show_multigroup_menu()
 {
+    size_t nodes_inside = 0;
+    for (const auto& group : m_menu_objs.groups)
+    {
+        nodes_inside += group.second.size();
+    }
+
     bool close = false;
-    if (ImGui::MenuItem("Remove groups")) // TODO
+    if (ImGui::MenuItem(nodes_inside > 0 ? "Remove groups" : "Remove"))
     {
+        for (const auto& pair : m_menu_objs.groups)
+        {
+            m_drawer.delete_node(pair.first->ed());
+            pair.first->ed().reset();
+            delete_group(pair.first);
+        }
         close = true;
     }
-    if (ImGui::MenuItem("Remove groups and {} nodes inside")) // TODO
+    if (nodes_inside > 0)
+    {
+        if (ImGui::MenuItem("Remove groups and nodes inside"))
+        {
+            for (const auto&[group, nodes] : m_menu_objs.groups)
+            {
+                m_drawer.delete_node(group->ed());
+                group->ed().reset();
+                delete_group(group);
+
+                for (auto node : nodes)
+                {
+                    m_drawer.delete_node(node->ed());
+                    node->ed().reset();
+                    delete_node(node);
+                }
+            }
+            close = true;
+        }
+    }
+    if (ImGui::MenuItem("Copy")) // TODO
     {
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Fit groups to content")) // TODO
+    if (nodes_inside > 0)
     {
-        close = true;
+        if (ImGui::MenuItem("Fit"))
+        {
+            for (const auto&[group, nodes] : m_menu_objs.groups)
+            {
+                m_drawer.fit_group_rect(group, nodes);
+            }
+            close = true;
+        }
+        ImGui::Separator();
     }
-    ImGui::Separator();
-    if (ImGui::MenuItem("Color")) // TODO
+    if (ImGui::BeginMenu("Color"))
     {
-        close = true;
+        static bool for_all = false;
+        if (nodes_inside > 0)
+        {
+            ImGui::Checkbox("Apply to nodes in group", &for_all);
+            ImGui::Separator();
+        }
+        bool reset = false;
+        if (show_colors_menu(close, reset, true, for_all, ImGui::ColorConvertU32ToFloat4(m_menu_objs.groups.begin()->first->m_clr_group)))
+        {
+            for (const auto& [group, nodes] : m_menu_objs.groups)
+            {
+                if (reset)
+                    group->reset_to_default_colors();
+                else
+                    group->set_group_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+
+                if (for_all)
+                {
+                    for (auto node : nodes)
+                    {
+                        if (reset)
+                            node->reset_to_default_colors();
+                        else
+                            node->set_node_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                    }
+                }
+            }
+        }
+
+        ImGui::EndMenu();
     }
+    else
+        m_color_buff[0] = -1.0f;
 
     return close;
 }

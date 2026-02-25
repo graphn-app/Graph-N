@@ -1365,6 +1365,9 @@ ImRect NodeDrawer::calc_group_rect(const ImRect& node_rc) const
 
 bool NodeDrawer::fit_group_rect(data::NodeInstance* group, const std::set<data::NodeInstance*>& nodes) const
 {
+    if (nodes.empty())
+        return false;
+
     const auto old_size = group->m_rc;
     group->m_rc = ImRect(FLT_MAX, FLT_MAX, -FLT_MIN, -FLT_MIN);
     for (auto node : nodes)
