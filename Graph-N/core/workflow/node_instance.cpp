@@ -77,6 +77,10 @@ void NodeInstance::init(const NodeInstance* copy_from_node)
         {
             auto pin_instance = wf->add_pin(this, pin->get_object());
             *pin_instance->m_state = *pin->m_state;
+            pin_instance->m_state->links = 0;
+            pin_instance->m_state->converted = false;
+            pin_instance->m_state->type = pin->get_object()->def_state.type;
+            pin_instance->m_state->type_str = pin->get_object()->def_state.type_str;
             dest.push_back(pin_instance);
         }
     };

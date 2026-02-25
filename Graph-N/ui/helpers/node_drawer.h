@@ -55,11 +55,14 @@ public:
     data::PinInstance* get_hovered_pin() const;
     data::NodeInstance* get_hovered_node() const;
     data::Link* get_hovered_link() const;
-
-    std::set<data::Link*> get_selected_links() const;
+    
     std::set<data::NodeInstance*> get_selected_nodes() const;
     bool is_node_selected(const EdType& node) const;
     void select_node(const EdType& node, bool append_to_selection) const;
+
+    std::set<data::Link*> get_selected_links() const;
+    bool is_link_selected(const EdType& link) const;
+    void select_link(const EdType& link, bool append_to_selection) const;
 
     std::set<data::NodeInstance*> get_nodes_in_group(data::NodeInstance* group, const std::vector<data::NodeInstance*>& all_nodes) const;
     ImRect calc_group_rect(const ImRect& node_rc) const;
@@ -69,6 +72,7 @@ public:
     void rename_node(data::NodeInstance* node);    
 
     void delete_node(const EdType& node) const;
+    void delete_link(const EdType& link) const;
 
     inline ImU32 get_default_node_color() const { return m_defclr_node_bg; }
 

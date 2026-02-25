@@ -1284,21 +1284,6 @@ data::Link* NodeDrawer::get_hovered_link() const
     return cast::ptrs<data::Link>((std::uintptr_t)ed::GetHoveredLink());
 }
 
-std::set<data::Link*> NodeDrawer::get_selected_links() const
-{
-    std::vector<ed::LinkId> links;
-    const auto count = ed::GetSelectedLinksCount();
-    links.resize(count);
-    ed::GetSelectedLinks(links.data(), count);
-
-    std::set<data::Link*> ret;
-    for (auto id : links)
-    {
-        ret.insert(cast::ptrs<data::Link>((std::uintptr_t)id));
-    }
-    return ret;
-}
-
 std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes() const
 {
     std::vector<ed::NodeId> nodes;
@@ -1323,6 +1308,34 @@ void NodeDrawer::select_node(const EdType& node, bool append_to_selection) const
 {
     if (node)
         ed::SelectNode(node, append_to_selection);
+    else
+        ed::ClearSelection();
+}
+
+std::set<data::Link*> NodeDrawer::get_selected_links() const
+{
+    std::vector<ed::LinkId> links;
+    const auto count = ed::GetSelectedLinksCount();
+    links.resize(count);
+    ed::GetSelectedLinks(links.data(), count);
+
+    std::set<data::Link*> ret;
+    for (auto id : links)
+    {
+        ret.insert(cast::ptrs<data::Link>((std::uintptr_t)id));
+    }
+    return ret;
+}
+
+bool NodeDrawer::is_link_selected(const EdType& link) const
+{
+    return ed::IsLinkSelected(link);
+}
+
+void NodeDrawer::select_link(const EdType& link, bool append_to_selection) const
+{
+    if (link)
+        ed::SelectLink(link, append_to_selection);
     else
         ed::ClearSelection();
 }
@@ -1391,6 +1404,11 @@ bool NodeDrawer::fit_group_rect(data::NodeInstance* group, const std::set<data::
 void NodeDrawer::delete_node(const EdType& node) const
 {
     ed::DeleteNode(node);
+}
+
+void NodeDrawer::delete_link(const EdType& link) const
+{
+    ed::DeleteLink(link);
 }
 
 } // namespace ui

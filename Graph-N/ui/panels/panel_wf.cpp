@@ -191,7 +191,11 @@ void PanelWorkflow::delete_group(data::NodeInstance* group)
 
 void PanelWorkflow::delete_link(data::Link* link)
 {
-    (void)link; // TODO
+    auto wf = g::pWfsManager->access(m_wf);
+    if (wf != nullptr)
+    {
+        wf->remove_link(link);
+    }
 }
 
 void PanelWorkflow::create_group(const ImRect& rc)

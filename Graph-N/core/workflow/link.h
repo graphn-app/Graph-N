@@ -21,6 +21,8 @@ public:
     inline iid get_instance_id() const { return m_iid; }
     inline wid get_workflow_id() const { return m_workflow_id; }
 
+    inline bool is_linked_to(const PinInstance* pin) const { return pin == m_input || pin == m_output; }
+
     void reset_state();
 
     void unlink();

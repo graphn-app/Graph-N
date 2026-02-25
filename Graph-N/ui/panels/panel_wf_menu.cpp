@@ -1,6 +1,8 @@
 
 #include "ui/panels/panel_wf.h"
 #include "core/workflow/node_instance.h"
+#include "core/workflow/pin_instance.h"
+#include "core/workflow/link.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "ui/graph-n_flow.h"
@@ -23,90 +25,97 @@ bool PanelWorkflow::context_menu_handler()
     if (!ImGui::IsMouseReleased(ImGuiMouseButton_Right))
         return false;
 
-    const auto pin = m_drawer.get_hovered_pin();
-    if (pin != nullptr)
     {
-        m_handle_context_menu = true;
-        m_menu_objs = {};
-        m_context_menu_type = MenuType::Pin;
-        m_menu_objs.pins.insert(pin);
-        m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
-        Log("Pin menu initiated");
-        return true;
+        const auto pin = m_drawer.get_hovered_pin();
+        if (pin != nullptr)
+        {
+            m_handle_context_menu = true;
+            m_menu_objs = {};
+            m_context_menu_type = MenuType::Pin;
+            m_menu_objs.pins.insert(pin);
+            m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
+            Log("Pin menu initiated");
+            return true;
+        }
     }
 
-    const auto link = m_drawer.get_hovered_link();
-    if (link != nullptr)
     {
-        m_handle_context_menu = true;
-        m_menu_objs = {};
-        m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
+        const auto link = m_drawer.get_hovered_link();
+        if (link != nullptr)
+        {
+            m_handle_context_menu = true;
+            m_menu_objs = {};
+            m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
 
-        const auto sel_links = m_drawer.get_selected_links();
-        if (sel_links.size() == 1)
-        {
-            m_context_menu_type = MenuType::Link;
-            m_menu_objs.links.insert(link);
-            Log("Link menu initiated");
-        }
-        else
-        {
-            m_context_menu_type = MenuType::Multilink;
-            m_menu_objs.links = std::move(sel_links);
-            Log("Multilink menu initiated");
-        }
-        return true;
-    }
-
-    const auto node = m_drawer.get_hovered_node();
-    if (node != nullptr)
-    {
-        m_handle_context_menu = true;
-        m_menu_objs = {};
-        m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
-
-        auto nodes = m_drawer.get_selected_nodes();
-        if (!m_drawer.is_node_selected(node->ed()) || 1 == nodes.size())
-        {
-            m_drawer.select_node(node->ed(), false);
-            if (node->m_group)
-                m_menu_objs.groups.insert({ node, m_drawer.get_nodes_in_group(node, m_nodes) });
-            else
-                m_menu_objs.nodes.insert(node);
-            m_context_menu_type = node->m_group ? MenuType::Group : MenuType::Node;
-            Log((node->m_group ? "Group" : "Node") << " menu initiated");
-        }
-        else
-        {
-            for (auto node_it : nodes)
+            const auto links = m_drawer.get_selected_links();
+            if (!m_drawer.is_link_selected(link->ed()) || 1 == links.size())
             {
-                if (node_it->m_group)
+                m_drawer.select_link(link->ed(), false);
+                m_context_menu_type = MenuType::Link;
+                m_menu_objs.links.insert(link);
+                Log("Link menu initiated");
+            }
+            else
+            {
+                m_context_menu_type = MenuType::Multilink;
+                m_menu_objs.links = std::move(links);
+                Log("Multilink menu initiated");
+            }
+            return true;
+        }
+    }
+
+    {
+        const auto node = m_drawer.get_hovered_node();
+        if (node != nullptr)
+        {
+            m_handle_context_menu = true;
+            m_menu_objs = {};
+            m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
+
+            auto nodes = m_drawer.get_selected_nodes();
+            if (!m_drawer.is_node_selected(node->ed()) || 1 == nodes.size())
+            {
+                m_drawer.select_node(node->ed(), false);
+                if (node->m_group)
+                    m_menu_objs.groups.insert({ node, m_drawer.get_nodes_in_group(node, m_nodes) });
+                else
+                    m_menu_objs.nodes.insert(node);
+                m_context_menu_type = node->m_group ? MenuType::Group : MenuType::Node;
+                Log((node->m_group ? "Group" : "Node") << " menu initiated");
+            }
+            else
+            {
+                for (auto node_it : nodes)
                 {
-                    m_menu_objs.groups.insert({ node_it, m_drawer.get_nodes_in_group(node_it, m_nodes) });
+                    if (node_it->m_group)
+                    {
+                        m_menu_objs.groups.insert({ node_it, m_drawer.get_nodes_in_group(node_it, m_nodes) });
+                    }
+                    else
+                    {
+                        m_menu_objs.nodes.insert(node_it);
+                    }
+                }
+
+                if (!m_menu_objs.groups.empty() && m_menu_objs.nodes.empty())
+                {
+                    m_context_menu_type = MenuType::Multigroup;
+                    Log("Multigroup menu initiated");
+                }
+                else if (m_menu_objs.groups.empty() && !m_menu_objs.nodes.empty())
+                {
+                    m_context_menu_type = MenuType::Multinode;
+                    Log("Multinode menu initiated");
                 }
                 else
                 {
-                    m_menu_objs.nodes.insert(node_it);
+                    m_context_menu_type = MenuType::Multiobj;
+                    Log("Multiobj menu initiated");
                 }
             }
-
-            if (!m_menu_objs.groups.empty() && m_menu_objs.nodes.empty())
-            {
-                m_context_menu_type = MenuType::Multigroup;
-                Log("Multigroup menu initiated");
-            }
-            else if (m_menu_objs.groups.empty() && !m_menu_objs.nodes.empty())
-            {
-                m_context_menu_type = MenuType::Multinode;
-                Log("Multinode menu initiated");
-            }
-            else
-            {
-                m_context_menu_type = MenuType::Multiobj;
-                Log("Multiobj menu initiated");
-            }
+            return true;
         }
-        return true;
     }
 
     return true;
@@ -657,16 +666,41 @@ bool PanelWorkflow::show_multiobj_menu()
 
 bool PanelWorkflow::show_pin_menu()
 {
+    if (m_menu_objs.pins.size() != 1)
+    {
+        LogInternalLogic("More than one pin cannot be selected");
+        return true;
+    }
+
+    auto pin = *m_menu_objs.pins.begin();
+    if (0 == pin->m_state->links)
+        return true;
+
     bool close = false;
 
-    if (ImGui::MenuItem("Unlink")) // TODO
+    if (ImGui::MenuItem("Unlink"))
     {
+        auto wf = g::pWfsManager->access(m_wf);
+        auto& links = wf->get_links();
+        for (auto it = links.begin(); it != links.end(); )
+        {
+            auto& link = *it;
+            if (link->is_linked_to(pin))
+            {
+                m_drawer.delete_link(link->ed());
+                link->ed().reset();
+                delete_link(link.get());
+                it = links.begin();
+            }
+            else
+                ++it;
+        }
         close = true;
     }
-    if (ImGui::MenuItem("Rename slot")) // TODO
-    {
-        close = true;
-    }
+    //if (ImGui::MenuItem("Rename slot")) // TODO
+    //{
+    //    close = true;
+    //}
 
     return close;
 }
@@ -675,8 +709,13 @@ bool PanelWorkflow::show_link_menu()
 {
     bool close = false;
 
-    if (ImGui::MenuItem("Remove link")) // TODO
+    if (ImGui::MenuItem("Unlink"))
     {
+        auto link = *m_menu_objs.links.begin();
+        m_drawer.delete_link(link->ed());
+        link->ed().reset();
+        delete_link(link);
+
         close = true;
     }
     if (ImGui::MenuItem("Insert angle")) // TODO
@@ -691,8 +730,14 @@ bool PanelWorkflow::show_multilink_menu()
 {
     bool close = false;
 
-    if (ImGui::MenuItem("Remove all links"))
+    if (ImGui::MenuItem("Unlink all"))
     {
+        for (auto link : m_menu_objs.links)
+        {
+            m_drawer.delete_link(link->ed());
+            link->ed().reset();
+            delete_link(link);
+        }
         close = true;
     }
     return close;
