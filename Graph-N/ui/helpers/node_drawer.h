@@ -63,6 +63,7 @@ public:
 
     std::set<data::NodeInstance*> get_nodes_in_group(data::NodeInstance* group, const std::vector<data::NodeInstance*>& all_nodes) const;
     ImRect calc_group_rect(const ImRect& node_rc) const;
+    bool fit_group_rect(data::NodeInstance* group, const std::set<data::NodeInstance*>& nodes) const;
 
     void pin_node(const EdType& node, bool pin) const;
     void rename_node(data::NodeInstance* node);    

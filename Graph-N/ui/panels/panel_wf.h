@@ -63,6 +63,7 @@ private:
     //void copy_node(data::NodeInstance* node, const ImRect& rc); // TODO
     //void copy_group(const ImRect& rc); // TODO
     void create_group(const ImRect& rc);
+    void fit(std::map<data::NodeInstance*, std::set<data::NodeInstance*>>& items);
 
 private:
     wid m_wf = 0;
@@ -80,8 +81,7 @@ private:
     fmt::memory_buffer m_context_menu_nodes_buffer;
 
     enum class MenuType { _none, Back, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink };
-
-    struct NodeAction final
+    struct MenuObjects final
     {
         std::set<data::NodeInstance*> nodes;
         std::map<data::NodeInstance*, std::set<data::NodeInstance*>> groups;
@@ -90,8 +90,7 @@ private:
         ImVec2 click_pos;
     };
     MenuType m_context_menu_type = MenuType::_none;
-    NodeAction m_menu_objs;
-    NodeAction m_copied_objs;
+    MenuObjects m_menu_objs;
     float m_color_buff[4] = { -1.0f };
 };
 

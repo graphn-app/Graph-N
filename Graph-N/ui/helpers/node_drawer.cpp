@@ -1353,8 +1353,30 @@ void NodeDrawer::rename_node(data::NodeInstance* node)
 
 ImRect NodeDrawer::calc_group_rect(const ImRect& node_rc) const
 {
-    return ImRect(ImVec2(node_rc.Min.x - ImGui::GetStyle().ItemSpacing.x, node_rc.Min.y - ImGui::GetTextLineHeight() * 2 - ImGui::GetStyle().ItemSpacing.y * 2),
-        ImVec2(node_rc.Max.x + ImGui::GetStyle().ItemSpacing.x * 2, node_rc.Max.y + ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 4));
+    return ImRect(ImVec2(node_rc.Min.x - ImGui::GetStyle().ItemSpacing.x * 2, node_rc.Min.y - ImGui::GetTextLineHeight() * 2 - ImGui::GetStyle().ItemSpacing.y * 2),
+        ImVec2(node_rc.Max.x + ImGui::GetStyle().ItemSpacing.x * 4, node_rc.Max.y + ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 2));
+}
+
+bool NodeDrawer::fit_group_rect(data::NodeInstance* group, const std::set<data::NodeInstance*>& nodes) const
+{
+    const auto old_size = group->m_rc;
+    group->m_rc = ImRect(FLT_MAX, FLT_MAX, -FLT_MIN, -FLT_MIN);
+    for (auto node : nodes)
+    {
+        group->m_rc.Min.x = std::min(group->m_rc.Min.x, node->m_rc.Min.x);
+        group->m_rc.Min.y = std::min(group->m_rc.Min.y, node->m_rc.Min.y);
+        group->m_rc.Max.x = std::max(group->m_rc.Max.x, node->m_rc.Min.x + node->m_rc.Max.x);
+        group->m_rc.Max.y = std::max(group->m_rc.Max.y, node->m_rc.Min.y + node->m_rc.Max.y);
+    }
+
+    group->m_rc.Max.x = group->m_rc.GetWidth() + ImGui::GetStyle().ItemSpacing.x * 4;
+    group->m_rc.Max.y = group->m_rc.GetHeight() + ImGui::GetStyle().ItemSpacing.y * 4;
+
+    group->m_rc.Min.x -= ImGui::GetStyle().ItemSpacing.x * 2;
+    group->m_rc.Min.y -= ImGui::GetTextLineHeight() * 3 - ImGui::GetStyle().ItemSpacing.y * 4;
+
+    group->m_pos_set = group->m_size_set = false;
+    return old_size.Max.y != group->m_rc.Max.y;
 }
 
 void NodeDrawer::delete_node(const EdType& node) const

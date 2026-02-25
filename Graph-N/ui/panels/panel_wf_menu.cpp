@@ -160,7 +160,7 @@ bool PanelWorkflow::show_canvas_menu()
     
     ImGui::MenuItem(g::pWfsManager->get_data(m_wf).name.c_str(), nullptr, nullptr, false);
     ImGui::Separator();
-    if (ImGui::BeginMenu("Add node##allnodes")) // TODO
+    if (ImGui::BeginMenu("Add node##allnodes"))
     {
         auto node = show_nodes_menu("", "");
         if (node != nullptr)
@@ -169,6 +169,16 @@ bool PanelWorkflow::show_canvas_menu()
             add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
         }
         ImGui::EndMenu();
+    }
+    if (ImGui::MenuItem("Add group"))
+    {
+        create_group(ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
+        close = true;
+    }
+    if (ImGui::MenuItem("Fit"))
+    {
+        fit(m_menu_objs.groups);
+        close = true;
     }
     ImGui::Separator();
     if (ImGui::MenuItem("Undo")) // TODO
@@ -180,22 +190,17 @@ bool PanelWorkflow::show_canvas_menu()
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Add group"))
-    {
-        create_group(ImRect(m_menu_objs.click_pos.x, m_menu_objs.click_pos.y, -1, -1));
-        close = true;
-    }
-    if (ImGui::MenuItem("Fit all groups to content")) // TODO
-    {
-        close = true;
-    }
-    ImGui::Separator();
     if (ImGui::MenuItem("Paste", nullptr, false, !m_copied_objs.nodes.empty() || !m_copied_objs.groups.empty())) // TODO
     {
         close = true;
     }
-    if (ImGui::MenuItem("Select all")) // TODO
+    if (ImGui::MenuItem("Select all"))
     {
+        m_drawer.select_node({}, false);
+        for (auto node : m_nodes)
+        {
+            m_drawer.select_node(node->ed(), true);
+        }
         close = true;
     }
     ImGui::Separator();
@@ -320,19 +325,7 @@ bool PanelWorkflow::show_group_menu()
     {
         if (ImGui::MenuItem("Fit"))
         {
-            if (!nodes.empty())
-            {
-                group->m_rc = ImRect(FLT_MAX, FLT_MAX, -FLT_MIN, -FLT_MIN);
-                for (auto node : nodes)
-                {
-                    group->m_rc.Min.x = std::min(group->m_rc.Min.x, node->m_rc.Min.x);
-                    group->m_rc.Min.y = std::min(group->m_rc.Min.y, node->m_rc.Min.y);
-                    group->m_rc.Max.x = std::max(group->m_rc.Max.x, node->m_rc.Min.x + node->m_rc.Max.x);
-                    group->m_rc.Max.y = std::max(group->m_rc.Max.y, node->m_rc.Min.y + node->m_rc.Max.y);
-                }
-                group->m_rc = m_drawer.calc_group_rect(group->m_rc);
-                group->m_pos_set = group->m_size_set = false;
-            }
+            m_drawer.fit_group_rect(group, nodes);
             close = true;
         }
         if (ImGui::MenuItem("Select nodes"))

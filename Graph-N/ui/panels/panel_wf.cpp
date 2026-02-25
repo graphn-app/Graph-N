@@ -176,4 +176,59 @@ void PanelWorkflow::create_group(const ImRect& rc)
     add_group(rc);
 }
 
+void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstance*>>& items)
+{
+    if (items.empty())
+    {
+        for (auto node : m_nodes)
+        {
+            if (node->m_group)
+            {
+                items.insert({ node, m_drawer.get_nodes_in_group(node, m_nodes) });
+            }
+            else
+            {
+                items.insert({ node, {} });
+            }
+        }
+    }
+
+    for (auto it = items.begin(); it != items.end(); )
+    {
+        if (!it->first->m_group)
+        {
+            it->first->reset_width();
+            it = items.erase(it);
+        }
+        else if (it->second.empty())
+        {
+            it = items.erase(it);
+        }
+        else
+            ++it;
+    }
+
+    std::set<data::NodeInstance*> add_y;
+    for (auto it = items.begin(); it != items.end(); ++it)
+    {
+        auto& nodes = it->second;
+        for (auto node : nodes)
+        {
+            if (node != it->first && node->m_group && items.find(node) != items.end())
+            {
+                if (m_drawer.fit_group_rect(node, m_drawer.get_nodes_in_group(node, m_nodes)))
+                    add_y.insert(it->first);
+                items.erase(node);
+            }
+        }
+    }
+
+    for (auto& [group, nodes] : items)
+    {
+        m_drawer.fit_group_rect(group, nodes);
+        if (add_y.find(group) != add_y.end())
+            group->m_rc.Max.y += ImGui::GetTextLineHeight();
+    }
+}
+
 } // namespace ui
