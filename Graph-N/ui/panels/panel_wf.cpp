@@ -14,7 +14,7 @@ PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std
     : PanelBase(DlgObj::PanelWf, name, panel_id, true)
     , m_wf(workflow_id)
     , m_dock(dock)
-    , m_context_menuid(ImHashStr("533177A6-9C98-475D-A152-8F68F4F2353E"))
+    , m_context_menuid(panel_id + "_ContextMenu")
 {
 }
 

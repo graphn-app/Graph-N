@@ -74,11 +74,11 @@ private:
     NodeDrawer m_drawer;
     data::NodeInstance* m_locate = nullptr;
 
-    const ImGuiID m_context_menuid;
+    const std::string m_context_menuid;
     bool m_handle_context_menu = false;
     bool m_context_menu_nodes_need_focus = false;
     std::string m_context_menu_nodes_filter;
-    fmt::memory_buffer m_context_menu_nodes_buffer;
+    fmt::memory_buffer m_fmt_buffer;
 
     enum class MenuType { _none, Back, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink };
     struct MenuObjects final

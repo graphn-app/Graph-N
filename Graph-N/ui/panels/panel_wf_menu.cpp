@@ -16,6 +16,7 @@ bool PanelWorkflow::context_menu_handler()
         m_menu_objs = {};
         m_context_menu_type = MenuType::Back;
         m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
+        Log("Bg menu initiated");
         return true;
     }
 
@@ -30,6 +31,7 @@ bool PanelWorkflow::context_menu_handler()
         m_context_menu_type = MenuType::Pin;
         m_menu_objs.pins.insert(pin);
         m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
+        Log("Pin menu initiated");
         return true;
     }
 
@@ -45,11 +47,13 @@ bool PanelWorkflow::context_menu_handler()
         {
             m_context_menu_type = MenuType::Link;
             m_menu_objs.links.insert(link);
+            Log("Link menu initiated");
         }
         else
         {
             m_context_menu_type = MenuType::Multilink;
             m_menu_objs.links = std::move(sel_links);
+            Log("Multilink menu initiated");
         }
         return true;
     }
@@ -70,6 +74,7 @@ bool PanelWorkflow::context_menu_handler()
             else
                 m_menu_objs.nodes.insert(node);
             m_context_menu_type = node->m_group ? MenuType::Group : MenuType::Node;
+            Log((node->m_group ? "Group" : "Node") << " menu initiated");
         }
         else
         {
@@ -86,11 +91,20 @@ bool PanelWorkflow::context_menu_handler()
             }
 
             if (!m_menu_objs.groups.empty() && m_menu_objs.nodes.empty())
+            {
                 m_context_menu_type = MenuType::Multigroup;
+                Log("Multigroup menu initiated");
+            }
             else if (m_menu_objs.groups.empty() && !m_menu_objs.nodes.empty())
+            {
                 m_context_menu_type = MenuType::Multinode;
+                Log("Multinode menu initiated");
+            }
             else
+            {
                 m_context_menu_type = MenuType::Multiobj;
+                Log("Multiobj menu initiated");
+            }
         }
         return true;
     }
@@ -102,13 +116,13 @@ bool PanelWorkflow::show_context_menu()
 {
     if (m_handle_context_menu)
     {
-        ImGui::OpenPopup(m_context_menuid);
+        ImGui::OpenPopup(m_context_menuid.c_str());
         m_handle_context_menu = false;
         m_context_menu_nodes_need_focus = true;
         m_context_menu_nodes_filter.clear();
     }
 
-    if (ImGui::BeginPopup(m_context_menuid))
+    if (ImGui::BeginPopup(m_context_menuid.c_str()))
     {
         bool close = false;
         switch (m_context_menu_type)
@@ -176,7 +190,7 @@ bool PanelWorkflow::show_canvas_menu()
         create_group(ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
         close = true;
     }
-    if (ImGui::MenuItem("Fit"))
+    if (ImGui::MenuItem("Fit all"))
     {
         fit(m_menu_objs.groups);
         close = true;
@@ -212,6 +226,7 @@ bool PanelWorkflow::show_canvas_menu()
     }
     if (ImGui::MenuItem("Reset workflow window position")) // TODO
     {
+        restore_pos();
         close = true;
     }
     return close;
@@ -227,7 +242,7 @@ bool PanelWorkflow::show_node_menu()
         m_drawer.rename_node(node);
         close = true;
     }
-    if (ImGui::MenuItem("Reset width"))
+    if (ImGui::MenuItem("Fit"))
     {
         node->reset_width();
         close = true;
@@ -349,7 +364,11 @@ bool PanelWorkflow::show_group_menu()
     }
     if (!nodes.empty())
     {
-        if (ImGui::MenuItem(fmt::format("Remove group and {} node(s) inside", nodes.size()).c_str()))
+        m_fmt_buffer.clear();
+        fmt::format_to(std::back_inserter(m_fmt_buffer), "Remove group and {} node(s) inside", nodes.size());
+        *(m_fmt_buffer.data() + m_fmt_buffer.size()) = 0;
+
+        if (ImGui::MenuItem(m_fmt_buffer.data()))
         {
             for (auto node : nodes)
             {
@@ -371,59 +390,12 @@ bool PanelWorkflow::show_group_menu()
     //    close = true;
     //}
     ImGui::Separator();
-    if (!nodes.empty())
-    {
-        if (ImGui::MenuItem("Pin nodes"))
-        {
-            for (auto node : nodes)
-            {
-                node->pin(true);
-                m_drawer.pin_node(node->ed(), true);
-            }
-            close = true;
-        }
-        if (ImGui::MenuItem("Unpin nodes"))
-        {
-            for (auto node : nodes)
-            {
-                node->pin(false);
-                m_drawer.pin_node(node->ed(), false);
-            }
-            close = true;
-        }
-        ImGui::Separator();
-        if (ImGui::MenuItem("Always"))
-        {
-            for (auto node : nodes)
-            {
-                node->set_mode(NodeMode::Always);
-            }
-            close = true;
-        }
-        if (ImGui::MenuItem("Bypass"))
-        {
-            for (auto node : nodes)
-            {
-                node->set_mode(NodeMode::Bypass);
-            }
-            close = true;
-        }
-        if (ImGui::MenuItem("Mute"))
-        {
-            for (auto node : nodes)
-            {
-                node->set_mode(NodeMode::Mute);
-            }
-            close = true;
-        }
-    }
-    ImGui::Separator();
     if (ImGui::BeginMenu("Color"))
     {
         static bool for_all = false;
         if (!nodes.empty())
         {
-            ImGui::Checkbox("Apply for nodes in group", &for_all);
+            ImGui::Checkbox("Apply to nodes in group", &for_all);
             ImGui::Separator();
         }
         bool reset = false;
@@ -464,8 +436,12 @@ bool PanelWorkflow::show_group_menu()
 bool PanelWorkflow::show_multinode_menu()
 {
     bool close = false;
-    if (ImGui::MenuItem("Reset nodes width")) // TODO
+    if (ImGui::MenuItem("Fit"))
     {
+        for (auto node : m_menu_objs.nodes)
+        {
+            node->reset_width();
+        }
         close = true;
     }
     if (ImGui::MenuItem("Group")) // TODO
@@ -702,11 +678,11 @@ data::Node* PanelWorkflow::show_nodes_menu(const std::string& in_pin_filter, con
         {
             labels_shown = true;
 
-            m_context_menu_nodes_buffer.clear();
-            fmt::format_to(std::back_inserter(m_context_menu_nodes_buffer), "{} [{}]", label.first, nodes_count);
-            *(m_context_menu_nodes_buffer.data() + m_context_menu_nodes_buffer.size()) = 0;
+            m_fmt_buffer.clear();
+            fmt::format_to(std::back_inserter(m_fmt_buffer), "{} [{}]", label.first, nodes_count);
+            *(m_fmt_buffer.data() + m_fmt_buffer.size()) = 0;
 
-            if (ImGui::BeginMenu(m_context_menu_nodes_buffer.data()))
+            if (ImGui::BeginMenu(m_fmt_buffer.data()))
             {
                 for (auto node_item : nodes_in_label)
                 {
@@ -727,7 +703,7 @@ data::Node* PanelWorkflow::show_nodes_menu(const std::string& in_pin_filter, con
         ImGui::Separator();
 
     std::function<void(const std::vector<data::NodeItem*>& tree)> nodes_menu;
-    nodes_menu = [&nodes_menu, &ret_node, &mem_buff = m_context_menu_nodes_buffer](const std::vector<data::NodeItem*>& nodes)
+    nodes_menu = [&nodes_menu, &ret_node, &mem_buff = m_fmt_buffer](const std::vector<data::NodeItem*>& nodes)
     {
         for (auto node_item : nodes)
         {
