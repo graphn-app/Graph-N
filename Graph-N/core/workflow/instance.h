@@ -69,6 +69,11 @@ public:
     inline EdType& ed() { return m_ed; }
     inline const EdType& ed() const { return m_ed; }
 
+    virtual void reset_state()
+    {
+        m_ed.reset();
+    }
+
 protected:
     virtual BaseObj* find_obj(hid obj_id) const = 0;
 

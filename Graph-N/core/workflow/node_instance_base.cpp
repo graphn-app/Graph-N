@@ -20,6 +20,25 @@ void NodeInstanceBase::init()
     }
 }
 
+void NodeInstanceBase::reset_state()
+{
+    Instance<data::Node>::reset_state();
+
+    w_node = 0.0f;
+    w_node_name_off = 0.0f;
+    w_name = -1.0f;
+    w_center = 0.0f;
+    w_separator = 0.0f;
+    w_widget_name = 0.0f;
+    w_widget_value = 0.0f;
+    w_pin_in = 0.0f;
+    w_pin_out = 0.0f;
+
+    m_saved_width = -1.0f;
+    m_ideal_w = 0.0f;
+    m_min_possible_w = 0.0f;
+}
+
 const std::string& NodeInstanceBase::get_name() const
 {
     if (m_name.empty() && m_object != nullptr)

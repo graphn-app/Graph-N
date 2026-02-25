@@ -15,7 +15,6 @@ class Workflow final
 {
 public:
     Workflow();
-    Workflow(const std::string& name);
     Workflow(WfData&& data);
     ~Workflow() /*override*/;
 
@@ -30,14 +29,20 @@ public:
 
     NodeInstance* add_group(const ImRect& rc, const std::string& name = "");
     NodeInstance* add_node(Node* node, const ImRect& rc = ImRect(0, 0, 0, 0), const std::string& select = "");
+    NodeInstance* add_node(NodeInstance* copy_from_source);
     NodeInstanceRo* add_node_ro(Node* node);
     PinInstance* add_pin(NodeInstance* node, Pin* pin);
     PinInstance* add_pin(NodeInstanceRo* node, Pin* pin);
     Link* add_link();
 
-    NodeInstance* get_node(iid id) const;
-    PinInstance* get_pin(iid id) const;
+    NodeInstance* get_node_by_instance(iid id) const;
+    PinInstance* get_pin_by_instance(iid id) const;
 
+    NodeInstance* get_node_by_hash(hid id) const;
+    PinInstance* get_pin_by_hash(hid id) const;
+
+    inline const std::vector<std::unique_ptr<NodeInstance>>& get_nodes() { return m_nodes; }
+    inline const std::vector<std::unique_ptr<PinInstance>>& get_pins() { return m_pins; }
     inline const std::vector<std::unique_ptr<Link>>& get_links() { return m_links; }
 
     void remove_node(const NodeInstance* node);
@@ -53,7 +58,7 @@ private:
     iid m_last_child_id = 0;
     std::vector<std::unique_ptr<NodeInstance>> m_nodes;
     std::vector<std::unique_ptr<NodeInstanceRo>> m_nodes_ro;
-    std::map<iid, std::unique_ptr<PinInstance>> m_pins;
+    std::vector<std::unique_ptr<PinInstance>> m_pins;
     std::vector<std::unique_ptr<Link>> m_links;
     //TODO
     //std::set<hid> m_invalid_items;

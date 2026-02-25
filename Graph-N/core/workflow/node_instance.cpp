@@ -21,7 +21,7 @@ void NodeInstance::init(const std::string& select)
 
     auto wf = g::pWfsManager->access(m_wid);
 
-    const auto add_pins = [this, wf, &select](const std::vector<data::Pin*>& source, std::vector<PinInstance*>& dest)
+    const auto add_pins = [this, wf, &select](const std::vector<Pin*>& source, std::vector<PinInstance*>& dest)
     {
         for (auto& pin : source)
         {
@@ -46,6 +46,49 @@ void NodeInstance::init(const std::string& select)
     add_pins(m_object->optional.pins, m_input);
     add_pins(m_object->hidden.pins, m_input);
     add_pins(m_object->output, m_output);
+}
+
+void NodeInstance::init(const NodeInstance* copy_from_node)
+{
+    NodeInstanceBase::init();
+
+    m_rc = copy_from_node->m_rc;
+    if (copy_from_node->m_group)
+        m_rc.Max.y -= ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 4;
+    m_clr_custom = copy_from_node->m_clr_custom;
+    m_clr_node = copy_from_node->m_clr_node;
+    m_clr_group = copy_from_node->m_clr_group;
+    m_clr_head = copy_from_node->m_clr_head;
+    m_clr_group_capt = copy_from_node->m_clr_group_capt;
+    m_group = copy_from_node->m_group;
+    m_expanded = copy_from_node->m_expanded;
+    m_mode = copy_from_node->m_mode;
+    m_pinned = copy_from_node->m_pinned;
+    m_name = copy_from_node->m_name;
+
+    if (m_group)
+        return;
+
+    auto wf = g::pWfsManager->access(m_wid);
+
+    const auto add_pins = [this, wf](const std::vector<PinInstance*>& source, std::vector<PinInstance*>& dest)
+    {
+        for (auto& pin : source)
+        {
+            auto pin_instance = wf->add_pin(this, pin->get_object());
+            *pin_instance->m_state = *pin->m_state;
+            dest.push_back(pin_instance);
+        }
+    };
+
+    add_pins(copy_from_node->m_input, m_input);
+    add_pins(copy_from_node->m_output, m_output);
+}
+
+void NodeInstance::reset_state()
+{
+    NodeInstanceBase::reset_state();
+    m_pos_set = m_size_set = m_pinned_set = false;
 }
 
 const std::string& NodeInstance::get_name() const

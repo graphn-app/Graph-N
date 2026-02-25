@@ -124,6 +124,7 @@ public:
 
     // WF public
     void wf_create();
+    void wf_create_copy_from(wid source);
     void wf_activate(wid id);
     void wf_locate(wid id);
     void wf_delete(wid id);

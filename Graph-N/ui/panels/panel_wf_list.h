@@ -48,6 +48,8 @@ private:
     void on_add_new_wf(PanelToolbar::Element& el);
     void on_rename_wf(PanelToolbar::Element& el);
     void on_pre_rename_wf(PanelToolbar::Element& el);
+    void on_copy_wf(PanelToolbar::Element& el);
+    void on_pre_copy_wf(PanelToolbar::Element& el);
     void on_delete_wf(PanelToolbar::Element& el);
     void on_pre_delete_wf(PanelToolbar::Element& el);
     void on_deleted_mode(PanelToolbar::Element& el);

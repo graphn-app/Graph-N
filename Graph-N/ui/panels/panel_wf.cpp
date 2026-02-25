@@ -4,6 +4,8 @@
 #include "core/managers/workflows_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/node_instance.h"
+#include "core/workflow/pin_instance.h"
+#include "core/workflow/link.h"
 
 namespace ui
 {
@@ -31,11 +33,6 @@ void PanelWorkflow::free()
     LogF;
     m_wf = 0;
     m_drawer.free();
-
-    for (auto& node : m_nodes)
-    {
-        node->m_pos_set = false;
-    }
 }
 
 void PanelWorkflow::init()
@@ -45,6 +42,30 @@ void PanelWorkflow::init()
 
     m_nodes.reserve(100);
     m_drawer.init(m_wf);
+
+    auto wf = g::pWfsManager->access(m_wf);
+
+    auto& nodes = wf->get_nodes();
+    for (auto& node : nodes)
+    {
+        node->reset_state();
+
+        if (!node->m_group)
+            node->calc_node_width(false, false);
+        m_nodes.push_back(node.get());
+    }
+
+    auto& links = wf->get_links();
+    for (auto& link : links)
+    {
+        link->reset_state();
+    }
+
+    auto& pins = wf->get_pins();
+    for (auto& pin : pins)
+    {
+        pin->reset_state();
+    }
 }
 
 void PanelWorkflow::restore_pos()
@@ -64,18 +85,18 @@ DlgCode PanelWorkflow::show(bool& focused)
     m_restore_pos = false;
     if (begin_panel(opened, focused, false, m_active) && opened)
     {
-        if (m_nodes.empty())
-        {
-            show_empty_panel_descr(
-                "",
-                {},
-                    {
-                        "Empty Canvas.",
-                        "Right Click or load from " ICON_LC_BOOK_OPEN " Nodes Library to add the first node."
-                    }
-                );
-        }
-        else
+        //if (m_nodes.empty())
+        //{
+        //    show_empty_panel_descr(
+        //        "",
+        //        {},
+        //            {
+        //                "Empty Canvas.",
+        //                "Right Click or load from " ICON_LC_BOOK_OPEN " Nodes Library to add the first node."
+        //            }
+        //        );
+        //}
+        //else
             draw_wf();
     }
 

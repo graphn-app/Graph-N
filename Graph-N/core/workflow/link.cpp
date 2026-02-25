@@ -127,4 +127,9 @@ void Link::unlink()
     Log("Unlinked: wid=" << m_workflow_id << ", iid=" << m_iid << ", in=" << m_input << ", out=" << m_output);
 }
 
+void Link::reset_state()
+{
+    ed().reset();
+}
+
 } // namespace data

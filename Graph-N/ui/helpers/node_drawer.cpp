@@ -165,6 +165,12 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
     else
         node->ed() = ed::BeginNode(cast::to_ptr(node));
 
+    if (!node->m_pinned_set)
+    {
+        ed::SetNodeDraggable(node->ed(), !node->pinned());
+        node->m_pinned_set = true;
+    }
+
     const bool deferred_node_active = m_deffered_action->active_node == node;
     if (deferred_node_active)
     {

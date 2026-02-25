@@ -22,6 +22,8 @@ public:
     void stop_all_threads() override;
 
     WfInfo create(bool skip_name);
+    WfInfo create_copy(wid source);
+
     data::Workflow* access(wid id) const;
 
     inline void cleanup(wid id) const { find_data(id).json.clear(); }

@@ -15,6 +15,7 @@ public:
     ~NodeInstance() override;
 
     void init(const std::string& select);
+    void init(const NodeInstance* copy_from_node);
 
     const std::string& get_name() const override;
     void set_name(std::string name) override;
@@ -35,6 +36,8 @@ public:
 
     void reset_width();
 
+    void reset_state() override;
+
 protected:
     float get_additional_name_width() const override;
     bool do_need_calc_node_widths() const override;
@@ -42,6 +45,8 @@ protected:
 public:
     bool m_pos_set = false;
     bool m_size_set = false;
+    bool m_pinned_set = false;
+
     ImRect m_rc = {}; // size for group, width for node
 
     bool m_clr_custom = false;
@@ -57,6 +62,9 @@ private:
     bool m_expanded = true;
     NodeMode m_mode = NodeMode::Always;
     bool m_pinned = false;
+
+    // !!
+    // check `init` and `reset_state` when adding new field
 };
 
 } // namespace data

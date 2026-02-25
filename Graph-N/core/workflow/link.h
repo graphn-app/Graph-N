@@ -21,6 +21,8 @@ public:
     inline iid get_instance_id() const { return m_iid; }
     inline wid get_workflow_id() const { return m_workflow_id; }
 
+    void reset_state();
+
     void unlink();
 
     inline EdType& ed() { return m_ed; }

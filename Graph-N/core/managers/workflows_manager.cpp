@@ -3,6 +3,8 @@
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/workflow/workflow.h"
+#include "core/workflow/link.h"
+#include "core/workflow/pin_instance.h"
 
 namespace mngr
 {
@@ -58,6 +60,38 @@ WfInfo WfsManager::create(bool skip_name)
     if (!skip_name)
         data.name = "Workflow " + std::to_string(++m_wf_name_counter);
     auto wf = create(std::move(data));
+    return from_data(wf->get_data());
+}
+
+WfInfo WfsManager::create_copy(wid source)
+{
+    auto src_wf = find(source);
+    
+    WfData data;
+    data.name = src_wf->get_data().name + " (copy)";
+    auto wf = create(std::move(data));
+
+    auto& nodes = src_wf->get_nodes();
+    for (auto& node : nodes)
+    {
+        wf->add_node(node.get());
+    }
+
+    auto& links = src_wf->get_links();
+    for (auto& link : links)
+    {
+        auto pin_in = wf->get_pin_by_hash(link->get_input()->get_object()->get_id());
+        auto pin_out = wf->get_pin_by_hash(link->get_output()->get_object()->get_id());
+        if (pin_in != nullptr && pin_out != nullptr)
+        {
+            data::Link::link(pin_in, pin_out);
+        }
+        else
+        {
+            LogInternalLogic("Pin " << link->get_input()->get_object()->get_id() << " or " << link->get_output()->get_object()->get_id() << " not found in copied wf");
+        }
+    }
+
     return from_data(wf->get_data());
 }
 

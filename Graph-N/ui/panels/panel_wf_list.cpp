@@ -61,6 +61,15 @@ void PanelWfList::create_toolbar()
         {
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_COPY;
+            el.tooltip = "Copy Project";
+            el.on_click = std::bind(&PanelWfList::on_copy_wf, this, std::placeholders::_1);
+            el.on_preview = std::bind(&PanelWfList::on_pre_copy_wf, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), false);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_TRASH;
             el.tooltip = "Remove to Trash";
             el.on_click = std::bind(&PanelWfList::on_delete_wf, this, std::placeholders::_1);
@@ -665,6 +674,16 @@ void PanelWfList::on_rename_wf(PanelToolbar::Element& /*el*/)
 }
 
 void PanelWfList::on_pre_rename_wf(PanelToolbar::Element& el)
+{
+    el.enabled = (m_active != 0);
+}
+
+void PanelWfList::on_copy_wf(PanelToolbar::Element& /*el*/)
+{
+    g::pFlow->wf_create_copy_from(m_active);
+}
+
+void PanelWfList::on_pre_copy_wf(PanelToolbar::Element& el)
 {
     el.enabled = (m_active != 0);
 }

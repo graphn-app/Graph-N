@@ -731,6 +731,15 @@ void GraphN_Flow::wf_create()
     m_panel_wf_list->rebuild_items();
 }
 
+void GraphN_Flow::wf_create_copy_from(wid source)
+{
+    auto info = g::pWfsManager->create_copy(source);
+    g::pWfsManager->set_active(info.id);
+    auto panel = create_wf_panel(info);
+    activate_wf_panel(panel);
+    m_panel_wf_list->rebuild_items();
+}
+
 void GraphN_Flow::wf_activate(wid id)
 {
     if (0 == id && !m_panels_wf.empty())

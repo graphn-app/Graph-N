@@ -33,6 +33,8 @@ protected:
     virtual float get_additional_name_width() const { return 0.0f; }
     virtual bool do_need_calc_node_widths() const { return true; }
 
+    void reset_state() override;
+
 public:
     float w_node = 0.0f;
     float w_node_name_off = 0.0f;
@@ -53,6 +55,9 @@ protected:
     std::vector<PinInstance*> m_output;
     std::string m_name;
     float m_saved_width = -1.0f;
+
+    // !!
+    // check `init` and `reset_state` when adding new field
 
 private:
     float m_ideal_w = 0.0f;

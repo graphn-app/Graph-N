@@ -3,6 +3,7 @@
 #include "core/workflow/node_instance.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/nodes_manager.h"
+#include "ui/graph-n_flow.h"
 
 namespace ui
 {
@@ -190,10 +191,10 @@ bool PanelWorkflow::show_canvas_menu()
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Paste", nullptr, false, !m_copied_objs.nodes.empty() || !m_copied_objs.groups.empty())) // TODO
-    {
-        close = true;
-    }
+    //if (ImGui::MenuItem("Paste", nullptr, false, !m_copied_objs.nodes.empty() || !m_copied_objs.groups.empty())) // TODO
+    //{
+    //    close = true;
+    //}
     if (ImGui::MenuItem("Select all"))
     {
         m_drawer.select_node({}, false);
@@ -204,8 +205,9 @@ bool PanelWorkflow::show_canvas_menu()
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Duplicate workflow")) // TODO
+    if (ImGui::MenuItem("Duplicate workflow"))
     {
+        g::pFlow->wf_create_copy_from(m_wf);
         close = true;
     }
     if (ImGui::MenuItem("Reset workflow window position")) // TODO
@@ -265,12 +267,12 @@ bool PanelWorkflow::show_node_menu()
         delete_node(node);
         close = true;
     }
-    if (ImGui::MenuItem("Copy"))
-    {
-        m_copied_objs = {};
-        m_copied_objs.nodes.insert(node);
-        close = true;
-    }
+    //if (ImGui::MenuItem("Copy"))
+    //{
+    //    m_copied_objs = {};
+    //    m_copied_objs.nodes.insert(node);
+    //    close = true;
+    //}
     ImGui::Separator();
 
     //if (ImGui::MenuItem(node->expanded() ? "Collapse" : "Expand")) // TODO: FIX
@@ -363,11 +365,11 @@ bool PanelWorkflow::show_group_menu()
             close = true;
         }
     }
-    if (ImGui::MenuItem("Copy"))
-    {
-        m_copied_objs = m_menu_objs;
-        close = true;
-    }
+    //if (ImGui::MenuItem("Copy"))
+    //{
+    //    m_copied_objs = m_menu_objs;
+    //    close = true;
+    //}
     ImGui::Separator();
     if (!nodes.empty())
     {
