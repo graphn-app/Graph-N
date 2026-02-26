@@ -185,7 +185,10 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
     const bool deferred_node_active = m_deffered_action->active_node == node;
     if (deferred_node_active)
     {
-        if (!ed::IsNodeSelected(node->ed()))
+        if (ed::HasSelectionChanged())
+            m_deffered_action->active_node = nullptr;
+
+        else if (!ed::IsNodeSelected(node->ed()))
             ed::SelectNode(node->ed(), true);
     }
     else if (m_deffered_action->active_node != nullptr)
