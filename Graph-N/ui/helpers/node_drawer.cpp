@@ -64,19 +64,19 @@ void NodeDrawer::free()
     m_context = nullptr;
 }
 
-void NodeDrawer::pre_draw_all(const char* id, size_t nodes_count)
+void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/)
 {
-    m_resizing_grip_positions.clear();
-    m_resizing_grip_positions.resize(nodes_count);
+    //m_resizing_grip_positions.clear(); // TODO: FIX resizing
+    //m_resizing_grip_positions.resize(nodes_count);
 
     m_active_tt = nullptr;
 
-    if (m_resizing_w.size() != nodes_count)
-    {
-        m_now_resizing = -1;
-        m_resizing_w.clear();
-        m_resizing_w.resize(nodes_count);
-    }
+    //if (m_resizing_w.size() != nodes_count) // TODO: FIX resizing
+    //{
+    //    m_now_resizing = -1;
+    //    m_resizing_w.clear();
+    //    m_resizing_w.resize(nodes_count);
+    //}
 
     ed::EditConfig(m_context).AlignPointToGrid = g::pOptsManager->wf_snap_nodes_load();
     ed::EditConfig(m_context).DrawGrid = g::pOptsManager->wf_show_grid_load();
@@ -105,8 +105,8 @@ void NodeDrawer::post_draw_all(const std::function<bool()>& init_menu_handler, c
     ed::Suspend();
 
     bool canvas_busy = init_menu_handler();
-    if (!canvas_busy)
-        canvas_busy = handle_node_resize();
+    //if (!canvas_busy)
+    //    canvas_busy = handle_node_resize();   // TODO: FIX resizing
 
     ed::Resume();
     ed::End();
@@ -228,7 +228,7 @@ data::PinInstance* NodeDrawer::get_ml_widget_active() const
     return cast::ptrs<data::PinInstance>(m_deffered_action->active_pin);
 }
 
-void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_idx)
+void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node_idx*/)
 {
     m_active_node = node;
 
@@ -241,9 +241,11 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
 
     ImVec2 node_size, node_pos;
 
-    if (m_now_resizing == node_idx)
-        node_w = m_resizing_w[node_idx];
-    else
+    //if (m_now_resizing == node_idx) // TODO: FIX resizing
+    //{
+    //    node_w = m_resizing_w[node_idx];
+    //}
+    //else
     {
         node_size = ed::GetNodeSize(m_active_node->ed());
         if (node_size.x > 0 && node_size.y > 0)
@@ -260,14 +262,20 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
     }
     node_w = m_active_node->recalc_node_width(node_w, false, false);
 
-    if (node_size.x > 0 && node_size.y > 0)
-    {
-        const ImVec2 br = ed::CanvasToScreen(ImVec2(node_pos.x + node_w + ed::GetStyle().NodePadding.x + ed::GetStyle().NodeBorderWidth,
-            node_pos.y + node_size.y + ed::GetStyle().NodePadding.y + ed::GetStyle().NodeBorderWidth));
-
-        m_resizing_w[node_idx] = (m_active_node->pinned() || !m_active_node->expanded() ? -1 : node_w);
-        m_resizing_grip_positions[node_idx] = { br.x - m_grip_area_sz, br.y - m_grip_area_sz, br.x + m_grip_area_sz, br.y };
-    }
+    //if (node_size.x > 0 && node_size.y > 0) // TODO: FIX resizing
+    //{
+    //    m_resizing_w[node_idx] = (m_active_node->pinned() || !m_active_node->expanded() ? -1 : node_w);
+    //    if (m_resizing_w[node_idx] > 0)
+    //    {
+    //        m_resizing_grip_positions[node_idx].Min =
+    //            ed::CanvasToScreen(ImVec2(node_pos.x + node_w + ed::GetStyle().NodePadding.x + ed::GetStyle().NodeBorderWidth - m_grip_area_sz,
+    //                node_pos.y + node_size.y + ed::GetStyle().NodePadding.y + ed::GetStyle().NodeBorderWidth - m_grip_area_sz));
+    //        m_resizing_grip_positions[node_idx].Max =
+    //            ed::CanvasToScreen(ImVec2(node_pos.x + node_w + ed::GetStyle().NodePadding.x + ed::GetStyle().NodeBorderWidth + m_grip_area_sz,
+    //                node_pos.y + node_size.y + ed::GetStyle().NodePadding.y + ed::GetStyle().NodeBorderWidth + m_grip_area_sz));
+    //    }
+    //    //m_resizing_grip_positions[node_idx] = { br.x - m_grip_area_sz, br.y - m_grip_area_sz, br.x + m_grip_area_sz, br.y };
+    //}
 
     m_curr_node_left_offset = ImGui::GetCursorPosX();
     m_curr_node_top_offset = ImGui::GetCursorPosY();
@@ -350,6 +358,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t node_i
     if (m_active_node->expanded())
         ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing * 2));
 
+    // TODO: FIX resizing
    // m_resizing_grip_positions[node_idx].Min.y -= ImGui::GetCursorPos().y - m_curr_node_top_offset + ImGui::GetTextLineHeight();
 
     // --- WIDGETS ---
@@ -1250,6 +1259,7 @@ bool NodeDrawer::handle_node_resize()
 
         const bool active = ImGui::IsItemActive();
         const bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenOverlapped);
+
         if (m_resizing_w[idx] >= 0 && (active || hovered))
         {
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);

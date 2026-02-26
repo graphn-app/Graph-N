@@ -252,11 +252,11 @@ bool PanelWorkflow::show_node_menu()
         m_drawer.rename_node(node);
         close = true;
     }
-    if (ImGui::MenuItem("Fit"))
-    {
-        node->reset_width();
-        close = true;
-    }
+    //if (ImGui::MenuItem("Fit"))   // TODO: FIX resizing
+    //{
+    //    node->reset_width();
+    //    close = true;
+    //}
     if (ImGui::MenuItem(node->pinned() ? "Unpin" : "Pin"))
     {
         node->toggle_pinned();
@@ -451,14 +451,14 @@ bool PanelWorkflow::show_group_menu()
 bool PanelWorkflow::show_multinode_menu()
 {
     bool close = false;
-    if (ImGui::MenuItem("Fit"))
-    {
-        for (auto node : m_menu_objs.nodes)
-        {
-            node->reset_width();
-        }
-        close = true;
-    }
+    //if (ImGui::MenuItem("Fit"))   // TODO: FIX resizing
+    //{
+    //    for (auto node : m_menu_objs.nodes)
+    //    {
+    //        node->reset_width();
+    //    }
+    //    close = true;
+    //}
     if (ImGui::MenuItem("Group"))
     {
         auto group = add_group(std::nullopt);
