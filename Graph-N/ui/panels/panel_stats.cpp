@@ -306,7 +306,7 @@ void PanelStats::format_bytes(uint64_t bytes)
 
     m_buffer.clear();
     fmt::format_to(std::back_inserter(m_buffer), "{:.2f} {}", count, suffixes[suffix_index]);
-    *(m_buffer.data() + m_buffer.size()) = 0;
+    m_buffer.push_back('\0');
 };
 
 DlgCode PanelStats::show(bool& focused)

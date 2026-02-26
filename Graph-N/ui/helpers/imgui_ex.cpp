@@ -4,6 +4,33 @@
 namespace ImGuiEx
 {
 
+const char* cut_text_with_ellipsis(const std::string& text, float width, const char*& pend)
+{
+    const char* pbeg = text.c_str();
+    pend = pbeg + text.size();
+
+    if (ImGui::CalcTextSize(text.c_str(), pend).x <= width)
+        return pbeg;
+
+    const float ellipsis_w = ImGui::CalcTextSize("...").x;
+    const char* clip_end = nullptr;
+    ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, width - ellipsis_w, pbeg, pend, &clip_end);
+
+    if (clip_end != nullptr && clip_end > pbeg)
+    {
+        static fmt::memory_buffer fmt_buffer;
+        fmt_buffer.clear();
+
+        fmt::format_to(std::back_inserter(fmt_buffer), "{}...", std::string_view(pbeg, clip_end - pbeg));
+        fmt_buffer.push_back('\0');
+
+        pbeg = fmt_buffer.data();
+        pend = pbeg + fmt_buffer.size() - 1;
+        return pbeg;
+    }
+    return pbeg;
+}
+
 ImU32 increase_brightness(ImU32 source)
 {
     ImVec4 c = ImGui::ColorConvertU32ToFloat4(source);

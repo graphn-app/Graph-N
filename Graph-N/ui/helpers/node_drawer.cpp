@@ -441,7 +441,6 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
 {
     m_active_node = node;
-    m_active_node->w_node = m_active_node->m_rc.GetWidth();
 
     m_curr_node_left_offset = ImGui::GetCursorScreenPos().x;
     m_curr_node_top_offset = ImGui::GetCursorScreenPos().y;
@@ -475,13 +474,15 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
         if (m_active_node != m_renaming_node)
         {
             ImGui::SetCursorPosX(text_lt.x);
-            //const auto clip_lt = ImGui::GetCursorScreenPos(); // TODO:FIX name too name
-            //const auto clip_rb = ImVec2(clip_lt.x + m_active_node->w_node, clip_lt.y + ImGui::GetTextLineHeight());
-            //ImGui::PushClipRect(clip_lt, clip_rb, true); 
             ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->m_clr_group_capt);
             ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
+
+            //width = m_active_node->m_rc.Max.x - ImGui::GetStyle().ItemSpacing.x * 4; // TODO:FIX name too long: use draw_list->AddText
+            //const char* pend = nullptr;
+            //const char* pbeg = ImGuiEx::cut_text_with_ellipsis(m_active_node->get_name(), width, pend);
+            //ImGui::TextUnformatted(pbeg, pend);
+
             ImGui::PopStyleColor();
-            //ImGui::PopClipRect();
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             {
                 m_renaming_node = m_active_node;

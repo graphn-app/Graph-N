@@ -5,6 +5,8 @@
 namespace ImGuiEx
 {
 
+const char* cut_text_with_ellipsis(const std::string& text, float width, const char*& pend);
+
 ImU32 increase_brightness(ImU32 source);
 ImU32 decrease_brightness(ImU32 source);
 

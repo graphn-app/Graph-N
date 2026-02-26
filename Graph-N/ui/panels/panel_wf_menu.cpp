@@ -391,7 +391,7 @@ bool PanelWorkflow::show_group_menu()
     {
         m_fmt_buffer.clear();
         fmt::format_to(std::back_inserter(m_fmt_buffer), "Remove group and {} node(s) inside", nodes.size());
-        *(m_fmt_buffer.data() + m_fmt_buffer.size()) = 0;
+        m_fmt_buffer.push_back('\0');
 
         if (ImGui::MenuItem(m_fmt_buffer.data()))
         {
@@ -826,7 +826,7 @@ bool PanelWorkflow::show_new_node_menu()
 
     m_fmt_buffer.clear();
     fmt::format_to(std::back_inserter(m_fmt_buffer), "{} [{}]", node_inst->get_name(), pin_inst->m_state->type_str);
-    *(m_fmt_buffer.data() + m_fmt_buffer.size()) = 0;
+    m_fmt_buffer.push_back('\0');
 
     ImGui::MenuItem(m_fmt_buffer.data(), nullptr, nullptr, false);
     ImGui::Separator();
@@ -983,7 +983,7 @@ data::Node* PanelWorkflow::show_nodes_menu(const std::string& in_pin_filter, con
 
             m_fmt_buffer.clear();
             fmt::format_to(std::back_inserter(m_fmt_buffer), "{} [{}]", label.first, nodes_count);
-            *(m_fmt_buffer.data() + m_fmt_buffer.size()) = 0;
+            m_fmt_buffer.push_back('\0');
 
             if (ImGui::BeginMenu(m_fmt_buffer.data()))
             {
@@ -1017,7 +1017,7 @@ data::Node* PanelWorkflow::show_nodes_menu(const std::string& in_pin_filter, con
             {
                 mem_buff.clear();
                 fmt::format_to(std::back_inserter(mem_buff), "{} [{}]", node_item->name_or_category, node_item->nodes_inside);
-                *(mem_buff.data() + mem_buff.size()) = 0;
+                mem_buff.push_back('\0');
 
                 if (ImGui::BeginMenu(mem_buff.data()))
                 {
