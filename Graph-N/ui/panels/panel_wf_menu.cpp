@@ -229,9 +229,9 @@ bool PanelWorkflow::show_canvas_menu()
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Duplicate workflow"))
+    if (ImGui::MenuItem("Duplicate workflow", nullptr, nullptr, !m_nodes.empty()))
     {
-        g::pFlow->wf_create_copy_from(m_wf);
+        g::pFlow->wf_create_copy_from(m_wf, m_drawer.get_viewport_rect(), m_drawer.get_zoom());
         close = true;
     }
     if (ImGui::MenuItem("Reset workflow window position"))

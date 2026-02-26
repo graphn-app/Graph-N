@@ -38,6 +38,8 @@ public:
     }
     inline void locale_node(data::NodeInstance* node) { m_locate = node; }
 
+    void set_wf_view(std::optional<ImRect> wf_rc, std::optional<float> wf_zoom);
+
     data::NodeInstance* add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos);
     data::NodeInstance* add_group(std::optional<ImRect> size);
 

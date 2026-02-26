@@ -1320,7 +1320,11 @@ struct EditorContext
     ShortcutAction& GetShortcut() { return m_ShortcutAction; }
 
     const ImGuiEx::CanvasView& GetView() const { return m_Canvas.View(); }
+    ImGuiEx::CanvasView& EditView() { return m_Canvas.EditView(); }
+
     const ImRect& GetViewRect() const { return m_Canvas.ViewRect(); }
+    void SetViewRect(const ImRect& rc) { m_Canvas.SetViewRect(rc); }
+
     const ImRect& GetRect() const { return m_Canvas.Rect(); }
 
     Node* SetNodePosition(NodeId nodeId, const ImVec2& position);

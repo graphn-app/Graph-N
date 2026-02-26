@@ -131,10 +131,18 @@ DlgCode PanelWorkflow::show(bool& focused)
     return end_panel(opened);
 }
 
+void PanelWorkflow::set_wf_view(std::optional<ImRect> wf_rc, std::optional<float> wf_zoom)
+{
+    if (wf_rc.has_value())
+        m_drawer.set_viewport_rect(wf_rc.value());
+    if (wf_zoom.has_value())
+        m_drawer.set_zoom(wf_zoom.value());
+}
+
 data::NodeInstance* PanelWorkflow::add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos)
 {
     auto wf = g::pWfsManager->access(m_wf);
-    auto node_inst = wf->add_node(node, pos.has_value() ? pos.value() : ImRect(100, 100, -1, -1), select);
+    auto node_inst = wf->add_node(node, (pos.has_value() ? pos.value() : ImRect(m_drawer.get_visible_pos(ImVec2(100, 100)), ImVec2(-1, -1))), select);
     node_inst->calc_node_width(false, false);
     m_nodes.push_back(node_inst);
     return node_inst;

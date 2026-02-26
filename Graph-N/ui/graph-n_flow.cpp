@@ -731,12 +731,13 @@ void GraphN_Flow::wf_create()
     m_panel_wf_list->rebuild_items();
 }
 
-void GraphN_Flow::wf_create_copy_from(wid source)
+void GraphN_Flow::wf_create_copy_from(wid source, std::optional<ImRect> wf_rc, std::optional<float> wf_zoom)
 {
     auto info = g::pWfsManager->create_copy(source);
     g::pWfsManager->set_active(info.id);
     auto panel = create_wf_panel(info);
     activate_wf_panel(panel);
+    panel->set_wf_view(wf_rc, wf_zoom);
     m_panel_wf_list->rebuild_items();
 }
 

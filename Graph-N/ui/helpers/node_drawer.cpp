@@ -83,6 +83,17 @@ void NodeDrawer::pre_draw_all(const char* id, size_t nodes_count)
     ed::SetCurrentEditor(m_context);
     ed::EnableShortcuts(false);
 
+    //if (!m_view_set)
+    //{
+    //    m_view_set = true;
+    //    ed::SetCurrentView(m_view_rect);
+    //}
+    //if (!m_zoom_set)
+    //{
+    //    m_zoom_set = true;
+    //    ed::SetCurrentZoom(m_zoom);
+    //}
+
     m_defclr_node_bg = ImGui::ColorConvertFloat4ToU32(ed::GetStyle().Colors[ed::StyleColor_NodeBg]);
     m_defclr_node_header_bg = ImGuiEx::decrease_brightness(m_defclr_node_bg);
 
@@ -1416,9 +1427,37 @@ float NodeDrawer::get_zoom() const
     return ed::GetCurrentZoom();
 }
 
-ImRect NodeDrawer::get_viewport_rect() const
+void NodeDrawer::set_zoom(float zoom)
 {
-    return ImRect(m_context->GetViewRect());
+    m_zoom = zoom;
+    m_zoom_set = false;
+}
+
+const ImRect& NodeDrawer::get_viewport_rect() const
+{
+    return ed::GetCurrentView();
+}
+
+void NodeDrawer::set_viewport_rect(const ImRect& rect)
+{
+    m_view_rect = rect;
+    m_view_set = false;
+}
+
+ImVec2 NodeDrawer::get_visible_pos(std::optional<ImVec2> add_offset) const
+{    
+    const ImVec2 add_pt = add_offset.has_value() ? add_offset.value() : ImVec2(0, 0);
+    if (nullptr == m_context)
+        return add_pt;
+
+    auto prev_context = ed::GetCurrentEditor();
+    ed::SetCurrentEditor(m_context);
+
+    const auto screen_top_left = get_viewport_rect();
+    const ImVec2 target_screen_pos = ImVec2(screen_top_left.Min.x + add_pt.x, screen_top_left.Min.y + add_pt.y);
+
+    ed::SetCurrentEditor(prev_context);
+    return target_screen_pos;
 }
 
 } // namespace ui

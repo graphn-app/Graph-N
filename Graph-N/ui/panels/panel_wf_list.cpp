@@ -680,7 +680,7 @@ void PanelWfList::on_pre_rename_wf(PanelToolbar::Element& el)
 
 void PanelWfList::on_copy_wf(PanelToolbar::Element& /*el*/)
 {
-    g::pFlow->wf_create_copy_from(m_active);
+    g::pFlow->wf_create_copy_from(m_active, std::nullopt, std::nullopt);
 }
 
 void PanelWfList::on_pre_copy_wf(PanelToolbar::Element& el)

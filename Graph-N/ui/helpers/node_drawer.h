@@ -77,7 +77,11 @@ public:
     inline ImU32 get_default_node_color() const { return m_defclr_node_bg; }
 
     float get_zoom() const;
-    ImVec2 get_viewport_pos() const;
+    void set_zoom(float zoom);
+    const ImRect& get_viewport_rect() const;
+    void set_viewport_rect(const ImRect& rect);
+
+    ImVec2 get_visible_pos(std::optional<ImVec2> add_offset) const;
 
 private:
     void draw_node_header();
@@ -105,6 +109,11 @@ private:
 private:
     wid m_wf = 0;
     ax::NodeEditor::EditorContext* m_context = nullptr;
+
+    ImRect m_view_rect;
+    bool m_view_set = true;
+    float m_zoom;
+    bool m_zoom_set = true;
 
     data::NodeInstance* m_active_node = nullptr;
     const char* m_active_tt = nullptr;

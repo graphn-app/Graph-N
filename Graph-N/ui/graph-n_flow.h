@@ -124,7 +124,7 @@ public:
 
     // WF public
     void wf_create();
-    void wf_create_copy_from(wid source);
+    void wf_create_copy_from(wid source, std::optional<ImRect> wf_rc, std::optional<float> wf_zoom);
     void wf_rebuild(wid id);
     void wf_activate(wid id);
     void wf_locate(wid id);

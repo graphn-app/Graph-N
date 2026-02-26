@@ -1,4 +1,4 @@
-﻿// Canvas widget - view over infinite virtual space.
+// Canvas widget - view over infinite virtual space.
 //
 // Canvas allows you to draw your widgets anywhere over infinite space and provide
 // view over it with support for panning and scaling.
@@ -177,12 +177,14 @@ struct Canvas
 
     // Returns visible region on canvas plane (in canvas plane coordinates).
     const ImRect& ViewRect() const { return m_ViewRect; }
+    void SetViewRect(const ImRect& rc) { m_ViewRect = rc; }
 
     // Calculates visible region for view.
     IMGUIEX_CANVAS_API ImRect CalcViewRect(const CanvasView& view) const;
 
     // Returns current view.
     const CanvasView& View() const { return m_View; }
+    CanvasView& EditView() { return m_View; }
 
     // Returns origin of the view.
     //

@@ -16,6 +16,7 @@
 
 //------------------------------------------------------------------------------
 # include <imgui.h>
+# include <imgui_internal.h>
 # include <cstdint> // std::uintXX_t
 # include <utility> // std::move
 
@@ -419,6 +420,10 @@ IMGUI_NODE_EDITOR_API int  GetActionContextLinks(LinkId* links, int size);
 IMGUI_NODE_EDITOR_API void EndShortcut();
 
 IMGUI_NODE_EDITOR_API float GetCurrentZoom();
+IMGUI_NODE_EDITOR_API void SetCurrentZoom(float zoom);
+
+IMGUI_NODE_EDITOR_API const ImRect& GetCurrentView();
+IMGUI_NODE_EDITOR_API void SetCurrentView(const ImRect& rc);
 
 IMGUI_NODE_EDITOR_API NodeId GetHoveredNode();
 IMGUI_NODE_EDITOR_API PinId GetHoveredPin();
