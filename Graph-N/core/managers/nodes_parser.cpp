@@ -285,7 +285,7 @@ static primitive get_from_pin_type(const data::Node& node, data::Pin& pin, nlohm
         break;
     }
 
-    LogUnhandledJsonS("Wrong pin type. node=" << node.name << ", pin=" << pin.name << ", attr=" << attr << ", type=" << json.type_name());
+    LogUnhandledJsonS("Wrong pin type. node=" << node.name << ", pin=" << pin.def_state.name << ", attr=" << attr << ", type=" << json.type_name());
     return {};
 }
 
@@ -293,12 +293,12 @@ void NodesParser::prepare_parsers_map()
 {
     const auto log_err_type = [this](const data::Node& node, data::Pin& pin, const nlohmann::json& json, const char* attr)
     {
-        LogUnhandledJson("Unknown type node=" << node.name << ", pin=" << pin.name << ", attr=" << attr << ", type=" << json.type_name());
+        LogUnhandledJson("Unknown type node=" << node.name << ", pin=" << pin.def_state.name << ", attr=" << attr << ", type=" << json.type_name());
     };
 
     const auto log_err_value = [this](const data::Node& node, data::Pin& pin, const std::string& value, const char* attr)
     {
-        LogUnhandledJson("Unknown type node=" << node.name << ", pin=" << pin.name << ", attr=" << attr << ", value=" << value);
+        LogUnhandledJson("Unknown type node=" << node.name << ", pin=" << pin.def_state.name << ", attr=" << attr << ", value=" << value);
     };
 
     // sorted a-z
@@ -488,7 +488,7 @@ void NodesParser::parse_by_key(const data::Node& node, data::Pin& pin, nlohmann:
     const auto it = m_parsers.find(key);
     if (it == m_parsers.end())
     {
-        LogUnhandledJson("Unknown key node=" << node.name << ", pin=" << pin.name << ", key=" << key);
+        LogUnhandledJson("Unknown key node=" << node.name << ", pin=" << pin.def_state.name << ", key=" << key);
     }
     else
     {
@@ -514,7 +514,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
             pin->required = is_required;
             pin->optional = is_optional;
             pin->hidden = is_hidden;
-            pin->name = pin_name;
+            pin->def_state.name = pin_name;
 
             //Log("Node: " << node.name << ", Pin: " << pin_name);
 
@@ -526,7 +526,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
                     pin->initialize(arr[0]);
                     if (data::PinType::CUSTOM == pin->def_state.type)
                     {
-                        LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->name);
+                        LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->def_state.name);
                     }
                 }
                 else if (arr.size() == 2 && arr[0].is_string() && arr[1].is_object())
@@ -534,7 +534,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
                     pin->initialize(arr[0]);
                     if (data::PinType::CUSTOM == pin->def_state.type)
                     {
-                        LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->name);
+                        LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->def_state.name);
                     }
 
                     for (auto&[key, value] : arr[1].items())
@@ -554,7 +554,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
                         else
                         {
                             LogUnhandledJson("/input/<>/COMBO/item. Unknown item type. Node=" << node.name << ", pin="
-                                << pin->name << ", type=" << item.type_name());
+                                << pin->def_state.name << ", type=" << item.type_name());
                         }
                     }
                     if (arr.size() == 2)
@@ -568,13 +568,13 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
                 else
                 {
                     LogUnhandledJson("/input/<>/pin_info. Unknown arr. Node=" << node.name << ", pin="
-                        << pin->name << ", arr_sz=" << arr.size());
+                        << pin->def_state.name << ", arr_sz=" << arr.size());
                 }
             }
             else
             {
                 LogUnhandledJson("/input/<>/pin_info. Not array. Node=" << node.name << ", pin="
-                    << pin->name << ", type=" << pin_info.type_name());
+                    << pin->def_state.name << ", type=" << pin_info.type_name());
             }
 
             pin->finalize();
@@ -625,7 +625,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
         {
             for (auto& pin : input.pins)
             {
-                if (pin->name == name)
+                if (pin->def_state.name == name)
                 {
                     sorted.push_back(pin);
                     break;
@@ -680,7 +680,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
                     pin->initialize(item);
                     if (data::PinType::CUSTOM == pin->def_state.type)
                     {
-                        LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->name);
+                        LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->def_state.name);
                     }
                 }
                 else if (item.is_array())
@@ -772,7 +772,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
         {
             if (item.is_string())
             {
-                pin->name = item;
+                pin->def_state.name = item;
                 return true;
             }
             return false;

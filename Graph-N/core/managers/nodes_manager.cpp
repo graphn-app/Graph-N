@@ -35,6 +35,9 @@ void NodesManager::calc_number_inside(const std::string& filter, const std::stri
 {
     const auto pin_filter = [](const std::vector<data::Pin*>& pins, const std::string& filter)
     {
+        if ("*" == filter && !pins.empty())
+            return true;
+
         for (auto pin : pins)
         {
             if (pin->type_any)
@@ -88,7 +91,7 @@ void NodesManager::calc_number_inside(const std::string& filter, const std::stri
                 {
                     node->filtered = !pins_filter(node);
                     if (count != nullptr)
-                        (*count)++;
+                        *count += node->filtered ? 0 : 1;
                 }
                 else
                 {

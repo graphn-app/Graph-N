@@ -220,12 +220,12 @@ void RoNodeDrawer::draw_input_pin(data::PinInstance* pin)
     ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro);
     draw_pin_icon(pin->m_state->pin_color);
     ImGui::SameLine(0.0f, w::pin_r_offset);
-    ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
+    ImGui::TextUnformatted(pin->m_state->name.c_str(), pin->m_state->name.c_str() + pin->m_state->name.size());
 }
 
 void RoNodeDrawer::draw_output_pin(data::PinInstance* pin)
 {
-    ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
+    ImGui::TextUnformatted(pin->m_state->name.c_str(), pin->m_state->name.c_str() + pin->m_state->name.size());
     ImGui::SameLine(0, w::pin_r_offset);
     draw_pin_icon(pin->m_state->pin_color);
 }
@@ -324,7 +324,7 @@ void RoNodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_wid
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -359,7 +359,7 @@ void RoNodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_wi
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -392,7 +392,7 @@ void RoNodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_w
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -423,7 +423,7 @@ void RoNodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_wi
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
     ImGui::SameLine(0.0f, 0.0f);
 
@@ -446,7 +446,7 @@ void RoNodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_wid
 {
     auto obj = pin->get_object();
 
-    auto& placeholder = (obj->placeholder.empty() ? obj->name : obj->placeholder);
+    auto& placeholder = (obj->placeholder.empty() ? pin->m_state->name : obj->placeholder);
     std::string* val = data::Pin::get_string(pin->m_state->value);
 
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
@@ -464,7 +464,7 @@ void RoNodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_
 {
     auto obj = pin->get_object();
 
-    auto& placeholder = (obj->placeholder.empty() ? obj->name : obj->placeholder);
+    auto& placeholder = (obj->placeholder.empty() ? pin->m_state->name : obj->placeholder);
     std::string* val = data::Pin::get_string(pin->m_state->value);
 
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
@@ -489,7 +489,7 @@ void RoNodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_w
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -506,7 +506,7 @@ void RoNodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_w
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);

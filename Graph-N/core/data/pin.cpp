@@ -73,7 +73,7 @@ void Pin::initialize(const std::string& type_as_string)
         def_state.type = PinType::CUSTOM;
     }
 
-    type_hash = tools::str::hash_string(def_state.type_str);
+    def_state.type_hash = get_hash(def_state.type_str);
 
     init_defaults();
     generate_pin_color();
@@ -140,9 +140,9 @@ void Pin::finalize()
                 step = int64_t(1);
 
             precision = fmt::format(FMT_COMPILE("%lld"));
-            precision_named = fmt::format(FMT_COMPILE("{}: %lld"), name);
+            precision_named = fmt::format(FMT_COMPILE("{}: %lld"), def_state.name);
 
-            const bool seed = (tools::str::to_lower_ascii(name).find("seed") != std::string::npos);
+            const bool seed = (tools::str::to_lower_ascii(def_state.name).find("seed") != std::string::npos);
             if (seed)
             {
                 control_after_generate = true;
@@ -153,7 +153,7 @@ void Pin::finalize()
             {
                 is_unsigned = true;
                 precision = fmt::format(FMT_COMPILE("%llu"));
-                precision_named = fmt::format(FMT_COMPILE("{}: %llu"), name);
+                precision_named = fmt::format(FMT_COMPILE("{}: %llu"), def_state.name);
                 step = uint64_t(get_int(step));
                 def = uint64_t(get_int(def));
                 min = uint64_t(get_int(min));
@@ -163,8 +163,8 @@ void Pin::finalize()
 
         else if (PinType::BOOLEAN == def_state.type)
         {
-            label_on_named = fmt::format(FMT_COMPILE("{}: {}"), name, (label_on.empty() ? "on" : label_on));
-            label_off_named = fmt::format(FMT_COMPILE("{}: {}"), name, (label_off.empty() ? "off" : label_off));
+            label_on_named = fmt::format(FMT_COMPILE("{}: {}"), def_state.name, (label_on.empty() ? "on" : label_on));
+            label_off_named = fmt::format(FMT_COMPILE("{}: {}"), def_state.name, (label_off.empty() ? "off" : label_off));
         }
 
         else if (PinType::COLOR == def_state.type && std::holds_alternative<std::string>(def))
@@ -210,7 +210,7 @@ void Pin::finalize()
     }
 
     def_state.value = def;
-    w_name = ImGui::CalcTextSize(name.c_str()).x;
+    w_name = ImGui::CalcTextSize(def_state.name.c_str()).x;
 
     if (input && is_widget())
     {
@@ -262,7 +262,7 @@ struct Clamp
         const auto new_val = std::clamp(*old_val, min, max);
         if (*old_val != new_val)
         {
-            LogWarnS("Pin '" << pin.name << ", value clump (" << old_val << ") != (" << new_val << ")");
+            LogWarnS("Pin '" << pin.def_state.name << ", value clump (" << old_val << ") != (" << new_val << ")");
         }
         p = new_val;
     }
@@ -354,12 +354,12 @@ void Pin::precision_to_string()
     }
 
     precision = fmt::format(FMT_COMPILE("%.{}f"), decimals);
-    precision_named = fmt::format(FMT_COMPILE("{}: %.{}f"), name, decimals);
+    precision_named = fmt::format(FMT_COMPILE("{}: %.{}f"), def_state.name, decimals);
 }
 
 void Pin::generate_pin_color()
 {
-    if (0 == type_hash)
+    if (0 == def_state.type_hash)
     {
         LogAndThrowInternalError(ExcepCategory::Logic, "Hash wasn't generated. id=" << get_id());
     }
@@ -411,7 +411,7 @@ void Pin::generate_pin_color()
     }
 
     // golden ratio
-    double hue = (type_hash * 0.618033988749895);
+    double hue = (def_state.type_hash * 0.618033988749895);
     hue = std::fmod(hue, 1.0);
 
     // fix hue (S) и brightness (V)
@@ -605,6 +605,11 @@ PinShape Pin::get_shape(PinType type)
     }
 
     return PinShape::Circle;
+}
+
+size_t Pin::get_hash(std::string str)
+{
+    return tools::str::hash_string(str);
 }
 
 } // namespace data

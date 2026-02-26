@@ -83,9 +83,12 @@ struct PinState final
     int32_t links = 0;          // number of pin links
     bool converted = false;     // input pin converted to widget
     
-    ImU32 pin_color = 0;     // will change if ANY pin
+    ImU32 pin_color = 0;        // will change if ANY pin
     PinType type = PinType::_none;  // will change if ANY pin
     std::string type_str;       // will change if ANY pin
+    size_t type_hash = 0;
+
+    std::string name;
 
     primitive value;            // current value, if widget
     int32_t combo_index = 0;     // combo-list current selection
@@ -117,6 +120,8 @@ public:
 
     static PinShape get_shape(PinType type);
 
+    static size_t get_hash(std::string str);
+
     const Node* parent_node = nullptr;
 
     bool input = false;
@@ -138,14 +143,11 @@ public:
     bool video_upload = false;
     std::string image_folder;
 
-    size_t type_hash = 0;
-    std::string name;
     float w_name = 0.0f;
     float w_value = 0.0f;
     std::string tooltip;
 
     bool type_any = false;
-
     PinState def_state;
 
     // all

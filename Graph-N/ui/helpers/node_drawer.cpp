@@ -596,7 +596,7 @@ void NodeDrawer::draw_input_pin(data::PinInstance* pin)
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
         draw_pin(pin, false, false);
         ImGui::SameLine(0.0f, w::pin_r_offset);
-        ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
+        ImGui::TextUnformatted(pin->m_state->name.c_str(), pin->m_state->name.c_str() + pin->m_state->name.size());
     }
     else if (pin->m_state->links > 0)
     {
@@ -609,7 +609,7 @@ void NodeDrawer::draw_output_pin(data::PinInstance* pin)
 {
     if (m_active_node->expanded())
     {
-        ImGui::TextUnformatted(pin->get_object()->name.c_str(), pin->get_object()->name.c_str() + pin->get_object()->name.size());
+        ImGui::TextUnformatted(pin->m_state->name.c_str(), pin->m_state->name.c_str() + pin->m_state->name.size());
         ImGui::SameLine(0, w::pin_r_offset);
         draw_pin(pin, false, false);
     }
@@ -719,7 +719,7 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     handle_widget_active_state();
     ImGui::PopStyleColor();
 
@@ -765,7 +765,7 @@ void NodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_widt
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     handle_widget_active_state();
     ImGui::PopStyleColor();
 
@@ -809,7 +809,7 @@ void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_wid
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     handle_widget_active_state();
     ImGui::PopStyleColor();
 
@@ -851,7 +851,7 @@ void NodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_widt
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     handle_widget_active_state();
     ImGui::PopStyleColor();
     ImGui::SameLine(0.0f, 0.0f);
@@ -880,7 +880,7 @@ void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width
 {
     auto obj = pin->get_object();
 
-    auto& placeholder = (obj->placeholder.empty() ? obj->name : obj->placeholder);
+    auto& placeholder = (obj->placeholder.empty() ? pin->m_state->name : obj->placeholder);
     std::string* val = data::Pin::get_string(pin->m_state->value);
 
     ImGui::PushID(val);
@@ -910,7 +910,7 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
 {
     auto obj = pin->get_object();
 
-    auto& placeholder = (obj->placeholder.empty() ? obj->name : obj->placeholder);
+    auto& placeholder = (obj->placeholder.empty() ? pin->m_state->name : obj->placeholder);
     std::string* val = data::Pin::get_string(pin->m_state->value);
 
     ImGui::PushID(val);
@@ -952,7 +952,7 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     handle_widget_active_state();
     ImGui::PopStyleColor();
 
@@ -979,7 +979,7 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &obj->name, ImGuiInputTextFlags_ReadOnly);
+    ImGuiEx::InputText("##name", &pin->m_state->name, ImGuiInputTextFlags_ReadOnly);
     handle_widget_active_state();
     ImGui::PopStyleColor();
 
@@ -1078,13 +1078,14 @@ void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& link
     }
 }
 
-bool NodeDrawer::query_links(const std::function<void(data::PinInstance*)>& unlink_handler)
+void NodeDrawer::query_new_item(
+    const std::function<void(data::PinInstance*)>& unlink_handler,
+    const std::function<void(data::PinInstance*, const ImVec2&)>& new_node_handler)
 {
-    bool linked = false;
     if (ed::BeginCreate())
     {
         ed::PinId start = 0, end = 0;
-
+        ed::PinId node = 0;
         if (ed::QueryNewLink(&start, &end))
         {
             data::PinInstance* p1 = cast::ptrs<data::PinInstance>(start.Get());
@@ -1100,7 +1101,6 @@ bool NodeDrawer::query_links(const std::function<void(data::PinInstance*)>& unli
 
                     m_querying_pin = nullptr;
                     data::Link::link(p1, p2);
-                    linked = true;
                 }
             }
             else
@@ -1108,9 +1108,15 @@ bool NodeDrawer::query_links(const std::function<void(data::PinInstance*)>& unli
                 ed::RejectNewItem();
             }
         }
-        else if (ed::QueryNewNode(&start))
+        else if (ed::QueryNewNode(&node))
         {
-            m_querying_pin = cast::ptrs<data::PinInstance>(start.Get());
+            m_querying_pin = cast::ptrs<data::PinInstance>(node.Get());
+
+            if (ed::AcceptNewItem())
+            {
+                new_node_handler(cast::ptrs<data::PinInstance>(node.Get()), ed::ScreenToCanvas(ImGui::GetMousePos()));
+                m_querying_pin = nullptr;
+            }
         }
         ed::EndCreate();
     }
@@ -1118,18 +1124,6 @@ bool NodeDrawer::query_links(const std::function<void(data::PinInstance*)>& unli
     {
         m_querying_pin = nullptr;
     }
-
-    return linked;
-
-    //static data::PinInstance* test = nullptr;
-    //if (test != m_querying_pin)
-    //{
-    //    test = m_querying_pin;
-    //    if (test != nullptr)
-    //        ::OutputDebugStringA(fmt::format("Drag pin {}", test->get_object()->name).c_str());
-    //    else
-    //        ::OutputDebugStringA("Drag pin is 0");
-    //}
 }
 
 void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool force_default, bool align_to_widget)

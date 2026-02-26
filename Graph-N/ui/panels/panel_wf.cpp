@@ -193,7 +193,19 @@ void PanelWorkflow::draw_wf()
 
     auto wf = g::pWfsManager->access(m_wf);
     m_drawer.draw_links(wf->get_links());
-    m_drawer.query_links([this](data::PinInstance* pin) { unlink(pin); });
+    m_drawer.query_new_item(
+        [this](data::PinInstance* pin) { unlink(pin); },
+        [this, wf](data::PinInstance* pin, const ImVec2& pt)
+            {
+                auto node = wf->get_node_by_instance(pin->get_parent_node());
+                m_menu_objs = {};
+                m_menu_objs.click_pos = pt;
+                m_menu_objs.pins.insert(pin);
+                m_menu_objs.nodes.insert(node);
+                m_context_menu_type = MenuType::SpawnNode;
+                m_handle_context_menu = true;
+            }
+    );
 
     m_handle_new_nodes = false;
     m_drawer.post_draw_all([this]() { return context_menu_handler(); }, [this]() { return show_context_menu(); });

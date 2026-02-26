@@ -1,6 +1,7 @@
 
 #include "core/workflow/link.h"
 #include "core/workflow/pin_instance.h"
+#include "core/workflow/node_instance.h"
 #include "core/managers/workflows_manager.h"
 
 namespace data
@@ -38,7 +39,7 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     if (p1->input == p2->input || p1->output == p2->output)     // input to input, output to output
         return false;
 
-    if (PinType::ANY == s1->type || PinType::ANY == s2->type)
+    if (p1->type_any || p2->type_any)
         return true;
 
     if (PinType::COLOR == s1->type && PinType::STRING == s2->type ||    // special case
@@ -47,7 +48,7 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
         return true;
     }
 
-    return (s1->type_str == s2->type_str); // same pin type
+    return (s1->type_hash == s2->type_hash); // same pin type
 }
 
 Link* Link::link(PinInstance* i1, PinInstance* i2)
@@ -72,17 +73,29 @@ Link* Link::link(PinInstance* i1, PinInstance* i2)
     auto& s1 = i1->m_state;
     auto& s2 = i2->m_state;
 
+    data::PinInstance* recalc = nullptr;
     if (p1->type_any)
     {
         s1->type = s2->type;
         s1->type_str = s2->type_str;
+        s1->type_hash = s2->type_hash;
         s1->pin_color = s2->pin_color;
+        s1->name = s2->name;
+        recalc = i1;
     }
     else if (p2->type_any)
     {
         s2->type = s1->type;
         s2->type_str = s1->type_str;
+        s2->type_hash = s1->type_hash;
         s2->pin_color = s1->pin_color;
+        s2->name = s1->name;
+        recalc = i2;
+    }
+    if (recalc != nullptr)
+    {
+        auto node = wf->get_node_by_instance(recalc->get_parent_node());
+        node->calc_node_width(false, false);
     }
 
     s1->links++;
@@ -109,17 +122,30 @@ void Link::unlink()
     auto o1 = p1->get_object();
     auto o2 = p2->get_object();
 
+    const data::PinInstance* recalc = nullptr;
     if (o1->type_any && 0 == s1->links)
     {
         s1->type = o1->def_state.type;
         s1->type_str = o1->def_state.type_str;
+        s1->type_hash = o1->def_state.type_hash;
         s1->pin_color = o1->def_state.pin_color;
+        s1->name = o1->def_state.name;
+        recalc = p1;
     }
     if (o2->type_any && 0 == s2->links)
     {
         s2->type = o2->def_state.type;
         s2->type_str = o2->def_state.type_str;
+        s2->type_hash = o2->def_state.type_hash;
         s2->pin_color = o2->def_state.pin_color;
+        s2->name = o2->def_state.name;
+        recalc = p2;
+    }
+    if (recalc != nullptr)
+    {
+        auto wf = g::pWfsManager->access(recalc->get_workflow_id());
+        auto node = wf->get_node_by_instance(recalc->get_parent_node());
+        node->calc_node_width(false, false);
     }
 
     Log("Unlinked: wid=" << m_workflow_id << ", iid=" << m_iid << ", in=" << m_input << ", out=" << m_output);

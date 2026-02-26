@@ -60,6 +60,7 @@ private:
     bool show_pin_menu();
     bool show_link_menu();
     bool show_multilink_menu();
+    bool show_new_node_menu();
     bool show_colors_menu(bool& close, bool& reset, bool use_custom, bool show_alpha, const ImVec4& init);
     data::Node* show_nodes_menu(const std::string& in_pin_filter, const std::string& out_pin_filter);
 
@@ -87,7 +88,7 @@ private:
     std::string m_context_menu_nodes_filter;
     fmt::memory_buffer m_fmt_buffer;
 
-    enum class MenuType { _none, Back, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink };
+    enum class MenuType { _none, Back, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink, SpawnNode };
     struct MenuObjects final
     {
         std::set<data::NodeInstance*> nodes;

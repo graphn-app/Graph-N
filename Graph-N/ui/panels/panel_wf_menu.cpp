@@ -163,6 +163,9 @@ bool PanelWorkflow::show_context_menu()
         case MenuType::Multiobj:
             close = show_multiobj_menu();
             break;
+        case MenuType::SpawnNode:
+            close = show_new_node_menu();
+            break;
         default:
             {
                 LogInternalLogic("Unhandled menu type");
@@ -798,6 +801,69 @@ bool PanelWorkflow::show_multilink_menu()
     return close;
 }
 
+bool PanelWorkflow::show_new_node_menu()
+{
+    auto pin_inst = *m_menu_objs.pins.begin();
+    auto node_inst = *m_menu_objs.nodes.begin();
+
+    m_fmt_buffer.clear();
+    fmt::format_to(std::back_inserter(m_fmt_buffer), "{} [{}]", node_inst->get_name(), pin_inst->m_state->type_str);
+    *(m_fmt_buffer.data() + m_fmt_buffer.size()) = 0;
+
+    ImGui::MenuItem(m_fmt_buffer.data(), nullptr, nullptr, false);
+    ImGui::Separator();
+
+    bool close = false;
+
+    bool input = pin_inst->get_object()->input;
+    auto node = show_nodes_menu(input ? "" : pin_inst->m_state->type_str, input ? pin_inst->m_state->type_str : "");
+    if (node != nullptr)
+    {
+        close = true;
+        bool linked = false;
+        auto inst = add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
+        const auto& oppo = input ? inst->get_outputs() : inst->get_inputs();
+        if (pin_inst->get_object()->type_any && !oppo.empty())
+        {
+            if (pin_inst->m_state->links > 0 && pin_inst->get_object()->input)
+                unlink(pin_inst);
+            data::Link::link(*oppo.begin(), pin_inst);
+            linked = true;
+        }
+        if (!linked)
+        {
+            for (auto pin : oppo)
+            {
+                if (pin->m_state->type_hash == pin_inst->m_state->type_hash)
+                {
+                    if (pin_inst->m_state->links > 0 && pin_inst->get_object()->input)
+                        unlink(pin_inst);
+
+                    data::Link::link(pin, pin_inst);
+                    linked = true;
+                    break;
+                }
+            }
+        }
+        if (!linked)
+        {
+            for (auto pin : oppo)
+            {
+                if (pin->get_object()->type_any)
+                {
+                    if (pin_inst->m_state->links > 0 && pin_inst->get_object()->input)
+                        unlink(pin_inst);
+
+                    data::Link::link(pin, pin_inst);
+                    linked = true;
+                    break;
+                }
+            }
+        }
+    }
+    return close;
+}
+
 ////////////////////////////////
 
 bool PanelWorkflow::show_colors_menu(bool& close, bool& reset, bool use_custom, bool show_alpha, const ImVec4& init)
@@ -866,6 +932,8 @@ data::Node* PanelWorkflow::show_nodes_menu(const std::string& in_pin_filter, con
     {
         ImGui::SetKeyboardFocusHere();
         m_context_menu_nodes_need_focus = false;
+
+        g::pNodesManager->calc_number_inside(tools::str::trim_their(m_context_menu_nodes_filter), in_pin_filter, out_pin_filter);
     }
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (ImGuiEx::InputTextWithHint("##nodes_filter", "filter nodes", &m_context_menu_nodes_filter,
