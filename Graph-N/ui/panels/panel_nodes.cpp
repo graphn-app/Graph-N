@@ -330,6 +330,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         return dirty;
     };
 
+    g::pNodesManager->calc_number_inside(tools::str::trim_this(data()->buffer[PanelNodesData::BuffFilterLowered]), "", "");
+
     std::set<data::NodeItem*> expanded_nodes;
     std::set<uint32_t> expanded_labels;
     for (auto& item : m_panel_items)

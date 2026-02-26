@@ -54,7 +54,7 @@ Pin::~Pin() = default;
 
 bool Pin::is_widget() const
 {
-    return !force_input &&
+    return !output && !force_input &&
         cast::to_i64(def_state.type) >= cast::to_i64(PinType::_first_widget) && cast::to_i64(def_state.type) <= cast::to_i64(PinType::_last_widget);
 }
 

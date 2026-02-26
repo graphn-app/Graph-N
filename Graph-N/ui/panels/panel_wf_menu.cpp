@@ -255,7 +255,17 @@ bool PanelWorkflow::show_node_menu()
         m_drawer.rename_node(node);
         close = true;
     }
-    //if (ImGui::MenuItem("Fit"))   // TODO: FIX resizing
+    if (node->get_name() != node->get_name_original())
+    {
+        if (ImGui::MenuItem("Reset node name"))
+        {
+            node->set_name(node->get_name_original());
+            node->m_ignore_size_on_frame_end = true;
+            node->reset_width();
+            close = true;
+        }
+    }
+    //if (ImGui::MenuItem("Fit"))   // TODO:FIX resizing
     //{
     //    node->reset_width();
     //    close = true;
@@ -304,7 +314,7 @@ bool PanelWorkflow::show_node_menu()
     }
     ImGui::Separator();
 
-    //if (ImGui::MenuItem(node->expanded() ? "Collapse" : "Expand")) // TODO: FIX
+    //if (ImGui::MenuItem(node->expanded() ? "Collapse" : "Expand")) // TODO:FIX
     //{
     //    node->toggle_expanded();
     //    close = true;
@@ -454,7 +464,7 @@ bool PanelWorkflow::show_group_menu()
 bool PanelWorkflow::show_multinode_menu()
 {
     bool close = false;
-    //if (ImGui::MenuItem("Fit"))   // TODO: FIX resizing
+    //if (ImGui::MenuItem("Fit"))   // TODO:FIX resizing
     //{
     //    for (auto node : m_menu_objs.nodes)
     //    {
@@ -745,20 +755,28 @@ bool PanelWorkflow::show_pin_menu()
     }
 
     auto pin = *m_menu_objs.pins.begin();
-    if (0 == pin->m_state->links)
-        return true;
-
     bool close = false;
 
-    if (ImGui::MenuItem("Unlink"))
+    if (ImGui::MenuItem("Unlink", nullptr, nullptr, pin->m_state->links > 0))
     {
         unlink(pin);
         close = true;
     }
-    //if (ImGui::MenuItem("Rename slot")) // TODO
-    //{
-    //    close = true;
-    //}
+    ImGui::Separator();
+    if (ImGui::MenuItem("Rename slot", nullptr, nullptr, !pin->get_object()->is_widget()))
+    {
+        m_drawer.rename_pin(pin);
+        close = true;
+    }
+    if (ImGui::MenuItem("Reset slot name", nullptr, nullptr, !pin->get_object()->is_widget() && pin->m_state->name != pin->get_object()->def_state.name))
+    {
+        pin->m_state->name = pin->get_object()->def_state.name;
+        pin->get_object()->w_name = ImGui::CalcTextSize(pin->m_state->name.c_str()).x;
+        auto wf = g::pWfsManager->access(m_wf);
+        auto node = wf->get_node_by_instance(pin->get_parent_node());
+        node->reset_width();
+        close = true;
+    }
 
     return close;
 }

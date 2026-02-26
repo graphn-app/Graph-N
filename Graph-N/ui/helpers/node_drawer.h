@@ -69,7 +69,8 @@ public:
     bool fit_group_rect(data::NodeInstance* group, const std::set<data::NodeInstance*>& nodes) const;
 
     void pin_node(const EdType& node, bool pin) const;
-    void rename_node(data::NodeInstance* node);    
+    void rename_node(data::NodeInstance* node);
+    void rename_pin(data::PinInstance* pin);
 
     void delete_node(const EdType& node) const;
     void delete_link(const EdType& link) const;
@@ -105,6 +106,7 @@ private:
 
     void handle_widget_active_state();
     bool handle_node_resize();
+    bool handle_pin_renaming(data::PinInstance* curr_pin);
 
 private:
     wid m_wf = 0;
@@ -124,6 +126,7 @@ private:
     const ImU32 m_clr_node_pin_text;
     const float m_mode_alpha = 0.4f;
 
+    data::PinInstance* m_renaming_pin = nullptr;
     data::NodeInstance* m_renaming_node = nullptr;
     std::string m_renaming_buff;
     bool m_need_renaming_focus = false;

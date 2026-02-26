@@ -66,12 +66,12 @@ void NodeDrawer::free()
 
 void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/)
 {
-    //m_resizing_grip_positions.clear(); // TODO: FIX resizing
+    //m_resizing_grip_positions.clear(); // TODO:FIX resizing
     //m_resizing_grip_positions.resize(nodes_count);
 
     m_active_tt = nullptr;
 
-    //if (m_resizing_w.size() != nodes_count) // TODO: FIX resizing
+    //if (m_resizing_w.size() != nodes_count) // TODO:FIX resizing
     //{
     //    m_now_resizing = -1;
     //    m_resizing_w.clear();
@@ -106,7 +106,7 @@ void NodeDrawer::post_draw_all(const std::function<bool()>& init_menu_handler, c
 
     bool canvas_busy = init_menu_handler();
     //if (!canvas_busy)
-    //    canvas_busy = handle_node_resize();   // TODO: FIX resizing
+    //    canvas_busy = handle_node_resize();   // TODO:FIX resizing
 
     ed::Resume();
     ed::End();
@@ -201,7 +201,9 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node)
 {
     ed::EndNode();
     node->m_rc.Min = ed::GetNodePosition(node->ed());
-    node->m_rc.Max = ed::GetNodeSize(node->ed());
+    if (!node->m_ignore_size_on_frame_end)
+        node->m_rc.Max = ed::GetNodeSize(node->ed());
+    node->m_ignore_size_on_frame_end = false;
 
     if (node->m_group)
         ed::PopStyleColor(3);
@@ -244,7 +246,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     ImVec2 node_size, node_pos;
 
-    //if (m_now_resizing == node_idx) // TODO: FIX resizing
+    //if (m_now_resizing == node_idx) // TODO:FIX resizing
     //{
     //    node_w = m_resizing_w[node_idx];
     //}
@@ -265,7 +267,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     }
     node_w = m_active_node->recalc_node_width(node_w, false, false);
 
-    //if (node_size.x > 0 && node_size.y > 0) // TODO: FIX resizing
+    //if (node_size.x > 0 && node_size.y > 0) // TODO:FIX resizing
     //{
     //    m_resizing_w[node_idx] = (m_active_node->pinned() || !m_active_node->expanded() ? -1 : node_w);
     //    if (m_resizing_w[node_idx] > 0)
@@ -361,7 +363,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     if (m_active_node->expanded())
         ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing * 2));
 
-    // TODO: FIX resizing
+    // TODO:FIX resizing
    // m_resizing_grip_positions[node_idx].Min.y -= ImGui::GetCursorPos().y - m_curr_node_top_offset + ImGui::GetTextLineHeight();
 
     // --- WIDGETS ---
@@ -439,6 +441,8 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
 {
     m_active_node = node;
+    m_active_node->w_node = m_active_node->m_rc.GetWidth();
+
     m_curr_node_left_offset = ImGui::GetCursorScreenPos().x;
     m_curr_node_top_offset = ImGui::GetCursorScreenPos().y;
 
@@ -471,9 +475,13 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
         if (m_active_node != m_renaming_node)
         {
             ImGui::SetCursorPosX(text_lt.x);
+            //const auto clip_lt = ImGui::GetCursorScreenPos(); // TODO:FIX name too name
+            //const auto clip_rb = ImVec2(clip_lt.x + m_active_node->w_node, clip_lt.y + ImGui::GetTextLineHeight());
+            //ImGui::PushClipRect(clip_lt, clip_rb, true); 
             ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->m_clr_group_capt);
             ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
             ImGui::PopStyleColor();
+            //ImGui::PopClipRect();
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             {
                 m_renaming_node = m_active_node;
@@ -579,6 +587,8 @@ void NodeDrawer::draw_node_header()
             ImGui::IsItemDeactivatedAfterEdit())
         {
             m_renaming_node->set_name(tools::str::trim_this(m_renaming_buff));
+            m_renaming_node->m_ignore_size_on_frame_end = true;
+            m_renaming_node->reset_width();
             m_renaming_buff.clear();
             m_renaming_node = nullptr;
         }
@@ -596,7 +606,8 @@ void NodeDrawer::draw_input_pin(data::PinInstance* pin)
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
         draw_pin(pin, false, false);
         ImGui::SameLine(0.0f, w::pin_r_offset);
-        ImGui::TextUnformatted(pin->m_state->name.c_str(), pin->m_state->name.c_str() + pin->m_state->name.size());
+        if (!handle_pin_renaming(pin))
+            ImGui::TextUnformatted(pin->m_state->name.c_str(), pin->m_state->name.c_str() + pin->m_state->name.size());
     }
     else if (pin->m_state->links > 0)
     {
@@ -609,7 +620,8 @@ void NodeDrawer::draw_output_pin(data::PinInstance* pin)
 {
     if (m_active_node->expanded())
     {
-        ImGui::TextUnformatted(pin->m_state->name.c_str(), pin->m_state->name.c_str() + pin->m_state->name.size());
+        if (!handle_pin_renaming(pin))
+            ImGui::TextUnformatted(pin->m_state->name.c_str(), pin->m_state->name.c_str() + pin->m_state->name.size());
         ImGui::SameLine(0, w::pin_r_offset);
         draw_pin(pin, false, false);
     }
@@ -1389,7 +1401,16 @@ void NodeDrawer::pin_node(const EdType& node, bool pin) const
 void NodeDrawer::rename_node(data::NodeInstance* node)
 {
     m_renaming_node = node;
+    m_renaming_pin = nullptr;
     m_renaming_buff = node->get_name();
+    m_need_renaming_focus = true;
+}
+
+void NodeDrawer::rename_pin(data::PinInstance* pin)
+{
+    m_renaming_node = nullptr;
+    m_renaming_pin = pin;
+    m_renaming_buff = pin->m_state->name;
     m_need_renaming_focus = true;
 }
 
@@ -1470,6 +1491,35 @@ ImVec2 NodeDrawer::get_visible_pos(std::optional<ImVec2> add_offset) const
 
     ed::SetCurrentEditor(prev_context);
     return target_screen_pos;
+}
+
+bool NodeDrawer::handle_pin_renaming(data::PinInstance* curr_pin)
+{
+    if (m_renaming_pin == curr_pin)
+    {
+        if (m_need_renaming_focus)
+        {
+            ImGui::SetKeyboardFocusHere();
+            m_need_renaming_focus = false;
+        }
+        ImGui::SetNextItemWidth(m_active_node->get_object()->w_pin_in_max);
+        if (ImGuiEx::InputText("##pinrename", &m_renaming_buff, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue) ||
+            ImGui::IsItemDeactivatedAfterEdit())
+        {
+            m_renaming_pin->m_state->name = tools::str::trim_this(m_renaming_buff);
+            m_renaming_buff.clear();
+            m_renaming_pin->get_object()->w_name = ImGui::CalcTextSize(m_renaming_pin->m_state->name.c_str()).x;
+            m_renaming_pin = nullptr;
+            m_active_node->reset_width();
+            m_active_node->m_ignore_size_on_frame_end = true;
+        }
+        else if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+        {
+            m_renaming_pin = nullptr;
+        }
+        return true;
+    }
+    return false;
 }
 
 } // namespace ui

@@ -20,6 +20,7 @@ public:
     float recalc_node_width(float new_width, bool ro, bool use_big_pin_icon);
 
     virtual const std::string& get_name() const;
+    virtual const std::string& get_name_original() const;
     virtual void set_name(std::string name);
 
     inline float get_ideal_width() const { return m_ideal_w; }

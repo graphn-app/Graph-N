@@ -42,18 +42,24 @@ void NodeInstanceBase::reset_state()
 const std::string& NodeInstanceBase::get_name() const
 {
     if (m_name.empty() && m_object != nullptr)
-        return m_object->display_name.empty() ? m_object->name : m_object->display_name;
+        return get_name_original();
     return m_name;
+}
+
+const std::string& NodeInstanceBase::get_name_original() const
+{
+    return m_object->display_name.empty() ? m_object->name : m_object->display_name;
 }
 
 void NodeInstanceBase::set_name(std::string name)
 {
-    if (m_object != nullptr && m_object->name == name)
+    if (get_name_original() == name)
         m_name.clear();
     else
         m_name = std::move(name);
     w_name = -1.0f;
     m_saved_width = -1.0f;
+    w_node = 0.0f;
 }
 
 Node* NodeInstanceBase::find_obj(hid obj_id) const
@@ -64,7 +70,7 @@ Node* NodeInstanceBase::find_obj(hid obj_id) const
 float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon)
 {
     m_has_out_pins = !m_output.empty();
-    m_object->w_widget_name_max = m_object->w_widget_value_max = m_object->w_pin_in_max = m_object->w_pin_out_max = 0.0f;
+    m_object->w_widget_name_max = m_object->w_widget_value_max = m_object->w_pin_in_max = m_object->w_pin_out_max = m_min_possible_w = 0.0f;
 
     for (auto& in : m_input)
     {
@@ -106,6 +112,8 @@ float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon)
     m_min_possible_w = std::max(m_min_possible_w, m_object->w_pin_in_max + m_object->w_pin_out_max + m_min_center_w);
     m_min_possible_w += pin_off;
 
+    m_saved_width = -1.0f;
+    w_node = 0.0f;
     return m_ideal_w;
 }
 

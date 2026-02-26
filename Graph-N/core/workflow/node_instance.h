@@ -45,6 +45,7 @@ protected:
 public:
     bool m_pos_set = false;
     bool m_size_set = false;
+    bool m_ignore_size_on_frame_end = false;
     bool m_pinned_set = false;
 
     ImRect m_rc = {}; // size for group, width for node
