@@ -23,39 +23,31 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
 
     if (i1->get_workflow_id() != i2->get_workflow_id())
     {
-        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Different workflow");
+        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Different workflows");
     }
 
     const auto p1 = i1->get_object();
     const auto p2 = i2->get_object();
 
-    if (i1 == i2 || i1->get_parent_node() == i2->get_parent_node())
+    if (i1 == i2 || i1->get_parent_node() == i2->get_parent_node())     // same pin, same node
         return false;
 
     const auto& s1 = i1->m_state;
     const auto& s2 = i2->m_state;
 
-    if (p1->input == p2->input || p1->output == p2->output)
-        return false;
-    if (p1->type_any && p2->type_any)
-        return false;
-    if (p1->input && s1->links > 0 || p2->input && s2->links > 0)
+    if (p1->input == p2->input || p1->output == p2->output)     // input to input, output to output
         return false;
 
     if (PinType::ANY == s1->type || PinType::ANY == s2->type)
         return true;
 
-    if (PinType::COLOR == s1->type && PinType::STRING == s2->type ||
+    if (PinType::COLOR == s1->type && PinType::STRING == s2->type ||    // special case
         PinType::COLOR == s2->type && PinType::STRING == s1->type)
     {
         return true;
     }
 
-    return (
-        s1->type == s2->type
-        &&
-        p1->hash == p2->hash
-    );
+    return (s1->type_str == s2->type_str); // same pin type
 }
 
 Link* Link::link(PinInstance* i1, PinInstance* i2)
@@ -66,6 +58,12 @@ Link* Link::link(PinInstance* i1, PinInstance* i2)
     }
 
     auto wf = g::pWfsManager->access(i1->get_workflow_id());
+
+    if (i1->m_state->links > 0 && i1->get_object()->input || i2->m_state->links > 0 && i2->get_object()->input)
+    {
+        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Input pin can't has more than 1 links");
+    }
+
     auto link = wf->add_link();
 
     auto p1 = i1->get_object();

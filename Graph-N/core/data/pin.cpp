@@ -73,7 +73,7 @@ void Pin::initialize(const std::string& type_as_string)
         def_state.type = PinType::CUSTOM;
     }
 
-    hash = tools::str::hash_string(def_state.type_str);
+    type_hash = tools::str::hash_string(def_state.type_str);
 
     init_defaults();
     generate_pin_color();
@@ -359,7 +359,7 @@ void Pin::precision_to_string()
 
 void Pin::generate_pin_color()
 {
-    if (0 == hash)
+    if (0 == type_hash)
     {
         LogAndThrowInternalError(ExcepCategory::Logic, "Hash wasn't generated. id=" << get_id());
     }
@@ -411,7 +411,7 @@ void Pin::generate_pin_color()
     }
 
     // golden ratio
-    double hue = (hash * 0.618033988749895);
+    double hue = (type_hash * 0.618033988749895);
     hue = std::fmod(hue, 1.0);
 
     // fix hue (S) и brightness (V)

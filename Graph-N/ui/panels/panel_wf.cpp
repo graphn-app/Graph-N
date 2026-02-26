@@ -193,7 +193,7 @@ void PanelWorkflow::draw_wf()
 
     auto wf = g::pWfsManager->access(m_wf);
     m_drawer.draw_links(wf->get_links());
-    m_drawer.query_links();
+    m_drawer.query_links([this](data::PinInstance* pin) { unlink(pin); });
 
     m_handle_new_nodes = false;
     m_drawer.post_draw_all([this]() { return context_menu_handler(); }, [this]() { return show_context_menu(); });
@@ -232,6 +232,25 @@ void PanelWorkflow::delete_group(data::NodeInstance* group)
             }
         }
         wf->remove_node(group);        
+    }
+}
+
+void PanelWorkflow::unlink(data::PinInstance* pin)
+{
+    auto wf = g::pWfsManager->access(m_wf);
+    auto& links = wf->get_links();
+    for (auto it = links.begin(); it != links.end(); )
+    {
+        auto& link = *it;
+        if (link->is_linked_to(pin))
+        {
+            m_drawer.delete_link(link->ed());
+            link->ed().reset();
+            delete_link(link.get());
+            it = links.begin();
+        }
+        else
+            ++it;
     }
 }
 

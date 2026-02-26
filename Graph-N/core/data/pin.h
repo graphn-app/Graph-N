@@ -138,7 +138,7 @@ public:
     bool video_upload = false;
     std::string image_folder;
 
-    size_t hash = 0;
+    size_t type_hash = 0;
     std::string name;
     float w_name = 0.0f;
     float w_value = 0.0f;

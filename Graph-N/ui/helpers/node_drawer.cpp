@@ -1075,7 +1075,7 @@ void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& link
     }
 }
 
-bool NodeDrawer::query_links()
+bool NodeDrawer::query_links(const std::function<void(data::PinInstance*)>& unlink_handler)
 {
     bool linked = false;
     if (ed::BeginCreate())
@@ -1090,6 +1090,11 @@ bool NodeDrawer::query_links()
             {
                 if (ed::AcceptNewItem())
                 {
+                    if (p1->m_state->links > 0 && p1->get_object()->input)
+                        unlink_handler(p1);
+                    else if (p2->m_state->links > 0 && p2->get_object()->input)
+                        unlink_handler(p2);
+
                     m_querying_pin = nullptr;
                     data::Link::link(p1, p2);
                     linked = true;

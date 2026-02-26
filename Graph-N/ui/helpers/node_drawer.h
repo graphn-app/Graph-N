@@ -42,7 +42,7 @@ public:
     void post_draw_node(data::NodeInstance* node);
 
     void draw_links(const std::vector<std::unique_ptr<data::Link>>& links);
-    bool query_links();
+    bool query_links(const std::function<void(data::PinInstance*)>& unlink_handler);
 
     void locate_node(data::NodeInstance* node);
 

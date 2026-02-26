@@ -43,6 +43,8 @@ public:
     data::NodeInstance* add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos);
     data::NodeInstance* add_group(std::optional<ImRect> size);
 
+    void unlink(data::PinInstance* pin);
+
 private:
     DlgCode show(bool& focused) override;
     void draw_wf();

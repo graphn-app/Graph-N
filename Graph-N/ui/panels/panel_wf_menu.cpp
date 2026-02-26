@@ -749,21 +749,7 @@ bool PanelWorkflow::show_pin_menu()
 
     if (ImGui::MenuItem("Unlink"))
     {
-        auto wf = g::pWfsManager->access(m_wf);
-        auto& links = wf->get_links();
-        for (auto it = links.begin(); it != links.end(); )
-        {
-            auto& link = *it;
-            if (link->is_linked_to(pin))
-            {
-                m_drawer.delete_link(link->ed());
-                link->ed().reset();
-                delete_link(link.get());
-                it = links.begin();
-            }
-            else
-                ++it;
-        }
+        unlink(pin);
         close = true;
     }
     //if (ImGui::MenuItem("Rename slot")) // TODO
