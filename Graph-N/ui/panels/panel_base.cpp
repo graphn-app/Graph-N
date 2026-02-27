@@ -88,7 +88,7 @@ void PanelEmptyWithDescr::show_empty_panel_descr(
 
 bool PanelWithList::draw_list(
     std::vector<PanelListItem>& items, PanelItemState& dirty_item,
-    const TtCallbacks* tt_callbacks /*= nullptr*/)
+    const TtCallbacks* tt_callbacks /*= nullptr*/, const DndCallbacks* dnd_callbacks /*= nullptr*/)
 {
     bool dirty = false;
     dirty_item = {};
@@ -132,21 +132,36 @@ bool PanelWithList::draw_list(
             bool l_released = false;            
             bool r_clicked = false;
             bool r_released = false;
+            bool dnd = false;
 
             if (!item.renaming)
             {
                 ImGui::SetCursorPosX(0);
                 ImGui::InvisibleButton("btn", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetTextLineHeightWithSpacing()));
 
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone))
+                if (dnd_callbacks != nullptr && dnd_callbacks->on_dnd_allow(idx))
                 {
-                    m_hovered_item = idx;
-                    l_clicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-                    l_dbl_clicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
-                    r_clicked = ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+                    if (ImGui::BeginDragDropSource())
+                    {
+                        dnd = true;
+                        ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
+                        ImGui::SetDragDropPayload(dnd_callbacks->dnd_id, &item.dnd_data, sizeof(item.dnd_data));
+                        dnd_callbacks->on_dnd_show(idx);
+                        ImGui::EndDragDropSource();
+                    }
                 }
-                l_released = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
-                r_released = ImGui::IsMouseReleased(ImGuiMouseButton_Right);
+                if (!dnd)
+                {
+                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone))
+                    {
+                        m_hovered_item = idx;
+                        l_clicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+                        l_released = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+                        l_dbl_clicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+                        r_clicked = ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+                        r_released = ImGui::IsMouseReleased(ImGuiMouseButton_Right);
+                    }
+                }
 
                 ImGui::SameLine();
             }
@@ -176,7 +191,7 @@ bool PanelWithList::draw_list(
                     ImGui::TextUnformatted(item.icon);
                     if (item.icon_active) ImGui::PopStyleColor();
 
-                    if (item.icon_tooltip != nullptr)
+                    if (!dnd && item.icon_tooltip != nullptr)
                     {
                         if (is_selected)
                             ImGui::PopStyleColor();
@@ -272,25 +287,29 @@ bool PanelWithList::draw_list(
                 const bool mouse_on_name = name_rect.Contains(mouse);
                 bool handler_processed = false;
 
-                if (item.continue_processing_ico_handler || mouse_on_icon && item.on_icon_handler != nullptr)
+                if (!dnd && (item.continue_processing_ico_handler || mouse_on_icon && item.on_icon_handler != nullptr))
                 {
                     if (item.on_icon_handler(item, l_clicked, l_dbl_clicked, l_released, r_clicked, r_released, handler_processed))
                     {
                         dirty = true;
                         dirty_item.icon_clicked = true;
+                        dirty_item.lclicked = l_clicked;
+                        dirty_item.lreleased = l_released;
                         dirty_item.index = idx;
                     }
                 }
-                if (!dirty && !handler_processed && (item.continue_processing_item_handler || mouse_on_name && item.on_item_handler != nullptr))
+                if (!dnd && !dirty && !handler_processed && (item.continue_processing_item_handler || mouse_on_name && item.on_item_handler != nullptr))
                 {
                     if (item.on_item_handler(item, l_clicked, l_dbl_clicked, l_released, r_clicked, r_released, handler_processed))
                     {
                         dirty = true;
                         dirty_item.item_clicked = true;
+                        dirty_item.lclicked = l_clicked;
+                        dirty_item.lreleased = l_released;
                         dirty_item.index = idx;
                     }
                 }
-                if (!dirty && !handler_processed && allow_tt && item.on_hover_handler != nullptr)
+                if (!dnd && !dirty && !handler_processed && allow_tt && item.on_hover_handler != nullptr)
                 {
                     if (item.on_hover_handler(item, handler_processed))
                     {
@@ -299,11 +318,11 @@ bool PanelWithList::draw_list(
                         dirty_item.index = idx;
                     }
                 }
-                if (!dirty && !handler_processed && m_hovered_item == idx)
+                if (!dnd && !dirty && !handler_processed && m_hovered_item == idx)
                 {
-                    if (l_clicked)
+                    if (l_clicked || l_released)
                     {
-                        if (mouse_on_icon && (item.can_expand || item.icon_can_click))
+                        if (!l_released && mouse_on_icon && (item.can_expand || item.icon_can_click))
                         {
                             dirty = true;
                             dirty_item.index = idx;
@@ -312,6 +331,8 @@ bool PanelWithList::draw_list(
                             {
                                 item.icon_active = !item.icon_active;
                                 dirty_item.icon_clicked = true;
+                                dirty_item.lclicked = l_clicked;
+                                dirty_item.lreleased = l_released;
                             }
                             else // if (item.can_expand)
                             {
@@ -323,22 +344,26 @@ bool PanelWithList::draw_list(
                         if (!dirty && (item.can_lclick || item.can_expand))
                         {
                             dirty = true;
-                            if (item.can_expand)
+                            if (item.can_expand && !l_released)
                             {
                                 item.expanded = !item.expanded;
                                 dirty_item.expanded = true;
                             }
-                            else
+                            else if (!item.can_expand)
                             {
-                                dirty_item.lclicked = true;
+                                dirty_item.lclicked = l_clicked;
+                                dirty_item.lreleased = l_released;
                             }
+                            else
+                                dirty = false;
                             dirty_item.index = idx;
                         }
                     }
-                    if (!dirty && item.can_rclick && r_clicked)
+                    if (!dirty && item.can_rclick && (r_clicked || r_released))
                     {
                         dirty = true;
-                        dirty_item.rclicked = true;
+                        dirty_item.rclicked = r_clicked;
+                        dirty_item.rreleased = r_released;
                         dirty_item.index = idx;
                     }
                     if (!dirty && mouse_on_name && item.can_dblclick && l_dbl_clicked)

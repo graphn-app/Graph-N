@@ -93,6 +93,9 @@ constexpr const char* DlgObjID[static_cast<size_t>(DlgObj::_count)] =
     "###84C3F1E0-4342-4A1B-9464-A011057E9FE1",                     // ModalMessage
 };
 
+constexpr const char* DND_FROM_NODES_LIBRARY    = "F86C637FBBC3";
+constexpr const char* DND_FROM_SYSTEM           = "770C64EA9B66";
+
 enum class OptPane
 {
     Application,
@@ -375,6 +378,7 @@ struct PanelListItem final
 
     uint32_t label = 0;
     void* ptr = nullptr;
+    uint64_t dnd_data = 0;
 
     struct State
     {
@@ -388,7 +392,9 @@ struct PanelItemState final
 {
     size_t index = 0;
     bool rclicked = false;
+    bool rreleased = false;
     bool lclicked = false;
+    bool lreleased = false;
     bool dblclicked = false;
     bool renamed = false;
     bool item_clicked = false;

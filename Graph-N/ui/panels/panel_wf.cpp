@@ -2,6 +2,7 @@
 #include "ui/panels/panel_wf.h"
 #include "ui/graph-n_flow.h"
 #include "core/managers/workflows_manager.h"
+#include "core/managers/nodes_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
@@ -208,9 +209,12 @@ void PanelWorkflow::draw_wf()
     );
 
     m_handle_new_nodes = false;
+
     m_drawer.post_draw_all([this]() { return context_menu_handler(); }, [this]() { return show_context_menu(); });
 
     ImGui::GetIO().ConfigFlags = old_flags;
+
+    handle_dnd();
 }
 
 void PanelWorkflow::delete_node(data::NodeInstance* node)
@@ -332,6 +336,25 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
         m_drawer.fit_group_rect(group, nodes);
         if (add_y.find(group) != add_y.end())
             group->m_rc.Max.y += ImGui::GetTextLineHeight();
+    }
+}
+
+void PanelWorkflow::handle_dnd()
+{
+    if (ImGui::BeginDragDropTarget())
+    {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DND_FROM_NODES_LIBRARY);
+        if (payload != nullptr)
+        {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+            const hid node_id = *(const hid*)payload->Data;
+            auto node = g::pNodesManager->find_node(node_id);            
+            auto inst = add_node(node, "", ImRect(m_drawer.get_mouse_pos(), ImVec2(-1, -1)));
+            Log("Node " << inst->get_name() << " dropped");
+            g::pFlow->wf_activate(m_wf);
+        }
+        ImGui::EndDragDropTarget();
     }
 }
 

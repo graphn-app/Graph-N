@@ -64,6 +64,9 @@ private:
     bool on_pre_tt(int32_t idx);
     void on_post_tt(int32_t idx);
 
+    bool on_dnd_allow(int32_t idx);
+    void on_dnd_show(int32_t idx);
+
     void on_labels_mode(PanelToolbar::Element& el);
     void on_new_label(PanelToolbar::Element& el);
     void on_expand_all(PanelToolbar::Element& el);
@@ -77,6 +80,7 @@ private:
     PanelNodeInspector* m_inspector = nullptr;
     data::Workflow* m_wf = nullptr;
     PanelWithList::TtCallbacks m_tt_callbacks;
+    PanelWithList::DndCallbacks m_dnd_callbacks;
     data::NodeInstanceRo* m_tt_node = nullptr;
     float m_tt_width = 0.0f;
     RoNodeDrawer m_tt_node_drawer;

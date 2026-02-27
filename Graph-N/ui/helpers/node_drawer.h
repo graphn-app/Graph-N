@@ -49,7 +49,7 @@ public:
     inline ImGuiExNe::DeferredAction* get_deffered_action() const { return m_deffered_action.get(); }
     data::PinInstance* get_ml_widget_active() const;
 
-    ImVec2 get_mouse_click_pos() const;
+    ImVec2 get_mouse_pos() const;
     bool get_bg_menu_active() const;
 
     data::PinInstance* get_hovered_pin() const;

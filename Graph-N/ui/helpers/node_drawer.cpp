@@ -64,6 +64,20 @@ void NodeDrawer::free()
     m_context = nullptr;
 }
 
+void NodeDrawer::locate_node(data::NodeInstance* node)
+{
+    ed::ClearSelection();
+    ed::SelectNode(node->ed());
+    ed::NavigateToSelection(false, 0.5f);
+}
+
+data::PinInstance* NodeDrawer::get_ml_widget_active() const
+{
+    if (nullptr == m_deffered_action->active_pin)
+        return nullptr;
+    return cast::ptrs<data::PinInstance>(m_deffered_action->active_pin);
+}
+
 void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/)
 {
     //m_resizing_grip_positions.clear(); // TODO:FIX resizing
@@ -217,20 +231,6 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node)
     }
 
     m_active_node = nullptr;
-}
-
-void NodeDrawer::locate_node(data::NodeInstance* node)
-{
-    ed::ClearSelection();
-    ed::SelectNode(node->ed());
-    ed::NavigateToSelection(false, 0.5f);
-}
-
-data::PinInstance* NodeDrawer::get_ml_widget_active() const
-{
-    if (nullptr == m_deffered_action->active_pin)
-        return nullptr;
-    return cast::ptrs<data::PinInstance>(m_deffered_action->active_pin);
 }
 
 void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node_idx*/)
@@ -1300,9 +1300,15 @@ bool NodeDrawer::get_bg_menu_active() const
     return ed::ShowBackgroundContextMenu();
 }
 
-ImVec2 NodeDrawer::get_mouse_click_pos() const
+ImVec2 NodeDrawer::get_mouse_pos() const
 {
-    return ed::ScreenToCanvas(ImGui::GetMousePos());
+    auto prev_context = ed::GetCurrentEditor();
+    if (nullptr == prev_context)
+        ed::SetCurrentEditor(m_context);
+    const auto pos = ed::ScreenToCanvas(ImGui::GetMousePos());
+    if (nullptr == prev_context)
+        ed::SetCurrentEditor(nullptr);
+    return pos;
 }
 
 data::PinInstance* NodeDrawer::get_hovered_pin() const

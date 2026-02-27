@@ -356,7 +356,7 @@ void PanelModels::handle_dirty(const PanelItemState& dirty_item)
         rebuild_items();
         return;
     }
-    if (dirty_item.icon_clicked)
+    if (dirty_item.icon_clicked && !dirty_item.lreleased)
     {
         auto* model = cast::ptrs<data::ModelItem>(m_panel_items[dirty_item.index].ptr);
         model->starred = !model->starred;
@@ -372,7 +372,7 @@ void PanelModels::handle_dirty(const PanelItemState& dirty_item)
     {
         add_model_to_wf(nullptr, model_item);
     }
-    else
+    else if (!dirty_item.lreleased)
     {
         LogInternalLogic("Unhandled dirty state");
     }

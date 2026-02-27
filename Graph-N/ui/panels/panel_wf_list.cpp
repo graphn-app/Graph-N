@@ -493,9 +493,13 @@ void PanelWfList::handle_dirty(const PanelItemState& dirty_item)
     {
         g::pFlow->wf_rename(id, item.name);
     }
-    else if (dirty_item.icon_clicked)
+    else if (dirty_item.icon_clicked && !dirty_item.lreleased)
     {
         rebuild_items();
+    }
+    else if (!dirty_item.lreleased)
+    {
+        LogError(ExcepCategory::Logic, "Unhandled dirty state");
     }
 }
 
@@ -609,7 +613,7 @@ void PanelWfList::handle_dirty_labels(const PanelItemState& dirty_item)
         panel_item.need_focus = true;
         panel_item.name_backup = panel_item.name;
     }
-    else if (dirty_item.item_clicked || dirty_item.item_handled || dirty_item.icon_clicked)
+    else if (dirty_item.item_clicked || dirty_item.item_handled || (dirty_item.icon_clicked && !dirty_item.lreleased))
     {
         rebuild_items();
     }
@@ -647,7 +651,7 @@ void PanelWfList::handle_dirty_trash(const PanelItemState& dirty_item)
 {
     Log("Dirty trash: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
 
-    if (dirty_item.icon_clicked || dirty_item.lclicked)
+    if ((dirty_item.icon_clicked || dirty_item.lclicked) && !dirty_item.lreleased)
     {
         wid id = cast::from_ptr<wid>(m_panel_items[dirty_item.index].ptr);
         g::pFlow->wf_restore(id);

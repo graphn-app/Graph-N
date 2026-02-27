@@ -17,7 +17,7 @@ bool PanelWorkflow::context_menu_handler()
         m_handle_context_menu = true;
         m_menu_objs = {};
         m_context_menu_type = MenuType::Back;
-        m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
+        m_menu_objs.click_pos = m_drawer.get_mouse_pos();
         Log("Bg menu initiated");
         return true;
     }
@@ -33,7 +33,7 @@ bool PanelWorkflow::context_menu_handler()
             m_menu_objs = {};
             m_context_menu_type = MenuType::Pin;
             m_menu_objs.pins.insert(pin);
-            m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
+            m_menu_objs.click_pos = m_drawer.get_mouse_pos();
             Log("Pin menu initiated");
             return true;
         }
@@ -45,7 +45,7 @@ bool PanelWorkflow::context_menu_handler()
         {
             m_handle_context_menu = true;
             m_menu_objs = {};
-            m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
+            m_menu_objs.click_pos = m_drawer.get_mouse_pos();
 
             const auto links = m_drawer.get_selected_links();
             if (!m_drawer.is_link_selected(link->ed()) || 1 == links.size())
@@ -71,7 +71,7 @@ bool PanelWorkflow::context_menu_handler()
         {
             m_handle_context_menu = true;
             m_menu_objs = {};
-            m_menu_objs.click_pos = m_drawer.get_mouse_click_pos();
+            m_menu_objs.click_pos = m_drawer.get_mouse_pos();
 
             auto nodes = m_drawer.get_selected_nodes();
             if (!m_drawer.is_node_selected(node->ed()) || 1 == nodes.size())

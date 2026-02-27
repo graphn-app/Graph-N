@@ -72,6 +72,8 @@ private:
     void create_group(const ImRect& rc);
     void fit(std::map<data::NodeInstance*, std::set<data::NodeInstance*>>& items);
 
+    void handle_dnd();
+
 private:
     wid m_wf = 0;
     const ImGuiID m_dock;

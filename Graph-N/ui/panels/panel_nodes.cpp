@@ -42,6 +42,10 @@ void PanelNodes::init()
     m_tt_callbacks.on_pre_tt = std::bind(&PanelNodes::on_pre_tt, this, std::placeholders::_1);
     m_tt_callbacks.on_post_tt = std::bind(&PanelNodes::on_post_tt, this, std::placeholders::_1);
 
+    m_dnd_callbacks.on_dnd_allow = std::bind(&PanelNodes::on_dnd_allow, this, std::placeholders::_1);
+    m_dnd_callbacks.on_dnd_show = std::bind(&PanelNodes::on_dnd_show, this, std::placeholders::_1);
+    m_dnd_callbacks.dnd_id = DND_FROM_NODES_LIBRARY;
+
     create_toolbar();
     rebuild_items();
 }
@@ -225,7 +229,7 @@ DlgCode PanelNodes::show(bool& focused)
         if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::PanelNodes_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0)))
         {
             PanelItemState state;
-            if (draw_list(m_panel_items, state, &m_tt_callbacks))
+            if (draw_list(m_panel_items, state, &m_tt_callbacks, &m_dnd_callbacks))
                 handle_dirty(state);
         }
         ImGui::EndChild();
@@ -396,6 +400,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     item.can_lclick = item.can_rclick = item.icon_can_click = true;
                     item.selected = m_inspector->is_node_inspecting(node_item->node);
                     item.ptr = node_item;
+                    item.dnd_data = node_item->node->get_id();
                     m_panel_items.push_back(std::move(item));
                 }
             }
@@ -451,6 +456,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     item.on_icon_handler = on_icon_handler;
                     item.can_lclick = item.can_rclick = item.icon_can_click = true;
                     item.ptr = node;
+                    item.dnd_data = node->node->get_id();
                     panel_items.push_back(std::move(item));
                 }
             }
@@ -477,6 +483,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 item.icon_tooltip = "Manage node labels";
                 item.selected = m_inspector->is_node_inspecting(node_item->node);
                 item.ptr = node_item;
+                item.dnd_data = node_item->node->get_id();
                 m_panel_items.push_back(std::move(item));
             }
         }
@@ -514,7 +521,7 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
     }
 #endif
 
-    if (dirty_item.icon_clicked)
+    if (dirty_item.icon_clicked && !dirty_item.lreleased)
     {
         rebuild_items();
     }
@@ -580,11 +587,11 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
             }
         }
     }
-    else if (dirty_item.lclicked)
+    else if (dirty_item.lreleased)
     {
         add_node_to_wf(node_item);
     }
-    else
+    else if (!dirty_item.lclicked && !dirty_item.rreleased)
     {
         LogError(ExcepCategory::Logic, "Unhandled dirty state");
     }
@@ -750,6 +757,23 @@ bool PanelNodes::on_pre_tt(int32_t /*idx*/)
 void PanelNodes::on_post_tt(int32_t /*idx*/)
 {
     ImGui::PopStyleColor(2);
+}
+
+bool PanelNodes::on_dnd_allow(int32_t idx)
+{
+    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ptr)
+        return false;
+    return true;
+}
+
+void PanelNodes::on_dnd_show(int32_t idx)
+{
+    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ptr)
+        return;
+
+    const auto node_item = cast::ptrs<data::NodeItem>(m_panel_items[idx].ptr);
+    ImGui::TextUnformatted(node_item->name_or_category.c_str(), node_item->name_or_category.c_str() + node_item->name_or_category.size());
+    ImGui::Text("Current ImGui Cursor ID: %d", ImGui::GetMouseCursor());
 }
 
 void PanelNodes::add_node_to_wf(data::NodeItem* node_item)

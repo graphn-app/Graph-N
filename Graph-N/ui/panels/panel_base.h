@@ -149,17 +149,24 @@ public:
 
     struct TtCallbacks
     {
-        std::function<void(int32_t)> on_alloc_tt_data;
-        std::function<void(int32_t)> on_release_tt_data;
-        std::function<void(int32_t)> on_show_tt;
-        std::function<bool(int32_t)> on_pre_tt;
-        std::function<void(int32_t)> on_post_tt;
+        std::function<void(int32_t)> on_alloc_tt_data = nullptr;
+        std::function<void(int32_t)> on_release_tt_data = nullptr;
+        std::function<void(int32_t)> on_show_tt = nullptr;
+        std::function<bool(int32_t)> on_pre_tt = nullptr;
+        std::function<void(int32_t)> on_post_tt = nullptr;
+    };
+
+    struct DndCallbacks
+    {
+        std::function<bool(int32_t)> on_dnd_allow = nullptr;
+        std::function<void(int32_t)> on_dnd_show = nullptr;
+        const char* dnd_id = nullptr;
     };
 
     // returns true if dirty
     // draw_boudnded_rect applicable only for expandable items
     bool draw_list(std::vector<PanelListItem>& items, PanelItemState& dirty_item, 
-        const TtCallbacks* tt_callbacks = nullptr);
+        const TtCallbacks* tt_callbacks = nullptr, const DndCallbacks* dnd_callbacks = nullptr);
 
 private:
     void go_tooltip(int32_t tt_index, const TtCallbacks* tt_callbacks);
