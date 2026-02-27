@@ -52,6 +52,7 @@ private:
     bool context_menu_handler();
     bool show_context_menu();
     bool show_canvas_menu();
+    bool show_canvas_nodes_menu();
     bool show_node_menu();
     bool show_group_menu();
     bool show_multinode_menu();
@@ -90,7 +91,7 @@ private:
     std::string m_context_menu_nodes_filter;
     fmt::memory_buffer m_fmt_buffer;
 
-    enum class MenuType { _none, Back, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink, SpawnNode };
+    enum class MenuType { _none, Back, BackDblClick, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink, SpawnNode };
     struct MenuObjects final
     {
         std::set<data::NodeInstance*> nodes;

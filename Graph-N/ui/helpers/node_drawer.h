@@ -50,7 +50,7 @@ public:
     data::PinInstance* get_ml_widget_active() const;
 
     ImVec2 get_mouse_pos() const;
-    bool get_bg_menu_active() const;
+    bool get_bg_menu_active(bool& rclick, bool& dbl_click) const;
 
     data::PinInstance* get_hovered_pin() const;
     data::NodeInstance* get_hovered_node() const;

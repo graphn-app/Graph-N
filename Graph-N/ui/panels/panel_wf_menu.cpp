@@ -12,11 +12,12 @@ namespace ui
 
 bool PanelWorkflow::context_menu_handler()
 {
-    if (m_drawer.get_bg_menu_active())
+    bool rclick = false, dbl_click = false;
+    if (m_drawer.get_bg_menu_active(rclick, dbl_click))
     {
         m_handle_context_menu = true;
         m_menu_objs = {};
-        m_context_menu_type = MenuType::Back;
+        m_context_menu_type = rclick ? MenuType::Back : (dbl_click ? MenuType::BackDblClick : MenuType::_none);
         m_menu_objs.click_pos = m_drawer.get_mouse_pos();
         Log("Bg menu initiated");
         return true;
@@ -139,6 +140,9 @@ bool PanelWorkflow::show_context_menu()
         case MenuType::Back:
             close = show_canvas_menu();
             break;
+        case MenuType::BackDblClick:
+            close = show_canvas_nodes_menu();
+            break;
         case MenuType::Group:
             close = show_group_menu();
             break;
@@ -241,6 +245,18 @@ bool PanelWorkflow::show_canvas_menu()
     {
         restore_pos();
         close = true;
+    }
+    return close;
+}
+
+bool PanelWorkflow::show_canvas_nodes_menu()
+{
+    bool close = false;
+    auto node = show_nodes_menu("", "");
+    if (node != nullptr)
+    {
+        close = true;
+        add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
     }
     return close;
 }

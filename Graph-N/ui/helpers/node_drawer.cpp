@@ -1295,9 +1295,14 @@ bool NodeDrawer::handle_node_resize()
     return m_now_resizing != -1;
 }
 
-bool NodeDrawer::get_bg_menu_active() const
+bool NodeDrawer::get_bg_menu_active(bool& rclick, bool& dbl_click) const
 {
-    return ed::ShowBackgroundContextMenu();
+    rclick = dbl_click = false;
+    if (ed::ShowBackgroundContextMenu())
+        rclick = true;
+    else if (ed::IsBackgroundDoubleClicked())
+        dbl_click = true;
+    return (rclick || dbl_click);
 }
 
 ImVec2 NodeDrawer::get_mouse_pos() const
