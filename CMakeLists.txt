@@ -386,7 +386,7 @@ list(APPEND TEST_SOURCES ${TEST_ONLY_SOURCES})
 # exclude entry.cpp
 list(REMOVE_ITEM TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N/entry.cpp")
 
-file(GLOB_RECURSE WIN32_MAIN_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N/platform/win32/*.cpp")
+file(GLOB_RECURSE WIN32_MAIN_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N/*.cpp")
 list(REMOVE_ITEM TEST_SOURCES ${WIN32_MAIN_SOURCES})
 
 set(ALL_TEST_FILES ${TEST_ONLY_SOURCES} ${TEST_SOURCES} ${GRAPHN_HEADERS})
@@ -398,31 +398,40 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/tests" PREFIX "Test Files" FILES 
 add_executable(UnitTests ${ALL_TEST_FILES})
 
 target_include_directories(UnitTests SYSTEM PRIVATE
-    "Graph-N"
+	"Graph-N"
     "nlohmann/include"
     "stb"
     "cpp-httplib"
+	"${BOOST_ROOT}"
     "${CMAKE_CURRENT_SOURCE_DIR}/SQLiteCpp/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/sqlite"
     "${NODE_EDITOR_DIR}"
     "${IMGUI_DIR}" 
     "${IMGUI_DIR}/backends"
+	"googletest/googletest/include"
 )
 
 target_precompile_headers(UnitTests PRIVATE "Graph-N/pch.h")
 
 target_compile_definitions(UnitTests PRIVATE 
     _CRT_SECURE_NO_WARNINGS
-	IMGUI_DEFINE_MATH_OPERATORS
+    _CRT_NON_CONFORMING_SWPRINTFS
+    IMGUI_USE_WCHAR32
+	BOOST_ASIO_NO_LIB
+	_WIN32_WINNT=0x0A00
+	WIN32_LEAN_AND_MEAN
+	NOMINMAX
 )
 
 # do not link imgui and DX11
 target_link_libraries(UnitTests PRIVATE 
-    GTest::gtest_main
-    SQLiteCpp
-    sqlite3
 	ImGuiLib
 	NodeEditorLib
+	SQLiteCpp
+	sqlite3
+	fmt::fmt
+	Shell32
+	wbemuuid
 )
 
 if(WIN32)
