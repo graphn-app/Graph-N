@@ -3,7 +3,6 @@
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/history_manager.h"
-#include "core/workflow/workflow.h"
 #include "core/workflow/link.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/node_instance.h"
@@ -49,28 +48,18 @@ void WfsManager::free()
     m_labels.clear();
 }
 
-WfInfo WfsManager::get_info(const data::Workflow* wf) const
-{
-    auto& data = wf->get_data();
-    WfInfo info;
-    info.id = data.id;
-    info.uuid = data.uuid;
-    info.name = data.name;
-    return info;
-}
-
-WfInfo WfsManager::create(bool skip_name, bool skip_db)
+const WfData& WfsManager::create(bool skip_name, bool skip_db)
 {
     WfData data;
     if (!skip_name)
         data.name = "Workflow " + std::to_string(++m_wf_name_counter);
     auto wf = create(std::move(data), !skip_db);
-    return get_info(wf);
+    return wf->get_data();
 }
 
-WfInfo WfsManager::create_copy(wid source)
+const WfData& WfsManager::create_copy(wid source)
 {
-    auto src_wf = find(source);
+    auto src_wf = access(source);
     
     WfData data;
     data.name = src_wf->get_data().name + " (copy)";
@@ -85,7 +74,7 @@ WfInfo WfsManager::create_copy(wid source)
     copy_end(wf->get_id(), ImVec2(0, 0));
     copy_begin(0, {});
 
-    return get_info(wf);
+    return wf->get_data();
 }
 
 data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db)
@@ -105,11 +94,6 @@ data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db)
 }
 
 data::Workflow* WfsManager::access(wid id) const
-{
-    return find(id);
-}
-
-data::Workflow* WfsManager::find(wid id) const
 {
     const auto search_rw = [this, id]() -> data::Workflow*
     {
@@ -138,11 +122,6 @@ data::Workflow* WfsManager::find(wid id) const
     return wf;
 }
 
-WfData& WfsManager::find_data(wid id) const
-{
-    return find(id)->get_data();
-}
-
 void WfsManager::set_active(wid id)
 {
     if (0 == id)
@@ -152,7 +131,7 @@ void WfsManager::set_active(wid id)
     }
     else
     {
-        auto& data = find_data(id);
+        auto& data = access(id)->get_data();
         g::pOptsManager->wf_active_save(data.uuid);
         m_active = data.id;
     }    
@@ -178,64 +157,46 @@ void WfsManager::set_read_only(wid id)
 
 void WfsManager::update_name(wid id, const std::string& name)
 {
-    auto& data = find_data(id);
+    auto& data = get_data(id);
     data.name = name;
     g::pDbManager->wf_update_meta(data);
     Log("Wf id=" << id << " n=" << name);
 }
 
-void WfsManager::update_history(wid id, uint32_t history_pos, uint32_t history_steps)
+namespace
 {
-    auto& data = find_data(id);
-    data.history_steps = history_steps;
-    data.history_pos = history_pos;
-    g::pDbManager->wf_update_meta(data);
-    Log("Wf id=" << id << " hp=" << history_pos << ", hs=" << history_steps);
-}
-
-void WfsManager::update_json(wid id, std::string&& json)
+std::vector<WfData*> filter_wfs(const std::map<wid, std::unique_ptr<data::Workflow>>& wfs, const std::function<bool(const WfData&)>& filter)
 {
-    Log("Wf id=" << id << " json upd sz=" << json.size());
-    auto& data = find_data(id);
-    std::swap(data.json, json);
-    g::pDbManager->wf_update_json(data);
-}
-
-const std::string& WfsManager::get_json(wid id)
-{
-    auto& data = find_data(id);
-    if (data.json.empty())
-        g::pDbManager->wf_load_json(data);
-    return data.json;
-}
-
-std::vector<WfInfo> WfsManager::get_infos(bool deleted) const
-{
-    std::vector<WfInfo> ret;
-    ret.reserve(m_wfs.size());
-    for (auto& wf : m_wfs)
+    std::vector<WfData*> ret;
+    for (auto& [id, wf] : wfs)
     {
-        auto& data = wf.second->get_data();
-        if (data.deleted && deleted || !data.deleted && !deleted)
-            ret.push_back(get_info(wf.second.get()));
+        auto& data = wf->get_data();
+        if (filter(data))
+            ret.push_back(&data);
     }
     return ret;
 }
-
-std::vector<WfInfo> WfsManager::get_wfs() const
-{
-    return get_infos(false);
 }
 
-std::vector<WfInfo> WfsManager::get_deleted() const
+std::vector<WfData*> WfsManager::get_wfs() const
 {
-    return get_infos(true);
+    return filter_wfs(m_wfs, [](const WfData&) { return true; });
+}
+
+std::vector<WfData*> WfsManager::get_undeleted() const
+{
+    return filter_wfs(m_wfs, [](const WfData& data) { return !data.pending_delete; });
+}
+
+std::vector<WfData*> WfsManager::get_deleted() const
+{
+    return filter_wfs(m_wfs, [](const WfData& data) { return data.pending_delete; });
 }
 
 void WfsManager::delete_wf(wid id)
 {
-    auto& data = find_data(id);
-    data.deleted = true;
+    auto& data = get_data(id);
+    data.pending_delete = true;
     g::pDbManager->wf_update_meta(data);
     set_wf_labels(id, {});
     Log("Wf id=" << id << " deleted");
@@ -243,16 +204,16 @@ void WfsManager::delete_wf(wid id)
 
 void WfsManager::undelete_wf(wid id)
 {
-    auto& data = find_data(id);
-    data.deleted = false;
+    auto& data = get_data(id);
+    data.pending_delete = false;
     g::pDbManager->wf_update_meta(data);
     Log("Wf id=" << id << " restored");
 }
 
 bool WfsManager::is_deleted(wid id) const
 {
-    auto& data = find_data(id);
-    return data.deleted;
+    auto& data = get_data(id);
+    return data.pending_delete;
 }
 
 void WfsManager::init_labels()
@@ -560,8 +521,8 @@ void WfsManager::copy_end(wid dest, std::optional<ImVec2> dest_point)
         dest_pt = dest_point.value();
 
 
-    auto src_wf = find(m_copy_src);
-    auto dest_wf = find(dest);
+    auto src_wf = access(m_copy_src);
+    auto dest_wf = access(dest);
 
     g::pHistoryManager->multi_action_begin(dest, "Paste");
 

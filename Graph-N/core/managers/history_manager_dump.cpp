@@ -193,6 +193,7 @@ blob::Writer& HistoryManager::serialize(blob::Writer& writer, wid wf_id) const
         writer.push(act.id);
         writer.push(act.name);
         writer.push(act.multi_action_counter);
+        writer.push(std::string(""));
         writer.push(cast::to_u32(act.steps.size()));
 
         for (const auto& step : act.steps)
@@ -261,6 +262,7 @@ bool HistoryManager::deserialize(blob::Reader& reader)
                 HistoryAction act(wf_reader.pop_i64(), wf_id);
                 act.name = wf_reader.pop_string();
                 act.multi_action_counter = wf_reader.pop_i32();
+                wf_reader.pop_string();
 
                 const uint32_t steps_count = wf_reader.pop_u32();
                 for (uint32_t k = 0; k < steps_count; ++k)

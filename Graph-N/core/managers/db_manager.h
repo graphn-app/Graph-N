@@ -1,6 +1,7 @@
 
 #pragma once
 #include "core/managers/manager.h"
+#include "tools/blob_serializer.h"
 
 namespace mngr
 {
@@ -38,14 +39,14 @@ public:
     std::vector<std::pair<hid, DbValue>> item_option_load_all(DbItemOptionType type);
 
     std::vector<WfData> wf_load_meta_and_purge();
-    void wf_load_json(WfData& wf);
     void wf_update_meta(const WfData& wf);
-    void wf_update_json(WfData& wf);    // wf.json will be moved out
+    void wf_load_blob(const std::string& uuid, blob::Blob& blob, bool& load_saved);
+    void wf_update_blob(const std::string& uuid, blob::Blob&& blob, bool draft);
 
 private:
     enum class WriteType
     {
-        Exception, AppOption, Item, WfMeta, WfJson, WfPurge
+        Exception, AppOption, Item, WfMeta, WfBlob, WfPurge
     };
     struct ExcepData final
     {
@@ -60,10 +61,16 @@ private:
         DbItemOptionType type;
         DbValue value;
     };
+    struct WfBlob
+    {
+        std::string uuid;
+        blob::Blob blob;
+        bool draft;
+    };
     struct WriteData final
     {
         WriteType type;
-        std::variant<ExcepData, DbAppOptionData, ItemData, WfData> data;
+        std::variant<ExcepData, DbAppOptionData, ItemData, WfData, WfBlob> data;
     };
 
 private:
@@ -74,8 +81,8 @@ private:
     void write_data(SQLite::Database& db, const ItemData* data);
     void delete_data(SQLite::Database& db, const ItemData* data);
     void write_wf_meta(SQLite::Database& db, const WfData* data);
-    void write_wf_json(SQLite::Database& db, const WfData* data);
-    void delete_wf_json(SQLite::Database& db, const WfData* data);
+    void write_wf_blob(SQLite::Database& db, const WfBlob* data);
+    void delete_wf_draft(SQLite::Database& db, const WfBlob* data);
     void purge_wf(SQLite::Database& db);
 
 private:

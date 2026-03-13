@@ -1,6 +1,7 @@
 
 #include "core/managers/db_manager.h"
 #include "core/base/version.h"
+#include "tools/blob_serializer.h"
 
 namespace mngr
 {
@@ -16,13 +17,11 @@ inline constexpr auto gdb_val_hash = "hash";
 inline constexpr auto gdb_val_int = "value_int";
 inline constexpr auto gdb_val_str = "value_str";
 inline constexpr auto gdb_val_opt = "option";
-inline constexpr auto gdb_val_json = "json";
 inline constexpr auto gdb_val_uuid = "uuid";
 inline constexpr auto gdb_val_type = "type";
-inline constexpr auto gdb_val_history_steps = "history_steps";
-inline constexpr auto gdb_val_history_pos = "history_pos";
-inline constexpr auto gdb_val_deleted = "deleted";
-inline constexpr auto gdb_val_keep = "keep";
+inline constexpr auto gdb_val_pending_delete = "pending_delete";
+inline constexpr auto gdb_val_saved = "saved";
+inline constexpr auto gdb_val_draft = "draft";
 
 inline constexpr auto gdb_valname_app_ver = "app_ver";
 inline constexpr auto gdb_valname_last_run = "last_run";
@@ -31,8 +30,7 @@ inline constexpr auto gdb_tbl_meta = "METADATA";
 inline constexpr auto gdb_tbl_err = "ERRORS";
 inline constexpr auto gdb_tbl_opt = "SETTINGS";
 inline constexpr auto gdb_tbl_items = "ITEMPROPS";
-inline constexpr auto gdb_tbl_wf_meta = "WORKFLOW_META";
-inline constexpr auto gdb_tbl_wf_json = "WORKFLOW_JSON";
+inline constexpr auto gdb_tbl_wfs = "WORKFLOWS";
 
 /*
 _______________________________________________________________________________________________________________________________________________________________
@@ -72,21 +70,13 @@ ________________________________________________________________________________
 
 
 _______________________________________________________________________________________________________________________________________________________________________
-WORKFLOW_META: | id        | uuid          | name            | deleted | keep             | history_steps  | history_pos        | at
+WORKFLOW_META: | id        | uuid          | name            | pending_delete | saved          | draft          | at
 _______________|--------------------------------------------------------------------------------------------------------------------------------------------------------
-               | int       | str           | str             | int     | int              | int            | int                | datetime
+               | int       | str           | str             | int            | blob           | blob           | datetime
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-               | prim      | WF id as uuid | name (caption)  | flag    | force not delete | history length | curr history pos   | create/update time
+               | prim      | WF id as uuid | name (caption)  | flag to purge  | approved state | autosaved copy | create/update time
 _______________________________________________________________________________________________________________________________________________________________________
 
-
-_________________________________________________________________________________________________________________________________________________________
-WORKFLOW_JSON: | id        | uuid          | json            | at
-_______________|--------------------------------------------------------------------------------------------------------------------------------------------------------
-               | int       | str           | str             | datetime
------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-               | prim      | WF id as uuid | workflow json   | create/update time
-_______________________________________________________________________________________________________________________________________________________________________
 */
 
 #define LOG_VALUE(v)                   "(" << v.ival << ", " << v.sval << ")"
@@ -259,24 +249,12 @@ bool DbManager::init()
 						{} TEXT NOT NULL UNIQUE,
 						{} TEXT,
 						{} INTEGER,
-						{} INTEGER,
-						{} INTEGER,
-						{} INTEGER,
+						{} BLOB,
+						{} BLOB,
                         {} DATETIME DEFAULT CURRENT_TIMESTAMP
 					);
-			   )"), gdb_tbl_wf_meta, gdb_val_id,
-                    gdb_val_uuid, gdb_val_name, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep,
-                    gdb_val_when));
-
-        m_db->exec(fmt::format(FMT_COMPILE(R"(
-					CREATE TABLE IF NOT EXISTS {} (
-						{} INTEGER PRIMARY KEY AUTOINCREMENT,
-						{} TEXT NOT NULL UNIQUE,
-						{} TEXT,
-                        {} DATETIME DEFAULT CURRENT_TIMESTAMP
-					);
-			   )"), gdb_tbl_wf_json, gdb_val_id,
-                    gdb_val_uuid, gdb_val_json,
+			   )"), gdb_tbl_wfs, gdb_val_id,
+                    gdb_val_uuid, gdb_val_name, gdb_val_pending_delete, gdb_val_saved, gdb_val_draft,
                     gdb_val_when));
 
         transaction.commit();
@@ -517,31 +495,26 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
     {
         SQLite::Statement query(*m_db,
             fmt::format(FMT_COMPILE(R"(
-                    SELECT {}, {}, {}, {}, {}, {}, {}
-                    FROM {}
-                    WHERE {} = 0 AND ({} > 0 OR {} = 0 AND {} = 1)
-                )"),
-                gdb_val_uuid, gdb_val_name, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep, gdb_val_when,
-                gdb_tbl_wf_meta,
-                gdb_val_deleted, gdb_val_history_steps, gdb_val_history_steps, gdb_val_keep));
+                        SELECT {}, {}, LENGTH({}), LENGTH({})
+                        FROM {}
+                        WHERE {} = 0
+                    )"),
+                gdb_val_uuid, gdb_val_name, gdb_val_saved, gdb_val_draft,
+                gdb_tbl_wfs,
+                gdb_val_pending_delete));
 
-        while(query.executeStep())
+        while (query.executeStep())
         {
             if (query.getColumn(0).isNull())
                 continue;
-            
+
             WfData wfd;
             wfd.uuid = query.getColumn(0).getString();
             wfd.name = query.getColumn(1).getString();
-            wfd.history_steps = query.getColumn(3).getInt();
-            wfd.history_pos = query.getColumn(4).getInt();
-            wfd.deleted = query.getColumn(5).getInt() == 1;
-            wfd.keep = query.getColumn(6).getInt() == 1;
-            wfd.created_at = query.getColumn(7).getString();
-            wfd.saved_at = query.getColumn(8).getString();
+            wfd.saved_size = query.getColumn(2).getInt();
+            wfd.draft_size = query.getColumn(3).getInt();
 
-            Log("Workflow loaded: " << wfd.name << "###" << wfd.uuid << ", hs=" << wfd.history_steps
-                << ", hp=" << wfd.history_pos << ", d=" << wfd.deleted << ", ct=" << wfd.created_at << ", st=" << wfd.saved_at);
+            Log("Workflow loaded: " << wfd.name << "###" << wfd.uuid);
             wfs.push_back(wfd);
         }
 
@@ -558,7 +531,7 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
     {
         std::lock_guard<std::mutex> lock(m_lock);
         if (!m_transaction_flag)
-            m_write_queue.push(data);
+            m_write_queue.push(std::move(data));
         else
             m_transaction_queue.push_back(std::move(data));
     }
@@ -568,7 +541,7 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
     return wfs;
 }
 
-void DbManager::wf_load_json(WfData& wf)
+void DbManager::wf_load_blob(const std::string& uuid, blob::Blob& blob, bool& load_saved)
 {
     try
     {
@@ -578,37 +551,42 @@ void DbManager::wf_load_json(WfData& wf)
                     FROM {}
                     WHERE {} = ?
                 )"),
-                gdb_val_json,
-                gdb_tbl_wf_json,
+                gdb_val_saved, gdb_val_draft,
+                gdb_tbl_wfs,
                 gdb_val_uuid));
 
-        query.bindNoCopy(1, wf.uuid);
+        query.bindNoCopy(1, uuid);
         if (!query.executeStep())
             return;
-        if (query.getColumn(0).isNull())
+        if (query.getColumn(0).isNull() && query.getColumn(1).isNull())
+        {
+            load_saved = true;
             return;
-        wf.json = query.getColumn(0).getString();
-        Log("Workflow loaded: " << wf.name << "###" << wf.uuid << ", j=" << wf.json.size());
+        }
+
+        auto saved_len = query.getColumn(0).getBytes();
+        auto draft_len = query.getColumn(1).getBytes();
+
+        if (!load_saved && 0 == draft_len)
+            load_saved = true;
+        if (load_saved && 0 == saved_len)
+            return;
+
+        const void* ptr = query.getColumn(load_saved ? 0 : 1).getBlob();
+        blob = blob::Blob(ptr, load_saved ? saved_len : draft_len);
+        Log("Workflow loaded: " << uuid << ", b=" << (load_saved ? saved_len : draft_len) << " bytes, loaded " << (load_saved ? "saved" : "draft") << " copy");
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite load json workflow " << wf.name << "###" << wf.uuid << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite load blob workflow " << uuid << ", " << LOG_EXP(ex));
     }
 }
 
 void DbManager::wf_update_meta(const WfData& wf)
 {
     WriteData data;
-    WfData w;
-    w.name = wf.name;
-    w.uuid = wf.uuid;
-    w.history_pos = wf.history_pos;
-    w.history_steps = wf.history_steps;
-    w.deleted = wf.deleted;
-    w.keep = wf.keep;
-
     data.type = WriteType::WfMeta;
-    data.data = std::move(w);
+    data.data = wf;
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
@@ -621,14 +599,16 @@ void DbManager::wf_update_meta(const WfData& wf)
         m_cv.notify_all();
 }
 
-void DbManager::wf_update_json(WfData& wf)
+void DbManager::wf_update_blob(const std::string& uuid, blob::Blob&& blob, bool draft)
 {
-    WriteData data;
-    WfData w;
-    std::swap(w.json, wf.json);
+    WfBlob wf;
+    wf.uuid = uuid;
+    wf.draft = draft;
+    wf.blob = std::move(blob);
 
-    data.type = WriteType::WfJson;
-    data.data = std::move(w);
+    WriteData data;
+    data.data = std::move(wf);
+    data.type = WriteType::WfBlob;
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
@@ -797,22 +777,23 @@ void DbManager::write_wf_meta(SQLite::Database& db, const WfData* data)
     {
         SQLite::Statement query(db,
             fmt::format(FMT_COMPILE(R"(
-                        REPLACE INTO {}
-                               ({}, {}, {}, {}, {}, {})
-                        VALUES (?,  ?,  ?,  ?,  ?,  ?)
+                        INSERT INTO {}
+                               ({}, {}, {})
+                        VALUES (?,  ?,  ?)
+                        ON CONFLICT({}) DO UPDATE SET
+                        {} = excluded.{}, {} = excluded.{}
                 )"),
-                gdb_tbl_wf_meta,
-                gdb_val_uuid, gdb_val_name, gdb_val_history_steps, gdb_val_history_pos, gdb_val_deleted, gdb_val_keep
+                gdb_tbl_wfs,
+                gdb_val_uuid, gdb_val_name, gdb_val_pending_delete,
+                gdb_val_uuid,
+                gdb_val_name, gdb_val_name, gdb_val_pending_delete, gdb_val_pending_delete
             ));
 
         query.bindNoCopy(1, data->uuid);
         query.bindNoCopy(2, data->name);
-        query.bind(3, data->history_steps);
-        query.bind(4, data->history_pos);
-        query.bind(5, data->deleted);
-        query.bind(6, data->keep);
+        query.bind(3, data->pending_delete);
         query.exec();
-        Log("Workflow meta upd: '" << data->name << "', uuid=" << data->uuid << ", hs=" << data->history_steps << ", hp=" << data->history_pos << ", d=" << data->deleted);
+        Log("Workflow meta upd: '" << data->name << "', uuid=" << data->uuid << ", dl=" << data->pending_delete);
     }
     catch (const SQLite::Exception& ex)
     {
@@ -820,51 +801,55 @@ void DbManager::write_wf_meta(SQLite::Database& db, const WfData* data)
     }
 }
 
-void DbManager::write_wf_json(SQLite::Database& db, const WfData* data)
+void DbManager::write_wf_blob(SQLite::Database& db, const WfBlob* data)
 {
     try
     {
         SQLite::Statement query(db,
             fmt::format(FMT_COMPILE(R"(
-                    REPLACE INTO {}
-                               ({})
-                        VALUES (?)
-                )"),
-                gdb_tbl_wf_json,
-                gdb_val_json
-            ));
-
-        query.bindNoCopy(1, data->uuid);
-        query.bindNoCopy(2, data->json);
-        query.exec();
-        Log("Workflow json upd: " << data->name << "###" << data->uuid << ", j=" << data->json.size());
-    }
-    catch (const SQLite::Exception& ex)
-    {
-        LogExcep(ExcepCategory::SQLite, "SQLite upd json workflow " << data->name << "###" << data->uuid << ", " << LOG_EXP(ex));
-    }
-}
-
-void DbManager::delete_wf_json(SQLite::Database& db, const WfData* data)
-{
-    try
-    {
-        SQLite::Statement query(db,
-            fmt::format(FMT_COMPILE(R"(
-                    DELETE FROM {}
+                        UPDATE {}
+                        SET {} = ?
                         WHERE {} = ?
                 )"),
-                gdb_tbl_wf_json,
+                gdb_tbl_wfs,
+                (data->draft ? gdb_val_draft : gdb_val_saved),
                 gdb_val_uuid
             ));
 
-        query.bindNoCopy(1, data->uuid);
+        query.bindNoCopy(1, cast::to_void(data->blob->data()), cast::to_i32(data->blob->size()));
+        query.bindNoCopy(2, data->uuid);
         query.exec();
-        Log("Workflow json del: " << data->name << "###" << data->uuid << ", j=" << data->json.size());
+        Log("Workflow blob upd: " << data->uuid << ", bl=" << data->blob->size() << " bytes");
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite upd json workflow " << data->name << "###" << data->uuid << ", " << LOG_EXP(ex));
+        LogExcep(ExcepCategory::SQLite, "SQLite upd blob workflow " << data->uuid << ", " << LOG_EXP(ex));
+    }
+}
+
+void DbManager::delete_wf_draft(SQLite::Database& db, const WfBlob* data)
+{
+    try
+    {
+        SQLite::Statement query(db,
+            fmt::format(FMT_COMPILE(R"(
+                        UPDATE {}
+                        SET {} = ?
+                        WHERE {} = ?
+                )"),
+                gdb_tbl_wfs,
+                gdb_val_draft,
+                gdb_val_uuid
+            ));
+
+        query.bind(1);
+        query.bindNoCopy(2, data->uuid);
+        query.exec();
+        Log("Workflow draft blob clear: " << data->uuid << ", bl=" << data->blob->size() << " bytes");
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::SQLite, "SQLite clear draft blob, wf=" << data->uuid << ", " << LOG_EXP(ex));
     }
 }
 
@@ -875,30 +860,15 @@ void DbManager::purge_wf(SQLite::Database& db)
         SQLite::Statement query1(db,
             fmt::format(FMT_COMPILE(R"(
                     DELETE FROM {}
-                    WHERE {} IN (
-                        SELECT {} FROM {}
-                        WHERE {} = 1 OR {} = 0 AND {} = 0
-                    )
+                    WHERE {} = 1
                 )"),
-                gdb_tbl_wf_json,
-                gdb_val_uuid,
-                gdb_val_uuid,
-                gdb_tbl_wf_meta,
-                gdb_val_deleted, gdb_val_history_steps, gdb_val_keep));
+                gdb_tbl_wfs,
+                gdb_val_pending_delete
+            ));
 
-        const auto num1 = query1.exec();
+        const auto num = query1.exec();
 
-        SQLite::Statement query2(db,
-            fmt::format(FMT_COMPILE(R"(
-                    DELETE FROM {}
-                        WHERE {} = 1 OR {} = 0 AND {} = 0
-                )"),
-                gdb_tbl_wf_meta,
-                gdb_val_deleted, gdb_val_history_steps, gdb_val_keep));
-
-        const auto num2 = query2.exec();
-
-        Log("Purged WFs: " << num1 << " jsons and " << num2 << " metas");
+        Log("Purged WFs: " << num);
     }
     catch (const SQLite::Exception& ex)
     {
@@ -958,13 +928,12 @@ void DbManager::write_thread(std::filesystem::path db_path)
                 case WriteType::WfMeta:
                     write_wf_meta(db, std::get_if<WfData>(&data.data));
                     break;
-                case WriteType::WfJson:
+                case WriteType::WfBlob:
                     {
-                        auto wf_data = std::get_if<WfData>(&data.data);
-                        if (wf_data->json.empty())
-                            delete_wf_json(db, wf_data);
-                        else
-                            write_wf_json(db, wf_data);
+                        auto wf_data = std::get_if<WfBlob>(&data.data);
+                        write_wf_blob(db, wf_data);
+                        if (!wf_data->draft)
+                            delete_wf_draft(db, wf_data);
                     }
                     break;
                 case WriteType::WfPurge:

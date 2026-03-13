@@ -1,11 +1,11 @@
 
 #pragma once
 #include "core/managers/manager.h"
+#include "core/workflow/workflow.h"
 #include "core/data/node.h"
 
 namespace data
 {
-class Workflow;
 class NodeInstance;
 }
 
@@ -22,29 +22,24 @@ public:
     void free() override;
     void stop_all_threads() override;
 
-    WfInfo create(bool skip_name, bool skip_db);
-    WfInfo create_copy(wid source);
+    const WfData& create(bool skip_name, bool skip_db);
+    const WfData& create_copy(wid source);
 
     data::Workflow* access(wid id) const;
-
-    inline void cleanup(wid id) const { find_data(id).json.clear(); }
 
     inline wid get_active() const { return m_active; }
     void set_active(wid id);
 
     void set_read_only(wid id);
 
-    inline WfInfo get_info(wid id) const { return get_info(find(id)); }
-    inline WfData& get_data(wid id) const { return find_data(id); }
+    inline const WfData& get_data(wid id) const { return access(id)->get_data(); }
+    inline WfData& get_data(wid id) { return access(id)->get_data(); }
 
     void update_name(wid id, const std::string& name);
-    void update_history(wid id, uint32_t history_pos, uint32_t history_steps);
 
-    void update_json(wid id, std::string&& json);
-    const std::string& get_json(wid id);
-
-    std::vector<WfInfo> get_wfs() const;
-    std::vector<WfInfo> get_deleted() const;
+    std::vector<WfData*> get_wfs() const;
+    std::vector<WfData*> get_undeleted() const;
+    std::vector<WfData*> get_deleted() const;
 
     void delete_wf(wid id);
     void undelete_wf(wid id);
@@ -68,10 +63,6 @@ public:
 
 private:
     data::Workflow* create(WfData&& data, bool dump_to_db);
-    data::Workflow* find(wid id) const;
-    WfData& find_data(wid id) const;
-    WfInfo get_info(const data::Workflow* wf) const;
-    std::vector<WfInfo> get_infos(bool deleted) const;
     void init_labels();
     void save_labels() const;
     void sort_wfs(std::list<wid>& wfs);

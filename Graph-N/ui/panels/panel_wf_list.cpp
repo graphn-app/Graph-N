@@ -240,9 +240,9 @@ void PanelWfList::show_wfs()
 
 void PanelWfList::rebuild_items()
 {
-    const auto sort_callback = [](const WfInfo& left, const WfInfo& right)
+    const auto sort_callback = [](const WfData* left, const WfData* right)
     {
-        return tools::str::to_lower_ascii(left.name) < tools::str::to_lower_ascii(right.name);
+        return tools::str::to_lower_ascii(left->name) < tools::str::to_lower_ascii(right->name);
     };
 
     if (m_labels_mode)
@@ -262,7 +262,7 @@ void PanelWfList::rebuild_items()
 
     LogF;
 
-    m_wfs = g::pWfsManager->get_wfs();
+    m_wfs = g::pWfsManager->get_undeleted();
     std::sort(m_wfs.begin(), m_wfs.end(), sort_callback);
 
     struct WfLabelState : public PanelListItem::State
@@ -356,8 +356,8 @@ void PanelWfList::rebuild_items()
     {
         for (auto& wf : wfs)
         {
-            if (id == wf.id)
-                return wf.name;
+            if (id == wf->id)
+                return wf->name;
         }
         return std::string("");
     };
@@ -388,18 +388,18 @@ void PanelWfList::rebuild_items()
 
         if (label_expanded)
         {
-            for (auto& info : m_wfs)
+            for (auto wf_data : m_wfs)
             {
                 PanelListItem item;
                 item.depth = 1;
-                item.name = info.name;
+                item.name = wf_data->name;
                 item.icon = ICON_LC_TAG;
                 item.icon_tooltip = "Manage Project labels";
                 item.icon_can_click = true;
                 item.can_lclick = true;
-                item.selected = (info.id == m_active);
+                item.selected = (wf_data->id == m_active);
                 item.on_icon_handler = on_icon_handler;
-                item.ptr = cast::to_void(info.id);
+                item.ptr = cast::to_void(wf_data->id);
                 m_panel_items.push_back(std::move(item));
             }
         }
@@ -439,17 +439,17 @@ void PanelWfList::rebuild_items()
     }
     else
     {
-        for (auto& info : m_wfs)
+        for (auto wf_data : m_wfs)
         {
             PanelListItem item;
-            item.name = info.name;
+            item.name = wf_data->name;
             item.icon = ICON_LC_TAG;
             item.icon_tooltip = "Manage Project labels";
             item.icon_can_click = true;
             item.can_lclick = true;
-            item.selected = (info.id == m_active);
+            item.selected = (wf_data->id == m_active);
             item.on_icon_handler = on_icon_handler;
-            item.ptr = cast::to_void(info.id);
+            item.ptr = cast::to_void(wf_data->id);
             m_panel_items.push_back(std::move(item));
         }
     }
@@ -634,15 +634,15 @@ void PanelWfList::rebuild_trash()
     m_panel_items.clear();
     m_panel_items.reserve(m_wfs.size());
 
-    for (auto& info : m_wfs)
+    for (auto wf_data : m_wfs)
     {
         PanelListItem item;
-        item.name = info.name;
+        item.name = wf_data->name;
         item.icon = ICON_LC_UNDO_2;
         item.icon_tooltip = "Undelete Project";
         item.icon_can_click = true;
         item.can_lclick = true;
-        item.ptr = cast::to_void(info.id);
+        item.ptr = cast::to_void(wf_data->id);
         m_panel_items.push_back(std::move(item));
     }
 }

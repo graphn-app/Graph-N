@@ -189,7 +189,7 @@ private:
     // WF internal
     void init_workflow_panels();
     PanelWorkflow* find_wf_panel(wid id) const;
-    PanelWorkflow* create_wf_panel(const WfInfo& wf);
+    PanelWorkflow* create_wf_panel(const WfData& wf);
     void activate_wf_panel(PanelWorkflow* wf_panel);
     void close_wf_panel(PanelWorkflow* wf_panel);    
     void rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name);

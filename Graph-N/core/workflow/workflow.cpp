@@ -357,8 +357,6 @@ blob::Writer Workflow::serialize() const
     blob::Writer writer;
     blob::Block block(writer);
     writer
-        .push(m_wf_data.uuid)
-        .push(m_wf_data.name)
         .push(m_last_child_id)
     ;
     block.end();
@@ -382,16 +380,14 @@ blob::Writer Workflow::serialize() const
     return writer;
 }
 
-std::unique_ptr<Workflow> Workflow::deserialize(const blob::Blob& blob)
+std::unique_ptr<Workflow> Workflow::deserialize(const char* uuid, const char* name, const blob::Blob& blob)
 {
     try
     {
         blob::Reader wf_reader(blob);
         blob::Reader block = wf_reader.pop_block();
-        const auto uuid = block.pop_string();
-        const auto name = block.pop_string();
 
-        std::unique_ptr<Workflow> wf = std::make_unique<Workflow>(uuid.data(), name.data());
+        std::unique_ptr<Workflow> wf = std::make_unique<Workflow>(uuid, name);
         wf->m_last_child_id = block.pop_iid();
         wf->init();
 

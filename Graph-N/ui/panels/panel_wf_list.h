@@ -59,7 +59,7 @@ private:
 
 private:
     wid m_active = 0;
-    std::vector<WfInfo> m_wfs;
+    std::vector<WfData*> m_wfs;
     std::vector<PanelListItem> m_panel_items;
     bool m_deleted_mode = false;
     bool m_labels_mode = false;

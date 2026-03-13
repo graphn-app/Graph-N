@@ -70,7 +70,7 @@ public:
     void remove_link(const Link* link);
 
     blob::Writer serialize() const;
-    static std::unique_ptr<Workflow> deserialize(const blob::Blob& blob);
+    static std::unique_ptr<Workflow> deserialize(const char* uuid, const char* name, const blob::Blob& blob);
 
 private:
     void remove_pin(const PinInstance* pin);

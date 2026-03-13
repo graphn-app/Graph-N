@@ -314,28 +314,18 @@ struct DbAppOptionData final
 struct WfData final
 {
     std::string uuid;
-    wid id = 0;     // hash of 'uuid'
-
-    std::string name;
-    std::string json;
-
-    uint32_t history_pos = 0;
-    uint32_t history_steps = 0;
-
-    bool deleted = false;
-    bool keep = false;
-
-    std::string created_at;
-    std::string saved_at;
-
-    bool ro = false;
-};
-
-struct WfInfo final
-{
     wid id = 0;
-    std::string uuid;
     std::string name;
+    bool ro = false;
+
+    bool draft = true;
+    bool saved = true;
+    int32_t saved_pos = -1;
+
+    uint32_t saved_size = 0;
+    uint32_t draft_size = 0;
+
+    bool pending_delete = false;
 };
 
 struct PanelListItem final

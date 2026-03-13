@@ -765,8 +765,8 @@ void GraphN_Flow::wf_activate(wid id)
     auto panel = find_wf_panel(id);
     if (nullptr == panel && id != 0)
     {
-        auto info = g::pWfsManager->get_info(id);
-        panel = create_wf_panel(info);
+        auto& data = g::pWfsManager->get_data(id);
+        panel = create_wf_panel(data);
     }
     activate_wf_panel(panel);
 
@@ -778,8 +778,8 @@ void GraphN_Flow::wf_locate(wid id)
     auto panel = find_wf_panel(id);
     if (nullptr == panel)
     {
-        auto info = g::pWfsManager->get_info(id);
-        panel = create_wf_panel(info);
+        auto& data = g::pWfsManager->get_data(id);
+        panel = create_wf_panel(data);
     }
     wf_activate(id);
     panel->restore_pos();
@@ -851,8 +851,8 @@ void GraphN_Flow::init_workflow_panels()
         auto active = g::pWfsManager->get_active();
         if (active != 0)
         {
-            auto info = g::pWfsManager->get_info(active);
-            auto panel = create_wf_panel(info);
+            auto& data = g::pWfsManager->get_data(active);
+            auto panel = create_wf_panel(data);
             activate_wf_panel(panel);
             m_panel_wf_list->rebuild_items();
         }
@@ -869,7 +869,7 @@ PanelWorkflow* GraphN_Flow::find_wf_panel(wid id) const
     return nullptr;
 }
 
-PanelWorkflow* GraphN_Flow::create_wf_panel(const WfInfo& wf)
+PanelWorkflow* GraphN_Flow::create_wf_panel(const WfData& wf)
 {
     m_panels_wf.emplace_back(std::make_unique<ui::PanelWorkflow>(wf.id, wf.name, wf.uuid, m_main_dock_id));
     auto& panel_wf = m_panels_wf.back();
