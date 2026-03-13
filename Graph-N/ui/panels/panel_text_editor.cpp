@@ -4,6 +4,7 @@
 #include "core/data/pin.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
+#include "core/workflow/workflow_action.h"
 #include "core/managers/workflows_manager.h"
 
 namespace ui
@@ -40,12 +41,16 @@ void PanelTextEditor::stop_all_threads()
 void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint)
 {
     m_current = nullptr;
+    m_editing = nullptr;
+    m_was_edited = nullptr;
+
     for (auto& ed : m_editors)
     {
         if (ed.wf == wf && ed.node == node && ed.pin == pin)
         {
             ed.buffer = buffer;
             ed.hint = hint;
+            ed.action = g::pWfsManager->access(ed.wf)->action();
             m_current = &ed;
             break;
         }
@@ -59,6 +64,7 @@ void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance
         ed.pin = pin;
         ed.buffer = buffer;
         ed.hint = hint;
+        ed.action = g::pWfsManager->access(ed.wf)->action();
         m_editors.push_back(ed);
         m_current = &m_editors.back();
         test_names_changed();
@@ -83,6 +89,9 @@ void PanelTextEditor::test_names_changed()
 bool PanelTextEditor::activate(wid wf)
 {
     m_current = nullptr;
+    m_editing = nullptr;
+    m_was_edited = nullptr;
+
     for (auto& ed : m_editors)
     {
         if (ed.wf == wf)
@@ -98,6 +107,10 @@ bool PanelTextEditor::activate(wid wf)
 void PanelTextEditor::reset()
 {
     m_current = nullptr;
+    m_editing = nullptr;
+    m_was_edited = nullptr;
+    m_old_pin_val = {};
+
     m_editors.clear();
     m_pinned = false;
 }
@@ -112,6 +125,9 @@ void PanelTextEditor::reset(wid wf)
             {
                 m_pinned = false;
                 m_current = nullptr;
+                m_editing = nullptr;
+                m_was_edited = nullptr;
+                m_old_pin_val = {};
             }
             m_editors.erase(it);
             return;
@@ -129,6 +145,9 @@ void PanelTextEditor::reset(wid wf, data::NodeInstance* node)
             {
                 m_pinned = false;
                 m_current = nullptr;
+                m_editing = nullptr;
+                m_was_edited = nullptr;
+                m_old_pin_val = {};
             }
             m_editors.erase(it);
             return;
@@ -283,12 +302,36 @@ DlgCode PanelTextEditor::show(bool& focused)
                     m_need_focus = false;
                 }
                 ImGuiEx::InputTextMultilineWithHint("##TextEditorLabel", m_current->hint, m_current->buffer, ImVec2(-FLT_MIN, -FLT_MIN), ImGuiInputTextFlags_AllowTabInput);
+                handle_text_editing();
             }
             ImGui::EndChild();
             ImGui::PopID();
         }
     }
     return end_panel(opened);
+}
+
+void PanelTextEditor::handle_text_editing()
+{
+    if (ImGui::IsItemActivated())
+        m_old_pin_val = m_current->pin->state().value;
+
+    const bool active_now = ImGui::IsItemActive();
+
+    if (ImGui::IsItemEdited())
+        m_was_edited = m_current->pin;
+
+    if (m_editing == m_current->pin && !active_now)
+    {
+        if (m_was_edited == m_current->pin)
+        {
+            m_current->action->set_pin_val(m_current->pin, std::move(m_old_pin_val));
+            m_was_edited = nullptr;
+        }
+    }
+
+    if (active_now)
+        m_editing = m_current->pin;
 }
 
 } // namespace ui

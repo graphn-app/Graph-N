@@ -6,6 +6,7 @@ namespace data
 {
 class NodeInstance;
 class PinInstance;
+class WorkflowAction;
 }
 
 namespace ui
@@ -56,6 +57,8 @@ private:
     void on_pin(PanelToolbar::Element& el);
     void on_locate(PanelToolbar::Element& el);
 
+    void handle_text_editing();
+
 private:
     ImGuiID m_dock = 0;
     ImRect m_rect = {};
@@ -73,10 +76,14 @@ private:
         data::PinInstance* pin = nullptr;
         const char* hint = nullptr;
         std::string* buffer = nullptr;
-
+        data::WorkflowAction* action = nullptr;
     };
     Editor* m_current = nullptr;
     std::list<Editor> m_editors;
+
+    primitive m_old_pin_val;
+    data::PinInstance* m_editing = nullptr;
+    data::PinInstance* m_was_edited = nullptr;
 };
 
 

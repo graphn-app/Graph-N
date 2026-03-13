@@ -2,6 +2,7 @@
 #include "core/managers/workflows_manager.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
+#include "core/managers/history_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/link.h"
 #include "core/workflow/pin_instance.h"
@@ -561,6 +562,9 @@ void WfsManager::copy_end(wid dest, std::optional<ImVec2> dest_point)
 
     auto src_wf = find(m_copy_src);
     auto dest_wf = find(dest);
+
+    g::pHistoryManager->multi_action_begin(dest, "Paste");
+
     std::map<iid, data::NodeInstance*> curr_node_to_new_node;
 
     for (auto node : m_copied_nodes)
@@ -571,6 +575,8 @@ void WfsManager::copy_end(wid dest, std::optional<ImVec2> dest_point)
         new_node->m_rc.Min.y = node->m_rc.Min.y - src_pt.y;
         new_node->m_rc.Min.y = dest_pt.y + new_node->m_rc.Min.y;
         new_node->m_rc.Max = node->m_rc.Max;
+
+        g::pHistoryManager->push_node_action(new_node, HistoryActionType::NodeAdd);
 
         curr_node_to_new_node[node->get_instance_id()] = new_node;
     }
@@ -613,9 +619,12 @@ void WfsManager::copy_end(wid dest, std::optional<ImVec2> dest_point)
         }
         else
         {
-            data::Link::link(dest_in_pin, dest_out_pin);
+            auto new_link = data::Link::link(dest_in_pin, dest_out_pin);
+            g::pHistoryManager->push_link_action(new_link, HistoryActionType::LinkAdd);
         }
     }
+
+    g::pHistoryManager->multi_action_end(dest);
 
     g::pFlow->wf_rebuild(dest);
     Log("Copy " << m_copied_nodes.size() << " from " << m_copy_src << " to " << dest << " at " << dest_pt.x << "/" << dest_pt.y);

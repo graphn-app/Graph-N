@@ -3,8 +3,10 @@
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
+#include "core/workflow/workflow_action.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/nodes_manager.h"
+#include "core/managers/history_manager.h"
 #include "ui/graph-n_flow.h"
 
 namespace ui
@@ -199,30 +201,58 @@ bool PanelWorkflow::show_canvas_menu()
         if (node != nullptr)
         {
             close = true;
-            add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
+            m_action->add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
         }
         ImGui::EndMenu();
     }
     if (ImGui::MenuItem("Add group"))
     {
-        create_group(ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
+        m_action->add_group(ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
         close = true;
     }
     if (ImGui::MenuItem("Fit all"))
     {
+        m_action->multi_action_on("Fit");
         fit(m_menu_objs.groups);
+        m_action->multi_action_off();
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Undo")) // TODO
+
     {
-        close = true;
+        const char* undo = g::pHistoryManager->undo_name(m_wf->get_id());
+        if (undo != nullptr)
+        {
+            m_fmt_buffer.clear();
+            fmt::format_to(std::back_inserter(m_fmt_buffer), "Undo {}", undo);
+            m_fmt_buffer.push_back('\0');
+            undo = m_fmt_buffer.data();
+        }
+        if (ImGui::MenuItem(nullptr == undo ? "Undo" : undo, nullptr, nullptr, undo != nullptr))
+        {
+            m_drawer.clear_selection();
+            g::pHistoryManager->undo(m_wf->get_id());
+            close = true;
+        }
     }
-    if (ImGui::MenuItem("Redo")) // TODO
     {
-        close = true;
+        const char* redo = g::pHistoryManager->redo_name(m_wf->get_id());
+        if (redo != nullptr)
+        {
+            m_fmt_buffer.clear();
+            fmt::format_to(std::back_inserter(m_fmt_buffer), "Redo {}", redo);
+            m_fmt_buffer.push_back('\0');
+            redo = m_fmt_buffer.data();
+        }
+        if (ImGui::MenuItem(nullptr == redo ? "Redo" : redo, nullptr, nullptr, redo != nullptr))
+        {
+            m_drawer.clear_selection();
+            g::pHistoryManager->redo(m_wf->get_id());
+            close = true;
+        }
     }
     ImGui::Separator();
+
     if (ImGui::MenuItem("Paste", nullptr, nullptr, g::pWfsManager->copy_has_data()))
     {
         g::pWfsManager->copy_end(m_wf->get_id(), m_menu_objs.click_pos);
@@ -258,7 +288,7 @@ bool PanelWorkflow::show_canvas_nodes_menu()
     if (node != nullptr)
     {
         close = true;
-        add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
+        m_action->add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
     }
     return close;
 }
@@ -277,9 +307,7 @@ bool PanelWorkflow::show_node_menu()
     {
         if (ImGui::MenuItem("Reset node name"))
         {
-            node->set_name(node->get_name_original());
-            node->m_ignore_size_on_frame_end = true;
-            node->reset_width();
+            m_action->reset_node_name(node);
             close = true;
         }
     }
@@ -290,38 +318,34 @@ bool PanelWorkflow::show_node_menu()
     //}
     if (ImGui::MenuItem(node->pinned() ? "Unpin" : "Pin"))
     {
-        node->toggle_pinned();
-        m_drawer.pin_node(node->ed(), node->pinned());
+        m_action->set_node_pinning(node, !node->pinned());
         close = true;
     }
     if (ImGui::MenuItem("Group"))
     {
-        create_group(m_drawer.calc_group_rect(node->m_rc));
+        m_action->add_group(m_drawer.calc_group_rect(node->m_rc));
         close = true;
     }
     ImGui::Separator();
     if (ImGui::MenuItem("Always", nullptr, node->get_mode() == NodeMode::Always))
     {
-        node->set_mode(NodeMode::Always);
+        m_action->set_node_mode(node, NodeMode::Always);
         close = true;
     }
     if (ImGui::MenuItem("Bypass", nullptr, node->get_mode() == NodeMode::Bypass))
     {
-        node->set_mode(NodeMode::Bypass);
+        m_action->set_node_mode(node, NodeMode::Bypass);
         close = true;
     }
     if (ImGui::MenuItem("Mute", nullptr, node->get_mode() == NodeMode::Mute || node->get_mode() == NodeMode::OnTrigger || node->get_mode() == NodeMode::OnEvent))
     {
-        node->set_mode(NodeMode::Mute);
+        m_action->set_node_mode(node, NodeMode::Mute);
         close = true;
     }
     ImGui::Separator();
     if (ImGui::MenuItem("Remove"))
     {
-        g::pWfsManager->copy_del(node);
-        m_drawer.delete_node(node->ed());
-        node->ed().reset();
-        delete_node(node);
+        m_action->delete_node(node);
         close = true;
     }
     if (ImGui::MenuItem("Copy"))
@@ -351,12 +375,11 @@ bool PanelWorkflow::show_node_menu()
         {
             if (reset)
             {
-                node->reset_to_default_colors();
+                m_action->reset_node_color(node);
             }
             else
             {
-                node->m_clr_node.x = m_color_buff[0]; node->m_clr_node.y = m_color_buff[1]; node->m_clr_node.z = m_color_buff[2]; node->m_clr_node.w = m_color_buff[3];
-                node->set_node_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                m_action->set_node_color(node, ImGui::ColorConvertFloat4ToU32(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3])));
             }
         }
 
@@ -364,7 +387,6 @@ bool PanelWorkflow::show_node_menu()
     }
     else
         m_color_buff[0] = -1.0f;
-
 
     return close;
 }
@@ -384,7 +406,7 @@ bool PanelWorkflow::show_group_menu()
     {
         if (ImGui::MenuItem("Fit"))
         {
-            m_drawer.fit_group_rect(group, nodes);
+            m_action->set_group_rect(group, m_drawer.fit_group_rect(group, nodes));
             close = true;
         }
         if (ImGui::MenuItem("Select nodes"))
@@ -399,10 +421,7 @@ bool PanelWorkflow::show_group_menu()
     ImGui::Separator();
     if (ImGui::MenuItem(nodes.empty() ? "Remove" : "Remove group"))
     {
-        g::pWfsManager->copy_del(group);
-        m_drawer.delete_node(group->ed());
-        group->ed().reset();
-        delete_group(group);
+        m_action->delete_group(group);
         close = true;
     }
     if (!nodes.empty())
@@ -413,18 +432,13 @@ bool PanelWorkflow::show_group_menu()
 
         if (ImGui::MenuItem(m_fmt_buffer.data()))
         {
+            m_action->multi_action_on("Remove");
             for (auto node : nodes)
             {
-                g::pWfsManager->copy_del(node);
-                m_drawer.delete_node(node->ed());
-                node->ed().reset();
-                delete_node(node);
+                m_action->delete_node(node);
             }
-
-            g::pWfsManager->copy_del(group);
-            m_drawer.delete_node(group->ed());
-            group->ed().reset();
-            delete_group(group);
+            m_action->delete_group(group);
+            m_action->multi_action_off();
 
             close = true;
         }
@@ -447,28 +461,31 @@ bool PanelWorkflow::show_group_menu()
         bool reset = false;
         if (show_colors_menu(close, reset, for_all, ImGui::ColorConvertU32ToFloat4(group->m_clr_group)))
         {
+            m_action->multi_action_on("Set color");
             if (reset)
             {
-                group->reset_to_default_colors();
+                m_action->reset_node_color(group);
                 if (for_all)
                 {
                     for (auto node : nodes)
                     {
-                        node->reset_to_default_colors();
+                        m_action->reset_node_color(node);
                     }
                 }
             }
             else
             {
-                group->set_group_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                const auto color = ImGui::ColorConvertFloat4ToU32(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                m_action->set_node_color(group, color);
                 if (for_all)
                 {
                     for (auto node : nodes)
                     {
-                        node->set_node_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                        m_action->set_node_color(node, color);
                     }
                 }
             }
+            m_action->multi_action_off();
         }
 
         ImGui::EndMenu();
@@ -492,20 +509,21 @@ bool PanelWorkflow::show_multinode_menu()
     //}
     if (ImGui::MenuItem("Group"))
     {
-        auto group = add_group(std::nullopt);
-        m_drawer.fit_group_rect(group, m_menu_objs.nodes);
+        m_action->multi_action_on("Add group");
+        auto group = m_action->add_group(std::nullopt);
+        m_action->set_group_rect(group, m_drawer.fit_group_rect(group, m_menu_objs.nodes));
+        m_action->multi_action_off();
         close = true;
     }
     ImGui::Separator();
     if (ImGui::MenuItem("Remove"))
     {
+        m_action->multi_action_on("Remove");
         for (auto node : m_menu_objs.nodes)
         {
-            g::pWfsManager->copy_del(node);
-            m_drawer.delete_node(node->ed());
-            node->ed().reset();
-            delete_node(node);
+            m_action->delete_node(node);
         }
+        m_action->multi_action_off();
         close = true;
     }
     if (ImGui::MenuItem("Copy"))
@@ -520,63 +538,73 @@ bool PanelWorkflow::show_multinode_menu()
     ImGui::Separator();
     if (ImGui::MenuItem("Pin"))
     {
+        m_action->multi_action_on("Pin");
         for (auto node : m_menu_objs.nodes)
         {
-            node->pin(true);
-            m_drawer.pin_node(node->ed(), node->pinned());
+            m_action->set_node_pinning(node, true);
         }
+        m_action->multi_action_off();
         close = true;
     }
     if (ImGui::MenuItem("Unpin"))
     {
+        m_action->multi_action_on("Unpin");
         for (auto node : m_menu_objs.nodes)
         {
-            node->pin(false);
-            m_drawer.pin_node(node->ed(), node->pinned());
+            m_action->set_node_pinning(node, false);
         }
+        m_action->multi_action_off();
         close = true;
     }
     ImGui::Separator();
     if (ImGui::MenuItem("Always"))
     {
+        m_action->multi_action_on("Always mode");
         for (auto node : m_menu_objs.nodes)
         {
-            node->set_mode(NodeMode::Always);
+            m_action->set_node_mode(node, NodeMode::Always);
         }
+        m_action->multi_action_off();
         close = true;
     }
     if (ImGui::MenuItem("Bypass"))
     {
+        m_action->multi_action_on("Bypass");
         for (auto node : m_menu_objs.nodes)
         {
-            node->set_mode(NodeMode::Bypass);
+            m_action->set_node_mode(node, NodeMode::Bypass);
         }
+        m_action->multi_action_off();
         close = true;
     }
     if (ImGui::MenuItem("Mute"))
     {
+        m_action->multi_action_on("Mute");
         for (auto node : m_menu_objs.nodes)
         {
-            node->set_mode(NodeMode::Mute);
+            m_action->set_node_mode(node, NodeMode::Mute);
         }
+        m_action->multi_action_off();
         close = true;
     }
     ImGui::Separator();
     if (ImGui::BeginMenu("Color"))
     {
         bool reset = false;
-        if (show_colors_menu(close, reset, true, true, (*m_menu_objs.nodes.begin())->m_clr_node))
+        if (show_colors_menu(close, reset, true, (*m_menu_objs.nodes.begin())->m_clr_node))
         {
+            m_action->multi_action_on("Set color");
+            const auto color = ImGui::ColorConvertFloat4ToU32(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
             for (auto node : m_menu_objs.nodes)
             {
                 if (reset)
-                    node->reset_to_default_colors();
+                    m_action->reset_node_color(node);
                 else
                 {
-                    node->m_clr_node.x = m_color_buff[0]; node->m_clr_node.y = m_color_buff[1]; node->m_clr_node.z = m_color_buff[2]; node->m_clr_node.w = m_color_buff[3];
-                    node->set_node_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                    m_action->set_node_color(node, color);
                 }
             }
+            m_action->multi_action_off();
         }
 
         ImGui::EndMenu();
@@ -598,34 +626,29 @@ bool PanelWorkflow::show_multigroup_menu()
     bool close = false;
     if (ImGui::MenuItem(nodes_inside > 0 ? "Remove groups" : "Remove"))
     {
+        m_action->multi_action_on("Remove");
         for (const auto& pair : m_menu_objs.groups)
         {
-            g::pWfsManager->copy_del(pair.first);
-            m_drawer.delete_node(pair.first->ed());
-            pair.first->ed().reset();
-            delete_group(pair.first);
+            m_action->delete_group(pair.first);
         }
+        m_action->multi_action_off();
         close = true;
     }
     if (nodes_inside > 0)
     {
         if (ImGui::MenuItem("Remove groups and nodes inside"))
         {
+            m_action->multi_action_on("Remove");
             for (const auto&[group, nodes] : m_menu_objs.groups)
             {
-                g::pWfsManager->copy_del(group);
-                m_drawer.delete_node(group->ed());
-                group->ed().reset();
-                delete_group(group);
+                m_action->delete_group(group);
 
                 for (auto node : nodes)
                 {
-                    g::pWfsManager->copy_del(node);
-                    m_drawer.delete_node(node->ed());
-                    node->ed().reset();
-                    delete_node(node);
+                    m_action->delete_node(node);
                 }
             }
+            m_action->multi_action_off();
             close = true;
         }
     }
@@ -643,10 +666,12 @@ bool PanelWorkflow::show_multigroup_menu()
     {
         if (ImGui::MenuItem("Fit"))
         {
+            m_action->multi_action_on("Fit");
             for (const auto&[group, nodes] : m_menu_objs.groups)
             {
-                m_drawer.fit_group_rect(group, nodes);
+                m_action->set_group_rect(group, m_drawer.fit_group_rect(group, nodes));
             }
+            m_action->multi_action_off();
             close = true;
         }
         ImGui::Separator();
@@ -662,24 +687,27 @@ bool PanelWorkflow::show_multigroup_menu()
         bool reset = false;
         if (show_colors_menu(close, reset, for_all, ImGui::ColorConvertU32ToFloat4(m_menu_objs.groups.begin()->first->m_clr_group)))
         {
+            m_action->multi_action_on("Set color");
+            const auto color = ImGui::ColorConvertFloat4ToU32(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
             for (const auto& [group, nodes] : m_menu_objs.groups)
             {
                 if (reset)
-                    group->reset_to_default_colors();
+                    m_action->reset_node_color(group);
                 else
-                    group->set_group_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                    m_action->set_node_color(group, color);
 
                 if (for_all)
                 {
                     for (auto node : nodes)
                     {
                         if (reset)
-                            node->reset_to_default_colors();
+                            m_action->reset_node_color(node);
                         else
-                            node->set_node_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                            m_action->set_node_color(node, color);
                     }
                 }
             }
+            m_action->multi_action_off();
         }
 
         ImGui::EndMenu();
@@ -695,20 +723,16 @@ bool PanelWorkflow::show_multiobj_menu()
     bool close = false;
     if (ImGui::MenuItem("Remove"))
     {
+        m_action->multi_action_on("Remove");
         for (auto node : m_menu_objs.nodes)
         {
-            g::pWfsManager->copy_del(node);
-            m_drawer.delete_node(node->ed());
-            node->ed().reset();
-            delete_node(node);
+            m_action->delete_node(node);
         }
         for (auto& group : m_menu_objs.groups)
         {
-            g::pWfsManager->copy_del(group.first);
-            m_drawer.delete_node(group.first->ed());
-            group.first->ed().reset();
-            delete_group(group.first);
+            m_action->delete_node(group.first);
         }
+        m_action->multi_action_off();
         close = true;
     }
     if (ImGui::MenuItem("Copy"))
@@ -727,11 +751,13 @@ bool PanelWorkflow::show_multiobj_menu()
     ImGui::Separator();
     if (ImGui::MenuItem("Fit"))
     {
+        m_action->multi_action_on("Fit");
         for (auto node : m_menu_objs.nodes)
         {
-            node->reset_width();
+            m_action->reset_node_size(node);
         }
         fit(m_menu_objs.groups);
+        m_action->multi_action_off();
         close = true;
     }
     ImGui::Separator();
@@ -740,20 +766,23 @@ bool PanelWorkflow::show_multiobj_menu()
         bool reset = false;
         if (show_colors_menu(close, reset, false, ImGui::ColorConvertU32ToFloat4(m_menu_objs.groups.begin()->first->m_clr_group)))
         {
+            m_action->multi_action_on("Set color");
+            const auto color = ImGui::ColorConvertFloat4ToU32(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
             for (const auto& [group, nodes] : m_menu_objs.groups)
             {
                 if (reset)
-                    group->reset_to_default_colors();
+                    m_action->reset_node_color(group);
                 else
-                    group->set_group_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                    m_action->set_node_color(group, color);
             }
             for (const auto node : m_menu_objs.nodes)
             {
                 if (reset)
-                    node->reset_to_default_colors();
+                    m_action->reset_node_color(node);
                 else
-                    node->set_node_color(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                    m_action->set_node_color(node, color);
             }
+            m_action->multi_action_off();
         }
 
         ImGui::EndMenu();
@@ -777,7 +806,7 @@ bool PanelWorkflow::show_pin_menu()
 
     if (ImGui::MenuItem("Unlink", nullptr, nullptr, pin->state().links > 0))
     {
-        unlink(pin);
+        m_action->unlink(pin);
         close = true;
     }
     ImGui::Separator();
@@ -788,11 +817,7 @@ bool PanelWorkflow::show_pin_menu()
     }
     if (ImGui::MenuItem("Reset slot name", nullptr, nullptr, !pin->get_object()->is_widget() && pin->state().name != pin->get_object()->def_state.name))
     {
-        pin->m_state->name = pin->get_object()->def_state.name;
-        pin->get_object()->w_name = ImGui::CalcTextSize(pin->m_state->name.c_str()).x;
-        auto wf = g::pWfsManager->access(m_wf);
-        auto node = wf->get_node_by_instance(pin->get_parent_node());
-        node->reset_width();
+        m_action->reset_pin_name(pin);
         close = true;
     }
 
@@ -806,10 +831,7 @@ bool PanelWorkflow::show_link_menu()
     if (ImGui::MenuItem("Unlink"))
     {
         auto link = *m_menu_objs.links.begin();
-        m_drawer.delete_link(link->ed());
-        link->ed().reset();
-        delete_link(link);
-
+        m_action->unlink(link);
         close = true;
     }
     if (ImGui::MenuItem("Insert angle")) // TODO
@@ -826,12 +848,12 @@ bool PanelWorkflow::show_multilink_menu()
 
     if (ImGui::MenuItem("Unlink all"))
     {
+        m_action->multi_action_on("Unlink");
         for (auto link : m_menu_objs.links)
         {
-            m_drawer.delete_link(link->ed());
-            link->ed().reset();
-            delete_link(link);
+            m_action->unlink(link);
         }
+        m_action->multi_action_off();
         close = true;
     }
     return close;
@@ -855,15 +877,16 @@ bool PanelWorkflow::show_new_node_menu()
     auto node = show_nodes_menu(input ? "" : pin_inst->state().type_str, input ? pin_inst->state().type_str : "");
     if (node != nullptr)
     {
+        m_action->multi_action_on("Add node");
         close = true;
         bool linked = false;
-        auto inst = add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
+        auto inst = m_action->add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
         const auto& oppo = input ? inst->get_outputs() : inst->get_inputs();
         if (pin_inst->get_object()->type_any && !oppo.empty())
         {
-            if (pin_inst->m_state->links > 0 && pin_inst->get_object()->input)
-                unlink(pin_inst);
-            data::Link::link(*oppo.begin(), pin_inst);
+            if (pin_inst->state().links > 0 && pin_inst->get_object()->input)
+                m_action->unlink(pin_inst);
+            m_action->link(*oppo.begin(), pin_inst);
             linked = true;
         }
         if (!linked)
@@ -873,9 +896,9 @@ bool PanelWorkflow::show_new_node_menu()
                 if (pin->state().type_hash == pin_inst->state().type_hash)
                 {
                     if (pin_inst->state().links > 0 && pin_inst->get_object()->input)
-                        unlink(pin_inst);
+                        m_action->unlink(pin_inst);
 
-                    data::Link::link(pin, pin_inst);
+                    m_action->link(pin, pin_inst);
                     linked = true;
                     break;
                 }
@@ -888,14 +911,15 @@ bool PanelWorkflow::show_new_node_menu()
                 if (pin->get_object()->type_any)
                 {
                     if (pin_inst->state().links > 0 && pin_inst->get_object()->input)
-                        unlink(pin_inst);
+                        m_action->unlink(pin_inst);
 
-                    data::Link::link(pin, pin_inst);
+                    m_action->link(pin, pin_inst);
                     linked = true;
                     break;
                 }
             }
         }
+        m_action->multi_action_off();
     }
     return close;
 }

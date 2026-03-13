@@ -4,6 +4,7 @@
 #include "core/workflow/workflow.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/settings_manager.h"
+#include "core/managers/nodes_manager.h"
 
 namespace data
 {
@@ -92,6 +93,13 @@ void NodeInstance::init(const NodeInstance* copy_from_node)
 
     link_cag_pins();
 }
+
+void NodeInstance::init(const blob::Blob& blob)
+{
+    NodeInstanceBase::init();
+
+    blob::Reader rd(blob);
+    deserialize(rd);
 }
 
 void NodeInstance::reset_state()
@@ -198,6 +206,162 @@ float NodeInstance::get_additional_name_width() const
 bool NodeInstance::do_need_calc_node_widths() const
 {
     return (m_expanded && !m_group);
+}
+
+blob::Writer& NodeInstance::serialize(blob::Writer& blob) const
+{
+    blob
+        .push(m_hid)
+        .push(m_iid)
+        .push(m_wid)
+        .push(m_name)
+        .push(m_rc)
+        .push(m_clr_node)
+        .push(m_clr_group)
+        .push(m_clr_head)
+        .push(m_clr_group_capt)
+        .push(m_group)
+        .push(m_show_hidden)
+        .push(m_expanded)
+        .push(m_pinned)
+        .push(cast::to_i32(m_mode))
+    ;
+
+    blob.push(cast::to_u64(m_input.size()));
+    for (auto in : m_input)
+    {
+        blob.push(in->get_object()->get_id());
+        blob.push(in->get_instance_id());
+    }
+    blob.push(cast::to_u64(m_output.size()));
+    for (auto out : m_output)
+    {
+        blob.push(out->get_object()->get_id());
+        blob.push(out->get_instance_id());
+    }
+
+    for (auto in : m_input)
+    {
+        blob::Block block(blob);
+        in->serialize(blob);
+    }
+    for (auto out : m_output)
+    {
+        blob::Block block(blob);
+        out->serialize(blob);
+    }
+
+    return blob;
+}
+
+blob::Writer NodeInstance::serialize() const
+{
+    blob::Writer blob;
+    serialize(blob);
+    return blob;
+}
+
+bool NodeInstance::deserialize(blob::Reader& blob)
+{
+    try
+    {
+        m_hid = blob.pop_hid();
+        m_iid = blob.pop_iid();
+        m_wid = blob.pop_wid();
+        m_name = blob.pop_string();
+        m_rc = blob.pop_rect();
+        m_clr_node = blob.pop_vec4();
+        m_clr_group = blob.pop_clr();
+        m_clr_head = blob.pop_clr();
+        m_clr_group_capt = blob.pop_clr();
+        m_group = blob.pop_bool();
+        m_show_hidden = blob.pop_bool();
+        m_expanded = blob.pop_bool();
+        m_pinned = blob.pop_bool();
+        m_mode = cast::to_enum<NodeMode>(blob.pop_i32());
+
+        if (!m_group)
+        {
+            m_object = g::pNodesManager->find_node(m_hid);
+            if (nullptr == m_object)
+            {
+                LogWarn("Node " << m_hid << " not found");
+                return false;
+            }
+        }
+
+        const auto find_pin_in = [](hid pin_id, const std::vector<Pin*>& pins) -> Pin*
+        {
+            for (auto pin : pins)
+            {
+                if (pin->get_id() == pin_id)
+                    return pin;
+            }
+            return nullptr;
+        };
+        const auto find_pin = [node = m_object, &find_pin_in](hid pin_id, bool in)
+        {
+            if (in)
+            {
+                auto pin = find_pin_in(pin_id, node->required.pins);
+                if (nullptr == pin)
+                {
+                    pin = find_pin_in(pin_id, node->optional.pins);
+                    if (nullptr == pin)
+                    {
+                        pin = find_pin_in(pin_id, node->hidden.pins);
+                    }
+                }
+                return pin;
+            }
+            return find_pin_in(pin_id, node->output);
+        };
+
+        std::vector<std::pair<Pin*, iid>> in, out;
+
+        auto pins = blob.pop_u64();
+        for (uint64_t i = 0; i < pins; i++)
+        {
+            const auto h_id = blob.pop_hid();
+            const auto i_id = blob.pop_iid();
+            auto pin = find_pin(h_id, true);
+            if (nullptr == pin)
+                throw std::runtime_error("Serialized input Pin not found");
+            in.push_back(std::make_pair(pin, i_id));
+        }
+        pins = blob.pop_u64();
+        for (uint64_t i = 0; i < pins; i++)
+        {
+            const auto h_id = blob.pop_hid();
+            const auto i_id = blob.pop_iid();
+            auto pin = find_pin(h_id, false);
+            if (nullptr == pin)
+                throw std::runtime_error("Serialized output Pin not found");
+            out.push_back(std::make_pair(pin, i_id));
+        }
+
+        auto wf = g::pWfsManager->access(m_wid);
+        for (auto& pin : in)
+        {
+            auto instance = wf->add_pin(this, pin.first, pin.second);
+            blob::Reader rd_pin = blob.pop_blob();
+            instance->deserialize(rd_pin);
+            m_input.push_back(instance);
+        }
+        for (auto& pin : out)
+        {
+            auto instance = wf->add_pin(this, pin.first, pin.second);
+            blob::Reader rd_pin = blob.pop_blob();
+            instance->deserialize(rd_pin);
+            m_output.push_back(instance);
+        }
+        return true;
+    }
+    catch (std::exception& ex)
+    {
+        LogExcep(ExcepCategory::Logic, ex.what());
+        return false;
+    }
 }
 
 } // namespace data

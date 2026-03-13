@@ -4,6 +4,7 @@
 #include "core/workflow/workflow.h"
 #include "core/data/node.h"
 #include "ui/graph-n_flow.h"
+#include "tools/blob_serializer.h"
 #include "imgui_node_editor_edtype.h"
 
 namespace data

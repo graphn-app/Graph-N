@@ -23,6 +23,9 @@
 #include "core/managers/workflows_manager.h"
 #include "core/managers/models_manager.h"
 #include "core/managers/comfyui_manager.h"
+#include "core/managers/history_manager.h"
+#include "core/workflow/workflow.h"
+#include "core/workflow/workflow_action.h"
 #include "core/listeners.h"
 
 //#define TEST
@@ -793,6 +796,7 @@ void GraphN_Flow::wf_delete(wid id)
     }
 
     g::pWfsManager->delete_wf(id);
+    g::pHistoryManager->cleanup(id);
 
     auto panel = find_wf_panel(id);
     if (panel != nullptr)
@@ -899,6 +903,8 @@ void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
     m_all_dialogs.erase(wf_panel);
 
     clear_txt_panels(wf_panel->get_workflow()->get_id());
+    g::pHistoryManager->cleanup(wf_panel->get_workflow()->get_id());
+
     if (m_panels_wf.empty())
         destroy_txt_panels();
 
@@ -915,7 +921,6 @@ void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
         wf_activate(0);
 
     on_dlg_closed(DlgObj::PanelWf);
-
 }
 
 void GraphN_Flow::rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name)

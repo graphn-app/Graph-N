@@ -270,6 +270,8 @@ struct ImVec2
     constexpr ImVec2(float _x, float _y)    : x(_x), y(_y) { }
     float& operator[] (size_t idx)          { IM_ASSERT(idx == 0 || idx == 1); return ((float*)(void*)(char*)this)[idx]; } // We very rarely use this [] operator, so the assert overhead is fine.
     float  operator[] (size_t idx) const    { IM_ASSERT(idx == 0 || idx == 1); return ((const float*)(const void*)(const char*)this)[idx]; }
+    const bool operator==(const ImVec2& other) const { return x == other.x && y == other.y; }
+    const bool operator!=(const ImVec2& other) const { return !(*this == other); }
 #ifdef IM_VEC2_CLASS_EXTRA
     IM_VEC2_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h to convert back and forth between your math types and ImVec2.
 #endif
@@ -281,6 +283,10 @@ struct ImVec4
     float                                                     x, y, z, w;
     constexpr ImVec4()                                        : x(0.0f), y(0.0f), z(0.0f), w(0.0f) { }
     constexpr ImVec4(float _x, float _y, float _z, float _w)  : x(_x), y(_y), z(_z), w(_w) { }
+    constexpr ImVec4(const float* arr) : x(arr[0]), y(arr[1]), z(arr[2]), w(arr[3]) { }
+    const bool operator==(const ImVec4& other) const { return x == other.x && y == other.y && z == other.z && w == other.w; }
+    const bool operator!=(const ImVec4& other) const { return !(*this == other); }
+    inline void to_arr(float* arr) const { arr[0] = x; arr[1] = y; arr[2] = z; arr[3] = w; }
 #ifdef IM_VEC4_CLASS_EXTRA
     IM_VEC4_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h to convert back and forth between your math types and ImVec4.
 #endif

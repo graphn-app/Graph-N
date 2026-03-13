@@ -16,6 +16,7 @@ public:
 
     void init(const std::string& select);
     void init(const NodeInstance* copy_from_node);
+    void init(const blob::Blob& blob);
 
     const std::string& get_name() const override;
     void set_name(std::string name) override;
@@ -35,12 +36,15 @@ public:
     void reset_to_default_colors();
 
     void reset_width();
-
     void reset_state() override;
+
+    blob::Writer serialize() const;
+    blob::Writer& serialize(blob::Writer& blob) const;
 
 protected:
     float get_additional_name_width() const override;
     bool do_need_calc_node_widths() const override;
+    bool deserialize(blob::Reader& blob);
 
 public:
     bool m_pos_set = false;
@@ -64,7 +68,7 @@ private:
     bool m_pinned = false;
 
     // !!
-    // check `init` and `reset_state` when adding new field
+    // check `init`, `reset_state` and `[de]serialize` when adding new field
 };
 
 } // namespace data

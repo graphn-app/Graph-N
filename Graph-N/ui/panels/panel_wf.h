@@ -1,13 +1,15 @@
 
 #pragma once
 #include "ui/panels/panel_base.h"
-#include "ui/helpers/node_drawer.h"
+#include "ui/node_drawer.h"
 
 namespace data
 {
 struct Node;
 class Link;
 class NodeInstance;
+class Workflow;
+class WorkflowAction;
 }
 
 namespace ui
@@ -27,6 +29,7 @@ public:
     void free() override;
 
     inline data::Workflow* get_workflow() const { return m_wf; }
+    inline data::WorkflowAction* get_action() const { return m_action; }
 
     inline void select_new_nodes() { m_select_new_nodes = true; }
     inline void restore_pos() { m_restore_pos = true; }
@@ -64,14 +67,16 @@ private:
     void fit(std::map<data::NodeInstance*, std::set<data::NodeInstance*>>& items);
 
     void handle_dnd();
+    bool handle_moves();
 
 private:
-    wid m_wf = 0;
     const ImGuiID m_dock;
+    data::Workflow* m_wf = nullptr;
+    data::WorkflowAction* m_action = nullptr;
+    NodeDrawer m_drawer;
+
     bool m_restore_pos = false;
     bool m_active = false;
-    std::vector<data::NodeInstance*> m_nodes;
-    NodeDrawer m_drawer;
     data::NodeInstance* m_locate = nullptr;
     bool m_select_new_nodes = false;
 

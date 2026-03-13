@@ -19,22 +19,29 @@ namespace ImGuiExNe
 struct DeferredAction;
 }
 
+namespace data
+{
+class Workflow;
+class WorkflowAction;
+}
+
 namespace ui
 {
+
 
 class NodeDrawer final
 {
 public:
-    NodeDrawer();
+    NodeDrawer(data::Workflow* wf);
     ~NodeDrawer();
 
     NO_COPY_MOVE(NodeDrawer);
 
-    void init(wid wf_id);
+    void init();
     void free();
 
     void pre_draw_all(const char* id, size_t nodes_count);
-    void post_draw_all(const std::function<bool()>& init_menu_handler, const std::function<bool()>& show_menu_handler);
+    void post_draw_all(const std::function<bool()>& init_menu_handler, const std::function<bool()>& show_menu_handler, const std::function<bool()>& move_handler);
 
     void pre_draw_node(data::NodeInstance* node);
     void draw_node(data::NodeInstance* node, float node_w, size_t node_idx);
@@ -64,16 +71,18 @@ public:
     bool is_link_selected(const EdType& link) const;
     void select_link(const EdType& link, bool append_to_selection) const;
 
-    std::set<data::NodeInstance*> get_nodes_in_group(data::NodeInstance* group, const std::vector<data::NodeInstance*>& all_nodes) const;
+    void clear_selection();
+
+    std::set<data::NodeInstance*> get_nodes_in_group(data::NodeInstance* group, const std::vector<std::unique_ptr<data::NodeInstance>>& all_nodes) const;
     ImRect calc_group_rect(const ImRect& node_rc) const;
-    bool fit_group_rect(data::NodeInstance* group, const std::set<data::NodeInstance*>& nodes) const;
+    ImRect fit_group_rect(const data::NodeInstance* group, const std::set<data::NodeInstance*>& nodes) const;
 
     void pin_node(const EdType& node, bool pin) const;
     void rename_node(data::NodeInstance* node);
     void rename_pin(data::PinInstance* pin);
 
-    void delete_node(const EdType& node) const;
-    void delete_link(const EdType& link) const;
+    void delete_node(const data::NodeInstance* node);
+    void delete_link(const data::Link* link);
 
     inline ImU32 get_default_node_color() const { return m_defclr_node_bg; }
 
@@ -87,7 +96,7 @@ public:
 private:
     void draw_node_header();
     void draw_input_pin(data::PinInstance* pin);
-    void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width, bool draw_control_after_generate = false);
+    void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_output_pin(data::PinInstance* pin);
     void draw_pin(data::PinInstance* pin, bool force_default_shape, bool align_to_widget);
     void draw_pin_shape(data::PinInstance* pin, bool force_default, bool align_to_widget);
@@ -101,15 +110,15 @@ private:
     void draw_widget_num(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width);
-    void draw_widget_control_after_generate(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_separator(float offset, bool& opened, bool& temp_open);
 
-    void handle_widget_active_state();
+    void handle_widget_active_state(data::PinInstance* pin, const primitive* backup = nullptr);
     bool handle_node_resize();
     bool handle_pin_renaming(data::PinInstance* curr_pin);
+    void handle_deleted();
 
 private:
-    wid m_wf = 0;
+    data::Workflow* m_wf = nullptr;
     ax::NodeEditor::EditorContext* m_context = nullptr;
 
     ImRect m_view_rect;
@@ -140,6 +149,13 @@ private:
     const float m_grip_area_sz = 15.0f;
     std::vector<ImRect> m_resizing_grip_positions;
     std::vector<float> m_resizing_w;
+
+    primitive m_old_pin_val_pr;
+    int32_t m_old_pin_val_ci;
+    data::PinInstance* m_editing = nullptr;
+    data::PinInstance* m_was_edited = nullptr;
+
+    std::set<void*> m_pending_delete;
 
 #ifdef _DEBUG
     std::set<void*> m_ids_imgui;

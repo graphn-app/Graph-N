@@ -20,6 +20,17 @@ public:
     inline PinState& state() { return m_state; }
     inline const PinState& state() const { return m_state; }
 
+    blob::Writer& serialize(blob::Writer& blob) const;
+    blob::Writer serialize() const;
+    bool deserialize(blob::Reader& blob);
+
+    blob::Writer serialize_state() const;
+    blob::Writer serialize_state(const primitive& val) const;
+    blob::Writer& serialize_state(blob::Writer& blob) const;
+    blob::Writer& serialize_state(blob::Writer& blob, const primitive& val) const;
+
+    bool deserialize_state(blob::Reader& blob);
+
 protected:
     data::Pin* find_obj(hid obj_id) const override;
 

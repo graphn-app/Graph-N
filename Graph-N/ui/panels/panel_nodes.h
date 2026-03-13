@@ -1,7 +1,7 @@
 
 #pragma once
 #include "ui/panels/panel_base.h"
-#include "ui/helpers/node_drawer_ro.h"
+#include "ui/node_drawer_ro.h"
 #include "core/listeners.h"
 
 namespace data

@@ -4,6 +4,7 @@
 #include "core/managers/workflows_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "core/workflow/workflow.h"
+#include "core/workflow/workflow_action.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
@@ -13,10 +14,13 @@ namespace ui
 
 PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std::string& panel_id, ImGuiID dock)
     : PanelBase(DlgObj::PanelWf, name, panel_id, true)
-    , m_wf(workflow_id)
+    , m_wf(g::pWfsManager->access(workflow_id))
     , m_dock(dock)
+    , m_action(m_wf->action())
+    , m_drawer(m_wf)
     , m_context_menuid(panel_id + "_ContextMenu")
 {
+    m_action->set_drawer(&m_drawer);
 }
 
 PanelWorkflow::~PanelWorkflow()
@@ -145,10 +149,10 @@ void PanelWorkflow::draw_wf()
 
     m_drawer.draw_links(m_wf->get_links());
     m_drawer.query_new_item(
-        [this](data::PinInstance* pin) { unlink(pin); },
-        [this, wf](data::PinInstance* pin, const ImVec2& pt)
+        [this](data::PinInstance* pin) { m_action->unlink(pin); },
+        [this](data::PinInstance* pin, const ImVec2& pt)
             {
-                auto node = wf->get_node_by_instance(pin->get_parent_node());
+                auto node = m_wf->get_node_by_instance(pin->get_parent_node());
                 m_menu_objs = {};
                 m_menu_objs.click_pos = pt;
                 m_menu_objs.pins.insert(pin);
@@ -170,6 +174,7 @@ void PanelWorkflow::draw_wf()
 
 void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstance*>>& items)
 {
+    m_action->multi_action_on("Fit");
     if (items.empty())
     {
         for (auto& node : m_wf->get_nodes())
@@ -189,7 +194,7 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
     {
         if (!it->first->m_group)
         {
-            it->first->reset_width();
+            m_action->reset_node_size(it->first);
             it = items.erase(it);
         }
         else if (it->second.empty())
@@ -208,7 +213,7 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
         {
             if (node != it->first && node->m_group && items.find(node) != items.end())
             {
-                if (m_drawer.fit_group_rect(node, m_drawer.get_nodes_in_group(node, m_nodes)))
+                if (m_action->set_group_rect(node, m_drawer.fit_group_rect(node, m_drawer.get_nodes_in_group(node, m_wf->get_nodes()))))
                     add_y.insert(it->first);
                 items.erase(node);
             }
@@ -217,10 +222,11 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
 
     for (auto& [group, nodes] : items)
     {
-        m_drawer.fit_group_rect(group, nodes);
+        m_action->set_group_rect(group, m_drawer.fit_group_rect(group, nodes));
         if (add_y.find(group) != add_y.end())
             group->m_rc.Max.y += ImGui::GetTextLineHeight();
     }
+    m_action->multi_action_off();
 }
 
 void PanelWorkflow::handle_dnd()
@@ -234,12 +240,55 @@ void PanelWorkflow::handle_dnd()
             ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
             const hid node_id = *(const hid*)payload->Data;
             auto node = g::pNodesManager->find_node(node_id);            
-            auto inst = add_node(node, "", ImRect(m_drawer.get_mouse_pos(), ImVec2(-1, -1)));
+            auto inst = m_action->add_node(node, "", ImRect(m_drawer.get_mouse_pos(), ImVec2(-1, -1)));
             Log("Node " << inst->get_name() << " dropped");
-            g::pFlow->wf_activate(m_wf);
+            g::pFlow->wf_activate(m_wf->get_id());
         }
         ImGui::EndDragDropTarget();
     }
+}
+
+bool PanelWorkflow::handle_moves()
+{
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+    {
+        auto node = m_drawer.get_hovered_node();
+        if (node != nullptr)
+        {
+            auto selected = m_drawer.get_selected_nodes();
+            if (!m_drawer.is_node_selected(node->ed()))
+            {
+                selected.clear();
+                selected.insert(node);
+            }
+
+            std::set<data::NodeInstance*> add_subnodes;
+            for (auto sel : selected)
+            {
+                if (sel->m_group)
+                {
+                    auto subnodes = m_drawer.get_nodes_in_group(sel, m_wf->get_nodes());
+                    for (auto subnode : subnodes)
+                    {
+                        add_subnodes.insert(subnode);
+                    }
+                }
+            }
+            for (auto subnode : add_subnodes)
+            {
+                selected.insert(subnode);
+            }
+
+            m_action->begin_nodes_move(selected);
+            return true;
+        }
+    }
+    else if (m_action->is_moving() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+    {
+        m_action->end_nodes_move(!ImGui::IsMouseDragPastThreshold(ImGuiMouseButton_Left, 2));
+        return true;
+    }
+    return false;
 }
 
 } // namespace ui

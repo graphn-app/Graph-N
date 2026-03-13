@@ -17,6 +17,7 @@ class ConnectManager;
 class WfsManager;
 class ModelsManager;
 class ComfyUIManager;
+class HistoryManager;
 }
 
 namespace ui
@@ -95,6 +96,7 @@ extern mngr::ConnectManager* pConnectManager;
 extern mngr::WfsManager* pWfsManager;
 extern mngr::ModelsManager* pModelsManager;
 extern mngr::ComfyUIManager* pComfyUIManager;
+extern mngr::HistoryManager* pHistoryManager;
 
 void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line);
 }

@@ -4,7 +4,9 @@
 #include "core/workflow/node_instance_ro.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
+#include "core/workflow/workflow_action.h"
 #include "core/managers/nodes_manager.h"
+#include "core/managers/history_manager.h"
 #include "ui/graph-n_flow.h"
 
 namespace data
@@ -33,6 +35,8 @@ void Workflow::init()
 
     m_nodes.reserve(30);
     m_links.reserve(150);
+
+    m_action = std::make_unique<WorkflowAction>(this);
 
     //TODO
     //g::pFlow->subscribe_comfyui_validity_state(this);
@@ -73,6 +77,23 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source)
     else
     {
         Log("Node added wid=" << m_wf_data.id << ", hid=" << copy_from_source->get_object()->get_id() << ", iid=" << id);
+    }
+    return ptr;
+}
+
+NodeInstance* Workflow::add_node(const blob::Blob& blob)
+{
+    auto instance = std::make_unique<NodeInstance>(nullptr, m_wf_data.id, 0);
+    auto ptr = instance.get();
+    ptr->init(blob);
+    m_nodes.push_back(std::move(instance));
+    if (ptr->m_group)
+    {
+        Log("Group added wid=" << m_wf_data.id << ", iid=" << ptr->get_instance_id());
+    }
+    else
+    {
+        Log("Node added wid=" << m_wf_data.id << ", hid=" << ptr->get_object()->get_id() << ", iid=" << ptr->get_instance_id());
     }
     return ptr;
 }

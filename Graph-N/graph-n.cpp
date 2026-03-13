@@ -8,6 +8,7 @@
 #include "core/managers/connect_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/models_manager.h"
+#include "core/managers/history_manager.h"
 #if defined _WIN32
 #include "core/managers/comfyui_manager_win32.h"
 #elif defined __linux__
@@ -30,6 +31,7 @@ mngr::ConnectManager* pConnectManager = nullptr;
 mngr::WfsManager* pWfsManager = nullptr;
 mngr::ModelsManager* pModelsManager = nullptr;
 mngr::ComfyUIManager* pComfyUIManager = nullptr;
+mngr::HistoryManager* pHistoryManager = nullptr;
 
 void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line)
 {
@@ -70,6 +72,9 @@ bool GraphN::init_graphn()
 
     m_managers.push_back(std::make_unique<mngr::WfsManager>());
     g::pWfsManager = (mngr::WfsManager*)m_managers.back().get();
+
+    m_managers.push_back(std::make_unique<mngr::HistoryManager>());
+    g::pHistoryManager = (mngr::HistoryManager*)m_managers.back().get();
 
 #if defined _WIN32
     m_managers.push_back(std::make_unique<mngr::ComfyUIManager_Win32>());
