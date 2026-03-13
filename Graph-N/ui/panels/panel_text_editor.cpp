@@ -217,7 +217,7 @@ void PanelTextEditor::create_toolbar()
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Text;
         if (m_current != nullptr)
-            el.text = m_current->pin->m_state->name;
+            el.text = m_current->pin->state().name;
         el.text_bold = true;
         el.text_clr = g::pOptsManager->color_load(AppColor::TextEditorCaption2);
         add_toolbar_element(std::move(el), true);

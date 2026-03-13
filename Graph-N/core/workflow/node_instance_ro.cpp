@@ -17,7 +17,7 @@ void NodeInstanceRo::init()
 
     const auto add_pins = [this, wf](const std::vector<data::Pin*>& source, std::vector<PinInstance*>& dest)
     {
-        for (auto& pin : source)
+        for (auto pin : source)
         {
             auto pin_instance = wf->add_pin(this, pin);
             dest.push_back(pin_instance);
@@ -28,6 +28,8 @@ void NodeInstanceRo::init()
     add_pins(m_object->optional.pins, m_input);
     add_pins(m_object->hidden.pins, m_input);
     add_pins(m_object->output, m_output);
+
+    link_cag_pins();
 }
 
 } // namespace data

@@ -17,6 +17,8 @@ void ComfyUIManager_Linux::stop_all_threads()
 bool ComfyUIManager_Linux::init()
 {
     LogF;
+    if (!ComfyUIManager::init())
+        return false;
 
     return true;
 }

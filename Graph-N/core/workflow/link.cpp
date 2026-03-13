@@ -33,8 +33,8 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     if (i1 == i2 || i1->get_parent_node() == i2->get_parent_node())     // same pin, same node
         return false;
 
-    const auto& s1 = i1->m_state;
-    const auto& s2 = i2->m_state;
+    const auto& s1 = i1->state();
+    const auto& s2 = i2->state()    ;
 
     if (p1->input == p2->input || p1->output == p2->output)     // input to input, output to output
         return false;
@@ -42,16 +42,16 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     if (p1->type_any || p2->type_any)
         return true;
 
-    if (PinType::COLOR == s1->type && PinType::STRING == s2->type ||    // special case
-        PinType::COLOR == s2->type && PinType::STRING == s1->type)
+    if (PinType::COLOR == s1.type && PinType::STRING == s2.type ||    // special case
+        PinType::COLOR == s2.type && PinType::STRING == s1.type)
     {
         return true;
     }
 
-    return (s1->type_hash == s2->type_hash); // same pin type
+    return (s1.type_hash == s2.type_hash); // same pin type
 }
 
-Link* Link::link(PinInstance* i1, PinInstance* i2)
+Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
 {
     if (!can_link(i1, i2))
     {
@@ -60,36 +60,36 @@ Link* Link::link(PinInstance* i1, PinInstance* i2)
 
     auto wf = g::pWfsManager->access(i1->get_workflow_id());
 
-    if (i1->m_state->links > 0 && i1->get_object()->input || i2->m_state->links > 0 && i2->get_object()->input)
+    if (i1->state().links > 0 && i1->get_object()->input || i2->state().links > 0 && i2->get_object()->input)
     {
         LogAndThrowInternalErrorS(ExcepCategory::Logic, "Input pin can't has more than 1 links");
     }
 
-    auto link = wf->add_link();
+    auto link = wf->add_link(instance_id);
 
     auto p1 = i1->get_object();
     auto p2 = i2->get_object();
 
-    auto& s1 = i1->m_state;
-    auto& s2 = i2->m_state;
+    auto& s1 = i1->state();
+    auto& s2 = i2->state();
 
     data::PinInstance* recalc = nullptr;
     if (p1->type_any)
     {
-        s1->type = s2->type;
-        s1->type_str = s2->type_str;
-        s1->type_hash = s2->type_hash;
-        s1->pin_color = s2->pin_color;
-        s1->name = s2->name;
+        s1.type = s2.type;
+        s1.type_str = s2.type_str;
+        s1.type_hash = s2.type_hash;
+        s1.pin_color = s2.pin_color;
+        s1.name = s2.name;
         recalc = i1;
     }
     else if (p2->type_any)
     {
-        s2->type = s1->type;
-        s2->type_str = s1->type_str;
-        s2->type_hash = s1->type_hash;
-        s2->pin_color = s1->pin_color;
-        s2->name = s1->name;
+        s2.type = s1.type;
+        s2.type_str = s1.type_str;
+        s2.type_hash = s1.type_hash;
+        s2.pin_color = s1.pin_color;
+        s2.name = s1.name;
         recalc = i2;
     }
     if (recalc != nullptr)
@@ -98,8 +98,8 @@ Link* Link::link(PinInstance* i1, PinInstance* i2)
         node->calc_node_width(false, false);
     }
 
-    s1->links++;
-    s2->links++;
+    s1.links++;
+    s2.links++;
 
     link->m_input = (p1->input ? i1 : i2);
     link->m_output = (p1->output ? i1 : i2);
@@ -113,32 +113,32 @@ void Link::unlink()
     auto p1 = m_input;
     auto p2 = m_output;
 
-    auto& s1 = p1->m_state;
-    auto& s2 = p2->m_state;
+    auto& s1 = p1->state();
+    auto& s2 = p2->state();
 
-    s1->links--;
-    s2->links--;
+    s1.links--;
+    s2.links--;
 
     auto o1 = p1->get_object();
     auto o2 = p2->get_object();
 
     const data::PinInstance* recalc = nullptr;
-    if (o1->type_any && 0 == s1->links)
+    if (o1->type_any && 0 == s1.links)
     {
-        s1->type = o1->def_state.type;
-        s1->type_str = o1->def_state.type_str;
-        s1->type_hash = o1->def_state.type_hash;
-        s1->pin_color = o1->def_state.pin_color;
-        s1->name = o1->def_state.name;
+        s1.type = o1->def_state.type;
+        s1.type_str = o1->def_state.type_str;
+        s1.type_hash = o1->def_state.type_hash;
+        s1.pin_color = o1->def_state.pin_color;
+        s1.name = o1->def_state.name;
         recalc = p1;
     }
-    if (o2->type_any && 0 == s2->links)
+    if (o2->type_any && 0 == s2.links)
     {
-        s2->type = o2->def_state.type;
-        s2->type_str = o2->def_state.type_str;
-        s2->type_hash = o2->def_state.type_hash;
-        s2->pin_color = o2->def_state.pin_color;
-        s2->name = o2->def_state.name;
+        s2.type = o2->def_state.type;
+        s2.type_str = o2->def_state.type_str;
+        s2.type_hash = o2->def_state.type_hash;
+        s2.pin_color = o2->def_state.pin_color;
+        s2.name = o2->def_state.name;
         recalc = p2;
     }
     if (recalc != nullptr)

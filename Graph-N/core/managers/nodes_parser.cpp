@@ -318,7 +318,7 @@ void NodesParser::prepare_parsers_map()
     m_parsers["control_after_generate"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
     {
-        if (json.is_boolean()) pin.control_after_generate = json;
+        if (json.is_boolean()) pin.cag_require = json;
         else log_err_type(node, pin, json, "control_after_generate");
     };
     m_parsers["default"] =
@@ -578,7 +578,26 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
             }
 
             pin->finalize();
-            manager.m_pins.emplace(pin->get_id(), std::move(pin));
+            auto ptr = pin.get();
+            manager.m_pins.emplace(ptr->get_id(), std::move(pin));
+
+            if (ptr->cag_require)
+            {
+                auto cag = std::make_unique<data::Pin>(&node, ptr->def_state.name + "_control");
+                input.pins.push_back(cag.get());
+
+                cag->input = true;
+                cag->required = is_required;
+                cag->optional = is_optional;
+                cag->hidden = is_hidden;
+                cag->cag_pin = true;
+                cag->def_state.name = "control";
+                cag->initialize("COMBO");
+                cag->finalize();
+
+                ptr = cag.get();
+                manager.m_pins.emplace(ptr->get_id(), std::move(cag));
+            }
         }
     };
 
@@ -623,7 +642,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
 
         for (const auto& name : input.order)
         {
-            for (auto& pin : input.pins)
+            for (auto pin : input.pins)
             {
                 if (pin->def_state.name == name)
                 {
@@ -804,7 +823,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
         }
     }
 
-    for (const auto& pin : node.output)
+    for (const auto pin : node.output)
     {
         pin->finalize();
     }

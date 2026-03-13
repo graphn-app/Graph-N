@@ -19,6 +19,8 @@ ConnectManager::~ConnectManager()
 bool ConnectManager::init()
 {
     LogF;
+    if (!Manager::init())
+        return false;
     return true;
 }
 

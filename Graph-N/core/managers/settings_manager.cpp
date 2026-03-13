@@ -13,6 +13,10 @@ SettingsManager::~SettingsManager()
 
 bool SettingsManager::init()
 {
+    LogF;
+    if (!Manager::init())
+        return false;
+
     // app
     m_app_vsync =                                      { "vsync_enabled",           bool(true) };
     m_app_fps_limit =                                  { "fps_limit",               bool(false) };
@@ -114,7 +118,7 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::PanelNodesInspDescrFrame)] =          { "color_panel_node_insp_descr_frame", int64_t(IM_COL32(220, 220, 220, 50)) };
     m_ui_colors[cast::to_szt(AppColor::NodeHeaderBg)] =                      { "color_node_header_bg", int64_t(IM_COL32(45, 50, 60, 255)) };
     m_ui_colors[cast::to_szt(AppColor::NodeHeaderText)] =                    { "color_node_header_text", int64_t(IM_COL32(255, 176, 50, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::NodeBodyBg)] =                        { "color_node_body_bg", int64_t(IM_COL32(30, 30, 30, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::NodeBodyBg)] =                        { "color_node_body_bg", int64_t(IM_COL32(32, 32, 32, 200)) };
     m_ui_colors[cast::to_szt(AppColor::NodePinText)] =                       { "color_node_pin_text", int64_t(IM_COL32(100, 100, 100, 255)) };
     m_ui_colors[cast::to_szt(AppColor::NodeBorder)] =                        { "color_node_border", int64_t(IM_COL32(100, 100, 100, 255)) };
     m_ui_colors[cast::to_szt(AppColor::NodeWidgetHiddenSep)] =               { "color_node_widget_hidden_sep", int64_t(IM_COL32(0, 180, 180, 200)) };
@@ -259,16 +263,23 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
             DbAppOptionData db_opt;
             db_opt.name = val->db_name;
 
-            if (std::holds_alternative<int64_t>(val->value))
-                db_opt.val = *std::get_if<int64_t>(&val->value);
-            else if (std::holds_alternative<std::string>(val->value))
-                db_opt.val = *std::get_if<std::string>(&val->value);
-            else if (std::holds_alternative<std::filesystem::path>(val->value))
-                db_opt.val = std::get_if<std::filesystem::path>(&val->value)->u8string();
-            else if (std::holds_alternative<bool>(val->value))
-                db_opt.val = int64_t(*std::get_if<bool>(&val->value));
-            else
-                LogError(ExcepCategory::Logic, "Unhandled option type");
+            std::visit([&db_opt](const auto& v)
+            {
+                using T = std::decay_t<decltype(v)>;
+
+                if constexpr (std::is_same_v<T, int64_t> || std::is_same_v<T, std::string> || std::is_same_v<T, bool>)
+                {
+                    db_opt.val = v;
+                }
+                else if constexpr (std::is_same_v<T, std::filesystem::path>)
+                {
+                    db_opt.val = v.u8string();
+                }
+                else
+                {
+                    static_assert(sizeof(T) == 0, "Unhandled option type");
+                }
+            }, val->value);
 
             db_values.push_back(std::move(db_opt));
         }

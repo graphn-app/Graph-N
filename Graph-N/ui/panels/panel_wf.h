@@ -21,29 +21,25 @@ public:
     PanelWorkflow(wid workflow_id, const std::string& name, const std::string& panel_id, ImGuiID dock);
     ~PanelWorkflow() override;
 
-    void init() override;
-    void handle_new_nodes();
+    void init() override;    
 
     void stop_all_threads() override;
     void free() override;
 
-    void restore_pos();
-    void rename_panel(const std::string& new_name);
-    inline wid get_workflow() const { return m_wf; }
+    inline data::Workflow* get_workflow() const { return m_wf; }
+
+    inline void select_new_nodes() { m_select_new_nodes = true; }
+    inline void restore_pos() { m_restore_pos = true; }
+    inline void rename_panel(const std::string& new_name) { set_name(new_name); }
     inline void set_active(bool active)
     {
         if (active && m_active != active)
             set_focused();
         m_active = active;
     }
-    inline void locale_node(data::NodeInstance* node) { m_locate = node; }
 
+    inline void locate_node(data::NodeInstance* node) { m_locate = node; }
     void set_wf_view(std::optional<ImRect> wf_rc, std::optional<float> wf_zoom);
-
-    data::NodeInstance* add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos);
-    data::NodeInstance* add_group(std::optional<ImRect> size);
-
-    void unlink(data::PinInstance* pin);
 
 private:
     DlgCode show(bool& focused) override;
@@ -62,15 +58,9 @@ private:
     bool show_link_menu();
     bool show_multilink_menu();
     bool show_new_node_menu();
-    bool show_colors_menu(bool& close, bool& reset, bool use_custom, bool show_alpha, const ImVec4& init);
+    bool show_colors_menu(bool& close, bool& reset, bool show_alpha, const ImVec4& init);
     data::Node* show_nodes_menu(const std::string& in_pin_filter, const std::string& out_pin_filter);
 
-    void delete_node(data::NodeInstance* node);
-    void delete_group(data::NodeInstance* group);
-    void delete_link(data::Link* link);
-    //void copy_node(data::NodeInstance* node, const ImRect& rc); // TODO
-    //void copy_group(const ImRect& rc); // TODO
-    void create_group(const ImRect& rc);
     void fit(std::map<data::NodeInstance*, std::set<data::NodeInstance*>>& items);
 
     void handle_dnd();
@@ -83,7 +73,7 @@ private:
     std::vector<data::NodeInstance*> m_nodes;
     NodeDrawer m_drawer;
     data::NodeInstance* m_locate = nullptr;
-    bool m_handle_new_nodes = false;
+    bool m_select_new_nodes = false;
 
     const std::string m_context_menuid;
     bool m_handle_context_menu = false;

@@ -50,7 +50,6 @@ public:
 
     ImRect m_rc = {}; // size for group, width for node
 
-    bool m_clr_custom = false;
     ImVec4 m_clr_node = {}; // color for node backgroud
     ImU32 m_clr_group = 0; // color for group backgroud
     ImU32 m_clr_head = 0; // color for node/group header background

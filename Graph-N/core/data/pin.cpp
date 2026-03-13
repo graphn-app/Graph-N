@@ -143,11 +143,7 @@ void Pin::finalize()
             precision_named = fmt::format(FMT_COMPILE("{}: %lld"), def_state.name);
 
             const bool seed = (tools::str::to_lower_ascii(def_state.name).find("seed") != std::string::npos);
-            if (seed)
-            {
-                control_after_generate = true;
-                def_state.control_after_generate_value = ControlAfterGenerate::CAGRandomize;
-            }
+            cag_require = seed;
 
             if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int
             {
@@ -169,17 +165,20 @@ void Pin::finalize()
 
         else if (PinType::COLOR == def_state.type && std::holds_alternative<std::string>(def))
         {
-            const ImU32 clr_im = color_to_val(*std::get_if<std::string>(&def), alpha_enabled);
-            def = int64_t(clr_im);
-            const ImVec4 clr_vec = ImColor(clr_im);
-            def_state.colors[0] = clr_vec.x;
-            def_state.colors[1] = clr_vec.y;
-            def_state.colors[2] = clr_vec.z;
-            def_state.colors[3] = clr_vec.w;
+            def = color_to_val(*std::get_if<std::string>(&def), alpha_enabled);
         }
 
         else if (PinType::COMBO == def_state.type)
         {
+            if (cag_pin)
+            {
+                for (size_t i = 0; i < sizeof(ControlAfterGenerateStr) / sizeof(ControlAfterGenerateStr[0]); i++)
+                {
+                    list.push_back(std::string(ControlAfterGenerateStr[i]));
+                }
+                def = cast::to_i64(CAGRandomize);
+            }
+
             combo_items_ptr.resize(list.size());
             combo_items_str.resize(list.size());
 
@@ -187,7 +186,7 @@ void Pin::finalize()
             {
                 auto& item = list[idx];
                 if (item == def)
-                    def_state.combo_index = cast::to_i32(idx);
+                    def_state.value = cast::to_i64(idx);
 
                 if (std::holds_alternative<std::string>(item))
                 {
@@ -196,7 +195,7 @@ void Pin::finalize()
                 }
                 else
                 {
-                    combo_items_str[idx] = primitive_to_string(item);
+                    combo_items_str[idx] = any_to_string(item);
                     combo_items_ptr[idx] = combo_items_str[idx].c_str();
                 }
             }
@@ -232,7 +231,7 @@ void Pin::finalize()
             w_value = 150.0f;
             //for (auto& item : list)
             //{
-            //    const auto w = ImGui::CalcTextSize(primitive_to_string(item).c_str()).x;
+            //    const auto w = ImGui::CalcTextSize(any_to_string(item).c_str()).x;
             //    w_value = std::max(w_value, w + 30);
             //    if (w_value < w + 30)
             //        w_value = w + 30;
@@ -441,31 +440,45 @@ void Pin::generate_pin_color()
     def_state.pin_color = IM_COL32(cast::to_u32(r * 255), cast::to_u32(g * 255), cast::to_u32(b * 255), 255);
 }
 
-std::string Pin::primitive_to_string(primitive& item)
+std::string Pin::any_to_string(const primitive& item)
 {
-    if (std::holds_alternative<std::monostate>(item))
-        return "";
+    std::string ret;
+    std::visit([&ret](const auto& v)
+    {
+        using T = std::decay_t<decltype(v)>;
 
-    if (std::holds_alternative<int64_t>(item))
-        return std::to_string(*get_int(item));
+        if constexpr (std::is_same_v<T, std::monostate>)
+        {
+            // nothing
+        }
+        else if constexpr (std::is_same_v<T, int64_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, double>)
+        {
+            ret = std::to_string(v);
+        }
+        else if constexpr (std::is_same_v<T, bool>)
+        {
+            ret = (v ? "true" : "false");
+        }
+        else if constexpr (std::is_same_v<T, std::string>)
+        {
+            ret = v;
+        }
+        else
+        {
+            static_assert(sizeof(T) == 0, "Undefined primitive type in visitor");
+        }
+    }, item);
 
-    if (std::holds_alternative<double>(item))
-        return std::to_string(*get_float(item));
-
-    if (std::holds_alternative<bool>(item))
-        return (get_bool(item) ? "true" : "false");
-
-    return *get_string(item);
+    return ret;
 }
 
-int64_t Pin::colors_to_int(const float colors[4])
+uint64_t Pin::colors_to_int(const ImVec4& colors)
 {
-    ImVec4 vec(colors[0], colors[1], colors[2], colors[3]);
-    ImColor clr(vec);
+    ImColor clr(colors);
     return ImU32(clr);
 }
 
-uint32_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string)
+uint64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string)
 {
     if (clr.empty())
         return IM_COL32_WHITE;

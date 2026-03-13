@@ -17,6 +17,8 @@ void ComfyUIManager_Apple::stop_all_threads()
 bool ComfyUIManager_Apple::init()
 {
     LogF;
+    if (!ComfyUIManager::init())
+        return false;
 
     return true;
 }

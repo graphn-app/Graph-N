@@ -33,6 +33,7 @@ protected:
 
     virtual float get_additional_name_width() const { return 0.0f; }
     virtual bool do_need_calc_node_widths() const { return true; }
+    void link_cag_pins();
 
     void reset_state() override;
 

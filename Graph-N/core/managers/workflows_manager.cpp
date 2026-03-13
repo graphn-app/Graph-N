@@ -21,6 +21,8 @@ void WfsManager::stop_all_threads()
 bool WfsManager::init()
 {
     LogF;
+    if (!Manager::init())
+        return false;
 
     auto& active = g::pOptsManager->wf_active_load();
     auto wf_datas = g::pDbManager->wf_load_meta_and_purge();
@@ -46,8 +48,9 @@ void WfsManager::free()
     m_labels.clear();
 }
 
-WfInfo WfsManager::from_data(const WfData& data) const
+WfInfo WfsManager::get_info(const data::Workflow* wf) const
 {
+    auto& data = wf->get_data();
     WfInfo info;
     info.id = data.id;
     info.uuid = data.uuid;
@@ -55,13 +58,13 @@ WfInfo WfsManager::from_data(const WfData& data) const
     return info;
 }
 
-WfInfo WfsManager::create(bool skip_name)
+WfInfo WfsManager::create(bool skip_name, bool skip_db)
 {
     WfData data;
     if (!skip_name)
         data.name = "Workflow " + std::to_string(++m_wf_name_counter);
-    auto wf = create(std::move(data));
-    return from_data(wf->get_data());
+    auto wf = create(std::move(data), !skip_db);
+    return get_info(wf);
 }
 
 WfInfo WfsManager::create_copy(wid source)
@@ -70,7 +73,7 @@ WfInfo WfsManager::create_copy(wid source)
     
     WfData data;
     data.name = src_wf->get_data().name + " (copy)";
-    auto wf = create(std::move(data));
+    auto wf = create(std::move(data), true);
 
     copy_begin(source, ImVec2(0, 0));
     auto& nodes = src_wf->get_nodes();
@@ -81,38 +84,22 @@ WfInfo WfsManager::create_copy(wid source)
     copy_end(wf->get_id(), ImVec2(0, 0));
     copy_begin(0, {});
 
-    //auto& nodes = src_wf->get_nodes();
-    //for (auto& node : nodes)
-    //{
-    //    wf->add_node(node.get());
-    //}
-
-    //auto& links = src_wf->get_links();
-    //for (auto& link : links)
-    //{
-    //    auto pin_in = wf->get_pin_by_hash(link->get_input()->get_object()->get_id());
-    //    auto pin_out = wf->get_pin_by_hash(link->get_output()->get_object()->get_id());
-    //    if (pin_in != nullptr && pin_out != nullptr)
-    //    {
-    //        data::Link::link(pin_in, pin_out);
-    //    }
-    //    else
-    //    {
-    //        LogInternalLogic("Pin " << link->get_input()->get_object()->get_id() << " or " << link->get_output()->get_object()->get_id() << " not found in copied wf");
-    //    }
-    //}
-
-    return from_data(wf->get_data());
+    return get_info(wf);
 }
 
-data::Workflow* WfsManager::create(WfData&& data)
+data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db)
 {
     auto wf = std::make_unique<data::Workflow>(std::move(data));
     auto wf_ptr = wf.get();
     wf_ptr->init();
     auto& new_data = wf_ptr->get_data();
     m_wfs[new_data.id] = std::move(wf);
-    g::pDbManager->wf_update_meta(new_data);
+    if (dump_to_db)
+        g::pDbManager->wf_update_meta(new_data);
+    else
+    {
+        Log("No DB save");
+    }
     return wf_ptr;
 }
 
@@ -229,7 +216,7 @@ std::vector<WfInfo> WfsManager::get_infos(bool deleted) const
     {
         auto& data = wf.second->get_data();
         if (data.deleted && deleted || !data.deleted && !deleted)
-            ret.push_back(from_data(data));
+            ret.push_back(get_info(wf.second.get()));
     }
     return ret;
 }

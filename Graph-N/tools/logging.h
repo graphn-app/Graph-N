@@ -94,6 +94,10 @@ public:
 	LogWriter& operator << (const byte_buff& buff);
 	LogWriter& operator << (const tools::dt& dt);
 
+    LogWriter& operator << (const ImVec2& vec2);
+    LogWriter& operator << (const ImVec4& vec4);
+    LogWriter& operator << (const ImRect& rc);
+
 	LogWriter& operator << (int32_t i32);
 	LogWriter& operator << (uint32_t ui32);
 	LogWriter& operator << (int64_t i64);

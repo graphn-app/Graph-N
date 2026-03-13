@@ -50,6 +50,7 @@ private:
 
     struct Data final
     {
+        Data(data::Workflow* wf) : drawer(wf) {}
         data::NodeInstanceRo* node = nullptr;
         RoNodeDrawer drawer;
         float ideal_size = 0.0f;

@@ -1,5 +1,11 @@
 #pragma once
 
+namespace data
+{
+class NodeInstance;
+class PinInstance;
+}
+
 namespace ImGuiExNe
 {
 
@@ -9,6 +15,8 @@ struct DeferredAction final
     {
         bool is_active = false;
         bool do_open = false;
+        bool is_changed = false;
+        int64_t old_value = -1;
         ImVec2 screen_pos;
         float width = 0.0f;
         std::function<bool(bool)> draw_foo;
@@ -23,16 +31,16 @@ struct DeferredAction final
     }
     ml_input;
 
-    void* active_node = nullptr;
-    void* active_pin = nullptr;
+    data::NodeInstance* active_node = nullptr;
+    data::PinInstance* active_pin = nullptr;
 };
 
 inline DeferredAction g_combo_deferred_action;
 inline void* g_hovered_item = nullptr;
 
-void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, int32_t* current_item, const char* const items[], int32_t items_count);
+void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, int64_t* current_item, const char* const items[], int64_t items_count);
 void RenderDeferredCombo(DeferredAction& act);
 
-bool InputTextWithHint(DeferredAction& act, void* node_id, void* pin_id, const char* label, const char* hint, std::string* str);
+bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, const char* hint, std::string* str);
 
 } // namespace ImGuiExNe

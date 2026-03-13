@@ -59,7 +59,7 @@ NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0
     return ptr;
 }
 
-NodeInstance* Workflow::add_node(NodeInstance* copy_from_source)
+NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source)
 {
     const auto id = get_new_child_id();
     auto instance = std::make_unique<NodeInstance>(copy_from_source->get_object(), m_wf_data.id, id);
@@ -103,9 +103,9 @@ NodeInstance* Workflow::add_group(const ImRect& rc, const std::string& name /*= 
     return ptr;
 }
 
-PinInstance* Workflow::add_pin(NodeInstance* node, data::Pin* pin)
+PinInstance* Workflow::add_pin(NodeInstance* node, data::Pin* pin, iid instance_id /*= 0*/)
 {
-    const auto id = get_new_child_id();
+    const auto id = (0 == instance_id ? get_new_child_id() : instance_id);
     auto instance = std::make_unique<PinInstance>(node->get_instance_id(), pin, m_wf_data.id, id);
     auto ptr = instance.get();
     ptr->init();
@@ -129,13 +129,13 @@ PinInstance* Workflow::add_pin(NodeInstanceRo* node, data::Pin* pin)
     return ptr;
 }
 
-Link* Workflow::add_link()
+Link* Workflow::add_link(iid instance_id /*= 0*/)
 {
-    const auto id = get_new_child_id();
+    const auto id = (0 == instance_id ? get_new_child_id() : instance_id);
     auto link = std::make_unique<Link>(m_wf_data.id, id);
     auto ptr = link.get();
     m_links.push_back(std::move(link));
-    Log("Node added wid=" << m_wf_data.id << ", iid=" << id);
+    Log("Link added wid=" << m_wf_data.id << ", iid=" << id);
     return ptr;
 }
 
@@ -144,7 +144,7 @@ NodeInstance* Workflow::get_node_by_instance(iid id) const
     const auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
         [id](const std::unique_ptr<NodeInstance>& node)
         {
-            if (!node || !node->get_object())
+            if (!node)
                 return false;
             return node->get_instance_id() == id;
         }
@@ -199,6 +199,29 @@ PinInstance* Workflow::get_pin_by_hash(hid id) const
     return (*it).get();
 }
 
+Link* Workflow::get_link_by_instance(iid id) const
+{
+    for (auto& link : m_links)
+    {
+        if (link->get_instance_id() == id)
+            return link.get();
+    }
+    return nullptr;
+}
+
+std::list<Link*> Workflow::get_links_by_pin(const PinInstance* pin) const
+{
+    std::list<Link*> ret;
+    for (auto& link : m_links)
+    {
+        if (link->get_input() == pin || link->get_output() == pin)
+        {
+            ret.push_back(link.get());
+        }
+    }
+    return ret;
+}
+
 void Workflow::remove_node(const NodeInstance* node)
 {
     const auto n_it = std::find_if(m_nodes.begin(), m_nodes.end(),
@@ -217,7 +240,7 @@ void Workflow::remove_node(const NodeInstance* node)
 
     const auto remove_pins = [this](const std::vector<PinInstance*>& pins)
     {
-        for (auto& pin : pins)
+        for (auto pin : pins)
         {
             remove_pin(pin);
         }
@@ -228,7 +251,7 @@ void Workflow::remove_node(const NodeInstance* node)
 
     //TODO
 //    if (!m_invalidation_state)
-        m_nodes.erase(n_it);
+    m_nodes.erase(n_it);
 }
 
 void Workflow::remove_node(const NodeInstanceRo* node)
@@ -249,7 +272,7 @@ void Workflow::remove_node(const NodeInstanceRo* node)
 
     const auto remove_pins = [this](const std::vector<PinInstance*>& pins)
     {
-        for (auto& pin : pins)
+        for (auto pin : pins)
         {
             remove_pin(pin);
         }
@@ -263,26 +286,10 @@ void Workflow::remove_node(const NodeInstanceRo* node)
 
 void Workflow::remove_pin(const PinInstance* pin)
 {
-    const auto remove_links = [this](const PinInstance* pin)
+    if (pin->state().links > 0)
     {
-        for (auto l_it = m_links.begin(); l_it != m_links.end(); )
-        {
-            auto link = l_it->get();
-            if (link->get_input() == pin || link->get_output() == pin)
-            {
-                link->unlink();
-                l_it = m_links.erase(l_it);
-
-                if (pin->m_state->links == 0)
-                    break;
-            }
-            else
-                ++l_it;
-        }
-    };
-
-    if (pin->m_state->links > 0)
-        remove_links(pin);
+        LogInternalLogic("Links must be removed before pin delete");
+    }
 
     auto it = std::find_if(m_pins.begin(), m_pins.end(), [pin](const std::unique_ptr<PinInstance>& ptr) { return ptr.get() == pin; });
     if (it == m_pins.end())

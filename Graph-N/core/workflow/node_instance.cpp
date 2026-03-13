@@ -23,7 +23,7 @@ void NodeInstance::init(const std::string& select)
 
     const auto add_pins = [this, wf, &select](const std::vector<Pin*>& source, std::vector<PinInstance*>& dest)
     {
-        for (auto& pin : source)
+        for (auto pin : source)
         {
             auto pin_instance = wf->add_pin(this, pin);
             if (!select.empty())
@@ -33,7 +33,7 @@ void NodeInstance::init(const std::string& select)
                 {
                     if (ptrs[i] == select)
                     {
-                        pin_instance->m_state->combo_index = i;
+                        pin_instance->state().value = int64_t(i);
                         break;
                     }
                 }
@@ -46,6 +46,8 @@ void NodeInstance::init(const std::string& select)
     add_pins(m_object->optional.pins, m_input);
     add_pins(m_object->hidden.pins, m_input);
     add_pins(m_object->output, m_output);
+
+    link_cag_pins();
 }
 
 void NodeInstance::init(const NodeInstance* copy_from_node)
@@ -53,9 +55,8 @@ void NodeInstance::init(const NodeInstance* copy_from_node)
     NodeInstanceBase::init();
 
     m_rc = copy_from_node->m_rc;
-    if (copy_from_node->m_group)
-        m_rc.Max.y -= ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 4;
-    m_clr_custom = copy_from_node->m_clr_custom;
+  //  if (copy_from_node->m_group)
+  //      m_rc.Max.y -= ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 4;
     m_clr_node = copy_from_node->m_clr_node;
     m_clr_group = copy_from_node->m_clr_group;
     m_clr_head = copy_from_node->m_clr_head;
@@ -73,20 +74,24 @@ void NodeInstance::init(const NodeInstance* copy_from_node)
 
     const auto add_pins = [this, wf](const std::vector<PinInstance*>& source, std::vector<PinInstance*>& dest)
     {
-        for (auto& pin : source)
+        for (auto pin : source)
         {
             auto pin_instance = wf->add_pin(this, pin->get_object());
-            *pin_instance->m_state = *pin->m_state;
-            pin_instance->m_state->links = 0;
-            pin_instance->m_state->converted = false;
-            pin_instance->m_state->type = pin->get_object()->def_state.type;
-            pin_instance->m_state->type_str = pin->get_object()->def_state.type_str;
+            auto& state = pin_instance->state();
+            state = pin->state();
+            state.links = 0;
+            state.converted = false;
+            state.type = pin->get_object()->def_state.type;
+            state.type_str = pin->get_object()->def_state.type_str;
             dest.push_back(pin_instance);
         }
     };
 
     add_pins(copy_from_node->m_input, m_input);
     add_pins(copy_from_node->m_output, m_output);
+
+    link_cag_pins();
+}
 }
 
 void NodeInstance::reset_state()
@@ -122,6 +127,7 @@ void NodeInstance::pin(bool pin)
     w_name = -1.0f;
     m_saved_width = -1.0f;
     m_pinned = pin;
+    m_pinned_set = false;
 }
 
 void NodeInstance::set_mode(NodeMode mode)
@@ -140,8 +146,6 @@ void NodeInstance::toggle_expanded()
 
 void NodeInstance::set_group_color(ImVec4 clr)
 {
-    m_clr_custom = true;
-
     clr.w = 0.3f;
     m_clr_group = ImGui::ColorConvertFloat4ToU32(clr);
 
@@ -155,9 +159,8 @@ void NodeInstance::set_group_color(ImVec4 clr)
 
 void NodeInstance::set_node_color(const ImVec4& clr)
 {
-    m_clr_custom = true;
     m_clr_node = clr;
-    m_clr_head = ImGuiEx::decrease_brightness(ImGui::ColorConvertFloat4ToU32(m_clr_node));            
+    m_clr_head = ImGuiEx::decrease_brightness(ImGui::ColorConvertFloat4ToU32(m_clr_node));
 }
 
 void NodeInstance::reset_to_default_colors()
@@ -168,10 +171,7 @@ void NodeInstance::reset_to_default_colors()
     }
     else
     {
-        m_clr_custom = false;
-        m_clr_node = {};
-        m_clr_head = 0;
-        m_clr_group_capt = 0;
+        set_node_color(ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBodyBg)));
     }
 }
 

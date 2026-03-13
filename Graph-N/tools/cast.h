@@ -152,9 +152,15 @@ constexpr void* to_void(T param)
 }
 
 template <typename T>
-constexpr std::uintptr_t to_ptr(T* param)
+constexpr std::uintptr_t to_ptr(const T* param)
 {
     return std::uintptr_t(param);
+}
+
+template <typename T>
+constexpr const T* ptrs(const void* param)
+{
+    return reinterpret_cast<const T*>(param);
 }
 
 template <typename T>
@@ -164,15 +170,21 @@ constexpr T* ptrs(void* param)
 }
 
 template <typename T>
-constexpr T* ptrs(std::uintptr_t param)
+constexpr T* ptrs(const std::uintptr_t param)
 {
     return reinterpret_cast<T*>(param);
 }
 
 template <typename T>
-constexpr T from_ptr(void* param)
+constexpr T from_ptr(const void* param)
 {
     return static_cast<T>(to_ptr(param));
+}
+
+template <typename DEST, typename SRC>
+constexpr DEST dynamic(SRC* param)
+{
+    return dynamic_cast<DEST>(param);
 }
 
 #define CAST_HELPER(NAME, TYPE) \

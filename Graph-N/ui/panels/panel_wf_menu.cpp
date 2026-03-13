@@ -75,11 +75,13 @@ bool PanelWorkflow::context_menu_handler()
             m_menu_objs.click_pos = m_drawer.get_mouse_pos();
 
             auto nodes = m_drawer.get_selected_nodes();
-            if (!m_drawer.is_node_selected(node->ed()) || 1 == nodes.size())
+            if (!m_drawer.is_node_selected(node->ed()))
             {
                 m_drawer.select_node(node->ed(), false);
+                nodes = m_drawer.get_selected_nodes();
+
                 if (node->m_group)
-                    m_menu_objs.groups.insert({ node, m_drawer.get_nodes_in_group(node, m_nodes) });
+                    m_menu_objs.groups.insert({ node, m_drawer.get_nodes_in_group(node, m_wf->get_nodes()) });
                 else
                     m_menu_objs.nodes.insert(node);
                 m_context_menu_type = node->m_group ? MenuType::Group : MenuType::Node;
@@ -91,7 +93,7 @@ bool PanelWorkflow::context_menu_handler()
                 {
                     if (node_it->m_group)
                     {
-                        m_menu_objs.groups.insert({ node_it, m_drawer.get_nodes_in_group(node_it, m_nodes) });
+                        m_menu_objs.groups.insert({ node_it, m_drawer.get_nodes_in_group(node_it, m_wf->get_nodes()) });
                     }
                     else
                     {
@@ -186,10 +188,10 @@ bool PanelWorkflow::show_context_menu()
 }
 
 bool PanelWorkflow::show_canvas_menu()
-{
+{    
     bool close = false;
     
-    ImGui::MenuItem(g::pWfsManager->get_data(m_wf).name.c_str(), nullptr, nullptr, false);
+    ImGui::MenuItem(m_wf->get_data().name.c_str(), nullptr, nullptr, false);
     ImGui::Separator();
     if (ImGui::BeginMenu("Add node##allnodes"))
     {
@@ -223,22 +225,22 @@ bool PanelWorkflow::show_canvas_menu()
     ImGui::Separator();
     if (ImGui::MenuItem("Paste", nullptr, nullptr, g::pWfsManager->copy_has_data()))
     {
-        g::pWfsManager->copy_end(m_wf, m_menu_objs.click_pos);
+        g::pWfsManager->copy_end(m_wf->get_id(), m_menu_objs.click_pos);
         close = true;
     }
     if (ImGui::MenuItem("Select all"))
     {
         m_drawer.select_node({}, false);
-        for (auto node : m_nodes)
+        for (auto& node : m_wf->get_nodes())
         {
             m_drawer.select_node(node->ed(), true);
         }
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Duplicate workflow", nullptr, nullptr, !m_nodes.empty()))
+    if (ImGui::MenuItem("Duplicate workflow", nullptr, nullptr, !m_wf->get_nodes().empty()))
     {
-        g::pFlow->wf_create_copy_from(m_wf, m_drawer.get_viewport_rect(), m_drawer.get_zoom());
+        g::pFlow->wf_create_copy_from(m_wf->get_id(), m_drawer.get_viewport_rect(), m_drawer.get_zoom());
         close = true;
     }
     if (ImGui::MenuItem("Reset workflow window position"))
@@ -324,7 +326,7 @@ bool PanelWorkflow::show_node_menu()
     }
     if (ImGui::MenuItem("Copy"))
     {
-        g::pWfsManager->copy_begin(m_wf, {});
+        g::pWfsManager->copy_begin(m_wf->get_id(), {});
         g::pWfsManager->copy_add(node);
         close = true;
     }
@@ -345,7 +347,7 @@ bool PanelWorkflow::show_node_menu()
     if (ImGui::BeginMenu("Color"))
     {
         bool reset = false;
-        if (show_colors_menu(close, reset, node->m_clr_custom, true, node->m_clr_node))
+        if (show_colors_menu(close, reset, true, node->m_clr_node))
         {
             if (reset)
             {
@@ -429,7 +431,7 @@ bool PanelWorkflow::show_group_menu()
     }
     if (ImGui::MenuItem("Copy"))
     {
-        g::pWfsManager->copy_begin(m_wf, {});
+        g::pWfsManager->copy_begin(m_wf->get_id(), {});
         g::pWfsManager->copy_add(group);
         close = true;
     }
@@ -443,7 +445,7 @@ bool PanelWorkflow::show_group_menu()
             ImGui::Separator();
         }
         bool reset = false;
-        if (show_colors_menu(close, reset, true, for_all, ImGui::ColorConvertU32ToFloat4(group->m_clr_group)))
+        if (show_colors_menu(close, reset, for_all, ImGui::ColorConvertU32ToFloat4(group->m_clr_group)))
         {
             if (reset)
             {
@@ -508,7 +510,7 @@ bool PanelWorkflow::show_multinode_menu()
     }
     if (ImGui::MenuItem("Copy"))
     {
-        g::pWfsManager->copy_begin(m_wf, {});
+        g::pWfsManager->copy_begin(m_wf->get_id(), {});
         for (auto node : m_menu_objs.nodes)
         {
             g::pWfsManager->copy_add(node);
@@ -629,7 +631,7 @@ bool PanelWorkflow::show_multigroup_menu()
     }
     if (ImGui::MenuItem("Copy"))
     {
-        g::pWfsManager->copy_begin(m_wf, {});
+        g::pWfsManager->copy_begin(m_wf->get_id(), {});
         for (auto& group : m_menu_objs.groups)
         {
             g::pWfsManager->copy_add(group.first);
@@ -658,7 +660,7 @@ bool PanelWorkflow::show_multigroup_menu()
             ImGui::Separator();
         }
         bool reset = false;
-        if (show_colors_menu(close, reset, true, for_all, ImGui::ColorConvertU32ToFloat4(m_menu_objs.groups.begin()->first->m_clr_group)))
+        if (show_colors_menu(close, reset, for_all, ImGui::ColorConvertU32ToFloat4(m_menu_objs.groups.begin()->first->m_clr_group)))
         {
             for (const auto& [group, nodes] : m_menu_objs.groups)
             {
@@ -711,7 +713,7 @@ bool PanelWorkflow::show_multiobj_menu()
     }
     if (ImGui::MenuItem("Copy"))
     {
-        g::pWfsManager->copy_begin(m_wf, {});
+        g::pWfsManager->copy_begin(m_wf->get_id(), {});
         for (auto node : m_menu_objs.nodes)
         {
             g::pWfsManager->copy_add(node);
@@ -736,7 +738,7 @@ bool PanelWorkflow::show_multiobj_menu()
     if (ImGui::BeginMenu("Color"))
     {
         bool reset = false;
-        if (show_colors_menu(close, reset, true, false, ImGui::ColorConvertU32ToFloat4(m_menu_objs.groups.begin()->first->m_clr_group)))
+        if (show_colors_menu(close, reset, false, ImGui::ColorConvertU32ToFloat4(m_menu_objs.groups.begin()->first->m_clr_group)))
         {
             for (const auto& [group, nodes] : m_menu_objs.groups)
             {
@@ -773,7 +775,7 @@ bool PanelWorkflow::show_pin_menu()
     auto pin = *m_menu_objs.pins.begin();
     bool close = false;
 
-    if (ImGui::MenuItem("Unlink", nullptr, nullptr, pin->m_state->links > 0))
+    if (ImGui::MenuItem("Unlink", nullptr, nullptr, pin->state().links > 0))
     {
         unlink(pin);
         close = true;
@@ -784,7 +786,7 @@ bool PanelWorkflow::show_pin_menu()
         m_drawer.rename_pin(pin);
         close = true;
     }
-    if (ImGui::MenuItem("Reset slot name", nullptr, nullptr, !pin->get_object()->is_widget() && pin->m_state->name != pin->get_object()->def_state.name))
+    if (ImGui::MenuItem("Reset slot name", nullptr, nullptr, !pin->get_object()->is_widget() && pin->state().name != pin->get_object()->def_state.name))
     {
         pin->m_state->name = pin->get_object()->def_state.name;
         pin->get_object()->w_name = ImGui::CalcTextSize(pin->m_state->name.c_str()).x;
@@ -841,7 +843,7 @@ bool PanelWorkflow::show_new_node_menu()
     auto node_inst = *m_menu_objs.nodes.begin();
 
     m_fmt_buffer.clear();
-    fmt::format_to(std::back_inserter(m_fmt_buffer), "{} [{}]", node_inst->get_name(), pin_inst->m_state->type_str);
+    fmt::format_to(std::back_inserter(m_fmt_buffer), "{} [{}]", node_inst->get_name(), pin_inst->state().type_str);
     m_fmt_buffer.push_back('\0');
 
     ImGui::MenuItem(m_fmt_buffer.data(), nullptr, nullptr, false);
@@ -850,7 +852,7 @@ bool PanelWorkflow::show_new_node_menu()
     bool close = false;
 
     bool input = pin_inst->get_object()->input;
-    auto node = show_nodes_menu(input ? "" : pin_inst->m_state->type_str, input ? pin_inst->m_state->type_str : "");
+    auto node = show_nodes_menu(input ? "" : pin_inst->state().type_str, input ? pin_inst->state().type_str : "");
     if (node != nullptr)
     {
         close = true;
@@ -868,9 +870,9 @@ bool PanelWorkflow::show_new_node_menu()
         {
             for (auto pin : oppo)
             {
-                if (pin->m_state->type_hash == pin_inst->m_state->type_hash)
+                if (pin->state().type_hash == pin_inst->state().type_hash)
                 {
-                    if (pin_inst->m_state->links > 0 && pin_inst->get_object()->input)
+                    if (pin_inst->state().links > 0 && pin_inst->get_object()->input)
                         unlink(pin_inst);
 
                     data::Link::link(pin, pin_inst);
@@ -885,7 +887,7 @@ bool PanelWorkflow::show_new_node_menu()
             {
                 if (pin->get_object()->type_any)
                 {
-                    if (pin_inst->m_state->links > 0 && pin_inst->get_object()->input)
+                    if (pin_inst->state().links > 0 && pin_inst->get_object()->input)
                         unlink(pin_inst);
 
                     data::Link::link(pin, pin_inst);
@@ -900,7 +902,7 @@ bool PanelWorkflow::show_new_node_menu()
 
 ////////////////////////////////
 
-bool PanelWorkflow::show_colors_menu(bool& close, bool& reset, bool use_custom, bool show_alpha, const ImVec4& init)
+bool PanelWorkflow::show_colors_menu(bool& close, bool& reset, bool show_alpha, const ImVec4& init)
 {
     const std::pair<ImU32, const char*> colors[] =
     {
@@ -918,7 +920,7 @@ bool PanelWorkflow::show_colors_menu(bool& close, bool& reset, bool use_custom, 
     reset = close = false;
     bool ret = false;
 
-    if (ImGui::MenuItem("Reset to default", nullptr, nullptr, use_custom))
+    if (ImGui::MenuItem("Reset to default"))
     {
         reset = close = true;
         return true;
@@ -942,15 +944,7 @@ bool PanelWorkflow::show_colors_menu(bool& close, bool& reset, bool use_custom, 
     ImGui::Spacing();
     if (m_color_buff[0] < 0.0f)
     {
-        if (use_custom)
-        {
-            m_color_buff[0] = init.x; m_color_buff[1] = init.y; m_color_buff[2] = init.z; m_color_buff[3] = init.w;
-        }
-        else
-        {
-            auto vec = ImGui::ColorConvertU32ToFloat4(m_drawer.get_default_node_color());
-            m_color_buff[0] = vec.x; m_color_buff[1] = vec.y; m_color_buff[2] = vec.z; m_color_buff[3] = vec.w;
-        }
+        m_color_buff[0] = init.x; m_color_buff[1] = init.y; m_color_buff[2] = init.z; m_color_buff[3] = init.w;
     }
     if (ImGui::ColorPicker4("###Background color", m_color_buff, (show_alpha ? ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview : 0) | ImGuiColorEditFlags_DefaultOptions_))
     {

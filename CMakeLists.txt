@@ -213,6 +213,7 @@ target_precompile_headers(Graph-N PRIVATE "Graph-N/pch.h")
 if(MSVC)
     # Force main() entry point even for GUI subsystem (fixes linker error in Release)
     target_link_options(Graph-N PRIVATE "/ENTRY:mainCRTStartup")
+	target_link_options(Graph-N PRIVATE "/IGNORE:4099")
 
     # STRICT MODE: Warnings as Errors (/WX), High Warning Level (/W4)
     target_compile_options(Graph-N PRIVATE /W4 /WX /utf-8)

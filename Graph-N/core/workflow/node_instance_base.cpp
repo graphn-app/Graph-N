@@ -3,6 +3,7 @@
 #include "core/workflow/pin_instance.h"
 #include "core/managers/nodes_manager.h"
 #include "core/data/node.h"
+#include "core/data/pin.h"
 
 namespace data
 {
@@ -65,6 +66,27 @@ void NodeInstanceBase::set_name(std::string name)
 Node* NodeInstanceBase::find_obj(hid obj_id) const
 {
     return g::pNodesManager->find_node(obj_id);
+}
+
+void NodeInstanceBase::link_cag_pins()
+{
+    for (auto it = m_input.begin(); it != m_input.end(); ++it)
+    {
+        auto pin = *it;
+        if (pin->get_object()->cag_require)
+        {
+            auto cag = *++it;
+            if (!cag->get_object()->cag_pin)
+            {
+                LogInternalLogic("Wrong cag pins order");
+            }
+            else
+            {
+                pin->state().cag = cag->get_instance_id();
+                cag->state().cag = pin->get_instance_id();
+            }
+        }
+    }
 }
 
 float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon)

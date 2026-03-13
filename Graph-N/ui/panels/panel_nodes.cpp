@@ -17,6 +17,7 @@ namespace ui
 PanelNodes::PanelNodes(PanelNodeInspector* inspector)
     : PanelBase(DlgObj::PanelNodes, "Node Library")
     , m_inspector(inspector)
+    , m_tt_node_drawer(m_wf)
 {}
 
 PanelNodes::~PanelNodes()
@@ -30,7 +31,7 @@ void PanelNodes::init()
     PanelBase::init();
     data()->buffer.resize(PanelNodesData::_buf_count);
 
-    auto wf_id = g::pWfsManager->create(true /*skip_name*/).id;
+    auto wf_id = g::pWfsManager->create(true /*skip_name*/, false /*skip_db*/).id;
     m_wf = g::pWfsManager->access(wf_id);
     g::pWfsManager->set_read_only(wf_id);
 

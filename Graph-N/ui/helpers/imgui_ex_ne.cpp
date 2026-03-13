@@ -1,5 +1,7 @@
 
 #include "ui/helpers/imgui_ex_ne.h"
+#include  "core/workflow/node_instance.h"
+#include  "core/workflow/pin_instance.h"
 #include "imgui_node_editor.h"
 
 namespace ImGuiExNe
@@ -7,7 +9,7 @@ namespace ImGuiExNe
 
 namespace ed = ax::NodeEditor;
 
-void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, int32_t* current_item, const char* const items[], int32_t items_count)
+void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, int64_t* current_item, const char* const items[], int64_t items_count)
 {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -34,8 +36,8 @@ void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, 
     bool hovered = false, held = false, popup_open = false;
     if (ImGui::ButtonBehavior(bb, id, &hovered, &held))
     {
-        act.active_node = node_id;
-        act.active_pin = pin_id;
+        act.active_node = node;
+        act.active_pin = pin;
 
         act.combo.is_active = true;
         act.combo.do_open = true;
@@ -51,7 +53,10 @@ void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, 
             ImGui::SetNextWindowSizeConstraints(ImVec2(act.combo.width, 0), ImVec2(FLT_MAX, 300));
 
             if (do_open)
+            {
                 ImGui::OpenPopup("##{592DCC05-159B-44BC-B96C-49FE4643D127}");
+                act.combo.old_value = *data::Pin::get_int(act.active_pin->state().value);
+            }
             popup_open = ImGui::BeginPopup("##{592DCC05-159B-44BC-B96C-49FE4643D127}");
             if (popup_open)
             {
@@ -61,6 +66,7 @@ void Combo(DeferredAction& act, void* node_id, void* pin_id, const char* label, 
                     if (ImGui::Selectable(items[i], is_selected))
                     {
                         *current_item = i;
+                        act.combo.is_changed = true;
                         ImGui::CloseCurrentPopup();
                     }
                     if (is_selected)
@@ -107,7 +113,7 @@ void RenderDeferredCombo(DeferredAction& act)
     }
 }
 
-bool InputTextWithHint(DeferredAction& act, void* node_id, void* pin_id, const char* label, const char* hint, std::string* str)
+bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, const char* hint, std::string* str)
 {
     ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;
@@ -129,9 +135,8 @@ bool InputTextWithHint(DeferredAction& act, void* node_id, void* pin_id, const c
 
     if (pressed)
     {
-        // act.active_node = node_id;
-        act.active_pin = pin_id;
-        act.active_node = node_id;
+        act.active_pin = pin;
+        act.active_node = node;
         act.ml_input.is_active = true;
         act.ml_input.buffer = str;
         act.ml_input.hint = hint;

@@ -151,6 +151,10 @@ DbMetadata DbManager::read_db_metadata()
 
 bool DbManager::init()
 {
+    LogF;
+    if (!Manager::init())
+        return false;
+
     auto path = fs::get_root_directory_path();
     path /= APP_CAPTION_LOW ".db";
 

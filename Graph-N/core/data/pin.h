@@ -89,11 +89,8 @@ struct PinState final
     size_t type_hash = 0;
 
     std::string name;
-
     primitive value;            // current value, if widget
-    int32_t combo_index = 0;     // combo-list current selection
-    float colors[4];            // for color widget
-    int32_t control_after_generate_value = ControlAfterGenerate::CAGRandomize; // current seed state
+    iid cag = 0;
 };
 
 struct Pin final : public base::HashID
@@ -112,11 +109,13 @@ public:
     static inline bool* get_bool(primitive& value) { return std::get_if<bool>(&value); }
     static inline std::string* get_string(primitive& value) { return std::get_if<std::string>(&value); }
 
+    static std::string any_to_string(const primitive& item);
+
     void initialize(const std::string& type_as_string);
     void finalize();
 
-    static uint32_t color_to_val(const std::string& clr, bool& alpha_in_string);
-    static int64_t colors_to_int(const float colors[4]);
+    static uint64_t color_to_val(const std::string& clr, bool& alpha_in_string);
+    static uint64_t colors_to_int(const ImVec4& colors);
 
     static PinShape get_shape(PinType type);
 
@@ -174,7 +173,6 @@ public:
     bool display_as_number = false;
     bool display_as_color = false;
     bool display_as_slider = false;
-    bool control_after_generate = false;
 
     // double
     std::optional<double> round;
@@ -191,11 +189,14 @@ public:
     // color
     bool alpha_enabled = true;
 
+    // control after generate
+    bool cag_require = false;
+    bool cag_pin = false;
+
 private:
     static const std::unordered_map<std::string, PinType> pin_type_map;
 
 private:
-    static std::string primitive_to_string(primitive& item);
     void generate_pin_color();
     void init_defaults();
     void precision_to_string();

@@ -17,11 +17,14 @@ public:
 
     inline iid get_parent_node() const { return m_parent_node; }
 
+    inline PinState& state() { return m_state; }
+    inline const PinState& state() const { return m_state; }
+
 protected:
     data::Pin* find_obj(hid obj_id) const override;
 
-public:
-    std::unique_ptr<PinState> m_state;
+private:
+    PinState m_state;
     iid m_parent_node = 0;
 };
 

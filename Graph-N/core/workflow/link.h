@@ -13,7 +13,7 @@ public:
     ~Link();
 
     static bool can_link(const PinInstance* p1, const PinInstance* p2);
-    static Link* link(PinInstance* p1, PinInstance* p2);
+    static Link* link(PinInstance* p1, PinInstance* p2, iid instance_id = 0);
 
     inline const PinInstance* get_input() const { return m_input; }
     inline const PinInstance* get_output() const { return m_output; }
@@ -33,8 +33,8 @@ public:
 private:
     wid m_workflow_id = 0;
     iid m_iid = 0;
-    const PinInstance* m_input = nullptr;
-    const PinInstance* m_output = nullptr;
+    PinInstance* m_input = nullptr;
+    PinInstance* m_output = nullptr;
 
     EdType m_ed;
 };

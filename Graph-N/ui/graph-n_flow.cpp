@@ -724,7 +724,7 @@ void GraphN_Flow::on_menu_wf(PanelWorkflow* wf_panel)
 // WF public ->
 void GraphN_Flow::wf_create()
 {
-    auto info = g::pWfsManager->create(false /*skip_name*/);
+    auto info = g::pWfsManager->create(false /*skip_name*/, false /*skip_db*/);
     g::pWfsManager->set_active(info.id);
     auto panel = create_wf_panel(info);
     activate_wf_panel(panel);
@@ -745,9 +745,9 @@ void GraphN_Flow::wf_rebuild(wid id)
 {
     for (auto& panel : m_panels_wf)
     {
-        if (panel->get_workflow() == id)
+        if (panel->get_workflow()->get_id() == id)
         {
-            panel->handle_new_nodes();
+            panel->select_new_nodes();
             break;
         }
     }
@@ -756,7 +756,7 @@ void GraphN_Flow::wf_rebuild(wid id)
 void GraphN_Flow::wf_activate(wid id)
 {
     if (0 == id && !m_panels_wf.empty())
-        id = m_panels_wf.begin()->get()->get_workflow();
+        id = m_panels_wf.begin()->get()->get_workflow()->get_id();
 
     g::pWfsManager->set_active(id);
     auto panel = find_wf_panel(id);
@@ -823,14 +823,14 @@ void GraphN_Flow::wf_add_node_to_active_panel(data::Node* node, const std::strin
 {
     if (nullptr == m_wf_focused)
         g::pFlow->wf_create();
-    m_wf_focused->add_node(node, select, {});
+    m_wf_focused->get_action()->add_node(node, select, {});
 }
 
 void GraphN_Flow::wf_locate_node(wid id, data::NodeInstance* node)
 {
     wf_activate(id);
     if (m_wf_focused != nullptr)
-        m_wf_focused->locale_node(node);
+        m_wf_focused->locate_node(node);
 }
 
 // <- WF public
@@ -859,7 +859,7 @@ PanelWorkflow* GraphN_Flow::find_wf_panel(wid id) const
 {
     for (const auto& panel : m_panels_wf)
     {
-        if (panel->get_workflow() == id)
+        if (panel->get_workflow()->get_id() == id)
             return panel.get();
     }
     return nullptr;
@@ -886,7 +886,7 @@ void GraphN_Flow::activate_wf_panel(PanelWorkflow* wf_panel)
         if (wf_panel != nullptr)
         {
             wf_panel->set_active(true);
-            activate_txt_panels(wf_panel->get_workflow());
+            activate_txt_panels(wf_panel->get_workflow()->get_id());
         }
 
         m_wf_focused = wf_panel;
@@ -898,7 +898,7 @@ void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
     wf_panel->stop_all_threads();
     m_all_dialogs.erase(wf_panel);
 
-    clear_txt_panels(wf_panel->get_workflow());
+    clear_txt_panels(wf_panel->get_workflow()->get_id());
     if (m_panels_wf.empty())
         destroy_txt_panels();
 
@@ -1206,7 +1206,7 @@ void GraphN_Flow::show_panel_wf()
         }
         else if (focused && panel.get() != m_wf_focused)
         {
-            wf_activate(panel->get_workflow());
+            wf_activate(panel->get_workflow()->get_id());
         }
     }
 }

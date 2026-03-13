@@ -32,7 +32,7 @@ void PanelWorkflow::stop_all_threads()
 void PanelWorkflow::free()
 {
     LogF;
-    m_wf = 0;
+    m_wf = nullptr;
     m_drawer.free();
 }
 
@@ -41,70 +41,28 @@ void PanelWorkflow::init()
     LogF;
     PanelBase::init();
 
-    m_nodes.reserve(100);
-    m_drawer.init(m_wf);
+    m_drawer.init();
 
-    auto wf = g::pWfsManager->access(m_wf);
-
-    auto& nodes = wf->get_nodes();
+    auto& nodes = m_wf->get_nodes();
     for (auto& node : nodes)
     {
         node->reset_state();
 
         if (!node->m_group)
             node->calc_node_width(false, false);
-        m_nodes.push_back(node.get());
     }
 
-    auto& links = wf->get_links();
+    auto& links = m_wf->get_links();
     for (auto& link : links)
     {
         link->reset_state();
     }
 
-    auto& pins = wf->get_pins();
+    auto& pins = m_wf->get_pins();
     for (auto& pin : pins)
     {
         pin->reset_state();
     }
-}
-
-void PanelWorkflow::handle_new_nodes()
-{
-    m_handle_new_nodes = false;
-    auto wf = g::pWfsManager->access(m_wf);
-    auto& nodes = wf->get_nodes();
-    for (auto& node : nodes)
-    {
-        bool is_new = true;
-        for (auto old_node : m_nodes)
-        {
-            if (old_node == node.get())
-            {
-                is_new = false;
-                break;
-            }
-        }
-        if (!is_new)
-            continue;
-
-        node->reset_state();
-
-        if (!node->m_group)
-            node->calc_node_width(false, false);
-        m_nodes.push_back(node.get());
-        m_handle_new_nodes = true;
-    }
-}
-
-void PanelWorkflow::restore_pos()
-{
-    m_restore_pos = true;
-}
-
-void PanelWorkflow::rename_panel(const std::string& new_name)
-{
-    set_name(new_name);
 }
 
 DlgCode PanelWorkflow::show(bool& focused)
@@ -140,38 +98,29 @@ void PanelWorkflow::set_wf_view(std::optional<ImRect> wf_rc, std::optional<float
         m_drawer.set_zoom(wf_zoom.value());
 }
 
-data::NodeInstance* PanelWorkflow::add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos)
-{
-    auto wf = g::pWfsManager->access(m_wf);
-    auto node_inst = wf->add_node(node, (pos.has_value() ? pos.value() : ImRect(m_drawer.get_visible_pos(ImVec2(100, 100)), ImVec2(-1, -1))), select);
-    node_inst->calc_node_width(false, false);
-    m_nodes.push_back(node_inst);
-    return node_inst;
-}
-
-data::NodeInstance* PanelWorkflow::add_group(std::optional<ImRect> size)
-{
-    auto wf = g::pWfsManager->access(m_wf);
-    auto group_inst = wf->add_group(size.has_value() ? size.value() : ImRect(100, 100, -1, -1), "New group");
-    m_nodes.push_back(group_inst);
-    return group_inst;
-}
-
 void PanelWorkflow::draw_wf()
 {
     ImGuiIO& io = ImGui::GetIO();
     ImGuiConfigFlags old_flags = io.ConfigFlags;
     io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
-    m_drawer.pre_draw_all(get_panel_id(), m_nodes.size());
+    auto& nodes = m_wf->get_nodes();
+    m_drawer.pre_draw_all(get_panel_id(), nodes.size());
 
-    if (m_handle_new_nodes)
+    if (m_select_new_nodes)
         m_drawer.select_node({}, false);
 
-    for (size_t node_idx = 0; node_idx < m_nodes.size(); node_idx++)
+    for (size_t node_idx = 0; node_idx < nodes.size(); node_idx++)
     {
-        auto node = m_nodes[node_idx];
-        const bool is_new = m_handle_new_nodes && !node->ed();
+        auto node = nodes[node_idx].get();
+
+        const bool is_new = !node->ed();
+        if (is_new)
+        {
+            node->reset_state();
+            if (!node->m_group)
+                node->calc_node_width(false, false);
+        }
 
         ImGui::PushID(node);
         m_drawer.pre_draw_node(node);
@@ -182,9 +131,11 @@ void PanelWorkflow::draw_wf()
         m_drawer.post_draw_node(node);
         ImGui::PopID();
 
-        if (m_handle_new_nodes && is_new)
+        if (is_new && m_select_new_nodes)
             m_drawer.select_node(node->ed(), true);
     }
+
+    m_select_new_nodes = false;
 
     if (m_locate != nullptr)
     {
@@ -192,8 +143,7 @@ void PanelWorkflow::draw_wf()
         m_locate = nullptr;
     }
 
-    auto wf = g::pWfsManager->access(m_wf);
-    m_drawer.draw_links(wf->get_links());
+    m_drawer.draw_links(m_wf->get_links());
     m_drawer.query_new_item(
         [this](data::PinInstance* pin) { unlink(pin); },
         [this, wf](data::PinInstance* pin, const ImVec2& pt)
@@ -208,95 +158,29 @@ void PanelWorkflow::draw_wf()
             }
     );
 
-    m_handle_new_nodes = false;
-
-    m_drawer.post_draw_all([this]() { return context_menu_handler(); }, [this]() { return show_context_menu(); });
+    m_drawer.post_draw_all(
+        [this]() { return context_menu_handler(); },
+        [this]() { return show_context_menu(); },
+        [this]() { return handle_moves(); });
 
     ImGui::GetIO().ConfigFlags = old_flags;
 
     handle_dnd();
 }
 
-void PanelWorkflow::delete_node(data::NodeInstance* node)
-{
-    auto wf = g::pWfsManager->access(m_wf);
-    if (wf != nullptr)
-    {
-        for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it)
-        {
-            if (*it == node)
-            {
-                m_nodes.erase(it);
-                break;
-            }
-        }
-        wf->remove_node(node);        
-    }
-}
-
-void PanelWorkflow::delete_group(data::NodeInstance* group)
-{
-    auto wf = g::pWfsManager->access(m_wf);
-    if (wf != nullptr)
-    {
-        for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it)
-        {
-            if (*it == group)
-            {
-                m_nodes.erase(it);
-                break;
-            }
-        }
-        wf->remove_node(group);        
-    }
-}
-
-void PanelWorkflow::unlink(data::PinInstance* pin)
-{
-    auto wf = g::pWfsManager->access(m_wf);
-    auto& links = wf->get_links();
-    for (auto it = links.begin(); it != links.end(); )
-    {
-        auto& link = *it;
-        if (link->is_linked_to(pin))
-        {
-            m_drawer.delete_link(link->ed());
-            link->ed().reset();
-            delete_link(link.get());
-            it = links.begin();
-        }
-        else
-            ++it;
-    }
-}
-
-void PanelWorkflow::delete_link(data::Link* link)
-{
-    auto wf = g::pWfsManager->access(m_wf);
-    if (wf != nullptr)
-    {
-        wf->remove_link(link);
-    }
-}
-
-void PanelWorkflow::create_group(const ImRect& rc)
-{
-    add_group(rc);
-}
-
 void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstance*>>& items)
 {
     if (items.empty())
     {
-        for (auto node : m_nodes)
+        for (auto& node : m_wf->get_nodes())
         {
             if (node->m_group)
             {
-                items.insert({ node, m_drawer.get_nodes_in_group(node, m_nodes) });
+                items.insert({ node.get(), m_drawer.get_nodes_in_group(node.get(), m_wf->get_nodes()) });
             }
             else
             {
-                items.insert({ node, {} });
+                items.insert({ node.get(), {} });
             }
         }
     }

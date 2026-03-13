@@ -22,7 +22,7 @@ public:
     void free() override;
     void stop_all_threads() override;
 
-    WfInfo create(bool skip_name);
+    WfInfo create(bool skip_name, bool skip_db);
     WfInfo create_copy(wid source);
 
     data::Workflow* access(wid id) const;
@@ -34,7 +34,7 @@ public:
 
     void set_read_only(wid id);
 
-    inline WfInfo get_info(wid id) const { return from_data(find_data(id)); }
+    inline WfInfo get_info(wid id) const { return get_info(find(id)); }
     inline WfData& get_data(wid id) const { return find_data(id); }
 
     void update_name(wid id, const std::string& name);
@@ -67,10 +67,10 @@ public:
     inline bool copy_has_data() const { return !m_copied_nodes.empty(); }
 
 private:
-    data::Workflow* create(WfData&& data);
+    data::Workflow* create(WfData&& data, bool dump_to_db);
     data::Workflow* find(wid id) const;
     WfData& find_data(wid id) const;
-    WfInfo from_data(const WfData& data) const;
+    WfInfo get_info(const data::Workflow* wf) const;
     std::vector<WfInfo> get_infos(bool deleted) const;
     void init_labels();
     void save_labels() const;

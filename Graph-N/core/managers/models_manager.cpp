@@ -13,6 +13,9 @@ ModelsManager::~ModelsManager()
 
 bool ModelsManager::init()
 {
+    LogF;
+    if (!Manager::init())
+        return false;
     return true;
 }
 

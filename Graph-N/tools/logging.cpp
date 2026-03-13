@@ -332,6 +332,24 @@ LogWriter& LogWriter::operator << (const tools::dt& dt)
     return *this;
 }
 
+LogWriter& LogWriter::operator << (const ImVec2& vec2)
+{
+    fmt::format_to(std::back_inserter(m_buffer), "x={}, y={}", vec2.x, vec2.y);
+    return *this;
+}
+
+LogWriter& LogWriter::operator << (const ImVec4& vec4)
+{
+    fmt::format_to(std::back_inserter(m_buffer), "x={}, y={}, z={}, w={}", vec4.x, vec4.y, vec4.z, vec4.w);
+    return *this;
+}
+
+LogWriter& LogWriter::operator << (const ImRect& rc)
+{
+    fmt::format_to(std::back_inserter(m_buffer), "Min.x={}, Min.y={}, Max.x={}, Max.y={}", rc.Min.x, rc.Min.y, rc.Max.x, rc.Max.y);
+    return *this;
+}
+
 LogWriter& LogWriter::operator << (int32_t i32)
 {
     fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), i32);
