@@ -380,23 +380,24 @@ endif()
 
 file(GLOB TEST_ONLY_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
 
-# list if files for testing
+# list of files for testing (we take all app sources)
 set(TEST_SOURCES ${GRAPHN_SOURCES})
-list(APPEND TEST_SOURCES ${TEST_ONLY_SOURCES})
 
-# exclude entry.cpp
+# exclude ONLY the entry point (main/WinMain) so it doesn't conflict with gtest_main
 list(REMOVE_ITEM TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N/entry.cpp")
 
-file(GLOB_RECURSE WIN32_MAIN_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N/*.cpp")
-list(REMOVE_ITEM TEST_SOURCES ${WIN32_MAIN_SOURCES})
-
+# Combine test files, app sources (without entry.cpp), and headers
 set(ALL_TEST_FILES ${TEST_ONLY_SOURCES} ${TEST_SOURCES} ${GRAPHN_HEADERS})
 
-# Visual Studio
+# Visual Studio source groups
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/tests" PREFIX "Test Files" FILES ${TEST_ONLY_SOURCES})
 
 # make unit test app
 add_executable(UnitTests ${ALL_TEST_FILES})
+
+if(MSVC)
+    target_compile_options(UnitTests PRIVATE /bigobj)
+endif()
 
 target_include_directories(UnitTests SYSTEM PRIVATE
 	"Graph-N"
@@ -409,10 +410,7 @@ target_include_directories(UnitTests SYSTEM PRIVATE
     "${NODE_EDITOR_DIR}"
     "${IMGUI_DIR}" 
     "${IMGUI_DIR}/backends"
-	"googletest/googletest/include"
 )
-
-target_precompile_headers(UnitTests PRIVATE "Graph-N/pch.h")
 
 target_compile_definitions(UnitTests PRIVATE 
     _CRT_SECURE_NO_WARNINGS
@@ -422,9 +420,12 @@ target_compile_definitions(UnitTests PRIVATE
 	_WIN32_WINNT=0x0A00
 	WIN32_LEAN_AND_MEAN
 	NOMINMAX
+	SKIP_DEBUG_CATCH
 )
 
-# do not link imgui and DX11
+target_precompile_headers(UnitTests PRIVATE "Graph-N/pch.h")
+
+# Link your app's dependencies PLUS Google Test
 target_link_libraries(UnitTests PRIVATE 
 	ImGuiLib
 	NodeEditorLib
@@ -433,6 +434,8 @@ target_link_libraries(UnitTests PRIVATE
 	fmt::fmt
 	Shell32
 	wbemuuid
+    gtest
+    gtest_main
 )
 
 if(WIN32)

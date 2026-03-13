@@ -105,7 +105,7 @@ private:
 class Reader final
 {
 public:
-    Reader(const Blob& buffer);
+    explicit Reader(const Blob& buffer);
     ~Reader();
 
     Reader(const Reader&) = delete;

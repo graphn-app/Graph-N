@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "core/managers/nodes_manager.h"
+#include "core/managers/nodes_parser.h"
 
 class ParserTest : public ::testing::Test
 {
@@ -17,10 +18,10 @@ public:
     {
     }
 
-    bool parse(const std::string& json)
+    bool parse(std::string&& json)
     {
         mngr::NodesParser parser;
-        parser.parse(json);
+        parser.parse(std::move(json));
 
         size_t parsed_item = 0, parse_total = 0;
         do
@@ -38,13 +39,13 @@ TEST_F(ParserTest, HandlesEmptyJson)
     bool parsed = parse("{}");
     ASSERT_TRUE(parsed);
 
-    EXPECT_EQ(g::pNodesManager->get_nodes_sorted().size(), 4);
+    EXPECT_EQ(g::pNodesManager->get_node_items_total(), 0);
 }
 
 
 TEST_F(ParserTest, HandlesCrazyInput)
 {
-    const std::string test_json =
+    std::string test_json =
     R"({
         "CrazyNode_v1": {
             "name": "CrazyNode",
@@ -69,18 +70,15 @@ TEST_F(ParserTest, HandlesCrazyInput)
     })";
 
     glog::LogGuard logger;
-    bool parsed = parse(test_json);
+    bool parsed = parse(std::move(test_json));
     ASSERT_TRUE(parsed);
 
-    auto& nodes = g::pNodesManager->get_nodes_sorted();
+    auto& nodes = g::pNodesManager->get_nodes_plain();
 
-    EXPECT_EQ(nodes.size(), 5);
-    EXPECT_EQ(nodes.count("CrazyNode"), 1);
+    EXPECT_EQ(g::pNodesManager->get_nodes_plain().size(), 1);
 
-    auto it = nodes.find("CrazyNode");
-    ASSERT_FALSE(it == nodes.end());
-
-    auto node = it->second;
+    auto node = g::pNodesManager->find_node(tools::str::hash_fnv1a("CrazyNode_v1"));
+    ASSERT_TRUE(node != nullptr);
     EXPECT_EQ(node->display_name, "🤪 Node With Emojis");
 
     bool broken_float = false;
@@ -89,22 +87,22 @@ TEST_F(ParserTest, HandlesCrazyInput)
 
     for (const auto& p : node->required.pins)
     {
-        if (p->name == "broken_float")
+        if (p->def_state.name == "broken_float")
         {
             broken_float = true;
-            EXPECT_EQ(p->type, data::PinType::FLOAT);
+            EXPECT_EQ(p->def_state.type, data::PinType::FLOAT);
             EXPECT_DOUBLE_EQ(std::get<double>(p->def), 0.0);
         }
-        else if (p->name == "weird_combo")
+        else if (p->def_state.name == "weird_combo")
         {
             weird_combo = true;
-            EXPECT_EQ(p->type, data::PinType::COMBO);
+            EXPECT_EQ(p->def_state.type, data::PinType::COMBO);
             EXPECT_GE(p->list.size(), 1);
         }
-        else if (p->name == "any_pin")
+        else if (p->def_state.name == "any_pin")
         {
             any_pin = true;
-            EXPECT_EQ(p->type, data::PinType::ANY);
+            EXPECT_EQ(p->def_state.type, data::PinType::ANY);
         }
     }
     EXPECT_TRUE(broken_float);

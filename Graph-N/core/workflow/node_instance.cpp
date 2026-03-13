@@ -344,14 +344,14 @@ bool NodeInstance::deserialize(blob::Reader& blob)
         for (auto& pin : in)
         {
             auto instance = wf->add_pin(this, pin.first, pin.second);
-            blob::Reader rd_pin = blob.pop_blob();
+            blob::Reader rd_pin = blob.pop_block();
             instance->deserialize(rd_pin);
             m_input.push_back(instance);
         }
         for (auto& pin : out)
         {
             auto instance = wf->add_pin(this, pin.first, pin.second);
-            blob::Reader rd_pin = blob.pop_blob();
+            blob::Reader rd_pin = blob.pop_block();
             instance->deserialize(rd_pin);
             m_output.push_back(instance);
         }

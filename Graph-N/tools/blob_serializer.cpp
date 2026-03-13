@@ -199,9 +199,7 @@ Writer& Writer::push(const Blob& val)
 
 Writer& Writer::push(const Writer& val)
 {
-    push(cast::to_u32((val.m_buffer->size())));
-    if (!val.m_buffer->empty())
-        push(val.m_buffer->data(), val.m_buffer->size());    
+    push(val.m_buffer->data(), val.m_buffer->size());    
     return *this;
 }
 
@@ -458,7 +456,16 @@ Block::Block(Writer& writer, bool begin_block /*= true*/)
 Block::~Block()
 {
     if (m_opened)
-        end();
+    {
+        try
+        {
+            end();
+        }
+        catch(const std::exception& ex)
+        {
+            LogWarn("Dtor: " << ex.what())
+        }
+    }
 }
 
 void Block::begin()
