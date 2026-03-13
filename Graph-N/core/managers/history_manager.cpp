@@ -485,7 +485,8 @@ void HistoryManager::pop_node_del(data::Workflow* dest_wf, const HistoryStep* st
     }
 
     const ActNodeBlob* real_step = cast::dynamic<const ActNodeBlob*>(step);
-    dest_wf->add_node(real_step->node);
+    blob::Reader reader(real_step->node);
+    dest_wf->add_node(reader);
 }
 
 void HistoryManager::pop_node_clr(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)

@@ -136,8 +136,8 @@ public:
     void push_pin_action(const data::PinInstance* pin, HistoryActionType act, HActionT&& old_val);
     void push_link_action(const data::Link* link, HistoryActionType act); // add/delete only
 
-    blob::Writer& serialize(blob::Writer& blob, wid wf_id) const;
-    void deserialize(blob::Reader& blob);
+    blob::Writer& serialize(blob::Writer& writer) const;    
+    bool deserialize(blob::Reader& reader);
 
 private:
     HistoryAction* open_action(wid wf_id, const char* action_name);
@@ -164,6 +164,7 @@ private:
     void LogAction(const HistoryAction& action, const char* state, size_t pos = 0, size_t total = 0);
     void LogStep(const HistoryStep* step, bool is_undo = false);
 
+    blob::Writer& serialize(blob::Writer& writer, wid wf_id) const;
     void serialize_action(blob::Writer& writer, const HActionT& val) const;
     HActionT deserialize_action(blob::Reader& reader);
 

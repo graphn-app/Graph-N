@@ -6,7 +6,7 @@
 #include "core/workflow/link.h"
 #include "core/workflow/workflow_action.h"
 #include "core/managers/nodes_manager.h"
-#include "core/managers/history_manager.h"
+#include "tools/blob_serializer.h"
 #include "ui/graph-n_flow.h"
 
 namespace data
@@ -24,6 +24,13 @@ Workflow::Workflow(WfData&& data)
     if (m_wf_data.uuid.empty())
         m_wf_data.uuid = base::GlobalID::uuid();
     m_wf_data.id = tools::str::crc32(m_wf_data.uuid);
+}
+
+Workflow::Workflow(const char* uuid, const char* name)
+{
+    m_wf_data.uuid = uuid;
+    m_wf_data.id = tools::str::crc32(m_wf_data.uuid);
+    m_wf_data.name = name;
 }
 
 Workflow::~Workflow()
@@ -81,11 +88,11 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source)
     return ptr;
 }
 
-NodeInstance* Workflow::add_node(const blob::Blob& blob)
+NodeInstance* Workflow::add_node(blob::Reader& reader)
 {
     auto instance = std::make_unique<NodeInstance>(nullptr, m_wf_data.id, 0);
     auto ptr = instance.get();
-    ptr->init(blob);
+    ptr->init(reader);
     m_nodes.push_back(std::move(instance));
     if (ptr->m_group)
     {
@@ -343,6 +350,71 @@ void Workflow::remove_link(const Link* link)
     {
         LogInternalMap("Link " << link->get_instance_id() << " not found");
     }
+}
+
+blob::Writer Workflow::serialize() const
+{
+    blob::Writer writer;
+    blob::Block block(writer);
+    writer
+        .push(m_wf_data.uuid)
+        .push(m_wf_data.name)
+        .push(m_last_child_id)
+    ;
+    block.end();
+
+    writer.push(cast::to_u32(m_nodes.size()));
+    for (auto& node : m_nodes)
+    {
+        block.begin();
+        node->serialize(writer);
+        block.end();
+    }
+
+    writer.push(cast::to_u32(m_links.size()));
+    for (auto& link : m_links)
+    {
+        block.begin();
+        link->serialize(writer);
+        block.end();
+    }
+
+    return writer;
+}
+
+std::unique_ptr<Workflow> Workflow::deserialize(const blob::Blob& blob)
+{
+    try
+    {
+        blob::Reader wf_reader(blob);
+        blob::Reader block = wf_reader.pop_block();
+        const auto uuid = block.pop_string();
+        const auto name = block.pop_string();
+
+        std::unique_ptr<Workflow> wf = std::make_unique<Workflow>(uuid.data(), name.data());
+        wf->m_last_child_id = block.pop_iid();
+        wf->init();
+
+        const uint32_t nodes_count = wf_reader.pop_u32();
+        for (uint32_t i = 0; i < nodes_count; i++)
+        {
+            block = wf_reader.pop_block();
+            wf->add_node(block);
+        }
+
+        const uint32_t links_count = wf_reader.pop_u32();
+        for (uint32_t i = 0; i < links_count; i++)
+        {
+            block = wf_reader.pop_block();
+            Link::deserialize(wf.get(), block);
+        }
+        return wf;
+    }
+    catch (std::exception& ex)
+    {
+        LogExcepS(ExcepCategory::Logic, ex.what());
+    }
+    return nullptr;
 }
 
 //TODO

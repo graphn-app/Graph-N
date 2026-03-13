@@ -94,12 +94,10 @@ void NodeInstance::init(const NodeInstance* copy_from_node)
     link_cag_pins();
 }
 
-void NodeInstance::init(const blob::Blob& blob)
+void NodeInstance::init(blob::Reader& reader)
 {
     NodeInstanceBase::init();
-
-    blob::Reader rd(blob);
-    deserialize(rd);
+    deserialize(reader);
 }
 
 void NodeInstance::reset_state()
@@ -208,9 +206,9 @@ bool NodeInstance::do_need_calc_node_widths() const
     return (m_expanded && !m_group);
 }
 
-blob::Writer& NodeInstance::serialize(blob::Writer& blob) const
+blob::Writer& NodeInstance::serialize(blob::Writer& writer) const
 {
-    blob
+    writer
         .push(m_hid)
         .push(m_iid)
         .push(m_wid)
@@ -227,58 +225,58 @@ blob::Writer& NodeInstance::serialize(blob::Writer& blob) const
         .push(cast::to_i32(m_mode))
     ;
 
-    blob.push(cast::to_u64(m_input.size()));
+    writer.push(cast::to_u64(m_input.size()));
     for (auto in : m_input)
     {
-        blob.push(in->get_object()->get_id());
-        blob.push(in->get_instance_id());
+        writer.push(in->get_object()->get_id());
+        writer.push(in->get_instance_id());
     }
-    blob.push(cast::to_u64(m_output.size()));
+    writer.push(cast::to_u64(m_output.size()));
     for (auto out : m_output)
     {
-        blob.push(out->get_object()->get_id());
-        blob.push(out->get_instance_id());
+        writer.push(out->get_object()->get_id());
+        writer.push(out->get_instance_id());
     }
 
     for (auto in : m_input)
     {
-        blob::Block block(blob);
-        in->serialize(blob);
+        blob::Block block(writer);
+        in->serialize(writer);
     }
     for (auto out : m_output)
     {
-        blob::Block block(blob);
-        out->serialize(blob);
+        blob::Block block(writer);
+        out->serialize(writer);
     }
 
-    return blob;
+    return writer;
 }
 
 blob::Writer NodeInstance::serialize() const
 {
-    blob::Writer blob;
-    serialize(blob);
-    return blob;
+    blob::Writer writer;
+    serialize(writer);
+    return writer;
 }
 
-bool NodeInstance::deserialize(blob::Reader& blob)
+bool NodeInstance::deserialize(blob::Reader& reader)
 {
     try
     {
-        m_hid = blob.pop_hid();
-        m_iid = blob.pop_iid();
-        m_wid = blob.pop_wid();
-        m_name = blob.pop_string();
-        m_rc = blob.pop_rect();
-        m_clr_node = blob.pop_vec4();
-        m_clr_group = blob.pop_clr();
-        m_clr_head = blob.pop_clr();
-        m_clr_group_capt = blob.pop_clr();
-        m_group = blob.pop_bool();
-        m_show_hidden = blob.pop_bool();
-        m_expanded = blob.pop_bool();
-        m_pinned = blob.pop_bool();
-        m_mode = cast::to_enum<NodeMode>(blob.pop_i32());
+        m_hid = reader.pop_hid();
+        m_iid = reader.pop_iid();
+        m_wid = reader.pop_wid();
+        m_name = reader.pop_string();
+        m_rc = reader.pop_rect();
+        m_clr_node = reader.pop_vec4();
+        m_clr_group = reader.pop_clr();
+        m_clr_head = reader.pop_clr();
+        m_clr_group_capt = reader.pop_clr();
+        m_group = reader.pop_bool();
+        m_show_hidden = reader.pop_bool();
+        m_expanded = reader.pop_bool();
+        m_pinned = reader.pop_bool();
+        m_mode = cast::to_enum<NodeMode>(reader.pop_i32());
 
         if (!m_group)
         {
@@ -319,21 +317,21 @@ bool NodeInstance::deserialize(blob::Reader& blob)
 
         std::vector<std::pair<Pin*, iid>> in, out;
 
-        auto pins = blob.pop_u64();
+        auto pins = reader.pop_u64();
         for (uint64_t i = 0; i < pins; i++)
         {
-            const auto h_id = blob.pop_hid();
-            const auto i_id = blob.pop_iid();
+            const auto h_id = reader.pop_hid();
+            const auto i_id = reader.pop_iid();
             auto pin = find_pin(h_id, true);
             if (nullptr == pin)
                 throw std::runtime_error("Serialized input Pin not found");
             in.push_back(std::make_pair(pin, i_id));
         }
-        pins = blob.pop_u64();
+        pins = reader.pop_u64();
         for (uint64_t i = 0; i < pins; i++)
         {
-            const auto h_id = blob.pop_hid();
-            const auto i_id = blob.pop_iid();
+            const auto h_id = reader.pop_hid();
+            const auto i_id = reader.pop_iid();
             auto pin = find_pin(h_id, false);
             if (nullptr == pin)
                 throw std::runtime_error("Serialized output Pin not found");
@@ -344,14 +342,14 @@ bool NodeInstance::deserialize(blob::Reader& blob)
         for (auto& pin : in)
         {
             auto instance = wf->add_pin(this, pin.first, pin.second);
-            blob::Reader rd_pin = blob.pop_block();
+            blob::Reader rd_pin = reader.pop_block();
             instance->deserialize(rd_pin);
             m_input.push_back(instance);
         }
         for (auto& pin : out)
         {
             auto instance = wf->add_pin(this, pin.first, pin.second);
-            blob::Reader rd_pin = blob.pop_block();
+            blob::Reader rd_pin = reader.pop_block();
             instance->deserialize(rd_pin);
             m_output.push_back(instance);
         }
@@ -360,8 +358,8 @@ bool NodeInstance::deserialize(blob::Reader& blob)
     catch (std::exception& ex)
     {
         LogExcep(ExcepCategory::Logic, ex.what());
-        return false;
     }
+    return false;
 }
 
 } // namespace data

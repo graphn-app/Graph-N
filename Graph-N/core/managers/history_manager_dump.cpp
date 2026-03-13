@@ -159,6 +159,17 @@ HActionT HistoryManager::deserialize_action(blob::Reader& reader)
     }
 }
 
+blob::Writer& HistoryManager::serialize(blob::Writer& writer) const
+{
+    writer.push(cast::to_u32(m_history.size()));
+    for (auto& pair : m_history)
+    {
+        blob::Block block(writer);
+        serialize(writer, pair.first);
+    }
+    return writer;
+}
+
 blob::Writer& HistoryManager::serialize(blob::Writer& writer, wid wf_id) const
 {
     const auto it = m_history.find(wf_id);
@@ -230,83 +241,98 @@ blob::Writer& HistoryManager::serialize(blob::Writer& writer, wid wf_id) const
     return writer;
 }
 
-void HistoryManager::deserialize(blob::Reader& reader)
+bool HistoryManager::deserialize(blob::Reader& reader)
 {
-    const wid wf_id = reader.pop_wid();
-    m_pos[wf_id] = reader.pop_u32();
-    const uint32_t queue_size = reader.pop_u32();
-    hqueue& queue = m_history[wf_id];
-    queue.clear();
-
-    for (uint32_t j = 0; j < queue_size; ++j)
+    try
     {
-        HistoryAction act(reader.pop_i64(), wf_id);
-        act.name = reader.pop_string();
-        act.multi_action_counter = reader.pop_i32();
-
-        const uint32_t steps_count = reader.pop_u32();
-        for (uint32_t k = 0; k < steps_count; ++k)
+        const uint32_t h_count = reader.pop_u32();
+        for (uint32_t h = 0; h < h_count; h++)
         {
-            const HistoryActionType type = cast::to_enum<HistoryActionType>(reader.pop_u8());
-            const iid id = reader.pop_iid();
+            auto wf_reader = reader.pop_block();
 
-            std::unique_ptr<HistoryStep> step;
+            const wid wf_id = wf_reader.pop_wid();
+            m_pos[wf_id] = wf_reader.pop_u32();
+            const uint32_t queue_size = wf_reader.pop_u32();
+            hqueue& queue = m_history[wf_id];
+            queue.clear();
 
-            switch (type)
+            for (uint32_t j = 0; j < queue_size; ++j)
             {
-            case HistoryActionType::NodeAdd:
-            case HistoryActionType::NodeDel:
-            {
-                std::unique_ptr<ActNodeBlob> blob_step;
-                if (HistoryActionType::NodeAdd == type)
-                    blob_step = std::make_unique<ActNodeAdd>();
-                else
-                    blob_step = std::make_unique<ActNodeDel>();
+                HistoryAction act(wf_reader.pop_i64(), wf_id);
+                act.name = wf_reader.pop_string();
+                act.multi_action_counter = wf_reader.pop_i32();
 
-                blob_step->debug_name = reader.pop_string();
-                blob_step->node = reader.pop_blob();
-                step = std::move(blob_step);
-            }
-            break;
-            case HistoryActionType::LinkAdd:
-            case HistoryActionType::LinkDel:
-            {
-                std::unique_ptr<ActLink> blob_step;
-                if (HistoryActionType::LinkAdd == type)
-                    blob_step = std::make_unique<ActLinkAdd>();
-                else
-                    blob_step = std::make_unique<ActLinkDel>();
-
-                blob_step->in = reader.pop_iid();
-                blob_step->out = reader.pop_iid();
-                step = std::move(blob_step);
-            }
-            break;
-            default:
+                const uint32_t steps_count = wf_reader.pop_u32();
+                for (uint32_t k = 0; k < steps_count; ++k)
                 {
-                    std::unique_ptr<ActOldNew> blob_step;
+                    const HistoryActionType type = cast::to_enum<HistoryActionType>(wf_reader.pop_u8());
+                    const iid id = wf_reader.pop_iid();
+
+                    std::unique_ptr<HistoryStep> step;
+
                     switch (type)
                     {
-                    case HistoryActionType::NodeRen:  blob_step = std::make_unique<ActNodeRen>(); break;
-                    case HistoryActionType::NodeRect: blob_step = std::make_unique<ActNodeRect>(); break;
-                    case HistoryActionType::NodePin:  blob_step = std::make_unique<ActNodePin>(); break;
-                    case HistoryActionType::NodeMode: blob_step = std::make_unique<ActNodeMode>(); break;
-                    case HistoryActionType::NodeClr:  blob_step = std::make_unique<ActNodeClr>(); break;
-                    case HistoryActionType::PinRen:   blob_step = std::make_unique<ActPinRen>(); break;
-                    case HistoryActionType::PinVal:   blob_step = std::make_unique<ActPinVal>(); break;
-                    default: { LogAndThrowInternalError(ExcepCategory::Logic, "Unhandled type"); }
-                    }
-                    blob_step->old_val = deserialize_action(reader);
-                    blob_step->new_val = deserialize_action(reader);
-                    step = std::move(blob_step);
-                }
-            }
+                    case HistoryActionType::NodeAdd:
+                    case HistoryActionType::NodeDel:
+                    {
+                        std::unique_ptr<ActNodeBlob> blob_step;
+                        if (HistoryActionType::NodeAdd == type)
+                            blob_step = std::make_unique<ActNodeAdd>();
+                        else
+                            blob_step = std::make_unique<ActNodeDel>();
 
-            step->id = id;
-            act.steps.push_back(std::move(step));
+                        blob_step->debug_name = wf_reader.pop_string();
+                        blob_step->node = wf_reader.pop_blob();
+                        step = std::move(blob_step);
+                    }
+                    break;
+                    case HistoryActionType::LinkAdd:
+                    case HistoryActionType::LinkDel:
+                    {
+                        std::unique_ptr<ActLink> blob_step;
+                        if (HistoryActionType::LinkAdd == type)
+                            blob_step = std::make_unique<ActLinkAdd>();
+                        else
+                            blob_step = std::make_unique<ActLinkDel>();
+
+                        blob_step->in = wf_reader.pop_iid();
+                        blob_step->out = wf_reader.pop_iid();
+                        step = std::move(blob_step);
+                    }
+                    break;
+                    default:
+                    {
+                        std::unique_ptr<ActOldNew> blob_step;
+                        switch (type)
+                        {
+                        case HistoryActionType::NodeRen:  blob_step = std::make_unique<ActNodeRen>(); break;
+                        case HistoryActionType::NodeRect: blob_step = std::make_unique<ActNodeRect>(); break;
+                        case HistoryActionType::NodePin:  blob_step = std::make_unique<ActNodePin>(); break;
+                        case HistoryActionType::NodeMode: blob_step = std::make_unique<ActNodeMode>(); break;
+                        case HistoryActionType::NodeClr:  blob_step = std::make_unique<ActNodeClr>(); break;
+                        case HistoryActionType::PinRen:   blob_step = std::make_unique<ActPinRen>(); break;
+                        case HistoryActionType::PinVal:   blob_step = std::make_unique<ActPinVal>(); break;
+                        default: { LogAndThrowInternalError(ExcepCategory::Logic, "Unhandled type"); }
+                        }
+                        blob_step->old_val = deserialize_action(wf_reader);
+                        blob_step->new_val = deserialize_action(wf_reader);
+                        step = std::move(blob_step);
+                    }
+                    }
+
+                    step->id = id;
+                    act.steps.push_back(std::move(step));
+                }
+                queue.push_back(std::move(act));
+            }
         }
-        queue.push_back(std::move(act));
+        return true;
     }
+    catch (std::exception& ex)
+    {
+        LogExcep(ExcepCategory::Logic, ex.what());
+    }
+    return false;
 }
 
 } // namespace mngr

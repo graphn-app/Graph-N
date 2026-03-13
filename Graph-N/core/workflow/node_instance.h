@@ -16,7 +16,7 @@ public:
 
     void init(const std::string& select);
     void init(const NodeInstance* copy_from_node);
-    void init(const blob::Blob& blob);
+    void init(blob::Reader& reader);
 
     const std::string& get_name() const override;
     void set_name(std::string name) override;
@@ -39,12 +39,12 @@ public:
     void reset_state() override;
 
     blob::Writer serialize() const;
-    blob::Writer& serialize(blob::Writer& blob) const;
+    blob::Writer& serialize(blob::Writer& writer) const;
 
 protected:
     float get_additional_name_width() const override;
     bool do_need_calc_node_widths() const override;
-    bool deserialize(blob::Reader& blob);
+    bool deserialize(blob::Reader& reader);
 
 public:
     bool m_pos_set = false;

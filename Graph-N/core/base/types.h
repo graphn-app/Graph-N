@@ -314,7 +314,7 @@ struct DbAppOptionData final
 struct WfData final
 {
     std::string uuid;
-    wid id = 0;     // hash of 'uuid'. Curr session only. Don't save info db
+    wid id = 0;     // hash of 'uuid'
 
     std::string name;
     std::string json;

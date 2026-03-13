@@ -2,9 +2,16 @@
 #pragma once
 #include "imgui_node_editor_edtype.h"
 
+namespace blob
+{
+class Writer;
+class Reader;
+}
+
 namespace data
 {
 class PinInstance;
+class Workflow;
 
 class Link final
 {
@@ -29,6 +36,9 @@ public:
 
     inline EdType& ed() { return m_ed; }
     inline const EdType& ed() const { return m_ed; }
+
+    blob::Writer& serialize(blob::Writer& writer) const;
+    static bool deserialize(Workflow* wf, blob::Reader& reader);
 
 private:
     wid m_workflow_id = 0;
