@@ -28,7 +28,7 @@
 # include "imgui_bezier_math.h"
 # include "imgui_canvas.h"
 
-# include "crude_json.h"
+//# include "crude_json.h"
 
 # include <vector>
 # include <string>
@@ -42,7 +42,7 @@ namespace Detail {
 
 //------------------------------------------------------------------------------
 namespace ed = ax::NodeEditor::Detail;
-namespace json = crude_json;
+//namespace json = crude_json;
 
 
 //------------------------------------------------------------------------------

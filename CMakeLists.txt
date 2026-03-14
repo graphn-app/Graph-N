@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.16)
 project(Graph-N)
 
 # ------------------------------------------------------------------------------
@@ -146,10 +146,8 @@ set(NODE_EDITOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor")
 set(NODE_EDITOR_SOURCES
     "${NODE_EDITOR_DIR}/imgui_node_editor.cpp"
     "${NODE_EDITOR_DIR}/imgui_node_editor_api.cpp"
-    "${NODE_EDITOR_DIR}/crude_json.cpp"
     "${NODE_EDITOR_DIR}/imgui_canvas.cpp"
     "${NODE_EDITOR_DIR}/misc/imgui_node_editor.natvis"
-	"${NODE_EDITOR_DIR}/misc/crude_json.natvis"
 )
 
 add_library(NodeEditorLib STATIC ${NODE_EDITOR_SOURCES})
