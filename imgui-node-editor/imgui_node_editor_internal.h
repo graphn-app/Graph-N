@@ -492,47 +492,47 @@ struct Link final: Object
 
     virtual Link* AsLink() override final { return this; }
 };
-
-struct NodeSettings
-{
-    NodeId m_ID;
-    ImVec2 m_Location;
-    ImVec2 m_Size;
-    ImVec2 m_GroupSize;
-    bool   m_WasUsed;
-
-    bool            m_Saved;
-    bool            m_IsDirty;
-    SaveReasonFlags m_DirtyReason;
-
-    NodeSettings(NodeId id)
-        : m_ID(id)
-        , m_Location(0, 0)
-        , m_Size(0, 0)
-        , m_GroupSize(0, 0)
-        , m_WasUsed(false)
-        , m_Saved(false)
-        , m_IsDirty(false)
-        , m_DirtyReason(SaveReasonFlags::None)
-    {
-    }
-
-    void ClearDirty();
-    void MakeDirty(SaveReasonFlags reason);
-
-    json::value Serialize();
-
-    static bool Parse(const std::string& string, NodeSettings& settings);
-    static bool Parse(const json::value& data, NodeSettings& result);
-};
+//
+//struct NodeSettings
+//{
+//    NodeId m_ID;
+//    ImVec2 m_Location;
+//    ImVec2 m_Size;
+//    ImVec2 m_GroupSize;
+//    bool   m_WasUsed;
+//
+//    bool            m_Saved;
+//    bool            m_IsDirty;
+//    SaveReasonFlags m_DirtyReason;
+//
+//    NodeSettings(NodeId id)
+//        : m_ID(id)
+//        , m_Location(0, 0)
+//        , m_Size(0, 0)
+//        , m_GroupSize(0, 0)
+//        , m_WasUsed(false)
+//        , m_Saved(false)
+//        , m_IsDirty(false)
+//        , m_DirtyReason(SaveReasonFlags::None)
+//    {
+//    }
+//
+//    void ClearDirty();
+//    void MakeDirty(SaveReasonFlags reason);
+//
+//    json::value Serialize();
+//
+//    static bool Parse(const std::string& string, NodeSettings& settings);
+//    static bool Parse(const json::value& data, NodeSettings& result);
+//};
 
 struct Settings
 {
     bool                 m_IsDirty;
     SaveReasonFlags      m_DirtyReason;
 
-    vector<NodeSettings> m_Nodes;
-    vector<ObjectId>     m_Selection;
+    //vector<NodeSettings> m_Nodes;
+   // vector<ObjectId>     m_Selection;
     ImVec2               m_ViewScroll;
     float                m_ViewZoom;
     ImRect               m_VisibleRect;
@@ -546,16 +546,16 @@ struct Settings
     {
     }
 
-    NodeSettings* AddNode(NodeId id);
-    NodeSettings* FindNode(NodeId id);
-    void RemoveNode(NodeId id);
+  //  NodeSettings* AddNode(NodeId id);
+  //  NodeSettings* FindNode(NodeId id);
+   // void RemoveNode(NodeId id);
 
-    void ClearDirty(Node* node = nullptr);
-    void MakeDirty(SaveReasonFlags reason, Node* node = nullptr);
+    void ClearDirty(/*Node* node = nullptr*/);
+    void MakeDirty(SaveReasonFlags reason/*, Node* node = nullptr*/);
 
-    std::string Serialize();
+   // std::string Serialize();
 
-    static bool Parse(const std::string& string, Settings& settings);
+   // static bool Parse(const std::string& string, Settings& settings);
 };
 
 struct Control
@@ -1274,13 +1274,13 @@ struct Config: ax::NodeEditor::Config
 {
     Config(const ax::NodeEditor::Config* config);
 
-    std::string Load();
-    std::string LoadNode(NodeId nodeId);
+    void Load(ImVec2& ViewScroll, float& ViewZoom, ImRect& VisibleRect);
+ //   std::string LoadNode(NodeId nodeId);
 
-    void BeginSave();
-    bool Save(const std::string& data, SaveReasonFlags flags);
-    bool SaveNode(NodeId nodeId, const std::string& data, SaveReasonFlags flags);
-    void EndSave();
+   // void BeginSave();
+    bool Save(const ImVec2& ViewScroll, float ViewZoom, const ImRect& VisibleRect);
+ //   bool SaveNode(NodeId nodeId, const std::string& data, SaveReasonFlags flags);
+   // void EndSave();
 };
 
 enum class SuspendFlags : uint8_t
@@ -1337,10 +1337,10 @@ struct EditorContext
     void SetNodeZPosition(NodeId nodeId, float z);
     float GetNodeZPosition(NodeId nodeId);
 
-    void MarkNodeToRestoreState(Node* node);
-    void UpdateNodeState(Node* node);
+    //void MarkNodeToRestoreState(Node* node);
+    //void UpdateNodeState(Node* node);
 
-    void RemoveSettings(Object* object);
+    //void RemoveSettings(Object* object);
 
     void ClearSelection();
     void SelectObject(Object* object);
@@ -1383,7 +1383,7 @@ struct EditorContext
     bool CanAcceptUserInput() const;
 
     void MakeDirty(SaveReasonFlags reason);
-    void MakeDirty(SaveReasonFlags reason, Node* node);
+    //void MakeDirty(SaveReasonFlags reason, Node* node);
 
     int CountLiveNodes() const;
     int CountLivePins() const;

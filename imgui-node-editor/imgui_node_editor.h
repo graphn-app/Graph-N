@@ -19,6 +19,7 @@
 # include <imgui_internal.h>
 # include <cstdint> // std::uintXX_t
 # include <utility> // std::move
+# include <functional>
 
 #include "imgui_node_editor_edtype.h"
 
@@ -81,25 +82,30 @@ enum class SaveReasonFlags: uint32_t
 inline SaveReasonFlags operator |(SaveReasonFlags lhs, SaveReasonFlags rhs) { return static_cast<SaveReasonFlags>(static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs)); }
 inline SaveReasonFlags operator &(SaveReasonFlags lhs, SaveReasonFlags rhs) { return static_cast<SaveReasonFlags>(static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs)); }
 
-using ConfigSaveSettings     = bool   (*)(const char* data, size_t size, SaveReasonFlags reason, void* userPointer);
-using ConfigLoadSettings     = size_t (*)(char* data, void* userPointer);
+//using ConfigSaveSettings     = bool   (*)(const char* data, size_t size, SaveReasonFlags reason, void* userPointer);
+//using ConfigLoadSettings     = size_t (*)(char* data, void* userPointer);
+//
+//using ConfigSaveNodeSettings = bool   (*)(NodeId nodeId, const char* data, size_t size, SaveReasonFlags reason, void* userPointer);
+//using ConfigLoadNodeSettings = size_t (*)(NodeId nodeId, char* data, void* userPointer);
+//
+//using ConfigSession          = void   (*)(void* userPointer);
 
-using ConfigSaveNodeSettings = bool   (*)(NodeId nodeId, const char* data, size_t size, SaveReasonFlags reason, void* userPointer);
-using ConfigLoadNodeSettings = size_t (*)(NodeId nodeId, char* data, void* userPointer);
-
-using ConfigSession          = void   (*)(void* userPointer);
+using ConfigLoadState = std::function<void(ImVec2& ViewScroll, float& ViewZoom, ImRect& VisibleRect)>;
+using ConfigSaveState = std::function<void(const ImVec2& ViewScroll, float ViewZoom, const ImRect& VisibleRect)>;
 
 struct Config
 {
     using CanvasSizeModeAlias = ax::NodeEditor::CanvasSizeMode;
 
-    const char*             SettingsFile;
-    ConfigSession           BeginSaveSession;
-    ConfigSession           EndSaveSession;
-    ConfigSaveSettings      SaveSettings;
-    ConfigLoadSettings      LoadSettings;
-    ConfigSaveNodeSettings  SaveNodeSettings;
-    ConfigLoadNodeSettings  LoadNodeSettings;
+    //const char*             SettingsFile;
+    //ConfigSession           BeginSaveSession;
+    //ConfigSession           EndSaveSession;
+    //ConfigSaveSettings      SaveSettings;
+    //ConfigLoadSettings      LoadSettings;
+    //ConfigSaveNodeSettings  SaveNodeSettings;
+    //ConfigLoadNodeSettings  LoadNodeSettings;
+    ConfigLoadState         LoadState;
+    ConfigSaveState         SaveState;
     void*                   UserPointer;
     ImVector<float>         CustomZoomLevels;
     CanvasSizeModeAlias     CanvasSizeMode;
@@ -113,13 +119,15 @@ struct Config
     bool                    DrawGrid;
 
     Config()
-        : SettingsFile("NodeEditor.json")
-        , BeginSaveSession(nullptr)
-        , EndSaveSession(nullptr)
-        , SaveSettings(nullptr)
-        , LoadSettings(nullptr)
-        , SaveNodeSettings(nullptr)
-        , LoadNodeSettings(nullptr)
+        //: SettingsFile("NodeEditor.json")
+        //, BeginSaveSession(nullptr)
+        //, EndSaveSession(nullptr)
+        //, SaveSettings(nullptr)
+        //, LoadSettings(nullptr)
+        //, SaveNodeSettings(nullptr)
+        //, LoadNodeSettings(nullptr)
+        : LoadState(nullptr)
+        , SaveState(nullptr)
         , UserPointer(nullptr)
         , CustomZoomLevels()
         , CanvasSizeMode(CanvasSizeModeAlias::FitVerticalView)
@@ -365,7 +373,7 @@ IMGUI_NODE_EDITOR_API void CenterNodeOnScreen(const EdType& edNode);
 IMGUI_NODE_EDITOR_API void SetNodeZPosition(NodeId nodeId, float z); // Sets node z position, nodes with higher value are drawn over nodes with lower value
 IMGUI_NODE_EDITOR_API float GetNodeZPosition(NodeId nodeId); // Returns node z position, defaults is 0.0f
 
-IMGUI_NODE_EDITOR_API void RestoreNodeState(NodeId nodeId);
+//IMGUI_NODE_EDITOR_API void RestoreNodeState(NodeId nodeId);
 
 IMGUI_NODE_EDITOR_API void Suspend();
 IMGUI_NODE_EDITOR_API void Resume();

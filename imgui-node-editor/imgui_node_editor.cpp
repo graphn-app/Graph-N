@@ -1556,13 +1556,13 @@ void ed::EditorContext::End()
 
     ImGui::PopID();
 
-    if (!m_CurrentAction && m_IsFirstFrame && !m_Settings.m_Selection.empty())
-    {
-        ClearSelection();
-        for (auto id : m_Settings.m_Selection)
-            if (auto object = FindObject(id))
-                SelectObject(object);
-    }
+    //if (!m_CurrentAction && m_IsFirstFrame && !m_Settings.m_Selection.empty())
+    //{
+    //    ClearSelection();
+    //    for (auto id : m_Settings.m_Selection)
+    //        if (auto object = FindObject(id))
+    //            SelectObject(object);
+    //}
 
     if (HasSelectionChanged())
         MakeDirty(SaveReasonFlags::Selection);
@@ -1605,7 +1605,7 @@ void ed::EditorContext::SetNodePosition(Node* node, const ImVec2& position)
     {
         node->m_Bounds.Translate(position - node->m_Bounds.Min);
         node->m_Bounds.Floor();
-        MakeDirty(NodeEditor::SaveReasonFlags::Position, node);
+        //MakeDirty(NodeEditor::SaveReasonFlags::Position, node);
     }
 }
 
@@ -1630,7 +1630,7 @@ void ed::EditorContext::SetGroupSize(Node* node, const ImVec2& size)
         node->m_GroupBounds.Min = node->m_Bounds.Min;
         node->m_GroupBounds.Max = node->m_Bounds.Min + size;
         node->m_GroupBounds.Floor();
-        MakeDirty(NodeEditor::SaveReasonFlags::Size, node);
+       // MakeDirty(NodeEditor::SaveReasonFlags::Size, node);
     }
 }
 
@@ -1681,54 +1681,54 @@ float ed::EditorContext::GetNodeZPosition(NodeId nodeId)
     return node->m_ZPosition;
 }
 
-void ed::EditorContext::MarkNodeToRestoreState(Node* node)
-{
-    node->m_RestoreState = true;
-}
+//void ed::EditorContext::MarkNodeToRestoreState(Node* node)
+//{
+//    node->m_RestoreState = true;
+//}
+//
+//void ed::EditorContext::UpdateNodeState(Node* node)
+//{
+    //bool tryLoadState = node->m_RestoreState;
 
-void ed::EditorContext::UpdateNodeState(Node* node)
-{
-    bool tryLoadState = node->m_RestoreState;
+   // node->m_RestoreState = false;
 
-    node->m_RestoreState = false;
+    //auto settings = m_Settings.FindNode(node->m_ID);
+    //if (!settings)
+    //    return;
 
-    auto settings = m_Settings.FindNode(node->m_ID);
-    if (!settings)
-        return;
+    //if (!tryLoadState && settings->m_WasUsed)
+    //    return;
 
-    if (!tryLoadState && settings->m_WasUsed)
-        return;
+    //if (!settings->m_WasUsed)
+    //{
+    //    MakeDirty(SaveReasonFlags::AddNode, node);
+    //    settings->m_WasUsed = true;
+    //}
 
-    if (!settings->m_WasUsed)
-    {
-        MakeDirty(SaveReasonFlags::AddNode, node);
-        settings->m_WasUsed = true;
-    }
+    //// Load state from config (if possible)
+    //if (tryLoadState)
+    //{
+    //    NodeSettings newSettings = *settings;
+    //    if (NodeSettings::Parse(m_Config.LoadNode(node->m_ID), newSettings))
+    //        *settings = newSettings;
+    //}
 
-    // Load state from config (if possible)
-    if (tryLoadState)
-    {
-        NodeSettings newSettings = *settings;
-        if (NodeSettings::Parse(m_Config.LoadNode(node->m_ID), newSettings))
-            *settings = newSettings;
-    }
+    //node->m_Bounds.Min      = settings->m_Location;
+    //node->m_Bounds.Max      = node->m_Bounds.Min + settings->m_Size;
+    //node->m_Bounds.Floor();
+    //node->m_GroupBounds.Min = settings->m_Location;
+    //node->m_GroupBounds.Max = node->m_GroupBounds.Min + settings->m_GroupSize;
+    //node->m_GroupBounds.Floor();
+//}
 
-    node->m_Bounds.Min      = settings->m_Location;
-    node->m_Bounds.Max      = node->m_Bounds.Min + settings->m_Size;
-    node->m_Bounds.Floor();
-    node->m_GroupBounds.Min = settings->m_Location;
-    node->m_GroupBounds.Max = node->m_GroupBounds.Min + settings->m_GroupSize;
-    node->m_GroupBounds.Floor();
-}
-
-void ed::EditorContext::RemoveSettings(Object* object)
-{
-    if (auto node = object->AsNode())
-    {
-        m_Settings.RemoveNode(node->m_ID);
-        MakeDirty(SaveReasonFlags::RemoveNode, node);
-    }
-}
+//void ed::EditorContext::RemoveSettings(Object* object)
+//{
+//    if (auto node = object->AsNode())
+//    {
+//        m_Settings.RemoveNode(node->m_ID);
+//        MakeDirty(SaveReasonFlags::RemoveNode, node);
+//    }
+//}
 
 void ed::EditorContext::ClearSelection()
 {
@@ -2009,14 +2009,15 @@ ed::Node* ed::EditorContext::CreateNode(NodeId id)
     m_Nodes.push_back({id, node});
     //std::sort(Nodes.begin(), Nodes.end());
 
-    auto settings = m_Settings.FindNode(id);
-    if (!settings)
-        settings = m_Settings.AddNode(id);
+    //auto settings = m_Settings.FindNode(id);
+    //if (!settings)
+    //    settings = m_Settings.AddNode(id);
 
-    UpdateNodeState(node);
+    //node->m_RestoreState = false;
+   // UpdateNodeState(node);
 
-    if (settings->m_GroupSize.x > 0 || settings->m_GroupSize.y > 0)
-        node->m_Type = NodeType::Group;
+    //if (settings->m_GroupSize.x > 0 || settings->m_GroupSize.y > 0)
+    //    node->m_Type = NodeType::Group;
 
     node->m_IsLive = false;
 
@@ -2131,7 +2132,8 @@ ed::Link* ed::EditorContext::GetLink(LinkId id)
 
 void ed::EditorContext::LoadSettings()
 {
-    ed::Settings::Parse(m_Config.Load(), m_Settings);
+    m_Config.Load(m_Settings.m_ViewScroll, m_Settings.m_ViewZoom, m_Settings.m_VisibleRect);
+//    ed::Settings::Parse(m_Config.Load(), m_Settings);
 
     if (ImRect_IsEmpty(m_Settings.m_VisibleRect))
     {
@@ -2146,35 +2148,35 @@ void ed::EditorContext::LoadSettings()
 
 void ed::EditorContext::SaveSettings()
 {
-    m_Config.BeginSave();
+ //   m_Config.BeginSave();
 
-    for (auto& node : m_Nodes)
-    {
-        auto settings = m_Settings.FindNode(node->m_ID);
-        settings->m_Location = node->m_Bounds.Min;
-        settings->m_Size     = node->m_Bounds.GetSize();
-        if (IsGroup(node))
-            settings->m_GroupSize = node->m_GroupBounds.GetSize();
+    //for (auto& node : m_Nodes)
+    //{
+    //    auto settings = m_Settings.FindNode(node->m_ID);
+    //    settings->m_Location = node->m_Bounds.Min;
+    //    settings->m_Size     = node->m_Bounds.GetSize();
+    //    if (IsGroup(node))
+    //        settings->m_GroupSize = node->m_GroupBounds.GetSize();
 
-        if (!node->m_RestoreState && settings->m_IsDirty && m_Config.SaveNodeSettings)
-        {
-            if (m_Config.SaveNode(node->m_ID, settings->Serialize().dump(), settings->m_DirtyReason))
-                settings->ClearDirty();
-        }
-    }
+    //    if (!node->m_RestoreState && settings->m_IsDirty && m_Config.SaveNodeSettings)
+    //    {
+    //        if (m_Config.SaveNode(node->m_ID, settings->Serialize().dump(), settings->m_DirtyReason))
+    //            settings->ClearDirty();
+    //    }
+    //}
 
-    m_Settings.m_Selection.resize(0);
-    for (auto& object : m_SelectedObjects)
-        m_Settings.m_Selection.push_back(object->ID());
+    //m_Settings.m_Selection.resize(0);
+    //for (auto& object : m_SelectedObjects)
+    //    m_Settings.m_Selection.push_back(object->ID());
 
     m_Settings.m_ViewScroll  = m_NavigateAction.m_Scroll;
     m_Settings.m_ViewZoom    = m_NavigateAction.m_Zoom;
     m_Settings.m_VisibleRect = m_NavigateAction.m_VisibleRect;
 
-    if (m_Config.Save(m_Settings.Serialize(), m_Settings.m_DirtyReason))
+    if (m_Config.Save(m_Settings.m_ViewScroll, m_Settings.m_ViewZoom, m_Settings.m_VisibleRect))//m_Settings.Serialize(), m_Settings.m_DirtyReason))
         m_Settings.ClearDirty();
 
-    m_Config.EndSave();
+    //m_Config.EndSave();
 }
 
 void ed::EditorContext::MakeDirty(SaveReasonFlags reason)
@@ -2182,10 +2184,10 @@ void ed::EditorContext::MakeDirty(SaveReasonFlags reason)
     m_Settings.MakeDirty(reason);
 }
 
-void ed::EditorContext::MakeDirty(SaveReasonFlags reason, Node* node)
-{
-    m_Settings.MakeDirty(reason, node);
-}
+//void ed::EditorContext::MakeDirty(SaveReasonFlags reason, Node* node)
+//{
+//    m_Settings.MakeDirty(reason, node);
+//}
 
 ed::Link* ed::EditorContext::FindLinkAt(const ImVec2& p)
 {
@@ -2630,74 +2632,74 @@ void ed::EditorContext::ShowMetrics(const Control& control)
 // Node Settings
 //
 //------------------------------------------------------------------------------
-void ed::NodeSettings::ClearDirty()
-{
-    m_IsDirty     = false;
-    m_DirtyReason = SaveReasonFlags::None;
-}
-
-void ed::NodeSettings::MakeDirty(SaveReasonFlags reason)
-{
-    m_IsDirty     = true;
-    m_DirtyReason = m_DirtyReason | reason;
-}
-
-ed::json::value ed::NodeSettings::Serialize()
-{
-    json::value result;
-    result["location"]["x"] = m_Location.x;
-    result["location"]["y"] = m_Location.y;
-
-    if (m_GroupSize.x > 0 || m_GroupSize.y > 0)
-    {
-        result["group_size"]["x"] = m_GroupSize.x;
-        result["group_size"]["y"] = m_GroupSize.y;
-    }
-
-    return result;
-}
-
-bool ed::NodeSettings::Parse(const std::string& string, NodeSettings& settings)
-{
-    auto settingsValue = json::value::parse(string);
-    if (settingsValue.is_discarded())
-        return false;
-
-    return Parse(settingsValue, settings);
-}
-
-bool ed::NodeSettings::Parse(const json::value& data, NodeSettings& result)
-{
-    if (!data.is_object())
-        return false;
-
-    auto tryParseVector = [](const json::value& v, ImVec2& result) -> bool
-    {
-        if (v.is_object())
-        {
-            auto xValue = v["x"];
-            auto yValue = v["y"];
-
-            if (xValue.is_number() && yValue.is_number())
-            {
-                result.x = static_cast<float>(xValue.get<double>());
-                result.y = static_cast<float>(yValue.get<double>());
-
-                return true;
-            }
-        }
-
-        return false;
-    };
-
-    if (!tryParseVector(data["location"], result.m_Location))
-        return false;
-
-    if (data.contains("group_size") && !tryParseVector(data["group_size"], result.m_GroupSize))
-        return false;
-
-    return true;
-}
+//void ed::NodeSettings::ClearDirty()
+//{
+//    m_IsDirty     = false;
+//    m_DirtyReason = SaveReasonFlags::None;
+//}
+////
+//void ed::NodeSettings::MakeDirty(SaveReasonFlags reason)
+//{
+//    m_IsDirty     = true;
+//    m_DirtyReason = m_DirtyReason | reason;
+//}
+//
+//ed::json::value ed::NodeSettings::Serialize()
+//{
+//    json::value result;
+//    result["location"]["x"] = m_Location.x;
+//    result["location"]["y"] = m_Location.y;
+//
+//    if (m_GroupSize.x > 0 || m_GroupSize.y > 0)
+//    {
+//        result["group_size"]["x"] = m_GroupSize.x;
+//        result["group_size"]["y"] = m_GroupSize.y;
+//    }
+//
+//    return result;
+//}
+//
+//bool ed::NodeSettings::Parse(const std::string& string, NodeSettings& settings)
+//{
+//    auto settingsValue = json::value::parse(string);
+//    if (settingsValue.is_discarded())
+//        return false;
+//
+//    return Parse(settingsValue, settings);
+//}
+//
+//bool ed::NodeSettings::Parse(const json::value& data, NodeSettings& result)
+//{
+//    if (!data.is_object())
+//        return false;
+//
+//    auto tryParseVector = [](const json::value& v, ImVec2& result) -> bool
+//    {
+//        if (v.is_object())
+//        {
+//            auto xValue = v["x"];
+//            auto yValue = v["y"];
+//
+//            if (xValue.is_number() && yValue.is_number())
+//            {
+//                result.x = static_cast<float>(xValue.get<double>());
+//                result.y = static_cast<float>(yValue.get<double>());
+//
+//                return true;
+//            }
+//        }
+//
+//        return false;
+//    };
+//
+//    if (!tryParseVector(data["location"], result.m_Location))
+//        return false;
+//
+//    if (data.contains("group_size") && !tryParseVector(data["group_size"], result.m_GroupSize))
+//        return false;
+//
+//    return true;
+//}
 
 
 
@@ -2707,198 +2709,198 @@ bool ed::NodeSettings::Parse(const json::value& data, NodeSettings& result)
 // Settings
 //
 //------------------------------------------------------------------------------
-ed::NodeSettings* ed::Settings::AddNode(NodeId id)
+//ed::NodeSettings* ed::Settings::AddNode(NodeId id)
+//{
+//    m_Nodes.push_back(NodeSettings(id));
+//    return &m_Nodes.back();
+//}
+//
+//ed::NodeSettings* ed::Settings::FindNode(NodeId id)
+//{
+//    for (auto& settings : m_Nodes)
+//        if (settings.m_ID == id)
+//            return &settings;
+//
+//    return nullptr;
+//}
+//
+//void ed::Settings::RemoveNode(NodeId id)
+//{
+//    auto node = FindNode(id);
+//    if (!node)
+//        return;
+//
+//    *node = NodeSettings(id);
+//}
+
+void ed::Settings::ClearDirty(/*Node* node*/)
 {
-    m_Nodes.push_back(NodeSettings(id));
-    return &m_Nodes.back();
-}
-
-ed::NodeSettings* ed::Settings::FindNode(NodeId id)
-{
-    for (auto& settings : m_Nodes)
-        if (settings.m_ID == id)
-            return &settings;
-
-    return nullptr;
-}
-
-void ed::Settings::RemoveNode(NodeId id)
-{
-    auto node = FindNode(id);
-    if (!node)
-        return;
-
-    *node = NodeSettings(id);
-}
-
-void ed::Settings::ClearDirty(Node* node)
-{
-    if (node)
-    {
-        auto settings = FindNode(node->m_ID);
-        IM_ASSERT(settings);
-        settings->ClearDirty();
-    }
-    else
+    //if (node)
+    //{
+    //    auto settings = FindNode(node->m_ID);
+    //    IM_ASSERT(settings);
+    //    settings->ClearDirty();
+    //}
+    //else
     {
         m_IsDirty     = false;
         m_DirtyReason = SaveReasonFlags::None;
 
-        for (auto& knownNode : m_Nodes)
-            knownNode.ClearDirty();
+        //for (auto& knownNode : m_Nodes)
+        //    knownNode.ClearDirty();
     }
 }
 
-void ed::Settings::MakeDirty(SaveReasonFlags reason, Node* node)
+void ed::Settings::MakeDirty(SaveReasonFlags reason/*, Node* node*/)
 {
     m_IsDirty     = true;
     m_DirtyReason = m_DirtyReason | reason;
 
-    if (node)
-    {
-        auto settings = FindNode(node->m_ID);
-        IM_ASSERT(settings);
+    //if (node)
+    //{
+    //    auto settings = FindNode(node->m_ID);
+    //    IM_ASSERT(settings);
 
-        settings->MakeDirty(reason);
-    }
+    //    settings->MakeDirty(reason);
+    //}
 }
-
-std::string ed::Settings::Serialize()
-{
-    json::value result;
-
-    auto serializeObjectId = [](ObjectId id)
-    {
-        auto value = std::to_string(reinterpret_cast<uintptr_t>(id.AsPointer()));
-        switch (id.Type())
-        {
-            default:
-            case NodeEditor::Detail::ObjectType::None: return value;
-            case NodeEditor::Detail::ObjectType::Node: return "node:" + value;
-            case NodeEditor::Detail::ObjectType::Link: return "link:" + value;
-            case NodeEditor::Detail::ObjectType::Pin:  return "pin:"  + value;
-        }
-    };
-
-    auto& nodes = result["nodes"];
-    for (auto& node : m_Nodes)
-    {
-        if (node.m_WasUsed)
-            nodes[serializeObjectId(node.m_ID)] = node.Serialize();
-    }
-
-    auto& selection = result["selection"];
-    for (auto& id : m_Selection)
-        selection.push_back(serializeObjectId(id));
-
-    auto& view = result["view"];
-    view["scroll"]["x"] = m_ViewScroll.x;
-    view["scroll"]["y"] = m_ViewScroll.y;
-    view["zoom"]   = m_ViewZoom;
-    view["visible_rect"]["min"]["x"] = m_VisibleRect.Min.x;
-    view["visible_rect"]["min"]["y"] = m_VisibleRect.Min.y;
-    view["visible_rect"]["max"]["x"] = m_VisibleRect.Max.x;
-    view["visible_rect"]["max"]["y"] = m_VisibleRect.Max.y;
-
-    return result.dump();
-}
-
-bool ed::Settings::Parse(const std::string& string, Settings& settings)
-{
-    Settings result = settings;
-
-    auto settingsValue = json::value::parse(string);
-    if (settingsValue.is_discarded())
-        return false;
-
-    if (!settingsValue.is_object())
-        return false;
-
-    auto tryParseVector = [](const json::value& v, ImVec2& result) -> bool
-    {
-        if (v.is_object() && v.contains("x") && v.contains("y"))
-        {
-            auto xValue = v["x"];
-            auto yValue = v["y"];
-
-            if (xValue.is_number() && yValue.is_number())
-            {
-                result.x = static_cast<float>(xValue.get<double>());
-                result.y = static_cast<float>(yValue.get<double>());
-
-                return true;
-            }
-        }
-
-        return false;
-    };
-
-    auto deserializeObjectId = [](const std::string& str)
-    {
-        auto separator = str.find_first_of(':');
-        auto idStart   = str.c_str() + ((separator != std::string::npos) ? separator + 1 : 0);
-        auto id        = reinterpret_cast<void*>(strtoull(idStart, nullptr, 10));
-        if (str.compare(0, separator, "node") == 0)
-            return ObjectId(NodeId(id));
-        else if (str.compare(0, separator, "link") == 0)
-            return ObjectId(LinkId(id));
-        else if (str.compare(0, separator, "pin") == 0)
-            return ObjectId(PinId(id));
-        else
-            // fallback to old format
-            return ObjectId(NodeId(id)); //return ObjectId();
-    };
-
-    //auto& settingsObject = settingsValue.get<json::object>();
-
-    auto& nodesValue = settingsValue["nodes"];
-    if (nodesValue.is_object())
-    {
-        for (auto& node : nodesValue.get<json::object>())
-        {
-            auto id = deserializeObjectId(node.first.c_str()).AsNodeId();
-
-            auto nodeSettings = result.FindNode(id);
-            if (!nodeSettings)
-                nodeSettings = result.AddNode(id);
-
-            NodeSettings::Parse(node.second, *nodeSettings);
-        }
-    }
-
-    auto& selectionValue = settingsValue["selection"];
-    if (selectionValue.is_array())
-    {
-        const auto selectionArray = selectionValue.get<json::array>();
-
-        result.m_Selection.reserve(selectionArray.size());
-        result.m_Selection.resize(0);
-        for (auto& selection : selectionArray)
-        {
-            if (selection.is_string())
-                result.m_Selection.push_back(deserializeObjectId(selection.get<json::string>()));
-        }
-    }
-
-    auto& viewValue = settingsValue["view"];
-    if (viewValue.is_object())
-    {
-        auto& viewScrollValue = viewValue["scroll"];
-        auto& viewZoomValue   = viewValue["zoom"];
-
-        if (!tryParseVector(viewScrollValue, result.m_ViewScroll))
-            result.m_ViewScroll = ImVec2(0, 0);
-
-        result.m_ViewZoom = viewZoomValue.is_number() ? static_cast<float>(viewZoomValue.get<double>()) : 1.0f;
-
-        if (!viewValue.contains("visible_rect") || !tryParseVector(viewValue["visible_rect"]["min"], result.m_VisibleRect.Min) || !tryParseVector(viewValue["visible_rect"]["max"], result.m_VisibleRect.Max))
-            result.m_VisibleRect = {};
-    }
-
-    settings = std::move(result);
-
-    return true;
-}
+//
+//std::string ed::Settings::Serialize()
+//{
+//    json::value result;
+//
+//    auto serializeObjectId = [](ObjectId id)
+//    {
+//        auto value = std::to_string(reinterpret_cast<uintptr_t>(id.AsPointer()));
+//        switch (id.Type())
+//        {
+//            default:
+//            case NodeEditor::Detail::ObjectType::None: return value;
+//            case NodeEditor::Detail::ObjectType::Node: return "node:" + value;
+//            case NodeEditor::Detail::ObjectType::Link: return "link:" + value;
+//            case NodeEditor::Detail::ObjectType::Pin:  return "pin:"  + value;
+//        }
+//    };
+//
+//    auto& nodes = result["nodes"];
+//    for (auto& node : m_Nodes)
+//    {
+//        if (node.m_WasUsed)
+//            nodes[serializeObjectId(node.m_ID)] = node.Serialize();
+//    }
+//
+//    auto& selection = result["selection"];
+//    for (auto& id : m_Selection)
+//        selection.push_back(serializeObjectId(id));
+//
+//    auto& view = result["view"];
+//    view["scroll"]["x"] = m_ViewScroll.x;
+//    view["scroll"]["y"] = m_ViewScroll.y;
+//    view["zoom"]   = m_ViewZoom;
+//    view["visible_rect"]["min"]["x"] = m_VisibleRect.Min.x;
+//    view["visible_rect"]["min"]["y"] = m_VisibleRect.Min.y;
+//    view["visible_rect"]["max"]["x"] = m_VisibleRect.Max.x;
+//    view["visible_rect"]["max"]["y"] = m_VisibleRect.Max.y;
+//
+//    return result.dump();
+//}
+//
+//bool ed::Settings::Parse(const std::string& string, Settings& settings)
+//{
+//    Settings result = settings;
+//
+//    auto settingsValue = json::value::parse(string);
+//    if (settingsValue.is_discarded())
+//        return false;
+//
+//    if (!settingsValue.is_object())
+//        return false;
+//
+//    auto tryParseVector = [](const json::value& v, ImVec2& result) -> bool
+//    {
+//        if (v.is_object() && v.contains("x") && v.contains("y"))
+//        {
+//            auto xValue = v["x"];
+//            auto yValue = v["y"];
+//
+//            if (xValue.is_number() && yValue.is_number())
+//            {
+//                result.x = static_cast<float>(xValue.get<double>());
+//                result.y = static_cast<float>(yValue.get<double>());
+//
+//                return true;
+//            }
+//        }
+//
+//        return false;
+//    };
+//
+//    auto deserializeObjectId = [](const std::string& str)
+//    {
+//        auto separator = str.find_first_of(':');
+//        auto idStart   = str.c_str() + ((separator != std::string::npos) ? separator + 1 : 0);
+//        auto id        = reinterpret_cast<void*>(strtoull(idStart, nullptr, 10));
+//        if (str.compare(0, separator, "node") == 0)
+//            return ObjectId(NodeId(id));
+//        else if (str.compare(0, separator, "link") == 0)
+//            return ObjectId(LinkId(id));
+//        else if (str.compare(0, separator, "pin") == 0)
+//            return ObjectId(PinId(id));
+//        else
+//            // fallback to old format
+//            return ObjectId(NodeId(id)); //return ObjectId();
+//    };
+//
+//    //auto& settingsObject = settingsValue.get<json::object>();
+//
+//    auto& nodesValue = settingsValue["nodes"];
+//    if (nodesValue.is_object())
+//    {
+//        for (auto& node : nodesValue.get<json::object>())
+//        {
+//            auto id = deserializeObjectId(node.first.c_str()).AsNodeId();
+//
+//            auto nodeSettings = result.FindNode(id);
+//            if (!nodeSettings)
+//                nodeSettings = result.AddNode(id);
+//
+//            NodeSettings::Parse(node.second, *nodeSettings);
+//        }
+//    }
+//
+//    auto& selectionValue = settingsValue["selection"];
+//    if (selectionValue.is_array())
+//    {
+//        const auto selectionArray = selectionValue.get<json::array>();
+//
+//        result.m_Selection.reserve(selectionArray.size());
+//        result.m_Selection.resize(0);
+//        for (auto& selection : selectionArray)
+//        {
+//            if (selection.is_string())
+//                result.m_Selection.push_back(deserializeObjectId(selection.get<json::string>()));
+//        }
+//    }
+//
+//    auto& viewValue = settingsValue["view"];
+//    if (viewValue.is_object())
+//    {
+//        auto& viewScrollValue = viewValue["scroll"];
+//        auto& viewZoomValue   = viewValue["zoom"];
+//
+//        if (!tryParseVector(viewScrollValue, result.m_ViewScroll))
+//            result.m_ViewScroll = ImVec2(0, 0);
+//
+//        result.m_ViewZoom = viewZoomValue.is_number() ? static_cast<float>(viewZoomValue.get<double>()) : 1.0f;
+//
+//        if (!viewValue.contains("visible_rect") || !tryParseVector(viewValue["visible_rect"]["min"], result.m_VisibleRect.Min) || !tryParseVector(viewValue["visible_rect"]["max"], result.m_VisibleRect.Max))
+//            result.m_VisibleRect = {};
+//    }
+//
+//    settings = std::move(result);
+//
+//    return true;
+//}
 
 
 
@@ -3732,11 +3734,11 @@ bool ed::SizeAction::Process(const Control& control)
     {
         m_Clean = false;
 
-        if (m_SizedNode->m_Bounds.Min != m_StartBounds.Min || m_SizedNode->m_GroupBounds.Min != m_StartGroupBounds.Min)
-            Editor->MakeDirty(SaveReasonFlags::Position | SaveReasonFlags::User, m_SizedNode);
+        //if (m_SizedNode->m_Bounds.Min != m_StartBounds.Min || m_SizedNode->m_GroupBounds.Min != m_StartGroupBounds.Min)
+        //    Editor->MakeDirty(SaveReasonFlags::Position | SaveReasonFlags::User, m_SizedNode);
 
-        if (m_SizedNode->m_Bounds.GetSize() != m_StartBounds.GetSize() || m_SizedNode->m_GroupBounds.GetSize() != m_StartGroupBounds.GetSize())
-            Editor->MakeDirty(SaveReasonFlags::Size | SaveReasonFlags::User, m_SizedNode);
+        //if (m_SizedNode->m_Bounds.GetSize() != m_StartBounds.GetSize() || m_SizedNode->m_GroupBounds.GetSize() != m_StartGroupBounds.GetSize())
+        //    Editor->MakeDirty(SaveReasonFlags::Size | SaveReasonFlags::User, m_SizedNode);
 
         m_SizedNode = nullptr;
     }
@@ -3922,11 +3924,11 @@ bool ed::DragAction::Process(const Control& control)
     {
         m_Clear = false;
 
-        for (auto object : m_Objects)
-        {
-            if (object->EndDrag())
-                Editor->MakeDirty(SaveReasonFlags::Position | SaveReasonFlags::User, object->AsNode());
-        }
+        //for (auto object : m_Objects)
+        //{
+        //    if (object->EndDrag())
+        //        Editor->MakeDirty(SaveReasonFlags::Position | SaveReasonFlags::User, object->AsNode());
+        //}
 
         m_Objects.resize(0);
 
@@ -5125,7 +5127,7 @@ void ed::DeleteItemsAction::RemoveItem(bool deleteDependencies)
 
     Editor->DeselectObject(item);
 
-    Editor->RemoveSettings(item);
+    //Editor->RemoveSettings(item);
 
     item->m_DeleteOnNewFrame = true;
 
@@ -5180,7 +5182,7 @@ ax::NodeEditor::Detail::Node* ed::NodeBuilder::Begin(Node* node)
 
     m_CurrentNode = node;
 
-    Editor->UpdateNodeState(m_CurrentNode);
+   // Editor->UpdateNodeState(m_CurrentNode);
 
     if (m_CurrentNode->m_CenterOnScreen)
     {
@@ -5199,14 +5201,14 @@ ax::NodeEditor::Detail::Node* ed::NodeBuilder::Begin(Node* node)
                 {
                     node->m_Bounds.Translate(ImFloor(offset));
                     node->m_GroupBounds.Translate(ImFloor(offset));
-                    Editor->MakeDirty(SaveReasonFlags::Position | SaveReasonFlags::User, node);
+                  //  Editor->MakeDirty(SaveReasonFlags::Position | SaveReasonFlags::User, node);
                 }
             }
             else
             {
                 m_CurrentNode->m_Bounds.Translate(ImFloor(offset));
                 m_CurrentNode->m_GroupBounds.Translate(ImFloor(offset));
-                Editor->MakeDirty(SaveReasonFlags::Position | SaveReasonFlags::User, m_CurrentNode);
+             //   Editor->MakeDirty(SaveReasonFlags::Position | SaveReasonFlags::User, m_CurrentNode);
             }
         }
 
@@ -5290,7 +5292,7 @@ void ed::NodeBuilder::End()
     if (m_CurrentNode->m_Bounds.GetSize() != m_NodeRect.GetSize())
     {
         m_CurrentNode->m_Bounds.Max = m_CurrentNode->m_Bounds.Min + m_NodeRect.GetSize();
-        Editor->MakeDirty(SaveReasonFlags::Size, m_CurrentNode);
+    //    Editor->MakeDirty(SaveReasonFlags::Size, m_CurrentNode);
     }
 
     if (m_IsGroup)
@@ -5751,9 +5753,12 @@ ed::Config::Config(const ax::NodeEditor::Config* config)
         *static_cast<ax::NodeEditor::Config*>(this) = *config;
 }
 
-std::string ed::Config::Load()
+void ed::Config::Load(ImVec2& ViewScroll, float& ViewZoom, ImRect& VisibleRect)
 {
-    std::string data;
+    if (LoadState)
+        LoadState(ViewScroll, ViewZoom, VisibleRect);
+
+ /*   std::string data;
 
     if (LoadSettings)
     {
@@ -5778,60 +5783,62 @@ std::string ed::Config::Load()
         }
     }
 
-    return data;
+    return data;*/
 }
 
-std::string ed::Config::LoadNode(NodeId nodeId)
+//std::string ed::Config::LoadNode(NodeId nodeId)
+//{
+//    std::string data;
+//
+//    if (LoadNodeSettings)
+//    {
+//        const auto size = LoadNodeSettings(nodeId, nullptr, UserPointer);
+//        if (size > 0)
+//        {
+//            data.resize(size);
+//            LoadNodeSettings(nodeId, const_cast<char*>(data.data()), UserPointer);
+//        }
+//    }
+//
+//    return data;
+//}
+//
+//void ed::Config::BeginSave()
+//{
+//    if (BeginSaveSession)
+//        BeginSaveSession(UserPointer);
+//}
+
+bool ed::Config::Save(const ImVec2& ViewScroll, float ViewZoom, const ImRect& VisibleRect)
 {
-    std::string data;
+    if (SaveState)
+        SaveState(ViewScroll, ViewZoom, VisibleRect);
+    //if (SaveSettings)
+    //{
+    //    return SaveSettings(data.c_str(), data.size(), flags, UserPointer);
+    //}
+    //else if (SettingsFile)
+    //{
+    //    std::ofstream settingsFile(SettingsFile);
+    //    if (settingsFile)
+    //        settingsFile << data;
 
-    if (LoadNodeSettings)
-    {
-        const auto size = LoadNodeSettings(nodeId, nullptr, UserPointer);
-        if (size > 0)
-        {
-            data.resize(size);
-            LoadNodeSettings(nodeId, const_cast<char*>(data.data()), UserPointer);
-        }
-    }
+    //    return !!settingsFile;
+    //}
 
-    return data;
+    return true;
 }
-
-void ed::Config::BeginSave()
-{
-    if (BeginSaveSession)
-        BeginSaveSession(UserPointer);
-}
-
-bool ed::Config::Save(const std::string& data, SaveReasonFlags flags)
-{
-    if (SaveSettings)
-    {
-        return SaveSettings(data.c_str(), data.size(), flags, UserPointer);
-    }
-    else if (SettingsFile)
-    {
-        std::ofstream settingsFile(SettingsFile);
-        if (settingsFile)
-            settingsFile << data;
-
-        return !!settingsFile;
-    }
-
-    return false;
-}
-
-bool ed::Config::SaveNode(NodeId nodeId, const std::string& data, SaveReasonFlags flags)
-{
-    if (SaveNodeSettings)
-        return SaveNodeSettings(nodeId, data.c_str(), data.size(), flags, UserPointer);
-
-    return false;
-}
-
-void ed::Config::EndSave()
-{
-    if (EndSaveSession)
-        EndSaveSession(UserPointer);
-}
+//
+//bool ed::Config::SaveNode(NodeId nodeId, const std::string& data, SaveReasonFlags flags)
+//{
+//    if (SaveNodeSettings)
+//        return SaveNodeSettings(nodeId, data.c_str(), data.size(), flags, UserPointer);
+//
+//    return false;
+//}
+//
+//void ed::Config::EndSave()
+//{
+//    if (EndSaveSession)
+//        EndSaveSession(UserPointer);
+//}
