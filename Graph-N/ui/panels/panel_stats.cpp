@@ -28,7 +28,7 @@ void PanelStats::init()
     m_th_api = std::thread(&PanelStats::th_api, this);
     m_th_comfyui = std::thread(&PanelStats::th_comfyui, this);
 
-    g::pFlow->subscribe_1s_lazy_timer(this);
+    g::pGraphN->subscribe_timers(this);
 }
 
 void PanelStats::init_disks()
@@ -40,7 +40,7 @@ void PanelStats::init_disks()
         Disks d;
         d.disk_opt = &opt;
 #ifdef _WIN32
-        d.format_path = fmt::format("Disk {}", d.disk_opt->first);
+        d.format_path = fmt::format(FMT_STRING("Disk {}"), d.disk_opt->first);
 #else
         d.format_path = d.path;
 #endif
@@ -248,7 +248,7 @@ void PanelStats::th_comfyui()
     }
 }
 
-void PanelStats::on_1s_timer(int64_t /*seconds_elapsed*/)
+void PanelStats::on_1s_lazy_timer(int64_t /*total_seconds_elapsed*/)
 {
     g::pConnectManager->check_status(nullptr, &m_ping_mk);
 }
@@ -305,7 +305,7 @@ void PanelStats::format_bytes(uint64_t bytes)
     }
 
     m_buffer.clear();
-    fmt::format_to(std::back_inserter(m_buffer), "{:.2f} {}", count, suffixes[suffix_index]);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{:.2f} {}"), count, suffixes[suffix_index]);
     m_buffer.push_back('\0');
 };
 

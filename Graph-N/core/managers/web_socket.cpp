@@ -200,7 +200,7 @@ void WebSocket::on_close(beast::error_code ec)
 void WebSocket::fail(beast::error_code ec, char const* what)
 {
     m_state = ConnectState::Disconnected;
-    m_last_error = fmt::format("WS last error: {}, {}", ec.value(), what);
+    m_last_error = fmt::format(FMT_STRING("WS last error: {}, {}"), ec.value(), what);
 }
 } // namespace mngr
 

@@ -67,8 +67,8 @@ struct LogHex final
 
 struct LogPtr final
 {
-	void* ptr = nullptr;
-	LogPtr(void* ptr_) :
+	const void* ptr = nullptr;
+	LogPtr(const void* ptr_) :
 		ptr(ptr_)
 	{ }
 };
@@ -244,18 +244,18 @@ void append_arg_to_buf(fmt::memory_buffer& out, const T& arg)
     // If it's an enum, cast to underlying integer type (mimics stringstream behavior)
     if constexpr (std::is_enum_v<T>)
     {
-        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}"), static_cast<std::underlying_type_t<T>>(arg));
+        fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), static_cast<std::underlying_type_t<T>>(arg));
     }
 
     // If it's a filesystem path, convert to generic string
     else if constexpr (std::is_same_v<T, std::filesystem::path>)
     {
-        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}"), arg.string());
+        fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), arg.string());
     }
     // Standard types (int, string, float, etc.)
     else
     {
-        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}"), arg);
+        fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), arg);
     }
 }
 
@@ -272,7 +272,7 @@ std::string format_log_msg(Args&&... args)
     {
         // separator
         if (!sep.empty())
-            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}"), sep);
+            fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), sep);
 
         // use the helper to print the argument
         append_arg_to_buf(out, arg);

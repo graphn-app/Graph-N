@@ -79,7 +79,7 @@ void PanelServerLogs::create_toolbar()
     {
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::InputHint;
-        el.buffer = &m_search;
+        el.buffer_str = &m_search;
         el.hint = "Search logs";
         el.id = "##searchlogs";
         el.input_w = 0.5f;

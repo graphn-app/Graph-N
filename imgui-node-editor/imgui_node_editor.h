@@ -399,6 +399,7 @@ IMGUI_NODE_EDITOR_API void SetNodeDraggable(const EdType& edNode, bool canDrag);
 
 IMGUI_NODE_EDITOR_API bool DeleteNode(const EdType& edNode);
 IMGUI_NODE_EDITOR_API bool DeleteLink(const EdType& edLink);
+IMGUI_NODE_EDITOR_API bool DeleteLink(const LinkId pLink);
 
 IMGUI_NODE_EDITOR_API bool HasAnyLinks(NodeId nodeId); // Returns true if node has any link connected
 IMGUI_NODE_EDITOR_API bool HasAnyLinks(PinId pinId); // Return true if pin has any link connected

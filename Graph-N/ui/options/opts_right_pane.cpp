@@ -396,7 +396,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::SameLine();
     std::string caption = "Stop " APP_COMFYUI;
     if (g::pComfyUIManager->get_process_started())
-        caption = fmt::format("Stop " APP_COMFYUI " [PID: {}]", g::pComfyUIManager->get_started_proc_id());
+        caption = fmt::format(FMT_STRING("Stop " APP_COMFYUI " [PID: {}]"), g::pComfyUIManager->get_started_proc_id());
     if (show_full_row_button(caption.c_str(), g::pComfyUIManager->get_process_started(), true))
     {
         g::pComfyUIManager->kill(true);
@@ -1160,7 +1160,7 @@ void OptRightPane::import_from_comfyui()
     while (parent_proc != 0)
     {
         enumerator.Release();
-        auto req = fmt::format("SELECT Name, CommandLine, ExecutablePath, ParentProcessId FROM Win32_Process WHERE ProcessId = {}", parent_proc);
+        auto req = fmt::format(FMT_STRING("SELECT Name, CommandLine, ExecutablePath, ParentProcessId FROM Win32_Process WHERE ProcessId = {}"), parent_proc);
         hres = service->ExecQuery(_bstr_t(L"WQL"), _bstr_t(req.c_str()), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
         if (FAILED(hres) || nullptr == enumerator)
         {

@@ -319,11 +319,13 @@ struct WfData final
     bool ro = false;
 
     bool draft = true;
-    bool saved = true;
-    int32_t saved_pos = -1;
+    bool dirty = false;
 
-    uint32_t saved_size = 0;
-    uint32_t draft_size = 0;
+    bool saved_exist = 0;
+    tools::dt saved_time;
+
+    bool draft_exist = 0;
+    tools::dt draft_time;
 
     bool pending_delete = false;
 };

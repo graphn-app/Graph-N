@@ -43,6 +43,7 @@
 #include <httplib.h>
 #include <stb_image.h>
 #pragma warning(push, 0)
+#include <fmt/xchar.h>
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <fmt/compile.h>
@@ -90,13 +91,14 @@
 #endif
 
 #include "icons_lucide.h"
+#include "tools/tools_datetime.h"
 #include "core/base/types.h"
 #include "core/base/id.h"
 #include "tools/cast.h"
 #include "core/base/filesystem.h"
 #include "tools/tools.h"
-#include "tools/tools_datetime.h"
 #include "tools/logging.h"
+#include "tools/blob_serializer.h"
 #include "ui/helpers/imgui_ex.h"
 #include "graph-n.h"
 

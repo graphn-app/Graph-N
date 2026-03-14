@@ -11,7 +11,7 @@ using ReleaseTexturesCallback = std::function<void(ImTextureID)>;
 using ImTextureIDPtr = std::shared_ptr<std::remove_pointer_t<ImTextureID>>;
 using ImageData = std::shared_ptr<unsigned char>;
 
-class Textures : public listener::Lazy1sTimer
+class Textures : public listener::Timer
 {
 public:
     Textures();
@@ -29,7 +29,8 @@ public:
     void release_image(int32_t image_id);
 
     // Lazy1sTimer
-    void on_1s_timer(int64_t seconds_elapsed) override;
+    void on_1s_lazy_timer(int64_t total_seconds_elapsed) override;
+    void on_frame(int64_t /*total_frames_elapsed*/) override {}
 
     void cleanup_all();
 

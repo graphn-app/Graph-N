@@ -106,7 +106,8 @@ Writer& Writer::push(double val)
 Writer& Writer::push(const byte* data, size_t len)
 {
     push(cast::to_u32(len));
-    m_buffer->insert(m_buffer->end(), data, data + len);
+    if (len > 0)
+        m_buffer->insert(m_buffer->end(), data, data + len);
     return *this;
 }
 

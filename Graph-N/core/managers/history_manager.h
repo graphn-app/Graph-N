@@ -1,7 +1,6 @@
 
 #pragma once
 #include "core/managers/manager.h"
-#include "tools/blob_serializer.h"
 
 namespace data
 {
@@ -56,7 +55,7 @@ struct HistoryAction final
     int64_t id = 0;
     wid wf = 0;
     std::string name;
-    int32_t multi_action_counter = 0;
+    int32_t counter = 0;
     std::list<std::unique_ptr<HistoryStep>> steps;
     //!!! check serializer when adding new member
 };
@@ -109,6 +108,14 @@ struct ActLinkDel final : public ActLink     { ActLinkDel() : ActLink(HistoryAct
 ////////// HISTORY - main interface  /////////////////////
 //////////////////////////////////////////////////////////
 
+struct HistoryState
+{
+    int32_t pos = -1;
+    int32_t saved_pos = -1;
+    const std::string* undo_name = nullptr;
+    const std::string* redo_name = nullptr;
+};
+
 class HistoryManager final : public Manager
 {
 public:
@@ -122,11 +129,14 @@ public:
 
     void cleanup(wid wf_id);
 
-    const char* undo_name(wid wf_id) const;
-    const char* redo_name(wid wf_id) const;
+    HistoryState get_state(wid wf_id) const;
 
     void undo(wid wf_id);
     void redo(wid wf_id);
+
+    void set_rollback_pos(wid wf_id);
+    bool can_rollback(wid wf_id);
+    void rollback(wid wf_id);
 
     void multi_action_begin(wid wf_id, const char* action_name);
     void multi_action_end(wid wf_id);
@@ -136,15 +146,21 @@ public:
     void push_pin_action(const data::PinInstance* pin, HistoryActionType act, HActionT&& old_val);
     void push_link_action(const data::Link* link, HistoryActionType act); // add/delete only
 
-    blob::Writer& serialize(blob::Writer& writer) const;    
-    bool deserialize(blob::Reader& reader);
-
 private:
     HistoryAction* open_action(wid wf_id, const char* action_name);
     void close_action(wid wf_id);
 
-    const HistoryAction* get_undo(wid wf_id, const size_t** hpos) const;
-    const HistoryAction* get_redo(wid wf_id, const size_t** hpos) const;
+    struct Meta
+    {
+        int32_t pos = -1;
+        int32_t saved = -2;
+    };
+
+    std::pair<bool, bool> get_undo_redo(wid wf_id, const HistoryAction** undo_h, const HistoryAction** redo_h, const Meta** meta) const;
+    const HistoryAction* get_undo(wid wf_id, const Meta** meta) const;
+    const HistoryAction* get_redo(wid wf_id, const Meta** meta) const;
+
+    void sync_wf_state(wid wf_id, const Meta* meta) const;
 
     void pop_action(const HistoryAction* action, bool do_undo);
     void pop_action(data::Workflow* wf, const HistoryStep* step, bool do_undo);
@@ -161,12 +177,9 @@ private:
     void pop_link_add(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_link_del(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
 
-    void LogAction(const HistoryAction& action, const char* state, size_t pos = 0, size_t total = 0);
-    void LogStep(const HistoryStep* step, bool is_undo = false);
-
-    blob::Writer& serialize(blob::Writer& writer, wid wf_id) const;
-    void serialize_action(blob::Writer& writer, const HActionT& val) const;
-    HActionT deserialize_action(blob::Reader& reader);
+    void LogAction(const HistoryAction& action, const char* state, int32_t pos = 0, int32_t saved_pos = 0, size_t total = 0) const;
+    void LogAction(wid wf_id, const char* state, int32_t pos = 0, int32_t saved_pos = 0, size_t total = 0) const;
+    void LogStep(const HistoryStep* step, bool is_undo = false) const;
 
 private:
     const size_t m_limit;
@@ -175,8 +188,8 @@ private:
     using hqueue = std::deque<HistoryAction>;
 
     int64_t m_last_id = 0;
-    std::map<wid, size_t> m_pos;
-    std::map<wid, hqueue> m_history;
+    std::unordered_map<wid, Meta> m_meta;
+    std::unordered_map<wid, hqueue> m_history;
 };
 
 } // namespace mngr

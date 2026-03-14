@@ -31,9 +31,8 @@ void PanelNodeInspector::init()
     data()->clr_descr_frame = g::pOptsManager->color_load(AppColor::PanelNodesInspDescrFrame);
     data()->clr_selected_node = g::pOptsManager->color_load(AppColor::PanelNodesSelNode);
 
-    auto wf_id = g::pWfsManager->create(true /*skip_name*/, false /*skip_db*/).id;
+    auto wf_id = g::pWfsManager->create(false /*generate_name*/, false /*dump_to_db*/, true /*ro*/).id;
     m_wf = g::pWfsManager->access(wf_id);
-    g::pWfsManager->set_read_only(wf_id);
 }
 
 void PanelNodeInspector::add_inspecting_node(data::Node* node)

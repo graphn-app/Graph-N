@@ -4,7 +4,6 @@
 namespace listener
 {
 struct ComfyUiObjectValidityListener;
-struct Lazy1sTimer;
 }
 
 namespace mngr
@@ -108,12 +107,9 @@ public:
     void show_logs_panel(bool show);
 
     void subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener);
-    void subscribe_1s_lazy_timer(listener::Lazy1sTimer* listener);
 
     void invalidate_comfyui_objects();
     void resolve_comfyui_objects();
-
-    void handle_1sec_timer(int64_t seconds_elapsed);
 
     void load_activity_bar_mode();
 
@@ -121,6 +117,11 @@ public:
     const char* get_panel_icon(DlgObj panel_obj) const;
     const char* get_panel_name(DlgObj panel_obj) const;
     void toggle_panel_visibility(DlgObj panel_obj);
+
+    inline void set_nodes_ready() { m_nodes_ready = true; }
+    inline bool get_nodes_ready() const { return m_nodes_ready; }
+    inline void set_models_ready() { m_models_ready = true; }
+    inline bool get_models_ready() const { return m_models_ready; }
 
     // WF public
     void wf_create();
@@ -137,6 +138,7 @@ public:
     // text editor panel public
     void txt_panel_create(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint);
     void txt_panel_delete(wid wf, data::NodeInstance* node);
+    void txt_panel_clear(wid wf);
 
     // modal msg box
     void modal_begin(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def, const std::function<void(ModalDlgCtrl)>& callback);
@@ -197,13 +199,15 @@ private:
 
     // text editor panel internal
     ImGuiID find_def_txt_panel_dock();
-    void clear_txt_panels(wid wf);
     void activate_txt_panels(wid wf);
     void destroy_txt_panels();
     void destroy_txt_panel(PanelTextEditor* panel);
 
 private:
     bool m_online = false;
+
+    std::atomic_bool m_nodes_ready = false;
+    std::atomic_bool m_models_ready = false;
 
     std::unique_ptr<mngr::NodesParser> m_nodes_parser;
 
@@ -232,6 +236,5 @@ private:
     std::list<std::unique_ptr<PanelTextEditor>> m_panels_text_editor;
 
     std::list<listener::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
-    std::list<listener::Lazy1sTimer*> m_timer_listeners;
 };
 }

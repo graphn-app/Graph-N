@@ -8,7 +8,7 @@ namespace ui
 
 class PanelStats final
     : public PanelBase<PanelCommonData>
-    , public listener::Lazy1sTimer
+    , public listener::Timer
 {
 public:
     PanelStats();
@@ -16,9 +16,6 @@ public:
 
     void init() override;
     void stop_all_threads() override;
-
-    // Lazy1sTimer
-    void on_1s_timer(int64_t seconds_elapsed) override;
 
 private:
     DlgCode show(bool& focused) override;
@@ -40,6 +37,10 @@ private:
 
     void format_bytes(uint64_t bytes);
     ImU32 get_color(int64_t value, bool& stay_default, int64_t lim_warn, int64_t lim_crit, bool is_lower_better);
+
+    // Lazy1sTimer
+    void on_1s_lazy_timer(int64_t total_seconds_elapsed) override;
+    void on_frame(int64_t /*total_frames_elapsed*/) override {}
 
 private:
     std::atomic_bool m_stop = false;

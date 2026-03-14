@@ -188,7 +188,7 @@ uint32_t NodesManager::create_label()
         const auto& name = it->first;
         if (tools::str::to_lower_ascii(name) == label)
         {
-            label = fmt::format("new label ({})", ++label_idx);
+            label = fmt::format(FMT_STRING("new label ({})"), ++label_idx);
             it = m_labels.begin();
             continue;
         }

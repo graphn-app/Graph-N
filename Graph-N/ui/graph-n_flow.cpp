@@ -114,7 +114,7 @@ bool GraphN_Flow::init()
     m_panel_models->init();
     m_all_dialogs.insert(m_panel_models.get());
 
-    init_workflow_panels();
+  //  init_workflow_panels();
 
     // activity bar
     m_activity_bar = std::make_unique<ui::ActivityBar>();
@@ -156,11 +156,6 @@ void GraphN_Flow::subscribe_comfyui_validity_state(listener::ComfyUiObjectValidi
     m_comfyui_obj_listeners.push_back(listener);
 }
 
-void GraphN_Flow::subscribe_1s_lazy_timer(listener::Lazy1sTimer* listener)
-{
-    m_timer_listeners.push_back(listener);
-}
-
 void GraphN_Flow::invalidate_comfyui_objects()
 {
     Log("Notify " << m_comfyui_obj_listeners.size() << " listeners");
@@ -180,14 +175,6 @@ void GraphN_Flow::resolve_comfyui_objects()
     for (auto* listener : m_comfyui_obj_listeners)
     {
         listener->finalize_resolve_comfyui_objects();
-    }
-}
-
-void GraphN_Flow::handle_1sec_timer(int64_t seconds_elapsed)
-{
-    for (auto* listener : m_timer_listeners)
-    {
-        listener->on_1s_timer(seconds_elapsed);
     }
 }
 
@@ -372,6 +359,8 @@ void GraphN_Flow::prepare_to_quit()
 {
     LogF_In;
 
+    g::pWfsManager->close_and_purge();
+
     for (auto& dlg : m_all_dialogs)
     {
         if (dlg)
@@ -487,7 +476,7 @@ void GraphN_Flow::show_menu_bar()
             ImGui::Separator();
             for (auto& wf : m_panels_wf)
             {
-                const auto wf_name = fmt::format(FMT_COMPILE("{}##PanelsMenuBar"), wf->get_panel_name_full());
+                const auto wf_name = fmt::format(FMT_STRING("{}##PanelsMenuBar"), wf->get_panel_name_full());
                 if (ImGui::MenuItem(wf_name.c_str(), nullptr, wf.get() == m_wf_focused))
                 {
                     Log("Menu: wf " << wf_name);
@@ -727,9 +716,9 @@ void GraphN_Flow::on_menu_wf(PanelWorkflow* wf_panel)
 // WF public ->
 void GraphN_Flow::wf_create()
 {
-    auto info = g::pWfsManager->create(false /*skip_name*/, false /*skip_db*/);
-    g::pWfsManager->set_active(info.id);
-    auto panel = create_wf_panel(info);
+    auto& data = g::pWfsManager->create(true /*generate_name*/, true /*dump_to_db*/, false /*ro*/);
+    g::pWfsManager->set_active(data.id);
+    auto panel = create_wf_panel(data);
     activate_wf_panel(panel);
     m_panel_wf_list->rebuild_items();
 }
@@ -886,6 +875,7 @@ void GraphN_Flow::activate_wf_panel(PanelWorkflow* wf_panel)
         for (auto& panel : m_panels_wf)
         {
             panel->set_active(false);
+            panel->mark_dirty(panel->get_workflow()->get_data().dirty);
         }
         if (wf_panel != nullptr)
         {
@@ -901,9 +891,10 @@ void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
 {
     wf_panel->stop_all_threads();
     m_all_dialogs.erase(wf_panel);
-
-    clear_txt_panels(wf_panel->get_workflow()->get_id());
+    
+    txt_panel_clear(wf_panel->get_workflow()->get_id());
     g::pHistoryManager->cleanup(wf_panel->get_workflow()->get_id());
+    g::pWfsManager->close(wf_panel->get_workflow()->get_id());
 
     if (m_panels_wf.empty())
         destroy_txt_panels();
@@ -974,20 +965,20 @@ void GraphN_Flow::txt_panel_delete(wid wf, data::NodeInstance* node)
     }
 }
 
+void GraphN_Flow::txt_panel_clear(wid wf)
+{
+    for (auto& ptr : m_panels_text_editor)
+    {
+        ptr->reset(wf);
+    }
+}
+
 ImGuiID GraphN_Flow::find_def_txt_panel_dock()
 {
     auto wnd = ImGui::FindWindowByName(DlgObjID[cast::to_szt(DlgObj::PanelTextEditor)]);
     if (wnd != nullptr)
         return wnd->DockId;
     return 0;
-}
-
-void GraphN_Flow::clear_txt_panels(wid wf)
-{
-    for (auto& ptr : m_panels_text_editor)
-    {
-        ptr->reset(wf);
-    }
 }
 
 void GraphN_Flow::activate_txt_panels(wid wf)
@@ -1240,14 +1231,14 @@ void GraphN_Flow::show_menu_bar_connecting()
         }
         else if (ConnectState::Connecting == status)
         {
-            text = fmt::format(FMT_COMPILE("Connecting to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
+            text = fmt::format(FMT_STRING("Connecting to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
         }
     }
     else if (m_windows & ViewParsingNodes)
     {
         size_t parsed_item = 0, parse_total = 0;
         m_nodes_parser->check_status(parsed_item, parse_total);
-        text = fmt::format(FMT_COMPILE("Parsing node {} of {}"), parsed_item, parse_total);
+        text = fmt::format(FMT_STRING("Parsing node {} of {}"), parsed_item, parse_total);
 
         if (m_nodes_parser->is_parse_finished())
         {
@@ -1291,7 +1282,7 @@ void GraphN_Flow::show_panels()
 {
     const auto id_as_name = [](std::string& id_ret, const char* panel_id)
     {
-        id_ret = fmt::format("###{}", panel_id);
+        id_ret = fmt::format(FMT_STRING("###{}"), panel_id);
         return id_ret.c_str();
     };
 
@@ -1312,11 +1303,11 @@ void GraphN_Flow::show_panels()
         ImGui::DockBuilderAddNode(m_main_dock_id, ImGuiDockNodeFlags_DockSpace);
         ImGui::DockBuilderSetNodeSize(m_main_dock_id, viewport->WorkSize);
 
-        ImGuiID dock_id_left_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.2f, nullptr, &m_main_dock_id);
-        ImGuiID dock_id_left_btm = ImGui::DockBuilderSplitNode(dock_id_left_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_left_top);
-        ImGuiID dock_id_right_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.2f, nullptr, &m_main_dock_id);
+        ImGuiID dock_id_left_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.15f, nullptr, &m_main_dock_id);
+        ImGuiID dock_id_left_btm = ImGui::DockBuilderSplitNode(dock_id_left_top, ImGuiDir_Down, 0.3f, nullptr, &dock_id_left_top);
+        ImGuiID dock_id_right_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.15f, nullptr, &m_main_dock_id);
         ImGuiID dock_id_right_bottom = ImGui::DockBuilderSplitNode(dock_id_right_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right_top);
-        ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.2f, nullptr, &m_main_dock_id);
+        ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.15f, nullptr, &m_main_dock_id);
 
         std::string id;
 
@@ -1349,6 +1340,13 @@ void GraphN_Flow::show_panels()
         }
 
         ImGui::DockBuilderFinish(m_main_dock_id);
+
+        static bool wf_panels_initilized = false;
+        if (!wf_panels_initilized)
+        {
+            init_workflow_panels();
+            wf_panels_initilized = true;
+        }
     }
 
     if (ImGui::GetFrameCount() > 10 && !focus_fixed)

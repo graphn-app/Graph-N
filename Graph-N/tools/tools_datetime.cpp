@@ -15,6 +15,36 @@ dt dt::from_current_date()
 
     dt date = {};
 
+    date.m_raw = t;
+
+    date.m_year = cast::to_u16(ptm.tm_year + 1900);
+    date.m_month = cast::to_u8(ptm.tm_mon + 1);
+    date.m_day = cast::to_u8(ptm.tm_mday);
+
+    date.m_hour = cast::to_u8(ptm.tm_hour);
+    date.m_minute = cast::to_u8(ptm.tm_min);
+    date.m_second = cast::to_u8(ptm.tm_sec);
+    date.m_millisecond = cast::to_u16(millis);
+
+    return date;
+}
+
+dt dt::from_time(time_t raw)
+{
+    if (0 == raw)
+        return {};
+
+    const auto t = std::chrono::system_clock::from_time_t(raw);
+    std::tm ptm;
+    localtime_s(&ptm, &raw);
+
+    const auto duration = t.time_since_epoch();
+    const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() % 1000;
+
+    dt date = {};
+
+    date.m_raw = raw;
+
     date.m_year = cast::to_u16(ptm.tm_year + 1900);
     date.m_month = cast::to_u8(ptm.tm_mon + 1);
     date.m_day = cast::to_u8(ptm.tm_mday);
@@ -69,7 +99,7 @@ std::string dt::as_log_line() const
 std::string dt::as_filename() const
 {
     // YYMMDD_HHMMSS
-    return fmt::format("{:02}{:02}{:02}_{:02}{:02}{:02}",
+    return fmt::format(FMT_STRING("{:02}{:02}{:02}_{:02}{:02}{:02}"),
         m_year % 100, m_month, m_day,
         m_hour, m_minute, m_second);
 }
@@ -77,7 +107,7 @@ std::string dt::as_filename() const
 std::string dt::as_full_date() const
 {
     // YYYY/MMM/DD_HH:MM:SS.mmm
-    return fmt::format("{:04}/{}/{:02} {:02}:{:02}:{:02}.{:03}",
+    return fmt::format(FMT_COMPILE("{:04}/{}/{:02} {:02}:{:02}:{:02}.{:03}"),
         m_year, month_name(3), m_day,
         m_hour, m_minute, m_second, m_millisecond);
 }

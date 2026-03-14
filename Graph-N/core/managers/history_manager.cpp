@@ -8,7 +8,6 @@
 #include "core/workflow/workflow_action.h"
 #include "core/data/node.h"
 #include "core/data/pin.h"
-#include "tools/blob_serializer.h"
 
 namespace mngr
 {
@@ -36,7 +35,7 @@ HistoryAction& HistoryAction::operator=(HistoryAction&& other)
     id = other.id;
     wf = other.wf;
     name = std::move(other.name);
-    multi_action_counter = other.multi_action_counter;
+    counter = other.counter;
     steps = std::move(other.steps);
     return *this;
 }
@@ -76,57 +75,61 @@ void HistoryManager::stop_all_threads()
 
 void HistoryManager::cleanup(wid wf_id)
 {
-    m_pos.erase(wf_id);
+    m_meta.erase(wf_id);
     m_history.erase(wf_id);
     Log("History cleaned up for wf " << wf_id);
 }
 
-const HistoryAction* HistoryManager::get_undo(wid wf_id, const size_t** hpos) const
+std::pair<bool, bool> HistoryManager::get_undo_redo(
+    wid wf_id,
+    const HistoryAction** undo_h, const HistoryAction** redo_h,
+    const Meta** meta) const
 {
-    auto pos = m_pos.find(wf_id);
-    if (pos == m_pos.end() || pos->second == 0)
-        return nullptr;
-    auto h = m_history.find(wf_id);
-    if (h == m_history.end()) { LogAndThrowInternalError(ExcepCategory::Logic, "History not exists for wf " << wf_id); }
-    if (h->second.size() == 1 || pos->second >= h->second.size()) { LogAndThrowInternalError(ExcepCategory::Logic, "Invalid history pos for wf " << wf_id); }
-
-    auto& undo = h->second[pos->second];
-    if (hpos != nullptr)
-        *hpos = &pos->second;
-    return &undo;
-}
-
-const HistoryAction* HistoryManager::get_redo(wid wf_id, const size_t** hpos) const
-{
-    auto pos = m_pos.find(wf_id);
-    if (pos == m_pos.end())
-        return nullptr;
+    auto meta_it = m_meta.find(wf_id);
+    if (meta_it == m_meta.end())
+        return { false, false };
 
     auto h = m_history.find(wf_id);
-    if (h == m_history.end()) { LogAndThrowInternalError(ExcepCategory::Logic, "History not exists for wf " << wf_id); }
+    if (h == m_history.end()) return { false, false };
 
-    if (h->second.size() == 1 || pos->second >= h->second.size() - 1)
-        return nullptr;
+    bool undo_exists = false, redo_exists = false;
 
-    auto& redo = h->second[pos->second + 1];
-    if (hpos != nullptr)
-        *hpos = &pos->second;
-    return &redo;
+    if (meta != nullptr)
+        *meta = &meta_it->second;
+
+    if (meta_it->second.pos >= 0) // undo
+    {
+        undo_exists = true;
+        auto& undo = h->second[meta_it->second.pos];
+        if (undo_h != nullptr)
+            *undo_h = &undo;
+    }
+    if (!h->second.empty() && meta_it->second.pos < cast::to_i32(h->second.size()) - 1)
+    {
+        redo_exists = true;
+        auto& redo = h->second[meta_it->second.pos + 1];
+        if (redo_h != nullptr)
+            *redo_h = &redo;
+    }
+
+    return { undo_exists, redo_exists };
 }
 
-const char* HistoryManager::undo_name(wid wf_id) const
+const HistoryAction* HistoryManager::get_undo(wid wf_id, const Meta** meta) const
 {
-    auto h = get_undo(wf_id, nullptr);
-    if (h != nullptr)
-        return h->name.c_str();
+    const HistoryAction* h = nullptr;
+    const auto res = get_undo_redo(wf_id, &h, nullptr, meta);
+    if (res.first)
+        return h;
     return nullptr;
 }
 
-const char* HistoryManager::redo_name(wid wf_id) const
+const HistoryAction* HistoryManager::get_redo(wid wf_id, const Meta** meta) const
 {
-    auto h = get_redo(wf_id, nullptr);
-    if (h != nullptr)
-        return h->name.c_str();
+    const HistoryAction* h = nullptr;
+    const auto res = get_undo_redo(wf_id, nullptr, &h, meta);
+    if (res.second)
+        return h;
     return nullptr;
 }
 
@@ -135,12 +138,15 @@ void HistoryManager::undo(wid wf_id)
     if (m_rollback) { LogAndThrowInternalError(ExcepCategory::Logic, "Already in progress"); }
     m_rollback = true;
 
-    const size_t* pos = nullptr;
-    auto h = get_undo(wf_id, &pos);
+    const Meta* meta = nullptr;
+    auto h = get_undo(wf_id, &meta);
     if (nullptr == h) { LogAndThrowInternalError(ExcepCategory::Logic, "Can't undo"); }
     pop_action(h, true);
-    (*const_cast<size_t*>(pos))--;
+    (*const_cast<Meta*>(meta)).pos--;
+    sync_wf_state(wf_id, meta);
     m_rollback = false;
+
+    LogAction(*h, "DONE", meta->pos, meta->saved, m_history[h->wf].size());
 }
 
 void HistoryManager::redo(wid wf_id)
@@ -148,12 +154,88 @@ void HistoryManager::redo(wid wf_id)
     if (m_rollback) { LogAndThrowInternalError(ExcepCategory::Logic, "Already in progress"); }
     m_rollback = true;
 
-    const size_t* pos = nullptr;
-    auto h = get_redo(wf_id, &pos);
+    const Meta* meta = nullptr;
+    auto h = get_redo(wf_id, &meta);
     if (nullptr == h) { LogAndThrowInternalError(ExcepCategory::Logic, "Can't redo"); }
     pop_action(h, false);
-    (*const_cast<size_t*>(pos))++;
+    (*const_cast<Meta*>(meta)).pos++;
+    sync_wf_state(wf_id, meta);
     m_rollback = false;
+
+    LogAction(*h, "DONE", meta->pos, meta->saved, m_history[h->wf].size());
+}
+
+void HistoryManager::sync_wf_state(wid wf_id, const Meta* meta) const
+{
+    auto wf = g::pWfsManager->access(wf_id);
+    auto& data = wf->get_data();
+
+    const bool stable_state = (meta->pos == meta->saved && meta->saved >= -1); 
+    data.dirty = !stable_state;
+    data.draft = !stable_state;
+}
+
+void HistoryManager::set_rollback_pos(wid wf_id)
+{
+    auto& meta = m_meta[wf_id];
+    meta.saved = meta.pos;
+    Log("Wf " << wf_id << " rollback position set to " << meta.pos);
+}
+
+bool HistoryManager::can_rollback(wid wf_id)
+{
+    auto it = m_meta.find(wf_id);
+    if (it == m_meta.end()) 
+        return false;
+    return it->second.pos != it->second.saved && it->second.saved >= -1;
+}
+
+void HistoryManager::rollback(wid wf_id)
+{
+    if (m_rollback) { LogAndThrowInternalError(ExcepCategory::Logic, "Already in progress"); }
+    if (!can_rollback(wf_id)) { LogAndThrowInternalError(ExcepCategory::Logic, "Can't rollback"); }
+    m_rollback = true;
+
+    auto& meta = m_meta[wf_id];
+    auto& h = m_history[wf_id];
+
+    LogAction(wf_id, "ROLLBACK", meta.pos, meta.saved, h.size());
+
+    while (meta.pos > meta.saved) // undo to saved pos
+    {
+        pop_action(&h[meta.pos], true);
+        meta.pos--;
+    }
+    while (meta.pos < meta.saved) // redo to saved pos
+    {
+        meta.pos++;
+        pop_action(&h[meta.pos], false);
+    }
+
+    sync_wf_state(wf_id, &meta);
+    m_rollback = false;
+
+    LogAction(wf_id, "ROLLBACK DONE", meta.pos, meta.saved, h.size());
+}
+
+HistoryState HistoryManager::get_state(wid wf_id) const
+{
+    const HistoryAction* undo_h = nullptr;
+    const HistoryAction* redo_h = nullptr;
+    const Meta* meta = nullptr;
+    const auto res = get_undo_redo(wf_id, &undo_h, &redo_h, &meta);
+    if (!res.first && !res.second)
+        return {};
+
+    HistoryState state;
+    state.pos = meta->pos;
+    state.saved_pos = meta->saved;
+    if (undo_h != nullptr)
+        state.undo_name = &undo_h->name;
+    if (redo_h != nullptr)
+        state.redo_name = &redo_h->name;
+
+    return state;
 }
 
 /////   save action
@@ -161,71 +243,32 @@ void HistoryManager::redo(wid wf_id)
 
 HistoryAction* HistoryManager::open_action(wid wf_id, const char* action_name)
 {
-    HistoryAction* ret = nullptr;
     hqueue& h = m_history[wf_id];
-    size_t& pos = m_pos[wf_id];
 
-    const auto push_new = [action_name, &h, &pos, wf_id, this]()
+    if (!h.empty() && h.back().counter > 0)
     {
-        HistoryAction act(++m_last_id, wf_id);
-        act.name = action_name;
-        act.multi_action_counter++;
-        h.push_back(std::move(act));
-        pos = h.size() - 1;
+        h.back().counter++;
+        LogAction(h.back(), "Continuing");
         return &h.back();
-    };
-
-    if (h.empty())
-    {
-        ret = push_new();
-        LogAction(*ret, "Opened", pos, h.size());
-    }
-    else
-    {
-        auto& act = h.back();
-        if (act.multi_action_counter > 0)
-        {
-            act.multi_action_counter++;
-            ret = &act;
-            LogAction(*ret, "Continuing", pos, h.size());
-        }
-        else
-        {
-            const auto sz = h.size();
-            while(h.size() - 1 > pos)
-            {
-                h.pop_back();
-            }
-            if (sz != h.size())
-            {
-                Log("Wf " << wf_id << ", removed " << sz - h.size() << " actions on back");
-            }
-
-            ret = push_new();
-            LogAction(*ret, "Opened", pos, h.size());
-        }
     }
 
-    const auto sz = h.size();
-    while (h.size() > m_limit)
-    {
-        h.pop_front();
-        if (pos > 0)
-            pos--;
-    }
-    if (sz != h.size())
-    {
-        Log("Wf " << wf_id << ", removed " << sz - h.size() << " actions on front");
-    }
+    HistoryAction act(++m_last_id, wf_id);
+    act.name = action_name;
+    act.counter = 1;
+    h.push_back(std::move(act));
 
-    return ret;
+    LogAction(h.back(), "Opened");
+    return &h.back();
 }
 
 void HistoryManager::close_action(wid wf_id)
 {
     hqueue& h = m_history[wf_id];
+    if (h.empty()) { LogAndThrowInternalError(ExcepCategory::Logic, "No actions to close"); }
     auto& act = h.back();
-    if (--act.multi_action_counter > 0)
+    if (0 == act.counter) { LogAndThrowInternalError(ExcepCategory::Logic, "Actions already closed"); }
+
+    if (--act.counter > 0)
     {
         LogAction(act, "Pending Close");
         return;
@@ -235,12 +278,45 @@ void HistoryManager::close_action(wid wf_id)
     {
         LogAction(act, "Dropped (Empty)");
         h.pop_back();
+        return;
     }
-    else
+
+    auto& meta = m_meta[wf_id];
+    HistoryAction valid_act = std::move(h.back());
+    h.pop_back();
+
+    const size_t sz = h.size();
+    while (cast::to_i32(h.size()) - 1 > meta.pos)
     {
-        LogAction(act, "Closed", m_pos[wf_id], h.size());
+        h.pop_back();
     }
-    m_pos[wf_id] = h.size() - 1;
+    if (meta.saved > meta.pos)
+    {
+        meta.saved = -2;
+        Log("Wf " << wf_id << " saved pos dropped, rollback only via DB");
+    }
+    if (sz != h.size())
+    {
+        Log("Wf " << wf_id << ", dropped " << sz - h.size() << " actions on back");
+    }
+
+    h.push_back(std::move(valid_act));
+    meta.pos++;
+
+    sync_wf_state(wf_id, &meta);
+    
+    const size_t sz_before_limit = h.size();
+    while (h.size() > m_limit)
+    {
+        h.pop_front();
+        if (meta.pos > -1) meta.pos--;
+        meta.saved--;
+    }
+    if (sz_before_limit != h.size())
+    {
+        Log("Wf " << wf_id << ", dropped " << sz_before_limit - h.size() << " actions on front");
+    }
+    LogAction(h.back(), "Closed", meta.pos, meta.saved, h.size());
 }
 
 void HistoryManager::multi_action_begin(wid wf_id, const char* action_name)
@@ -416,8 +492,6 @@ void HistoryManager::pop_action(const HistoryAction* action, bool do_undo)
             pop_action(wf, ptr, do_undo);
         }
     }
-
-    LogAction(*action, "DONE");
 }
 
 void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, bool do_undo)

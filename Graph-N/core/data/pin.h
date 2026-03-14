@@ -89,6 +89,8 @@ struct PinState final
     size_t type_hash = 0;
 
     std::string name;
+    float w_name = 0.0f;
+
     primitive value;            // current value, if widget
     iid cag = 0;
 };
@@ -142,7 +144,6 @@ public:
     bool video_upload = false;
     std::string image_folder;
 
-    float w_name = 0.0f;
     float w_value = 0.0f;
     std::string tooltip;
 

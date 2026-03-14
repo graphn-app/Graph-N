@@ -6,7 +6,6 @@
 #include "core/workflow/link.h"
 #include "core/workflow/workflow_action.h"
 #include "core/managers/nodes_manager.h"
-#include "tools/blob_serializer.h"
 #include "ui/graph-n_flow.h"
 
 namespace data
@@ -352,13 +351,16 @@ void Workflow::remove_link(const Link* link)
     }
 }
 
-blob::Writer Workflow::serialize() const
+blob::Writer Workflow::serialize(const blob::Blob& drawer_state) const
 {
     blob::Writer writer;
+
     blob::Block block(writer);
-    writer
-        .push(m_last_child_id)
-    ;
+    writer.push(m_last_child_id);
+    block.end();
+
+    block.begin();
+    writer.push(drawer_state);
     block.end();
 
     writer.push(cast::to_u32(m_nodes.size()));
@@ -380,37 +382,43 @@ blob::Writer Workflow::serialize() const
     return writer;
 }
 
-std::unique_ptr<Workflow> Workflow::deserialize(const char* uuid, const char* name, const blob::Blob& blob)
+bool Workflow::deserialize(const blob::Blob& blob, blob::Blob& drawer_state)
 {
     try
     {
-        blob::Reader wf_reader(blob);
-        blob::Reader block = wf_reader.pop_block();
+        m_action->hard_reset();
+        m_nodes.clear();
+        m_pins.clear();
+        m_links.clear();
 
-        std::unique_ptr<Workflow> wf = std::make_unique<Workflow>(uuid, name);
-        wf->m_last_child_id = block.pop_iid();
-        wf->init();
+        blob::Reader wf_reader(blob);
+
+        blob::Reader block = wf_reader.pop_block();
+        m_last_child_id = block.pop_iid();
+
+        block = wf_reader.pop_block();
+        drawer_state = block.pop_blob();
 
         const uint32_t nodes_count = wf_reader.pop_u32();
         for (uint32_t i = 0; i < nodes_count; i++)
         {
             block = wf_reader.pop_block();
-            wf->add_node(block);
+            add_node(block);
         }
 
         const uint32_t links_count = wf_reader.pop_u32();
         for (uint32_t i = 0; i < links_count; i++)
         {
             block = wf_reader.pop_block();
-            Link::deserialize(wf.get(), block);
+            Link::deserialize(this, block);
         }
-        return wf;
+        return true;
     }
     catch (std::exception& ex)
     {
         LogExcepS(ExcepCategory::Logic, ex.what());
     }
-    return nullptr;
+    return false;
 }
 
 //TODO

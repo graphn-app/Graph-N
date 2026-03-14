@@ -1,7 +1,6 @@
 
 #pragma once
 #include "core/managers/manager.h"
-#include "tools/blob_serializer.h"
 
 namespace mngr
 {

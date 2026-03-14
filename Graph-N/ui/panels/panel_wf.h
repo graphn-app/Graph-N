@@ -15,7 +15,8 @@ class WorkflowAction;
 namespace ui
 {
 
-class PanelWorkflow final : 
+class PanelWorkflow final :
+    public PanelToolbar,
     public PanelEmptyWithDescr,
     public PanelBase<PanelCommonData>
 {
@@ -47,6 +48,25 @@ public:
 private:
     DlgCode show(bool& focused) override;
     void draw_wf();
+
+    void check_history();
+    void create_toolbar();
+
+    void on_pre_save(PanelToolbar::Element& el);
+    void on_save(PanelToolbar::Element& el);
+    void on_pre_revert(PanelToolbar::Element& el);
+    void on_revert(PanelToolbar::Element& el);
+    void on_pre_undo(PanelToolbar::Element& el);
+    void on_undo(PanelToolbar::Element& el);
+    void on_pre_redo(PanelToolbar::Element& el);
+    void on_redo(PanelToolbar::Element& el);
+    void on_pre_project_status(PanelToolbar::Element& el);
+
+    void on_pre_queue_status(PanelToolbar::Element& el); 
+    void on_pre_queue(PanelToolbar::Element& el);
+    void on_queue(PanelToolbar::Element& el);
+    void on_pre_queue_stop(PanelToolbar::Element& el);
+    void on_queue_stop(PanelToolbar::Element& el);
 
     bool context_menu_handler();
     bool show_context_menu();
@@ -98,6 +118,17 @@ private:
     MenuType m_context_menu_type = MenuType::_none;
     MenuObjects m_menu_objs;
     float m_color_buff[4] = { -1.0f };
+
+    int64_t m_tasks_num = 1;
+    std::string m_queue_num_input_id;
+
+    bool m_can_save = false;
+    bool m_can_revert = false;
+    char m_history_status[64] = {};
+    char m_tt_history_status[128] = {};
+    char m_undo_name[64] = {};
+    char m_redo_name[64] = {};
+    char m_tt_revert[128] = {};
 };
 
 

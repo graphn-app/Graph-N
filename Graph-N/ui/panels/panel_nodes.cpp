@@ -31,9 +31,8 @@ void PanelNodes::init()
     PanelBase::init();
     data()->buffer.resize(PanelNodesData::_buf_count);
 
-    auto wf_id = g::pWfsManager->create(true /*skip_name*/, false /*skip_db*/).id;
+    auto wf_id = g::pWfsManager->create(false /*generate_name*/, false /*dump_to_db*/, true /*ro*/).id;
     m_wf = g::pWfsManager->access(wf_id);
-    g::pWfsManager->set_read_only(wf_id);
 
     g::pFlow->subscribe_comfyui_validity_state(this);
 

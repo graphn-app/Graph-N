@@ -65,7 +65,6 @@ public:
 
     void load_models();
     inline void set_nodes_map(std::unordered_map<std::string, std::list<hid>>&& nodes_map) { m_model_to_nodes_map = std::move(nodes_map); }
-    inline void set_nodes_ready() { m_nodes_ready = true; }
 
     const std::vector<std::unique_ptr<data::ModelItem>>& get_models() const;
     inline bool has_service_components() const { return m_service_components_found; }
@@ -83,8 +82,6 @@ private:
 
 private:
     std::thread m_th;
-    std::atomic_bool m_models_ready = false;
-    std::atomic_bool m_nodes_ready = false;
     std::atomic_bool m_stop_flag = false;
 
     bool m_service_components_found = false;

@@ -21,6 +21,7 @@ public:
     ~WorkflowAction();
 
     inline void set_drawer(ui::NodeDrawer* drawer) { m_drawer = drawer; }
+    const blob::Blob* get_drawer_state() const;
 
     void multi_action_on(const char* action_name) const;
     void multi_action_off() const;
@@ -30,6 +31,8 @@ public:
 
     void delete_node(data::NodeInstance* node);
     void delete_group(data::NodeInstance* group);
+
+    void hard_reset();
 
     data::Link* link(data::PinInstance* p1, data::PinInstance* p2, iid instance_id = 0);
     void unlink(data::PinInstance* pin);

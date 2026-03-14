@@ -1,7 +1,6 @@
 
 #include "core/managers/db_manager.h"
 #include "core/base/version.h"
-#include "tools/blob_serializer.h"
 
 namespace mngr
 {
@@ -21,7 +20,9 @@ inline constexpr auto gdb_val_uuid = "uuid";
 inline constexpr auto gdb_val_type = "type";
 inline constexpr auto gdb_val_pending_delete = "pending_delete";
 inline constexpr auto gdb_val_saved = "saved";
+inline constexpr auto gdb_val_saved_at = "saved_at";
 inline constexpr auto gdb_val_draft = "draft";
+inline constexpr auto gdb_val_draft_at = "draft_at";
 
 inline constexpr auto gdb_valname_app_ver = "app_ver";
 inline constexpr auto gdb_valname_last_run = "last_run";
@@ -45,7 +46,7 @@ ________________________________________________________________________________
 _______________________________________________________________________________________________________________________________________________________________
 ERRORS: | id        | file           | line      | category                      | message              | at
 ________|------------------------------------------------------------------------------------------------------------------------------------------------------
-        | int       | str            | int       | int                           | str                  | datetime
+        | int       | str            | int       | int                           | str                  | time_t
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         | prim      | message source             | enum ExcepCategory            | err message          | error time
 _______________________________________________________________________________________________________________________________________________________________
@@ -54,7 +55,7 @@ ________________________________________________________________________________
 _______________________________________________________________________________________________________________________________________________________________
 SETTINGS: | id        | name           | value_int      | value_str         | at
 __________|----------------------------------------------------------------------------------------------------------------------------------------------------
-          | int       | str            | int            | str               | datetime
+          | int       | str            | int            | str               | time_t
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
           | prim      | option name    | option value, int or str           | create/update time
 _______________________________________________________________________________________________________________________________________________________________
@@ -63,18 +64,18 @@ ________________________________________________________________________________
 _______________________________________________________________________________________________________________________________________________________________
 ITEMPROPS:| id        | hash                    | type                  | value_int      | value_str    | at
 __________|----------------------------------------------------------------------------------------------------------------------------------------------------
-          | int       | str                     | int                   | int            | str          | datetime
+          | int       | str                     | int                   | int            | str          | time_t
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
           | prim      | hid as string           | enum DbItemOptionType | option value, int or str      | create/update time
 _______________________________________________________________________________________________________________________________________________________________
 
 
 _______________________________________________________________________________________________________________________________________________________________________
-WORKFLOW_META: | id        | uuid          | name            | pending_delete | saved          | draft          | at
+WORKFLOWS:     | id        | uuid          | name            | pending_delete | at                 | saved          | saved_at  | draft           | draft_at
 _______________|--------------------------------------------------------------------------------------------------------------------------------------------------------
-               | int       | str           | str             | int            | blob           | blob           | datetime
+               | int       | str           | str             | int            | time_t             | blob           | time_t    | blob            | time_t
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-               | prim      | WF id as uuid | name (caption)  | flag to purge  | approved state | autosaved copy | create/update time
+               | prim      | WF id as uuid | name (caption)  | flag to purge  | create/update time | approved state | saved time | autosaved copy | draft saved time
 _______________________________________________________________________________________________________________________________________________________________________
 
 */
@@ -167,7 +168,7 @@ bool DbManager::init()
 
         m_db->exec("PRAGMA user_version = " + std::to_string(ver::app_major) + ";");
 
-        m_db->exec(fmt::format(FMT_COMPILE(R"(
+        m_db->exec(fmt::format(FMT_STRING(R"(
 					CREATE TABLE IF NOT EXISTS {} (
 						{} INTEGER PRIMARY KEY AUTOINCREMENT,
 						{} TEXT NOT NULL UNIQUE,
@@ -178,7 +179,7 @@ bool DbManager::init()
                     gdb_val_name, gdb_val_str, gdb_val_int));
 
         SQLite::Statement query_appver(*m_db,
-            fmt::format(FMT_COMPILE(R"(
+            fmt::format(FMT_STRING(R"(
                         REPLACE INTO {}
                                 ({}, {}, {})
                         VALUES  (?,  ?,  ?)
@@ -191,7 +192,7 @@ bool DbManager::init()
         query_appver.exec();
 
         SQLite::Statement query_lastrun(*m_db,
-            fmt::format(FMT_COMPILE(R"(
+            fmt::format(FMT_STRING(R"(
                         REPLACE INTO {}
                                 ({}, {}, {})
                         VALUES  (?,  ?,  ?)
@@ -203,39 +204,39 @@ bool DbManager::init()
         query_lastrun.bind(3, 0);
         query_lastrun.exec();
 
-        m_db->exec(fmt::format(FMT_COMPILE(R"(
+        m_db->exec(fmt::format(FMT_STRING(R"(
 					CREATE TABLE IF NOT EXISTS {} (
 						{} INTEGER PRIMARY KEY AUTOINCREMENT,
 						{} TEXT,
 						{} INTEGER,
 						{} TEXT,
 						{} TEXT,
-                        {} DATETIME DEFAULT CURRENT_TIMESTAMP
+                        {} INTEGER
 					);
 			   )"), gdb_tbl_err, gdb_val_id,
                     gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message,
                     gdb_val_when));
 
-        m_db->exec(fmt::format(FMT_COMPILE(R"(
+        m_db->exec(fmt::format(FMT_STRING(R"(
 					CREATE TABLE IF NOT EXISTS {} (
 						{} INTEGER PRIMARY KEY AUTOINCREMENT,
 						{} TEXT NOT NULL UNIQUE,
 						{} INTEGER,
 						{} TEXT,
-                        {} DATETIME DEFAULT CURRENT_TIMESTAMP
+                        {} INTEGER
 					);
 			   )"), gdb_tbl_opt, gdb_val_id,
                     gdb_val_name, gdb_val_int, gdb_val_str,
                     gdb_val_when));
 
-        m_db->exec(fmt::format(FMT_COMPILE(R"(
+        m_db->exec(fmt::format(FMT_STRING(R"(
 					CREATE TABLE IF NOT EXISTS {} (
 						{} INTEGER PRIMARY KEY AUTOINCREMENT,
 						{} TEXT,
 						{} INTEGER,
 						{} INTEGER,
 						{} TEXT,
-                        {} DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        {} INTEGER,
                         UNIQUE({}, {}) ON CONFLICT REPLACE
 					);
 			   )"), gdb_tbl_items, gdb_val_id,
@@ -243,19 +244,21 @@ bool DbManager::init()
                     gdb_val_when,
                     gdb_val_hash, gdb_val_type));
 
-        m_db->exec(fmt::format(FMT_COMPILE(R"(
+        m_db->exec(fmt::format(FMT_STRING(R"(
 					CREATE TABLE IF NOT EXISTS {} (
 						{} INTEGER PRIMARY KEY AUTOINCREMENT,
 						{} TEXT NOT NULL UNIQUE,
 						{} TEXT,
 						{} INTEGER,
+                        {} INTEGER,
 						{} BLOB,
+                        {} INTEGER,
 						{} BLOB,
-                        {} DATETIME DEFAULT CURRENT_TIMESTAMP
+                        {} INTEGER
 					);
 			   )"), gdb_tbl_wfs, gdb_val_id,
-                    gdb_val_uuid, gdb_val_name, gdb_val_pending_delete, gdb_val_saved, gdb_val_draft,
-                    gdb_val_when));
+                    gdb_val_uuid, gdb_val_name, gdb_val_pending_delete, gdb_val_when,
+                    gdb_val_saved, gdb_val_saved_at, gdb_val_draft, gdb_val_draft_at));
 
         transaction.commit();
 
@@ -495,11 +498,11 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
     {
         SQLite::Statement query(*m_db,
             fmt::format(FMT_COMPILE(R"(
-                        SELECT {}, {}, LENGTH({}), LENGTH({})
+                        SELECT {}, {}, LENGTH({}), {}, LENGTH({}), {}
                         FROM {}
                         WHERE {} = 0
                     )"),
-                gdb_val_uuid, gdb_val_name, gdb_val_saved, gdb_val_draft,
+                gdb_val_uuid, gdb_val_name, gdb_val_saved, gdb_val_saved_at, gdb_val_draft, gdb_val_draft_at,
                 gdb_tbl_wfs,
                 gdb_val_pending_delete));
 
@@ -511,8 +514,10 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
             WfData wfd;
             wfd.uuid = query.getColumn(0).getString();
             wfd.name = query.getColumn(1).getString();
-            wfd.saved_size = query.getColumn(2).getInt();
-            wfd.draft_size = query.getColumn(3).getInt();
+            wfd.saved_exist = query.getColumn(2).getInt() > 0;
+            wfd.saved_time = tools::dt::from_time(query.getColumn(3).getInt64());
+            wfd.draft_exist = query.getColumn(4).getInt() > 0;
+            wfd.draft_time = tools::dt::from_time(query.getColumn(5).getInt64());
 
             Log("Workflow loaded: " << wfd.name << "###" << wfd.uuid);
             wfs.push_back(wfd);
@@ -547,7 +552,7 @@ void DbManager::wf_load_blob(const std::string& uuid, blob::Blob& blob, bool& lo
     {
         SQLite::Statement query(*m_db,
             fmt::format(FMT_COMPILE(R"(
-                    SELECT {}
+                    SELECT {}, {}
                     FROM {}
                     WHERE {} = ?
                 )"),
@@ -658,7 +663,7 @@ void DbManager::backup_thread(std::filesystem::path db_path, std::unique_ptr<SQL
         backup /= tools::dt::get_app_start_time().as_filename() + ".db";
         auto path = backup.generic_u8string();
         tools::str::replace_this(path, "'", "''");
-        const std::string command = fmt::format("VACUUM INTO '{}';", path);
+        const std::string command = fmt::format(FMT_STRING("VACUUM INTO '{}';"), path);
         db->exec(command);
         Log("Db backuped up to " << path);
     }
@@ -677,18 +682,19 @@ void DbManager::write_data(SQLite::Database& db, const ExcepData* data)
     try
     {
         SQLite::Statement query(db,
-            fmt::format(FMT_COMPILE(R"(
+            fmt::format(FMT_STRING(R"(
                     INSERT INTO {}
-                                ({}, {}, {}, {})
-                        VALUES  (?,  ?,  ?,  ?)
+                                ({}, {}, {}, {}, {})
+                        VALUES  (?,  ?,  ?,  ?,  ?)
                 )"),
                 gdb_tbl_err,
-                gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message));
+                gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message, gdb_val_when));
 
         query.bindNoCopy(1, data->file);
         query.bind(2, data->line);
         query.bind(3, cast::to_i64(data->category));
         query.bindNoCopy(4, data->message);
+        query.bind(5, tools::dt::from_current_date().raw());
         query.exec();
     }
     catch (const SQLite::Exception& ex)
@@ -702,17 +708,18 @@ void DbManager::write_data(SQLite::Database& db, const DbAppOptionData* data)
     try
     {
         SQLite::Statement query(db,
-            fmt::format(FMT_COMPILE(R"(
+            fmt::format(FMT_STRING(R"(
                         REPLACE INTO {}
-                                ({}, {}, {})
-                        VALUES  (?,  ?,  ?)
+                                ({}, {}, {}, {})
+                        VALUES  (?,  ?,  ?,  ?)
                 )"),
                 gdb_tbl_opt,
-                gdb_val_name, gdb_val_int, gdb_val_str));
+                gdb_val_name, gdb_val_int, gdb_val_str, gdb_val_when));
 
         query.bindNoCopy(1, data->name);
         query.bind(2, data->val.ival);
         query.bindNoCopy(3, data->val.sval);
+        query.bind(4, tools::dt::from_current_date().raw());
         query.exec();
         Log("Upd " << LOG_KEY_VAL(data->name, data->val));
     }
@@ -727,18 +734,19 @@ void DbManager::write_data(SQLite::Database& db, const ItemData* data)
     try
     {
         SQLite::Statement query(db,
-            fmt::format(FMT_COMPILE(R"(
+            fmt::format(FMT_STRING(R"(
                         REPLACE INTO {}
-                                ({}, {}, {}, {})
-                        VALUES  (?,  ?,  ?,  ?)
+                                ({}, {}, {}, {}, {})
+                        VALUES  (?,  ?,  ?,  ?,  ?)
                 )"),
                 gdb_tbl_items,
-                gdb_val_hash, gdb_val_type, gdb_val_int, gdb_val_str));
+                gdb_val_hash, gdb_val_type, gdb_val_int, gdb_val_str, gdb_val_when));
 
         query.bind(1, std::to_string(data->hash));
         query.bind(2, cast::to_i32(data->type));
         query.bind(3, data->value.ival);
         query.bindNoCopy(4, data->value.sval);
+        query.bind(5, tools::dt::from_current_date().raw());
         query.exec();
         Log("Upd " << LOG_NOPT_KEY_VAL(data->hash, data->type, data->value));
     }
@@ -753,7 +761,7 @@ void DbManager::delete_data(SQLite::Database& db, const ItemData* data)
     try
     {
         SQLite::Statement query(db,
-            fmt::format(FMT_COMPILE(R"(
+            fmt::format(FMT_STRING(R"(
                         DELETE FROM {}
                             WHERE {} = ? AND {} = ?
                 )"),
@@ -776,7 +784,7 @@ void DbManager::write_wf_meta(SQLite::Database& db, const WfData* data)
     try
     {
         SQLite::Statement query(db,
-            fmt::format(FMT_COMPILE(R"(
+            fmt::format(FMT_STRING(R"(
                         INSERT INTO {}
                                ({}, {}, {})
                         VALUES (?,  ?,  ?)
@@ -806,18 +814,20 @@ void DbManager::write_wf_blob(SQLite::Database& db, const WfBlob* data)
     try
     {
         SQLite::Statement query(db,
-            fmt::format(FMT_COMPILE(R"(
+            fmt::format(FMT_STRING(R"(
                         UPDATE {}
-                        SET {} = ?
+                        SET {} = ?, {} = ?
                         WHERE {} = ?
                 )"),
                 gdb_tbl_wfs,
                 (data->draft ? gdb_val_draft : gdb_val_saved),
+                (data->draft ? gdb_val_draft_at : gdb_val_saved_at),
                 gdb_val_uuid
             ));
 
         query.bindNoCopy(1, cast::to_void(data->blob->data()), cast::to_i32(data->blob->size()));
-        query.bindNoCopy(2, data->uuid);
+        query.bind(2, tools::dt::from_current_date().raw());
+        query.bindNoCopy(3, data->uuid);
         query.exec();
         Log("Workflow blob upd: " << data->uuid << ", bl=" << data->blob->size() << " bytes");
     }
@@ -832,7 +842,7 @@ void DbManager::delete_wf_draft(SQLite::Database& db, const WfBlob* data)
     try
     {
         SQLite::Statement query(db,
-            fmt::format(FMT_COMPILE(R"(
+            fmt::format(FMT_STRING(R"(
                         UPDATE {}
                         SET {} = ?
                         WHERE {} = ?
@@ -858,7 +868,7 @@ void DbManager::purge_wf(SQLite::Database& db)
     try
     {
         SQLite::Statement query1(db,
-            fmt::format(FMT_COMPILE(R"(
+            fmt::format(FMT_STRING(R"(
                     DELETE FROM {}
                     WHERE {} = 1
                 )"),
@@ -893,7 +903,7 @@ void DbManager::write_thread(std::filesystem::path db_path)
             m_cv.wait_for(lock, std::chrono::milliseconds(wait_period), [this] { return m_stop_thread_flag || !m_write_queue.empty(); });
 
             if (m_stop_thread_flag && m_write_queue.empty())
-                break; 
+                break;
 
             if (m_write_queue.empty())
                 continue;

@@ -20,6 +20,11 @@ class ComfyUIManager;
 class HistoryManager;
 }
 
+namespace listener
+{
+struct Timer;
+}
+
 namespace ui
 {
 class GraphN_Flow;
@@ -50,8 +55,7 @@ public:
     bool flow();
     int32_t override_exit_code();
 
-    inline void block_db_on_exit() { m_block_db_on_exit = true; }
-    inline void unblock_db_on_exit() { m_block_db_on_exit = false; }
+    void subscribe_timers(listener::Timer* listener);
 
 public:
     // main wnd handlers
@@ -59,6 +63,7 @@ public:
     void handle_wnd_restored() {}
     void handle_wnd_on_close();
     void handle_1sec_timer(int64_t seconds_elapsed);
+    void handle_new_frame(int64_t frames_elapsed);
 
 private:
     // flow
@@ -75,9 +80,8 @@ private:
     int32_t m_exit_code = 0;
 
     std::unique_ptr<ui::GraphN_Flow> m_graphn_flow;
-
-    std::atomic_bool m_block_db_on_exit = false;
     std::vector<std::unique_ptr<mngr::Manager>> m_managers;
+    std::list<listener::Timer*> m_timer_listeners;
 };
 
 

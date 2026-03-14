@@ -6,6 +6,7 @@
 #include "core/workflow/link.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/node_instance.h"
+#include "core/workflow/workflow_action.h"
 
 namespace mngr
 {
@@ -24,18 +25,21 @@ bool WfsManager::init()
     if (!Manager::init())
         return false;
 
-    auto& active = g::pOptsManager->wf_active_load();
     auto wf_datas = g::pDbManager->wf_load_meta_and_purge();
     for (auto& data : wf_datas)
     {
-        if (data.uuid == active)
+        if (data.name.find("Workflow ") == 0)
         {
-            m_active = data.id;
-            break;
+            const auto num = cast::to_u32(std::strtoul(data.name.c_str() + strlen("Workflow "), nullptr, 10));
+            m_wf_name_counter = std::max(m_wf_name_counter, num);
         }
+
+        create(std::move(data), false, false);
     }
 
     init_labels();
+
+    g::pGraphN->subscribe_timers(this);
     return true;
 }
 
@@ -48,12 +52,12 @@ void WfsManager::free()
     m_labels.clear();
 }
 
-const WfData& WfsManager::create(bool skip_name, bool skip_db)
+const WfData& WfsManager::create(bool generate_name, bool dump_to_db, bool ro)
 {
     WfData data;
-    if (!skip_name)
+    if (generate_name)
         data.name = "Workflow " + std::to_string(++m_wf_name_counter);
-    auto wf = create(std::move(data), !skip_db);
+    auto wf = create(std::move(data), dump_to_db, ro);
     return wf->get_data();
 }
 
@@ -63,7 +67,7 @@ const WfData& WfsManager::create_copy(wid source)
     
     WfData data;
     data.name = src_wf->get_data().name + " (copy)";
-    auto wf = create(std::move(data), true);
+    auto wf = create(std::move(data), true, false);
 
     copy_begin(source, ImVec2(0, 0));
     auto& nodes = src_wf->get_nodes();
@@ -77,19 +81,32 @@ const WfData& WfsManager::create_copy(wid source)
     return wf->get_data();
 }
 
-data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db)
+void WfsManager::load(wid wf_id, blob::Blob& drawer_state)
+{
+    auto wf = access(wf_id);
+    auto& data = wf->get_data();
+    if (!data.draft_exist && !data.saved_exist)
+        return;
+
+    blob::Blob blob;
+    bool load_saved = !data.draft_exist;
+    g::pDbManager->wf_load_blob(data.uuid, blob, load_saved);
+    const bool result = wf->deserialize(blob, drawer_state);
+    data.draft = !load_saved || !result;
+}
+
+data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db, bool ro)
 {
     auto wf = std::make_unique<data::Workflow>(std::move(data));
     auto wf_ptr = wf.get();
     wf_ptr->init();
     auto& new_data = wf_ptr->get_data();
-    m_wfs[new_data.id] = std::move(wf);
+    if (ro)
+        m_wfs_ro.push_back(std::move(wf));
+    else
+        m_wfs[new_data.id] = std::move(wf);
     if (dump_to_db)
         g::pDbManager->wf_update_meta(new_data);
-    else
-    {
-        Log("No DB save");
-    }
     return wf_ptr;
 }
 
@@ -124,6 +141,11 @@ data::Workflow* WfsManager::access(wid id) const
 
 void WfsManager::set_active(wid id)
 {
+    if (m_active == id)
+        return;
+    if (m_active != 0)
+        dump(m_active);
+
     if (0 == id)
     {
         g::pOptsManager->wf_active_save("");
@@ -138,23 +160,6 @@ void WfsManager::set_active(wid id)
     Log("Wf id=" << id << " activated");
 }
 
-void WfsManager::set_read_only(wid id)
-{
-    auto it = m_wfs.find(id);
-    if (it == m_wfs.end())
-    {
-        LogInternalLogic("Wf id=" << id << " not found");
-        return;
-    }
-    auto ptr = std::move(it->second);
-    m_wfs.erase(it);
-
-    ptr->get_data().ro = true;
-    m_wfs_ro.push_back(std::move(ptr));
-
-    Log("Wf id=" << id << " set RO");
-}
-
 void WfsManager::update_name(wid id, const std::string& name)
 {
     auto& data = get_data(id);
@@ -165,7 +170,7 @@ void WfsManager::update_name(wid id, const std::string& name)
 
 namespace
 {
-std::vector<WfData*> filter_wfs(const std::map<wid, std::unique_ptr<data::Workflow>>& wfs, const std::function<bool(const WfData&)>& filter)
+std::vector<WfData*> filter_wfs(const std::unordered_map<wid, std::unique_ptr<data::Workflow>>& wfs, const std::function<bool(const WfData&)>& filter)
 {
     std::vector<WfData*> ret;
     for (auto& [id, wf] : wfs)
@@ -276,7 +281,7 @@ uint32_t WfsManager::create_label()
         const auto& name = it->first;
         if (tools::str::to_lower_ascii(name) == label)
         {
-            label = fmt::format("new label ({})", ++label_idx);
+            label = fmt::format(FMT_STRING("new label ({})"), ++label_idx);
             it = m_labels.begin();
             continue;
         }
@@ -589,6 +594,134 @@ void WfsManager::copy_end(wid dest, std::optional<ImVec2> dest_point)
 
     g::pFlow->wf_rebuild(dest);
     Log("Copy " << m_copied_nodes.size() << " from " << m_copy_src << " to " << dest << " at " << dest_pt.x << "/" << dest_pt.y);
+}
+
+void WfsManager::close_and_purge()
+{
+    for (auto& [id, wf] : m_wfs)
+    {
+        auto& data = wf->get_data();
+
+        if (!data.draft_exist && !data.saved_exist && wf->get_nodes().empty())
+        {
+            data.pending_delete = true;
+            g::pDbManager->wf_update_meta(data);
+            Log("Wf " << data.uuid << "###" << data.name << " (" << id << ") marked to pending delete");
+        }
+        else
+            close(id);
+    }
+}
+
+void WfsManager::close(wid wf_id)
+{
+    auto wf = access(wf_id);
+    auto& data = wf->get_data();
+
+    if (data.dirty)
+        dump(wf_id);
+}
+
+void WfsManager::save(wid wf_id)
+{
+    auto wf = access(wf_id);
+    auto& data = wf->get_data();
+    if (!data.dirty && !data.draft)
+        return;
+
+    g::pHistoryManager->set_rollback_pos(wf_id);
+    data.draft = false;
+    data.saved_exist = true;
+    data.draft_exist = false;
+    data.dirty = true;
+    dump(wf_id);
+}
+
+void WfsManager::revert(wid wf_id, blob::Blob& drawer_state)
+{
+    auto wf = access(wf_id);
+    auto& data = wf->get_data();
+
+    const bool can_rollback = g::pHistoryManager->can_rollback(wf_id);
+    if (!can_rollback && !data.saved_exist)
+        return;
+
+    if (can_rollback)
+    {
+        g::pHistoryManager->rollback(wf_id);
+        Log("Wf " << wf_id << " reverted via history rollback");
+    }
+    else
+    {
+        blob::Blob blob;
+        bool load_saved = true;
+        g::pDbManager->wf_load_blob(data.uuid, blob, load_saved);
+        if (!load_saved)
+        {
+            LogWarn("Wf " << wf_id << ": failed to load state");
+            return;
+        }
+
+        const bool res = wf->deserialize(blob, drawer_state);
+        g::pHistoryManager->cleanup(wf_id);
+        Log("Wf " << wf_id << " reverted via hard reset, res: " << (res ? "ok" : "fail"));
+    }
+
+    data.dirty = false;
+    data.draft = false;
+    data.saved_exist = true;
+}
+
+void WfsManager::dump(wid wf_id) const
+{
+    auto wf = access(wf_id);
+    auto& data = wf->get_data();
+    if (!data.dirty)
+        return;
+
+    blob::Blob empty;
+    const blob::Blob* drawer_state = nullptr;
+    auto wf_action = wf->action();
+    if (wf_action != nullptr)
+        drawer_state = wf_action->get_drawer_state();
+    if (nullptr == drawer_state)
+        drawer_state = &empty;
+
+    auto wr = wf->serialize(*drawer_state);    
+    g::pDbManager->wf_update_blob(data.uuid, wr.release(), data.draft);
+
+    data.dirty = false;
+    if (data.draft)
+    {
+        data.draft_exist = true;
+        data.draft_time = tools::dt::from_current_date();
+    }
+    else
+    {
+        data.saved_exist = true;
+        data.saved_time = tools::dt::from_current_date();
+    }
+    
+    Log("Wf " << wf_id << " dumped " << (data.draft ? "(draft)" : "(explicit save)"));
+}
+
+void WfsManager::on_1s_lazy_timer(int64_t /*total_seconds_elapsed*/)
+{
+    m_dump_counter++;
+    if (m_dump_counter >= 60)
+    {
+        if (ImGui::IsAnyMouseDown())
+        {
+            Log("Canvas is busy, save later");
+            return;
+        }
+
+        for (auto& wf : m_wfs)
+        {
+            dump(wf.first);
+        }
+        m_dump_counter = 0;
+    }
 }
 
 } // namespace mngr

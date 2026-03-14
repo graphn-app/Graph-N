@@ -39,7 +39,7 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
                 g::pFlow->resolve_comfyui_objects();
                 Log(APP_COMFYUI " listeners notified to resolve data");
 
-                g::pModelsManager->set_nodes_ready();
+                g::pFlow->set_nodes_ready();
             }
         }
         m_stop_thread_flag = false;

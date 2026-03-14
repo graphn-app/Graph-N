@@ -220,11 +220,12 @@ bool PanelWorkflow::show_canvas_menu()
     ImGui::Separator();
 
     {
-        const char* undo = g::pHistoryManager->undo_name(m_wf->get_id());
-        if (undo != nullptr)
+        auto history = g::pHistoryManager->get_state(m_wf->get_id());
+        const char* undo = nullptr;
+        if (history.undo_name != nullptr)
         {
             m_fmt_buffer.clear();
-            fmt::format_to(std::back_inserter(m_fmt_buffer), "Undo {}", undo);
+            fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("Undo: {}"), *history.undo_name);
             m_fmt_buffer.push_back('\0');
             undo = m_fmt_buffer.data();
         }
@@ -234,13 +235,12 @@ bool PanelWorkflow::show_canvas_menu()
             g::pHistoryManager->undo(m_wf->get_id());
             close = true;
         }
-    }
-    {
-        const char* redo = g::pHistoryManager->redo_name(m_wf->get_id());
-        if (redo != nullptr)
+
+        const char* redo = nullptr;
+        if (history.redo_name != nullptr)
         {
             m_fmt_buffer.clear();
-            fmt::format_to(std::back_inserter(m_fmt_buffer), "Redo {}", redo);
+            fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("Redo: {}"), *history.redo_name);
             m_fmt_buffer.push_back('\0');
             redo = m_fmt_buffer.data();
         }
@@ -427,7 +427,7 @@ bool PanelWorkflow::show_group_menu()
     if (!nodes.empty())
     {
         m_fmt_buffer.clear();
-        fmt::format_to(std::back_inserter(m_fmt_buffer), "Remove group and {} node(s) inside", nodes.size());
+        fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("Remove group and {} node(s) inside"), nodes.size());
         m_fmt_buffer.push_back('\0');
 
         if (ImGui::MenuItem(m_fmt_buffer.data()))
@@ -865,7 +865,7 @@ bool PanelWorkflow::show_new_node_menu()
     auto node_inst = *m_menu_objs.nodes.begin();
 
     m_fmt_buffer.clear();
-    fmt::format_to(std::back_inserter(m_fmt_buffer), "{} [{}]", node_inst->get_name(), pin_inst->state().type_str);
+    fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("{} [{}]"), node_inst->get_name(), pin_inst->state().type_str);
     m_fmt_buffer.push_back('\0');
 
     ImGui::MenuItem(m_fmt_buffer.data(), nullptr, nullptr, false);
@@ -1016,7 +1016,7 @@ data::Node* PanelWorkflow::show_nodes_menu(const std::string& in_pin_filter, con
             labels_shown = true;
 
             m_fmt_buffer.clear();
-            fmt::format_to(std::back_inserter(m_fmt_buffer), "{} [{}]", label.first, nodes_count);
+            fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("{} [{}]"), label.first, nodes_count);
             m_fmt_buffer.push_back('\0');
 
             if (ImGui::BeginMenu(m_fmt_buffer.data()))
@@ -1050,7 +1050,7 @@ data::Node* PanelWorkflow::show_nodes_menu(const std::string& in_pin_filter, con
             if (!node_item->is_node)
             {
                 mem_buff.clear();
-                fmt::format_to(std::back_inserter(mem_buff), "{} [{}]", node_item->name_or_category, node_item->nodes_inside);
+                fmt::format_to(std::back_inserter(mem_buff), FMT_STRING("{} [{}]"), node_item->name_or_category, node_item->nodes_inside);
                 mem_buff.push_back('\0');
 
                 if (ImGui::BeginMenu(mem_buff.data()))

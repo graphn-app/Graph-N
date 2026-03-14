@@ -114,7 +114,7 @@ float RoNodeDrawer::draw(data::NodeInstanceRo* node, bool tooltip_mode, float ma
         {
             ImGui::PushID(pin);
             ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro + w::ico_max + w::pin_r_offset + m_node->w_pin_in + m_node->w_center +
-                m_node->w_pin_out - pin->get_object()->w_name);
+                m_node->w_pin_out - pin->get_object()->def_state.w_name);
             draw_output_pin(pin);
             ImGui::PopID(); // pin id
         }

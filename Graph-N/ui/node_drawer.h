@@ -37,7 +37,7 @@ public:
 
     NO_COPY_MOVE(NodeDrawer);
 
-    void init();
+    void init(blob::Blob&& state);
     void free();
 
     void pre_draw_all(const char* id, size_t nodes_count);
@@ -92,6 +92,8 @@ public:
     void set_viewport_rect(const ImRect& rect);
 
     ImVec2 get_visible_pos(std::optional<ImVec2> add_offset) const;
+
+    inline const blob::Blob& get_state() const { return m_state; }
 
 private:
     void draw_node_header();
@@ -156,6 +158,7 @@ private:
     data::PinInstance* m_was_edited = nullptr;
 
     std::set<void*> m_pending_delete;
+    blob::Blob m_state;
 
 #ifdef _DEBUG
     std::set<void*> m_ids_imgui;

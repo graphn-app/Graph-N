@@ -40,9 +40,21 @@ public:
 
     inline void set_focused() { m_activate = true; }
 
+    void mark_dirty(bool dirty)
+    {
+        if (dirty == m_dirty)
+            return;
+        if (m_dirty)
+            m_name.pop_back();
+        else
+            m_name.push_back('*');
+        m_dirty = dirty;
+        build_names();
+    }
+
 protected:
-    inline void set_name(const std::string& new_name) { m_name = new_name; build_names(); }
-    inline void set_id(const std::string& new_id)
+    void set_name(const std::string& new_name) { m_name = new_name; build_names(); }
+    void set_id(const std::string& new_id)
     {
         m_id = new_id;
         if (m_id.find("###") == std::string::npos)
@@ -105,9 +117,9 @@ protected:
 private:
     inline void build_names()
     {
-        m_name_full = fmt::format("{} {}{}", m_icon, m_name, m_id);
-        m_name_shortened_name_full = fmt::format("{}{}", m_icon, m_id);
-        m_panel_name_w = ImGui::CalcTextSize(fmt::format("{} {}", m_icon, m_name).c_str()).x;
+        m_name_full = fmt::format(FMT_COMPILE("{} {}{}"), m_icon, m_name, m_id);
+        m_name_shortened_name_full = fmt::format(FMT_COMPILE("{}{}"), m_icon, m_id);
+        m_panel_name_w = ImGui::CalcTextSize(fmt::format(FMT_COMPILE("{} {}"), m_icon, m_name).c_str()).x;
     }
 
 private:
@@ -121,6 +133,7 @@ private:
     bool m_need_focus = false;
     bool m_always_active = false;
     bool m_activate = false;
+    bool m_dirty = false;
     //  ImGuiWindowClass m_class;
 };
 
@@ -193,7 +206,7 @@ public:
     {
         bool reset_state = false;   // immediately stop drawing
 
-        enum class Type { Empty, Button, Input, InputHint, Text };
+        enum class Type { Empty, Button, Input, InputHint, Text, InputInt };
         Type type = Type::Button;
 
         bool enabled = true;
@@ -209,14 +222,16 @@ public:
         bool toggled = false;
 
         // input
-        std::string* buffer = nullptr;
-        const char* hint = nullptr;
+        std::string* buffer_str = nullptr; // input text
+        int64_t* buffer_int = nullptr; // input int
+        const char* hint = nullptr; // input text only
         const char* id = nullptr;
-        float input_w = 0.5f; // in percents of total width
+        float input_w = 0.5f; // input text: in percents of total width, input int: in pixels
+        int64_t int_min = 0; // input int only
+        int64_t int_max = 0; // input int only
 
         // text
-        std::string text;
-        float text_w = 0.0f;
+        const char* text = nullptr;
         ImU32 text_clr = 0;
         bool text_bold = false;
     };

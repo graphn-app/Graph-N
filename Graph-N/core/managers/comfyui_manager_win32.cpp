@@ -179,7 +179,7 @@ bool ComfyUIManager_Win32::create_process(STARTUPINFOW& si, PROCESS_INFORMATION&
     const auto comfyui_args = tools::str::utf8_to_wide(g::pOptsManager->comfyui_comfyui_args_load());
     const auto& workdir = g::pOptsManager->comfyui_workdir_load();
     
-    const auto command = fmt::format(FMT_COMPILE(L"{} {} {} {} {}"), python.filename().wstring(), (hide_console ? L"-u" : L""), python_args, comfyui_as_arg, comfyui_args);
+    const auto command = fmt::format(FMT_STRING(L"{} {} {} {} {}"), python.filename().wstring(), (hide_console ? L"-u" : L""), python_args, comfyui_as_arg, comfyui_args);
     std::vector<wchar_t> cmd_vec(command.begin(), command.end());
     cmd_vec.push_back(0);
 

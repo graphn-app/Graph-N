@@ -1,13 +1,6 @@
 
 #pragma once
 
-namespace blob
-{
-class Blob;
-class Writer;
-class Reader;
-}
-
 namespace mngr
 {
 class HistoryManager;
@@ -69,8 +62,8 @@ public:
     void remove_node(const NodeInstanceRo* node);
     void remove_link(const Link* link);
 
-    blob::Writer serialize() const;
-    static std::unique_ptr<Workflow> deserialize(const char* uuid, const char* name, const blob::Blob& blob);
+    blob::Writer serialize(const blob::Blob& drawer_state) const;
+    bool deserialize(const blob::Blob& blob, blob::Blob& drawer_state);
 
 private:
     void remove_pin(const PinInstance* pin);

@@ -2,7 +2,6 @@
 #include "ui/textures.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize2.h"
-#include "ui/graph-n_flow.h"
 
 namespace platform
 {
@@ -36,7 +35,7 @@ Textures::~Textures()
 
 void Textures::init_ui_ready()
 {
-    g::pFlow->subscribe_1s_lazy_timer(this);
+    g::pGraphN->subscribe_timers(this);
 }
 
 int32_t Textures::load_image(const char* path, std::vector<byte>&& buffer, int32_t max_width, int32_t max_height, int32_t life_time) // locks inside
@@ -208,9 +207,9 @@ bool Textures::check_image_lifecycle(ImageAsync* image) // thread safe
     return true;
 }
 
-void Textures::on_1s_timer(int64_t seconds_elapsed)
+void Textures::on_1s_lazy_timer(int64_t total_seconds_elapsed)
 {
-    m_seconds_passed = seconds_elapsed;
+    m_seconds_passed = total_seconds_elapsed;
     if (m_seconds_passed % 5 == 0)
     {
         bool do_check_queue = false;

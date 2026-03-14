@@ -298,110 +298,110 @@ void LogWriter::log_line_start(const void* this_, const char* foo, int32_t line)
 LogWriter& LogWriter::operator << (const char* str)
 {
     if (str != nullptr)
-        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), str);
+        fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), str);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const std::string& str)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), str);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), str);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (std::string_view str)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), str.data());
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), str.data());
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const std::filesystem::path& path)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), path.string());
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), path.string());
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const byte_buff& buff)
 {
-    fmt::format_to(std::back_inserter(m_buffer), "buff sz={}", buff.size());
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("buff sz={}"), buff.size());
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const tools::dt& dt)
 {
-    fmt::format_to(std::back_inserter(m_buffer), "time={}", dt.as_full_date());
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("time={}"), dt.as_full_date());
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const ImVec2& vec2)
 {
-    fmt::format_to(std::back_inserter(m_buffer), "x={}, y={}", vec2.x, vec2.y);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("x={}, y={}"), vec2.x, vec2.y);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const ImVec4& vec4)
 {
-    fmt::format_to(std::back_inserter(m_buffer), "x={}, y={}, z={}, w={}", vec4.x, vec4.y, vec4.z, vec4.w);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("x={}, y={}, z={}, w={}"), vec4.x, vec4.y, vec4.z, vec4.w);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const ImRect& rc)
 {
-    fmt::format_to(std::back_inserter(m_buffer), "Min.x={}, Min.y={}, Max.x={}, Max.y={}", rc.Min.x, rc.Min.y, rc.Max.x, rc.Max.y);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("Min.x={}, Min.y={}, Max.x={}, Max.y={}"), rc.Min.x, rc.Min.y, rc.Max.x, rc.Max.y);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (int32_t i32)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), i32);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), i32);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (uint32_t ui32)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), ui32);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), ui32);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (int64_t i64)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), i64);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), i64);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (uint64_t ui64)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), ui64);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), ui64);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (float f)
 {
-    fmt::format_to(std::back_inserter(m_buffer), "{:.8f}", f);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{:.8f}"), f);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (double d)
 {
-    fmt::format_to(std::back_inserter(m_buffer), "{:.8f}", d);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{:.8f}"), d);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (bool b)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), (b ? "yes" : "no"));
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), (b ? "yes" : "no"));
     return *this;
 }
 
 LogWriter& LogWriter::operator << (DlgCode code)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("{}"), cast::to_u64(code));
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), cast::to_u64(code));
     switch (code)
     {
     case DlgCode::Progress:
-        fmt::format_to(std::back_inserter(m_buffer), "=progress");
+        fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("=progress"));
         break;
     case DlgCode::Cancel:
-        fmt::format_to(std::back_inserter(m_buffer), "=cancel");
+        fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("=cancel"));
         break;
     default:
         LogError(ExcepCategory::SwitchEnum, "=unknown DlgCode " << cast::to_u64(code));
@@ -411,7 +411,7 @@ LogWriter& LogWriter::operator << (DlgCode code)
 
 LogWriter& LogWriter::operator << (const type_info& type)
 {
-    fmt::format_to(std::back_inserter(m_buffer), "{}/{}", type.name(), type.raw_name());
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}/{}"), type.name(), type.raw_name());
     return *this;
 }
 
@@ -423,13 +423,13 @@ LogWriter& LogWriter::operator << (const LogLineEnd&)
 
 LogWriter& LogWriter::operator << (const LogHex& hex_item)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("0x{:0>16X}"), hex_item.i);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("0x{:0>16X}"), hex_item.i);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const LogPtr& ptr)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("0x{:0>16X}"), cast::to_ptr(ptr.ptr));
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("0x{:0>16X}"), cast::to_ptr(ptr.ptr));
     return *this;
 }
 

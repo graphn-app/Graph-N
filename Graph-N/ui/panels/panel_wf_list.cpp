@@ -62,7 +62,7 @@ void PanelWfList::create_toolbar()
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_COPY;
-            el.tooltip = "Copy Project";
+            el.tooltip = "Duplicate Project";
             el.on_click = std::bind(&PanelWfList::on_copy_wf, this, std::placeholders::_1);
             el.on_preview = std::bind(&PanelWfList::on_pre_copy_wf, this, std::placeholders::_1);
             add_toolbar_element(std::move(el), false);
@@ -163,7 +163,7 @@ DlgCode PanelWfList::show(bool& focused)
     {
         draw_toolbar();
 
-        if (!m_labels_mode && !m_deleted_mode && m_wfs.empty())
+        if (!m_labels_mode && !m_deleted_mode && (m_wfs.empty() || !g::pFlow->get_nodes_ready()))
         {
             show_empty_panel_descr(
                 "",

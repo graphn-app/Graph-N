@@ -2,6 +2,7 @@
 #include "core/managers/models_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
+#include "ui/graph-n_flow.h"
 
 namespace mngr
 {
@@ -38,8 +39,6 @@ void ModelsManager::load_models()
     stop_all_threads();
     free();
 
-    m_nodes_ready = false;
-    m_models_ready = false;
     m_stop_flag = false;
     m_th = std::thread(&ModelsManager::load_models_th, this);
 }
@@ -136,7 +135,7 @@ void ModelsManager::load_models_th()
         rebuild_models(models);
 
         using namespace std::chrono_literals;
-        while (!m_nodes_ready && !m_stop_flag)
+        while (!g::pFlow->get_nodes_ready() && !m_stop_flag)
         {
             std::this_thread::sleep_for(100ms);
         }
@@ -153,7 +152,7 @@ void ModelsManager::load_models_th()
         calc_number_inside("");
 
         g::pOptsManager->model_starred_release();
-        m_models_ready = true;
+        g::pFlow->set_models_ready();
     }
     catch (const std::exception& ex)
     {
@@ -476,7 +475,7 @@ void ModelsManager::setup_model_behaviour()
 
 const std::vector<std::unique_ptr<data::ModelItem>>& ModelsManager::get_models() const
 {
-    if (!m_models_ready)
+    if (!g::pFlow->get_models_ready())
     {
         static std::vector<std::unique_ptr<data::ModelItem>> models;
         return models;

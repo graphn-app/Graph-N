@@ -51,7 +51,7 @@ private:
     void pin();
     void unpin();
 
-    void test_names_changed();
+    void test_names_changed(bool force_update);
 
     void on_pre_pin(PanelToolbar::Element& el);
     void on_pin(PanelToolbar::Element& el);

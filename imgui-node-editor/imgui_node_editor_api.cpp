@@ -612,6 +612,14 @@ bool ax::NodeEditor::DeleteLink(const EdType& edLink)
     return s_Editor->GetItemDeleter().Add(edLink);
 }
 
+bool ax::NodeEditor::DeleteLink(const LinkId pLink)
+{
+    IM_ASSERT(!!pLink);
+    if (auto link = s_Editor->FindLink(pLink))
+        return s_Editor->GetItemDeleter().Add(link);
+    return false;
+}
+
 bool ax::NodeEditor::HasAnyLinks(NodeId nodeId)
 {
     return s_Editor->HasAnyLinks(nodeId);

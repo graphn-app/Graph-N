@@ -28,7 +28,7 @@ std::string ver_as_string(const std::string& separator /*= "."*/, app_version_ty
     byte app_major_ = 0, app_minor_ = 0, app_patch_ = 0, db_major_ = 0, db_patch_ = 0, year_ = 0, month_ = 0, day_ = 0;
     version_to_parts(app_ver, app_major_, app_minor_, app_patch_, db_major_, db_patch_, year_, month_, day_);
 
-    return fmt::format("{}{}{:02}{}{:02}{}{:02}{}{:02}{}{:02}{:02}{:02}",
+    return fmt::format(FMT_STRING("{}{}{:02}{}{:02}{}{:02}{}{:02}{}{:02}{:02}{:02}"),
         cast::to_u32(app_major_), separator,
         cast::to_u32(app_minor_), separator,
         cast::to_u32(app_patch_), separator,

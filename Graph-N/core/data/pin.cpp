@@ -139,8 +139,8 @@ void Pin::finalize()
             if (!std::holds_alternative<int64_t>(step) || 0 == get_int(step))
                 step = int64_t(1);
 
-            precision = fmt::format(FMT_COMPILE("%lld"));
-            precision_named = fmt::format(FMT_COMPILE("{}: %lld"), def_state.name);
+            precision = fmt::format(FMT_STRING("%lld"));
+            precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
 
             const bool seed = (tools::str::to_lower_ascii(def_state.name).find("seed") != std::string::npos);
             cag_require = seed;
@@ -148,8 +148,8 @@ void Pin::finalize()
             if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int
             {
                 is_unsigned = true;
-                precision = fmt::format(FMT_COMPILE("%llu"));
-                precision_named = fmt::format(FMT_COMPILE("{}: %llu"), def_state.name);
+                precision = fmt::format(FMT_STRING("%llu"));
+                precision_named = fmt::format(FMT_STRING("{}: %llu"), def_state.name);
                 step = uint64_t(get_int(step));
                 def = uint64_t(get_int(def));
                 min = uint64_t(get_int(min));
@@ -159,8 +159,8 @@ void Pin::finalize()
 
         else if (PinType::BOOLEAN == def_state.type)
         {
-            label_on_named = fmt::format(FMT_COMPILE("{}: {}"), def_state.name, (label_on.empty() ? "on" : label_on));
-            label_off_named = fmt::format(FMT_COMPILE("{}: {}"), def_state.name, (label_off.empty() ? "off" : label_off));
+            label_on_named = fmt::format(FMT_STRING("{}: {}"), def_state.name, (label_on.empty() ? "on" : label_on));
+            label_off_named = fmt::format(FMT_STRING("{}: {}"), def_state.name, (label_off.empty() ? "off" : label_off));
         }
 
         else if (PinType::COLOR == def_state.type && std::holds_alternative<std::string>(def))
@@ -209,7 +209,7 @@ void Pin::finalize()
     }
 
     def_state.value = def;
-    w_name = ImGui::CalcTextSize(def_state.name.c_str()).x;
+    def_state.w_name = ImGui::CalcTextSize(def_state.name.c_str()).x;
 
     if (input && is_widget())
     {
@@ -225,7 +225,7 @@ void Pin::finalize()
             break;
         case PinType::STRING:
             w_value = 300.0f;
-            w_name = 0.0f;
+            def_state.w_name = 0.0f;
             break;
         case PinType::COMBO:
             w_value = 150.0f;
@@ -352,8 +352,8 @@ void Pin::precision_to_string()
             decimals = 6;
     }
 
-    precision = fmt::format(FMT_COMPILE("%.{}f"), decimals);
-    precision_named = fmt::format(FMT_COMPILE("{}: %.{}f"), def_state.name, decimals);
+    precision = fmt::format(FMT_STRING("%.{}f"), decimals);
+    precision_named = fmt::format(FMT_STRING("{}: %.{}f"), def_state.name, decimals);
 }
 
 void Pin::generate_pin_color()

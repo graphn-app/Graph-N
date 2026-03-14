@@ -21,7 +21,7 @@ const char* cut_text_with_ellipsis(const std::string& text, float width, const c
         static fmt::memory_buffer fmt_buffer;
         fmt_buffer.clear();
 
-        fmt::format_to(std::back_inserter(fmt_buffer), "{}...", std::string_view(pbeg, clip_end - pbeg));
+        fmt::format_to(std::back_inserter(fmt_buffer), FMT_STRING("{}..."), std::string_view(pbeg, clip_end - pbeg));
         fmt_buffer.push_back('\0');
 
         pbeg = fmt_buffer.data();
@@ -767,7 +767,7 @@ Toast toast_prepare(const char* text, ImU32 frame_clr, float duration_in_ms, boo
     Toast t;
     t.expired = false;
     if (increase_wnd)
-        t.message = fmt::format("\n     {}     \n\n", text);
+        t.message = fmt::format(FMT_STRING("\n     {}     \n\n"), text);
     else
         t.message = text;
     t.duration = duration_in_ms / 1000;

@@ -24,6 +24,13 @@ WorkflowAction::~WorkflowAction()
     LogF;
 }
 
+const blob::Blob* WorkflowAction::get_drawer_state() const
+{
+    if (nullptr == m_drawer)
+        return nullptr;
+    return &m_drawer->get_state();
+}
+
 void WorkflowAction::multi_action_on(const char* action_name) const
 {
     g::pHistoryManager->multi_action_begin(m_wf->get_id(), action_name);
@@ -87,6 +94,13 @@ void WorkflowAction::delete_node(data::NodeInstance* node)
 void WorkflowAction::delete_group(data::NodeInstance* group)
 {
     return delete_node(group);
+}
+
+void WorkflowAction::hard_reset()
+{
+    g::pFlow->txt_panel_clear(m_wf->get_id());
+    if (m_drawer != nullptr)
+        m_drawer->free();
 }
 
 data::Link* WorkflowAction::link(data::PinInstance* p1, data::PinInstance* p2, iid instance_id /*= 0*/)
@@ -289,7 +303,7 @@ void WorkflowAction::set_pin_name(data::PinInstance* pin, const std::string& nam
     pin->state().name = tools::str::trim_their(name);
     if (old_name == pin->state().name)
         return;
-    pin->get_object()->w_name = ImGui::CalcTextSize(pin->state().name.c_str()).x;
+    pin->state().w_name = ImGui::CalcTextSize(pin->state().name.c_str()).x;
     auto node = m_wf->get_node_by_instance(pin->get_parent_node());
     node->reset_width();
     node->m_ignore_size_on_frame_end = true;

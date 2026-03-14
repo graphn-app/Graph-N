@@ -100,19 +100,19 @@ float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon)
         if (obj->is_widget())
         {
             m_has_widgets = true;
-            m_object->w_widget_name_max = std::max(m_object->w_widget_name_max, obj->w_name + ImGui::GetStyle().ItemSpacing.x * 2);
+            m_object->w_widget_name_max = std::max(m_object->w_widget_name_max, in->state().w_name + ImGui::GetStyle().ItemSpacing.x * 2);
             m_object->w_widget_value_max = std::max(m_object->w_widget_value_max, obj->w_value);
         }
         else
         {
             m_has_in_pins = true;
-            m_object->w_pin_in_max = std::max(m_object->w_pin_in_max, obj->w_name);
+            m_object->w_pin_in_max = std::max(m_object->w_pin_in_max, in->state().w_name);
         }
     }
 
     for (auto& out : m_output)
     {
-        m_object->w_pin_out_max = std::max(m_object->w_pin_out_max, out->get_object()->w_name);
+        m_object->w_pin_out_max = std::max(m_object->w_pin_out_max, out->state().w_name);
     }
 
     // empty

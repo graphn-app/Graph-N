@@ -20,16 +20,17 @@ inline ComfyUiObjectValidityListener::~ComfyUiObjectValidityListener() = default
 
 ///////////////////////////
 
-struct Lazy1sTimer
+struct Timer
 {
-    Lazy1sTimer() = default;
-    virtual ~Lazy1sTimer() = 0;
+    Timer() = default;
+    virtual ~Timer() = 0;
 
-    NO_COPY_MOVE(Lazy1sTimer);
+    NO_COPY_MOVE(Timer);
 
-    virtual void on_1s_timer(int64_t seconds_elapsed) = 0;
+    virtual void on_1s_lazy_timer(int64_t total_seconds_elapsed) = 0;
+    virtual void on_frame(int64_t total_frames_elapsed) = 0;
 };
 
-inline Lazy1sTimer::~Lazy1sTimer() = default;
+inline Timer::~Timer() = default;
 
 } // namespace listener

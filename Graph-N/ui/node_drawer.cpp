@@ -45,14 +45,40 @@ void test_id(std::set<void*>& set, void* ptr)
 }
 #endif // #ifdef _DEBUG
 
-void NodeDrawer::init()
+void NodeDrawer::init(blob::Blob&& state)
 {
     LogF;
 
     m_deffered_action = std::make_unique<ImGuiExNe::DeferredAction>();
 
+    m_state = std::move(state);
+    const auto load_state = [this](ImVec2& view_scroll, float& view_zoom, ImRect& visible_rect)
+    {
+        if (!m_state->empty())
+        {
+            blob::Reader reader(m_state);
+            view_scroll = reader.pop_vec2();
+            view_zoom = reader.pop_float();
+            visible_rect = reader.pop_rect();
+        }
+        else
+            view_zoom = 1.0f;
+    };
+
+    const auto save_state = [this](const ImVec2& view_scroll, float view_zoom, const ImRect& visible_rect)
+    {
+        blob::Writer writer;
+        writer
+            .push(view_scroll)
+            .push(view_zoom)
+            .push(visible_rect);
+        m_state = writer.release();
+    };
+
     ed::Config config;
-    config.SettingsFile = nullptr;
+    config.LoadState = load_state; 
+    config.SaveState = save_state; 
+    config.EnableSmoothZoom = true;
     m_context = ed::CreateEditor(&config);
 }
 
@@ -61,6 +87,7 @@ void NodeDrawer::free()
     LogF;
 
     m_deffered_action.reset();
+    m_state->clear();
 
     if (m_context != nullptr)
         ed::DestroyEditor(m_context);
@@ -361,7 +388,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
             if (m_active_node->expanded())
             {
                 ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + m_active_node->w_pin_in + m_active_node->w_center +
-                    m_active_node->w_pin_out - pin->get_object()->w_name);
+                    m_active_node->w_pin_out - pin->state().w_name);
             }
             else
             {
@@ -1091,7 +1118,10 @@ void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& link
         if (link->ed())
             ed::Link(link->ed(), in->ed(), out->ed(), in->state().pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load()));
         else
+        {
+            Log("NEW LINK: " << LogPTR(link.get())); // TODO
             link->ed() = ed::Link(cast::to_ptr(link.get()), in->ed(), out->ed(), in->state().pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load()));
+        }
     }
 }
 
@@ -1162,6 +1192,8 @@ void NodeDrawer::handle_deleted()
         ed::LinkId link_id;
         while (ed::QueryDeletedLink(&link_id))
         {
+            void* ptr = cast::to_void(link_id);
+            Log("QUERY DELETE: " << LogPTR(ptr)); // TODO
             if (m_pending_delete.erase(cast::to_void(link_id)) == 0)
             {
                 LogAndThrowInternalError(ExcepCategory::API, "Link to delete not found in pending delete list");
@@ -1505,8 +1537,18 @@ void NodeDrawer::delete_node(const data::NodeInstance* node)
 {
     if (node->ed())
     {
-        ed::DeleteNode(node->ed());
-        m_pending_delete.insert(cast::to_void(node));
+        auto editor = ed::GetCurrentEditor();
+        if (nullptr == editor)
+            ed::SetCurrentEditor(m_context);
+
+        if (m_context != nullptr)
+        {
+            ed::DeleteNode(node->ed());
+            m_pending_delete.insert(cast::to_void(node));
+        }
+
+        if (nullptr == editor)
+            ed::SetCurrentEditor(nullptr);
     }
     else
     {
@@ -1516,15 +1558,24 @@ void NodeDrawer::delete_node(const data::NodeInstance* node)
 
 void NodeDrawer::delete_link(const data::Link* link)
 {
-    if (link->ed())
+    auto editor = ed::GetCurrentEditor();
+    if (nullptr == editor)
+        ed::SetCurrentEditor(m_context);
+
+    if (m_context != nullptr)
     {
-        ed::DeleteLink(link->ed());
-        m_pending_delete.insert(cast::to_void(link));
+        bool result = false;
+        Log("DELETE LINK: " << LogPTR(link)); // TODO
+        if (link->ed())
+            result = ed::DeleteLink(link->ed());
+        else
+            result = ed::DeleteLink(cast::to_ptr(link));
+        if (result)
+            m_pending_delete.insert(cast::to_void(link));
     }
-    else
-    {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Link id is null");
-    }
+
+    if (nullptr == editor)
+        ed::SetCurrentEditor(nullptr);    
 }
 
 float NodeDrawer::get_zoom() const

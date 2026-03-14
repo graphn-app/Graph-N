@@ -40,6 +40,7 @@ void PanelTextEditor::stop_all_threads()
 
 void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint)
 {
+    clear_toolbar();
     m_current = nullptr;
     m_editing = nullptr;
     m_was_edited = nullptr;
@@ -67,19 +68,19 @@ void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance
         ed.action = g::pWfsManager->access(ed.wf)->action();
         m_editors.push_back(ed);
         m_current = &m_editors.back();
-        test_names_changed();
     }
 
+    test_names_changed(true);
     set_name(node->get_name() + " | Editor");
     m_need_focus = true;
 }
 
-void PanelTextEditor::test_names_changed()
+void PanelTextEditor::test_names_changed(bool force_update)
 {
     if (nullptr == m_current)
         return;
 
-    if (m_current->node_name != m_current->node->get_name())
+    if (force_update || m_current->node_name != m_current->node->get_name())
     {
         m_current->node_name = m_current->node->get_name();
         create_toolbar();
@@ -88,6 +89,7 @@ void PanelTextEditor::test_names_changed()
 
 bool PanelTextEditor::activate(wid wf)
 {
+    clear_toolbar();
     m_current = nullptr;
     m_editing = nullptr;
     m_was_edited = nullptr;
@@ -97,6 +99,7 @@ bool PanelTextEditor::activate(wid wf)
         if (ed.wf == wf)
         {
             m_current = &ed;
+            test_names_changed(true);
             return true;
         }
     }
@@ -106,6 +109,7 @@ bool PanelTextEditor::activate(wid wf)
 
 void PanelTextEditor::reset()
 {
+    clear_toolbar();
     m_current = nullptr;
     m_editing = nullptr;
     m_was_edited = nullptr;
@@ -123,6 +127,7 @@ void PanelTextEditor::reset(wid wf)
         {
             if (m_current == &*it)
             {
+                clear_toolbar();
                 m_pinned = false;
                 m_current = nullptr;
                 m_editing = nullptr;
@@ -143,6 +148,7 @@ void PanelTextEditor::reset(wid wf, data::NodeInstance* node)
         {
             if (m_current == &*it)
             {
+                clear_toolbar();
                 m_pinned = false;
                 m_current = nullptr;
                 m_editing = nullptr;
@@ -220,7 +226,7 @@ void PanelTextEditor::create_toolbar()
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Text;
         if (m_current != nullptr)
-            el.text = m_current->node->get_name();
+            el.text = m_current->node->get_name().c_str();
         //el.text_bold = true;
         el.text_clr = g::pOptsManager->color_load(AppColor::TextEditorCaption1);
         add_toolbar_element(std::move(el), true);
@@ -236,7 +242,7 @@ void PanelTextEditor::create_toolbar()
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Text;
         if (m_current != nullptr)
-            el.text = m_current->pin->state().name;
+            el.text = m_current->pin->state().name.c_str();
         el.text_bold = true;
         el.text_clr = g::pOptsManager->color_load(AppColor::TextEditorCaption2);
         add_toolbar_element(std::move(el), true);
@@ -268,7 +274,7 @@ void PanelTextEditor::on_locate(PanelToolbar::Element& /*el*/)
 
 void PanelTextEditor::show_toolbar()
 {
-    test_names_changed();
+    test_names_changed(false);
     draw_toolbar();
 }
 

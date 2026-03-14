@@ -2,12 +2,6 @@
 #pragma once
 #include "imgui_node_editor_edtype.h"
 
-namespace blob
-{
-class Writer;
-class Reader;
-}
-
 namespace data
 {
 class PinInstance;

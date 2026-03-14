@@ -17,6 +17,7 @@
 #include "core/managers/comfyui_manager_apple.h"
 #endif
 #include "core/base/id.h"
+#include "core/listeners.h"
 
 namespace g
 {
@@ -70,11 +71,11 @@ bool GraphN::init_graphn()
     m_managers.push_back(std::make_unique<mngr::ConnectManager>());
     g::pConnectManager = (mngr::ConnectManager*)m_managers.back().get();
 
-    m_managers.push_back(std::make_unique<mngr::WfsManager>());
-    g::pWfsManager = (mngr::WfsManager*)m_managers.back().get();
-
     m_managers.push_back(std::make_unique<mngr::HistoryManager>());
     g::pHistoryManager = (mngr::HistoryManager*)m_managers.back().get();
+
+    m_managers.push_back(std::make_unique<mngr::WfsManager>());
+    g::pWfsManager = (mngr::WfsManager*)m_managers.back().get();
 
 #if defined _WIN32
     m_managers.push_back(std::make_unique<mngr::ComfyUIManager_Win32>());
@@ -109,20 +110,17 @@ void GraphN::exit_graphn()
 {
     LogF_In;
 
-    if (m_graphn_flow)
-        m_graphn_flow->exit();
-    m_graphn_flow.reset();
-    g::pFlow = nullptr;
-
-    while (m_block_db_on_exit)
-        ;
-
-    std::for_each(m_managers.begin(), m_managers.end(), [](std::unique_ptr<mngr::Manager>& manager)
+    std::for_each(m_managers.rbegin(), m_managers.rend(), [](std::unique_ptr<mngr::Manager>& manager)
     {
         manager->stop_all_threads();
         manager->free();
     });
 
+    if (m_graphn_flow)
+        m_graphn_flow->exit();
+    m_graphn_flow.reset();
+
+    g::pFlow = nullptr;
     g::pNodesManager = nullptr;
     g::pOptsManager = nullptr;
     g::pDbManager = nullptr;
@@ -147,10 +145,25 @@ void GraphN::handle_wnd_on_close()
     Log("Next step: PrepareToExit");
 }
 
+void GraphN::subscribe_timers(listener::Timer* listener)
+{
+    m_timer_listeners.push_back(listener);
+}
+
 void GraphN::handle_1sec_timer(int64_t seconds_elapsed)
 {
-    if (g::pFlow != nullptr)
-        g::pFlow->handle_1sec_timer(seconds_elapsed);
+    for (auto* listener : m_timer_listeners)
+    {
+        listener->on_1s_lazy_timer(seconds_elapsed);
+    }
+}
+
+void GraphN::handle_new_frame(int64_t /*frames_elapsed*/)
+{
+    //for (auto* listener : m_timer_listeners)
+    //{
+    //    listener->on_frame(frames_elapsed);
+    //}
 }
 
 bool GraphN::flow()
@@ -185,6 +198,8 @@ bool GraphN::flow()
         default:
             LogAndThrowInternalError(ExcepCategory::SwitchEnum, "Unhandler flow step " << cast::to_u64(m_flow_step));
         }
+
+        handle_new_frame(ImGui::GetFrameCount());
     }
     catch (const std::exception& ex)
     {
@@ -256,9 +271,9 @@ bool GraphN::start_server()
     {
         Log("Existing " APP_COMFYUI " found. Ask user what to do");
         g::pFlow->modal_begin("The " APP_COMFYUI " is already running",
-            fmt::format(APP_CAPTION " detected a running " APP_COMFYUI "\nprocess (PID: {}).\n"
+            fmt::format(FMT_STRING(APP_CAPTION " detected a running " APP_COMFYUI "\nprocess (PID: {}).\n"
             "This might be another " APP_COMFYUI " instance running, or a zombie process.\n"
-            "Do you want to launch a new server instance anyway?", running_proc_id),
+            "Do you want to launch a new server instance anyway?"), running_proc_id),
             ModalDlgCtrl::BtnYes | ModalDlgCtrl::BtnNo | ModalDlgCtrl::IcoQues, ModalDlgCtrl::BtnNo, handler);
         m_question_mode = true;
         m_question_replied = false;
