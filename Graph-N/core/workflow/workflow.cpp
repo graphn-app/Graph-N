@@ -87,20 +87,12 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source)
     return ptr;
 }
 
-NodeInstance* Workflow::add_node(blob::Reader& reader)
+NodeInstance* Workflow::add_blank_node()
 {
     auto instance = std::make_unique<NodeInstance>(nullptr, m_wf_data.id, 0);
     auto ptr = instance.get();
-    ptr->init(reader);
     m_nodes.push_back(std::move(instance));
-    if (ptr->m_group)
-    {
-        Log("Group added wid=" << m_wf_data.id << ", iid=" << ptr->get_instance_id());
-    }
-    else
-    {
-        Log("Node added wid=" << m_wf_data.id << ", hid=" << ptr->get_object()->get_id() << ", iid=" << ptr->get_instance_id());
-    }
+    Log("Blank node added wid=" << m_wf_data.id);
     return ptr;
 }
 
@@ -349,76 +341,6 @@ void Workflow::remove_link(const Link* link)
     {
         LogInternalMap("Link " << link->get_instance_id() << " not found");
     }
-}
-
-blob::Writer Workflow::serialize(const blob::Blob& drawer_state) const
-{
-    blob::Writer writer;
-
-    blob::Block block(writer);
-    writer.push(m_last_child_id);
-    block.end();
-
-    block.begin();
-    writer.push(drawer_state);
-    block.end();
-
-    writer.push(cast::to_u32(m_nodes.size()));
-    for (auto& node : m_nodes)
-    {
-        block.begin();
-        node->serialize(writer);
-        block.end();
-    }
-
-    writer.push(cast::to_u32(m_links.size()));
-    for (auto& link : m_links)
-    {
-        block.begin();
-        link->serialize(writer);
-        block.end();
-    }
-
-    return writer;
-}
-
-bool Workflow::deserialize(const blob::Blob& blob, blob::Blob& drawer_state)
-{
-    try
-    {
-        m_action->hard_reset();
-        m_nodes.clear();
-        m_pins.clear();
-        m_links.clear();
-
-        blob::Reader wf_reader(blob);
-
-        blob::Reader block = wf_reader.pop_block();
-        m_last_child_id = block.pop_iid();
-
-        block = wf_reader.pop_block();
-        drawer_state = block.pop_blob();
-
-        const uint32_t nodes_count = wf_reader.pop_u32();
-        for (uint32_t i = 0; i < nodes_count; i++)
-        {
-            block = wf_reader.pop_block();
-            add_node(block);
-        }
-
-        const uint32_t links_count = wf_reader.pop_u32();
-        for (uint32_t i = 0; i < links_count; i++)
-        {
-            block = wf_reader.pop_block();
-            Link::deserialize(this, block);
-        }
-        return true;
-    }
-    catch (std::exception& ex)
-    {
-        LogExcepS(ExcepCategory::Logic, ex.what());
-    }
-    return false;
 }
 
 //TODO

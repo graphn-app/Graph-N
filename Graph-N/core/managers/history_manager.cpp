@@ -6,6 +6,7 @@
 #include "core/workflow/link.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
+#include "core/workflow/workflow_serializer_to_blob.h"
 #include "core/data/node.h"
 #include "core/data/pin.h"
 
@@ -355,7 +356,7 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
     if (history->wf != node->get_workflow_id()) { LogAndThrowInternalError(ExcepCategory::Logic, "Wf don't match"); }
     step->id = node->get_instance_id();
     step->debug_name = node->get_name();
-    step->node = node->serialize().release();
+    step->node = data::WorkflowSerializerToBlob::serialize_node(node);
     history->steps.push_back(std::move(step));
 
     close_action(node->get_workflow_id());
@@ -560,7 +561,7 @@ void HistoryManager::pop_node_del(data::Workflow* dest_wf, const HistoryStep* st
 
     const ActNodeBlob* real_step = cast::dynamic<const ActNodeBlob*>(step);
     blob::Reader reader(real_step->node);
-    dest_wf->add_node(reader);
+    data::WorkflowSerializerToBlob::deserialize_node(dest_wf, reader);
 }
 
 void HistoryManager::pop_node_clr(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)

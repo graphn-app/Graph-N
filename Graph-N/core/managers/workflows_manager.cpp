@@ -7,6 +7,7 @@
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/workflow_action.h"
+#include "core/workflow/workflow_serializer_to_blob.h"
 
 namespace mngr
 {
@@ -91,7 +92,7 @@ void WfsManager::load(wid wf_id, blob::Blob& drawer_state)
     blob::Blob blob;
     bool load_saved = !data.draft_exist;
     g::pDbManager->wf_load_blob(data.uuid, blob, load_saved);
-    const bool result = wf->deserialize(blob, drawer_state);
+    const bool result = data::WorkflowSerializerToBlob::deserialize(wf, blob, drawer_state);
     data.draft = !load_saved || !result;
 }
 
@@ -662,7 +663,7 @@ void WfsManager::revert(wid wf_id, blob::Blob& drawer_state)
             return;
         }
 
-        const bool res = wf->deserialize(blob, drawer_state);
+        const bool res = data::WorkflowSerializerToBlob::deserialize(wf, blob, drawer_state);
         g::pHistoryManager->cleanup(wf_id);
         Log("Wf " << wf_id << " reverted via hard reset, res: " << (res ? "ok" : "fail"));
     }
@@ -687,7 +688,7 @@ void WfsManager::dump(wid wf_id) const
     if (nullptr == drawer_state)
         drawer_state = &empty;
 
-    auto wr = wf->serialize(*drawer_state);    
+    auto wr = data::WorkflowSerializerToBlob::serialize(wf, *drawer_state);
     g::pDbManager->wf_update_blob(data.uuid, wr.release(), data.draft);
 
     data.dirty = false;

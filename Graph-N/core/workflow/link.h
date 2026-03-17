@@ -9,6 +9,8 @@ class Workflow;
 
 class Link final
 {
+    friend class WorkflowSerializerToBlob;
+
 public:
     Link(wid workflow_id, iid link_id);
     ~Link();
@@ -30,9 +32,6 @@ public:
 
     inline EdType& ed() { return m_ed; }
     inline const EdType& ed() const { return m_ed; }
-
-    blob::Writer& serialize(blob::Writer& writer) const;
-    static bool deserialize(Workflow* wf, blob::Reader& reader);
 
 private:
     wid m_workflow_id = 0;

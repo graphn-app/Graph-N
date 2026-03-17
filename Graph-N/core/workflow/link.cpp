@@ -151,32 +151,6 @@ void Link::unlink()
     Log("Unlinked: wid=" << m_workflow_id << ", iid=" << m_iid << ", in=" << m_input << ", out=" << m_output);
 }
 
-blob::Writer& Link::serialize(blob::Writer& writer) const
-{
-    writer
-        .push(m_iid)
-        .push(m_input->get_instance_id())
-        .push(m_output->get_instance_id())
-    ;
-    return writer;
-}
-
-bool Link::deserialize(Workflow* wf, blob::Reader& reader)
-{
-    try
-    {
-        const auto id = reader.pop_iid();
-        auto p1 = wf->get_pin_by_instance(reader.pop_iid());
-        auto p2 = wf->get_pin_by_instance(reader.pop_iid());
-        return link(p1, p2, id) != nullptr;
-    }
-    catch (std::exception& ex)
-    {
-        LogExcepS(ExcepCategory::Logic, ex.what());
-    }
-    return false;
-}
-
 void Link::reset_state()
 {
     ed().reset();

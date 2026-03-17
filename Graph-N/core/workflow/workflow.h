@@ -19,6 +19,8 @@ class WorkflowAction;
 //TODO - invalidate objects ?
 class Workflow final
 {
+    friend class WorkflowSerializerToBlob;
+
 public:
     Workflow();
     Workflow(const char* uuid, const char* name);
@@ -39,7 +41,7 @@ public:
     NodeInstance* add_group(const ImRect& rc, const std::string& name = "");
     NodeInstance* add_node(Node* node, const ImRect& rc = ImRect(0, 0, 0, 0), const std::string& select = "");
     NodeInstance* add_node(const NodeInstance* copy_from_source);
-    NodeInstance* add_node(blob::Reader& reader);
+    NodeInstance* add_blank_node();
     NodeInstanceRo* add_node_ro(Node* node);
     PinInstance* add_pin(NodeInstance* node, Pin* pin, iid instance_id = 0);
     PinInstance* add_pin(NodeInstanceRo* node, Pin* pin);
@@ -61,9 +63,6 @@ public:
     void remove_node(const NodeInstance* node);
     void remove_node(const NodeInstanceRo* node);
     void remove_link(const Link* link);
-
-    blob::Writer serialize(const blob::Blob& drawer_state) const;
-    bool deserialize(const blob::Blob& blob, blob::Blob& drawer_state);
 
 private:
     void remove_pin(const PinInstance* pin);
