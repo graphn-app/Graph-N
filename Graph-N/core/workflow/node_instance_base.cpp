@@ -155,12 +155,13 @@ float NodeInstanceBase::recalc_node_width(float new_width, bool ro, bool use_big
 
     if (!do_need_calc_node_widths())
     {
-        w_node = w_name + ImGui::GetStyle().ItemSpacing.x * 2;
+        w_node = w_name + ImGui::GetStyle().ItemSpacing.x * 2 + get_additional_node_width();
         w_node_name_off = std::max(0.0f, (w_node / 2) - (w_name / 2));
+        m_saved_width = new_width;
         return w_node;
     }
 
-
+    new_width = std::max(m_ideal_w, new_width); // TODO: fix resizing
     new_width = std::max(new_width, m_min_possible_w);
     new_width = std::max(new_width, w_name + ImGui::GetStyle().ItemSpacing.x * 2);
 

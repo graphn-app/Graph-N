@@ -249,6 +249,16 @@ void WorkflowAction::reset_node_size(data::NodeInstance* node)
     g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeRect, mngr::HActionT(old_rc));
 }
 
+void WorkflowAction::set_node_expanded(data::NodeInstance* node, bool expanded)
+{
+    if (node->get_expanded() == expanded)
+        return;
+    if (m_drawer != nullptr && !expanded)
+        m_drawer->handle_node_collapsing(node);
+    node->expand(expanded);
+    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeExpand, !expanded);
+}
+
 void WorkflowAction::set_node_pinning(data::NodeInstance* node, bool pin)
 {
     if (node->pinned() == pin)

@@ -22,7 +22,7 @@ using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, NodeMode 
 enum class HistoryActionType
 {
     _none,
-    NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, 
+    NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeExpand, 
     PinRen, PinVal,
     LinkAdd, LinkDel,
 
@@ -100,6 +100,7 @@ struct ActNodeRect final : public ActOldNew  { ActNodeRect() : ActOldNew(History
 struct ActNodePin final : public ActOldNew   { ActNodePin() : ActOldNew(HistoryActionType::NodePin) {} };
 struct ActNodeMode final : public ActOldNew  { ActNodeMode() : ActOldNew(HistoryActionType::NodeMode) {} };
 struct ActNodeClr final : public ActOldNew   { ActNodeClr() : ActOldNew(HistoryActionType::NodeClr) {} };
+struct ActNodeExpand final : public ActOldNew   { ActNodeExpand() : ActOldNew(HistoryActionType::NodeExpand) {} };
 struct ActPinRen final : public ActOldNew    { ActPinRen() : ActOldNew(HistoryActionType::PinRen) {} };
 struct ActPinVal final : public ActOldNew    { ActPinVal() : ActOldNew(HistoryActionType::PinVal) {} };
 struct ActLinkAdd final : public ActLink     { ActLinkAdd() : ActLink(HistoryActionType::LinkAdd) {} };
@@ -168,6 +169,7 @@ private:
     void pop_node_add(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_del(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_clr(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_node_expand(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_ren(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_mode(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_pin(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);

@@ -32,13 +32,17 @@ bool PanelWorkflow::context_menu_handler()
         const auto pin = m_drawer.get_hovered_pin();
         if (pin != nullptr)
         {
-            m_handle_context_menu = true;
-            m_menu_objs = {};
-            m_context_menu_type = MenuType::Pin;
-            m_menu_objs.pins.insert(pin);
-            m_menu_objs.click_pos = m_drawer.get_mouse_pos();
-            Log("Pin menu initiated");
-            return true;
+            auto parent = m_wf->get_node_by_instance(pin->get_parent_node());
+            if (parent->get_expanded())
+            {
+                m_handle_context_menu = true;
+                m_menu_objs = {};
+                m_context_menu_type = MenuType::Pin;
+                m_menu_objs.pins.insert(pin);
+                m_menu_objs.click_pos = m_drawer.get_mouse_pos();
+                Log("Pin menu initiated");
+                return true;
+            }
         }
     }
 
@@ -105,12 +109,12 @@ bool PanelWorkflow::context_menu_handler()
 
                 if (!m_menu_objs.groups.empty() && m_menu_objs.nodes.empty())
                 {
-                    m_context_menu_type = MenuType::Multigroup;
+                    m_context_menu_type = m_menu_objs.groups.size() == 1 ? MenuType::Group : MenuType::Multigroup;
                     Log("Multigroup menu initiated");
                 }
                 else if (m_menu_objs.groups.empty() && !m_menu_objs.nodes.empty())
                 {
-                    m_context_menu_type = MenuType::Multinode;
+                    m_context_menu_type = m_menu_objs.nodes.size() == 1 ? MenuType::Node : MenuType::Multinode;
                     Log("Multinode menu initiated");
                 }
                 else
@@ -321,6 +325,11 @@ bool PanelWorkflow::show_node_menu()
         m_action->set_node_pinning(node, !node->pinned());
         close = true;
     }
+    if (ImGui::MenuItem(node->get_expanded() ? "Collapse" : "Expand"))
+    {
+        m_action->set_node_expanded(node, !node->get_expanded());
+        close = true;
+    }
     if (ImGui::MenuItem("Group"))
     {
         m_action->add_group(m_drawer.calc_group_rect(node->m_rc));
@@ -356,12 +365,6 @@ bool PanelWorkflow::show_node_menu()
     }
     ImGui::Separator();
 
-    //if (ImGui::MenuItem(node->expanded() ? "Collapse" : "Expand")) // TODO:FIX
-    //{
-    //    node->toggle_expanded();
-    //    close = true;
-    //}
-    ////ImGui::Separator();
     //if (ImGui::MenuItem("Convert to subgraph")) // TODO
     //{
     //    close = true;
@@ -554,6 +557,23 @@ bool PanelWorkflow::show_multinode_menu()
             m_action->set_node_pinning(node, false);
         }
         m_action->multi_action_off();
+        close = true;
+    }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Expand"))
+    {
+        for (auto node : m_menu_objs.nodes)
+        {
+            m_action->set_node_expanded(node, true);
+        }
+        close = true;
+    }
+    if (ImGui::MenuItem("Collapse"))
+    {
+        for (auto node : m_menu_objs.nodes)
+        {
+            m_action->set_node_expanded(node, false);
+        }
         close = true;
     }
     ImGui::Separator();

@@ -80,6 +80,7 @@ public:
     void pin_node(const EdType& node, bool pin) const;
     void rename_node(data::NodeInstance* node);
     void rename_pin(data::PinInstance* pin);
+    void handle_node_collapsing(data::NodeInstance* node);
 
     void delete_node(const data::NodeInstance* node);
     void delete_link(const data::Link* link);
@@ -97,11 +98,12 @@ public:
 
 private:
     void draw_node_header();
+    void draw_collapsed_pins(bool input);
     void draw_input_pin(data::PinInstance* pin);
     void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_output_pin(data::PinInstance* pin);
-    void draw_pin(data::PinInstance* pin, bool force_default_shape, bool align_to_widget);
-    void draw_pin_shape(data::PinInstance* pin, bool force_default, bool align_to_widget);
+    void draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget);
+    void draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget);
     void draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width);

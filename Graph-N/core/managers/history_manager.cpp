@@ -376,6 +376,11 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
         step = std::make_unique<ActNodeClr>();
         step->new_val = (node->m_group ? node->m_clr_group : ImGui::ColorConvertFloat4ToU32(node->m_clr_node));
         break;
+    case HistoryActionType::NodeExpand:
+        history = open_action(node->get_workflow_id(), node->get_expanded() ? "Expand" : "Collapse");
+        step = std::make_unique<ActNodeExpand>();
+        step->new_val = node->get_expanded();
+        break;
     case HistoryActionType::NodeMode:
         history = open_action(node->get_workflow_id(), "Set mode");
         step = std::make_unique<ActNodeMode>();
@@ -508,6 +513,9 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
     case HistoryActionType::NodeClr:
         pop_node_clr(wf, step, do_undo);
         break;
+    case HistoryActionType::NodeExpand:
+        pop_node_expand(wf, step, do_undo);
+        break;
     case HistoryActionType::NodeMode:
         pop_node_mode(wf, step, do_undo);
         break;
@@ -571,6 +579,15 @@ void HistoryManager::pop_node_clr(data::Workflow* dest_wf, const HistoryStep* st
     if (nullptr == node) { LogAndThrowInternalError(ExcepCategory::Logic, "Node not found in wf"); }
 
     dest_wf->action()->set_node_color(node, *std::get_if<ImU32>(do_undo ? &real_step->old_val : &real_step->new_val));
+}
+
+void HistoryManager::pop_node_expand(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+{
+    const ActNodeExpand* real_step = cast::dynamic<const ActNodeExpand*>(step);
+    auto node = dest_wf->get_node_by_instance(step->id);
+    if (nullptr == node) { LogAndThrowInternalError(ExcepCategory::Logic, "Node not found in wf"); }
+
+    dest_wf->action()->set_node_expanded(node, *std::get_if<bool>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
 
 void HistoryManager::pop_node_ren(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)

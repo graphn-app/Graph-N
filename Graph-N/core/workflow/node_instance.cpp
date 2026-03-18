@@ -115,13 +115,6 @@ void NodeInstance::set_name(std::string name)
         NodeInstanceBase::set_name(std::move(name));
 }
 
-void NodeInstance::toggle_pinned()
-{
-    w_name = -1.0f;
-    m_saved_width = -1.0f;
-    m_pinned = !m_pinned;
-}
-
 void NodeInstance::pin(bool pin)
 {
     w_name = -1.0f;
@@ -137,11 +130,13 @@ void NodeInstance::set_mode(NodeMode mode)
     m_mode = mode;
 }
 
-void NodeInstance::toggle_expanded()
+void NodeInstance::expand(bool expand)
 {
+    if (m_expanded == expand)
+        return;
+    m_expanded = expand;
     w_name = -1.0f;
     m_saved_width = -1.0f;
-    m_expanded = !m_expanded;
 }
 
 void NodeInstance::set_group_color(ImVec4 clr)
@@ -193,6 +188,16 @@ float NodeInstance::get_additional_name_width() const
     if (m_mode != NodeMode::Always)
         add += ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
     return add;
+}
+
+float NodeInstance::get_additional_node_width() const
+{
+    if (!m_expanded)
+    {
+        return (m_input.empty() ? 0 : w::pin_l_offset_rw + w::ico_circle + w::pin_r_offset + ImGui::GetStyle().ItemSpacing.x) +
+            (m_output.empty() ? 0 : w::pin_l_offset_rw + w::ico_circle + w::pin_r_offset + ImGui::GetStyle().ItemSpacing.x);
+    }
+    return 0.0f;
 }
 
 bool NodeInstance::do_need_calc_node_widths() const

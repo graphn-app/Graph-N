@@ -34,7 +34,7 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
         return false;
 
     const auto& s1 = i1->state();
-    const auto& s2 = i2->state()    ;
+    const auto& s2 = i2->state();
 
     if (p1->input == p2->input || p1->output == p2->output)     // input to input, output to output
         return false;

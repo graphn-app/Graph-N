@@ -166,7 +166,9 @@ void NodeDrawer::post_draw_all(
     canvas_busy = show_menu_handler();
 
     if (!canvas_busy && m_deffered_action->combo.is_active)
+    {
         ImGuiExNe::RenderDeferredCombo(*m_deffered_action.get());
+    }
     else if (!canvas_busy && m_deffered_action->ml_input.is_active)
     {
         g::pFlow->txt_panel_create(
@@ -331,10 +333,15 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     //ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing));
     draw_node_header();
-    ImGui::Dummy(ImVec2(m_active_node->w_node, m_active_node->expanded() ? ImGui::GetTextLineHeight() * 0.5f : 0.0f));
+    if (!m_active_node->get_expanded())
+    {
+        m_active_node = nullptr;
+        return;
+    }
 
-
+    ImGui::Dummy(ImVec2(m_active_node->w_node, ImGui::GetTextLineHeight() * 0.5f));
     const auto pin_y = ImGui::GetCursorPosY();
+
     // --- PINS - INPUT ---
 
     ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_pin_text);
@@ -364,7 +371,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     if (!m_active_node->get_outputs().empty())
     {
         ImGui::SetCursorPosY(pin_y);
-        if (m_active_node->expanded() && m_active_node->w_center > 0.0f)
+        if (m_active_node->w_center > 0.0f)
             ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + m_active_node->w_pin_in + m_active_node->w_center);
     }
 
@@ -385,16 +392,9 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 #ifdef _DEBUG
             test_id(m_ids_imgui, pin);
 #endif
-            if (m_active_node->expanded())
-            {
-                ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + m_active_node->w_pin_in + m_active_node->w_center +
-                    m_active_node->w_pin_out - pin->state().w_name);
-            }
-            else
-            {
-                ImGui::SameLine();
-                ImGui::SetCursorPosX(m_curr_node_left_offset + node_w - w::pin_r_offset);
-            }
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + m_active_node->w_pin_in + m_active_node->w_center +
+                m_active_node->w_pin_out - pin->state().w_name);
+
             draw_output_pin(pin);
             ImGui::PopID();
         }
@@ -402,8 +402,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     ImGui::PopStyleColor();
 
-    if (m_active_node->expanded())
-        ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing * 2));
+    ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing * 2));
 
     // TODO:FIX resizing
    // m_resizing_grip_positions[node_idx].Min.y -= ImGui::GetCursorPos().y - m_curr_node_top_offset + ImGui::GetTextLineHeight();
@@ -430,7 +429,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
                 ImGui::PopID();
             }
         }
-        if (advanced > 0 && m_active_node->expanded())
+        if (advanced > 0)
         {
             bool temp_open = false;
             draw_widget_separator(w::pin_l_offset_rw + w::ico_max + w::pin_r_offset, m_active_node->m_show_hidden, temp_open);
@@ -547,15 +546,24 @@ void NodeDrawer::draw_node_header()
         auto& style = ed::GetStyle();
 
         //const ImU32 bg_color = (m_active_node->m_clr_custom ? m_active_node->m_clr_head : m_defclr_node_header_bg);
-        const float header_h = ImGui::GetTextLineHeight() * 1.5f;
+        const float header_h = ImGui::GetTextLineHeight() * 1.5f - (m_active_node->get_expanded() ? 0 : style.NodeBorderWidth);
 
         draw_list->AddRectFilled(
             ImVec2(m_curr_node_left_offset - style.NodePadding.x + style.NodeBorderWidth, m_curr_node_top_offset - style.NodePadding.y + style.NodeBorderWidth),
             ImVec2(m_curr_node_left_offset + style.NodePadding.x + m_active_node->w_node - style.NodeBorderWidth, m_curr_node_top_offset + header_h),
             m_active_node->m_clr_head,
             style.NodeRounding,
-            m_active_node->expanded() ? ImDrawFlags_RoundCornersTop : ImDrawFlags_RoundCornersAll
+            (m_active_node->get_expanded() ? ImDrawFlags_RoundCornersTop : ImDrawFlags_RoundCornersAll)
         );
+    }
+
+    const float collapsed_pin_y = ImGui::GetCursorPosY();
+    if (!m_active_node->get_expanded() && !m_active_node->get_inputs().empty())
+    {
+        ImGui::BeginDisabled();
+        draw_collapsed_pins(true);
+        ImGui::SameLine();
+        ImGui::EndDisabled();
     }
 
     if (m_active_node != m_renaming_node)
@@ -604,55 +612,93 @@ void NodeDrawer::draw_node_header()
             ImGui::SetKeyboardFocusHere();
             m_need_renaming_focus = false;
         }
-        ImGui::SetCursorPosX(m_curr_node_left_offset + ImGui::GetStyle().ItemSpacing.x * 2);
-        ImGui::SetNextItemWidth(m_active_node->w_node - ImGui::GetStyle().ItemSpacing.x * 4);
+        if (m_active_node->get_expanded())
+        {
+            ImGui::SetCursorPosX(m_curr_node_left_offset + ImGui::GetStyle().ItemSpacing.x * 2);
+            ImGui::SetNextItemWidth(m_active_node->w_node - ImGui::GetStyle().ItemSpacing.x * 4);
+        }
+        else
+        {
+            ImGui::SetCursorPosX(m_curr_node_left_offset + (m_renaming_node->get_inputs().empty() ? 0 : (w::pin_l_offset_rw + w::ico_circle + w::pin_r_offset + ImGui::GetStyle().ItemSpacing.x)));
+            ImGui::SetNextItemWidth(m_active_node->w_node - (m_renaming_node->get_outputs().empty() ? 0 : ((w::pin_l_offset_rw + w::ico_circle + w::pin_r_offset + ImGui::GetStyle().ItemSpacing.x) * 2)));
+        }
         if (ImGuiEx::InputText("##noderename", &m_renaming_buff, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue) ||
             ImGui::IsItemDeactivatedAfterEdit())
         {
             m_wf->action()->set_node_name(m_renaming_node, m_renaming_buff);
             m_renaming_buff.clear();
             m_renaming_node = nullptr;
+            m_renaming_pin = nullptr;
         }
         else if (ImGui::IsKeyPressed(ImGuiKey_Escape))
         {
+            m_renaming_buff.clear();
             m_renaming_node = nullptr;
+            m_renaming_pin = nullptr;
+        }
+    }
+
+    if (!m_active_node->get_expanded())
+    {
+        ImGui::BeginDisabled();
+        ImGui::SameLine();
+        if (!m_active_node->get_outputs().empty())
+        {                
+            ImGui::SetCursorPosY(collapsed_pin_y);
+            draw_collapsed_pins(false);
+        }
+        else
+        {
+            ImGui::Dummy(ImVec2(ImGui::GetStyle().ItemSpacing.x * 2, 0));
+        }
+        ImGui::EndDisabled();
+    }
+}
+
+void NodeDrawer::draw_collapsed_pins(bool input)
+{
+    const std::vector<data::PinInstance*>* pins = nullptr;
+    float pos_x = 0.0f;
+    if (input)
+    {
+        pins = &m_active_node->get_inputs();
+        pos_x = m_curr_node_left_offset + w::pin_l_offset_rw;        
+    }
+    else
+    {
+        pins = &m_active_node->get_outputs();
+        pos_x = m_curr_node_left_offset + m_active_node->w_node - w::pin_l_offset_rw - w::ico_circle;
+    }
+
+    for (auto pin : *pins)
+    {
+        if (pin->is_valid())
+        {
+            ImGui::SetCursorPosX(pos_x);
+            draw_pin(pin, true, true);
+            ImGui::SameLine();
         }
     }
 }
 
 void NodeDrawer::draw_input_pin(data::PinInstance* pin)
 {
-    if (m_active_node->expanded())
-    {
-        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
-        draw_pin(pin, false, false);
-        ImGui::SameLine(0.0f, w::pin_r_offset);
-        if (!handle_pin_renaming(pin))
-            ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
-    }
-    else if (pin->state().links > 0)
-    {
-        ImGui::SetCursorPosX(m_curr_node_left_offset);
-        draw_pin(pin, true, false);
-    }
+    ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
+    draw_pin(pin, false, false);
+    ImGui::SameLine(0.0f, w::pin_r_offset);
+    if (!handle_pin_renaming(pin))
+        ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
 }
 
 void NodeDrawer::draw_output_pin(data::PinInstance* pin)
 {
-    if (m_active_node->expanded())
-    {
-        if (!handle_pin_renaming(pin))
-            ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
-        ImGui::SameLine(0, w::pin_r_offset);
-        draw_pin(pin, false, false);
-    }
-    else if (pin->state().links > 0)
-    {
-        draw_pin(pin, true, false);
-    }
+    if (!handle_pin_renaming(pin))
+        ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
+    ImGui::SameLine(0, w::pin_r_offset);
+    draw_pin(pin, false, false);
 }
 
-void NodeDrawer::draw_pin(data::PinInstance* pin, bool force_default_shape, bool align_to_widget)
+void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget)
 {
     ImGui::PushID(&pin->state().pin_color);
 #ifdef _DEBUG
@@ -663,31 +709,22 @@ void NodeDrawer::draw_pin(data::PinInstance* pin, bool force_default_shape, bool
         ed::BeginPin(pin->ed(), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
     else
         pin->ed() = ed::BeginPin(cast::to_ptr(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
-    draw_pin_shape(pin, force_default_shape, align_to_widget);
+    draw_pin_shape(pin, collapsed_mode, align_to_widget);
     ed::EndPin();
     ImGui::PopID();
 }
 
 void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
-    if (m_active_node->expanded())
+    if (!pin->get_object()->cag_pin)
     {
-        if (!pin->get_object()->cag_pin)
-        {
-            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
-            draw_pin(pin, false, true);
-            ImGui::SameLine(0, w::pin_r_offset);
-        }
-        else
-            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle);
-        draw_widget(pin, widget_name_width, widget_value_width);
+        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
+        draw_pin(pin, false, true);
+        ImGui::SameLine(0, w::pin_r_offset);
     }
-    else if (pin->state().links > 0)
-    {
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(m_curr_node_left_offset);
-        draw_pin(pin, true, true);
-    }
+    else
+        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle);
+    draw_widget(pin, widget_name_width, widget_value_width);
 }
 
 void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -755,7 +792,7 @@ void NodeDrawer::handle_widget_active_state(data::PinInstance* pin, const primit
         }
         else if (ImGui::IsItemActivated() && backup != nullptr)
             m_old_pin_val_pr = *backup;
-        else if (ImGui::IsItemDeactivatedAfterEdit() && data::PinType::STRING != pin->state().type)
+        else if (ImGui::IsItemDeactivatedAfterEdit() && pin->state().type != data::PinType::STRING)
             m_wf->action()->set_pin_val(pin, std::move(m_old_pin_val_pr));
     }
 }
@@ -1137,7 +1174,19 @@ void NodeDrawer::query_new_item(
         {
             data::PinInstance* p1 = cast::ptrs<data::PinInstance>(start.Get());
             data::PinInstance* p2 = cast::ptrs<data::PinInstance>(end.Get());
-            if (data::Link::can_link(p1, p2))
+            bool allow = (p1 != p2 && p1 != nullptr && p2 != nullptr);
+
+            if (allow)
+            {
+                auto linked_node = m_wf->get_node_by_instance(p1->get_parent_node());
+                allow = linked_node->get_expanded();
+                if (allow)
+                {
+                    linked_node = m_wf->get_node_by_instance(p2->get_parent_node());
+                    allow = linked_node->get_expanded();
+                }
+            }
+            if (allow && data::Link::can_link(p1, p2))
             {
                 if (ed::AcceptNewItem())
                 {
@@ -1209,17 +1258,17 @@ void NodeDrawer::handle_deleted()
     ed::EndDelete();
 }
 
-void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool force_default, bool align_to_widget)
+void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget)
 {
     const bool querying = (m_querying_pin != nullptr);
     const bool compatible = (m_querying_pin == pin || (querying && data::Link::can_link(pin, m_querying_pin)));
     const bool connected = (m_querying_pin == pin || pin->state().links > 0);
-    const auto type = (force_default ? data::PinShape::Circle : data::Pin::get_shape(pin->state().type));
+    const auto type = (collapsed_mode ? data::PinShape::Circle : data::Pin::get_shape(pin->state().type));
     constexpr const float thickness = 2.0f;
     constexpr const int32_t segments = 12;
     const auto draw_list = ImGui::GetWindowDrawList();
     const float alpha = (!querying || compatible ? 1.0f : 0.4f);
-    const auto color = (pin->state().pin_color & 0x00FFFFFF) | ((ImU32)(alpha * 255.0f) << 24);
+    const auto color = (collapsed_mode ? IM_COL32_WHITE : ((pin->state().pin_color & 0x00FFFFFF) | ((ImU32)(alpha * 255.0f) << 24)));
     const float radius = (!querying ? 4.0f : (compatible ? 5.0f : 3.0f));
     const float diameter = radius * 2.0f;
     ImVec2 cursor_pos = ImGui::GetCursorScreenPos();
@@ -1632,14 +1681,62 @@ bool NodeDrawer::handle_pin_renaming(data::PinInstance* curr_pin)
             m_wf->action()->set_pin_name(m_renaming_pin, m_renaming_buff);
             m_renaming_buff.clear();            
             m_renaming_pin = nullptr;
+            m_renaming_node = nullptr;
         }
         else if (ImGui::IsKeyPressed(ImGuiKey_Escape))
         {
             m_renaming_pin = nullptr;
+            m_renaming_node = nullptr;
         }
         return true;
     }
     return false;
+}
+
+void NodeDrawer::handle_node_collapsing(data::NodeInstance* node)
+{
+    g::pFlow->txt_panel_delete(m_wf->get_id(), node);
+    if (m_deffered_action->active_node == node)
+    {
+        m_deffered_action->combo.is_active = false;
+        m_deffered_action->ml_input.is_active = false;
+        m_deffered_action->active_node = nullptr;
+        m_deffered_action->active_pin = nullptr;
+    }
+    if (m_renaming_node == node)
+    {
+        m_wf->action()->set_node_name(m_renaming_node, m_renaming_buff);
+        m_renaming_buff.clear();
+        m_renaming_node = nullptr;
+        m_renaming_pin = nullptr;
+    }
+    for (auto pin : node->get_inputs())
+    {
+        if (pin == m_renaming_pin)
+        {
+            m_wf->action()->set_pin_name(m_renaming_pin, m_renaming_buff);
+            m_renaming_buff.clear();            
+            m_renaming_pin = nullptr;
+            m_renaming_node = nullptr;
+        }
+        else if (pin == m_editing && pin == m_was_edited)
+        {
+            m_wf->action()->set_pin_val(pin, std::move(m_old_pin_val_pr));
+            m_was_edited = nullptr;
+            m_editing = nullptr;
+        }
+    }
+    for (auto pin : node->get_outputs())
+    {
+        if (pin == m_renaming_pin)
+        {
+            m_wf->action()->set_pin_name(m_renaming_pin, m_renaming_buff);
+            m_renaming_buff.clear();            
+            m_renaming_pin = nullptr;
+            m_renaming_node = nullptr;
+            break;
+        }
+    }
 }
 
 } // namespace ui
