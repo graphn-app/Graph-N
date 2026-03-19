@@ -32,11 +32,11 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
             {
                 Log("Parsed: ok");
                 // this is UI thread, so it is safe to recreate on the fly
-                g::pFlow->invalidate_comfyui_objects();
+                g::pGraphN->invalidate_comfyui_objects();
                 Log(APP_COMFYUI " listeners notified to invalidate data");
                 g::pNodesManager->init_from_copy(*copy.get());
                 Log(APP_COMFYUI " data copied");
-                g::pFlow->resolve_comfyui_objects();
+                g::pGraphN->resolve_comfyui_objects();
                 Log(APP_COMFYUI " listeners notified to resolve data");
 
                 g::pFlow->set_nodes_ready();
@@ -137,8 +137,14 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
 
         node->finalize(models_map);
         put_in_tree(manager, node.get());
-        manager.m_nodes.emplace(node->get_id(), std::move(node));
-        Log("Node " << node_class << " parse: end");
+
+        auto ptr = node.get();
+        if (!manager.m_nodes.try_emplace(node->get_id(), std::move(node)).second)
+        {
+            LogInvalidJson("Duplicate of node " << ptr->name);
+        }
+        else
+            Log("Node " << node_class << " parse: end");
     }
     catch (std::exception& e)
     {
@@ -507,7 +513,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
         auto items = objects.items();
         for (const auto&[pin_name, pin_info] : items)
         {
-            auto pin = std::make_unique<data::Pin>(&node, pin_name);
+            auto pin = std::make_unique<data::Pin>(&node, pin_name, "_IN_");
             input.pins.push_back(pin.get());
 
             pin->input = true;
@@ -579,11 +585,13 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
 
             pin->finalize();
             auto ptr = pin.get();
-            manager.m_pins.emplace(ptr->get_id(), std::move(pin));
-
-            if (ptr->cag_require)
+            if (!manager.m_pins.try_emplace(ptr->get_id(), std::move(pin)).second)
             {
-                auto cag = std::make_unique<data::Pin>(&node, ptr->def_state.name + "_control");
+                LogUnhandledJson("/input/. Pin name duplicate. Node=" << node.name << ", pin=" << ptr->def_state.name << ", type=" << pin_info.type_name());
+            }
+            else if (ptr->cag_require)
+            {
+                auto cag = std::make_unique<data::Pin>(&node, ptr->def_state.name + "_control", "_IN_");
                 input.pins.push_back(cag.get());
 
                 cag->input = true;
@@ -691,7 +699,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
             size_t index = 0;
             for (const auto& item : output)
             {
-                auto pin = std::make_unique<data::Pin>(&node, index++);
+                auto pin = std::make_unique<data::Pin>(&node, index++, "_OUT_");
                 pin->output = true;
 
                 if (item.is_string())
@@ -721,8 +729,12 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
                     continue;
                 }
 
+                auto ptr = pin.get();
                 node.output.push_back(pin.get());
-                manager.m_pins.emplace(pin->get_id(), std::move(pin));
+                if (!manager.m_pins.emplace(pin->get_id(), std::move(pin)).second)
+                {
+                    LogUnhandledJson("/output/. Pin name duplicate. Node=" << node.name << ", pin=" << ptr->def_state.name << ", idx=" << index);
+                }
             }
         }
     }
@@ -891,131 +903,6 @@ void NodesParser::parse_others(data::Node& node, nlohmann::json& json_node)
         LogUnhandledJson("/unhandled node's attr. Node=" << node.name << ", attr=" << name);
     }
 }
-//
-//void NodesParser::add_internal_nodes(NodesManager& manager)
-//{
-//    // Reroute
-//    {
-//        constexpr auto node_class = "Reroute";
-//        auto node = std::make_unique<data::Node>(node_class);
-//        node->name = node_class;
-//        node->display_name = node_class;
-//        node->category = "utils";
-//        node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
-//
-//        // Input: ANY (*)
-//        auto in = std::make_unique<data::Pin>(node.get(), "*");
-//        in->name = "*";
-//        in->input = true;
-//        in->required = true;
-//        in->initialize("*");
-//        in->finalize();
-//        node->required.pins.push_back(in.get());
-//        node->required.order.push_back("*");
-//        manager.m_pins.emplace(in->get_id(), std::move(in));
-//
-//        // Output: ANY (*)
-//        auto out = std::make_unique<data::Pin>(node.get(), 0);
-//        out->name = "*";
-//        out->output = true;
-//        out->initialize("*");
-//        out->finalize();
-//        node->output.push_back(out.get());
-//        manager.m_pins.emplace(out->get_id(), std::move(out));
-//
-//        node->has_input = true;
-//        node->has_output = true;
-//        node->finalize();
-//
-//        put_in_tree(manager, node.get());
-//        manager.m_nodes.emplace(node->get_id(), std::move(node));
-//    }
-//
-//    // Primitive
-//    {
-//        constexpr auto node_class = "Primitive";
-//        auto node = std::make_unique<data::Node>(node_class);
-//        node->name = node_class;
-//        node->display_name = node_class;
-//        node->category = "utils";
-//        node->description = "Primitive values like numbers, strings, and booleans.";
-//
-//        // Output: ANY (*)
-//        auto out = std::make_unique<data::Pin>(node.get(), 0);
-//        out->name = "connect to widget input";
-//        out->output = true;
-//        out->initialize("*");
-//        out->finalize();
-//        node->output.push_back(out.get());
-//        manager.m_pins.emplace(out->get_id(), std::move(out));
-//
-//        node->has_input = false;
-//        node->has_output = true;
-//        node->finalize();
-//
-//        put_in_tree(manager, node.get());
-//        manager.m_nodes.emplace(node->get_id(), std::move(node));
-//    }
-//
-//    // Note
-//    {
-//        constexpr auto node_class = "Note";
-//        auto node = std::make_unique<data::NodeNote>(node_class);
-//        node->name = node_class;
-//        node->display_name = node_class;
-//        node->category = "utils";
-//        node->description = "Node to add annotations to a workflow.";
-//
-//        auto in = std::make_unique<data::Pin>(node.get(), "Note");
-//        in->name = "Note";
-//        in->input = true;
-//        in->required = true;
-//        in->multiline = true;
-//        in->placeholder = "Put note here";
-//        in->initialize("STRING");
-//        in->finalize();
-//        node->required.pins.push_back(in.get());
-//        node->required.order.push_back("STRING");
-//        manager.m_pins.emplace(in->get_id(), std::move(in));
-//
-//        node->has_input = true;
-//        node->has_output = false;
-//        node->finalize();
-//
-//        put_in_tree(manager, node.get());
-//        manager.m_nodes.emplace(node->get_id(), std::move(node));
-//    }
-//
-//    // Markdown Note
-//    {
-//        constexpr auto node_class = "Markdown Note";
-//        auto node = std::make_unique<data::NodeMarkdownNote>(node_class);
-//        node->name = node_class;
-//        node->display_name = node_class;
-//        node->category = "utils";
-//        node->description = "Node to add annotations to a workflow. It supports text formatting using Markdown syntax.";
-//
-//        auto in = std::make_unique<data::Pin>(node.get(), "Markdown Note");
-//        in->name = "Markdown Note";
-//        in->input = true;
-//        in->required = true;
-//        in->multiline = true;
-//        in->placeholder = "Put markdown note here";
-//        in->initialize("STRING");
-//        in->finalize();
-//        node->required.pins.push_back(in.get());
-//        node->required.order.push_back("STRING");
-//        manager.m_pins.emplace(in->get_id(), std::move(in));
-//
-//        node->has_input = true;
-//        node->has_output = false;
-//        node->finalize();
-//
-//        put_in_tree(manager, node.get());
-//        manager.m_nodes.emplace(node->get_id(), std::move(node));
-//    }
-//}
-
 void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 {
     const auto search_branch = [](std::vector<data::NodeItem*>* items, const std::string& category)

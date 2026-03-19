@@ -1,5 +1,6 @@
 
 #pragma once
+#include "core/listeners.h"
 
 namespace mngr
 {
@@ -16,8 +17,8 @@ class PinInstance;
 class Link;
 class WorkflowAction;
 
-//TODO - invalidate objects ?
-class Workflow final
+class Workflow final :
+    public listener::ComfyUiObjectValidityListener
 {
     friend class WorkflowSerializerToBlob;
 
@@ -63,10 +64,14 @@ public:
     void remove_node(const NodeInstance* node);
     void remove_node(const NodeInstanceRo* node);
     void remove_link(const Link* link);
+    void clear();
 
 private:
     void remove_pin(const PinInstance* pin);
     iid get_new_child_id();
+
+    // ComfyUiObjectValidityListener
+    void finalize_resolve_comfyui_objects();
 
 private:
     WfData m_wf_data;
@@ -76,9 +81,6 @@ private:
     std::vector<std::unique_ptr<NodeInstanceRo>> m_nodes_ro;
     std::vector<std::unique_ptr<PinInstance>> m_pins;
     std::vector<std::unique_ptr<Link>> m_links;
-    //TODO
-    //std::set<hid> m_invalid_items;
-    bool m_invalidation_state = false;
 };
 
 } // namespace data

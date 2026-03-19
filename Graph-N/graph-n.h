@@ -23,6 +23,7 @@ class HistoryManager;
 namespace listener
 {
 struct Timer;
+struct ComfyUiObjectValidityListener;
 }
 
 namespace ui
@@ -56,6 +57,10 @@ public:
     int32_t override_exit_code();
 
     void subscribe_timers(listener::Timer* listener);
+    void subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener);
+
+    void invalidate_comfyui_objects();
+    void resolve_comfyui_objects();
 
 public:
     // main wnd handlers
@@ -81,7 +86,9 @@ private:
 
     std::unique_ptr<ui::GraphN_Flow> m_graphn_flow;
     std::vector<std::unique_ptr<mngr::Manager>> m_managers;
+
     std::list<listener::Timer*> m_timer_listeners;
+    std::list<listener::ComfyUiObjectValidityListener*> m_comfyui_validity_listeners;
 };
 
 

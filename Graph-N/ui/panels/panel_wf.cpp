@@ -420,6 +420,13 @@ void PanelWorkflow::create_toolbar()
 
 void PanelWorkflow::check_history()
 {
+    *m_tt_revert = 0;
+    *m_tt_history_status = 0;
+    *m_history_status = 0;
+    *m_undo_name = 0;
+    *m_redo_name = 0;
+    m_can_save = m_can_revert = false;
+
     auto& data = m_wf->get_data();
     m_can_save = data.draft;
     m_can_revert = data.saved_exist && data.draft;
@@ -427,11 +434,6 @@ void PanelWorkflow::check_history()
     auto history = g::pHistoryManager->get_state(m_wf->get_id());
 
     char* end_ptr = nullptr;
-    *m_tt_revert = 0;
-    *m_tt_history_status = 0;
-    *m_history_status = 0;
-    *m_undo_name = 0;
-    *m_redo_name = 0;
     const int32_t diff = history.pos - (history.saved_pos < -1 ? -1 : history.saved_pos);
 
     if (history.undo_name != nullptr)

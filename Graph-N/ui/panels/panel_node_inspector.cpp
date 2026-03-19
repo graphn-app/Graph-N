@@ -6,7 +6,6 @@
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/workflow.h"
 #include "core/managers/workflows_manager.h"
-#include "ui/graph-n_flow.h"
 #include "main.h"
 
 namespace ui
@@ -26,7 +25,7 @@ void PanelNodeInspector::init()
     LogF;
     PanelBase::init();
 
-    g::pFlow->subscribe_comfyui_validity_state(this);
+    g::pGraphN->subscribe_comfyui_validity_state(this);
 
     data()->clr_descr_frame = g::pOptsManager->color_load(AppColor::PanelNodesInspDescrFrame);
     data()->clr_selected_node = g::pOptsManager->color_load(AppColor::PanelNodesSelNode);
@@ -76,6 +75,7 @@ void PanelNodeInspector::remove_inspecting_node(data::Node* node)
 void PanelNodeInspector::reset_inspecting_nodes()
 {
     Log("Remove all nodes");
+    m_wf->clear();
     m_inspecting.clear();
 }
 

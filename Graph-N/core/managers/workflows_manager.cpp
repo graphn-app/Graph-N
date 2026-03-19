@@ -8,6 +8,7 @@
 #include "core/workflow/node_instance.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/workflow_serializer_to_blob.h"
+#include "ui/graph-n_flow.h"
 
 namespace mngr
 {
@@ -677,7 +678,7 @@ void WfsManager::dump(wid wf_id) const
 {
     auto wf = access(wf_id);
     auto& data = wf->get_data();
-    if (!data.dirty)
+    if (!data.dirty || !data.critical_failure)
         return;
 
     blob::Blob empty;

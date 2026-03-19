@@ -38,14 +38,14 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
     { "UPSCALE_STACK", PinType::UPSCALE_STACK },        { "GLIGEN", PinType::GLIGEN },		                { "OPENAI_CHAT_CONFIG", PinType::OPENAI_CHAT_CONFIG }
 };
 
-Pin::Pin(const Node* node, const std::string& pin_name)
-    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_IN_" + pin_name)
+Pin::Pin(const Node* node, const std::string& pin_name, const char* suffix)
+    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + suffix + pin_name)
     , parent_node(node)
 {
 }
 
-Pin::Pin(const Node* node, size_t pin_index)
-    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_OUT_" + std::to_string(pin_index))
+Pin::Pin(const Node* node, size_t pin_index, const char* suffix)
+    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + suffix + std::to_string(pin_index))
     , parent_node(node)
 {
 }
@@ -181,6 +181,7 @@ void Pin::finalize()
 
             combo_items_ptr.resize(list.size());
             combo_items_str.resize(list.size());
+            def_state.value = int64_t(0);
 
             for (size_t idx = 0; idx < list.size(); idx++)
             {
@@ -199,6 +200,7 @@ void Pin::finalize()
                     combo_items_ptr[idx] = combo_items_str[idx].c_str();
                 }
             }
+            def = def_state.value;
         }
     }
 
@@ -620,9 +622,9 @@ PinShape Pin::get_shape(PinType type)
     return PinShape::Circle;
 }
 
-size_t Pin::get_hash(std::string str)
+uint64_t Pin::get_hash(std::string str)
 {
-    return tools::str::hash_string(str);
+    return cast::to_u64(tools::str::hash_string(str));
 }
 
 } // namespace data

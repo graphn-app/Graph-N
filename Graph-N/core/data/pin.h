@@ -83,10 +83,10 @@ struct PinState final
     int32_t links = 0;          // number of pin links
     bool converted = false;     // input pin converted to widget
     
-    ImU32 pin_color = 0;        // will change if ANY pin
+    ImU32 pin_color = IM_COL32_WHITE;        // will change if ANY pin
     PinType type = PinType::_none;  // will change if ANY pin
     std::string type_str;       // will change if ANY pin
-    size_t type_hash = 0;
+    uint64_t type_hash = 0;
 
     std::string name;
     float w_name = 0.0f;
@@ -98,8 +98,8 @@ struct PinState final
 struct Pin final : public base::HashID
 {
 public:
-    Pin(const Node* node, const std::string& pin_name);
-    Pin(const Node* node, size_t pin_index);
+    Pin(const Node* node, const std::string& pin_name, const char* suffix);
+    Pin(const Node* node, size_t pin_index, const char* suffix);
     ~Pin() override;
 
     bool is_widget() const;
@@ -121,7 +121,7 @@ public:
 
     static PinShape get_shape(PinType type);
 
-    static size_t get_hash(std::string str);
+    static uint64_t get_hash(std::string str);
 
     const Node* parent_node = nullptr;
 

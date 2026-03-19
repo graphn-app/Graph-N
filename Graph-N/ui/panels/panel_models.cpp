@@ -29,6 +29,8 @@ void PanelModels::init()
     m_tt_callbacks.on_show_tt = std::bind(&PanelModels::on_show_tt, this, std::placeholders::_1);
     m_tt_callbacks.on_pre_tt = std::bind(&PanelModels::on_pre_tt, this, std::placeholders::_1);
 
+    g::pGraphN->subscribe_comfyui_validity_state(this);
+
     create_toolbar();
     rebuild_items();
 }
@@ -79,6 +81,17 @@ void PanelModels::create_toolbar()
     }    
     
     finalize_toolbar();
+}
+
+void PanelModels::invalidate_comfyui_objects()
+{
+    m_panel_items.clear();
+    m_prev_model_items_count = 0;
+}
+
+void PanelModels::finalize_resolve_comfyui_objects()
+{
+    rebuild_items();
 }
 
 DlgCode PanelModels::show(bool& focused)

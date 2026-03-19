@@ -34,7 +34,7 @@ void PanelNodes::init()
     auto wf_id = g::pWfsManager->create(false /*generate_name*/, false /*dump_to_db*/, true /*ro*/).id;
     m_wf = g::pWfsManager->access(wf_id);
 
-    g::pFlow->subscribe_comfyui_validity_state(this);
+    g::pGraphN->subscribe_comfyui_validity_state(this);
 
     m_tt_callbacks.on_alloc_tt_data = std::bind(&PanelNodes::on_alloc_tt_data, this, std::placeholders::_1);
     m_tt_callbacks.on_release_tt_data = std::bind(&PanelNodes::on_release_tt_data, this, std::placeholders::_1);
@@ -149,6 +149,7 @@ void PanelNodes::create_toolbar()
 
 void PanelNodes::invalidate_comfyui_objects()
 {
+    m_wf->clear();
     m_panel_items.clear();
 }
 

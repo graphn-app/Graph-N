@@ -14,6 +14,9 @@ namespace ui
 
 bool PanelWorkflow::context_menu_handler()
 {
+    if (m_wf->get_data().critical_failure)
+        return false;
+
     bool rclick = false, dbl_click = false;
     if (m_drawer.get_bg_menu_active(rclick, dbl_click))
     {
@@ -223,37 +226,35 @@ bool PanelWorkflow::show_canvas_menu()
     }
     ImGui::Separator();
 
+    auto history = g::pHistoryManager->get_state(m_wf->get_id());
+    const char* undo = nullptr;
+    if (history.undo_name != nullptr)
     {
-        auto history = g::pHistoryManager->get_state(m_wf->get_id());
-        const char* undo = nullptr;
-        if (history.undo_name != nullptr)
-        {
-            m_fmt_buffer.clear();
-            fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("Undo: {}"), *history.undo_name);
-            m_fmt_buffer.push_back('\0');
-            undo = m_fmt_buffer.data();
-        }
-        if (ImGui::MenuItem(nullptr == undo ? "Undo" : undo, nullptr, nullptr, undo != nullptr))
-        {
-            m_drawer.clear_selection();
-            g::pHistoryManager->undo(m_wf->get_id());
-            close = true;
-        }
+        m_fmt_buffer.clear();
+        fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("Undo: {}"), *history.undo_name);
+        m_fmt_buffer.push_back('\0');
+        undo = m_fmt_buffer.data();
+    }
+    if (ImGui::MenuItem(nullptr == undo ? "Undo" : undo, nullptr, nullptr, undo != nullptr))
+    {
+        m_drawer.clear_selection();
+        g::pHistoryManager->undo(m_wf->get_id());
+        close = true;
+    }
 
-        const char* redo = nullptr;
-        if (history.redo_name != nullptr)
-        {
-            m_fmt_buffer.clear();
-            fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("Redo: {}"), *history.redo_name);
-            m_fmt_buffer.push_back('\0');
-            redo = m_fmt_buffer.data();
-        }
-        if (ImGui::MenuItem(nullptr == redo ? "Redo" : redo, nullptr, nullptr, redo != nullptr))
-        {
-            m_drawer.clear_selection();
-            g::pHistoryManager->redo(m_wf->get_id());
-            close = true;
-        }
+    const char* redo = nullptr;
+    if (history.redo_name != nullptr)
+    {
+        m_fmt_buffer.clear();
+        fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("Redo: {}"), *history.redo_name);
+        m_fmt_buffer.push_back('\0');
+        redo = m_fmt_buffer.data();
+    }
+    if (ImGui::MenuItem(nullptr == redo ? "Redo" : redo, nullptr, nullptr, redo != nullptr))
+    {
+        m_drawer.clear_selection();
+        g::pHistoryManager->redo(m_wf->get_id());
+        close = true;
     }
     ImGui::Separator();
 
@@ -352,12 +353,12 @@ bool PanelWorkflow::show_node_menu()
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Remove"))
+    if (ImGui::MenuItem("Remove")) // TODO: invalidate wf
     {
         m_action->delete_node(node);
         close = true;
     }
-    if (ImGui::MenuItem("Copy"))
+    if (ImGui::MenuItem("Copy", nullptr, nullptr))
     {
         g::pWfsManager->copy_begin(m_wf->get_id(), {});
         g::pWfsManager->copy_add(node);

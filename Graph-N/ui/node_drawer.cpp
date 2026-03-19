@@ -1,6 +1,7 @@
 
 #include "ui/node_drawer.h"
 #include "ui/helpers/imgui_ex_ne.h"
+#include "ui/graph-n_flow.h"
 #include "main.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/history_manager.h"
@@ -349,11 +350,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     const auto& input = m_active_node->get_inputs();
     for (auto pin : input)
     {
-        if (nullptr == pin || !pin->is_valid())
-        {
-            LogError(ExcepCategory::Logic, "Null pin");
-        }
-        else if (!pin->get_object()->is_widget())
+        if (!pin->get_object()->is_widget())
         {
             ImGui::PushID(pin);
 #ifdef _DEBUG
@@ -382,22 +379,15 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     const auto& output = m_active_node->get_outputs();
     for (auto pin : output)
     {
-        if (nullptr == pin || !pin->is_valid())
-        {
-            LogError(ExcepCategory::Logic, "Null pin");
-        }
-        else
-        {
-            ImGui::PushID(pin);
+        ImGui::PushID(pin);
 #ifdef _DEBUG
-            test_id(m_ids_imgui, pin);
+        test_id(m_ids_imgui, pin);
 #endif
-            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + m_active_node->w_pin_in + m_active_node->w_center +
-                m_active_node->w_pin_out - pin->state().w_name);
+        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + m_active_node->w_pin_in + m_active_node->w_center +
+            m_active_node->w_pin_out - pin->state().w_name);
 
-            draw_output_pin(pin);
-            ImGui::PopID();
-        }
+        draw_output_pin(pin);
+        ImGui::PopID();
     }
 
     ImGui::PopStyleColor();
@@ -672,12 +662,9 @@ void NodeDrawer::draw_collapsed_pins(bool input)
 
     for (auto pin : *pins)
     {
-        if (pin->is_valid())
-        {
-            ImGui::SetCursorPosX(pos_x);
-            draw_pin(pin, true, true);
-            ImGui::SameLine();
-        }
+        ImGui::SetCursorPosX(pos_x);
+        draw_pin(pin, true, true);
+        ImGui::SameLine();
     }
 }
 
@@ -1169,7 +1156,7 @@ void NodeDrawer::query_new_item(
     if (ed::BeginCreate())
     {
         ed::PinId start = 0, end = 0;
-        ed::PinId node = 0;
+        ed::PinId pin = 0;
         if (ed::QueryNewLink(&start, &end))
         {
             data::PinInstance* p1 = cast::ptrs<data::PinInstance>(start.Get());
@@ -1206,13 +1193,12 @@ void NodeDrawer::query_new_item(
                 ed::RejectNewItem();
             }
         }
-        else if (ed::QueryNewNode(&node))
+        else if (ed::QueryNewNode(&pin))
         {
-            m_querying_pin = cast::ptrs<data::PinInstance>(node.Get());
-
+            m_querying_pin = cast::ptrs<data::PinInstance>(pin.Get());
             if (ed::AcceptNewItem())
             {
-                new_node_handler(cast::ptrs<data::PinInstance>(node.Get()), ed::ScreenToCanvas(ImGui::GetMousePos()));
+                new_node_handler(cast::ptrs<data::PinInstance>(pin.Get()), ed::ScreenToCanvas(ImGui::GetMousePos()));
                 m_querying_pin = nullptr;
             }
         }

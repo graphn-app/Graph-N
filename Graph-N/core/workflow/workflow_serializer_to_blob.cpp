@@ -12,6 +12,12 @@ namespace data
 
 blob::Writer WorkflowSerializerToBlob::serialize(const Workflow* wf, const blob::Blob& drawer_state)
 {
+    if (wf->get_data().critical_failure)
+    {        
+        LogInternalLogicS("Trying to serialize invalid wf " << wf->get_data().id << "###" << wf->get_data().uuid);
+        return {};
+    }
+
     blob::Writer writer;
     blob::Block root(writer);
 
@@ -59,7 +65,7 @@ void WorkflowSerializerToBlob::serialize_node(const NodeInstance* node, blob::Wr
         .push(node->m_hid)
         .push(node->m_iid)
         .push(node->m_wid)
-        .push(node->m_name)
+        .push(node->get_name())
         .push(node->m_rc)
         .push(node->m_clr_node)
         .push(node->m_clr_group)
@@ -122,6 +128,9 @@ void WorkflowSerializerToBlob::serialize_pin(const PinInstance* pin, blob::Write
     block.begin();
     writer
         .push(pin->m_state.name)
+        .push(pin->m_state.type_str)
+        .push(pin->m_state.type_hash)
+        .push(cast::to_u32(pin->m_state.type))
         .push(pin->m_state.value)
         .push(pin->m_state.cag)
     ;
@@ -140,6 +149,10 @@ void WorkflowSerializerToBlob::serialize_link(const Link* link, blob::Writer& wr
 
 bool WorkflowSerializerToBlob::deserialize(Workflow* wf, const blob::Blob& blob, blob::Blob& drawer_state)
 {
+    auto& data = wf->get_data();
+    data.valid = true;
+    data.critical_failure = false;
+
     try
     {
         wf->m_action->hard_reset();
@@ -173,8 +186,7 @@ bool WorkflowSerializerToBlob::deserialize(Workflow* wf, const blob::Blob& blob,
     }
     catch (std::exception& ex)
     {
-        // TODO remove wf
-        // handle errors if node/pin not found
+        data.critical_failure = true;
         LogExcepS(ExcepCategory::Logic, ex.what());
     }
     return false;
@@ -188,7 +200,7 @@ NodeInstance* WorkflowSerializerToBlob::deserialize_node(Workflow* wf, blob::Rea
     return node;
 }
 
-bool WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node, blob::Reader& reader)
+void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node, blob::Reader& reader)
 {
     try
     {
@@ -198,7 +210,7 @@ bool WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
         node->m_hid = block.pop_hid();
         node->m_iid = block.pop_iid();
         node->m_wid = block.pop_wid();
-        node->m_name = block.pop_string();
+        node->set_name(block.pop_string().data());
         node->m_rc = block.pop_rect();
         node->m_clr_node = block.pop_vec4();
         node->m_clr_group = block.pop_clr();
@@ -215,8 +227,8 @@ bool WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
             node->m_object = g::pNodesManager->find_node(node->m_hid);
             if (nullptr == node->m_object)
             {
-                LogWarnS("Node " << node->m_hid << " not found");
-                return false;
+                LogWarnS("Node " << node->m_name << " not found");
+                return;
             }
         }
 
@@ -257,8 +269,11 @@ bool WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
             const auto i_id = block.pop_iid();
             auto pin = find_pin(h_id, true);
             if (nullptr == pin)
-                throw std::runtime_error("Serialized input Pin not found");
-            in.push_back(std::make_pair(pin, i_id));
+            {
+                LogWarnS("Serialized input Pin not found");
+            }
+            else
+                in.push_back(std::make_pair(pin, i_id));
         }
 
         block = root.pop_block();
@@ -269,8 +284,11 @@ bool WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
             const auto i_id = block.pop_iid();
             auto pin = find_pin(h_id, false);
             if (nullptr == pin)
-                throw std::runtime_error("Serialized output Pin not found");
-            out.push_back(std::make_pair(pin, i_id));
+            {
+                LogWarnS("Serialized output Pin not found");
+            }
+            else
+                out.push_back(std::make_pair(pin, i_id));
         }
 
         block = root.pop_block();
@@ -288,49 +306,75 @@ bool WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
             deserialize_pin(instance, block);
             node->m_output.push_back(instance);
         }
-        return true;
     }
     catch (std::exception& ex)
     {
         LogExcepS(ExcepCategory::Logic, ex.what());
     }
-    return false;
 }
 
 void WorkflowSerializerToBlob::deserialize_pin(PinInstance* pin, blob::Reader& reader)
 {
-    blob::Reader root = reader.pop_block();
-
-    blob::Reader block = root.pop_block();
-    pin->m_hid = block.pop_hid();
-    pin->m_object = g::pNodesManager->find_pin(pin->m_hid);
-    if (nullptr == pin->m_object)
+    try
     {
-        LogWarnS("Pin " << pin->m_hid << " not found");
-        throw std::runtime_error("Pin object noy found");
+        blob::Reader root = reader.pop_block();
+
+        blob::Reader block = root.pop_block();
+        pin->m_hid = block.pop_hid();
+        pin->m_object = g::pNodesManager->find_pin(pin->m_hid);
+        if (nullptr == pin->m_object)
+        {
+            LogWarnS("Pin " << pin->m_hid << " not found");
+        }
+        else
+        {
+            pin->m_state = pin->m_object->def_state;
+        }
+
+        pin->m_iid = block.pop_iid();
+        pin->m_wid = block.pop_wid();
+        pin->m_parent_node = block.pop_iid();
+
+        block = root.pop_block();
+        pin->m_state.name = block.pop_string();
+        pin->m_state.type_str = block.pop_string();
+        pin->m_state.type_hash = block.pop_u64();
+        pin->m_state.type = cast::to_enum<PinType>(block.pop_u32());
+        pin->m_state.value = block.pop_primitive();
+        pin->m_state.cag = block.pop_iid();
+
+        if (pin->m_object != nullptr && pin->m_object->def_state.type_str != pin->m_state.type_str)
+        {
+            LogWarnS("Pin " << pin->m_state.name << " type not match. Parsed '" << pin->m_object->def_state.type_str << "', loaded '" << pin->m_state.type_str << "'");
+        }
     }
-    pin->m_state = pin->m_object->def_state;
-
-    pin->m_iid = block.pop_iid();
-    pin->m_wid = block.pop_wid();
-    pin->m_parent_node = block.pop_iid();
-
-    block = root.pop_block();
-    pin->m_state.name = block.pop_string();
-    pin->m_state.value = block.pop_primitive();
-    pin->m_state.cag = block.pop_iid();
+    catch (std::exception& ex)
+    {
+        LogExcepS(ExcepCategory::Logic, ex.what());
+    }
 }
 
 void WorkflowSerializerToBlob::deserialize_link(Workflow* wf, blob::Reader& reader)
 {
-    blob::Reader block = reader.pop_block();
-    const auto id = block.pop_iid();
-    auto p1 = wf->get_pin_by_instance(block.pop_iid());
-    auto p2 = wf->get_pin_by_instance(block.pop_iid());
-    if (nullptr == p1 || nullptr == p2)
-        throw std::runtime_error("Can't create link - pin not found");
-    if (Link::link(p1, p2, id) == nullptr)
-        throw std::runtime_error("Can't create link");
+    try
+    {
+        blob::Reader block = reader.pop_block();
+        const auto id = block.pop_iid();
+        auto p1 = wf->get_pin_by_instance(block.pop_iid());
+        auto p2 = wf->get_pin_by_instance(block.pop_iid());
+        if (nullptr == p1 || nullptr == p2)
+        {
+            LogWarnS("Can't create link - pin(s) not found");
+        }
+        else if (Link::link(p1, p2, id) == nullptr)
+        {
+            LogWarnS("Can't create link");
+        }
+    }
+    catch (std::exception& ex)
+    {
+        LogExcepS(ExcepCategory::Logic, ex.what());
+    }
 }
 
 } // namespace data

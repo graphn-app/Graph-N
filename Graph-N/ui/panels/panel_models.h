@@ -1,6 +1,7 @@
 
 #pragma once
 #include "ui/panels/panel_base.h"
+#include "core/listeners.h"
 
 namespace data
 {
@@ -26,7 +27,8 @@ class PanelModels final :
     public PanelEmptyWithDescr,
     public PanelWithList,
     public PanelToolbar,
-    public PanelBase<PanelModelsData>
+    public PanelBase<PanelModelsData>,
+    public listener::ComfyUiObjectValidityListener
 {
 public:
     PanelModels();
@@ -35,6 +37,10 @@ public:
     void init() override;
     void rebuild_items(bool force_expand_all = false);
     void stop_all_threads() override;
+
+    //ComfyUiObjectValidityListener
+    void invalidate_comfyui_objects() override;
+    void finalize_resolve_comfyui_objects() override;
 
 private:
     DlgCode show(bool& focused) override;

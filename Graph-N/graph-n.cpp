@@ -1,6 +1,7 @@
 
+#include "graph-n.h"
 #include "ui/graph-n_flow.h"
-#include  "ui/textures.h"
+#include "ui/textures.h"
 #include "main.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
@@ -155,6 +156,33 @@ void GraphN::handle_1sec_timer(int64_t seconds_elapsed)
     for (auto* listener : m_timer_listeners)
     {
         listener->on_1s_lazy_timer(seconds_elapsed);
+    }
+}
+
+void GraphN::subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener)
+{
+    m_comfyui_validity_listeners.push_back(listener);
+}
+
+void GraphN::invalidate_comfyui_objects()
+{
+    Log("Notify " << m_comfyui_validity_listeners.size() << " listeners");
+    for (auto* listener : m_comfyui_validity_listeners)
+    {
+        listener->invalidate_comfyui_objects();
+    }
+}
+
+void GraphN::resolve_comfyui_objects()
+{
+    Log("Notify " << m_comfyui_validity_listeners.size() << " listeners");
+    for (auto* listener : m_comfyui_validity_listeners)
+    {
+        listener->begin_resolve_comfyui_objects();
+    }
+    for (auto* listener : m_comfyui_validity_listeners)
+    {
+        listener->finalize_resolve_comfyui_objects();
     }
 }
 

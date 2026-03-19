@@ -3,13 +3,12 @@
 #include "core/listeners.h"
 #include "core/workflow/workflow.h"
 #include "core/data/node.h"
-#include "ui/graph-n_flow.h"
 #include "imgui_node_editor_edtype.h"
 
 namespace data
 {
 
-template <typename BaseObj>                    // base data::Pin or data::Node
+template <typename BaseObj>
 class Instance :
     public listener::ComfyUiObjectValidityListener
 {
@@ -26,7 +25,7 @@ public:
 
     virtual void init()
     {
-        g::pFlow->subscribe_comfyui_validity_state(this);
+        g::pGraphN->subscribe_comfyui_validity_state(this);
         Log("Obj init wid=" << m_wid << ", iid=" << m_iid << ", hid=" << m_hid);
     }
 
@@ -34,17 +33,11 @@ public:
     inline wid get_workflow_id() const { return m_wid; }
     inline BaseObj* get_object() const { return m_object; }
 
-    inline bool is_valid() const { return m_hid != 0 || m_object != nullptr; }
-
     // ComfyUiObjectValidityListener
     void invalidate_comfyui_objects() override
     {
-        m_hid = 0;
-        if (nullptr == m_object)
-        {
-            LogInternalPtr("Can't prepare to invalidation - no object");
-        }
-        m_hid = m_object->get_id();
+        if (!do_invalidation())
+            return;
         m_object = nullptr;
         Log("Preinvalidate: wid=" << m_wid << ", iid=" << m_iid << ", hid=" << m_hid);
     }
@@ -52,7 +45,8 @@ public:
     // ComfyUiObjectValidityListener
     void begin_resolve_comfyui_objects() override
     {
-        m_object = nullptr;
+        if (!do_invalidation())
+            return;
         if (0 == m_hid)
         {
             LogInternalPtr("No saved data to invalidate object");
@@ -61,8 +55,6 @@ public:
         if (nullptr == m_object)
         {
             Log("Invalid obj: wid=" << m_wid << ", iid=" << m_iid << ", hid=" << m_hid);
-            //m_wf->mark_invalid(m_hid); //  TODO
-            m_hid = 0;
         }
     }
 
@@ -76,6 +68,7 @@ public:
 
 protected:
     virtual BaseObj* find_obj(hid obj_id) const = 0;
+    virtual bool do_invalidation() const { return true; }
 
 protected:
     BaseObj* m_object = nullptr;     // base node/pin

@@ -26,9 +26,8 @@
 #include "core/managers/history_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
-#include "core/listeners.h"
 
-//#define TEST
+#define TEST
 
 namespace w
 {
@@ -149,33 +148,6 @@ void GraphN_Flow::reconnect()
     LogF;
     m_windows |= ViewConnect;
     g::pConnectManager->connect();
-}
-
-void GraphN_Flow::subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener)
-{
-    m_comfyui_obj_listeners.push_back(listener);
-}
-
-void GraphN_Flow::invalidate_comfyui_objects()
-{
-    Log("Notify " << m_comfyui_obj_listeners.size() << " listeners");
-    for (auto* listener : m_comfyui_obj_listeners)
-    {
-        listener->invalidate_comfyui_objects();
-    }
-}
-
-void GraphN_Flow::resolve_comfyui_objects()
-{
-    Log("Notify " << m_comfyui_obj_listeners.size() << " listeners");
-    for (auto* listener : m_comfyui_obj_listeners)
-    {
-        listener->begin_resolve_comfyui_objects();
-    }
-    for (auto* listener : m_comfyui_obj_listeners)
-    {
-        listener->finalize_resolve_comfyui_objects();
-    }
 }
 
 void GraphN_Flow::load_activity_bar_mode()
@@ -420,7 +392,7 @@ void GraphN_Flow::handle_connected()
     m_nodes_parser = std::make_unique<mngr::NodesParser>();
 #ifdef TEST
     auto test_json_path = fs::get_root_directory_path();
-    test_json_path /= "test_json.json";
+    test_json_path /= "test_json_broken.json";
     auto test_json_data = tools::path::read_file(test_json_path);
     std::string test_json_string;
     test_json_string.reserve(test_json_data.size() + 1);

@@ -1,11 +1,6 @@
 
 #pragma once
 
-namespace listener
-{
-struct ComfyUiObjectValidityListener;
-}
-
 namespace mngr
 {
 class NodesParser;
@@ -105,11 +100,6 @@ public:
 
     void open_settings_dlg(OptPane section = OptPane::_count);
     void show_logs_panel(bool show);
-
-    void subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener);
-
-    void invalidate_comfyui_objects();
-    void resolve_comfyui_objects();
 
     void load_activity_bar_mode();
 
@@ -234,7 +224,5 @@ private:
     PanelWorkflow* m_wf_focused = nullptr;
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
     std::list<std::unique_ptr<PanelTextEditor>> m_panels_text_editor;
-
-    std::list<listener::ComfyUiObjectValidityListener*> m_comfyui_obj_listeners;
 };
 }

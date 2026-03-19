@@ -6,7 +6,6 @@
 #include "core/workflow/link.h"
 #include "core/workflow/workflow_action.h"
 #include "core/managers/nodes_manager.h"
-#include "ui/graph-n_flow.h"
 
 namespace data
 {
@@ -43,9 +42,8 @@ void Workflow::init()
     m_links.reserve(150);
 
     m_action = std::make_unique<WorkflowAction>(this);
+    g::pGraphN->subscribe_comfyui_validity_state(this);
 
-    //TODO
-    //g::pFlow->subscribe_comfyui_validity_state(this);
     Log("Wf '" << m_wf_data.name << "' created, wid=" << m_wf_data.id << ", uuid=" << m_wf_data.uuid)
 }
 
@@ -177,11 +175,11 @@ PinInstance* Workflow::get_pin_by_instance(iid id) const
 {
     const auto it = std::find_if(m_pins.begin(), m_pins.end(),
         [id](const std::unique_ptr<PinInstance>& pin)
-    {
-        if (!pin || !pin->get_object())
-            return false;
-        return pin->get_instance_id() == id;
-    }
+        {
+            if (!pin || !pin->get_object())
+                return false;
+            return pin->get_instance_id() == id;
+        }
     );
     if (it == m_pins.end())
         return nullptr;
@@ -268,8 +266,6 @@ void Workflow::remove_node(const NodeInstance* node)
     remove_pins(node->get_inputs());
     remove_pins(node->get_outputs());
 
-    //TODO
-//    if (!m_invalidation_state)
     m_nodes.erase(n_it);
 }
 
@@ -317,9 +313,6 @@ void Workflow::remove_pin(const PinInstance* pin)
     }
     else
         m_pins.erase(it);
-
-    //TODO
-   // if (!m_invalidation_state)
 }
 
 void Workflow::remove_link(const Link* link)
@@ -343,45 +336,27 @@ void Workflow::remove_link(const Link* link)
     }
 }
 
-//TODO
-//void Workflow::mark_invalid(hid id)
-//{
-//    Log("Obj to remove id=" << id);
-//    m_invalid_items.insert(id);
-//}
+void Workflow::clear()
+{
+    m_nodes.clear();
+    m_nodes_ro.clear();
+    m_pins.clear();
+    m_links.clear();
+}
 
-// TODO
-//void Workflow::finalize_resolve_comfyui_objects()
-//{
-//    m_invalidation_state = true;
-    
+void Workflow::finalize_resolve_comfyui_objects()
+{
+    //auto& data = get_data();
+    //if (data.critical_failure)
+    //    return;
+    //data.valid = true;
 
-    //for (auto id : m_invalid_items)
+    //for (auto& node : m_nodes)
     //{
-    //    for (auto n_it = m_nodes.begin(); n_it != m_nodes.end(); )
-    //    {
-    //        if ((*n_it)->get_object()->get_id() == id)
-    //        {
-    //            remove_node((*n_it).get());
-    //            n_it = m_nodes.erase(n_it);
-    //        }
-    //        else
-    //            ++n_it;
-    //    }
-
-    //    for (auto p_it = m_pins.begin(); p_it != m_pins.end(); )
-    //    {
-    //        if ((*p_it)->get_object()->get_id() == id)
-    //        {
-    //            remove_pin((*p_it).get());                
-    //            p_it = m_pins.erase(p_it);
-    //        }
-    //        else
-    //            ++p_it;
-    //    }
     //}
-    //m_invalid_items.clear();
-//    m_invalidation_state = false;
-//}
+    //for (auto& pin : m_pins)
+    //{
+    //}
+}
 
 } // namespace data

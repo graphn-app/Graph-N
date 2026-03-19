@@ -844,15 +844,16 @@ void DbManager::delete_wf_draft(SQLite::Database& db, const WfBlob* data)
         SQLite::Statement query(db,
             fmt::format(FMT_STRING(R"(
                         UPDATE {}
-                        SET {} = ?
+                        SET {} = ?, {} = ?
                         WHERE {} = ?
                 )"),
                 gdb_tbl_wfs,
-                gdb_val_draft,
+                gdb_val_draft, gdb_val_draft_at,
                 gdb_val_uuid
             ));
 
         query.bind(1);
+        query.bind(2);
         query.bindNoCopy(2, data->uuid);
         query.exec();
         Log("Workflow draft blob clear: " << data->uuid << ", bl=" << data->blob->size() << " bytes");

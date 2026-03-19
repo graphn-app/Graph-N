@@ -318,6 +318,9 @@ struct WfData final
     std::string name;
     bool ro = false;
 
+    bool valid = true;
+    bool critical_failure = false;
+
     bool draft = true;
     bool dirty = false;
 

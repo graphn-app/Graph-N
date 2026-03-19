@@ -43,6 +43,7 @@ protected:
     float get_additional_name_width() const override;
     float get_additional_node_width() const override;
     bool do_need_calc_node_widths() const override;
+    bool do_invalidation() const override { return !m_group; }
 
 public:
     bool m_pos_set = false;
@@ -59,7 +60,6 @@ public:
 
     bool m_group = false;
     bool m_show_hidden = false;
-
 
 private:
     NodeMode m_mode = NodeMode::Always;
