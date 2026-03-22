@@ -38,15 +38,16 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
     { "UPSCALE_STACK", PinType::UPSCALE_STACK },        { "GLIGEN", PinType::GLIGEN },		                { "OPENAI_CHAT_CONFIG", PinType::OPENAI_CHAT_CONFIG }
 };
 
-Pin::Pin(const Node* node, const std::string& pin_name, const char* suffix)
-    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + suffix + pin_name)
+Pin::Pin(const Node* node, const std::string& pin_name)
+    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_IN_" + pin_name)
     , parent_node(node)
 {
 }
 
-Pin::Pin(const Node* node, size_t pin_index, const char* suffix)
-    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + suffix + std::to_string(pin_index))
+Pin::Pin(const Node* node, int64_t pin_index)
+    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_OUT_" + std::to_string(pin_index))
     , parent_node(node)
+    , out_index(pin_index)
 {
 }
 

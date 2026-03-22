@@ -25,6 +25,7 @@ struct Node : public base::HashID
     Input optional;
     Input hidden;
 
+    bool is_dummy = false;
     bool has_output = false;
     bool output_node = false;
     std::vector<Pin*> output;

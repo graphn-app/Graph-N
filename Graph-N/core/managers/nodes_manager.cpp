@@ -128,6 +128,57 @@ data::Pin* NodesManager::find_pin(hid id) const
     return it->second.get();
 }
 
+data::Node* NodesManager::make_dummy_node(const char* node_class)
+{
+    auto node = std::make_unique<data::Node>(node_class);
+    node->w_name = ImGui::CalcTextSize(node_class).x;
+    node->is_dummy = true;
+
+    auto it = m_nodes.find(node->get_id());
+    if (it != m_nodes.end())
+    {
+        LogAndThrowInternalError(ExcepCategory::Logic, "Dummy node " << node_class << " already exists");
+        return it->second.get();
+    }
+
+    auto ptr = node.get();
+    m_nodes.emplace(node->get_id(), std::move(node));
+    Log("Dummy node " << node_class << "/" << node->get_id() << " created");
+    return ptr;
+}
+
+data::Pin* NodesManager::make_dummy_pin(data::Node* parent, const char* name, int64_t out_index)
+{
+    std::unique_ptr<data::Pin> pin;
+    if (out_index >= 0)
+    {
+        pin = std::make_unique<data::Pin>(parent, out_index);
+        pin->output = true;
+        parent->output.push_back(pin.get());
+    }
+    else
+    {
+        pin = std::make_unique<data::Pin>(parent, name);
+        pin->input = true;
+        pin->required = true;
+        parent->required.pins.push_back(pin.get());
+    }
+    pin->is_dummy = true;
+    pin->def_state.name = name;
+
+    auto it = m_pins.find(pin->get_id());
+    if (it != m_pins.end())
+    {
+        LogAndThrowInternalError(ExcepCategory::Logic, "Dummy pin " << parent->name << "/" << name << " already exists");
+        return it->second.get();
+    }
+
+    auto ptr = pin.get();
+    m_pins.emplace(pin->get_id(), std::move(pin));
+    Log("Dummy pin " << parent->name << "/" << name << " created");
+    return ptr;
+}
+
 void NodesManager::init_labels()
 {
     m_labels.clear();

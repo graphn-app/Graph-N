@@ -95,11 +95,11 @@ struct PinState final
     iid cag = 0;
 };
 
-struct Pin final : public base::HashID
+struct Pin : public base::HashID
 {
 public:
-    Pin(const Node* node, const std::string& pin_name, const char* suffix);
-    Pin(const Node* node, size_t pin_index, const char* suffix);
+    Pin(const Node* node, const std::string& pin_name);
+    Pin(const Node* node, int64_t pin_index);
     ~Pin() override;
 
     bool is_widget() const;
@@ -125,8 +125,11 @@ public:
 
     const Node* parent_node = nullptr;
 
+    bool is_dummy = false;
+
     bool input = false;
     bool output = false;
+    int64_t out_index = 0;
 
     bool required = false;
     bool optional = false;

@@ -65,6 +65,7 @@ void WorkflowSerializerToBlob::serialize_node(const NodeInstance* node, blob::Wr
         .push(node->m_hid)
         .push(node->m_iid)
         .push(node->m_wid)
+        .push(node->m_object->node_class)
         .push(node->get_name())
         .push(node->m_rc)
         .push(node->m_clr_node)
@@ -80,20 +81,22 @@ void WorkflowSerializerToBlob::serialize_node(const NodeInstance* node, blob::Wr
     block.end();
 
     block.begin();
-    writer.push(cast::to_u64(node->m_input.size()));
+    writer.push(cast::to_i64(node->m_input.size()));
     for (auto in : node->m_input)
     {
-        writer.push(in->get_object()->get_id());
+        writer.push(in->m_object->get_id());
         writer.push(in->get_instance_id());
+        writer.push(in->m_object->def_state.name);
     }
     block.end();
 
     block.begin();
-    writer.push(cast::to_u64(node->m_output.size()));
+    writer.push(cast::to_i64(node->m_output.size()));
     for (auto out : node->m_output)
     {
-        writer.push(out->get_object()->get_id());
+        writer.push(out->m_object->get_id());
         writer.push(out->get_instance_id());
+        writer.push(out->m_object->def_state.name);
     }
     block.end();
 
@@ -173,7 +176,9 @@ bool WorkflowSerializerToBlob::deserialize(Workflow* wf, const blob::Blob& blob,
         const uint32_t nodes_count = block.pop_u32();
         for (uint32_t i = 0; i < nodes_count; i++)
         {
-            deserialize_node(wf, block);
+            auto node = deserialize_node(wf, block);
+            if (node->m_object->is_dummy)
+                data.valid = false;
         }
 
         block = root.pop_block();
@@ -202,178 +207,165 @@ NodeInstance* WorkflowSerializerToBlob::deserialize_node(Workflow* wf, blob::Rea
 
 void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node, blob::Reader& reader)
 {
-    try
+    blob::Reader root = reader.pop_block();
+
+    blob::Reader block = root.pop_block();
+    node->m_hid = block.pop_hid();
+    node->m_iid = block.pop_iid();
+    node->m_wid = block.pop_wid();
+    const char* node_class = block.pop_string().data();
+    node->set_name(block.pop_string().data());
+    node->m_rc = block.pop_rect();
+    node->m_clr_node = block.pop_vec4();
+    node->m_clr_group = block.pop_clr();
+    node->m_clr_head = block.pop_clr();
+    node->m_clr_group_capt = block.pop_clr();
+    node->m_group = block.pop_bool();
+    node->m_show_hidden = block.pop_bool();
+    node->m_expanded = block.pop_bool();
+    node->m_pinned = block.pop_bool();
+    node->m_mode = cast::to_enum<NodeMode>(block.pop_i32());
+
+    if (!node->m_group)
     {
-        blob::Reader root = reader.pop_block();
-
-        blob::Reader block = root.pop_block();
-        node->m_hid = block.pop_hid();
-        node->m_iid = block.pop_iid();
-        node->m_wid = block.pop_wid();
-        node->set_name(block.pop_string().data());
-        node->m_rc = block.pop_rect();
-        node->m_clr_node = block.pop_vec4();
-        node->m_clr_group = block.pop_clr();
-        node->m_clr_head = block.pop_clr();
-        node->m_clr_group_capt = block.pop_clr();
-        node->m_group = block.pop_bool();
-        node->m_show_hidden = block.pop_bool();
-        node->m_expanded = block.pop_bool();
-        node->m_pinned = block.pop_bool();
-        node->m_mode = cast::to_enum<NodeMode>(block.pop_i32());
-
-        if (!node->m_group)
+        node->m_object = g::pNodesManager->find_node(node->m_hid);
+        if (nullptr == node->m_object)
         {
-            node->m_object = g::pNodesManager->find_node(node->m_hid);
-            if (nullptr == node->m_object)
-            {
-                LogWarnS("Node " << node->m_name << " not found");
-                return;
-            }
-        }
+            if (0 == *node_class)
+                node_class = node->m_object->name.c_str();
 
-        const auto find_pin_in = [](hid pin_id, const std::vector<Pin*>& pins) -> Pin*
-        {
-            for (auto pin : pins)
-            {
-                if (pin->get_id() == pin_id)
-                    return pin;
-            }
-            return nullptr;
-        };
-        const auto find_pin = [node = node->m_object, &find_pin_in](hid pin_id, bool in)
-        {
-            if (in)
-            {
-                auto pin = find_pin_in(pin_id, node->required.pins);
-                if (nullptr == pin)
-                {
-                    pin = find_pin_in(pin_id, node->optional.pins);
-                    if (nullptr == pin)
-                    {
-                        pin = find_pin_in(pin_id, node->hidden.pins);
-                    }
-                }
-                return pin;
-            }
-            return find_pin_in(pin_id, node->output);
-        };
-
-        std::vector<std::pair<Pin*, iid>> in, out;
-
-        block = root.pop_block();
-        auto pins = block.pop_u64();
-        for (uint64_t i = 0; i < pins; i++)
-        {
-            const auto h_id = block.pop_hid();
-            const auto i_id = block.pop_iid();
-            auto pin = find_pin(h_id, true);
-            if (nullptr == pin)
-            {
-                LogWarnS("Serialized input Pin not found");
-            }
-            else
-                in.push_back(std::make_pair(pin, i_id));
-        }
-
-        block = root.pop_block();
-        pins = block.pop_u64();
-        for (uint64_t i = 0; i < pins; i++)
-        {
-            const auto h_id = block.pop_hid();
-            const auto i_id = block.pop_iid();
-            auto pin = find_pin(h_id, false);
-            if (nullptr == pin)
-            {
-                LogWarnS("Serialized output Pin not found");
-            }
-            else
-                out.push_back(std::make_pair(pin, i_id));
-        }
-
-        block = root.pop_block();
-        for (auto& pin : in)
-        {
-            auto instance = wf->add_pin(node, pin.first, pin.second);
-            deserialize_pin(instance, block);
-            node->m_input.push_back(instance);
-        }
-
-        block = root.pop_block();
-        for (auto& pin : out)
-        {
-            auto instance = wf->add_pin(node, pin.first, pin.second);
-            deserialize_pin(instance, block);
-            node->m_output.push_back(instance);
+            LogWarnS("Node " << node->m_name << " not found");
+            auto obj = g::pNodesManager->make_dummy_node(node_class);
+            node->m_object = obj;
         }
     }
-    catch (std::exception& ex)
+
+    const auto find_pin_in = [](hid pin_id, const std::vector<Pin*>& pins) -> Pin*
     {
-        LogExcepS(ExcepCategory::Logic, ex.what());
+        for (auto pin : pins)
+        {
+            if (pin->get_id() == pin_id)
+                return pin;
+        }
+        return nullptr;
+    };
+    const auto find_pin = [node = node->m_object, &find_pin_in](hid pin_id, bool in)
+    {
+        if (in)
+        {
+            auto pin = find_pin_in(pin_id, node->required.pins);
+            if (nullptr == pin)
+            {
+                pin = find_pin_in(pin_id, node->optional.pins);
+                if (nullptr == pin)
+                {
+                    pin = find_pin_in(pin_id, node->hidden.pins);
+                }
+            }
+            return pin;
+        }
+        return find_pin_in(pin_id, node->output);
+    };
+
+    std::vector<std::pair<Pin*, iid>> in, out;
+
+    block = root.pop_block();
+    auto pins = block.pop_i64();
+    for (int64_t i = 0; i < pins; i++)
+    {
+        const auto h_id = block.pop_hid();
+        const auto i_id = block.pop_iid();
+        const char* pin_name = block.pop_string().data();
+        auto pin = find_pin(h_id, true);
+        if (nullptr == pin)
+        {
+            LogWarnS("Serialized input Pin not found");
+            pin = g::pNodesManager->make_dummy_pin(node->m_object, pin_name, -1);
+            node->m_object->is_dummy = true;
+        }
+        in.push_back(std::make_pair(pin, i_id));
+    }
+
+    block = root.pop_block();
+    pins = block.pop_i64();
+    for (int64_t i = 0; i < pins; i++)
+    {
+        const auto h_id = block.pop_hid();
+        const auto i_id = block.pop_iid();
+        const char* pin_name = block.pop_string().data();
+        auto pin = find_pin(h_id, false);
+        if (nullptr == pin)
+        {
+            LogWarnS("Serialized output Pin not found");
+            pin = g::pNodesManager->make_dummy_pin(node->m_object, pin_name, i);
+            node->m_object->is_dummy = true;
+        }
+        out.push_back(std::make_pair(pin, i_id));
+    }
+
+    block = root.pop_block();
+    for (auto& pin : in)
+    {
+        auto instance = wf->add_pin(node, pin.first, pin.second);
+        deserialize_pin(instance, block);
+        node->m_input.push_back(instance);
+    }
+
+    block = root.pop_block();
+    for (auto& pin : out)
+    {
+        auto instance = wf->add_pin(node, pin.first, pin.second);
+        deserialize_pin(instance, block);
+        node->m_output.push_back(instance);
     }
 }
 
 void WorkflowSerializerToBlob::deserialize_pin(PinInstance* pin, blob::Reader& reader)
 {
-    try
+    blob::Reader root = reader.pop_block();
+
+    blob::Reader block = root.pop_block();
+    pin->m_hid = block.pop_hid();
+    pin->m_object = g::pNodesManager->find_pin(pin->m_hid);
+    if (nullptr == pin->m_object)
     {
-        blob::Reader root = reader.pop_block();
-
-        blob::Reader block = root.pop_block();
-        pin->m_hid = block.pop_hid();
-        pin->m_object = g::pNodesManager->find_pin(pin->m_hid);
-        if (nullptr == pin->m_object)
-        {
-            LogWarnS("Pin " << pin->m_hid << " not found");
-        }
-        else
-        {
-            pin->m_state = pin->m_object->def_state;
-        }
-
-        pin->m_iid = block.pop_iid();
-        pin->m_wid = block.pop_wid();
-        pin->m_parent_node = block.pop_iid();
-
-        block = root.pop_block();
-        pin->m_state.name = block.pop_string();
-        pin->m_state.type_str = block.pop_string();
-        pin->m_state.type_hash = block.pop_u64();
-        pin->m_state.type = cast::to_enum<PinType>(block.pop_u32());
-        pin->m_state.value = block.pop_primitive();
-        pin->m_state.cag = block.pop_iid();
-
-        if (pin->m_object != nullptr && pin->m_object->def_state.type_str != pin->m_state.type_str)
-        {
-            LogWarnS("Pin " << pin->m_state.name << " type not match. Parsed '" << pin->m_object->def_state.type_str << "', loaded '" << pin->m_state.type_str << "'");
-        }
+        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Pin " << pin->m_hid << " not found");
     }
-    catch (std::exception& ex)
+
+    pin->m_state = pin->m_object->def_state;
+
+    pin->m_iid = block.pop_iid();
+    pin->m_wid = block.pop_wid();
+    pin->m_parent_node = block.pop_iid();
+
+    block = root.pop_block();
+    pin->m_state.name = block.pop_string();
+    pin->m_state.type_str = block.pop_string();
+    pin->m_state.type_hash = block.pop_u64();
+    pin->m_state.type = cast::to_enum<PinType>(block.pop_u32());
+    pin->m_state.value = block.pop_primitive();
+    pin->m_state.cag = block.pop_iid();
+
+    if (pin->m_object->def_state.type_str != pin->m_state.type_str)
     {
-        LogExcepS(ExcepCategory::Logic, ex.what());
+        LogWarnS("Pin " << pin->m_state.name << " type not match. Parsed '" << pin->m_object->def_state.type_str << "', loaded '" << pin->m_state.type_str << "'");
+        pin->m_object->is_dummy = true;
     }
 }
 
 void WorkflowSerializerToBlob::deserialize_link(Workflow* wf, blob::Reader& reader)
 {
-    try
+    blob::Reader block = reader.pop_block();
+    const auto id = block.pop_iid();
+    auto p1 = wf->get_pin_by_instance(block.pop_iid());
+    auto p2 = wf->get_pin_by_instance(block.pop_iid());
+    if (nullptr == p1 || nullptr == p2)
     {
-        blob::Reader block = reader.pop_block();
-        const auto id = block.pop_iid();
-        auto p1 = wf->get_pin_by_instance(block.pop_iid());
-        auto p2 = wf->get_pin_by_instance(block.pop_iid());
-        if (nullptr == p1 || nullptr == p2)
-        {
-            LogWarnS("Can't create link - pin(s) not found");
-        }
-        else if (Link::link(p1, p2, id) == nullptr)
-        {
-            LogWarnS("Can't create link");
-        }
+        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Can't create link - pin(s) not found");
     }
-    catch (std::exception& ex)
+    if (Link::link(p1, p2, id) == nullptr)
     {
-        LogExcepS(ExcepCategory::Logic, ex.what());
+        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Can't create link");
     }
 }
 

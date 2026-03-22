@@ -42,8 +42,11 @@ public:
 
     void calc_number_inside(const std::string& filter, const std::string& in_pin, const std::string& out_pin);
 
-    data::Node* find_node(hid id) const;		    // returns nullptr if not found
-    data::Pin* find_pin(hid id) const;			    // returns nullptr if not found
+    data::Node* find_node(hid id) const;
+    data::Pin* find_pin(hid id) const;
+
+    data::Node* make_dummy_node(const char* node_class);
+    data::Pin* make_dummy_pin(data::Node* parent, const char* name, int64_t out_index);
 
     inline const std::list<std::pair<std::string, uint32_t>>& get_labels() const { return m_labels; }
     const std::list<data::NodeItem*>& get_nodes_in_label(uint32_t label_id) const;

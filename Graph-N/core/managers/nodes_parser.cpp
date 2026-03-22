@@ -513,7 +513,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
         auto items = objects.items();
         for (const auto&[pin_name, pin_info] : items)
         {
-            auto pin = std::make_unique<data::Pin>(&node, pin_name, "_IN_");
+            auto pin = std::make_unique<data::Pin>(&node, pin_name);
             input.pins.push_back(pin.get());
 
             pin->input = true;
@@ -591,7 +591,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
             }
             else if (ptr->cag_require)
             {
-                auto cag = std::make_unique<data::Pin>(&node, ptr->def_state.name + "_control", "_IN_");
+                auto cag = std::make_unique<data::Pin>(&node, ptr->def_state.name + "_control");
                 input.pins.push_back(cag.get());
 
                 cag->input = true;
@@ -696,10 +696,10 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
         auto& output = json_node["output"];
         if (output.is_array())
         {
-            size_t index = 0;
+            int64_t index = 0;
             for (const auto& item : output)
             {
-                auto pin = std::make_unique<data::Pin>(&node, index++, "_OUT_");
+                auto pin = std::make_unique<data::Pin>(&node, index++);
                 pin->output = true;
 
                 if (item.is_string())

@@ -569,7 +569,14 @@ void HistoryManager::pop_node_del(data::Workflow* dest_wf, const HistoryStep* st
 
     const ActNodeBlob* real_step = cast::dynamic<const ActNodeBlob*>(step);
     blob::Reader reader(real_step->node);
-    data::WorkflowSerializerToBlob::deserialize_node(dest_wf, reader);
+    try
+    {
+        data::WorkflowSerializerToBlob::deserialize_node(dest_wf, reader);
+    }
+    catch (const std::exception&)
+    {
+        LogExcep(ExcepCategory::InconsistentObjPtr, "Node deserialization failure");
+    }
 }
 
 void HistoryManager::pop_node_clr(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
