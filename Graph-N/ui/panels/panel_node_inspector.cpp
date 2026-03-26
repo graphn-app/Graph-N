@@ -13,19 +13,22 @@ namespace ui
 
 PanelNodeInspector::PanelNodeInspector()
     : PanelBase(DlgObj::PanelNodeInspector, "Node Inspector")
-{}
+{
+    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::Invalidate, this);
+    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
+}
 
 PanelNodeInspector::~PanelNodeInspector()
 {
     LogF;
+    if (g::pGraphN != nullptr)
+        g::pGraphN->unsubscribe_comfyui_validity_state(this);
 }
 
 void PanelNodeInspector::init()
 {
     LogF;
     PanelBase::init();
-
-    g::pGraphN->subscribe_comfyui_validity_state(this);
 
     data()->clr_descr_frame = g::pOptsManager->color_load(AppColor::PanelNodesInspDescrFrame);
     data()->clr_selected_node = g::pOptsManager->color_load(AppColor::PanelNodesSelNode);

@@ -16,6 +16,7 @@ void NodeInstanceBase::init()
 
     if (m_object != nullptr)
     {
+        m_obj_class = m_object->node_class;
         m_input.reserve(m_object->required.pins.size() + m_object->optional.pins.size());
         m_output.reserve(m_object->output.size());
     }
@@ -40,9 +41,15 @@ void NodeInstanceBase::reset_state()
     m_min_possible_w = 0.0f;
 }
 
+void NodeInstanceBase::set_object(Node* obj)
+{
+    Instance<Node>::set_object(obj);
+    m_obj_class = m_object->node_class;
+}
+
 const std::string& NodeInstanceBase::get_name() const
 {
-    if (m_name.empty() && m_object != nullptr)
+    if (m_name.empty())
         return get_name_original();
     return m_name;
 }

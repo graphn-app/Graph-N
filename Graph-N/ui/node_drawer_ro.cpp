@@ -264,6 +264,7 @@ void RoNodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, 
     switch (pin->state().type)
     {
     case data::PinType::INT:
+    case data::PinType::NUMBER:
         if (pin->get_object()->is_unsigned)
             draw_widget_uint(pin, widget_name_width, widget_value_width);
         else
@@ -280,9 +281,6 @@ void RoNodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, 
             draw_widget_str_ml(pin, widget_name_width, widget_value_width);
         else
             draw_widget_str(pin, widget_name_width, widget_value_width);
-        break;
-    case data::PinType::NUMBER:
-        draw_widget_num(pin, widget_name_width, widget_value_width);
         break;
     case data::PinType::COMBO:
         draw_widget_combo(pin, widget_name_width, widget_value_width);
@@ -457,11 +455,6 @@ void RoNodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_
 
     if (!tt_mod)
         ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
-}
-
-void RoNodeDrawer::draw_widget_num(data::PinInstance* pin, float widget_name_width, float widget_value_width)
-{
-    draw_widget_int(pin, widget_name_width, widget_value_width);
 }
 
 void RoNodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width)

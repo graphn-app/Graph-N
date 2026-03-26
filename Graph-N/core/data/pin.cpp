@@ -39,13 +39,13 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
 };
 
 Pin::Pin(const Node* node, const std::string& pin_name)
-    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_IN_" + pin_name)
+    : base::HashID(node->node_class + "_IN_" + pin_name)
     , parent_node(node)
 {
 }
 
 Pin::Pin(const Node* node, int64_t pin_index)
-    : base::HashID((node->node_class.empty() ? node->name : node->node_class) + "_OUT_" + std::to_string(pin_index))
+    : base::HashID(node->node_class + "_OUT_" + std::to_string(pin_index))
     , parent_node(node)
     , out_index(pin_index)
 {
@@ -135,7 +135,7 @@ void Pin::finalize()
             precision_to_string();
         }
 
-        else if (PinType::INT == def_state.type)
+        else if (PinType::INT == def_state.type || PinType::NUMBER == def_state.type)
         {
             if (!std::holds_alternative<int64_t>(step) || 0 == get_int(step))
                 step = int64_t(1);
@@ -306,7 +306,7 @@ void Pin::init_defaults()
         max = double(FLT_MAX);
         step = double(0.0);
     }
-    else if (PinType::INT == def_state.type)
+    else if (PinType::INT == def_state.type || PinType::NUMBER == def_state.type)
     {
         def_state.value = int64_t(0);
         def = int64_t(0);

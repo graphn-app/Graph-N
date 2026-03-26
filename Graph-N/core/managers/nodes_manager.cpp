@@ -128,12 +128,9 @@ data::Pin* NodesManager::find_pin(hid id) const
     return it->second.get();
 }
 
-data::Node* NodesManager::make_dummy_node(const char* node_class)
+data::Node* NodesManager::make_dummy_node(const std::string& node_class)
 {
     auto node = std::make_unique<data::Node>(node_class);
-    node->w_name = ImGui::CalcTextSize(node_class).x;
-    node->is_dummy = true;
-
     auto it = m_nodes.find(node->get_id());
     if (it != m_nodes.end())
     {
@@ -141,13 +138,17 @@ data::Node* NodesManager::make_dummy_node(const char* node_class)
         return it->second.get();
     }
 
+    node->name = node_class;
+    node->node_class = node_class;
+    node->is_dummy = true;
+
     auto ptr = node.get();
     m_nodes.emplace(node->get_id(), std::move(node));
-    Log("Dummy node " << node_class << "/" << node->get_id() << " created");
+    Log("Dummy node " << node_class << "/" << ptr->get_id() << " created");
     return ptr;
 }
 
-data::Pin* NodesManager::make_dummy_pin(data::Node* parent, const char* name, int64_t out_index)
+data::Pin* NodesManager::make_dummy_pin(data::Node* parent, const std::string& name, int64_t out_index)
 {
     std::unique_ptr<data::Pin> pin;
     if (out_index >= 0)
@@ -163,9 +164,6 @@ data::Pin* NodesManager::make_dummy_pin(data::Node* parent, const char* name, in
         pin->required = true;
         parent->required.pins.push_back(pin.get());
     }
-    pin->is_dummy = true;
-    pin->def_state.name = name;
-
     auto it = m_pins.find(pin->get_id());
     if (it != m_pins.end())
     {
@@ -173,9 +171,14 @@ data::Pin* NodesManager::make_dummy_pin(data::Node* parent, const char* name, in
         return it->second.get();
     }
 
+    pin->finalize();
+    pin->is_dummy = true;
+    pin->def_state.name = name;
+    pin->def_state.w_name = ImGui::CalcTextSize(name.c_str(), name.c_str() + name.size()).x;
+
     auto ptr = pin.get();
     m_pins.emplace(pin->get_id(), std::move(pin));
-    Log("Dummy pin " << parent->name << "/" << name << " created");
+    Log("Dummy pin " << parent->name << "/" << name << "/" << ptr->get_id() << " created");
     return ptr;
 }
 

@@ -28,6 +28,8 @@ public:
     inline const std::vector<PinInstance*>& get_inputs() const { return m_input; }
     inline const std::vector<PinInstance*>& get_outputs() const { return m_output; }
 
+    void set_object(Node* obj) override;
+
 protected:
     Node* find_obj(hid obj_id) const override;
 

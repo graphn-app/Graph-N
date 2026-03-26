@@ -335,15 +335,6 @@ byte_buff Reader::pop_buff()
     return buff;
 }
 
-//
-//std::string Reader::pop_string()
-//{
-//    const uint64_t len = pop_u64();
-//    test_len(len);
-//    std::string str(reinterpret_cast<const char*>(m_data + m_offset), len);
-//    m_offset += len;
-//    return str;
-//}
 
 std::string_view Reader::pop_string()
 {

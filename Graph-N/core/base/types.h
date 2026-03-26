@@ -229,6 +229,7 @@ enum class AppColor
     TabActive,
     TabInactive,
     TabHovered,
+    DummyNode,
 
     Pin_Int,
     Pin_Float,
@@ -330,6 +331,7 @@ struct WfData final
     bool draft_exist = 0;
     tools::dt draft_time;
 
+    bool activated = false;
     bool pending_delete = false;
 };
 

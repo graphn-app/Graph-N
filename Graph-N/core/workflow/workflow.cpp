@@ -6,6 +6,7 @@
 #include "core/workflow/link.h"
 #include "core/workflow/workflow_action.h"
 #include "core/managers/nodes_manager.h"
+#include "core/managers/workflows_manager.h"
 
 namespace data
 {
@@ -14,6 +15,7 @@ Workflow::Workflow()
 {
     m_wf_data.uuid = base::GlobalID::uuid();
     m_wf_data.id = tools::str::crc32(m_wf_data.uuid);
+    subscribe_comfyui_validity_state();
 }
 
 Workflow::Workflow(WfData&& data)
@@ -22,6 +24,7 @@ Workflow::Workflow(WfData&& data)
     if (m_wf_data.uuid.empty())
         m_wf_data.uuid = base::GlobalID::uuid();
     m_wf_data.id = tools::str::crc32(m_wf_data.uuid);
+    subscribe_comfyui_validity_state();
 }
 
 Workflow::Workflow(const char* uuid, const char* name)
@@ -29,10 +32,14 @@ Workflow::Workflow(const char* uuid, const char* name)
     m_wf_data.uuid = uuid;
     m_wf_data.id = tools::str::crc32(m_wf_data.uuid);
     m_wf_data.name = name;
+    subscribe_comfyui_validity_state();
 }
 
 Workflow::~Workflow()
-{}
+{
+    if (g::pGraphN != nullptr && !m_wf_data.ro)
+        g::pGraphN->unsubscribe_comfyui_validity_state(this);
+}
 
 void Workflow::init()
 {
@@ -42,8 +49,6 @@ void Workflow::init()
     m_links.reserve(150);
 
     m_action = std::make_unique<WorkflowAction>(this);
-    g::pGraphN->subscribe_comfyui_validity_state(this);
-
     Log("Wf '" << m_wf_data.name << "' created, wid=" << m_wf_data.id << ", uuid=" << m_wf_data.uuid)
 }
 
@@ -123,7 +128,7 @@ NodeInstance* Workflow::add_group(const ImRect& rc, const std::string& name /*= 
 PinInstance* Workflow::add_pin(NodeInstance* node, data::Pin* pin, iid instance_id /*= 0*/)
 {
     const auto id = (0 == instance_id ? get_new_child_id() : instance_id);
-    auto instance = std::make_unique<PinInstance>(node->get_instance_id(), pin, m_wf_data.id, id);
+    auto instance = std::make_unique<PinInstance>(node, pin, m_wf_data.id, id);
     auto ptr = instance.get();
     ptr->init();
     m_pins.push_back(std::move(instance));
@@ -136,7 +141,7 @@ PinInstance* Workflow::add_pin(NodeInstance* node, data::Pin* pin, iid instance_
 PinInstance* Workflow::add_pin(NodeInstanceRo* node, data::Pin* pin)
 {
     const auto id = get_new_child_id();
-    auto instance = std::make_unique<PinInstance>(node->get_instance_id(), pin, m_wf_data.id, id);
+    auto instance = std::make_unique<PinInstance>(node, pin, m_wf_data.id, id);
     auto ptr = instance.get();
     ptr->init();
     m_pins.push_back(std::move(instance));
@@ -267,6 +272,19 @@ void Workflow::remove_node(const NodeInstance* node)
     remove_pins(node->get_outputs());
 
     m_nodes.erase(n_it);
+
+    if (!m_wf_data.valid && !m_wf_data.critical_failure)
+    {
+        m_wf_data.valid = true;
+        for (auto& ptr : m_nodes)
+        {
+            if (ptr->get_object()->is_dummy)
+            {
+                m_wf_data.valid = false;
+                break;
+            }
+        }
+    }
 }
 
 void Workflow::remove_node(const NodeInstanceRo* node)
@@ -336,6 +354,27 @@ void Workflow::remove_link(const Link* link)
     }
 }
 
+void Workflow::reset()
+{
+    for (auto& node : m_nodes)
+    {
+        node->reset_state();
+
+        if (!node->m_group)
+            node->calc_node_width(false, false);
+    }
+
+    for (auto& link : m_links)
+    {
+        link->reset_state();
+    }
+
+    for (auto& pin : m_pins)
+    {
+        pin->reset_state();
+    }
+}
+
 void Workflow::clear()
 {
     m_nodes.clear();
@@ -344,19 +383,38 @@ void Workflow::clear()
     m_links.clear();
 }
 
-void Workflow::finalize_resolve_comfyui_objects()
+void Workflow::subscribe_comfyui_validity_state()
 {
-    //auto& data = get_data();
-    //if (data.critical_failure)
-    //    return;
-    //data.valid = true;
+    if (!m_wf_data.ro)
+    {
+        g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::Invalidate, this);
+        g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolveWfs, this);
+    }
+}
 
-    //for (auto& node : m_nodes)
-    //{
-    //}
-    //for (auto& pin : m_pins)
-    //{
-    //}
+void Workflow::invalidate_comfyui_objects()
+{
+    if (m_wf_data.ro || !m_wf_data.activated)
+    {
+        clear();
+        return;
+    }
+
+    m_invalidation_state = true;
+    g::pWfsManager->dump(m_wf_data.id);
+    clear();
+}
+
+void Workflow::resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step /*step*/)
+{
+    if (m_wf_data.ro || !m_wf_data.activated)
+        return;
+
+    blob::Blob drawer_state;
+    g::pWfsManager->load(m_wf_data.id, drawer_state);
+    m_action->reinit(std::move(drawer_state));
+
+    m_invalidation_state = false;
 }
 
 } // namespace data

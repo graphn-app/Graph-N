@@ -18,11 +18,16 @@ PanelNodes::PanelNodes(PanelNodeInspector* inspector)
     : PanelBase(DlgObj::PanelNodes, "Node Library")
     , m_inspector(inspector)
     , m_tt_node_drawer(m_wf)
-{}
+{
+    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::Invalidate, this);
+    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
+}
 
 PanelNodes::~PanelNodes()
 {
     LogF;
+    if (g::pGraphN != nullptr)
+        g::pGraphN->unsubscribe_comfyui_validity_state(this);
 }
 
 void PanelNodes::init()
@@ -33,8 +38,6 @@ void PanelNodes::init()
 
     auto wf_id = g::pWfsManager->create(false /*generate_name*/, false /*dump_to_db*/, true /*ro*/).id;
     m_wf = g::pWfsManager->access(wf_id);
-
-    g::pGraphN->subscribe_comfyui_validity_state(this);
 
     m_tt_callbacks.on_alloc_tt_data = std::bind(&PanelNodes::on_alloc_tt_data, this, std::placeholders::_1);
     m_tt_callbacks.on_release_tt_data = std::bind(&PanelNodes::on_release_tt_data, this, std::placeholders::_1);
@@ -153,7 +156,7 @@ void PanelNodes::invalidate_comfyui_objects()
     m_panel_items.clear();
 }
 
-void PanelNodes::finalize_resolve_comfyui_objects()
+void PanelNodes::resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step /*step*/)
 {
     rebuild_items();
 }
@@ -832,8 +835,7 @@ void PanelNodes::on_view(PanelToolbar::Element& el)
 
 void PanelNodes::on_sync(PanelToolbar::Element& /*el*/)
 {
-    //TODO
-    //g::pFlow->reconnect();
+    g::pFlow->reload_nodes();
 }
 
 void PanelNodes::on_pre_sync(PanelToolbar::Element& el)

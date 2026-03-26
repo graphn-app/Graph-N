@@ -92,7 +92,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
         std::unordered_map<std::string, std::list<hid>> models_map;
 
         const auto items = nodes.items();
-        for (auto&[node_class, node_info] : items)
+        for (auto& [node_class, node_info] : items)
         {
             m_parsed_item++;
             parse_node(*nodes_manager.get(), node_class, node_info, models_map);
@@ -156,10 +156,11 @@ void NodesParser::parse_names(data::Node& node, const std::string& node_class, n
 {
     // name, display name, category, description
 
+    node.node_class = node_class;
     if (json_node.contains("name") && json_node["name"].is_string())
         node.name = json_node["name"];
-    if (node.name != node_class)
-        node.node_class = node_class;
+    if (node.name.empty())
+        node.name = node_class;
 
     if (json_node.contains("display_name") && json_node["display_name"].is_string())
         node.display_name = json_node["display_name"];
@@ -274,6 +275,7 @@ static primitive get_from_pin_type(const data::Node& node, data::Pin& pin, nlohm
     switch (pin.def_state.type)
     {
     case data::PinType::INT:
+    case data::PinType::NUMBER:
         return json_to_number<int64_t>(json);
     case data::PinType::FLOAT:
         return json_to_number<double>(json);

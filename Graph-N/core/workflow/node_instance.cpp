@@ -9,7 +9,7 @@
 namespace data
 {
 
-NodeInstance::~NodeInstance() {};
+NodeInstance::~NodeInstance() = default;
 
 void NodeInstance::init(const std::string& select)
 {

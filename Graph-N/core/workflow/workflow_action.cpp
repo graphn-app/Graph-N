@@ -103,6 +103,12 @@ void WorkflowAction::hard_reset()
         m_drawer->free();
 }
 
+void WorkflowAction::reinit(blob::Blob&& state)
+{
+    if (m_drawer != nullptr)
+        m_drawer->init(std::move(state));
+}
+
 data::Link* WorkflowAction::link(data::PinInstance* p1, data::PinInstance* p2, iid instance_id /*= 0*/)
 {
     const auto link = data::Link::link(p1, p2, instance_id);

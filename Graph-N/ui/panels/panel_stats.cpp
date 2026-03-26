@@ -14,6 +14,8 @@ PanelStats::PanelStats()
 PanelStats::~PanelStats()
 {
     LogF;
+    if (g::pGraphN != nullptr)
+        g::pGraphN->unsubscribe_timers(this);
 }
 
 void PanelStats::init()

@@ -19,6 +19,8 @@ WfsManager::~WfsManager() = default;
 void WfsManager::stop_all_threads()
 {
     LogF;
+    if (g::pGraphN != nullptr)
+        g::pGraphN->unsubscribe_timers(this);
 }
 
 bool WfsManager::init()
@@ -36,7 +38,7 @@ bool WfsManager::init()
             m_wf_name_counter = std::max(m_wf_name_counter, num);
         }
 
-        create(std::move(data), false, false);
+        create(std::move(data), false);
     }
 
     init_labels();
@@ -57,9 +59,10 @@ void WfsManager::free()
 const WfData& WfsManager::create(bool generate_name, bool dump_to_db, bool ro)
 {
     WfData data;
+    data.ro = ro;
     if (generate_name)
         data.name = "Workflow " + std::to_string(++m_wf_name_counter);
-    auto wf = create(std::move(data), dump_to_db, ro);
+    auto wf = create(std::move(data), dump_to_db);
     return wf->get_data();
 }
 
@@ -69,7 +72,7 @@ const WfData& WfsManager::create_copy(wid source)
     
     WfData data;
     data.name = src_wf->get_data().name + " (copy)";
-    auto wf = create(std::move(data), true, false);
+    auto wf = create(std::move(data), true);
 
     copy_begin(source, ImVec2(0, 0));
     auto& nodes = src_wf->get_nodes();
@@ -87,7 +90,7 @@ void WfsManager::load(wid wf_id, blob::Blob& drawer_state)
 {
     auto wf = access(wf_id);
     auto& data = wf->get_data();
-    if (!data.draft_exist && !data.saved_exist)
+    if (!data.draft_exist && !data.saved_exist || data.ro)
         return;
 
     blob::Blob blob;
@@ -97,8 +100,9 @@ void WfsManager::load(wid wf_id, blob::Blob& drawer_state)
     data.draft = !load_saved || !result;
 }
 
-data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db, bool ro)
+data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db)
 {
+    const bool ro = data.ro;
     auto wf = std::make_unique<data::Workflow>(std::move(data));
     auto wf_ptr = wf.get();
     wf_ptr->init();
@@ -628,7 +632,7 @@ void WfsManager::save(wid wf_id)
 {
     auto wf = access(wf_id);
     auto& data = wf->get_data();
-    if (!data.dirty && !data.draft)
+    if (!data.dirty && !data.draft || data.ro)
         return;
 
     g::pHistoryManager->set_rollback_pos(wf_id);
@@ -678,7 +682,7 @@ void WfsManager::dump(wid wf_id) const
 {
     auto wf = access(wf_id);
     auto& data = wf->get_data();
-    if (!data.dirty || !data.critical_failure)
+    if (!data.dirty || data.critical_failure || data.ro)
         return;
 
     blob::Blob empty;

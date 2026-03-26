@@ -45,8 +45,8 @@ public:
     data::Node* find_node(hid id) const;
     data::Pin* find_pin(hid id) const;
 
-    data::Node* make_dummy_node(const char* node_class);
-    data::Pin* make_dummy_pin(data::Node* parent, const char* name, int64_t out_index);
+    data::Node* make_dummy_node(const std::string& node_class);
+    data::Pin* make_dummy_pin(data::Node* parent, const std::string& name, int64_t out_index);
 
     inline const std::list<std::pair<std::string, uint32_t>>& get_labels() const { return m_labels; }
     const std::list<data::NodeItem*>& get_nodes_in_label(uint32_t label_id) const;

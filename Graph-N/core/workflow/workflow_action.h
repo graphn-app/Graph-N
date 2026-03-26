@@ -33,6 +33,7 @@ public:
     void delete_group(data::NodeInstance* group);
 
     void hard_reset();
+    void reinit(blob::Blob&& state);
 
     data::Link* link(data::PinInstance* p1, data::PinInstance* p2, iid instance_id = 0);
     void unlink(data::PinInstance* pin);

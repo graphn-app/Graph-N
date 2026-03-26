@@ -1,5 +1,6 @@
 
 #pragma once
+#include "core/listeners.h"
 
 namespace platform
 {
@@ -18,12 +19,6 @@ class WfsManager;
 class ModelsManager;
 class ComfyUIManager;
 class HistoryManager;
-}
-
-namespace listener
-{
-struct Timer;
-struct ComfyUiObjectValidityListener;
 }
 
 namespace ui
@@ -57,7 +52,10 @@ public:
     int32_t override_exit_code();
 
     void subscribe_timers(listener::Timer* listener);
-    void subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener);
+    void unsubscribe_timers(listener::Timer* listener);
+
+    void subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step step, listener::ComfyUiObjectValidityListener* listener);
+    void unsubscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener);
 
     void invalidate_comfyui_objects();
     void resolve_comfyui_objects();
@@ -88,7 +86,7 @@ private:
     std::vector<std::unique_ptr<mngr::Manager>> m_managers;
 
     std::list<listener::Timer*> m_timer_listeners;
-    std::list<listener::ComfyUiObjectValidityListener*> m_comfyui_validity_listeners;
+    std::map<listener::ComfyUiObjectValidityListener::Step, std::list<listener::ComfyUiObjectValidityListener*>> m_comfyui_validity_listeners;
 };
 
 

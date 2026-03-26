@@ -161,9 +161,12 @@ DlgCode PanelWfList::show(bool& focused)
     bool opened = true;
     if (begin_panel(opened, focused) && opened)
     {
+        if (!g::pFlow->get_nodes_ready())
+            ImGui::BeginDisabled();
+
         draw_toolbar();
 
-        if (!m_labels_mode && !m_deleted_mode && (m_wfs.empty() || !g::pFlow->get_nodes_ready()))
+        if (!m_labels_mode && !m_deleted_mode && m_wfs.empty())
         {
             show_empty_panel_descr(
                 "",
@@ -222,6 +225,9 @@ DlgCode PanelWfList::show(bool& focused)
         }
         else
             show_wfs();
+
+        if (!g::pFlow->get_nodes_ready())
+            ImGui::EndDisabled();
     }
     return end_panel(opened);
 }

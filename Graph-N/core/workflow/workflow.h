@@ -61,9 +61,13 @@ public:
     inline const std::vector<std::unique_ptr<PinInstance>>& get_pins() { return m_pins; }
     inline const std::vector<std::unique_ptr<Link>>& get_links() { return m_links; }
 
+    inline bool get_is_invalidation_state() const { return m_invalidation_state; }
+
     void remove_node(const NodeInstance* node);
     void remove_node(const NodeInstanceRo* node);
     void remove_link(const Link* link);
+
+    void reset();
     void clear();
 
 private:
@@ -71,7 +75,9 @@ private:
     iid get_new_child_id();
 
     // ComfyUiObjectValidityListener
-    void finalize_resolve_comfyui_objects();
+    void subscribe_comfyui_validity_state();
+    void invalidate_comfyui_objects() override;
+    void resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step step) override;
 
 private:
     WfData m_wf_data;
@@ -81,6 +87,8 @@ private:
     std::vector<std::unique_ptr<NodeInstanceRo>> m_nodes_ro;
     std::vector<std::unique_ptr<PinInstance>> m_pins;
     std::vector<std::unique_ptr<Link>> m_links;
+
+    bool m_invalidation_state = false;
 };
 
 } // namespace data

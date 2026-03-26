@@ -22,11 +22,16 @@ PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std
     , m_context_menuid(panel_id + "_ContextMenu")
 {
     m_action->set_drawer(&m_drawer);
+
+    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::Invalidate, this);
+    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
 }
 
 PanelWorkflow::~PanelWorkflow()
 {
     LogF;
+    if (g::pGraphN != nullptr)
+        g::pGraphN->unsubscribe_comfyui_validity_state(this);
 }
 
 void PanelWorkflow::stop_all_threads()
@@ -38,6 +43,11 @@ void PanelWorkflow::free()
 {
     LogF;
 
+    if (g::pGraphN != nullptr)
+        g::pGraphN->unsubscribe_comfyui_validity_state(this);
+
+    m_wf->get_data().activated = false;
+    m_wf->clear();
     m_wf = nullptr;
     m_action->set_drawer(nullptr);
     m_drawer.free();
@@ -52,27 +62,19 @@ void PanelWorkflow::init()
     g::pWfsManager->load(m_wf->get_id(), drawer_state);
     m_drawer.init(std::move(drawer_state));
 
-    auto& nodes = m_wf->get_nodes();
-    for (auto& node : nodes)
-    {
-        node->reset_state();
+    m_wf->reset();
+    m_wf->get_data().activated = true;
+    create_toolbar();
+}
 
-        if (!node->m_group)
-            node->calc_node_width(false, false);
-    }
+void PanelWorkflow::invalidate_comfyui_objects()
+{
+    m_invalidation_state = true;
+}
 
-    auto& links = m_wf->get_links();
-    for (auto& link : links)
-    {
-        link->reset_state();
-    }
-
-    auto& pins = m_wf->get_pins();
-    for (auto& pin : pins)
-    {
-        pin->reset_state();
-    }
-
+void PanelWorkflow::resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step /*step*/)
+{
+    m_invalidation_state = false;
     create_toolbar();
 }
 
@@ -97,12 +99,18 @@ DlgCode PanelWorkflow::show(bool& focused)
         //else
 
         auto& data = m_wf->get_data();
-        mark_dirty(data.dirty);
-
-        check_history();
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
-        draw_toolbar();
-        draw_wf();
+        if (data.critical_failure)
+        {
+            draw_toolbar();
+        }
+        else
+        {
+            mark_dirty(data.dirty);
+            check_history();
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+            draw_toolbar();
+            draw_wf();
+        }
     }
 
     return end_panel(opened);
@@ -118,6 +126,9 @@ void PanelWorkflow::set_wf_view(std::optional<ImRect> wf_rc, std::optional<float
 
 void PanelWorkflow::draw_wf()
 {
+    if (m_invalidation_state)
+        return;
+
     ImGuiIO& io = ImGui::GetIO();
     ImGuiConfigFlags old_flags = io.ConfigFlags;
     io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
@@ -245,6 +256,9 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
 
 void PanelWorkflow::handle_dnd()
 {
+    if (m_invalidation_state)
+        return;
+
     if (ImGui::BeginDragDropTarget())
     {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
@@ -299,7 +313,10 @@ bool PanelWorkflow::handle_moves()
     }
     else if (m_action->is_moving() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
     {
-        m_action->end_nodes_move(!ImGui::IsMouseDragPastThreshold(ImGuiMouseButton_Left, 2));
+        if (m_invalidation_state)
+            m_action->end_nodes_move(true);
+        else
+            m_action->end_nodes_move(!ImGui::IsMouseDragPastThreshold(ImGuiMouseButton_Left, 2));
         return true;
     }
     return false;
@@ -310,109 +327,146 @@ void PanelWorkflow::create_toolbar()
     clear_toolbar();
     set_use_regular_size_icons();
 
+    if (m_wf->get_data().critical_failure)
     {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Empty;
-        add_toolbar_element(std::move(el), true);
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), true);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Text;
+            el.text = "Something went wrong. The Project couldn't be loaded.";
+            add_toolbar_element(std::move(el), true);
+        }
     }
+    else
     {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_SAVE;
-        el.tooltip = "Save Project";
-        el.on_preview = std::bind(&PanelWorkflow::on_pre_save, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelWorkflow::on_save, this, std::placeholders::_1);
-        add_toolbar_element(std::move(el), true);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_HISTORY;
-        el.tooltip = "Revert to saved";
-        el.on_preview = std::bind(&PanelWorkflow::on_pre_revert, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelWorkflow::on_revert, this, std::placeholders::_1);
-        add_toolbar_element(std::move(el), true);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Empty;
-        add_toolbar_element(std::move(el), true);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_UNDO_2;
-        el.tooltip = "Undo";
-        el.on_preview = std::bind(&PanelWorkflow::on_pre_undo, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelWorkflow::on_undo, this, std::placeholders::_1);
-        add_toolbar_element(std::move(el), true);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_REDO_2;
-        el.tooltip = "Redo";
-        el.on_preview = std::bind(&PanelWorkflow::on_pre_redo, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelWorkflow::on_redo, this, std::placeholders::_1);
-        add_toolbar_element(std::move(el), true);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Empty;
-        add_toolbar_element(std::move(el), true);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Text;
-        el.text = "Saved";
-        el.text_clr = g::pOptsManager->color_load(AppColor::ActivityBarInactive);
-        el.on_preview = std::bind(&PanelWorkflow::on_pre_project_status, this, std::placeholders::_1);
-        add_toolbar_element(std::move(el), true);
-    }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), true);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_SAVE;
+            el.tooltip = "Save Project";
+            el.on_preview = std::bind(&PanelWorkflow::on_pre_save, this, std::placeholders::_1);
+            el.on_click = std::bind(&PanelWorkflow::on_save, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), true);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_HISTORY;
+            el.tooltip = "Revert to saved";
+            el.on_preview = std::bind(&PanelWorkflow::on_pre_revert, this, std::placeholders::_1);
+            el.on_click = std::bind(&PanelWorkflow::on_revert, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), true);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), true);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_UNDO_2;
+            el.tooltip = "Undo";
+            el.on_preview = std::bind(&PanelWorkflow::on_pre_undo, this, std::placeholders::_1);
+            el.on_click = std::bind(&PanelWorkflow::on_undo, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), true);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Button;
+            el.icon = ICON_LC_REDO_2;
+            el.tooltip = "Redo";
+            el.on_preview = std::bind(&PanelWorkflow::on_pre_redo, this, std::placeholders::_1);
+            el.on_click = std::bind(&PanelWorkflow::on_redo, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), true);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), true);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Text;
+            el.text = "Saved";
+            el.text_clr = g::pOptsManager->color_load(AppColor::ActivityBarInactive);
+            el.on_preview = std::bind(&PanelWorkflow::on_pre_project_status, this, std::placeholders::_1);
+            add_toolbar_element(std::move(el), true);
+        }
 
-    // right
+        // right
 
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Text;
-        el.text = "Idle";
-        el.on_preview = std::bind(&PanelWorkflow::on_pre_queue_status, this, std::placeholders::_1);
-        add_toolbar_element(std::move(el), false);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_PLAY;
-        el.tooltip = "Run tasks";
-        el.on_preview = std::bind(&PanelWorkflow::on_pre_queue, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelWorkflow::on_queue, this, std::placeholders::_1);
-        add_toolbar_element(std::move(el), false);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_SQUARE;
-        el.tooltip = "Stop queue";
-        el.on_preview = std::bind(&PanelWorkflow::on_pre_queue_stop, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelWorkflow::on_queue_stop, this, std::placeholders::_1);
-        add_toolbar_element(std::move(el), false);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::InputInt;
-        el.tooltip = "Number of tasks. Zero or less to infinite";
-        m_queue_num_input_id = "##num_" + m_wf->get_uuid();
-        el.id = m_queue_num_input_id.c_str();
-        el.input_w = 100.0f;
-        el.buffer_int = &m_tasks_num;
-        el.int_min = -1;
-        el.int_max = 100;
-        add_toolbar_element(std::move(el), false);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Empty;
-        add_toolbar_element(std::move(el), false);
+        if (m_wf->get_data().valid)
+        {
+            {
+                PanelToolbar::Element el;
+                el.type = PanelToolbar::Element::Type::Text;
+                el.text = "Idle";
+                el.on_preview = std::bind(&PanelWorkflow::on_pre_queue_status, this, std::placeholders::_1);
+                add_toolbar_element(std::move(el), false);
+            }
+            {
+                PanelToolbar::Element el;
+                el.type = PanelToolbar::Element::Type::Button;
+                el.icon = ICON_LC_PLAY;
+                el.tooltip = "Run tasks";
+                el.on_preview = std::bind(&PanelWorkflow::on_pre_queue, this, std::placeholders::_1);
+                el.on_click = std::bind(&PanelWorkflow::on_queue, this, std::placeholders::_1);
+                add_toolbar_element(std::move(el), false);
+            }
+            {
+                PanelToolbar::Element el;
+                el.type = PanelToolbar::Element::Type::Button;
+                el.icon = ICON_LC_SQUARE;
+                el.tooltip = "Stop queue";
+                el.on_preview = std::bind(&PanelWorkflow::on_pre_queue_stop, this, std::placeholders::_1);
+                el.on_click = std::bind(&PanelWorkflow::on_queue_stop, this, std::placeholders::_1);
+                add_toolbar_element(std::move(el), false);
+            }
+            {
+                PanelToolbar::Element el;
+                el.type = PanelToolbar::Element::Type::InputInt;
+                el.tooltip = "Number of tasks. Zero or less to infinite";
+                m_queue_num_input_id = "##num_" + m_wf->get_uuid();
+                el.id = m_queue_num_input_id.c_str();
+                el.input_w = 100.0f;
+                el.buffer_int = &m_tasks_num;
+                el.int_min = -1;
+                el.int_max = 100;
+                add_toolbar_element(std::move(el), false);
+            }
+        }
+        else
+        {
+            {
+                PanelToolbar::Element el;
+                el.type = PanelToolbar::Element::Type::Text;
+                el.text = "The project contains unrecognized nodes. Generation is not possible.";
+                add_toolbar_element(std::move(el), false);
+            }
+            {
+                PanelToolbar::Element el;
+                el.type = PanelToolbar::Element::Type::Button;
+                el.icon = ICON_LC_LOCATE;
+                el.tooltip = "Show next unrecognized nodes";
+                el.on_click = std::bind(&PanelWorkflow::on_show_dummy_node, this, std::placeholders::_1);
+                add_toolbar_element(std::move(el), false);
+            }
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), false);
+        }
     }
     
     finalize_toolbar();
@@ -426,6 +480,9 @@ void PanelWorkflow::check_history()
     *m_undo_name = 0;
     *m_redo_name = 0;
     m_can_save = m_can_revert = false;
+
+    if (m_invalidation_state)
+        return;
 
     auto& data = m_wf->get_data();
     m_can_save = data.draft;
@@ -506,7 +563,7 @@ void PanelWorkflow::check_history()
 
 void PanelWorkflow::on_pre_save(PanelToolbar::Element& el)
 {
-    el.enabled = m_can_save;
+    el.enabled = m_can_save && !m_invalidation_state;
 }
 
 void PanelWorkflow::on_save(PanelToolbar::Element& /*el*/)
@@ -516,7 +573,7 @@ void PanelWorkflow::on_save(PanelToolbar::Element& /*el*/)
 
 void PanelWorkflow::on_pre_revert(PanelToolbar::Element& el)
 {
-    el.enabled = m_can_revert;
+    el.enabled = m_can_revert && !m_invalidation_state;
     el.tooltip = m_tt_revert;
 }
 
@@ -530,7 +587,7 @@ void PanelWorkflow::on_revert(PanelToolbar::Element& /*el*/)
 
 void PanelWorkflow::on_pre_undo(PanelToolbar::Element& el)
 {
-    el.enabled = *m_undo_name != 0;
+    el.enabled = *m_undo_name != 0 && !m_invalidation_state;
     el.tooltip = m_undo_name;
 }
 
@@ -541,7 +598,7 @@ void PanelWorkflow::on_undo(PanelToolbar::Element& /*el*/)
 
 void PanelWorkflow::on_pre_redo(PanelToolbar::Element& el)
 {
-    el.enabled = *m_redo_name != 0;
+    el.enabled = *m_redo_name != 0 && !m_invalidation_state;
     el.tooltip = m_redo_name;
 }
 
@@ -557,9 +614,47 @@ void PanelWorkflow::on_pre_project_status(PanelToolbar::Element& el)
 }
 
 void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& /*el*/) {}
-void PanelWorkflow::on_pre_queue(PanelToolbar::Element& /*el*/) {}
-void PanelWorkflow::on_queue(PanelToolbar::Element& /*el*/) {}
-void PanelWorkflow::on_pre_queue_stop(PanelToolbar::Element& /*el*/) {}
+
+void PanelWorkflow::on_pre_queue(PanelToolbar::Element& el)
+{
+    el.enabled = !m_invalidation_state;
+}
+
+void PanelWorkflow::on_queue(PanelToolbar::Element& /*el*/)
+{
+}
+
+void PanelWorkflow::on_pre_queue_stop(PanelToolbar::Element& el)
+{
+    el.enabled = !m_invalidation_state;
+}
+
 void PanelWorkflow::on_queue_stop(PanelToolbar::Element& /*el*/) {}
+
+void PanelWorkflow::on_show_dummy_node(PanelToolbar::Element& el)
+{
+    if (m_invalidation_state)
+        return;
+
+    int32_t idx = 0;
+    for (auto& node : m_wf->get_nodes())
+    {
+        if (node->get_object()->is_dummy)
+        {
+            if (m_curr_dummy_node == idx++)
+            {
+                m_curr_dummy_node++;
+                m_drawer.locate_node(node.get());
+                return;
+            }
+        }
+    }
+
+    if (idx > 0)
+    {
+        m_curr_dummy_node = 0;
+        on_show_dummy_node(el);
+    }
+}
 
 } // namespace ui

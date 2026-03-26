@@ -108,6 +108,7 @@ public:
     const char* get_panel_name(DlgObj panel_obj) const;
     void toggle_panel_visibility(DlgObj panel_obj);
 
+    void reload_nodes();
     inline void set_nodes_ready() { m_nodes_ready = true; }
     inline bool get_nodes_ready() const { return m_nodes_ready; }
     inline void set_models_ready() { m_models_ready = true; }
@@ -142,6 +143,7 @@ private:
 
     void check_connection();
     void handle_connected();
+    void reparse_nodes();
 
     void modal_last_frame();
 

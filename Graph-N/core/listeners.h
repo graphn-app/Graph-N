@@ -11,9 +11,10 @@ struct ComfyUiObjectValidityListener
 
     NO_COPY_MOVE(ComfyUiObjectValidityListener);
 
+    enum class Step { Invalidate, ResolveNodes, ResolvePins, ResolveWfs, ResolvePanels };
+
     virtual void invalidate_comfyui_objects() {}
-    virtual void begin_resolve_comfyui_objects() {}
-    virtual void finalize_resolve_comfyui_objects() {}
+    virtual void resolve_comfyui_objects(Step /*step*/) {}
 };
 
 inline ComfyUiObjectValidityListener::~ComfyUiObjectValidityListener() = default;

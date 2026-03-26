@@ -131,7 +131,6 @@ public:
     void pop_buff(float* arr);
     void pop_buff(byte* data);
     byte_buff pop_buff();
-    //std::string pop_string();
     std::string_view pop_string();
     primitive pop_primitive();
     ImVec2 pop_vec2();

@@ -31,6 +31,8 @@ Textures::Textures()
 Textures::~Textures()
 {
     LogF;
+    if (g::pGraphN != nullptr)
+        g::pGraphN->unsubscribe_timers(this);
 }
 
 void Textures::init_ui_ready()

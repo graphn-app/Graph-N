@@ -31,7 +31,7 @@ struct Node : public base::HashID
     std::vector<Pin*> output;
 
     std::string name;
-    std::string node_class;		// if empty - matches to name
+    std::string node_class;
     std::string display_name;	// use name if empty
     std::string description;
     std::string category;		// full path

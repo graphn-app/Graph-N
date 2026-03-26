@@ -111,7 +111,6 @@ private:
     void draw_widget_bool(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_str(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width);
-    void draw_widget_num(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_separator(float offset, bool& opened, bool& temp_open);

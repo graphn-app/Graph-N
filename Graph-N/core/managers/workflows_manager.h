@@ -70,7 +70,7 @@ public:
     void dump(wid wf_id) const;
 
 private:
-    data::Workflow* create(WfData&& data, bool dump_to_db, bool ro);
+    data::Workflow* create(WfData&& data, bool dump_to_db);
     void init_labels();
     void save_labels() const;
     void sort_wfs(std::list<wid>& wfs);

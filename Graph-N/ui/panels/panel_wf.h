@@ -2,6 +2,7 @@
 #pragma once
 #include "ui/panels/panel_base.h"
 #include "ui/node_drawer.h"
+#include "core/listeners.h"
 
 namespace data
 {
@@ -18,7 +19,8 @@ namespace ui
 class PanelWorkflow final :
     public PanelToolbar,
     public PanelEmptyWithDescr,
-    public PanelBase<PanelCommonData>
+    public PanelBase<PanelCommonData>,
+    public listener::ComfyUiObjectValidityListener
 {
 public:
     PanelWorkflow(wid workflow_id, const std::string& name, const std::string& panel_id, ImGuiID dock);
@@ -49,6 +51,10 @@ private:
     DlgCode show(bool& focused) override;
     void draw_wf();
 
+    // ComfyUiObjectValidityListener
+    void invalidate_comfyui_objects() override;
+    void resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step step) override;
+
     void check_history();
     void create_toolbar();
 
@@ -67,6 +73,7 @@ private:
     void on_queue(PanelToolbar::Element& el);
     void on_pre_queue_stop(PanelToolbar::Element& el);
     void on_queue_stop(PanelToolbar::Element& el);
+    void on_show_dummy_node(PanelToolbar::Element& el);
 
     bool context_menu_handler();
     bool show_context_menu();
@@ -129,6 +136,9 @@ private:
     char m_undo_name[64] = {};
     char m_redo_name[64] = {};
     char m_tt_revert[128] = {};
+
+    int32_t m_curr_dummy_node = 0;
+    bool m_invalidation_state = false;
 };
 
 

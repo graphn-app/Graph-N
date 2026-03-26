@@ -85,7 +85,7 @@ ConnectState ConnectManager::check_status(size_t* inbox /*= nullptr*/, int64_t* 
     else if (m_ws)
     {
         const auto state = m_ws->get_state();
-        if (ConnectState::Connected == m_state)
+        if (ConnectState::Connected == state)
         {
             if (latency)
                 *latency = m_ws->get_latency();

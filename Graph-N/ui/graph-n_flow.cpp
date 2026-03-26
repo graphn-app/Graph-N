@@ -27,7 +27,9 @@
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
 
-#define TEST
+#ifdef _DEBUG
+static bool test_json = false;
+#endif
 
 namespace w
 {
@@ -379,29 +381,46 @@ void GraphN_Flow::check_connection()
 
 void GraphN_Flow::handle_connected()
 {
+    check_connection();
+    if (!get_online())
+        return;
+
     m_windows &= ~ViewConnect;
-    m_windows |= ViewParsingNodes;
 
     show_logs_panel(false);
+    reparse_nodes();
+}
 
-    g::pNodesManager->free();
-    g::pModelsManager->free();
+void GraphN_Flow::reload_nodes()
+{
+    //reconnect(); - send request on live connection
+    reparse_nodes();
+}
+
+void GraphN_Flow::reparse_nodes()
+{
+    m_windows |= ViewParsingNodes;
+    m_nodes_ready = false;
+    m_models_ready = false;
 
     g::pModelsManager->load_models();
 
     m_nodes_parser = std::make_unique<mngr::NodesParser>();
-#ifdef TEST
-    auto test_json_path = fs::get_root_directory_path();
-    test_json_path /= "test_json_broken.json";
-    auto test_json_data = tools::path::read_file(test_json_path);
-    std::string test_json_string;
-    test_json_string.reserve(test_json_data.size() + 1);
-    test_json_string = test_json_data.data();
-    test_json_string.at(test_json_data.size()) = 0;
-    m_nodes_parser->parse(std::move(test_json_string));
-#else
-    m_nodes_parser->parse(std::move(g::pConnectManager->get_nodes_raw()));
+#ifdef _DEBUG
+    if (test_json)
+    {
+        auto test_json_path = fs::get_root_directory_path();
+        test_json_path /= "test_json_broken.json";
+        auto test_json_data = tools::path::read_file(test_json_path);
+        std::string test_json_string;
+        test_json_string.reserve(test_json_data.size() + 1);
+        test_json_string = test_json_data.data();
+        test_json_string.at(test_json_data.size()) = 0;
+        m_nodes_parser->parse(std::move(test_json_string));
+    }
+    else
 #endif
+        m_nodes_parser->parse(std::move(g::pConnectManager->get_nodes_raw()));
 }
 
 void GraphN_Flow::show_menu_bar()
@@ -566,6 +585,12 @@ void GraphN_Flow::show_menu_bar()
                 Log("Menu: About");
                 on_menu_about();
             }
+#ifdef _DEBUG
+            if (ImGui::MenuItem("Use test json##HelpMenuBar", nullptr, test_json))
+            {
+                test_json = !test_json;
+            }
+#endif
             ImGui::EndMenu();
         }
 
@@ -870,6 +895,7 @@ void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
 
     if (m_panels_wf.empty())
         destroy_txt_panels();
+    wf_panel->free();
 
     for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
     {

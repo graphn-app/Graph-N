@@ -97,10 +97,16 @@ void NodeDrawer::free()
 
 void NodeDrawer::locate_node(data::NodeInstance* node)
 {
-    Log("Single sel: " << node->get_instance_id());
+    auto prev_context = ed::GetCurrentEditor();
+    if (nullptr == prev_context)
+        ed::SetCurrentEditor(m_context);
+
     ed::ClearSelection();
     ed::SelectNode(node->ed());
     ed::NavigateToSelection(false, 0.5f);
+
+    if (nullptr == prev_context)
+        ed::SetCurrentEditor(nullptr);
 }
 
 data::PinInstance* NodeDrawer::get_ml_widget_active() const
@@ -196,7 +202,18 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
         ed::PushStyleColor(ed::StyleColor_NodeBg, ImVec4(0, 0, 0, 0));
     }
     else
+    {
+        if (node->get_object()->is_dummy)
+        {
+            const auto clr = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::DummyNode));
+            ed::PushStyleColor(ed::StyleColor_NodeBorder, clr);
+            ed::PushStyleColor(ed::StyleColor_HovNodeBorder, clr);
+            ed::PushStyleColor(ed::StyleColor_SelNodeBorder, clr);
+            ed::PushStyleColor(ed::StyleColor_NodeSelRect, clr);
+            ed::PushStyleColor(ed::StyleColor_NodeSelRectBorder, clr);
+        }
         ed::PushStyleColor(ed::StyleColor_NodeBg, node->m_clr_node);
+    }
 
     if (node->get_mode() == NodeMode::Mute || node->get_mode() == NodeMode::OnEvent || node->get_mode() == NodeMode::OnTrigger)
     {
@@ -242,17 +259,7 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
     {
         if (ed::HasSelectionChanged())
             m_deffered_action->active_node = nullptr;
-
-        //else if (!ed::IsNodeSelected(node->ed()))
-        //{
-        //    Log("Single sel: " << node->get_instance_id());
-        //    ed::SelectNode(node->ed(), false);
-        //}
     }
-    //else if (m_deffered_action->active_node != nullptr)
-    //{
-    //    ed::DeselectNode(node->ed());
-    //}
 }
 
 void NodeDrawer::post_draw_node(data::NodeInstance* node)
@@ -266,6 +273,8 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node)
 
     if (node->m_group)
         ed::PopStyleColor(3);
+    else if (node->get_object()->is_dummy)
+        ed::PopStyleColor(6);
     else
         ed::PopStyleColor();
 
@@ -550,16 +559,14 @@ void NodeDrawer::draw_node_header()
     const float collapsed_pin_y = ImGui::GetCursorPosY();
     if (!m_active_node->get_expanded() && !m_active_node->get_inputs().empty())
     {
-        ImGui::BeginDisabled();
         draw_collapsed_pins(true);
         ImGui::SameLine();
-        ImGui::EndDisabled();
     }
 
     if (m_active_node != m_renaming_node)
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_name_off);
-        ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_header_text);
+        ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->get_object()->is_dummy ? g::pOptsManager->color_load(AppColor::DummyNode) : m_clr_node_header_text);
         ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
         ImGui::PopStyleColor();
 
@@ -719,6 +726,7 @@ void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, fl
     switch (pin->state().type)
     {
     case data::PinType::INT:
+    case data::PinType::NUMBER:
         if (pin->get_object()->is_unsigned)
             draw_widget_uint(pin, widget_name_width, widget_value_width);
         else
@@ -735,9 +743,6 @@ void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, fl
             draw_widget_str_ml(pin, widget_name_width, widget_value_width);
         else
             draw_widget_str(pin, widget_name_width, widget_value_width);
-        break;
-    case data::PinType::NUMBER:
-        draw_widget_num(pin, widget_name_width, widget_value_width);
         break;
     case data::PinType::COMBO:
         draw_widget_combo(pin, widget_name_width, widget_value_width);
@@ -1026,11 +1031,6 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
     ImGui::PopID();
 }
 
-void NodeDrawer::draw_widget_num(data::PinInstance* pin, float widget_name_width, float widget_value_width)
-{
-    draw_widget_int(pin, widget_name_width, widget_value_width);
-}
-
 void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
@@ -1118,7 +1118,6 @@ void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_op
     if (pressed)
     {
         opened = !opened;
-        Log("Single sel: " << m_active_node->get_instance_id());
         ed::SelectNode(m_active_node->ed());
     }
     else if (ImGui::IsItemHovered())
@@ -1166,11 +1165,11 @@ void NodeDrawer::query_new_item(
             if (allow)
             {
                 auto linked_node = m_wf->get_node_by_instance(p1->get_parent_node());
-                allow = linked_node->get_expanded();
+                allow = linked_node->get_expanded() && !linked_node->get_object()->is_dummy;
                 if (allow)
                 {
                     linked_node = m_wf->get_node_by_instance(p2->get_parent_node());
-                    allow = linked_node->get_expanded();
+                    allow = linked_node->get_expanded() && !linked_node->get_object()->is_dummy;
                 }
             }
             if (allow && data::Link::can_link(p1, p2))

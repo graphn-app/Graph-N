@@ -12,11 +12,16 @@ namespace ui
 
 PanelModels::PanelModels()
     : PanelBase(DlgObj::PanelModels, "Model Library")
-{}
+{
+    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::Invalidate, this);
+    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
+}
 
 PanelModels::~PanelModels()
 {
     LogF;
+    if (g::pGraphN != nullptr)
+        g::pGraphN->unsubscribe_comfyui_validity_state(this);
 }
 
 void PanelModels::init()
@@ -28,8 +33,6 @@ void PanelModels::init()
     m_tt_callbacks.on_alloc_tt_data = std::bind(&PanelModels::on_alloc_tt_data, this, std::placeholders::_1);
     m_tt_callbacks.on_show_tt = std::bind(&PanelModels::on_show_tt, this, std::placeholders::_1);
     m_tt_callbacks.on_pre_tt = std::bind(&PanelModels::on_pre_tt, this, std::placeholders::_1);
-
-    g::pGraphN->subscribe_comfyui_validity_state(this);
 
     create_toolbar();
     rebuild_items();
@@ -89,7 +92,7 @@ void PanelModels::invalidate_comfyui_objects()
     m_prev_model_items_count = 0;
 }
 
-void PanelModels::finalize_resolve_comfyui_objects()
+void PanelModels::resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step /*step*/)
 {
     rebuild_items();
 }

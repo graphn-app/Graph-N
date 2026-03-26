@@ -18,7 +18,6 @@
 #include "core/managers/comfyui_manager_apple.h"
 #endif
 #include "core/base/id.h"
-#include "core/listeners.h"
 
 namespace g
 {
@@ -151,6 +150,11 @@ void GraphN::subscribe_timers(listener::Timer* listener)
     m_timer_listeners.push_back(listener);
 }
 
+void GraphN::unsubscribe_timers(listener::Timer* listener)
+{
+    m_timer_listeners.remove(listener);
+}
+
 void GraphN::handle_1sec_timer(int64_t seconds_elapsed)
 {
     for (auto* listener : m_timer_listeners)
@@ -159,15 +163,25 @@ void GraphN::handle_1sec_timer(int64_t seconds_elapsed)
     }
 }
 
-void GraphN::subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener)
+void GraphN::subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step step, listener::ComfyUiObjectValidityListener* listener)
 {
-    m_comfyui_validity_listeners.push_back(listener);
+    m_comfyui_validity_listeners[step].push_back(listener);
+}
+
+void GraphN::unsubscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener)
+{
+    for (auto& listeners : m_comfyui_validity_listeners)
+    {
+        listeners.second.remove(listener);
+    }
 }
 
 void GraphN::invalidate_comfyui_objects()
 {
-    Log("Notify " << m_comfyui_validity_listeners.size() << " listeners");
-    for (auto* listener : m_comfyui_validity_listeners)
+    Log("Notify listeners");
+
+    auto& listeners = m_comfyui_validity_listeners[listener::ComfyUiObjectValidityListener::Step::Invalidate];
+    for (auto listener : listeners)
     {
         listener->invalidate_comfyui_objects();
     }
@@ -175,15 +189,21 @@ void GraphN::invalidate_comfyui_objects()
 
 void GraphN::resolve_comfyui_objects()
 {
-    Log("Notify " << m_comfyui_validity_listeners.size() << " listeners");
-    for (auto* listener : m_comfyui_validity_listeners)
+    Log("Notify listeners");
+
+    const auto notify = [this](listener::ComfyUiObjectValidityListener::Step step)
     {
-        listener->begin_resolve_comfyui_objects();
-    }
-    for (auto* listener : m_comfyui_validity_listeners)
-    {
-        listener->finalize_resolve_comfyui_objects();
-    }
+        auto& listeners = m_comfyui_validity_listeners[step];
+        for (auto listener : listeners)
+        {
+            listener->resolve_comfyui_objects(step);
+        }
+    };
+
+    notify(listener::ComfyUiObjectValidityListener::Step::ResolveNodes);
+    notify(listener::ComfyUiObjectValidityListener::Step::ResolvePins);
+    notify(listener::ComfyUiObjectValidityListener::Step::ResolveWfs);
+    notify(listener::ComfyUiObjectValidityListener::Step::ResolvePanels);
 }
 
 void GraphN::handle_new_frame(int64_t /*frames_elapsed*/)

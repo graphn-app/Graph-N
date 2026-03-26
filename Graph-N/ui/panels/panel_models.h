@@ -40,7 +40,7 @@ public:
 
     //ComfyUiObjectValidityListener
     void invalidate_comfyui_objects() override;
-    void finalize_resolve_comfyui_objects() override;
+    void resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step step) override;
 
 private:
     DlgCode show(bool& focused) override;
