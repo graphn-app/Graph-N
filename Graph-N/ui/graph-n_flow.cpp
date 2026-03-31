@@ -331,6 +331,7 @@ void GraphN_Flow::prepare_to_quit()
 {
     LogF_In;
 
+    g::pConnectManager->stop_all_threads();
     g::pWfsManager->close_and_purge();
 
     for (auto& dlg : m_all_dialogs)
@@ -345,11 +346,11 @@ void GraphN_Flow::prepare_to_quit()
     m_panels_wf.clear();
     m_wf_focused = nullptr;
 
+    stop_all_threads();
+
     if (m_nodes_parser)
         m_nodes_parser->stop();
     m_nodes_parser.reset();
-
-    stop_all_threads();
 
     LogF_Out;
 }
