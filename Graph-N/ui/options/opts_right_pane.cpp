@@ -27,7 +27,6 @@ enum
     BuffConnOptChanged,
     BuffPort,
     BuffConnTm,
-    BuffReadTm,
     BuffFpsW,
     BuffFpsC,
     BuffLRamW,
@@ -74,7 +73,6 @@ void OptRightPane::init(OptsData& data)
     m_data->buffer_i[BuffConnOptChanged] = 0;
     m_data->buffer_i[BuffPort] = g::pOptsManager->comfyui_port_load();
     m_data->buffer_i[BuffConnTm] = g::pOptsManager->comfyui_connect_timeout_load();
-    m_data->buffer_i[BuffReadTm] = g::pOptsManager->comfyui_read_timeout_load();
     m_data->buffer_i[BuffFpsW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalFPS);
     m_data->buffer_i[BuffFpsC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalFPS);
     m_data->buffer_i[BuffLRamW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalRAM);
@@ -259,27 +257,12 @@ void OptRightPane::show_connection(const char*& help_text)
         m_data->buffer_i[BuffConnOptChanged];
 
 
-    ///////////////////       read timeout
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Read timeout:");
-    show_help_mark(help_text,
-        "Max time (seconds) to wait for a response (e.g., JSON workflow).\n\n"
-        "Increase this if loading large workflows over a slow network.");
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(m_data->input_offset_x);
-    ImGui::SetNextItemWidth(m_data->input_w);
-    m_data->buffer_i[BuffConnOptChanged] =
-        ImGuiEx::SliderIntSmart("##ComfyUIReadTime", &m_data->buffer_i[BuffReadTm], 0, 30, "%llu sec") ||
-        m_data->buffer_i[BuffConnOptChanged];
-
-
     /////////////// apply
     if (show_full_row_button("Save/Apply connection settings", m_data->buffer_i[BuffConnOptChanged] && !m_data->buffer_s[BuffHost].empty(), true))
     {
         g::pOptsManager->comfyui_host_save(m_data->buffer_s[BuffHost]);
         g::pOptsManager->comfyui_port_save(m_data->buffer_i[BuffPort]);
         g::pOptsManager->comfyui_connect_timeout_save(m_data->buffer_i[BuffConnTm]);
-        g::pOptsManager->comfyui_read_timeout_save(m_data->buffer_i[BuffReadTm]);
         m_data->buffer_i[BuffConnOptChanged] = 0;
     }
     ImGui::SameLine();

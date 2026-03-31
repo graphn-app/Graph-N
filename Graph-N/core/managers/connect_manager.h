@@ -14,43 +14,49 @@ public:
     ~ConnectManager() override;
 
     bool init() override;
-    void free() override;
     void stop_all_threads() override;
 
-    ConnectState check_status(size_t* inbox = nullptr, int64_t* latency = nullptr);
+    void reconnect();
 
-    std::string& get_nodes_raw() { return m_nodes_raw; }
+    using RequestCallback = std::function<void(bool, std::string&&)>;
+    void send_http_request(const char* request, bool post, RequestCallback callback);
 
-    void connect();
-    void stop_connect();
+    ConnectState get_status(size_t* inbox = nullptr, int64_t* latency = nullptr);
 
 private:
-    struct ConnectData
+    struct RequestData
     {
+        bool reconnect = false;
+        std::string request;
+        bool post = true;
         std::string host;
         int32_t port = 0;
         int64_t conn_timeout = 0;
-        int64_t read_timeout = 0;
-        int32_t conn_th_id = 0;
-        ConnectState state = ConnectState::Disconnected;
-        std::atomic_bool stop_thread_flag = false;
+        RequestCallback callback = nullptr;
+
+        bool success = false;
         std::string data;
     };
 
-    static std::shared_ptr<ConnectData> connect_thread(std::shared_ptr<ConnectData> data);
+    void send_http_request_internal(std::shared_ptr<RequestData> req);
+    std::shared_ptr<RequestData> request_thread(std::shared_ptr<RequestData> request);
 
-    void make_ws_connection();
     void drop_ws_connection();
 
 private:
-    std::shared_ptr<ConnectData> m_conn_data;
-    std::atomic<ConnectState> m_state = ConnectState::Disconnected;
-    std::thread m_thread;
-    std::future<std::shared_ptr<ConnectData>> m_future;
-    std::string m_nodes_raw;
-    int32_t m_conn_th_id = 0;
+    std::mutex m_cli_mutex;
+    std::unique_ptr<httplib::Client> m_http_client;
+
+    std::string m_prev_host;
+    int32_t m_prev_port = 0;
+
+    std::mutex m_req_mutex;
+    std::queue<std::shared_ptr<RequestData>> m_requests;
+    std::thread m_req_thread;
+    std::future<std::shared_ptr<RequestData>> m_req_future;
 
     std::shared_ptr<WebSocket> m_ws;
+    ConnectState m_prev_state = ConnectState::Disconnected;
 };
 
 } // namespace mngr

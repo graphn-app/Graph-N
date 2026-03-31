@@ -14,6 +14,7 @@ ConnectManager::ConnectManager()
 ConnectManager::~ConnectManager()
 {
     LogF;
+    stop_all_threads();
 }
 
 bool ConnectManager::init()
@@ -24,109 +25,29 @@ bool ConnectManager::init()
     return true;
 }
 
-void ConnectManager::free()
-{
-    LogF;
-}
-
 void ConnectManager::stop_all_threads()
 {
     LogF_In;
 
-    if (m_conn_data)
     {
-        Log("Terminating thread " << m_conn_data->conn_th_id);
-        m_conn_data->stop_thread_flag = true;
+        std::unique_lock<std::mutex> lock(m_req_mutex);
+        while (!m_requests.empty())
+            m_requests.pop();
     }
-    m_conn_data.reset();
-
-    if (m_thread.joinable())
-        m_thread.detach();
+    {
+        std::unique_lock<std::mutex> lock(m_cli_mutex);
+        if (m_http_client)
+            m_http_client->stop();
+    }
+    if (m_req_thread.joinable())
+        m_req_thread.join();
 
     drop_ws_connection();
 
     LogF_Out;
 }
 
-ConnectState ConnectManager::check_status(size_t* inbox /*= nullptr*/, int64_t* latency /*= nullptr*/)
-{
-    if (latency)
-        *latency = -1;
-    if (inbox)
-        *inbox = 0;
-
-    using namespace std::chrono_literals;
-    if (ConnectState::Connecting == m_state)
-    {
-        if (m_future.wait_for(0ms) == std::future_status::ready)
-        {
-            if (m_thread.joinable())
-                m_thread.join();
-
-            auto data = m_future.get();
-            if (data->conn_th_id != m_conn_th_id)
-            {
-                LogError(ExcepCategory::Logic, "Thread id not equal. Finished " << data->conn_th_id << ", expected: " << m_conn_th_id);
-            }
-            if (ConnectState::Connected == data->state)
-            {
-                m_state = ConnectState::Connected;
-                Log("Connected thread " << data->conn_th_id);
-                m_nodes_raw = std::move(data->data);
-
-                make_ws_connection();
-            }
-            else
-            {
-                Log("Connection thread " << data->conn_th_id << " finished with status " << cast::to_u64(data->state));
-            }
-        }
-    }
-    else if (m_ws)
-    {
-        const auto state = m_ws->get_state();
-        if (ConnectState::Connected == state)
-        {
-            if (latency)
-                *latency = m_ws->get_latency();
-            if (inbox)
-                *inbox = m_ws->peek();
-        }
-        return state;
-    }
-
-    return m_state;
-}
-
-void ConnectManager::connect()
-{
-    LogF;
-
-    stop_connect();
-
-    m_conn_data = std::make_shared<ConnectData>();
-    m_conn_data->host = g::pOptsManager->comfyui_host_load();
-    m_conn_data->port = cast::to_i32(g::pOptsManager->comfyui_port_load());
-    m_conn_data->conn_timeout = g::pOptsManager->comfyui_connect_timeout_load();
-    m_conn_data->read_timeout = g::pOptsManager->comfyui_read_timeout_load();
-    m_conn_data->conn_th_id = ++m_conn_th_id;
-    Log("Starting connection thread " << m_conn_data->conn_th_id);
-
-    m_state = ConnectState::Connecting;
-    std::packaged_task<std::shared_ptr<ConnectData>()> task(std::bind(&ConnectManager::connect_thread, m_conn_data));
-    m_future = task.get_future();
-    m_thread = std::thread(std::move(task));
-}
-
-void ConnectManager::stop_connect()
-{
-    LogF;
-    stop_all_threads();
-    if (ConnectState::Connecting == m_state)
-        m_state = ConnectState::Disconnected;
-}
-
-void ConnectManager::make_ws_connection()
+void ConnectManager::reconnect()
 {
     drop_ws_connection();
 
@@ -141,62 +62,128 @@ void ConnectManager::drop_ws_connection()
     m_ws.reset();
 }
 
-std::shared_ptr<ConnectManager::ConnectData> ConnectManager::connect_thread(std::shared_ptr<ConnectData> data)
+ConnectState ConnectManager::get_status(size_t* inbox /*= nullptr*/, int64_t* latency /*= nullptr*/)
 {
-    LogFS;
+    if (latency)
+        *latency = -1;
+    if (inbox)
+        *inbox = 0;
 
-    LogS("Thread " << data->conn_th_id << ". Connecting to " APP_COMFYUI ". " << data->host << ":" << data->port << ", ct=" << data->conn_timeout << ", rt=" << data->read_timeout);
-    using namespace std::chrono_literals;
-    while (!data->stop_thread_flag)
+    if (m_req_future.valid())
     {
-        try
+        using namespace std::chrono_literals;
+        if (m_req_future.wait_for(0ms) == std::future_status::ready)
         {
-            data->state = ConnectState::Connecting;
+            if (m_req_thread.joinable())
+                m_req_thread.join();
 
-            httplib::Client cli(data->host, data->port);
-            cli.set_keep_alive(true);
-            cli.set_connection_timeout(data->conn_timeout);
-            cli.set_read_timeout(data->read_timeout);
+            auto req_data = m_req_future.get();
+            Log("Request '" << req_data->request << "' is done. Ok=" << req_data->success << ", data=" << req_data->data.size());
+            req_data->callback(req_data->success, std::move(req_data->data));
 
-            const auto res = cli.Get(comfyui_http::object_info);
-            if (data->stop_thread_flag)
+            std::unique_lock<std::mutex> lock(m_req_mutex);
+            if (!m_requests.empty() && ConnectState::Connected == m_ws->get_state())
             {
-                LogS("Thread " << data->conn_th_id << ". Connection thread aborted");
-                data->state = ConnectState::Disconnected;
-                return data;
+                req_data = m_requests.front();
+                m_requests.pop();
+                send_http_request_internal(req_data);
             }
-
-            if (res && 200 == res->status)
-            {
-                LogS("Thread " << data->conn_th_id << ". Start reading nodes: " << res->body.size() << " bytes");
-                data->state = ConnectState::Connected;
-                data->data = std::move(res->body);
-                return data;
-            }
-
-            LogS("Thread " << data->conn_th_id << ". Connect failed. Err: " << httplib::to_string(res.error()));
-
-            for (int32_t i = 0; i < 10; ++i)
-            { 
-                if (data->stop_thread_flag)
-                    break;
-                std::this_thread::sleep_for(100ms);
-            }
-        }
-        catch (const std::exception& e)
-        {
-            LogExcepS(ExcepCategory::ComfyUI, "Thread " << data->conn_th_id << ". Connection failed with err " << e.what());
         }
     }
 
-    if (data->stop_thread_flag)
+    if (m_ws)
     {
-        LogS("Thread " << data->conn_th_id << ". Connection thread aborted");
-        data->state = ConnectState::Disconnected;
-        return data;
+        const auto state = m_ws->get_state();
+        if (ConnectState::Connected == state)
+        {
+            if (latency)
+                *latency = m_ws->get_latency();
+            if (inbox)
+                *inbox = m_ws->peek();
+
+            if (m_prev_state != state && !m_req_future.valid())
+            {
+                std::unique_lock<std::mutex> lock(m_req_mutex);
+                if (!m_requests.empty())
+                {
+                    auto req_data = m_requests.front();
+                    m_requests.pop();
+                    send_http_request_internal(req_data);
+                }
+            }
+        }
+        m_prev_state = state;
+        return state;
     }
 
-    LogAndThrowS(ExcepCategory::Logic, "Thread " << data->conn_th_id << ". Unexpected exit flow");
+    m_prev_state = ConnectState::Disconnected;
+    return ConnectState::Disconnected;
+}
+
+void ConnectManager::send_http_request(const char* request, bool post, RequestCallback callback)
+{
+    auto req = std::make_shared<RequestData>();
+    req->request = request;
+    req->post = post;
+    req->callback = callback;
+
+    const auto state = m_ws ? m_ws->get_state() : ConnectState::Disconnected;
+    std::unique_lock<std::mutex> lock(m_req_mutex);
+    if (state != ConnectState::Connected || m_req_future.valid())
+    {
+        m_requests.push(req);
+        return;
+    }
+
+    send_http_request_internal(req);
+}
+
+void ConnectManager::send_http_request_internal(std::shared_ptr<RequestData> req)
+{
+    req->reconnect = false;
+    req->host = g::pOptsManager->comfyui_host_load();
+    req->port = cast::to_i32(g::pOptsManager->comfyui_port_load());
+    if (req->host != m_prev_host || req->port != m_prev_port)
+    {
+        req->reconnect = true;
+        m_prev_host = req->host;
+        m_prev_port = req->port;
+    }
+    req->conn_timeout = g::pOptsManager->comfyui_connect_timeout_load();
+
+    std::packaged_task<std::shared_ptr<RequestData>()> task(std::bind(&ConnectManager::request_thread, this, req));
+    m_req_future = task.get_future();
+    m_req_thread = std::thread(std::move(task));
+}
+
+std::shared_ptr<ConnectManager::RequestData> ConnectManager::request_thread(std::shared_ptr<RequestData> request)
+{
+    LogS("Requesting '" << request->request << "' to " << request->host << ":" << request->port);
+
+    std::unique_lock<std::mutex> lock(m_cli_mutex);
+    if (request->reconnect || !m_http_client)
+    {
+        m_http_client = std::make_unique<httplib::Client>(request->host, request->port);
+        m_http_client->set_connection_timeout(request->conn_timeout);
+        m_http_client->set_keep_alive(true);
+    }
+    auto* cli = m_http_client.get();
+    lock.unlock();
+
+    httplib::Result res;
+    if (request->post)
+        res = cli->Post(request->request);
+    else
+        res = cli->Get(request->request);
+
+    request->success = false;
+    if (res && 200 == res->status)
+    {
+        request->success = true;
+        request->data = std::move(res->body);        
+    }
+
+    return request;
 }
 
 } // namespace mngr

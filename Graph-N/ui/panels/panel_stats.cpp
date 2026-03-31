@@ -252,7 +252,7 @@ void PanelStats::th_comfyui()
 
 void PanelStats::on_1s_lazy_timer(int64_t /*total_seconds_elapsed*/)
 {
-    g::pConnectManager->check_status(nullptr, &m_ping_mk);
+    g::pConnectManager->get_status(nullptr, &m_ping_mk);
 }
 
 struct FrameSmoother final

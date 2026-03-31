@@ -61,9 +61,6 @@ public:
     inline int64_t comfyui_connect_timeout_load() const { return *std::get_if<int64_t>(&m_comfyui_conn_time.value); }
     inline void comfyui_connect_timeout_save(int64_t timeout) { save_option(m_comfyui_conn_time, int64_t(timeout)); }
 
-    inline int64_t comfyui_read_timeout_load() const { return *std::get_if<int64_t>(&m_comfyui_read_time.value); }
-    inline void comfyui_read_timeout_save(int64_t timeout) { save_option(m_comfyui_read_time, int64_t(timeout)); }
-
     inline bool comfyui_start_server_load() const { return *std::get_if<bool>(&m_comfyui_start_server.value); }
     inline void comfyui_start_server_save(bool start) { save_option(m_comfyui_start_server, bool(start)); }
 
@@ -207,7 +204,6 @@ private:
     OptionValue m_comfyui_host; // str
     OptionValue m_comfyui_port; // int
     OptionValue m_comfyui_conn_time; // int
-    OptionValue m_comfyui_read_time; // int
     OptionValue m_comfyui_start_server; // int
     OptionValue m_comfyui_python; // path
     OptionValue m_comfyui_python_args; // str

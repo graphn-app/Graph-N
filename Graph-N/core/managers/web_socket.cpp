@@ -118,7 +118,11 @@ void WebSocket::on_resolve(beast::error_code ec, tcp::resolver::results_type res
 void WebSocket::on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type /*ep*/)
 {
     if (ec)
+    {
+        if (beast::error::timeout == ec)
+            return fail(ec, "connect timeout (server is dead or blocked)");
         return fail(ec, "connect");
+    }
 
     beast::get_lowest_layer(m_ws).expires_never();
     m_ws.set_option(websocket::stream_base::timeout::suggested(beast::role_type::client));

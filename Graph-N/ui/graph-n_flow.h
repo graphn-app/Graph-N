@@ -1,5 +1,6 @@
 
 #pragma once
+#include "core/managers/connect_manager.h"
 
 namespace mngr
 {
@@ -40,7 +41,6 @@ enum ViewDialogs
     // status & control bar
     ViewConnect                 = 0x00000004,
     ViewParsingNodes            = 0x00000008,
-    ViewQueueCtrl               = 0x00000010,
     // panels
     ViewPanelsResetAll          = 0x00000020,
     ViewPanelNodes              = 0x00000040,
@@ -69,9 +69,9 @@ enum ViewDialogs
     ViewActivityBarL            = 0x00800000,
     ViewActivityBarR            = 0x01000000,
 
-    _ViewNextAvail              = 0x02000000,
+    _ViewNextAvail              = 0x02000000, // + 0x00000010
 
-    ViewAllMenuBar              = ViewConnect | ViewParsingNodes | ViewQueueCtrl,
+    ViewAllMenuBar              = ViewConnect | ViewParsingNodes,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWf | ViewPanelWfList | ViewPanelModels |
                                   ViewPanelTemplates | ViewPanelOutput | ViewPanelNotes | ViewPanelTextEditor | ViewPanelMarkdownPreview,
     ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector,
@@ -90,8 +90,7 @@ public:
     bool run();
     void exit();
 
-    inline bool get_online() const { return m_online; }
-    inline void set_online(bool online) { m_online = online; }
+    inline bool get_online() const { return g::pConnectManager->get_status() == ConnectState::Connected; }
 
     inline ImGuiID get_main_dockspace_id() { return m_main_dock_id; }
 
@@ -148,8 +147,7 @@ private:
     void modal_last_frame();
 
     void show_menu_bar();
-    void show_menu_bar_connecting();
-    void show_menu_bar_queue_controls();
+    void show_menu_bar_net_status();
 
     void show_panels();
 
@@ -196,8 +194,6 @@ private:
     void destroy_txt_panel(PanelTextEditor* panel);
 
 private:
-    bool m_online = false;
-
     std::atomic_bool m_nodes_ready = false;
     std::atomic_bool m_models_ready = false;
 

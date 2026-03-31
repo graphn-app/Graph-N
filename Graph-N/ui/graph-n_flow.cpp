@@ -16,7 +16,6 @@
 #include "ui/panels/panel_logs.h"
 #include "ui/panels/panel_templates.h"
 #include "core/managers/settings_manager.h"
-#include "core/managers/connect_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/nodes_parser.h"
 #include "core/managers/db_manager.h"
@@ -69,8 +68,6 @@ bool GraphN_Flow::init()
     w::ico_max = std::max(w::ico_circle, w::ico_eye);
     w::v_spacing = 4.0f;
     w::hidden_widgets_len = ImGui::CalcTextSize(w::hidden_widgets.c_str()).x;
-
-    m_online = false;
 
     // menu colors
     ImGuiStyle& style = ImGui::GetStyle();
@@ -149,7 +146,8 @@ void GraphN_Flow::reconnect()
 {
     LogF;
     m_windows |= ViewConnect;
-    g::pConnectManager->connect();
+    show_logs_panel(true);
+    g::pConnectManager->reconnect();
 }
 
 void GraphN_Flow::load_activity_bar_mode()
@@ -370,18 +368,14 @@ void GraphN_Flow::show_logs_panel(bool show)
 
 void GraphN_Flow::check_connection()
 {
-    const auto connection_state = g::pConnectManager->check_status();
-    m_online = (ConnectState::Connected == connection_state);
-    if (ConnectState::Disconnected == connection_state)
+    if (!get_online())
     {
         reconnect();
-        show_logs_panel(true);
     }
 }
 
 void GraphN_Flow::handle_connected()
 {
-    check_connection();
     if (!get_online())
         return;
 
@@ -393,39 +387,49 @@ void GraphN_Flow::handle_connected()
 
 void GraphN_Flow::reload_nodes()
 {
-    //reconnect(); - send request on live connection
     reparse_nodes();
 }
 
 void GraphN_Flow::reparse_nodes()
 {
-    m_windows |= ViewParsingNodes;
-    m_nodes_ready = false;
-    m_models_ready = false;
-
-    g::pModelsManager->load_models();
-
-    m_nodes_parser = std::make_unique<mngr::NodesParser>();
-#ifdef _DEBUG
-    if (test_json)
+    const auto parser = [this](bool result, std::string&& data)
     {
-        auto test_json_path = fs::get_root_directory_path();
-        test_json_path /= "test_json_broken.json";
-        auto test_json_data = tools::path::read_file(test_json_path);
-        std::string test_json_string;
-        test_json_string.reserve(test_json_data.size() + 1);
-        test_json_string = test_json_data.data();
-        test_json_string.at(test_json_data.size()) = 0;
-        m_nodes_parser->parse(std::move(test_json_string));
-    }
-    else
+        if (!result)
+        {
+            Log("Failed to load object_info");
+            return;
+        }
+
+        m_windows |= ViewParsingNodes;
+        m_nodes_ready = false;
+        m_models_ready = false;
+
+        g::pModelsManager->load_models();
+
+        m_nodes_parser = std::make_unique<mngr::NodesParser>();
+#ifdef _DEBUG
+        if (test_json)
+        {
+            auto test_json_path = fs::get_root_directory_path();
+            test_json_path /= "test_json_broken.json";
+            auto test_json_data = tools::path::read_file(test_json_path);
+            std::string test_json_string;
+            test_json_string.reserve(test_json_data.size() + 1);
+            test_json_string = test_json_data.data();
+            test_json_string.at(test_json_data.size()) = 0;
+            m_nodes_parser->parse(std::move(test_json_string));
+        }
+        else
 #endif
-        m_nodes_parser->parse(std::move(g::pConnectManager->get_nodes_raw()));
+            m_nodes_parser->parse(std::move(data));
+    };
+
+    g::pConnectManager->send_http_request(comfyui_http::object_info, false, parser);
 }
 
 void GraphN_Flow::show_menu_bar()
 {
-    const bool connecting_mode = (m_windows & (ViewConnect | ViewParsingNodes)) > 0 && !m_online;
+    const bool connecting_mode = (m_windows & ViewConnect);
     if (connecting_mode)
         ImGui::PushStyleColor(ImGuiCol_MenuBarBg, g::pOptsManager->color_load(AppColor::DisconnectedMenuBarBg));
 
@@ -594,12 +598,7 @@ void GraphN_Flow::show_menu_bar()
             ImGui::EndMenu();
         }
 
-        //////////////	status and controls
-        if (m_windows & (ViewConnect | ViewParsingNodes))
-            show_menu_bar_connecting();
-        else if (m_windows & ViewQueueCtrl)
-            show_menu_bar_queue_controls();
-        //////////////////////	
+        show_menu_bar_net_status();
 
         ImGui::EndMainMenuBar();
     }
@@ -1212,12 +1211,12 @@ void GraphN_Flow::handle_comfyui_runserver_error(int32_t error, const std::strin
     (void)description;
 }
 
-void GraphN_Flow::show_menu_bar_connecting()
+void GraphN_Flow::show_menu_bar_net_status()
 {
     std::string text;
-    if (m_windows & ViewConnect)
+    if ((m_windows & ViewConnect) || !get_online())
     {
-        const auto status = g::pConnectManager->check_status();
+        const auto status = g::pConnectManager->get_status();
         if (ConnectState::Connected == status)
         {
             handle_connected();
@@ -1251,6 +1250,10 @@ void GraphN_Flow::show_menu_bar_connecting()
             }
         }
     }
+    else if (get_online())
+    {
+        text = fmt::format(FMT_STRING("Connected to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
+    }
 
     const float text_width = ImGui::CalcTextSize(text.c_str()).x;
     const float spacing = ImGui::GetStyle().ItemSpacing.x;
@@ -1265,16 +1268,6 @@ void GraphN_Flow::show_menu_bar_connecting()
     ImGui::TextUnformatted(text.c_str(), text.c_str() + text.size());
     ImGui::PopStyleColor();
 }
-
-void GraphN_Flow::show_menu_bar_queue_controls()
-{
-    // TODO
-}
-//
-//ImGuiID GraphN_Flow::get_main_dockspace()
-//{
-//    return ImGui::GetID(DlgObjID[cast::to_szt(DlgObj::MainDockSpaceID)]);
-//}
 
 void GraphN_Flow::show_panels()
 {

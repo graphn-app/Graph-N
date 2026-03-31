@@ -36,7 +36,6 @@ bool SettingsManager::init()
     m_comfyui_host =                                  { "comfyui_host",             std::string("127.0.0.1") };
     m_comfyui_port =                                  { "comfyui_port",             int64_t(8188) };
     m_comfyui_conn_time =                             { "comfyui_conn_time",        int64_t(1) };
-    m_comfyui_read_time =                             { "comfyui_read_time",        int64_t(5) };
     m_comfyui_start_server =                          { "comfyui_start_server",     bool(false) };
     m_comfyui_python =                                { "comfyui_python",           std::filesystem::path("") };
     m_comfyui_python_args =                           { "comfyui_python_args",      std::string("") };
@@ -193,7 +192,6 @@ bool SettingsManager::init()
     values.push_back(&m_comfyui_host);
     values.push_back(&m_comfyui_port);
     values.push_back(&m_comfyui_conn_time);
-    values.push_back(&m_comfyui_read_time);
     values.push_back(&m_comfyui_start_server);
     values.push_back(&m_comfyui_python);
     values.push_back(&m_comfyui_python_args);
