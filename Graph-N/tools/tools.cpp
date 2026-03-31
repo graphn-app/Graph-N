@@ -927,7 +927,12 @@ void select_files_result_handler(WPARAM, LPARAM l)
     if (data->callback_mt != nullptr)
         data->callback_mt(!data->results.empty(), std::move(data->results));
     else if (data->callback_sg != nullptr)
-        data->callback_sg(!data->results.empty(), std::move(*data->results.begin()));
+    {
+        if (!data->results.empty())
+            data->callback_sg(true, std::move(*data->results.begin()));
+        else
+            data->callback_sg(false, {});
+    }
 }
 
 void select_files_th(std::unique_ptr<FdData> data)
@@ -1095,6 +1100,37 @@ void open_file(const std::filesystem::path& path)
     }
 
 #endif // #ifdef _WIN32
+}
+
+std::string& clear_filename(std::string& filename)
+{
+    tools::str::trim_this(filename, " .,\r\n\t");
+    if (filename.empty())
+    {
+        filename = "_";
+        return filename;
+    }
+
+    tools::str::replace_this(filename, "/", "_");
+    tools::str::replace_this(filename, "\\", "_");
+    tools::str::replace_this(filename, ":", "_");
+    tools::str::replace_this(filename, "*", "_");
+    tools::str::replace_this(filename, "?", "_");
+    tools::str::replace_this(filename, "\"", "_");
+    tools::str::replace_this(filename, "<", "_");
+    tools::str::replace_this(filename, ">", "_");
+    tools::str::replace_this(filename, "|", "_");
+
+    auto low = tools::str::to_lower_ascii(filename);
+    if ("con" == low || "prn" == low || "aux" == low || "nul" == low || "com1" == low || "com2" == low || "com3" == low ||
+        "com4" == low || "com5" == low || "com6" == low || "com7" == low || "com8" == low || "com9" == low || "lpt1" == low ||
+        "lpt2" == low || "lpt3" == low || "lpt4" == low || "lpt5" == low || "lpt6" == low || "lpt7" == low || "lpt8" == low ||
+        "lpt9" == low)
+    {
+        filename += "_";
+    }
+
+    return filename;
 }
 
 }	// namespace path

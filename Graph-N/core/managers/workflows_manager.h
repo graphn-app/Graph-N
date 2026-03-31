@@ -69,6 +69,9 @@ public:
     void revert(wid wf_id, blob::Blob& drawer_state);
     void dump(wid wf_id) const;
 
+    void import_wf(std::filesystem::path& from);
+    void export_wf(bool api, std::filesystem::path& to);
+
 private:
     data::Workflow* create(WfData&& data, bool dump_to_db);
     void init_labels();

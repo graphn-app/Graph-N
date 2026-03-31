@@ -19,24 +19,4 @@ void WorkflowSerializerToJson::serialize_node(const NodeInstance* /*node*/, nloh
 {
 }
 
-bool WorkflowSerializerToJson::deserialize(Workflow* /*wf*/, const std::string& /*json*/)
-{
-    try
-    {
-        return true;
-    }
-    catch (std::exception& ex)
-    {
-        // TODO remove wf
-        // handle errors if node/pin not found
-        LogExcepS(ExcepCategory::Logic, ex.what());
-    }
-    return false;
-}
-
-NodeInstance* WorkflowSerializerToJson::deserialize_node(Workflow* /*wf*/, NodeInstance* /*node*/, const nlohmann::json& /*json*/)
-{
-    return nullptr;
-}
-
 } // namespace data

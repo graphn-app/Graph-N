@@ -8,6 +8,7 @@
 #include "core/workflow/node_instance.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/workflow_serializer_to_blob.h"
+#include "core/workflow/workflow_serializer_to_json.h"
 #include "ui/graph-n_flow.h"
 
 namespace mngr
@@ -709,6 +710,53 @@ void WfsManager::dump(wid wf_id) const
     }
     
     Log("Wf " << wf_id << " dumped " << (data.draft ? "(draft)" : "(explicit save)"));
+}
+
+void WfsManager::import_wf(std::filesystem::path& from)
+{
+    try
+    {
+        auto json = tools::path::read_file(from);
+        nlohmann::json j = nlohmann::json::parse(json.data());
+
+        WfData wf_data;
+        wf_data.ro = false;
+        wf_data.name = from.filename().replace_extension().u8string();
+        auto wf = create(std::move(wf_data), false);
+
+        if (data::WorkflowSerializerToJson::deserialize(wf, j))
+            dump(wf->get_id());
+    }
+    catch (const std::exception& ex)
+    {
+        LogExcep(ExcepCategory::API, "Failed to parse json, err " << ex.what());
+    }
+}
+
+void WfsManager::export_wf(bool api, std::filesystem::path& to)
+{
+    auto wf_id = get_active();
+    if (0 == wf_id)
+    {
+        Log("Can't export - no active wf");
+        return;
+    }
+    const auto wf_it = m_wfs.find(wf_id);
+    if (wf_it == m_wfs.end())
+    {
+        LogWarn("Can't export - active wf " << wf_id << " not found");
+        return;
+    }
+
+    Log("Starting export wf=" << wf_id << " as API=" << api << " to " << to.string());
+    std::string json;
+    if (api)
+        json = data::WorkflowSerializerToJson::serialize_to_api(wf_it->second.get());
+    else
+        json = data::WorkflowSerializerToJson::serialize(wf_it->second.get());
+
+    if (!tools::path::make_file_path(to, true, json))
+        Log("Export failed");
 }
 
 void WfsManager::on_1s_lazy_timer(int64_t /*total_seconds_elapsed*/)

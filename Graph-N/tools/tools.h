@@ -85,6 +85,8 @@ std::string build_commandline_arg(const std::string& arg);
 
 void open_file(const std::filesystem::path& path);
 
+std::string& clear_filename(std::string& filename);
+
 }	// namespace path
 
 namespace api

@@ -14,7 +14,9 @@ class WorkflowSerializerToJson
 public:
 
     static std::string serialize(const Workflow* wf);
-    static bool deserialize(Workflow* wf, const std::string& json);
+    static std::string serialize_to_api(const Workflow* wf);
+
+    static bool deserialize(Workflow* wf, const nlohmann::json& json);
 
 private:
     static void serialize_node(const NodeInstance* node, nlohmann::json& json);
