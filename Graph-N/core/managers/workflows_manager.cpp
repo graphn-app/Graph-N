@@ -87,18 +87,23 @@ const WfData& WfsManager::create_copy(wid source)
     return wf->get_data();
 }
 
-void WfsManager::load(wid wf_id, blob::Blob& drawer_state)
+bool WfsManager::load(wid wf_id, blob::Blob& drawer_state)
 {
     auto wf = access(wf_id);
     auto& data = wf->get_data();
     if (!data.draft_exist && !data.saved_exist || data.ro)
-        return;
+        return false;
 
     blob::Blob blob;
     bool load_saved = !data.draft_exist;
     g::pDbManager->wf_load_blob(data.uuid, blob, load_saved);
-    const bool result = data::WorkflowSerializerToBlob::deserialize(wf, blob, drawer_state);
-    data.draft = !load_saved || !result;
+    if (!blob->empty())
+    {
+        const bool result = data::WorkflowSerializerToBlob::deserialize(wf, blob, drawer_state);
+        data.draft = !load_saved || !result;
+        return true;
+    }
+    return false;
 }
 
 data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db)
@@ -234,7 +239,7 @@ void WfsManager::init_labels()
     m_wfs_in_label.clear();
     m_last_label_id = 0;
 
-    auto labels = g::pOptsManager->wf_labels_load(tools::str::hash_fnv1a(DlgObjID[cast::to_szt(DlgObj::PanelWfList)]));
+    auto labels = g::pOptsManager->wf_labels_load(base::HashID::create_id(DlgObjID[cast::to_szt(DlgObj::PanelWfList)]));
     if (labels.empty())
         return;
 
@@ -413,7 +418,7 @@ void WfsManager::save_labels() const
         j.push_back(std::move(jlabel));
     }
 
-    g::pOptsManager->wf_labels_save(tools::str::hash_fnv1a(DlgObjID[cast::to_szt(DlgObj::PanelWfList)]), j.dump());
+    g::pOptsManager->wf_labels_save(base::HashID::create_id(DlgObjID[cast::to_szt(DlgObj::PanelWfList)]), j.dump());
 }
 
 const std::list<wid>& WfsManager::get_wfs_in_label(uint32_t label_id) const
@@ -671,6 +676,8 @@ void WfsManager::revert(wid wf_id, blob::Blob& drawer_state)
 
         const bool res = data::WorkflowSerializerToBlob::deserialize(wf, blob, drawer_state);
         g::pHistoryManager->cleanup(wf_id);
+        if (load_saved)
+            g::pHistoryManager->set_rollback_pos(wf->get_id());
         Log("Wf " << wf_id << " reverted via hard reset, res: " << (res ? "ok" : "fail"));
     }
 
@@ -712,11 +719,12 @@ void WfsManager::dump(wid wf_id) const
     Log("Wf " << wf_id << " dumped " << (data.draft ? "(draft)" : "(explicit save)"));
 }
 
-void WfsManager::import_wf(std::filesystem::path& from)
+wid WfsManager::import_wf(std::filesystem::path& from)
 {
     try
     {
-        auto json = tools::path::read_file(from);
+        Log("Import project from " << from);
+        auto json = tools::path::read_file(from, true);
         nlohmann::json j = nlohmann::json::parse(json.data());
 
         WfData wf_data;
@@ -724,13 +732,25 @@ void WfsManager::import_wf(std::filesystem::path& from)
         wf_data.name = from.filename().replace_extension().u8string();
         auto wf = create(std::move(wf_data), false);
 
-        if (data::WorkflowSerializerToJson::deserialize(wf, j))
-            dump(wf->get_id());
+        if (data::WorkflowSerializerToJson::deserialize(wf, j) || data::WorkflowSerializerToJson::deserialize_api(wf, j))
+        {
+            Log("Import project success, wf id set to " << wf->get_uuid() << " -> " << wf->get_id());
+            g::pDbManager->wf_update_meta(wf->get_data());
+            wf->get_data().dirty = true;
+            wf->get_data().draft = true;
+            save(wf->get_id());
+            return wf->get_id();
+        }
+
+        Log("Import project success failed");
+        m_wfs.erase(wf->get_id());
     }
     catch (const std::exception& ex)
     {
         LogExcep(ExcepCategory::API, "Failed to parse json, err " << ex.what());
     }
+
+    return 0;
 }
 
 void WfsManager::export_wf(bool api, std::filesystem::path& to)

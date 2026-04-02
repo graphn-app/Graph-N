@@ -272,7 +272,11 @@ void Workflow::remove_node(const NodeInstance* node)
     remove_pins(node->get_outputs());
 
     m_nodes.erase(n_it);
+    invalidate_current();
+}
 
+void Workflow::invalidate_current()
+{
     if (!m_wf_data.valid && !m_wf_data.critical_failure)
     {
         m_wf_data.valid = true;
@@ -411,8 +415,8 @@ void Workflow::resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::
         return;
 
     blob::Blob drawer_state;
-    g::pWfsManager->load(m_wf_data.id, drawer_state);
-    m_action->reinit(std::move(drawer_state));
+    if (g::pWfsManager->load(m_wf_data.id, drawer_state))
+        m_action->reinit(std::move(drawer_state));
 
     m_invalidation_state = false;
 }

@@ -11,6 +11,7 @@ struct PinState;
 class PinInstance final : public Instance<Pin>
 {
     friend class WorkflowSerializerToBlob;
+    friend class WorkflowSerializerToJson;
 
 public:
     PinInstance(NodeInstanceBase* parent_node, Pin* obj, wid workflow_id, iid instance_id);

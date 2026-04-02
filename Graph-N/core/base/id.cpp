@@ -58,15 +58,20 @@ std::string GlobalID::uuid()
 /////   HashID          /////////////////////
 /////////////////////////////////////////////
 
+hid HashID::create_id(const std::string& unique)
+{
+    return tools::str::hash_fnv1a(unique);
+}
+
 HashID::HashID(const char* unique)
 {
-    set_id(tools::str::hash_fnv1a(unique));
+    set_id(create_id(unique));
 //    Log("HashID: " << unique << "=" << m_id);
 }
 
 HashID::HashID(const std::string& unique)
 {
-    set_id(tools::str::hash_fnv1a(unique));
+    set_id(create_id(unique));
 //    Log("HashID: " << unique << "=" << m_id);
 }
 

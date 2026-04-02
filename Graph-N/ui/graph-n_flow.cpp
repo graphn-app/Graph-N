@@ -413,7 +413,7 @@ void GraphN_Flow::reparse_nodes()
         {
             auto test_json_path = fs::get_root_directory_path();
             test_json_path /= "test_json_broken.json";
-            auto test_json_data = tools::path::read_file(test_json_path);
+            auto test_json_data = tools::path::read_file(test_json_path, true);
             std::string test_json_string;
             test_json_string.reserve(test_json_data.size() + 1);
             test_json_string = test_json_data.data();
@@ -438,7 +438,7 @@ void GraphN_Flow::show_menu_bar()
     {
         if (ImGui::BeginMenu("File##MainMenuBar"))
         {
-            if (ImGui::MenuItem("Import Project from file...##FileMenuBar"))
+            if (ImGui::MenuItem("Import Project from file...##FileMenuBar", nullptr, nullptr, m_nodes_ready))
             {
                 Log("Menu: Import Project");
                 on_menu_import_json();
@@ -1022,9 +1022,10 @@ void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel)
 
 void GraphN_Flow::on_menu_import_json()
 {
+    wid activate = 0;
 #ifdef _DEBUG
     std::filesystem::path path = R"(I:\ComfyUI\ComfyUI\user\default\workflows\test_simple.json)";
-    g::pWfsManager->import_wf(path);
+    activate = g::pWfsManager->import_wf(path);
 #else
     tools::path::FdSelectResultMt callback = [](bool result, std::list<std::filesystem::path>&& paths)
     {
@@ -1032,12 +1033,22 @@ void GraphN_Flow::on_menu_import_json()
         {
             for (auto& path : paths)
             {
-                g::pWfsManager->import_wf(path);
+                auto id = g::pWfsManager->import_wf(path);
+                if (id != 0)
+                    activate = id;
             }
+
+            if (paths.size() > 1)
+                activate = 0;
         }
     };
     tools::path::select_files_open({ "ComfyUI Workflows (*.json, *.png, *.webp)", "*.json, *.png, *.webp" }, callback);
 #endif
+
+    if (activate != 0)
+        wf_activate(activate);
+    else
+        m_panel_wf_list->rebuild_items();
 }
 
 void GraphN_Flow::on_menu_export_json(bool api)

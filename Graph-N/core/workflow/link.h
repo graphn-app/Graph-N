@@ -10,6 +10,7 @@ class Workflow;
 class Link final
 {
     friend class WorkflowSerializerToBlob;
+    friend class WorkflowSerializerToJson;
 
 public:
     Link(wid workflow_id, iid link_id);

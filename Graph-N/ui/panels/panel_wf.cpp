@@ -581,8 +581,9 @@ void PanelWorkflow::on_revert(PanelToolbar::Element& /*el*/)
 {
     blob::Blob drawer_state;
     g::pWfsManager->revert(m_wf->get_id(), drawer_state);
-    if (!drawer_state->empty())
-        m_drawer.init(std::move(drawer_state));
+    m_drawer.init(std::move(drawer_state));
+    m_wf->reset();
+    m_wf->invalidate_current();
 }
 
 void PanelWorkflow::on_pre_undo(PanelToolbar::Element& el)

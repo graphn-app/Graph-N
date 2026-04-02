@@ -27,7 +27,7 @@ public:
 
     const WfData& create(bool generate_name, bool dump_to_db, bool ro);
     const WfData& create_copy(wid source);
-    void load(wid wf_id, blob::Blob& drawer_state);
+    bool load(wid wf_id, blob::Blob& drawer_state);
 
     data::Workflow* access(wid id) const;
 
@@ -69,7 +69,7 @@ public:
     void revert(wid wf_id, blob::Blob& drawer_state);
     void dump(wid wf_id) const;
 
-    void import_wf(std::filesystem::path& from);
+    wid import_wf(std::filesystem::path& from);
     void export_wf(bool api, std::filesystem::path& to);
 
 private:

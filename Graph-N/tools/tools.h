@@ -54,7 +54,7 @@ bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const
 bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write);
 bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write);
 
-std::vector<char> read_file(const std::filesystem::path& filepath);
+std::vector<char> read_file(const std::filesystem::path& filepath, bool add_tail);
 
 bool remove(const std::filesystem::path& filepath);
 bool rename(const std::filesystem::path& from, const std::filesystem::path& to);

@@ -21,6 +21,7 @@ class Workflow final :
     public listener::ComfyUiObjectValidityListener
 {
     friend class WorkflowSerializerToBlob;
+    friend class WorkflowSerializerToJson;
 
 public:
     Workflow();
@@ -62,6 +63,7 @@ public:
     inline const std::vector<std::unique_ptr<Link>>& get_links() { return m_links; }
 
     inline bool get_is_invalidation_state() const { return m_invalidation_state; }
+    void invalidate_current();
 
     void remove_node(const NodeInstance* node);
     void remove_node(const NodeInstanceRo* node);

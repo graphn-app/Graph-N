@@ -188,7 +188,7 @@ void NodesManager::init_labels()
     m_nodes_in_label.clear();
     m_last_label_id = 0;
 
-    auto labels = g::pOptsManager->nodes_labels_load(tools::str::hash_fnv1a(DlgObjID[cast::to_szt(DlgObj::PanelNodes)]));
+    auto labels = g::pOptsManager->nodes_labels_load(base::HashID::create_id(DlgObjID[cast::to_szt(DlgObj::PanelNodes)]));
     if (labels.empty())
         return;
 
@@ -367,7 +367,7 @@ void NodesManager::save_labels() const
         j.push_back(std::move(jlabel));
     }
 
-    g::pOptsManager->nodes_labels_save(tools::str::hash_fnv1a(DlgObjID[cast::to_szt(DlgObj::PanelNodes)]), j.dump());
+    g::pOptsManager->nodes_labels_save(base::HashID::create_id(DlgObjID[cast::to_szt(DlgObj::PanelNodes)]), j.dump());
 }
 
 const std::list<data::NodeItem*>& NodesManager::get_nodes_in_label(uint32_t label_id) const

@@ -11,6 +11,7 @@ struct Node;
 class NodeInstance final : public NodeInstanceBase
 {
     friend class WorkflowSerializerToBlob;
+    friend class WorkflowSerializerToJson;
 
 public:
     using NodeInstanceBase::NodeInstanceBase;

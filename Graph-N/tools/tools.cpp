@@ -611,7 +611,7 @@ bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const
     return make_file(filepath, overwrite, data_to_write);
 }
 
-std::vector<char> read_file(const std::filesystem::path& filepath)
+std::vector<char> read_file(const std::filesystem::path& filepath, bool add_tail)
 {
     LogS(filepath);
 
@@ -633,7 +633,7 @@ std::vector<char> read_file(const std::filesystem::path& filepath)
     try
     {
         std::vector<char> buffer;
-        buffer.resize(cast::to_szt(fsize));
+        buffer.resize(cast::to_szt(fsize) + (add_tail ? 1 : 0));
 
         file.read(buffer.data(), fsize);
         if (!file)

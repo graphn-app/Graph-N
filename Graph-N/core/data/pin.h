@@ -102,6 +102,8 @@ public:
     Pin(const Node* node, int64_t pin_index);
     ~Pin() override;
 
+    static hid create_id(const Node* node, const std::string& pin_name, int64_t pin_index);
+
     bool is_widget() const;
 
     static inline bool get_is_null(const primitive& value) { return std::holds_alternative<std::monostate>(value); }

@@ -53,6 +53,13 @@ Pin::Pin(const Node* node, int64_t pin_index)
 
 Pin::~Pin() = default;
 
+hid Pin::create_id(const Node* node, const std::string& pin_name, int64_t pin_index)
+{
+    if (-1 == pin_index)
+        return base::HashID::create_id(node->node_class + "_IN_" + pin_name);
+    return base::HashID::create_id(node->node_class + "_OUT_" + std::to_string(pin_index));
+}
+
 bool Pin::is_widget() const
 {
     return !output && !force_input &&

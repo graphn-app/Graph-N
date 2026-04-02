@@ -31,4 +31,34 @@ void Node::finalize(std::unordered_map<std::string, std::list<hid>>& models_map)
     scan_pins_for_models(optional, models_map);
 }
 
+Pin* Node::find_pin(hid pin_id, bool input)
+{
+    const auto find_pin_in = [](hid pin_id, const std::vector<Pin*>& pins) -> Pin*
+    {
+        for (auto pin : pins)
+        {
+            if (pin->get_id() == pin_id)
+                return pin;
+        }
+        return nullptr;
+    };
+
+    if (input)
+    {
+        auto pin = find_pin_in(pin_id, required.pins);
+        if (nullptr == pin)
+        {
+            pin = find_pin_in(pin_id, optional.pins);
+            if (nullptr == pin)
+            {
+                pin = find_pin_in(pin_id, hidden.pins);
+            }
+        }
+        return pin;
+    }
+    return find_pin_in(pin_id, output);
+}
+
+
+
 } // namespace data

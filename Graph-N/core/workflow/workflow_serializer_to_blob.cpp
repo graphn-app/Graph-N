@@ -163,7 +163,7 @@ bool WorkflowSerializerToBlob::deserialize(Workflow* wf, const blob::Blob& blob,
         for (uint32_t i = 0; i < nodes_count; i++)
         {
             auto node = deserialize_node(wf, block);
-            if (node->m_object->is_dummy)
+            if (!node->m_group && node->m_object->is_dummy)
                 data.valid = false;
         }
 
@@ -234,33 +234,6 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
     }
     node->set_name(std::string(node_name));
 
-    const auto find_pin_in = [](hid pin_id, const std::vector<Pin*>& pins) -> Pin*
-    {
-        for (auto pin : pins)
-        {
-            if (pin->get_id() == pin_id)
-                return pin;
-        }
-        return nullptr;
-    };
-    const auto find_pin = [node = node->m_object, &find_pin_in](hid pin_id, bool in)
-    {
-        if (in)
-        {
-            auto pin = find_pin_in(pin_id, node->required.pins);
-            if (nullptr == pin)
-            {
-                pin = find_pin_in(pin_id, node->optional.pins);
-                if (nullptr == pin)
-                {
-                    pin = find_pin_in(pin_id, node->hidden.pins);
-                }
-            }
-            return pin;
-        }
-        return find_pin_in(pin_id, node->output);
-    };
-
     block = root.pop_block();
     auto pins = block.pop_i64();
     for (int64_t i = 0; i < pins; i++)
@@ -268,7 +241,7 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
         const auto h_id = block.pop_hid();
         const auto i_id = block.pop_iid();
         const auto def_name = block.pop_string();
-        auto pin = find_pin(h_id, true);
+        auto pin = node->m_object->find_pin(h_id, true);
         if (nullptr == pin)
         {
             LogWarnS("Serialized input Pin not found");
@@ -294,7 +267,7 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
         const auto h_id = block.pop_hid();
         const auto i_id = block.pop_iid();
         const auto def_name = block.pop_string();
-        auto pin = find_pin(h_id, false);
+        auto pin = node->m_object->find_pin(h_id, false);
         if (nullptr == pin)
         {
             LogWarnS("Serialized output Pin not found");
