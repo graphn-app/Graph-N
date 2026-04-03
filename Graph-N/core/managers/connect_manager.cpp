@@ -62,13 +62,8 @@ void ConnectManager::drop_ws_connection()
     m_ws.reset();
 }
 
-ConnectState ConnectManager::get_status(size_t* inbox /*= nullptr*/, int64_t* latency /*= nullptr*/)
+void ConnectManager::check_request_status()
 {
-    if (latency)
-        *latency = -1;
-    if (inbox)
-        *inbox = 0;
-
     if (m_req_future.valid())
     {
         using namespace std::chrono_literals;
@@ -90,6 +85,14 @@ ConnectState ConnectManager::get_status(size_t* inbox /*= nullptr*/, int64_t* la
             }
         }
     }
+}
+
+ConnectState ConnectManager::get_status(size_t* inbox /*= nullptr*/, int64_t* latency /*= nullptr*/)
+{
+    if (latency)
+        *latency = -1;
+    if (inbox)
+        *inbox = 0;
 
     if (m_ws)
     {

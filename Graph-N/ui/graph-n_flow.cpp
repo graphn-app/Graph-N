@@ -373,6 +373,10 @@ void GraphN_Flow::check_connection()
     {
         reconnect();
     }
+    else
+    {
+        g::pConnectManager->check_request_status();
+    }
 }
 
 void GraphN_Flow::handle_connected()
@@ -1287,20 +1291,23 @@ void GraphN_Flow::show_menu_bar_net_status()
     }
     else if (m_windows & ViewParsingNodes)
     {
-        size_t parsed_item = 0, parse_total = 0;
-        m_nodes_parser->check_status(parsed_item, parse_total);
-        text = fmt::format(FMT_STRING("Parsing node {} of {}"), parsed_item, parse_total);
-
-        if (m_nodes_parser->is_parse_finished())
+        if (m_nodes_parser)
         {
-            if (m_nodes_parser->is_parse_failed())
+            size_t parsed_item = 0, parse_total = 0;
+            m_nodes_parser->check_status(parsed_item, parse_total);
+            text = fmt::format(FMT_STRING("Parsing node {} of {}"), parsed_item, parse_total);
+
+            if (m_nodes_parser->is_parse_finished())
             {
-                text = "Failed to parse loaded nodes";
-            }
-            else
-            {
-                m_windows &= ~ViewParsingNodes;
-                m_nodes_parser.reset();
+                if (m_nodes_parser->is_parse_failed())
+                {
+                    text = "Failed to parse loaded nodes";
+                }
+                else
+                {
+                    m_windows &= ~ViewParsingNodes;
+                    m_nodes_parser.reset();
+                }
             }
         }
     }
