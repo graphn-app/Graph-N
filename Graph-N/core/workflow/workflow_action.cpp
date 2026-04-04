@@ -316,10 +316,10 @@ void WorkflowAction::end_nodes_move(bool cancel)
 void WorkflowAction::set_pin_name(data::PinInstance* pin, const std::string& name)
 {
     auto old_name = pin->state().name;
-    pin->state().name = tools::str::trim_their(name);
+    pin->set_name(tools::str::trim_their(name));
     if (old_name == pin->state().name)
         return;
-    pin->state().w_name = ImGui::CalcTextSize(pin->state().name.c_str()).x;
+    
     auto node = m_wf->get_node_by_instance(pin->get_parent_node());
     node->reset_width();
     node->m_ignore_size_on_frame_end = true;

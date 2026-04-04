@@ -25,6 +25,7 @@ public:
     inline const PinState& state() const { return m_state; }
 
     void set_object(Pin* obj) override;
+    void set_name(const std::string& name);
 
 protected:
     data::Pin* find_obj(hid obj_id) const override;

@@ -305,7 +305,7 @@ void WorkflowSerializerToBlob::deserialize_pin(PinInstance* pin, blob::Reader& r
         pin->m_obj_class = obj_class;
     }
 
-    pin->m_state.name = block.pop_string();
+    pin->set_name(std::string(block.pop_string()));
     pin->m_state.type_str = block.pop_string();
     pin->m_state.type_hash = block.pop_u64();
     pin->m_state.type = cast::to_enum<PinType>(block.pop_u32());

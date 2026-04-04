@@ -1659,12 +1659,12 @@ bool NodeDrawer::handle_pin_renaming(data::PinInstance* curr_pin)
             ImGui::SetKeyboardFocusHere();
             m_need_renaming_focus = false;
         }
-        ImGui::SetNextItemWidth(m_active_node->get_object()->w_pin_in_max);
+        ImGui::SetNextItemWidth(m_renaming_pin->get_object()->input ? m_active_node->get_object()->w_pin_in_max : m_active_node->get_object()->w_pin_out_max);
         if (ImGuiEx::InputText("##pinrename", &m_renaming_buff, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue) ||
             ImGui::IsItemDeactivatedAfterEdit())
         {
             m_wf->action()->set_pin_name(m_renaming_pin, m_renaming_buff);
-            m_renaming_buff.clear();            
+            m_renaming_buff.clear();
             m_renaming_pin = nullptr;
             m_renaming_node = nullptr;
         }

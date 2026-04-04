@@ -179,33 +179,33 @@ float NodeInstanceBase::recalc_node_width(float new_width, bool ro, bool use_big
     const float max_ico = (use_big_pin_icon ? w::ico_max : w::ico_circle);
     const float pin_off = (pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2);
 
-    if (new_width < m_ideal_w)
-    {
-        const auto avail_w = new_width - pin_off;
-        w_widget_name = avail_w / 3;
-        w_widget_value = avail_w / 3 * 2;
-        w_pin_in = (avail_w - m_min_center_w) / 2;
-        w_pin_out = (avail_w - m_min_center_w) / 2;
-        w_center = m_min_center_w;
-    }
-    else if (new_width > m_ideal_w)
-    {
+    //if (new_width < m_ideal_w) // TODO: fix resizing
+    //{
+    //    const auto avail_w = new_width - pin_off;
+    //    w_widget_name = avail_w / 3;
+    //    w_widget_value = avail_w / 3 * 2;
+    //    w_pin_in = (avail_w - m_min_center_w) / 2;
+    //    w_pin_out = (avail_w - m_min_center_w) / 2;
+    //    w_center = m_min_center_w;
+    //}
+    //else if (new_width > m_ideal_w)
+    //{
         w_node = new_width;
         w_widget_name = m_object->w_widget_name_max;
         w_widget_value = w_node - w_widget_name - pin_off;
         w_pin_in = m_object->w_pin_in_max;
         w_pin_out = m_object->w_pin_out_max;
         w_center = w_node - pin_off - w_pin_in - w_pin_out;
-    }
-    else
-    {
-        w_node = m_ideal_w;
-        w_widget_name = m_object->w_widget_name_max;
-        w_widget_value = m_object->w_widget_value_max;
-        w_pin_in = m_object->w_pin_in_max;
-        w_pin_out = m_object->w_pin_out_max;
-        w_center = w_node - pin_off - w_pin_in - w_pin_out;
-    }
+    //}
+    //else
+    //{
+    //    w_node = m_ideal_w;
+    //    w_widget_name = m_object->w_widget_name_max;
+    //    w_widget_value = m_object->w_widget_value_max;
+    //    w_pin_in = m_object->w_pin_in_max;
+    //    w_pin_out = m_object->w_pin_out_max;
+    //    w_center = w_node - pin_off - w_pin_in - w_pin_out;
+    //}
 
     m_saved_width = new_width;
     return w_node;

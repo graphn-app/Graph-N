@@ -39,4 +39,10 @@ void PinInstance::set_object(Pin* obj)
     m_obj_out_idx = m_object->out_index;
 }
 
+void PinInstance::set_name(const std::string& name)
+{
+    m_state.name = name;
+    m_state.w_name = ImGui::CalcTextSize(name.c_str()).x;
+}
+
 } // namespace data

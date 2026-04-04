@@ -213,7 +213,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                     instance->m_state = pin->def_state;
 
                     if (input.contains("label") && input["label"].is_string())
-                        instance->m_state.name = input["label"];
+                        instance->set_name(input["label"]);
 
                     node->m_input.push_back(instance);
                     if (pin->is_dummy)
@@ -359,7 +359,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                     instance->m_state = pin->def_state;
 
                     if (output.contains("label") && output["label"].is_string())
-                        instance->m_state.name = output["label"];
+                        instance->set_name(output["label"]);
 
                     node->m_output.push_back(instance);
                     if (pin->is_dummy)
