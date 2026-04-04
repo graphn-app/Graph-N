@@ -15,6 +15,9 @@ public:
     void register_panels(const std::vector<DlgObj>& panels);
     void show(ActivityBarMode mode);
 
+    inline float get_l_width() const { return m_bar_l_width; }
+    inline float get_r_width() const { return m_bar_r_width; }
+
 private:
     void calc_window_sizes(bool left, bool right);
     void recalc_viewport_size(bool left, bool right);
@@ -42,6 +45,9 @@ private:
     ActivityBarMode m_mode;
     ImRect m_left_rc;
     ImRect m_right_rc;
+
+    float m_bar_l_width = 0.0f;
+    float m_bar_r_width = 0.0f;
 };
 
 } // namespace ui

@@ -153,19 +153,15 @@ void GraphN_Flow::reconnect()
 void GraphN_Flow::load_activity_bar_mode()
 {
     m_activity_bar_mode = g::pOptsManager->ui_activity_bar_mode_load();
+    m_windows &= ~(ViewActivityBarL | ViewActivityBarR);
+
     if (ActivityBarMode::Smart == m_activity_bar_mode || ActivityBarMode::Left == m_activity_bar_mode)
     {
         m_windows |= ViewActivityBarL;
-        m_windows &= ~ViewActivityBarR;
     }
     else if (ActivityBarMode::Right == m_activity_bar_mode)
     {
         m_windows |= ViewActivityBarR;
-        m_windows &= ~ViewActivityBarL;
-    }
-    else
-    {
-        m_windows &= ~(ViewActivityBarL | ViewActivityBarR);
     }
 }
 
@@ -1339,9 +1335,36 @@ void GraphN_Flow::show_panels()
     };
 
     auto viewport = ImGui::GetMainViewport();
-    m_main_dock_id = ImGui::DockSpaceOverViewport(viewport, ImGuiDockNodeFlags_PassthruCentralNode);
+    //m_main_dock_id = ImGui::DockSpaceOverViewport(viewport); // , ImGuiDockNodeFlags_PassthruCentralNode);
 
     static bool focus_fixed = false;
+
+    ImVec2 dock_pos = viewport->WorkPos;
+    ImVec2 dock_size = viewport->WorkSize;
+
+    if ((m_windows & ViewActivityBarL) || (m_windows & ViewActivityBarR))
+    {
+        dock_pos.x += m_activity_bar->get_l_width();
+        dock_size.x -= m_activity_bar->get_l_width() + m_activity_bar->get_r_width();
+    }
+    
+    ImGui::SetNextWindowPos(dock_pos);
+    ImGui::SetNextWindowSize(dock_size);
+    ImGui::SetNextWindowViewport(viewport->ID);
+
+    ImGuiWindowFlags host_window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+    ImGui::Begin("MainWorkspaceHost", nullptr, host_window_flags);
+    ImGui::PopStyleVar(3);
+
+    m_main_dock_id = ImGui::GetID(APP_CAPTION "_MainDockSpace");
+    ImGui::DockSpace(m_main_dock_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
+
+    ImGui::End();
 
     if (m_windows & ViewPanelsResetAll)
     {

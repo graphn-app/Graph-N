@@ -41,51 +41,57 @@ void ActivityBar::calc_window_sizes(bool left, bool right)
     ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 
     ImGui::PushFont(g::pOptsManager->ui_activity_bar_big_icons_load() ? g::pMain->get_big_icons_font() : g::pMain->get_icons_font());
-    const float bar_w = ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
+    const auto bar_width = ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
     ImGui::PopFont();
 
-    if (right)
-    {
-        m_right_rc.Min.x = main_viewport->WorkSize.x - bar_w;
-        m_right_rc.Min.y = main_viewport->WorkPos.y;
-        m_right_rc.Max.x = bar_w;
-        m_right_rc.Max.y = main_viewport->WorkSize.y;
-
-        main_viewport->WorkSize.x -= bar_w;
-    }
     if (left)
     {
         m_left_rc.Min.x = main_viewport->WorkPos.x;
         m_left_rc.Min.y = main_viewport->WorkPos.y;
-        m_left_rc.Max.x = bar_w;
-        m_left_rc.Max.y = main_viewport->WorkSize.y;
 
-        main_viewport->WorkPos.x += bar_w;
-        main_viewport->WorkSize.x -= bar_w;
+        m_left_rc.Max.x = m_left_rc.Min.x + bar_width;
+        m_left_rc.Max.y = m_left_rc.Min.y + main_viewport->WorkSize.y;
+
+        //main_viewport->WorkPos.x += m_bar_width;
+        //main_viewport->WorkSize.x -= m_bar_width;
+        m_bar_l_width = bar_width;
+    }
+
+    if (right)
+    {
+        m_right_rc.Min.x = main_viewport->WorkPos.x + main_viewport->WorkSize.x - bar_width;
+        m_right_rc.Min.y = main_viewport->WorkPos.y;
+
+        m_right_rc.Max.x = m_right_rc.Min.x + bar_width;
+        m_right_rc.Max.y = m_right_rc.Min.y + main_viewport->WorkSize.y;
+
+        //main_viewport->WorkSize.x -= m_bar_width;
+        m_bar_r_width = bar_width;
     }
 }
 
 void ActivityBar::recalc_viewport_size(bool left, bool right)
 {
-    if (left && right)
-        return;
+    //if (left && right)
+    //    return;
 
-    ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+    //ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 
-    ImGui::PushFont(g::pOptsManager->ui_activity_bar_big_icons_load() ? g::pMain->get_big_icons_font() : g::pMain->get_icons_font());
-    const float bar_w = ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
-    ImGui::PopFont();
+    //ImGui::PushFont(g::pOptsManager->ui_activity_bar_big_icons_load() ? g::pMain->get_big_icons_font() : g::pMain->get_icons_font());
+    //const auto bar_width = ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
+    //ImGui::PopFont();
 
-    if (!right)
-    {
-        main_viewport->WorkSize.x += bar_w;
-    }
     if (!left)
     {
-        main_viewport->WorkPos.x -= bar_w;
-        main_viewport->WorkSize.x += bar_w;
+        //main_viewport->WorkPos.x -= m_bar_width;
+        //main_viewport->WorkSize.x += m_bar_width;
+        m_bar_l_width = 0.0f;
     }
-
+    if (!right)
+    {
+        //main_viewport->WorkSize.x += m_bar_width;
+        m_bar_r_width = 0.0f;
+    }
 }
 
 void ActivityBar::show(ActivityBarMode mode)
