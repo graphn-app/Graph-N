@@ -33,49 +33,56 @@ class PanelTextEditor;
 class PanelMarkdownPreview;
 
 
-enum ViewDialogs
+enum ViewDialogs : uint64_t
 {
-    ViewNone                    = 0x00000000,
+    ViewNone                    = 0,
+
     // options
-    ViewOptions                 = 0x00000001,
+    ViewOptions                 = 1ULL << 0,
+
     // status & control bar
-    ViewConnect                 = 0x00000004,
-    ViewParsingNodes            = 0x00000008,
+    ViewConnect                 = 1ULL << 1,
+    ViewParsingNodes            = 1ULL << 2,
+
     // panels
-    ViewPanelsResetAll          = 0x00000020,
-    ViewPanelNodes              = 0x00000040,
-    ViewPanelNodeInpector       = 0x00000080,
-    ViewPanelStats              = 0x00000100,
-    ViewPanelWf                 = 0x00000800,
-    ViewPanelWfList             = 0x00001000,
-    ViewPanelModels             = 0x00002000,
-    ViewPanelTemplates          = 0x00004000,
-    ViewPanelOutput             = 0x00008000,
-    ViewPanelNotes              = 0x00010000,
-    ViewPanelTextEditor         = 0x00080000,
-    ViewPanelMarkdownPreview    = 0x00100000,
+    ViewPanelsResetAll          = 1ULL << 3,
+    ViewPanelNodes              = 1ULL << 4,
+    ViewPanelNodeInpector       = 1ULL << 5,
+    ViewPanelStats              = 1ULL << 6,
+    ViewPanelWf                 = 1ULL << 7,
+    ViewPanelWfList             = 1ULL << 8,
+    ViewPanelModels             = 1ULL << 9,
+    ViewPanelTemplates          = 1ULL << 10,
+    ViewPanelOutput             = 1ULL << 11,
+    ViewPanelNotes              = 1ULL << 12,
+    ViewPanelTextEditor         = 1ULL << 13,
+    ViewPanelMarkdownPreview    = 1ULL << 14,
 
-    ViewDebugMetrics            = 0x01000000,
-    ViewDebugDemo               = 0x02000000,
-    ViewDebugLogs               = 0x04000000,
-    ViewStackTool               = 0x08000000,
-    ViewStyleEditor             = 0x10000000,
-    ViewStyleSelector           = 0x20000000,
-    ViewFontSelector            = 0x40000000,
+    // debug
+    ViewDebugMetrics            = 1ULL << 15,
+    ViewDebugDemo               = 1ULL << 16,
+    ViewDebugLogs               = 1ULL << 17,
+    ViewStackTool               = 1ULL << 18,
+    ViewStyleEditor             = 1ULL << 19,
+    ViewStyleSelector           = 1ULL << 20,
+    ViewFontSelector            = 1ULL << 21,
 
-    ViewModal                   = 0x00200000,
-    ViewModalStop               = 0x00400000,
+    // top windows
+    ViewModal                   = 1ULL << 22,
+    ViewModalStop               = 1ULL << 23,
 
-    ViewActivityBarL            = 0x00800000,
-    ViewActivityBarR            = 0x01000000,
+    // bar
+    ViewActivityBarL            = 1ULL << 24,
+    ViewActivityBarR            = 1ULL << 25,
 
-    _ViewNextAvail              = 0x02000000, // + 0x00000010
+    _ViewNextAvailable          = 1ULL << 26,
+    _ViewLastAvailable          = 1ULL << 63,
 
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWf | ViewPanelWfList | ViewPanelModels |
                                   ViewPanelTemplates | ViewPanelOutput | ViewPanelNotes | ViewPanelTextEditor | ViewPanelMarkdownPreview,
     ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector,
-    ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewAllMenuBar | ViewPanelWf
+    ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewAllMenuBar | ViewPanelWf,
 };
 
 class GraphN_Flow final
