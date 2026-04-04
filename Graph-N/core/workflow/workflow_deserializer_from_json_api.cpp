@@ -10,7 +10,7 @@
 namespace data
 {
 
-bool WorkflowSerializerToJson::deserialize_api(Workflow* /*wf*/, const nlohmann::json& /*j*/)
+bool WorkflowSerializerToJson::deserialize_api(Workflow* /*wf*/, const o_json& /*j*/)
 {
     try
     {
@@ -24,7 +24,7 @@ bool WorkflowSerializerToJson::deserialize_api(Workflow* /*wf*/, const nlohmann:
     return false;
 }
 
-bool WorkflowSerializerToJson::deserialize_node_api(NodeInstance* /*node*/, const nlohmann::json& /*j*/, std::string& /*node_id_from_json*/)
+bool WorkflowSerializerToJson::deserialize_node_api(NodeInstance* /*node*/, const o_json& /*j*/, std::string& /*node_id_from_json*/)
 {
     try
     {

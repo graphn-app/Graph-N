@@ -206,14 +206,14 @@ NodeInstance* Workflow::get_node_by_hash(hid id) const
     return (*it).get();
 }
 
-PinInstance* Workflow::get_pin_by_hash(hid id) const
+PinInstance* Workflow::get_pin_by_hash(iid node_iid, hid pin_hid) const
 {
     const auto it = std::find_if(m_pins.begin(), m_pins.end(),
-        [id](const std::unique_ptr<PinInstance>& pin)
+        [node_iid, pin_hid](const std::unique_ptr<PinInstance>& pin)
         {
             if (!pin || !pin->get_object())
                 return false;
-            return pin->get_object()->get_id() == id;
+            return (pin->get_object()->get_id() == pin_hid && pin->get_parent_node() == node_iid);
         }
     );
     if (it == m_pins.end())

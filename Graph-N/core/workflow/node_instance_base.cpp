@@ -70,11 +70,6 @@ void NodeInstanceBase::set_name(std::string name)
     w_node = 0.0f;
 }
 
-Node* NodeInstanceBase::find_obj(hid obj_id) const
-{
-    return g::pNodesManager->find_node(obj_id);
-}
-
 void NodeInstanceBase::link_cag_pins()
 {
     for (auto it = m_input.begin(); it != m_input.end(); ++it)

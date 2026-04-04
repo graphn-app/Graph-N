@@ -46,7 +46,7 @@ public:
     data::Pin* find_pin(hid id) const;
 
     data::Node* make_dummy_node(const std::string& node_class);
-    data::Pin* make_dummy_pin(data::Node* parent, const std::string& name, int64_t out_index);
+    data::Pin* make_dummy_pin(data::Node* parent, const std::string& type, const std::string& name, int64_t out_index);
 
     inline const std::list<std::pair<std::string, uint32_t>>& get_labels() const { return m_labels; }
     const std::list<data::NodeItem*>& get_nodes_in_label(uint32_t label_id) const;
@@ -68,7 +68,9 @@ private:
 
 private:
     std::unordered_map<hid, std::unique_ptr<data::Node>> m_nodes;
+    std::vector<std::unique_ptr<data::Node>> m_dummy_nodes;
     std::unordered_map<hid, std::unique_ptr<data::Pin>> m_pins;
+    std::vector<std::unique_ptr<data::Pin>> m_dummy_pins;
     std::list<std::unique_ptr<data::NodeItem>> m_node_items;
 
     std::vector<data::NodeItem*> m_nodes_tree;			// tree view

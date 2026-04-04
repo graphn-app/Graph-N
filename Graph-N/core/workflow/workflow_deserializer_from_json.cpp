@@ -10,7 +10,7 @@
 namespace data
 {
 
-ImU32 WorkflowSerializerToJson::parse_color(const std::string& color)
+static ImU32 parse_color(const std::string& color)
 {
     const auto make_clr3 = [](char c)
     {
@@ -42,7 +42,7 @@ ImU32 WorkflowSerializerToJson::parse_color(const std::string& color)
     return 0;
 }
 
-bool WorkflowSerializerToJson::deserialize(Workflow* wf, const nlohmann::json& j)
+bool WorkflowSerializerToJson::deserialize(Workflow* wf, const o_json& j)
 {
     try
     {
@@ -58,12 +58,16 @@ bool WorkflowSerializerToJson::deserialize(Workflow* wf, const nlohmann::json& j
         for (auto& jnode : j["nodes"])
         {
             std::string jid;
-            auto node = deserialize_node(wf, jnode, jid, in_pins, out_pins);
+            LinkMap node_in_pins, node_out_pins;
+            auto node = deserialize_node(wf, jnode, jid, node_in_pins, node_out_pins, false);
             if (nullptr == node)
                 return false;
             node_ids[jid] = node->get_instance_id();
             if (node->m_object->is_dummy)
                 wf->get_data().valid = false;
+
+            in_pins.merge(node_in_pins);
+            out_pins.merge(node_out_pins);
         }
 
         if (!deserialize_links(wf, j, node_ids, in_pins, out_pins))
@@ -82,7 +86,7 @@ bool WorkflowSerializerToJson::deserialize(Workflow* wf, const nlohmann::json& j
 }
 
 NodeInstance* WorkflowSerializerToJson::deserialize_node(
-    Workflow* wf, const nlohmann::json& j, std::string& node_id_from_json, LinkMap& in_pins, LinkMap& out_pins)
+    Workflow* wf, const o_json& j, std::string& node_id_from_json, LinkMap& in_pins, LinkMap& out_pins, bool dummy)
 {
     try
     {
@@ -97,34 +101,39 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
         else
             return nullptr;
 
-        NodeInstance* node = wf->add_blank_node();
-        node->m_iid = wf->get_new_child_id();
-        node->m_wid = wf->get_id();
-
         const std::string node_class = j["type"];
-        node->m_obj_hid = base::HashID::create_id(node_class);
-        node->m_object = g::pNodesManager->find_node(node->m_obj_hid);
-        if (nullptr == node->m_object)
+
+        //if (node_class == "ImpactCompare")
+        //    __debugbreak();
+
+        auto node_hash = base::HashID::make_hash(node_class);
+        auto node = g::pNodesManager->find_node(node_hash);
+        if (node != nullptr && node->is_dummy)
         {
-            LogWarnS("Node " << node_class << " not found");
-            auto obj = g::pNodesManager->make_dummy_node(std::string(node_class));
-            node->set_object(obj);
+            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Dummy node " << node_class << " in base map");
         }
-        if (node->m_object->get_id() != node->m_obj_hid)
+        if (nullptr == node || dummy)
         {
-            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Node ids don't match " << node->m_object->get_id() << " != " << node->m_obj_hid);
+            node = g::pNodesManager->make_dummy_node(std::string(node_class));
+        }
+
+        // position
+        ImRect rc = {};
+        if (j.contains("pos") && j["pos"].is_array() && j["pos"].size() == 2 && j["pos"][0].is_number() && j["pos"][1].is_number())
+        {
+            rc.Min.x = j["pos"][0];
+            rc.Min.y = j["pos"][1];
+        }
+
+        auto node_instance = wf->add_node(node, rc);
+        if (node_instance->m_object->get_id() != node_hash)
+        {
+            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Node ids don't match " << node_instance->m_object->get_id() << " != " << node_hash);
         }
 
         // name
         if (j.contains("title") && j["title"].is_string())
-            node->set_name(j["title"]);
-
-        // position
-        if (j.contains("pos") && j["pos"].is_array() && j["pos"].size() == 2 && j["pos"][0].is_number() && j["pos"][1].is_number())
-        {
-            node->m_rc.Min.x = j["pos"][0];
-            node->m_rc.Min.y = j["pos"][1];
-        }
+            node_instance->set_name(j["title"]);
 
         // mode
         if (j.contains("mode") && j["mode"].is_number_integer())
@@ -132,19 +141,19 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
             switch (j["mode"].get<int32_t>())
             {
             case 0:
-                node->set_mode(NodeMode::Always);
+                node_instance->set_mode(NodeMode::Always);
                 break;
             case 1:
-                node->set_mode(NodeMode::OnEvent);
+                node_instance->set_mode(NodeMode::OnEvent);
                 break;
             case 2:
-                node->set_mode(NodeMode::Mute);
+                node_instance->set_mode(NodeMode::Mute);
                 break;
             case 3:
-                node->set_mode(NodeMode::OnTrigger);
+                node_instance->set_mode(NodeMode::OnTrigger);
                 break;
             case 4:
-                node->set_mode(NodeMode::Bypass);
+                node_instance->set_mode(NodeMode::Bypass);
                 break;
             }
         }
@@ -154,22 +163,20 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
         {
             auto color = parse_color(j["bgcolor"]);
             if (color != 0)
-                node->set_node_color(ImGui::ColorConvertU32ToFloat4(color));
+                node_instance->set_node_color(ImGui::ColorConvertU32ToFloat4(color));
         }
-        else
-            node->reset_to_default_colors();
 
         // pinned, collapsed
-        node->m_expanded = true;
-        node->m_pinned = false;
+        node_instance->m_expanded = true;
+        node_instance->m_pinned = false;
         if (j.contains("flags") && j["flags"].is_object())
         {
             for (const auto& [name, value] : j["flags"].items())
             {
                 if (name == "collapsed" && value.is_boolean() && value.get<bool>() == true)
-                    node->m_expanded = false;
+                    node_instance->m_expanded = false;
                 else if (name == "pinned" && value.is_boolean() && value.get<bool>() == true)
-                    node->m_pinned = true;
+                    node_instance->m_pinned = true;
             }
         }
 
@@ -190,36 +197,52 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                     const std::string name = input["name"];
                     const std::string type = input["type"];
 
-                    const auto pin_hash = Pin::create_id(node->m_object, name, -1);
-                    auto pin = node->m_object->find_pin(pin_hash, true);
-                    if (nullptr == pin || pin->def_state.type_str != type)
-                    {
-                        LogWarnS("Input Pin " << name << " not found");
-                        pin = g::pNodesManager->make_dummy_pin(node->m_object, name, -1);
+                    const auto pin_hash = Pin::make_hash(node_instance->m_object, name, -1);
+                    auto pin = node_instance->m_object->find_pin(pin_hash, true);
 
-                        pin->initialize(type);
-                        pin->is_dummy = true;
+                    if (node->is_dummy || nullptr == pin || pin->def_state.type_str != type)
+                    {
+                        if (!node_instance->m_object->is_dummy)
+                        {
+                            wf->remove_node(node_instance);
+                            in_pins = out_pins = {};
+                            return deserialize_node(wf, j, node_id_from_json, in_pins, out_pins, true);
+                        }
+
+                        pin = g::pNodesManager->make_dummy_pin(node_instance->m_object, type, name, -1);
+                        
                     }
-                    pin->def_state.name = name;
-                    pin->finalize();
+                    else
+                    {
+                        pin->def_state.name = name;
+                        pin->finalize();
+                    }
 
                     if (pin->get_id() != pin_hash)
                     {
                         LogAndThrowInternalErrorS(ExcepCategory::Logic, "Pin ids don't match " << pin->get_id() << " != " << pin_hash);
                     }
 
-                    auto instance = wf->add_pin(node, pin, wf->get_new_child_id());
-                    instance->m_obj_class = name;
-                    instance->m_state = pin->def_state;
-
+                    PinInstance* pin_instance = nullptr;
+                    if (node->is_dummy)
+                    {
+                        pin_instance = wf->add_pin(node_instance, pin, wf->get_new_child_id());
+                        pin_instance->m_obj_class = name;
+                        pin_instance->m_state = pin->def_state;
+                        node_instance->m_input.push_back(pin_instance);
+                    }
+                    else
+                    {
+                        pin_instance = wf->get_pin_by_hash(node_instance->get_instance_id(), pin_hash);
+                        if (nullptr == pin_instance)
+                        {
+                            LogAndThrowInternalErrorS(ExcepCategory::Logic, "PinInstance " << pin_hash << " not found in wf");
+                        }
+                    }
                     if (input.contains("label") && input["label"].is_string())
-                        instance->set_name(input["label"]);
+                        pin_instance->set_name(input["label"]);
 
-                    node->m_input.push_back(instance);
-                    if (pin->is_dummy)
-                        node->m_object->is_dummy = true;
-
-                    in_pins[node->get_instance_id()][index++] = instance->get_instance_id();
+                    in_pins[node_instance->get_instance_id()][index++] = pin_instance->get_instance_id();
                 }
             }
         }
@@ -228,7 +251,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
         if (j.contains("widgets_values") && j["widgets_values"].is_array())
         {
             std::vector<PinInstance*> widgets;
-            for (auto pin : node->m_input)
+            for (auto pin : node_instance->m_input)
             {
                 if (pin->m_object->is_widget())
                     widgets.push_back(pin);
@@ -303,9 +326,9 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                         }
                         else if (PinType::COMBO == pin->m_object->def_state.type)
                         {
-                            for (auto& combo_item : pin->m_object->combo_items_str)
+                            int64_t combo_idx = 0;
+                            for (auto combo_item : pin->m_object->combo_items_ptr)
                             {
-                                int64_t combo_idx = 0;
                                 if (v == combo_item)
                                 {
                                     pin->m_state.value = combo_idx;
@@ -336,42 +359,59 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                     const std::string name = output["name"];
                     const std::string type = output["type"];
 
-                    const auto pin_hash = Pin::create_id(node->m_object, name, index);
-                    auto pin = node->m_object->find_pin(pin_hash, false);
-                    if (nullptr == pin || pin->def_state.type_str != type)
-                    {
-                        LogWarnS("Output Pin " << type << " not found");
-                        pin = g::pNodesManager->make_dummy_pin(node->m_object, name, index);
+                    const auto pin_hash = Pin::make_hash(node_instance->m_object, name, index);
+                    auto pin = node_instance->m_object->find_pin(pin_hash, false);
 
-                        pin->initialize(type);
-                        pin->is_dummy = true;
+                    if (node->is_dummy || nullptr == pin || pin->def_state.type_str != type)
+                    {
+                        if (!node_instance->m_object->is_dummy)
+                        {
+                            wf->remove_node(node_instance);
+                            in_pins = out_pins = {};
+                            return deserialize_node(wf, j, node_id_from_json, in_pins, out_pins, true);
+                        }
+
+                        pin = g::pNodesManager->make_dummy_pin(node_instance->m_object, type, name, index);
+                        node_instance->m_object->is_dummy = true;
                     }
-                    pin->def_state.name = name;
-                    pin->finalize();
+                    else
+                    {
+                        pin->def_state.name = name;
+                        pin->finalize();
+                    }
 
                     if (pin->get_id() != pin_hash)
                     {
                         LogAndThrowInternalErrorS(ExcepCategory::Logic, "Pin ids don't match " << pin->get_id() << " != " << pin_hash);
                     }
 
-                    auto instance = wf->add_pin(node, pin, wf->get_new_child_id());
-                    instance->m_obj_class = name;
-                    instance->m_state = pin->def_state;
+                    PinInstance* pin_instance = nullptr;
+                    if (node->is_dummy)
+                    {
+                        pin_instance = wf->add_pin(node_instance, pin, wf->get_new_child_id());
+                        pin_instance->m_obj_class = name;
+                        pin_instance->m_state = pin->def_state;
+                        node_instance->m_output.push_back(pin_instance);
+                    }
+                    else
+                    {
+                        pin_instance = wf->get_pin_by_hash(node_instance->get_instance_id(), pin_hash);
+                        if (nullptr == pin_instance)
+                        {
+                            LogAndThrowInternalErrorS(ExcepCategory::Logic, "PinInstance " << pin_hash << " not found in wf");
+                        }
+                    }
 
                     if (output.contains("label") && output["label"].is_string())
-                        instance->set_name(output["label"]);
+                        pin_instance->set_name(output["label"]);
 
-                    node->m_output.push_back(instance);
-                    if (pin->is_dummy)
-                        node->m_object->is_dummy = true;
-
-                    out_pins[node->get_instance_id()][index++] = instance->get_instance_id();
+                    out_pins[node_instance->get_instance_id()][index++] = pin_instance->get_instance_id();
                 }
             }
         }
 
-        node->calc_node_width(false, false);
-        return node;
+        node_instance->calc_node_width(false, false);
+        return node_instance;
     }
     catch (std::exception& ex)
     {
@@ -382,7 +422,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
 }
 
 bool WorkflowSerializerToJson::deserialize_links(
-    Workflow* wf, const nlohmann::json& j, const std::map<std::string, iid>& node_ids, const LinkMap& in_pins, const LinkMap& out_pins)
+    Workflow* wf, const o_json& j, const std::map<std::string, iid>& node_ids, const LinkMap& in_pins, const LinkMap& out_pins)
 {
     const auto find_pin = [wf](const LinkMap& map, const NodeInstance* node, int32_t index) -> PinInstance*
     {
@@ -478,7 +518,7 @@ bool WorkflowSerializerToJson::deserialize_links(
     return false;
 }
 
-bool WorkflowSerializerToJson::deserialize_groups(Workflow* wf, const nlohmann::json& j)
+bool WorkflowSerializerToJson::deserialize_groups(Workflow* wf, const o_json& j)
 {
     try
     {

@@ -47,7 +47,7 @@ struct HashID
     hid get_id() const { return m_id; }
     const std::string& get_id_str() const { return m_id_str; }
 
-    static hid create_id(const std::string& unique);
+    static hid make_hash(const std::string& unique);
 
 private:
     void set_id(hid id);

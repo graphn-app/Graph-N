@@ -125,7 +125,7 @@ void PanelTextEditor::reset(wid wf)
     {
         if (it->wf == wf)
         {
-            if (m_current == &*it)
+            if (m_current != nullptr && m_current->wf == wf)
             {
                 clear_toolbar();
                 m_pinned = false;

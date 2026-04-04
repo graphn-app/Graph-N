@@ -53,7 +53,7 @@ public:
     PinInstance* get_pin_by_instance(iid id) const;
 
     NodeInstance* get_node_by_hash(hid id) const;
-    PinInstance* get_pin_by_hash(hid id) const;
+    PinInstance* get_pin_by_hash(iid node_iid, hid pin_hid) const;
 
     Link* get_link_by_instance(iid id) const;
     std::list<Link*> get_links_by_pin(const PinInstance* pin) const;

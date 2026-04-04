@@ -53,11 +53,11 @@ Pin::Pin(const Node* node, int64_t pin_index)
 
 Pin::~Pin() = default;
 
-hid Pin::create_id(const Node* node, const std::string& pin_name, int64_t pin_index)
+hid Pin::make_hash(const Node* node, const std::string& pin_name, int64_t pin_index)
 {
     if (-1 == pin_index)
-        return base::HashID::create_id(node->node_class + "_IN_" + pin_name);
-    return base::HashID::create_id(node->node_class + "_OUT_" + std::to_string(pin_index));
+        return base::HashID::make_hash(node->node_class + "_IN_" + pin_name);
+    return base::HashID::make_hash(node->node_class + "_OUT_" + std::to_string(pin_index));
 }
 
 bool Pin::is_widget() const
@@ -173,6 +173,7 @@ void Pin::finalize()
 
         else if (PinType::COLOR == def_state.type && std::holds_alternative<std::string>(def))
         {
+            is_unsigned = true;
             def = color_to_val(*std::get_if<std::string>(&def), alpha_enabled);
         }
 
@@ -323,11 +324,11 @@ void Pin::init_defaults()
     }
     else if (PinType::COLOR == def_state.type)
     {
-        def_state.value = int64_t(IM_COL32_WHITE);
-        def = int64_t(IM_COL32_WHITE);
-        min = int64_t(IM_COL32_BLACK);
-        max = int64_t(IM_COL32_WHITE);
-        step = int64_t(0);
+        def_state.value = uint64_t(IM_COL32_WHITE);
+        def = uint64_t(IM_COL32_WHITE);
+        min = uint64_t(IM_COL32_BLACK);
+        max = uint64_t(IM_COL32_WHITE);
+        step = uint64_t(0);
     }
     else if (PinType::BOOLEAN == def_state.type)
     {

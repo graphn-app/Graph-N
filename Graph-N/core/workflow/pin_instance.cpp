@@ -25,11 +25,6 @@ void PinInstance::init()
     m_obj_out_idx = m_object->out_index;
 }
 
-data::Pin* PinInstance::find_obj(hid obj_id) const
-{
-    return g::pNodesManager->find_pin(obj_id);
-}
-
 void PinInstance::set_object(Pin* obj)
 {
     Instance<Pin>::set_object(obj);
@@ -42,7 +37,8 @@ void PinInstance::set_object(Pin* obj)
 void PinInstance::set_name(const std::string& name)
 {
     m_state.name = name;
-    m_state.w_name = ImGui::CalcTextSize(name.c_str()).x;
+    if (m_state.type != PinType::STRING)
+        m_state.w_name = ImGui::CalcTextSize(name.c_str()).x;
 }
 
 } // namespace data

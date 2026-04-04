@@ -39,8 +39,7 @@ public:
     inline void rename_panel(const std::string& new_name) { set_name(new_name); }
     inline void set_active(bool active)
     {
-        if (active && m_active != active)
-            set_focused();
+        set_focused(active);
         m_active = active;
     }
 

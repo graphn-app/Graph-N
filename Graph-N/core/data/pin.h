@@ -45,7 +45,7 @@ enum class PinType
 
     _none = _count + 100,
     _first = INT,
-    _last = _count - 1
+    _last = CUSTOM
 };
 
 enum ControlAfterGenerate
@@ -102,7 +102,7 @@ public:
     Pin(const Node* node, int64_t pin_index);
     ~Pin() override;
 
-    static hid create_id(const Node* node, const std::string& pin_name, int64_t pin_index);
+    static hid make_hash(const Node* node, const std::string& pin_name, int64_t pin_index);
 
     bool is_widget() const;
 
@@ -126,8 +126,6 @@ public:
     static uint64_t get_hash(std::string str);
 
     const Node* parent_node = nullptr;
-
-    bool is_dummy = false;
 
     bool input = false;
     bool output = false;

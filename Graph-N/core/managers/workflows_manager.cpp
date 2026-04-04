@@ -239,15 +239,14 @@ void WfsManager::init_labels()
     m_wfs_in_label.clear();
     m_last_label_id = 0;
 
-    auto labels = g::pOptsManager->wf_labels_load(base::HashID::create_id(DlgObjID[cast::to_szt(DlgObj::PanelWfList)]));
+    auto labels = g::pOptsManager->wf_labels_load(base::HashID::make_hash(DlgObjID[cast::to_szt(DlgObj::PanelWfList)]));
     if (labels.empty())
         return;
 
     Log("Wfs labels loaded: " << labels);
     try
     {
-        using json = nlohmann::json;
-        const json j = json::parse(labels);
+        const auto j = o_json::parse(labels);
 
         for (auto& obj : j)
         {
@@ -392,10 +391,10 @@ void WfsManager::set_wf_labels(wid wf_id, std::set<uint32_t> labels)
 
 void WfsManager::save_labels() const
 {
-    nlohmann::json j;
+    o_json j;
     for (auto& [label, id] : m_labels)
     {        
-        nlohmann::json jlabel;
+        o_json jlabel;
         jlabel["name"] = label;
         jlabel["id"] = id;
 
@@ -418,7 +417,7 @@ void WfsManager::save_labels() const
         j.push_back(std::move(jlabel));
     }
 
-    g::pOptsManager->wf_labels_save(base::HashID::create_id(DlgObjID[cast::to_szt(DlgObj::PanelWfList)]), j.dump());
+    g::pOptsManager->wf_labels_save(base::HashID::make_hash(DlgObjID[cast::to_szt(DlgObj::PanelWfList)]), j.dump());
 }
 
 const std::list<wid>& WfsManager::get_wfs_in_label(uint32_t label_id) const
@@ -724,8 +723,8 @@ wid WfsManager::import_wf(std::filesystem::path& from)
     try
     {
         Log("Import project from " << from);
-        auto json = tools::path::read_file(from, true);
-        nlohmann::json j = nlohmann::json::parse(json.data());
+        auto file = tools::path::read_file(from, true);
+        o_json j = o_json::parse(file.data());
 
         WfData wf_data;
         wf_data.ro = false;
@@ -742,7 +741,7 @@ wid WfsManager::import_wf(std::filesystem::path& from)
             return wf->get_id();
         }
 
-        Log("Import project success failed");
+        Log("Import project failed");
         m_wfs.erase(wf->get_id());
     }
     catch (const std::exception& ex)
@@ -769,13 +768,13 @@ void WfsManager::export_wf(bool api, std::filesystem::path& to)
     }
 
     Log("Starting export wf=" << wf_id << " as API=" << api << " to " << to.string());
-    std::string json;
+    std::string jdump;
     if (api)
-        json = data::WorkflowSerializerToJson::serialize_to_api(wf_it->second.get());
+        jdump = data::WorkflowSerializerToJson::serialize_to_api(wf_it->second.get());
     else
-        json = data::WorkflowSerializerToJson::serialize(wf_it->second.get());
+        jdump = data::WorkflowSerializerToJson::serialize(wf_it->second.get());
 
-    if (!tools::path::make_file_path(to, true, json))
+    if (!tools::path::make_file_path(to, true, jdump))
         Log("Export failed");
 }
 

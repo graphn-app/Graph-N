@@ -1142,7 +1142,6 @@ void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& link
             ed::Link(link->ed(), in->ed(), out->ed(), in->state().pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load()));
         else
         {
-            Log("NEW LINK: " << LogPTR(link.get())); // TODO
             link->ed() = ed::Link(cast::to_ptr(link.get()), in->ed(), out->ed(), in->state().pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load()));
         }
     }
@@ -1197,7 +1196,8 @@ void NodeDrawer::query_new_item(
             m_querying_pin = cast::ptrs<data::PinInstance>(pin.Get());
             if (ed::AcceptNewItem())
             {
-                new_node_handler(cast::ptrs<data::PinInstance>(pin.Get()), ed::ScreenToCanvas(ImGui::GetMousePos()));
+                if (!m_querying_pin->get_object()->parent_node->is_dummy)
+                    new_node_handler(cast::ptrs<data::PinInstance>(pin.Get()), ed::ScreenToCanvas(ImGui::GetMousePos()));
                 m_querying_pin = nullptr;
             }
         }

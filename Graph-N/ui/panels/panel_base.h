@@ -38,7 +38,7 @@ public:
     inline const char* get_panel_name_full() const { return m_name_full.c_str(); }
     inline const char* get_panel_id() const { return m_id.c_str(); }
 
-    inline void set_focused() { m_activate = true; }
+    inline void set_focused(bool focused) { m_activate = focused; }
 
     void mark_dirty(bool dirty)
     {

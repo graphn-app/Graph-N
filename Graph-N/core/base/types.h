@@ -8,6 +8,7 @@ using iid = uint32_t;	// node/pin instance id, unique for each workflow
 using wid = uint32_t;   // workflow id - crc32 of uuid
 using byte_buff = std::vector<byte>;
 using primitive = std::variant<int64_t, uint64_t, double, std::string, bool, std::monostate>; // check serializer when adding new type
+using o_json = nlohmann::ordered_json;
 
 enum class ExcepCategory
 {

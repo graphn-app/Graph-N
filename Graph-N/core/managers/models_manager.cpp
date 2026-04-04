@@ -65,7 +65,7 @@ void ModelsManager::load_models_th()
         }
 
         std::list<std::string> requests;
-        nlohmann::json j = nlohmann::json::parse(res->body);
+        o_json j = o_json::parse(res->body);
         for (const auto& jitem : j)
         {
             if (jitem.contains("name"))                
@@ -92,7 +92,7 @@ void ModelsManager::load_models_th()
                 continue;
             }
 
-            j = nlohmann::json::parse(res->body);
+            j = o_json::parse(res->body);
             if (j.empty())
             {
                 auto root = std::make_unique<data::ModelItem>();
@@ -190,7 +190,7 @@ std::unique_ptr<data::ModelItem> ModelsManager::add_file(std::string root_folder
     file->is_model = true;
     file->name = file_path.filename().u8string();
     file->search = tools::str::to_lower_ascii(file->name);
-    file->id = base::HashID::create_id(file->name);
+    file->id = base::HashID::make_hash(file->name);
     const auto starred = g::pOptsManager->model_starred_load(file->id);
     if (starred.has_value())
         file->starred = starred.value();
@@ -206,7 +206,7 @@ void ModelsManager::parse_file_info(data::ModelItem* item, std::string info)
         item = item->children.begin()->get();
     }
 
-    const auto j = nlohmann::json::parse(info);
+    const auto j = o_json::parse(info);
     const auto append_info = [item, &j](const char* key, const char* title)
     {
         if (j.contains(key))
@@ -463,7 +463,7 @@ void ModelsManager::setup_model_behaviour()
                 if (*it->second.node_name)
                 {
                     file->def_node_name = it->second.node_name;
-                    file->def_node = base::HashID::create_id(it->second.node_name);
+                    file->def_node = base::HashID::make_hash(it->second.node_name);
                     file->def_node_installed = g::pNodesManager->find_node(file->def_node) != nullptr;
                 }
                 file->service_component = it->second.service_component;

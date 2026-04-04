@@ -41,9 +41,6 @@ public:
     virtual void reset_state() { m_ed.reset(); }
 
 protected:
-    virtual BaseObj* find_obj(hid obj_id) const = 0;
-
-protected:
     BaseObj* m_object = nullptr;     // base node/pin
     std::string m_obj_class;
     wid m_wid = 0;

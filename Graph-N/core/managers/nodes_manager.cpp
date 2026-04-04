@@ -131,24 +131,17 @@ data::Pin* NodesManager::find_pin(hid id) const
 data::Node* NodesManager::make_dummy_node(const std::string& node_class)
 {
     auto node = std::make_unique<data::Node>(node_class);
-    auto it = m_nodes.find(node->get_id());
-    if (it != m_nodes.end())
-    {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Dummy node " << node_class << " already exists");
-        return it->second.get();
-    }
-
     node->name = node_class;
     node->node_class = node_class;
     node->is_dummy = true;
 
     auto ptr = node.get();
-    m_nodes.emplace(node->get_id(), std::move(node));
+    m_dummy_nodes.push_back(std::move(node));
     Log("Dummy node " << node_class << "/" << ptr->get_id() << " created");
     return ptr;
 }
 
-data::Pin* NodesManager::make_dummy_pin(data::Node* parent, const std::string& name, int64_t out_index)
+data::Pin* NodesManager::make_dummy_pin(data::Node* parent, const std::string& type, const std::string& name, int64_t out_index)
 {
     std::unique_ptr<data::Pin> pin;
     if (out_index >= 0)
@@ -164,20 +157,14 @@ data::Pin* NodesManager::make_dummy_pin(data::Node* parent, const std::string& n
         pin->required = true;
         parent->required.pins.push_back(pin.get());
     }
-    auto it = m_pins.find(pin->get_id());
-    if (it != m_pins.end())
-    {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Dummy pin " << parent->name << "/" << name << " already exists");
-        return it->second.get();
-    }
-
+    pin->initialize(type);
     pin->finalize();
-    pin->is_dummy = true;
     pin->def_state.name = name;
-    pin->def_state.w_name = ImGui::CalcTextSize(name.c_str(), name.c_str() + name.size()).x;
+    if (pin->output || pin->def_state.type != data::PinType::STRING)
+        pin->def_state.w_name = ImGui::CalcTextSize(name.c_str(), name.c_str() + name.size()).x;
 
     auto ptr = pin.get();
-    m_pins.emplace(pin->get_id(), std::move(pin));
+    m_dummy_pins.push_back(std::move(pin));
     Log("Dummy pin " << parent->name << "/" << name << "/" << ptr->get_id() << " created");
     return ptr;
 }
@@ -188,15 +175,14 @@ void NodesManager::init_labels()
     m_nodes_in_label.clear();
     m_last_label_id = 0;
 
-    auto labels = g::pOptsManager->nodes_labels_load(base::HashID::create_id(DlgObjID[cast::to_szt(DlgObj::PanelNodes)]));
+    auto labels = g::pOptsManager->nodes_labels_load(base::HashID::make_hash(DlgObjID[cast::to_szt(DlgObj::PanelNodes)]));
     if (labels.empty())
         return;
 
     Log("Node labels loaded: " << labels);
     try
     {
-        using json = nlohmann::json;
-        const json j = json::parse(labels);
+        const auto j = o_json::parse(labels);
 
         for (auto& obj : j)
         {
@@ -341,10 +327,10 @@ void NodesManager::set_node_labels(data::NodeItem* node_item, std::set<uint32_t>
 
 void NodesManager::save_labels() const
 {
-    nlohmann::json j;
+    o_json j;
     for (auto& [label, id] : m_labels)
     {        
-        nlohmann::json jlabel;
+        o_json jlabel;
         jlabel["name"] = label;
         jlabel["id"] = id;
 
@@ -367,7 +353,7 @@ void NodesManager::save_labels() const
         j.push_back(std::move(jlabel));
     }
 
-    g::pOptsManager->nodes_labels_save(base::HashID::create_id(DlgObjID[cast::to_szt(DlgObj::PanelNodes)]), j.dump());
+    g::pOptsManager->nodes_labels_save(base::HashID::make_hash(DlgObjID[cast::to_szt(DlgObj::PanelNodes)]), j.dump());
 }
 
 const std::list<data::NodeItem*>& NodesManager::get_nodes_in_label(uint32_t label_id) const

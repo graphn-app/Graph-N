@@ -120,6 +120,8 @@ public:
 
     bool empty() const;
 
+    Reader clone() const;
+
     bool pop_bool();
     uint8_t pop_u8();
     int32_t pop_i32();

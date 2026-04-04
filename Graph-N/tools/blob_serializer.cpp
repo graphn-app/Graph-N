@@ -222,11 +222,13 @@ Reader::Reader(const Blob& buffer)
     , m_size(buffer->size())
     , m_offset(0)
 {}
+
 Reader::Reader(const byte* data, size_t size)
     : m_data(data)
     , m_size(size)
     , m_offset(0)
 {}
+
 Reader::~Reader() = default;
 
 Reader::Reader(Reader&& other)
@@ -251,6 +253,13 @@ bool Reader::empty() const
     return m_offset >= m_size;
 }
 
+Reader Reader::clone() const
+{
+    Reader clone(m_data, m_size);
+    clone.m_offset = m_offset;
+    return clone;
+}
+
 void Reader::test_len(size_t len) const
 {
     if (len > m_size - m_offset)
@@ -270,7 +279,6 @@ uint8_t Reader::pop_u8()
     test_len(sizeof(uint8_t));
     return pop_trivial<uint8_t>(m_data, m_offset);
 }
-
 
 int32_t Reader::pop_i32()
 {

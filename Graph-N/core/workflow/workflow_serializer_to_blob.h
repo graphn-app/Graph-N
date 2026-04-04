@@ -23,8 +23,8 @@ private:
     static void serialize_node(const NodeInstance* node, blob::Writer& writer);
     static void serialize_pin(const PinInstance* pin, blob::Writer& writer);
     static void serialize_link(const Link* link, blob::Writer& writer);
-    static void deserialize_node(Workflow* wf, NodeInstance* node, blob::Reader& reader);
-    static void deserialize_pin(PinInstance* pin, blob::Reader& reader);
+    static void deserialize_node(Workflow* wf, NodeInstance* node, blob::Reader& reader, bool dummy);
+    static void deserialize_pin(PinInstance* pin, blob::Reader& reader, bool dummy);
     static void deserialize_link(Workflow* wf, blob::Reader& reader);
 };
 

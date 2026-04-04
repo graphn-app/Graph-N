@@ -23,15 +23,15 @@ public:
 
 private:
     std::shared_ptr<NodesManager> parse_thread();
-    void parse_node(NodesManager& manager, const std::string& node_class, nlohmann::json& node, std::unordered_map<std::string, std::list<hid>>& models_map);
-    void parse_names(data::Node& node, const std::string& node_class, nlohmann::json& json_node);
-    void parse_input(NodesManager& manager, data::Node& node, nlohmann::json& json_node);
-    void parse_output(NodesManager& manager, data::Node& node, nlohmann::json& json_node);
-    void parse_others(data::Node& node, nlohmann::json& json_node);
+    void parse_node(NodesManager& manager, const std::string& node_class, o_json& jnode, std::unordered_map<std::string, std::list<hid>>& models_map);
+    void parse_names(data::Node& node, const std::string& node_class, o_json& jnode);
+    void parse_input(NodesManager& manager, data::Node& node, o_json& jnode);
+    void parse_output(NodesManager& manager, data::Node& node, o_json& jnode);
+    void parse_others(data::Node& node, o_json& jnode);
     void put_in_tree(NodesManager& manager, data::Node* node);
     void sort_nodes(NodesManager& manager);
     void prepare_parsers_map();
-    void parse_by_key(const data::Node& node, data::Pin& pin, nlohmann::json& json, const std::string& key);
+    void parse_by_key(const data::Node& node, data::Pin& pin, o_json& j, const std::string& key);
 
 private:
     std::string m_json_data;
@@ -46,7 +46,7 @@ private:
     std::atomic_bool m_parse_failed = false;
     std::atomic_bool m_parse_finished = false;
 
-    using setter = std::function<void(const data::Node&, data::Pin&, nlohmann::json&)>;
+    using setter = std::function<void(const data::Node&, data::Pin&, o_json&)>;
     std::unordered_map<std::string, setter> m_parsers;
 };
 

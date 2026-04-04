@@ -365,7 +365,7 @@ void GraphN_Flow::show_logs_panel(bool show)
 
 void GraphN_Flow::check_connection()
 {
-    if (!get_online())
+    if (ConnectState::Disconnected == g::pConnectManager->get_status())
     {
         reconnect();
     }
@@ -960,7 +960,7 @@ void GraphN_Flow::txt_panel_create(wid wf, data::NodeInstance* node, data::PinIn
     }
 
     m_windows |= ViewPanelTextEditor;
-    current_panel->set_focused();
+    current_panel->set_focused(true);
     current_panel->update(wf, node, pin, buffer, hint);
 }
 
@@ -1022,15 +1022,11 @@ void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel)
 
 void GraphN_Flow::on_menu_import_json()
 {
-    wid activate = 0;
-#ifdef _DEBUG
-    std::filesystem::path path = R"(I:\ComfyUI\ComfyUI\user\default\workflows\test_simple.json)";
-    activate = g::pWfsManager->import_wf(path);
-#else
-    tools::path::FdSelectResultMt callback = [](bool result, std::list<std::filesystem::path>&& paths)
+    tools::path::FdSelectResultMt callback = [this](bool result, std::list<std::filesystem::path>&& paths)
     {
         if (result)
         {
+            wid activate = 0;
             for (auto& path : paths)
             {
                 auto id = g::pWfsManager->import_wf(path);
@@ -1040,23 +1036,18 @@ void GraphN_Flow::on_menu_import_json()
 
             if (paths.size() > 1)
                 activate = 0;
+
+            if (activate != 0)
+                wf_activate(activate);
+            else
+                m_panel_wf_list->rebuild_items();
         }
     };
-    tools::path::select_files_open({ "ComfyUI Workflows (*.json, *.png, *.webp)", "*.json, *.png, *.webp" }, callback);
-#endif
-
-    if (activate != 0)
-        wf_activate(activate);
-    else
-        m_panel_wf_list->rebuild_items();
+    tools::path::select_files_open({{ L"ComfyUI Workflows (*.json, *.png, *.webp)", L"*.json;*.png;*.webp" }}, callback);
 }
 
 void GraphN_Flow::on_menu_export_json(bool api)
 {
-#ifdef _DEBUG
-    auto path = fs::get_root_directory_path() / (api ? "export_api.json" : "export.json");
-    g::pWfsManager->export_wf(api, path);
-#else
     const auto id = g::pWfsManager->get_active();
     if (0 == id)
         return;
@@ -1073,7 +1064,6 @@ void GraphN_Flow::on_menu_export_json(bool api)
     };
 
     tools::path::select_file_save({{ L"Json file (*.json)", L"*.json" }}, filename, callback);
-#endif
 }
 
 void GraphN_Flow::open_settings_dlg(OptPane section /*= OptPane::_none*/)

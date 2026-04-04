@@ -87,6 +87,7 @@ void WorkflowSerializerToBlob::serialize_node(const NodeInstance* node, blob::Wr
         writer
             .push(in->m_object->get_id())
             .push(in->get_instance_id())
+            .push(in->m_object->def_state.type_str)
             .push(in->m_object->def_state.name)
         ;
         serialize_pin(in, writer);
@@ -100,6 +101,7 @@ void WorkflowSerializerToBlob::serialize_node(const NodeInstance* node, blob::Wr
         writer
             .push(out->m_object->get_id())
             .push(out->get_instance_id())
+            .push(out->m_object->def_state.type_str)
             .push(out->m_object->def_state.name)
         ;
         serialize_pin(out, writer);
@@ -187,12 +189,13 @@ NodeInstance* WorkflowSerializerToBlob::deserialize_node(Workflow* wf, blob::Rea
 {
     auto node = wf->add_blank_node();
     node->init_blank();
-    deserialize_node(wf, node, reader);
+    deserialize_node(wf, node, reader, false);
     return node;
 }
 
-void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node, blob::Reader& reader)
+void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node, blob::Reader& reader, bool dummy)
 {
+    auto reader_copy = reader.clone();
     blob::Reader root = reader.pop_block();
 
     blob::Reader block = root.pop_block();
@@ -220,11 +223,14 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
     if (!node->m_group)
     {
         node->m_object = g::pNodesManager->find_node(node->m_obj_hid);
-        if (nullptr == node->m_object)
+        if (node->m_object != nullptr && node->m_object->is_dummy)
+        {
+            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Dummy node " << node_class << " in base map");
+        }
+        if (nullptr == node->m_object || dummy)
         {
             LogWarnS("Node " << node_class << " not found");
-            auto obj = g::pNodesManager->make_dummy_node(std::string(node_class));
-            node->set_object(obj);
+            node->set_object(g::pNodesManager->make_dummy_node(std::string(node_class)));
         }
 
         if (node->m_object->get_id() != node->m_obj_hid)
@@ -234,18 +240,40 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
     }
     node->set_name(std::string(node_name));
 
+    //if (node_name == "Negative")
+    //    __debugbreak();
+
+    const auto remove_node_pins = [wf, node]()
+    {
+        for (auto pin : node->m_input)
+        {
+            wf->remove_pin(pin);
+        }
+        for (auto pin : node->m_output)
+        {
+            wf->remove_pin(pin);
+        }
+        node->m_input.clear();
+        node->m_output.clear();
+    };
+
     block = root.pop_block();
     auto pins = block.pop_i64();
     for (int64_t i = 0; i < pins; i++)
     {
         const auto h_id = block.pop_hid();
         const auto i_id = block.pop_iid();
+        const auto def_type = block.pop_string();
         const auto def_name = block.pop_string();
         auto pin = node->m_object->find_pin(h_id, true);
-        if (nullptr == pin)
+        if (node->m_object->is_dummy || nullptr == pin || pin->def_state.type_str != def_type)
         {
-            LogWarnS("Serialized input Pin not found");
-            pin = g::pNodesManager->make_dummy_pin(node->m_object, std::string(def_name), -1);            
+            if (!node->m_object->is_dummy)
+            {
+                remove_node_pins();
+                return deserialize_node(wf, node, reader_copy, true);
+            }
+            pin = g::pNodesManager->make_dummy_pin(node->m_object, std::string(def_type), std::string(def_name), -1);
         }
         if (pin->get_id() != h_id)
         {
@@ -253,11 +281,8 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
         }
 
         auto instance = wf->add_pin(node, pin, i_id);
-        deserialize_pin(instance, block);
+        deserialize_pin(instance, block, node->m_object->is_dummy);
         node->m_input.push_back(instance);
-
-        if (instance->m_object->is_dummy)
-            node->m_object->is_dummy = true;
     }
 
     block = root.pop_block();
@@ -266,12 +291,17 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
     {
         const auto h_id = block.pop_hid();
         const auto i_id = block.pop_iid();
+        const auto def_type = block.pop_string();
         const auto def_name = block.pop_string();
         auto pin = node->m_object->find_pin(h_id, false);
-        if (nullptr == pin)
+        if (node->m_object->is_dummy || nullptr == pin || pin->def_state.type_str != def_type)
         {
-            LogWarnS("Serialized output Pin not found");
-            pin = g::pNodesManager->make_dummy_pin(node->m_object, std::string(def_name), i);
+            if (!node->m_object->is_dummy)
+            {
+                remove_node_pins();
+                return deserialize_node(wf, node, reader_copy, true);
+            }
+            pin = g::pNodesManager->make_dummy_pin(node->m_object, std::string(def_type), std::string(def_name), i);
         }
         if (pin->get_id() != h_id)
         {
@@ -279,15 +309,12 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
         }
 
         auto instance = wf->add_pin(node, pin, i_id);
-        deserialize_pin(instance, block);
+        deserialize_pin(instance, block, node->m_object->is_dummy);
         node->m_output.push_back(instance);
-
-        if (instance->m_object->is_dummy)
-            node->m_object->is_dummy = true;
     }
 }
 
-void WorkflowSerializerToBlob::deserialize_pin(PinInstance* pin, blob::Reader& reader)
+void WorkflowSerializerToBlob::deserialize_pin(PinInstance* pin, blob::Reader& reader, bool dummy)
 {
     blob::Reader root = reader.pop_block();
     blob::Reader block = root.pop_block();
@@ -296,13 +323,16 @@ void WorkflowSerializerToBlob::deserialize_pin(PinInstance* pin, blob::Reader& r
     const auto def_type_hash = block.pop_u64();
     const auto def_type = cast::to_enum<PinType>(block.pop_u32());
     const auto obj_class = block.pop_string();
-    if (pin->m_object->is_dummy || pin->m_object->def_state.type_str != def_type_str)
+    if (dummy)
     {
         pin->m_object->def_state.type_str = def_type_str;
         pin->m_object->def_state.type_hash = def_type_hash;
         pin->m_object->def_state.type = def_type;
-        pin->m_object->is_dummy = true;
         pin->m_obj_class = obj_class;
+    }
+    else if (pin->m_object->def_state.type_str != def_type_str)
+    {
+        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Pin " << def_type_str << " must be dummy");
     }
 
     pin->set_name(std::string(block.pop_string()));

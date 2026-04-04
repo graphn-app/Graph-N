@@ -83,7 +83,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
     {
         g::pOptsManager->pin_advanced_preload();
 
-        auto nodes = nlohmann::json::parse(m_json_data);
+        auto nodes = o_json::parse(m_json_data);
         m_parsed_items_total = nodes.size();
 
         auto nodes_manager = std::make_shared<NodesManager>();
@@ -123,13 +123,16 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
     return {};
 }
 
-void NodesParser::parse_node(NodesManager& manager, const std::string& node_class, nlohmann::json& json_node, std::unordered_map<std::string, std::list<hid>>& models_map)
+void NodesParser::parse_node(NodesManager& manager, const std::string& node_class, o_json& json_node, std::unordered_map<std::string, std::list<hid>>& models_map)
 {
     try
     {
         Log("Node " << node_class << " parse: begin");
         auto node = std::make_unique<data::Node>(node_class);
         parse_names(*node.get(), node_class, json_node);        // name, display name, category, description
+
+        //if (node_class == "KSampler")
+        //    __debugbreak();
 
         parse_input(manager, *node.get(), json_node);        // input, input_order
         parse_output(manager, *node.get(), json_node);        // output, output_is_list, output_name, output_node, output_tooltips
@@ -152,7 +155,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
     }
 }
 
-void NodesParser::parse_names(data::Node& node, const std::string& node_class, nlohmann::json& json_node)
+void NodesParser::parse_names(data::Node& node, const std::string& node_class, o_json& json_node)
 {
     // name, display name, category, description
 
@@ -176,132 +179,132 @@ void NodesParser::parse_names(data::Node& node, const std::string& node_class, n
     }
 }
 
-static std::optional<primitive> get_combo_item(const nlohmann::json& json)
+static std::optional<primitive> get_combo_item(const o_json& j)
 {
-    if (json.is_string())
-        return std::string(json);
-    if (json.is_boolean())
-        return bool(json);
-    if (json.is_number_float())
-        return double(json);
-    if (json.is_number_integer())
-        return int64_t(json);
-    if (json.is_null())
+    if (j.is_string())
+        return std::string(j);
+    if (j.is_boolean())
+        return bool(j);
+    if (j.is_number_float())
+        return double(j);
+    if (j.is_number_integer())
+        return int64_t(j);
+    if (j.is_null())
         return std::monostate();
 
     return std::nullopt;
 }
 
 template <typename TYPE>
-static TYPE json_to_number(nlohmann::json& data)
+static TYPE json_to_number(o_json& j)
 {
-    if (data.is_number())
+    if (j.is_number())
     {
-        return data.get<TYPE>();
+        return j.get<TYPE>();
     }
-    if (data.is_boolean())
+    if (j.is_boolean())
     {
-        return data.get<bool>() ? 1 : 0;
+        return j.get<bool>() ? 1 : 0;
     }
-    if (data.is_string())
+    if (j.is_string())
     {
         if (std::is_same_v<TYPE, int64_t>)
-            return cast::to<int64_t, TYPE>(strtoll(data.get_ref<const std::string&>().c_str(), nullptr, 10));
+            return cast::to<int64_t, TYPE>(strtoll(j.get_ref<const std::string&>().c_str(), nullptr, 10));
         if (std::is_same_v<TYPE, double>)
-            return cast::to<double, TYPE>(strtod(data.get_ref<const std::string&>().c_str(), nullptr));
+            return cast::to<double, TYPE>(strtod(j.get_ref<const std::string&>().c_str(), nullptr));
     }
-    if (data.is_null())
+    if (j.is_null())
     {
         return {};
     }
 
-    LogInternalLogicS("json data unknown type " << data.type_name() << " (number expected)");
+    LogInternalLogicS("json data unknown type " << j.type_name() << " (number expected)");
     return {};
 }
 
-static std::string json_to_string(nlohmann::json& data)
+static std::string json_to_string(o_json& j)
 {
-    if (data.is_string())
+    if (j.is_string())
     {
-        return std::move(data.get_ref<std::string&>());
+        return std::move(j.get_ref<std::string&>());
     }
-    if (data.is_boolean())
+    if (j.is_boolean())
     {
-        return (data.get<bool>() ? "true" : "false");
+        return (j.get<bool>() ? "true" : "false");
     }
-    if (data.is_number_integer())
+    if (j.is_number_integer())
     {
-        return std::to_string(data.get<int64_t>());
+        return std::to_string(j.get<int64_t>());
     }
-    if (data.is_number_float())
+    if (j.is_number_float())
     {
-        return std::to_string(data.get<double>());
+        return std::to_string(j.get<double>());
     }
-    if (data.is_null())
+    if (j.is_null())
     {
         return {};
     }
 
-    LogInternalLogicS("json data unknown type " << data.type_name() << " (string expected)");
+    LogInternalLogicS("json data unknown type " << j.type_name() << " (string expected)");
     return {};
 }
 
-static bool json_to_bool(nlohmann::json& data)
+static bool json_to_bool(o_json& j)
 {
-    if (data.is_boolean())
+    if (j.is_boolean())
     {
-        return data.get<bool>();
+        return j.get<bool>();
     }
-    if (data.is_number())
+    if (j.is_number())
     {
-        return (data.get<int64_t>() != 0);
+        return (j.get<int64_t>() != 0);
     }
-    if (data.is_string())
+    if (j.is_string())
     {
-        const auto& str = data.get_ref<const std::string&>();
+        const auto& str = j.get_ref<const std::string&>();
         return (str == "1" || str == "true" || str == "True" || str == "TRUE");
     }
-    if (data.is_null())
+    if (j.is_null())
     {
         return false;
     }
 
-    LogInternalLogicS("json data unknown type " << data.type_name() << " (bool expected)");
+    LogInternalLogicS("json data unknown type " << j.type_name() << " (bool expected)");
     return false;
 }
 
-static primitive get_from_pin_type(const data::Node& node, data::Pin& pin, nlohmann::json& json, const char* attr)
+static primitive get_from_pin_type(const data::Node& jnode, data::Pin& pin, o_json& j, const char* attr)
 {
     switch (pin.def_state.type)
     {
     case data::PinType::INT:
     case data::PinType::NUMBER:
-        return json_to_number<int64_t>(json);
+        return json_to_number<int64_t>(j);
     case data::PinType::FLOAT:
-        return json_to_number<double>(json);
+        return json_to_number<double>(j);
     case data::PinType::BOOLEAN:
-        return json_to_bool(json);
+        return json_to_bool(j);
     case data::PinType::STRING:
     case data::PinType::COLOR:
-        return json_to_string(json);
+        return json_to_string(j);
     case data::PinType::COMBO:
         {
-            auto value = get_combo_item(json);
+            auto value = get_combo_item(j);
             if (value.has_value())
                 return std::move(value.value());
         }
         break;
     }
 
-    LogUnhandledJsonS("Wrong pin type. node=" << node.name << ", pin=" << pin.def_state.name << ", attr=" << attr << ", type=" << json.type_name());
+    LogUnhandledJsonS("Wrong pin type. node=" << jnode.name << ", pin=" << pin.def_state.name << ", attr=" << attr << ", type=" << j.type_name());
     return {};
 }
 
 void NodesParser::prepare_parsers_map()
 {
-    const auto log_err_type = [this](const data::Node& node, data::Pin& pin, const nlohmann::json& json, const char* attr)
+    const auto log_err_type = [this](const data::Node& node, data::Pin& pin, const o_json& j, const char* attr)
     {
-        LogUnhandledJson("Unknown type node=" << node.name << ", pin=" << pin.def_state.name << ", attr=" << attr << ", type=" << json.type_name());
+        LogUnhandledJson("Unknown type node=" << node.name << ", pin=" << pin.def_state.name << ", attr=" << attr << ", type=" << j.type_name());
     };
 
     const auto log_err_value = [this](const data::Node& node, data::Pin& pin, const std::string& value, const char* attr)
@@ -312,40 +315,40 @@ void NodesParser::prepare_parsers_map()
     // sorted a-z
 
     m_parsers["advanced"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.advanced = json;
-        else log_err_type(node, pin, json, "advanced");
+        if (j.is_boolean()) pin.advanced = j;
+        else log_err_type(node, pin, j, "advanced");
     };
     m_parsers["audio_upload"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.audio_upload = json;
-        else log_err_type(node, pin, json, "audio_upload");
+        if (j.is_boolean()) pin.audio_upload = j;
+        else log_err_type(node, pin, j, "audio_upload");
     };
     m_parsers["control_after_generate"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.cag_require = json;
-        else log_err_type(node, pin, json, "control_after_generate");
+        if (j.is_boolean()) pin.cag_require = j;
+        else log_err_type(node, pin, j, "control_after_generate");
     };
     m_parsers["default"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        pin.def = get_from_pin_type(node, pin, json, "default");
+        pin.def = get_from_pin_type(node, pin, j, "default");
     };
     m_parsers["defaultInput"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.def_input = json;
-        else log_err_type(node, pin, json, "defaultInput");
+        if (j.is_boolean()) pin.def_input = j;
+        else log_err_type(node, pin, j, "defaultInput");
     };
     m_parsers["display"] =
-        [&log_err_type, &log_err_value](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type, &log_err_value](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_string())
+        if (j.is_string())
         {
-            const std::string& display = json.get_ref<const std::string&>();
+            const std::string& display = j.get_ref<const std::string&>();
             if (display == "color")
             {
                 pin.display_as_color = true;
@@ -360,84 +363,84 @@ void NodesParser::prepare_parsers_map()
             }
         }
         else
-            log_err_type(node, pin, json, "defaultInput");
+            log_err_type(node, pin, j, "defaultInput");
     };
     m_parsers["dynamicPrompts"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.dynamic_prompts = json;
-        else log_err_type(node, pin, json, "dynamicPrompts");
+        if (j.is_boolean()) pin.dynamic_prompts = j;
+        else log_err_type(node, pin, j, "dynamicPrompts");
     };
     m_parsers["file_upload"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.file_upload = json;
-        else log_err_type(node, pin, json, "file_upload");
+        if (j.is_boolean()) pin.file_upload = j;
+        else log_err_type(node, pin, j, "file_upload");
     };
     m_parsers["forceInput"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.force_input = json;
-        else log_err_type(node, pin, json, "forceInput");
+        if (j.is_boolean()) pin.force_input = j;
+        else log_err_type(node, pin, j, "forceInput");
     };
     m_parsers["image_folder"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_string()) pin.image_folder = json;
-        else log_err_type(node, pin, json, "image_folder");
+        if (j.is_string()) pin.image_folder = j;
+        else log_err_type(node, pin, j, "image_folder");
     };
     m_parsers["image_upload"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.image_upload = json;
-        else log_err_type(node, pin, json, "image_upload");
+        if (j.is_boolean()) pin.image_upload = j;
+        else log_err_type(node, pin, j, "image_upload");
     };
     m_parsers["label_off"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_string()) pin.label_off = json;
-        else log_err_type(node, pin, json, "label_off");
+        if (j.is_string()) pin.label_off = j;
+        else log_err_type(node, pin, j, "label_off");
     };
     m_parsers["label_on"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_string()) pin.label_on = json;
-        else log_err_type(node, pin, json, "label_on");
+        if (j.is_string()) pin.label_on = j;
+        else log_err_type(node, pin, j, "label_on");
     };
     m_parsers["lazy"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.lazy = json;
-        else log_err_type(node, pin, json, "lazy");
+        if (j.is_boolean()) pin.lazy = j;
+        else log_err_type(node, pin, j, "lazy");
     };
     m_parsers["min"] =
-        [](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        pin.min = get_from_pin_type(node, pin, json, "min");
+        pin.min = get_from_pin_type(node, pin, j, "min");
     };
     m_parsers["max"] =
-        [](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        pin.max = get_from_pin_type(node, pin, json, "max");
+        pin.max = get_from_pin_type(node, pin, j, "max");
     };
     m_parsers["multiline"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.multiline = json;
-        else log_err_type(node, pin, json, "multiline");
+        if (j.is_boolean()) pin.multiline = j;
+        else log_err_type(node, pin, j, "multiline");
     };
     m_parsers["multiselect"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.multiselect = json;
-        else log_err_type(node, pin, json, "multiselect");
+        if (j.is_boolean()) pin.multiselect = j;
+        else log_err_type(node, pin, j, "multiselect");
     };
     m_parsers["options"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (data::PinType::COMBO == pin.def_state.type && json.is_array())
+        if (data::PinType::COMBO == pin.def_state.type && j.is_array())
         {
-            for (const auto& val : json)
+            for (const auto& val : j)
             {
                 auto value = get_combo_item(val);
                 if (value.has_value())
@@ -447,51 +450,51 @@ void NodesParser::prepare_parsers_map()
             }
         }
         else
-            log_err_type(node, pin, json, "options");
+            log_err_type(node, pin, j, "options");
     };
     m_parsers["placeholder"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_string()) pin.placeholder = json;
-        else log_err_type(node, pin, json, "placeholder");
+        if (j.is_string()) pin.placeholder = j;
+        else log_err_type(node, pin, j, "placeholder");
     };
     m_parsers["round"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_number_float())
+        if (j.is_number_float())
         {
-            pin.round = double(json);
+            pin.round = double(j);
         }
-        else if (json.is_boolean())
+        else if (j.is_boolean())
         {
-            pin.do_round = bool(json);
+            pin.do_round = bool(j);
         }
-        else if (!json.is_null())
+        else if (!j.is_null())
         {
-            log_err_type(node, pin, json, "round");
+            log_err_type(node, pin, j, "round");
         }
 
     };
     m_parsers["step"] =
-        [](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        pin.step = get_from_pin_type(node, pin, json, "step");
+        pin.step = get_from_pin_type(node, pin, j, "step");
     };
     m_parsers["tooltip"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_string()) pin.tooltip = json;
-        else log_err_type(node, pin, json, "tooltip");
+        if (j.is_string()) pin.tooltip = j;
+        else log_err_type(node, pin, j, "tooltip");
     };
     m_parsers["video_upload"] =
-        [&log_err_type](const data::Node& node, data::Pin& pin, nlohmann::json& json)
+        [&log_err_type](const data::Node& node, data::Pin& pin, o_json& j)
     {
-        if (json.is_boolean()) pin.video_upload = json;
-        else log_err_type(node, pin, json, "video_upload");
+        if (j.is_boolean()) pin.video_upload = j;
+        else log_err_type(node, pin, j, "video_upload");
     };
 }
 
-void NodesParser::parse_by_key(const data::Node& node, data::Pin& pin, nlohmann::json& json, const std::string& key)
+void NodesParser::parse_by_key(const data::Node& node, data::Pin& pin, o_json& j, const std::string& key)
 {
     const auto it = m_parsers.find(key);
     if (it == m_parsers.end())
@@ -500,19 +503,17 @@ void NodesParser::parse_by_key(const data::Node& node, data::Pin& pin, nlohmann:
     }
     else
     {
-        it->second(node, pin, json);
+        it->second(node, pin, j);
     }
 }
 
-void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann::json& json_node)
+void NodesParser::parse_input(NodesManager& manager, data::Node& node, o_json& jnode)
 {
     // input, input_order
 
-    using json = nlohmann::json;
-
-    const auto parse_input = [&node, &manager, this](data::Node::Input& input, json& objects, bool is_required, bool is_optional, bool is_hidden)
+    const auto parse_input = [&node, &manager, this](data::Node::Input& input, o_json& jobjects, bool is_required, bool is_optional, bool is_hidden)
     {
-        auto items = objects.items();
+        auto items = jobjects.items();
         for (const auto&[pin_name, pin_info] : items)
         {
             auto pin = std::make_unique<data::Pin>(&node, pin_name);
@@ -528,33 +529,33 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
 
             if (pin_info.is_array())
             {
-                auto& arr = pin_info.get_ref<json::array_t&>();
-                if (arr.size() == 1 && arr[0].is_string())
+                auto& jarr = pin_info.get_ref<o_json::array_t&>();
+                if (jarr.size() == 1 && jarr[0].is_string())
                 {
-                    pin->initialize(arr[0]);
+                    pin->initialize(jarr[0]);
                     if (data::PinType::CUSTOM == pin->def_state.type)
                     {
                         LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->def_state.name);
                     }
                 }
-                else if (arr.size() == 2 && arr[0].is_string() && arr[1].is_object())
+                else if (jarr.size() == 2 && jarr[0].is_string() && jarr[1].is_object())
                 {
-                    pin->initialize(arr[0]);
+                    pin->initialize(jarr[0]);
                     if (data::PinType::CUSTOM == pin->def_state.type)
                     {
                         LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->def_state.name);
                     }
 
-                    for (auto&[key, value] : arr[1].items())
+                    for (auto&[key, value] : jarr[1].items())
                     {
                         parse_by_key(node, *pin, value, key);
                     }
                 }
-                else if (arr.size() == 2 && arr[0].is_array() && arr[1].is_object() ||
-                    arr.size() == 1 && arr[0].is_array())
+                else if (jarr.size() == 2 && jarr[0].is_array() && jarr[1].is_object() ||
+                    jarr.size() == 1 && jarr[0].is_array())
                 {
                     pin->initialize("COMBO");
-                    for (const auto& item : arr[0])
+                    for (const auto& item : jarr[0])
                     {
                         auto value = get_combo_item(item);
                         if (value.has_value())
@@ -565,9 +566,9 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
                                 << pin->def_state.name << ", type=" << item.type_name());
                         }
                     }
-                    if (arr.size() == 2)
+                    if (jarr.size() == 2)
                     {
-                        for (const auto&[key, value] : arr[1].items())
+                        for (const auto&[key, value] : jarr[1].items())
                         {
                             parse_by_key(node, *pin, value, key);
                         }
@@ -576,7 +577,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
                 else
                 {
                     LogUnhandledJson("/input/<>/pin_info. Unknown arr. Node=" << node.name << ", pin="
-                        << pin->def_state.name << ", arr_sz=" << arr.size());
+                        << pin->def_state.name << ", arr_sz=" << jarr.size());
                 }
             }
             else
@@ -611,9 +612,9 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
         }
     };
 
-    if (json_node.contains("input"))
+    if (jnode.contains("input"))
     {
-        auto& input = json_node["input"];
+        auto& input = jnode["input"];
 
         if (input.contains("required") && input["required"].is_object())
         {
@@ -629,9 +630,9 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
         //}
     }
 
-    const auto parse_order = [this, &node](data::Node::Input& input, const json& array)
+    const auto parse_order = [this, &node](data::Node::Input& input, const o_json& jarray)
     {
-        for (const auto& item : array)
+        for (const auto& item : jarray)
         {
             if (item.is_string())
                 input.order.push_back(item);
@@ -666,9 +667,9 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
         input.order.clear();
     };
 
-    if (json_node.contains("input_order"))
+    if (jnode.contains("input_order"))
     {
-        auto& order = json_node["input_order"];
+        auto& order = jnode["input_order"];
         if (order.contains("required") && order["required"].is_array())
         {
             parse_order(node.required, order["required"]);
@@ -689,13 +690,13 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, nlohmann:
     node.has_input = !node.required.pins.empty() || !node.optional.pins.empty() /*|| !node.hidden.pins.empty()*/;
 }
 
-void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann::json& json_node)
+void NodesParser::parse_output(NodesManager& manager, data::Node& node, o_json& jnode)
 {
     // output, output_is_list, output_name, output_node, output_tooltips
 
-    if (json_node.contains("output"))
+    if (jnode.contains("output"))
     {
-        auto& output = json_node["output"];
+        auto& output = jnode["output"];
         if (output.is_array())
         {
             int64_t index = 0;
@@ -741,14 +742,14 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
         }
     }
 
-    using add_new_callback = std::function<bool(const nlohmann::json& item, data::Pin* pin)>;
+    using add_new_callback = std::function<bool(const o_json& item, data::Pin* pin)>;
     using add_def_callback = std::function<void(data::Pin* pin)>;
 
-    const auto parse_output_attr = [this, &json_node, &node](const char* attr_name, add_new_callback new_cb, add_def_callback def_cb)
+    const auto parse_output_attr = [this, &jnode, &node](const char* attr_name, add_new_callback new_cb, add_def_callback def_cb)
     {
-        if (json_node.contains(attr_name))
+        if (jnode.contains(attr_name))
         {
-            auto& attr = json_node[attr_name];
+            auto& attr = jnode[attr_name];
             if (attr.is_array())
             {
                 auto out_pins = node.output.begin();
@@ -785,11 +786,11 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
     };
 
     parse_output_attr("output_is_list",
-        [](const nlohmann::json& item, data::Pin* pin)
+        [](const o_json& jitem, data::Pin* pin)
         {
-            if (item.is_boolean())
+            if (jitem.is_boolean())
             {
-                pin->output_is_list = item;
+                pin->output_is_list = jitem;
                 return true;
             }
             return false;
@@ -801,11 +802,11 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
     );
 
     parse_output_attr("output_name",
-        [](const nlohmann::json& item, data::Pin* pin)
+        [](const o_json& jitem, data::Pin* pin)
         {
-            if (item.is_string())
+            if (jitem.is_string())
             {
-                pin->def_state.name = item;
+                pin->def_state.name = jitem;
                 return true;
             }
             return false;
@@ -814,21 +815,21 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
     );
 
     parse_output_attr("output_tooltips",
-        [](const nlohmann::json& item, data::Pin* pin)
+        [](const o_json& jitem, data::Pin* pin)
         {
-            if (item.is_string())
+            if (jitem.is_string())
             {
-                pin->tooltip = item;
+                pin->tooltip = jitem;
                 return true;
             }
-            return item.is_null();
+            return jitem.is_null();
         },
         [](data::Pin*) {}
     );
 
-    if (json_node.contains("output_node"))
+    if (jnode.contains("output_node"))
     {
-        const auto& output_node = json_node["output_node"];
+        const auto& output_node = jnode["output_node"];
         if (output_node.is_boolean())
             node.output_node = output_node;
         else
@@ -845,15 +846,15 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, nlohmann
     node.has_output = !node.output.empty();
 }
 
-void NodesParser::parse_others(data::Node& node, nlohmann::json& json_node)
+void NodesParser::parse_others(data::Node& node, o_json& jnode)
 {
     // python_module, experimental, deprecated, api_node
 
-    const auto get_bool = [this, &node, &json_node](const char* json_name, bool& value)
+    const auto get_bool = [this, &node, &jnode](const char* json_name, bool& value)
     {
-        if (!json_node.contains(json_name))
+        if (!jnode.contains(json_name))
             return;
-        const auto& json_value = json_node[json_name];
+        const auto& json_value = jnode[json_name];
         if (json_value.is_boolean())
             value = json_value;
         else
@@ -862,11 +863,11 @@ void NodesParser::parse_others(data::Node& node, nlohmann::json& json_node)
         }
     };
 
-    const auto get_string = [this, &node, &json_node](const char* json_name, std::string& value)
+    const auto get_string = [this, &node, &jnode](const char* json_name, std::string& value)
     {
-        if (!json_node.contains(json_name))
+        if (!jnode.contains(json_name))
             return;
-        const auto& json_value = json_node[json_name];
+        const auto& json_value = jnode[json_name];
         if (json_value.is_string())
             value = json_value;
         else
@@ -880,7 +881,7 @@ void NodesParser::parse_others(data::Node& node, nlohmann::json& json_node)
     get_bool("api_node", node.api_node);
     get_string("python_module", node.python_module);
 
-    for (const auto&[name, value] : json_node.items())
+    for (const auto&[name, value] : jnode.items())
     {
         if (name == "input" ||
             name == "input_order" ||

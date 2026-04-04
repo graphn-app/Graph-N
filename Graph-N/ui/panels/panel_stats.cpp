@@ -161,7 +161,7 @@ void PanelStats::th_comfyui()
             {
                 try
                 {
-                    const auto data = nlohmann::json::parse(res->body);
+                    const auto data = o_json::parse(res->body);
                     if (data.contains("system") && data["system"].contains("ram_free") && data["system"]["ram_free"].is_number_integer())
                     {
                         auto& system = data["system"];
@@ -231,7 +231,7 @@ void PanelStats::th_comfyui()
             {
                 try
                 {
-                    const auto data = nlohmann::json::parse(res->body);
+                    const auto data = o_json::parse(res->body);
                     if (data.contains("exec_info") && data["exec_info"].contains("queue_remaining") && data["exec_info"]["queue_remaining"].is_number_integer())
                     {
                         m_queue_remaining = data["exec_info"]["queue_remaining"];
