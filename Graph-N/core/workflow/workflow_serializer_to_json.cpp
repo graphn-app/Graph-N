@@ -183,7 +183,8 @@ void WorkflowSerializerToJson::serialize_widgets(const NodeInstance* node, o_jso
                 {
                     if (PinType::COMBO == pin->m_state.type)
                     {
-                        jarr.push_back(pin->m_object->combo_items_ptr[v]);
+                        if (uint64_t(v) < pin->m_object->combo_items_ptr.size())
+                            jarr.push_back(pin->m_object->combo_items_ptr[v]);
                     }
                     else
                         jarr.push_back(v);
@@ -197,7 +198,7 @@ void WorkflowSerializerToJson::serialize_widgets(const NodeInstance* node, o_jso
                     else
                         jarr.push_back(v);
                 }
-            },pin->m_state.value);
+            }, pin->m_state.value);
         }
     }
 
