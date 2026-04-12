@@ -786,8 +786,9 @@ void GraphN_Flow::wf_delete(wid id)
     auto wf = g::pWfsManager->get_active();
     if (wf == id)
     {
-        g::pWfsManager->set_active(0);
-        activate_wf_panel(nullptr);
+        auto last_panel = get_last_open_wf_panel(id);
+        g::pWfsManager->set_active(nullptr == last_panel ? 0 : last_panel->get_workflow()->get_id());
+        activate_wf_panel(last_panel);
     }
 
     g::pWfsManager->delete_wf(id);
@@ -890,6 +891,11 @@ void GraphN_Flow::activate_wf_panel(PanelWorkflow* wf_panel)
         }
 
         m_wf_focused = wf_panel;
+        if (m_wf_focused != nullptr)
+        {
+            if (m_active_sequense.empty() || m_active_sequense.back() != m_wf_focused->get_workflow()->get_id())
+                m_active_sequense.push_back(m_wf_focused->get_workflow()->get_id());
+        }
     }
 }
 
@@ -897,10 +903,11 @@ void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
 {
     wf_panel->stop_all_threads();
     m_all_dialogs.erase(wf_panel);
-    
-    txt_panel_clear(wf_panel->get_workflow()->get_id());
-    g::pHistoryManager->cleanup(wf_panel->get_workflow()->get_id());
-    g::pWfsManager->close(wf_panel->get_workflow()->get_id());
+
+    const wid panel_wf = wf_panel->get_workflow()->get_id();
+    txt_panel_clear(panel_wf);
+    g::pHistoryManager->cleanup(panel_wf);
+    g::pWfsManager->close(panel_wf);
 
     if (m_panels_wf.empty())
         destroy_txt_panels();
@@ -916,7 +923,10 @@ void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
     }
 
     if (m_wf_focused == wf_panel)
-        wf_activate(0);
+    {
+        auto last_open = get_last_open_wf_panel(panel_wf);
+        wf_activate(nullptr == last_open ? 0 : last_open->get_workflow()->get_id());
+    }
 
     on_dlg_closed(DlgObj::PanelWf);
 }
@@ -924,6 +934,35 @@ void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
 void GraphN_Flow::rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name)
 {
     wf_panel->rename_panel(new_name);
+}
+
+PanelWorkflow* GraphN_Flow::get_last_open_wf_panel(wid closed)
+{
+    if (m_active_sequense.empty())
+        return nullptr;
+
+    wid last_open = 0;
+    if (m_active_sequense.back() == closed)
+    {
+        m_active_sequense.pop_back();
+        last_open = (m_active_sequense.empty() ? 0 : m_active_sequense.back());
+    }
+    else
+        last_open = m_active_sequense.back();
+
+    if (0 == last_open)
+        return nullptr;
+
+    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
+    {
+        auto& panel = *it;
+        if (panel->get_workflow()->get_id() == last_open)
+        {
+            return panel.get();
+        }
+    }
+
+    return get_last_open_wf_panel(last_open);
 }
 
 // <- WF internal

@@ -192,6 +192,7 @@ private:
     void activate_wf_panel(PanelWorkflow* wf_panel);
     void close_wf_panel(PanelWorkflow* wf_panel);    
     void rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name);
+    PanelWorkflow* get_last_open_wf_panel(wid closed);
     // WF internal
 
     // text editor panel internal
@@ -229,5 +230,6 @@ private:
     PanelWorkflow* m_wf_focused = nullptr;
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
     std::list<std::unique_ptr<PanelTextEditor>> m_panels_text_editor;
+    std::list<wid> m_active_sequense;
 };
 }
