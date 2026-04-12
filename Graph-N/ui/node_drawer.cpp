@@ -63,7 +63,7 @@ void NodeDrawer::init(blob::Blob&& state)
             visible_rect = reader.pop_rect();
         }
         else
-            view_zoom = 1.0f;
+            m_navigate_to_content = true;
     };
 
     const auto save_state = [this](const ImVec2& view_scroll, float view_zoom, const ImRect& visible_rect)
@@ -189,6 +189,12 @@ void NodeDrawer::post_draw_all(
 
     if (m_active_tt != nullptr)
         ImGuiEx::TooltipOnLastControl(m_active_tt, nullptr);
+
+    if (m_navigate_to_content)
+    {
+        m_navigate_to_content = false;
+        ed::NavigateToContent();
+    }
 
     ed::SetCurrentEditor(nullptr);
 }

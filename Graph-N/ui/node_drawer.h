@@ -160,6 +160,7 @@ private:
 
     std::set<void*> m_pending_delete;
     blob::Blob m_state;
+    bool m_navigate_to_content = false;
 
 #ifdef _DEBUG
     std::set<void*> m_ids_imgui;

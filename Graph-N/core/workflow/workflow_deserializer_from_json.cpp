@@ -52,16 +52,28 @@ bool WorkflowSerializerToJson::deserialize(Workflow* wf, const o_json& j)
             return false;
         }
 
+        SubgraphMap subgraphs;
+        if (j.contains("definitions") && j["definitions"].contains("subgraphs") && j["definitions"]["subgraphs"].is_array())
+        {
+            for (auto& jitem : j["definitions"]["subgraphs"])
+            {
+                if (jitem.contains("id"))
+                {
+                    subgraphs[jitem["id"]] = {};
+                }
+            }
+        }
+
         std::map<std::string, iid> node_ids;
-        LinkMap in_pins, out_pins; // std::map<iid, std::map<int32_t, iid>>
+        LinkMap in_pins, out_pins;
 
         for (auto& jnode : j["nodes"])
         {
             std::string jid;
             LinkMap node_in_pins, node_out_pins;
-            auto node = deserialize_node(wf, jnode, jid, node_in_pins, node_out_pins, false);
+            auto node = deserialize_node(wf, jnode, jid, subgraphs, node_in_pins, node_out_pins, false);
             if (nullptr == node)
-                return false;
+                continue;
             node_ids[jid] = node->get_instance_id();
             if (node->m_object->is_dummy)
                 wf->get_data().valid = false;
@@ -70,10 +82,24 @@ bool WorkflowSerializerToJson::deserialize(Workflow* wf, const o_json& j)
             out_pins.merge(node_out_pins);
         }
 
-        if (!deserialize_links(wf, j, node_ids, in_pins, out_pins))
-            return false;
+        if (j.contains("definitions") && j["definitions"].contains("subgraphs") && j["definitions"]["subgraphs"].is_array())
+        {
+            for (auto& jsubgraph : j["definitions"]["subgraphs"])
+            {
+                if (!deserialize_subgraph(wf, jsubgraph, node_ids, subgraphs, in_pins, out_pins))
+                    return false;
+            }
+        }
 
-        if (!deserialize_groups(wf, j))
+        if (j.contains("groups") && j["groups"].is_array())
+        {
+            for (const auto& g : j["groups"])
+            {
+                deserialize_group(wf, g);
+            }
+        }
+
+        if (!deserialize_links(wf, j, node_ids, subgraphs, in_pins, out_pins))
             return false;
 
         return true;
@@ -86,7 +112,8 @@ bool WorkflowSerializerToJson::deserialize(Workflow* wf, const o_json& j)
 }
 
 NodeInstance* WorkflowSerializerToJson::deserialize_node(
-    Workflow* wf, const o_json& j, std::string& node_id_from_json, LinkMap& in_pins, LinkMap& out_pins, bool dummy)
+    Workflow* wf, const o_json& j, std::string& node_id_from_json, SubgraphMap& subgraphs,
+    LinkMap& in_pins, LinkMap& out_pins, bool dummy)
 {
     try
     {
@@ -94,14 +121,25 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
         if (!j.contains("type") || !j["type"].is_string() || !j.contains("id"))
             return nullptr;
 
-        if (j["id"].is_string())
-            node_id_from_json = j["id"];
-        else if (j["id"].is_number_integer())
-            node_id_from_json = std::to_string(j["id"].get<int32_t>());
-        else
-            return nullptr;
+        if (j["id"].is_string())                node_id_from_json = j["id"];
+        else if (j["id"].is_number_integer())   node_id_from_json = std::to_string(j["id"].get<int32_t>());
+        else                                    return nullptr;
 
         const std::string node_class = j["type"];
+
+        // position
+        ImRect rc = {};
+        if (j.contains("pos") && j["pos"].is_array() && j["pos"].size() == 2 && j["pos"][0].is_number() && j["pos"][1].is_number())
+        {
+            rc.Min.x = j["pos"][0];
+            rc.Min.y = j["pos"][1];
+        }
+
+        if (subgraphs.count(node_class) > 0)
+        {
+            subgraphs[node_class] = { node_id_from_json, rc };
+            return nullptr;
+        }
 
         //if (node_class == "ImpactCompare")
         //    __debugbreak();
@@ -115,14 +153,6 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
         if (nullptr == node || dummy)
         {
             node = g::pNodesManager->make_dummy_node(std::string(node_class));
-        }
-
-        // position
-        ImRect rc = {};
-        if (j.contains("pos") && j["pos"].is_array() && j["pos"].size() == 2 && j["pos"][0].is_number() && j["pos"][1].is_number())
-        {
-            rc.Min.x = j["pos"][0];
-            rc.Min.y = j["pos"][1];
         }
 
         auto node_instance = wf->add_node(node, rc);
@@ -171,11 +201,11 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
         node_instance->m_pinned = false;
         if (j.contains("flags") && j["flags"].is_object())
         {
-            for (const auto& [name, value] : j["flags"].items())
+            for (const auto& [jname, jvalue] : j["flags"].items())
             {
-                if (name == "collapsed" && value.is_boolean() && value.get<bool>() == true)
+                if (jname == "collapsed" && jvalue.is_boolean() && jvalue.get<bool>() == true)
                     node_instance->m_expanded = false;
-                else if (name == "pinned" && value.is_boolean() && value.get<bool>() == true)
+                else if (jname == "pinned" && jvalue.is_boolean() && jvalue.get<bool>() == true)
                     node_instance->m_pinned = true;
             }
         }
@@ -184,18 +214,18 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
         if (j.contains("inputs") && j["inputs"].is_array())
         {
             int32_t index = 0;
-            for (const auto& input : j["inputs"])
+            for (const auto& jinput : j["inputs"])
             {
-                if (input.is_object())
+                if (jinput.is_object())
                 {
-                    if (!input.contains("name") || !input["name"].is_string() || !input.contains("type") || !input["type"].is_string()) // TODO: type=-1 onTrigger
+                    if (!jinput.contains("name") || !jinput["name"].is_string() || !jinput.contains("type") || !jinput["type"].is_string()) // TODO: type=-1 onTrigger
                     {
                         index++;
                         continue;
                     }
 
-                    const std::string name = input["name"];
-                    const std::string type = input["type"];
+                    const std::string name = jinput["name"];
+                    const std::string type = jinput["type"];
 
                     const auto pin_hash = Pin::make_hash(node_instance->m_object, name, -1);
                     auto pin = node_instance->m_object->find_pin(pin_hash, true);
@@ -206,7 +236,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                         {
                             wf->remove_node(node_instance);
                             in_pins = out_pins = {};
-                            return deserialize_node(wf, j, node_id_from_json, in_pins, out_pins, true);
+                            return deserialize_node(wf, j, node_id_from_json, subgraphs, in_pins, out_pins, true);
                         }
 
                         pin = g::pNodesManager->make_dummy_pin(node_instance->m_object, type, name, -1);
@@ -239,8 +269,8 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                             LogAndThrowInternalErrorS(ExcepCategory::Logic, "PinInstance " << pin_hash << " not found in wf");
                         }
                     }
-                    if (input.contains("label") && input["label"].is_string())
-                        pin_instance->set_name(input["label"]);
+                    if (jinput.contains("label") && jinput["label"].is_string())
+                        pin_instance->set_name(jinput["label"]);
 
                     in_pins[node_instance->get_instance_id()][index++] = pin_instance->get_instance_id();
                 }
@@ -258,22 +288,22 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
             }
 
             size_t widget_index = 0;
-            for (const auto& value : j["widgets_values"])
+            for (const auto& jvalue : j["widgets_values"])
             {
                 if (widget_index >= widgets.size())
                     break;
 
                 primitive pval;
-                if (value.is_boolean())
-                    pval = value.get<bool>();
-                else if (value.is_number_float())
-                    pval = value.get<double>();
-                else if (value.is_string())
-                    pval = value.get<std::string>();
-                else if (value.is_number_unsigned())
-                    pval = value.get<uint64_t>();
-                else if (value.is_number_integer())
-                    pval = value.get<int64_t>();
+                if (jvalue.is_boolean())
+                    pval = jvalue.get<bool>();
+                else if (jvalue.is_number_float())
+                    pval = jvalue.get<double>();
+                else if (jvalue.is_string())
+                    pval = jvalue.get<std::string>();
+                else if (jvalue.is_number_unsigned())
+                    pval = jvalue.get<uint64_t>();
+                else if (jvalue.is_number_integer())
+                    pval = jvalue.get<int64_t>();
                 else
                 {
                     widget_index++;
@@ -346,18 +376,18 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
         if (j.contains("outputs") && j["outputs"].is_array())
         {
             int32_t index = 0;
-            for (const auto& output : j["outputs"])
+            for (const auto& joutput : j["outputs"])
             {
-                if (output.is_object())
+                if (joutput.is_object())
                 {
-                    if (!output.contains("name") || !output["name"].is_string() || !output.contains("type") || !output["type"].is_string()) // TODO: type=-1 onExecuted
+                    if (!joutput.contains("name") || !joutput["name"].is_string() || !joutput.contains("type") || !joutput["type"].is_string()) // TODO: type=-1 onExecuted
                     {
                         index++;
                         continue;
                     }
 
-                    const std::string name = output["name"];
-                    const std::string type = output["type"];
+                    const std::string name = joutput["name"];
+                    const std::string type = joutput["type"];
 
                     const auto pin_hash = Pin::make_hash(node_instance->m_object, name, index);
                     auto pin = node_instance->m_object->find_pin(pin_hash, false);
@@ -368,7 +398,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                         {
                             wf->remove_node(node_instance);
                             in_pins = out_pins = {};
-                            return deserialize_node(wf, j, node_id_from_json, in_pins, out_pins, true);
+                            return deserialize_node(wf, j, node_id_from_json, subgraphs, in_pins, out_pins, true);
                         }
 
                         pin = g::pNodesManager->make_dummy_pin(node_instance->m_object, type, name, index);
@@ -402,8 +432,8 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                         }
                     }
 
-                    if (output.contains("label") && output["label"].is_string())
-                        pin_instance->set_name(output["label"]);
+                    if (joutput.contains("label") && joutput["label"].is_string())
+                        pin_instance->set_name(joutput["label"]);
 
                     out_pins[node_instance->get_instance_id()][index++] = pin_instance->get_instance_id();
                 }
@@ -421,8 +451,115 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
     return nullptr;
 }
 
+bool WorkflowSerializerToJson::deserialize_subgraph(Workflow* wf, const o_json& j,
+    std::map<std::string, iid>& node_ids, SubgraphMap& subgraphs, LinkMap& in_pins, LinkMap& out_pins)
+{
+    try
+    {
+        if (!j.contains("id") || !j["id"].is_string())
+            return true;
+
+        const auto sg_it = subgraphs.find(j["id"]);
+        if (sg_it == subgraphs.end())
+            return true;
+        const auto& sg_rc = sg_it->second.second;
+
+        if (!j.contains("nodes") || !j["nodes"].is_array())
+            return true;
+
+        for (auto& jnode : j["nodes"])
+        {
+            std::string jid;
+            LinkMap node_in_pins, node_out_pins;
+            auto node = deserialize_node(wf, jnode, jid, subgraphs, node_in_pins, node_out_pins, false);
+            if (nullptr == node)
+                continue;
+
+            node->m_rc.Min.x = sg_rc.Min.x + node->m_rc.Min.x;
+            node->m_rc.Min.y = sg_rc.Min.y + node->m_rc.Min.y;
+
+            node_ids[jid] = node->get_instance_id();
+            if (node->m_object->is_dummy)
+                wf->get_data().valid = false;
+
+            in_pins.merge(node_in_pins);
+            out_pins.merge(node_out_pins);
+        }
+
+        if (j.contains("groups") && j["groups"].is_array())
+        {
+            for (const auto& jg : j["groups"])
+            {
+                auto group = deserialize_group(wf, jg);
+                if (group != nullptr)
+                {
+                    group->m_rc.Min.x = sg_rc.Min.x + group->m_rc.Min.x;
+                    group->m_rc.Min.y = sg_rc.Min.y + group->m_rc.Min.y;
+                }
+            }
+        }
+
+        return true;
+    }
+    catch (std::exception& ex)
+    {
+        LogExcepS(ExcepCategory::API, ex.what());
+    }
+
+    return false;
+}
+
+NodeInstance* WorkflowSerializerToJson::deserialize_group(Workflow* wf, const o_json& j)
+{
+    try
+    {
+        if (!j.contains("bounding") || !j["bounding"].is_array() || j["bounding"].size() != 4 ||
+            !j["bounding"][0].is_number() || !j["bounding"][1].is_number() || !j["bounding"][2].is_number() || !j["bounding"][3].is_number())
+        {
+            return nullptr;
+        }
+
+        NodeInstance* node = wf->add_blank_node();
+        node->m_iid = wf->get_new_child_id();
+        node->m_wid = wf->get_id();
+        node->m_group = true;
+
+        auto& jbounding = j["bounding"];
+        node->m_rc = ImRect(ImVec2(jbounding[0].get<float>(), jbounding[1].get<float>()), ImVec2(jbounding[2].get<float>(), jbounding[3].get<float>()));
+
+        if (j.contains("title") && j["title"].is_string())
+            node->set_name(j["title"]);
+
+        if (j.contains("flags") && j["flags"].is_object())
+        {
+            for (const auto& [jname, jvalue] : j["flags"].items())
+            {
+                if (jname == "pinned" && jvalue.is_boolean() && jvalue.get<bool>() == true)
+                    node->m_pinned = true;
+            }
+        }
+
+        if (j.contains("color") && j["color"].is_string())
+        {
+            const auto color = parse_color(j["color"]);
+            if (color != 0)
+                node->set_group_color(ImGui::ColorConvertU32ToFloat4(color));
+        }
+        else
+            node->reset_to_default_colors();
+
+        return node;
+    }
+    catch (std::exception& ex)
+    {
+        LogExcepS(ExcepCategory::API, ex.what());
+    }
+    return nullptr;
+}
+
 bool WorkflowSerializerToJson::deserialize_links(
-    Workflow* wf, const o_json& j, const std::map<std::string, iid>& node_ids, const LinkMap& in_pins, const LinkMap& out_pins)
+    Workflow* wf, const o_json& j, const std::map<std::string, iid>& node_ids, SubgraphMap& subgraphs,
+    const LinkMap& in_pins, const LinkMap& out_pins)
 {
     const auto find_pin = [wf](const LinkMap& map, const NodeInstance* node, int32_t index) -> PinInstance*
     {
@@ -439,129 +576,227 @@ bool WorkflowSerializerToJson::deserialize_links(
         return wf->get_pin_by_instance(pin_iid);
     };
 
-    try
+    const auto build_link = [wf, &node_ids, &in_pins, &out_pins, &find_pin]
+            (const std::string& src_node_id, const std::string& dest_node_id, int32_t src_pin_idx, int32_t dest_pin_idx)
     {
-        if (!j.contains("links") || !j["links"].is_array())
-            return true;
+        iid src_node_iid = 0, dest_node_iid = 0;
 
-        for (const auto& link : j["links"])
+        auto node_it = node_ids.find(src_node_id);
+        if (node_it == node_ids.end())
         {
-            if (link.size() < 5)
-            {
-                LogWarnS("Num of links must be at least 5. Currently: " << link.size());
-                continue;
-            }
-            if (!link[0].is_number_integer() || 
-                (!link[1].is_number_integer() && !link[1].is_string()) ||
-                !link[2].is_number_integer() ||
-                (!link[3].is_number_integer() && !link[3].is_string()) ||
-                !link[4].is_number_integer())
-            {
-                LogWarnS("Unknown links format");
-                continue;
-            }
+            LogWarnS("Node " << src_node_id << " not found on json definition");
+            return;
+        }
+        src_node_iid = node_it->second;
 
-            std::string src_node_id, dest_node_id;
-            if (link[1].is_number_integer())    src_node_id = std::to_string(link[1].get<int32_t>());
-            else                                src_node_id = link[1];
-            if (link[3].is_number_integer())    dest_node_id = std::to_string(link[3].get<int32_t>());
-            else                                dest_node_id = link[3];
+        node_it = node_ids.find(dest_node_id);
+        if (node_it == node_ids.end())
+        {
+            LogWarnS("Node " << dest_node_id << " not found on json definition");
+            return;
+        }
+        dest_node_iid = node_it->second;
 
-            iid src_node_iid = 0, dest_node_iid = 0;
-
-            auto node_it = node_ids.find(src_node_id);
-            if (node_it == node_ids.end())
-            {
-                LogWarnS("Node " << src_node_id << " not found on json definition");
-                continue;
-            }
-            src_node_iid = node_it->second;
-
-            node_it = node_ids.find(dest_node_id);
-            if (node_it == node_ids.end())
-            {
-                LogWarnS("Node " << dest_node_id << " not found on json definition");
-                continue;
-            }
-            dest_node_iid = node_it->second;
-
-            auto src_node = wf->get_node_by_instance(src_node_iid);
-            auto dest_node = wf->get_node_by_instance(dest_node_iid);
-            if (nullptr == src_node || nullptr == dest_node)
-            {
-                LogWarnS("Linked node(s) not found");
-                continue;
-            }
-
-            // const int32_t link_id = link[0].get<int32_t>(); - not interesting
-            const int32_t src_pin_idx = link[2].get<int32_t>();
-            const int32_t dest_pin_idx = link[4].get<int32_t>();
-
-            auto src_pin = find_pin(out_pins, src_node, src_pin_idx);
-            auto dest_pin = find_pin(in_pins, dest_node, dest_pin_idx);
-            if (nullptr == src_pin || nullptr == dest_pin)
-            {
-                LogWarnS("Linked pin(s) not found");
-                continue;
-            }
-
-            if (nullptr == Link::link(src_pin, dest_pin))
-                LogWarnS("Can't link pins");
+        auto src_node = wf->get_node_by_instance(src_node_iid);
+        auto dest_node = wf->get_node_by_instance(dest_node_iid);
+        if (nullptr == src_node || nullptr == dest_node)
+        {
+            LogWarnS("Linked node(s) not found");
+            return;
         }
 
-        return true;
-    }
-    catch (std::exception& ex)
-    {
-        LogExcepS(ExcepCategory::API, ex.what());
-    }
-    return false;
-}
+        auto src_pin = find_pin(out_pins, src_node, src_pin_idx);
+        auto dest_pin = find_pin(in_pins, dest_node, dest_pin_idx);
+        if (nullptr == src_pin || nullptr == dest_pin)
+        {
+            LogWarnS("Linked pin(s) not found");
+            return;
+        }
 
-bool WorkflowSerializerToJson::deserialize_groups(Workflow* wf, const o_json& j)
-{
+        if (nullptr == Link::link(src_pin, dest_pin))
+            LogWarnS("Can't link pins");
+    };
+
+    using LinkDef = std::pair<std::string, int32_t>;
+    using LinksDef = std::pair<LinkDef, LinkDef>; // source, dest
+    std::list<LinksDef> links;
+    std::list<LinksDef> sg_src_links;
+    std::list<LinksDef> sg_dest_links;
+
     try
     {
-        if (!j.contains("groups") || !j["groups"].is_array())
-            return true;
+        // externals links
 
-        for (const auto& g : j["groups"])
+        if (j.contains("links") && j["links"].is_array())
         {
-            if (!g.contains("bounding") || !g["bounding"].is_array() || g["bounding"].size() != 4 ||
-                !g["bounding"][0].is_number() || !g["bounding"][1].is_number() || !g["bounding"][2].is_number() || !g["bounding"][3].is_number())
+            for (const auto& jlink : j["links"])
             {
-                continue;
-            }
-
-            NodeInstance* node = wf->add_blank_node();
-            node->m_iid = wf->get_new_child_id();
-            node->m_wid = wf->get_id();
-            node->m_group = true;
-
-            auto& bounding = g["bounding"];
-            node->m_rc = ImRect(ImVec2(bounding[0].get<float>(), bounding[1].get<float>()), ImVec2(bounding[2].get<float>(), bounding[3].get<float>()));
-
-            if (g.contains("title") && g["title"].is_string())
-                node->set_name(g["title"]);
-
-            if (g.contains("flags") && g["flags"].is_object())
-            {
-                for (const auto& [name, value] : g["flags"].items())
+                if (jlink.size() < 5)
                 {
-                    if (name == "pinned" && value.is_boolean() && value.get<bool>() == true)
-                        node->m_pinned = true;
+                    LogWarnS("Num of links must be at least 5. Currently: " << jlink.size());
+                    continue;
+                }
+                if (!jlink[0].is_number_integer() ||
+                    (!jlink[1].is_number_integer() && !jlink[1].is_string()) ||
+                    !jlink[2].is_number_integer() ||
+                    (!jlink[3].is_number_integer() && !jlink[3].is_string()) ||
+                    !jlink[4].is_number_integer())
+                {
+                    LogWarnS("Unknown links format");
+                    continue;
+                }
+
+                const int32_t src_idx = jlink[2].get<int32_t>();
+                const int32_t dest_idx = jlink[4].get<int32_t>();
+
+                std::string src_node, dest_node;
+                if (jlink[1].is_number_integer())    src_node = std::to_string(jlink[1].get<int32_t>());
+                else                                 src_node = jlink[1].get<std::string>();
+                if (jlink[3].is_number_integer())    dest_node = std::to_string(jlink[3].get<int32_t>());
+                else                                 dest_node = jlink[3].get<std::string>();
+
+                links.push_back(std::make_pair(std::make_pair(src_node, src_idx), std::make_pair(dest_node, dest_idx)));
+            }
+        }
+
+        // subgraph links
+
+        if (j.contains("definitions") && j["definitions"].contains("subgraphs") && j["definitions"]["subgraphs"].is_array())
+        {
+            for (auto& jsubgraph : j["definitions"]["subgraphs"])
+            {
+                if (!jsubgraph.contains("id") || !jsubgraph["id"].is_string())
+                    continue;
+
+                if (!jsubgraph.contains("inputNode") || !jsubgraph["inputNode"].contains("id") ||
+                    !jsubgraph.contains("outputNode") || !jsubgraph["outputNode"].contains("id"))
+                {
+                    continue;
+                }
+
+                std::string sg_in_id, sg_out_id;
+                if (jsubgraph["inputNode"]["id"].is_string())                 sg_in_id = jsubgraph["inputNode"]["id"];
+                else if (jsubgraph["inputNode"]["id"].is_number_integer())    sg_in_id = std::to_string(jsubgraph["inputNode"]["id"].get<int32_t>());
+                else continue;
+                if (jsubgraph["outputNode"]["id"].is_string())                sg_out_id = jsubgraph["outputNode"]["id"];
+                else if (jsubgraph["outputNode"]["id"].is_number_integer())   sg_out_id = std::to_string(jsubgraph["outputNode"]["id"].get<int32_t>());
+                else continue;
+
+                const std::string sg_uuid = jsubgraph["id"];
+                const auto sg_it = subgraphs.find(sg_uuid);
+                if (sg_it == subgraphs.end())
+                    continue;
+                const auto& sg_as_node_id = sg_it->second.first;
+
+                if (jsubgraph.contains("links") && jsubgraph["links"].is_array())
+                {
+                    for (auto& jitem : jsubgraph["links"])
+                    {
+                        if (!(jitem.contains("origin_id") &&
+                            jitem.contains("origin_slot") && jitem["origin_slot"].is_number_integer() &&
+                            jitem.contains("target_id") &&
+                            jitem.contains("target_slot") && jitem["target_slot"].is_number_integer()))
+                        {
+                            continue;
+                        }
+
+                        const int32_t src_pin_idx = jitem["origin_slot"].get<int32_t>();
+                        const int32_t dest_pin_idx = jitem["target_slot"].get<int32_t>();
+                        std::string src_node_id, dest_node_id;
+                        if (jitem["origin_id"].is_number_integer())      src_node_id = std::to_string(jitem["origin_id"].get<int32_t>());
+                        else if (jitem["origin_id"].is_string())         src_node_id = jitem["origin_id"];
+                        else continue;
+                        if (jitem["target_id"].is_number_integer())      dest_node_id = std::to_string(jitem["target_id"].get<int32_t>());
+                        else if (jitem["target_id"].is_string())         dest_node_id = jitem["target_id"];
+                        else continue;
+
+                        if (src_node_id == sg_in_id)
+                        {
+                            src_node_id = sg_as_node_id;
+                            sg_dest_links.push_back(std::make_pair(std::make_pair(src_node_id, src_pin_idx), std::make_pair(dest_node_id, dest_pin_idx)));
+                        }
+                        else if (dest_node_id == sg_out_id)
+                        {
+                            dest_node_id = sg_as_node_id;
+                            sg_src_links.push_back(std::make_pair(std::make_pair(dest_node_id, dest_pin_idx), std::make_pair(src_node_id, src_pin_idx)));
+                        }
+                        else
+                        {
+                            links.push_back(std::make_pair(std::make_pair(src_node_id, src_pin_idx), std::make_pair(dest_node_id, dest_pin_idx)));
+                        }
+                    }
                 }
             }
-
-            if (g.contains("color") && g["color"].is_string())
-            {
-                const auto color = parse_color(g["color"]);
-                if (color != 0)
-                    node->set_group_color(ImGui::ColorConvertU32ToFloat4(color));
-            }
-            else
-                node->reset_to_default_colors();
         }
+
+        const auto search_sg = [&sg_src_links, &sg_dest_links](std::string& node, int32_t& idx, bool search_src)
+        {
+            auto it = (search_src ? sg_src_links.begin() : sg_dest_links.begin());
+            const auto end = (search_src ? sg_src_links.end() : sg_dest_links.end());
+            for ( ; it != end; ++it)
+            {
+                auto& sg = it->first;
+                if (sg.first == node && sg.second == idx)
+                {
+                    auto& linked = it->second;
+                    node = linked.first;
+                    idx = linked.second;
+                    if (!search_src)
+                        sg_dest_links.erase(it);
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        const auto locate_node = [&search_sg, &node_ids](LinkDef& link_definition, bool src_link)
+        {
+            do
+            {
+                if (node_ids.find(link_definition.first) != node_ids.end())
+                    break;
+                if (search_sg(link_definition.first, link_definition.second, src_link))
+                    continue;
+                return false;
+            }
+            while (true);
+            return true;
+        };
+
+        std::set<std::tuple<std::string, std::string, int32_t, int32_t>> built_links;
+
+        const auto final_build = [&links, &locate_node, &build_link, &built_links]()
+        {
+            int32_t links_built = 0;
+            for (auto it = links.begin(); it != links.end(); ++it)
+            {
+                LinkDef src = it->first;
+                if (!locate_node(src, true))
+                    continue;
+                LinkDef dest = it->second;
+                if (!locate_node(dest, false))
+                    continue;
+
+                const auto link = std::make_tuple(src.first, dest.first, src.second, dest.second);
+                if (built_links.count(link) > 0)
+                    continue;
+
+                build_link(src.first, dest.first, src.second, dest.second);
+                links_built++;
+
+                built_links.insert(link);
+            }
+            return links_built;
+        };
+
+        while (final_build() > 0)
+            ;
+
+        if (!sg_dest_links.empty())     // TODO:FIX unpack subgraphs in subgraphs in subgraphs (copy of copy etc)
+        {
+            LogWarnS("Not all link definitions were used");
+        }
+
         return true;
     }
     catch (std::exception& ex)
