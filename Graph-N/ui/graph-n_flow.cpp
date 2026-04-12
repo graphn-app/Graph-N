@@ -445,15 +445,26 @@ void GraphN_Flow::show_menu_bar()
             }
             if (ImGui::BeginMenu("Export...##MainMenuBar"))
             {
-                if (ImGui::MenuItem("Export Project to file...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_active() != 0))
+                if (ImGui::MenuItem("Export Project to json...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_active() != 0))
                 {
                     Log("Menu: Export Project");
                     on_menu_export_json(false);
                 }
-                if (ImGui::MenuItem("Export Project to file (API)...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_active() != 0))
+                if (ImGui::MenuItem("Export Project to json (API)...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_active() != 0))
                 {
                     Log("Menu: Export Project (API)");
                     on_menu_export_json(true);
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Export all Projects to json...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_wfs_count() > 0))
+                {
+                    Log("Menu: Export all Projects");
+                    on_menu_export_json_all(false);
+                }
+                if (ImGui::MenuItem("Export all Projects to json (API)...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_wfs_count() > 0))
+                {
+                    Log("Menu: Export all Projects (API)");
+                    on_menu_export_json_all(true);
                 }
                 ImGui::EndMenu();
             }
@@ -1094,15 +1105,38 @@ void GraphN_Flow::on_menu_export_json(bool api)
     auto filename = data.name;
     filename = tools::path::clear_filename(filename) + (api ? " (API).json" : ".json");
 
-    tools::path::FdSelectResultSg callback = [api](bool result, std::filesystem::path&& path)
+    tools::path::FdSelectResultSg callback = [api, id](bool result, std::filesystem::path&& path)
     {
         if (result)
         {
-            g::pWfsManager->export_wf(api, path);
+            g::pWfsManager->export_wf(id, api, path);
         }
     };
 
     tools::path::select_file_save({{ L"Json file (*.json)", L"*.json" }}, filename, callback);
+}
+
+void GraphN_Flow::on_menu_export_json_all(bool api)
+{
+    tools::path::FdSelectResultSg callback = [api](bool result, std::filesystem::path&& path)
+    {
+        if (result)
+        {
+            const auto wfs = g::pWfsManager->get_undeleted();
+            if (wfs.empty())
+                return;
+
+            for (auto wf_data : wfs)
+            {
+                const auto& data = g::pWfsManager->access(wf_data->id)->get_data();
+                auto filename = data.name;
+                filename = tools::path::clear_filename(filename) + (api ? " (API).json" : ".json");
+                g::pWfsManager->export_wf(wf_data->id, api, path / filename);
+            }
+        }
+    };
+
+    tools::path::select_dir(callback);
 }
 
 void GraphN_Flow::open_settings_dlg(OptPane section /*= OptPane::_none*/)

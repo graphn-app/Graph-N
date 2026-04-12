@@ -742,7 +742,7 @@ wid WfsManager::import_wf(std::filesystem::path& from)
         }
 
         Log("Import project failed");
-        m_wfs.erase(wf->get_id());
+        delete_wf(wf->get_id());
     }
     catch (const std::exception& ex)
     {
@@ -752,14 +752,8 @@ wid WfsManager::import_wf(std::filesystem::path& from)
     return 0;
 }
 
-void WfsManager::export_wf(bool api, std::filesystem::path& to)
+void WfsManager::export_wf(wid wf_id, bool api, const std::filesystem::path& to)
 {
-    auto wf_id = get_active();
-    if (0 == wf_id)
-    {
-        Log("Can't export - no active wf");
-        return;
-    }
     const auto wf_it = m_wfs.find(wf_id);
     if (wf_it == m_wfs.end())
     {
@@ -767,12 +761,19 @@ void WfsManager::export_wf(bool api, std::filesystem::path& to)
         return;
     }
 
+    auto wf = wf_it->second.get();
+    if (wf->get_nodes().empty())
+    {
+        blob::Blob dummy;
+        load(wf->get_id(), dummy);
+    }
+
     Log("Starting export wf=" << wf_id << " as API=" << api << " to " << to.string());
     std::string jdump;
     if (api)
-        jdump = data::WorkflowSerializerToJson::serialize_to_api(wf_it->second.get());
+        jdump = data::WorkflowSerializerToJson::serialize_to_api(wf);
     else
-        jdump = data::WorkflowSerializerToJson::serialize(wf_it->second.get());
+        jdump = data::WorkflowSerializerToJson::serialize(wf);
 
     if (!tools::path::make_file_path(to, true, jdump))
         Log("Export failed");

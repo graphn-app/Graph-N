@@ -39,6 +39,7 @@ public:
 
     void update_name(wid id, const std::string& name);
 
+    inline size_t get_wfs_count() const { return m_wfs.size(); }
     std::vector<WfData*> get_wfs() const;
     std::vector<WfData*> get_undeleted() const;
     std::vector<WfData*> get_deleted() const;
@@ -70,7 +71,7 @@ public:
     void dump(wid wf_id) const;
 
     wid import_wf(std::filesystem::path& from);
-    void export_wf(bool api, std::filesystem::path& to);
+    void export_wf(wid wf_id, bool api, const std::filesystem::path& to);
 
 private:
     data::Workflow* create(WfData&& data, bool dump_to_db);

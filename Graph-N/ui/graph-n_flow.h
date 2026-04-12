@@ -184,6 +184,7 @@ private:
     void on_menu_wf(PanelWorkflow* wf_panel);
     void on_menu_import_json();
     void on_menu_export_json(bool api);
+    void on_menu_export_json_all(bool api);
 
     // WF internal
     void init_workflow_panels();
