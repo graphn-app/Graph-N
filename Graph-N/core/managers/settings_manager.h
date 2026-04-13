@@ -119,6 +119,9 @@ public:
     inline int64_t wf_link_thickness_load() const { return *std::get_if<int64_t>(&m_wf_link_thickness.value); }
     inline void wf_link_thickness_save(int64_t timeout) { save_option(m_wf_link_thickness, int64_t(timeout)); }
 
+    bool wf_imported_load(const std::string& project) const;
+    void wf_imported_save(const std::string& project);
+
     // logs
     inline int64_t log_db_backup_num_load() const { return *std::get_if<int64_t>(&m_log_db_backup_num.value); }
     inline void log_db_backup_num_save(int64_t num) { save_option(m_log_db_backup_num, int64_t(num)); }
@@ -225,6 +228,7 @@ private:
     OptionValue m_wf_show_grid; // int
     OptionValue m_wf_snap_nodes; // int
     OptionValue m_wf_link_thickness; // int
+    OptionValue m_wf_imported; // str
 
     // logs
     OptionValue m_log_db_backup_num; // int

@@ -123,12 +123,13 @@ ConnectState ConnectManager::get_status(size_t* inbox /*= nullptr*/, int64_t* la
     return ConnectState::Disconnected;
 }
 
-void ConnectManager::send_http_request(const char* request, bool post, RequestCallback callback)
+void ConnectManager::send_http_request(const char* request, bool post, RequestCallback callback, const std::string&& post_payload /*= ""*/)
 {
     auto req = std::make_shared<RequestData>();
     req->request = request;
     req->post = post;
     req->callback = callback;
+    req->post_payload = std::move(post_payload);
 
     const auto state = m_ws ? m_ws->get_state() : ConnectState::Disconnected;
     std::unique_lock<std::mutex> lock(m_req_mutex);
@@ -175,7 +176,7 @@ std::shared_ptr<ConnectManager::RequestData> ConnectManager::request_thread(std:
 
     httplib::Result res;
     if (request->post)
-        res = cli->Post(request->request);
+        res = cli->Post(request->request, request->post_payload, "application/json");
     else
         res = cli->Get(request->request);
 

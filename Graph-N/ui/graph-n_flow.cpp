@@ -25,10 +25,7 @@
 #include "core/managers/history_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
-
-#ifdef _DEBUG
-static bool test_json = false;
-#endif
+#include "core/workflow/workflow_serializer_to_json.h"
 
 namespace w
 {
@@ -45,6 +42,12 @@ float hidden_widgets_len;
 
 namespace ui
 {
+
+#ifdef _DEBUG
+static bool test_json = false;
+#endif
+
+std::atomic_bool GraphN_Flow::m_quit = false;
 
 GraphN_Flow::GraphN_Flow()
 {
@@ -302,11 +305,13 @@ void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
 void GraphN_Flow::exit()
 {
     LogF;
+    m_quit = true;
     prepare_to_quit();
 }
 
 void GraphN_Flow::stop_all_threads()
 {
+    m_quit = true;
     LogF;
 }
 
@@ -326,6 +331,7 @@ bool GraphN_Flow::run()
 void GraphN_Flow::prepare_to_quit()
 {
     LogF_In;
+    m_quit = true;
 
     g::pConnectManager->stop_all_threads();
     g::pWfsManager->close_and_purge();
@@ -367,12 +373,80 @@ void GraphN_Flow::check_connection()
 {
     if (ConnectState::Disconnected == g::pConnectManager->get_status())
     {
+        m_wf_imported = false;
         reconnect();
     }
     else
     {
         g::pConnectManager->check_request_status();
+
+        import_user_projects();
     }
+}
+
+void GraphN_Flow::import_user_projects()
+{
+    if (m_wf_imported || !m_nodes_ready)
+        return;
+    m_wf_imported = true;
+
+    auto names = std::make_shared<std::list<std::string>>();
+    auto download_project = std::make_shared<mngr::ConnectManager::RequestCallback>();
+
+    *download_project = [this, names, download_project](bool result, std::string&& payload)
+    {
+        if (GraphN_Flow::get_is_quit()) return;
+        if (!result)
+        {
+            m_wf_imported = false;
+            return;
+        }
+
+        if (g::pWfsManager->import_wf(payload, names->front()) != 0)
+            g::pOptsManager->wf_imported_save(names->front());
+        names->pop_front();
+
+        if (names->empty())
+        {
+            m_panel_wf_list->rebuild_items();
+            return;
+        }
+
+        const auto wf_name = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(names->front()));
+        g::pConnectManager->send_http_request(wf_name.c_str(), false, *download_project);
+    };
+
+    const auto all_names = [this, download_project, names](bool result, std::string&& payload)
+    {
+        if (GraphN_Flow::get_is_quit()) return;
+        if (!result)
+        {
+            m_wf_imported = false;
+            return;
+        }
+
+        if (!data::WorkflowSerializerToJson::deserialize_all_wf_names(payload, *names))
+        {
+            m_wf_imported = false;
+            return;
+        }
+
+        for (auto it = names->begin(); it != names->end(); )
+        {
+            if (g::pOptsManager->wf_imported_load(*it))
+                it = names->erase(it);
+            else
+                ++it;
+        }
+
+        if (names->empty())
+            return;
+
+        const auto wf_name = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(names->front()));
+        g::pConnectManager->send_http_request(wf_name.c_str(), false, *download_project);
+    };
+
+    g::pConnectManager->send_http_request(comfyui_http::wfs_all_names, false, all_names);
 }
 
 void GraphN_Flow::handle_connected()
@@ -395,6 +469,7 @@ void GraphN_Flow::reparse_nodes()
 {
     const auto parser = [this](bool result, std::string&& data)
     {
+        if (GraphN_Flow::get_is_quit()) return;
         if (!result)
         {
             Log("Failed to load object_info");

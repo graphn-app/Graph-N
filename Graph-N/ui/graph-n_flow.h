@@ -97,6 +97,7 @@ public:
     bool run();
     void exit();
 
+    inline static bool get_is_quit() { return m_quit; }
     inline bool get_online() const { return g::pConnectManager->get_status() == ConnectState::Connected; }
 
     inline ImGuiID get_main_dockspace_id() { return m_main_dock_id; }
@@ -150,6 +151,7 @@ private:
     void check_connection();
     void handle_connected();
     void reparse_nodes();
+    void import_user_projects();
 
     void modal_last_frame();
 
@@ -203,6 +205,7 @@ private:
     void destroy_txt_panel(PanelTextEditor* panel);
 
 private:
+    static std::atomic_bool m_quit;
     std::atomic_bool m_nodes_ready = false;
     std::atomic_bool m_models_ready = false;
 
@@ -232,5 +235,6 @@ private:
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
     std::list<std::unique_ptr<PanelTextEditor>> m_panels_text_editor;
     std::list<wid> m_active_sequense;
+    bool m_wf_imported = false;
 };
 }

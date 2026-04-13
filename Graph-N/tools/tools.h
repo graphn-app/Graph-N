@@ -36,6 +36,8 @@ std::string sha256(const std::vector<byte>& src);
 std::wstring utf8_to_wide(const std::string& utf8_str);
 #endif
 
+std::string cleanup_url(const std::string& url);
+
 } // namespace str
 
 namespace path

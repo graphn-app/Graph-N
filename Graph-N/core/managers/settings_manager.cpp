@@ -57,6 +57,7 @@ bool SettingsManager::init()
     m_wf_show_grid =                                  { "show_grid",                bool(true) };
     m_wf_snap_nodes =                                 { "snap_nodes",               bool(false) };
     m_wf_link_thickness =                             { "link_thickness",           int64_t(2) };
+    m_wf_imported =                                   { "imported_wfs",             std::string("") };
 
     // logs
     m_log_db_backup_num =                             { "db_backup_save_num",       int64_t(3) };
@@ -183,6 +184,7 @@ bool SettingsManager::init()
     values.push_back(&m_app_fps_limit);
     values.push_back(&m_app_fps_limit_val);
     values.push_back(&m_app_autoupdate);
+    values.push_back(&m_app_scale);
     values.push_back(&m_ui_open_wnds);
     values.push_back(&m_ui_nodes_tree_view);
     values.push_back(&m_ui_theme);
@@ -213,7 +215,9 @@ bool SettingsManager::init()
     values.push_back(&m_wf_widget_input_bools);
     values.push_back(&m_wf_active);
     values.push_back(&m_wf_show_grid);
+    values.push_back(&m_wf_link_thickness);
     values.push_back(&m_wf_snap_nodes);
+    values.push_back(&m_wf_imported);
     values.push_back(&m_stat_as_progress);
     values.push_back(&m_stat_enabled_disks);
 
@@ -371,6 +375,85 @@ void SettingsManager::ui_open_wnds_save(int64_t windows)
 {
     windows &= ~ui::ViewAlwaysClose;
     save_option(m_ui_open_wnds, windows);
+}
+
+//////////////////////////////////////////////////////////////////////
+////////       WF                        /////////////////////////////
+//////////////////////////////////////////////////////////////////////
+
+bool SettingsManager::wf_imported_load(const std::string& project) const
+{
+    const auto& imported = *std::get_if<std::string>(&m_wf_imported.value);
+    if (imported.empty())
+        return false;
+
+    try
+    {
+        const o_json j = o_json::parse(imported);
+        if (j.is_object())
+        {
+            const std::string addr = comfyui_host_load() + ":" + std::to_string(comfyui_port_load());
+
+            for (auto& [jaddr, jprojects] : j.items())
+            {
+                if (jaddr == addr && jprojects.is_array())
+                {
+                    for (auto& jproject : jprojects)
+                    {
+                        if (jproject.is_string() && jproject == project)
+                            return true;
+                    }
+                }
+            }
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        LogWarn("Failed to parse imported projects: " << ex.what());
+    }
+
+    return false;
+}
+
+void SettingsManager::wf_imported_save(const std::string& project)
+{
+    const std::string addr = comfyui_host_load() + ":" + std::to_string(comfyui_port_load());
+    const auto& imported = *std::get_if<std::string>(&m_wf_imported.value);
+    if (imported.empty())
+    {
+        o_json j;
+        j[addr] = o_json::array();
+        j[addr].push_back(project);
+        save_option(m_wf_imported, j.dump());
+        return;
+    }
+
+    try
+    {
+        o_json j = o_json::parse(imported);
+        if (j.is_object())
+        {
+            for (auto& [jaddr, jprojects] : j.items())
+            {
+                if (jaddr == addr && jprojects.is_array())
+                {
+                    for (auto& jproject : jprojects)
+                    {
+                        if (jproject.is_string() && jproject == project)
+                            return;
+                    }
+
+                    jprojects.push_back(project);
+                    save_option(m_wf_imported, j.dump());
+                    return;
+                }
+            }
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        LogWarn("Failed to parse imported projects: " << ex.what());
+    }
 }
 
 //////////////////////////////////////////////////////////////////////

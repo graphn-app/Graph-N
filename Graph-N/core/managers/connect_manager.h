@@ -19,7 +19,7 @@ public:
     void reconnect();
 
     using RequestCallback = std::function<void(bool, std::string&&)>;
-    void send_http_request(const char* request, bool post, RequestCallback callback);
+    void send_http_request(const char* request, bool post, RequestCallback callback, const std::string&& post_payload = "");
     void check_request_status();
 
     ConnectState get_status(size_t* inbox = nullptr, int64_t* latency = nullptr);
@@ -34,6 +34,7 @@ private:
         int32_t port = 0;
         int64_t conn_timeout = 0;
         RequestCallback callback = nullptr;
+        std::string post_payload;
 
         bool success = false;
         std::string data;

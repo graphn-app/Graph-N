@@ -720,15 +720,20 @@ void WfsManager::dump(wid wf_id) const
 
 wid WfsManager::import_wf(std::filesystem::path& from)
 {
+    auto file = tools::path::read_file(from, true);
+    auto name = from.filename().replace_extension().u8string();
+    return import_wf(file.data(), name);
+}
+
+wid WfsManager::import_wf(const std::string& jdata, const std::string& name)
+{
     try
     {
-        Log("Import project from " << from);
-        auto file = tools::path::read_file(from, true);
-        o_json j = o_json::parse(file.data());
+        o_json j = o_json::parse(jdata);
 
         WfData wf_data;
         wf_data.ro = false;
-        wf_data.name = from.filename().replace_extension().u8string();
+        wf_data.name = name;
         auto wf = create(std::move(wf_data), false);
 
         if (data::WorkflowSerializerToJson::deserialize(wf, j) || data::WorkflowSerializerToJson::deserialize_api(wf, j))

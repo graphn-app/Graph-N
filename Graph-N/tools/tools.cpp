@@ -398,6 +398,26 @@ std::wstring utf8_to_wide(const std::string& utf8_str)
 }
 #endif // #ifdef _WIN32
 
+std::string cleanup_url(const std::string& value) 
+{
+    std::string escaped;
+    escaped.reserve(value.length() * 3); 
+
+    for (const char c : value) 
+    {
+        if (std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~') 
+        {
+            escaped.push_back(c);
+        } 
+        else 
+        {
+            escaped += fmt::format("%{:02X}", static_cast<unsigned char>(c));
+        }
+    }
+
+    return escaped;
+}
+
 } // namespace str
 
 namespace path
