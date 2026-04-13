@@ -318,7 +318,9 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
 
                     if constexpr (std::is_same_v<T, int64_t> || std::is_same_v<T, uint64_t>)
                     {
-                        if (PinType::INT == pin->m_object->def_state.type || PinType::NUMBER == pin->m_object->def_state.type || PinType::COLOR == pin->m_object->def_state.type)
+                        if (PinType::INT == pin->m_object->def_state.type ||
+                            PinType::NUMBER == pin->m_object->def_state.type ||
+                            PinType::COLOR == pin->m_object->def_state.type)
                         {
                             if (pin->m_object->is_unsigned)
                                 pin->m_state.value = uint64_t(v);
@@ -356,15 +358,30 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                         }
                         else if (PinType::COMBO == pin->m_object->def_state.type)
                         {
-                            int64_t combo_idx = 0;
-                            for (auto combo_item : pin->m_object->combo_items_ptr)
+                            pin->m_state.value = int64_t(0);
+                            pin->m_object->def_state.value = int64_t(0);
+
+                            if (pin->m_object->list.empty() && !v.empty())
                             {
-                                if (v == combo_item)
+                                auto obj = pin->m_object;
+                                obj->list.push_back(v);
+                                obj->combo_items_str.push_back(v);
+                                obj->combo_items_ptr.push_back(obj->combo_items_str.begin()->c_str());
+                                obj->def_state.value = int64_t(0);
+                                pin->m_state.value = obj->def_state.value;
+                            }
+                            else
+                            {
+                                int64_t combo_idx = 0;
+                                for (auto combo_item : pin->m_object->combo_items_ptr)
                                 {
-                                    pin->m_state.value = combo_idx;
-                                    break;
+                                    if (v == combo_item)
+                                    {
+                                        pin->m_state.value = combo_idx;
+                                        break;
+                                    }
+                                    combo_idx++;
                                 }
-                                combo_idx++;
                             }
                         }
                     }
