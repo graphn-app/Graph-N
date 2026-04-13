@@ -20,6 +20,7 @@ class BaseDlg;
 class OptionsDlgs;
 class ModalMessage;
 class ActivityBar;
+class SyncProjectsDlg;
 class PanelNodes;
 class PanelNodeInspector;
 class PanelStats;
@@ -75,14 +76,16 @@ enum ViewDialogs : uint64_t
     ViewActivityBarL            = 1ULL << 24,
     ViewActivityBarR            = 1ULL << 25,
 
-    _ViewNextAvailable          = 1ULL << 26,
+    ViewSyncProjects            = 1ULL << 26,
+
+    _ViewNextAvailable          = 1ULL << 27,   // UPDATE ON NEW DIALOG
     _ViewLastAvailable          = 1ULL << 63,
 
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWf | ViewPanelWfList | ViewPanelModels |
                                   ViewPanelTemplates | ViewPanelOutput | ViewPanelNotes | ViewPanelTextEditor | ViewPanelMarkdownPreview,
     ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector,
-    ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewAllMenuBar | ViewPanelWf,
+    ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewSyncProjects | ViewAllMenuBar | ViewPanelWf,
 };
 
 class GraphN_Flow final
@@ -161,6 +164,7 @@ private:
     void show_panels();
 
     void show_options_dlg();
+    void show_sync_projs_dlg();
     void show_activity_bar();
     void show_debug_windows();
     void show_modal();
@@ -221,6 +225,7 @@ private:
     std::function<void(ModalDlgCtrl)> m_msg_callback = nullptr;
 
     std::unique_ptr<OptionsDlgs> m_opts_dlg;
+    std::unique_ptr<SyncProjectsDlg> m_sync_projs_dlg;
     std::unique_ptr<ActivityBar> m_activity_bar;
     ActivityBarMode m_activity_bar_mode;
 

@@ -4,6 +4,7 @@
 #include "main.h"
 #include "ui/options/opts_dlg.h"
 #include "ui/modal_message.h"
+#include "ui/sync_projects_dlg.h"
 #include "ui/panels/activity_bar.h"
 #include "ui/panels/panel_nodes.h"
 #include "ui/panels/panel_node_inspector.h"
@@ -320,6 +321,7 @@ bool GraphN_Flow::run()
     show_menu_bar();
     show_activity_bar();
     show_options_dlg();
+    show_sync_projs_dlg();
     show_debug_windows();
     show_panels();
     show_modal();
@@ -390,10 +392,10 @@ void GraphN_Flow::import_user_projects()
         return;
     m_wf_imported = true;
 
-    auto names = std::make_shared<std::list<std::string>>();
+    auto projects = std::make_shared<std::list<std::pair<std::string, tools::dt>>>();
     auto download_project = std::make_shared<mngr::ConnectManager::RequestCallback>();
 
-    *download_project = [this, names, download_project](bool result, std::string&& payload)
+    *download_project = [this, projects, download_project](bool result, std::string&& payload)
     {
         if (GraphN_Flow::get_is_quit()) return;
         if (!result)
@@ -402,21 +404,23 @@ void GraphN_Flow::import_user_projects()
             return;
         }
 
-        if (g::pWfsManager->import_wf(payload, names->front()) != 0)
-            g::pOptsManager->wf_imported_save(names->front());
-        names->pop_front();
+        if (g::pWfsManager->import_wf(payload, projects->front().first, projects->front().second) != 0)
+        {
+            g::pOptsManager->wf_imported_save(projects->front().first);
+        }
+        projects->pop_front();
 
-        if (names->empty())
+        if (projects->empty())
         {
             m_panel_wf_list->rebuild_items();
             return;
         }
 
-        const auto wf_name = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(names->front()));
+        const auto wf_name = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(projects->front().first));
         g::pConnectManager->send_http_request(wf_name.c_str(), false, *download_project);
     };
 
-    const auto all_names = [this, download_project, names](bool result, std::string&& payload)
+    const auto all_names = [this, download_project, projects](bool result, std::string&& payload)
     {
         if (GraphN_Flow::get_is_quit()) return;
         if (!result)
@@ -425,24 +429,24 @@ void GraphN_Flow::import_user_projects()
             return;
         }
 
-        if (!data::WorkflowSerializerToJson::deserialize_all_wf_names(payload, *names))
+        if (!data::WorkflowSerializerToJson::deserialize_all_wf_names(payload, *projects))
         {
             m_wf_imported = false;
             return;
         }
 
-        for (auto it = names->begin(); it != names->end(); )
+        for (auto it = projects->begin(); it != projects->end(); )
         {
-            if (g::pOptsManager->wf_imported_load(*it))
-                it = names->erase(it);
+            if (g::pOptsManager->wf_imported_load((*it).first))
+                it = projects->erase(it);
             else
                 ++it;
         }
 
-        if (names->empty())
+        if (projects->empty())
             return;
 
-        const auto wf_name = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(names->front()));
+        const auto wf_name = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(projects->front().first));
         g::pConnectManager->send_http_request(wf_name.c_str(), false, *download_project);
     };
 
@@ -728,6 +732,12 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
         m_opts_dlg.reset();
         Log("Options dlg closed");
         break;
+    case DlgObj::SyncProjects:
+        m_windows &= ~ViewSyncProjects;
+        m_all_dialogs.erase(m_sync_projs_dlg.get());
+        m_sync_projs_dlg.reset();
+        Log("Sync projs dlg closed");
+        break;
     case DlgObj::PanelNodes:
         m_windows &= ~ViewPanelNodes;
         Log("Nones panel closed");
@@ -834,6 +844,8 @@ void GraphN_Flow::on_menu_close_all_projects()
 void GraphN_Flow::on_menu_sync_projects()
 {
     LogF;
+    m_windows |= ViewSyncProjects;
+    g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
 // WF public ->
@@ -1269,6 +1281,26 @@ void GraphN_Flow::show_options_dlg()
     if (m_opts_dlg->show_dialog(focused) != DlgCode::Progress)
     {
         on_dlg_closed(DlgObj::OptionsDlg);
+    }
+}
+
+void GraphN_Flow::show_sync_projs_dlg()
+{
+    if ((m_windows & ViewSyncProjects) == 0)
+        return;
+
+    if (!m_sync_projs_dlg)
+    {
+        m_sync_projs_dlg = std::make_unique<ui::SyncProjectsDlg>();
+        m_sync_projs_dlg->init();
+        m_all_dialogs.insert(m_sync_projs_dlg.get());
+        Log("SyncProjectsDlg initialized");
+    }
+
+    bool focused = false;
+    if (m_sync_projs_dlg->show_dialog(focused) != DlgCode::Progress)
+    {
+        on_dlg_closed(DlgObj::SyncProjects);
     }
 }
 

@@ -67,7 +67,7 @@ void ModalMessage::init(std::string&& caption, std::string&& message, int32_t bu
 
 ModalDlgCtrl ModalMessage::show()
 {
-    ImGui::PushStyleColor(ImGuiCol_PopupBg, g::pOptsManager->color_load(AppColor::OptDlgBg));
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, g::pOptsManager->color_load(AppColor::MiscDlgBg));
     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(230, 230, 230, 255));
     ImGuiEx::PushDlgTitleStyles(m_color);
 

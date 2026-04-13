@@ -539,7 +539,7 @@ void PanelWorkflow::check_history()
         }
         *end_ptr = 0;
 
-        if (data.draft_time.raw() > 0)
+        if (!data.draft_time.null())
         {
             end_ptr = fmt::format_to_n(m_tt_history_status, sizeof(m_tt_history_status),
                 FMT_COMPILE("Autosaved as draft at {:02} {} {}, {:02}:{:02}"),

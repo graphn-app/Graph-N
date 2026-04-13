@@ -19,7 +19,7 @@ public:
     static bool deserialize(Workflow* wf, const o_json& j);
     static bool deserialize_api(Workflow* wf, const o_json& j);
 
-    static bool deserialize_all_wf_names(const std::string& payload, std::list<std::string>& names);
+    static bool deserialize_all_wf_names(const std::string& payload, std::list<std::pair<std::string, tools::dt>>& projects);
 
 private:
     using LinkMap = std::map<iid, std::map<int32_t, iid>>;  // node iid -> [pin index -> pin iid]

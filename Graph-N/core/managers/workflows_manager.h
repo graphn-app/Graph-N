@@ -71,7 +71,7 @@ public:
     void dump(wid wf_id) const;
 
     wid import_wf(std::filesystem::path& from);
-    wid import_wf(const std::string& jdata, const std::string& name);
+    wid import_wf(const std::string& jdata, const std::string& name, tools::dt use_time = {});
     void export_wf(wid wf_id, bool api, const std::filesystem::path& to);
 
 private:

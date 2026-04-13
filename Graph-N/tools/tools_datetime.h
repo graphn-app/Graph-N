@@ -13,6 +13,8 @@ public:
 	static dt from_current_date();
     static dt from_time(time_t t);
 
+    inline bool null() const { return time() != 0; }
+
     inline bool operator==(const dt& other) { return m_raw == other.m_raw; }
     inline bool operator!=(const dt& other) { return m_raw != other.m_raw; }
 
@@ -27,7 +29,7 @@ public:
     inline int32_t second() const { return m_second; }
     inline int32_t millisecond() const { return m_millisecond; }
 
-    inline time_t raw() const { return m_raw; }
+    inline time_t time() const { return m_raw; }
 
     std::string as_log_line() const;
 	std::string as_filename() const;

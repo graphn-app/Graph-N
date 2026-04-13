@@ -707,13 +707,20 @@ void WfsManager::dump(wid wf_id) const
     if (data.draft)
     {
         data.draft_exist = true;
-        data.draft_time = tools::dt::from_current_date();
+        if (data.use_ext_time)
+            data.draft_time = data.ext_time;
+        else
+            data.draft_time = tools::dt::from_current_date();
     }
     else
     {
         data.saved_exist = true;
-        data.saved_time = tools::dt::from_current_date();
+        if (data.use_ext_time)
+            data.saved_time = data.ext_time;
+        else
+            data.saved_time = tools::dt::from_current_date();
     }
+    data.use_ext_time = false;
     
     Log("Wf " << wf_id << " dumped " << (data.draft ? "(draft)" : "(explicit save)"));
 }
@@ -725,7 +732,7 @@ wid WfsManager::import_wf(std::filesystem::path& from)
     return import_wf(file.data(), name);
 }
 
-wid WfsManager::import_wf(const std::string& jdata, const std::string& name)
+wid WfsManager::import_wf(const std::string& jdata, const std::string& name, tools::dt use_time /*= {}*/)
 {
     try
     {
@@ -734,6 +741,11 @@ wid WfsManager::import_wf(const std::string& jdata, const std::string& name)
         WfData wf_data;
         wf_data.ro = false;
         wf_data.name = name;
+        if (!use_time.null())
+        {
+            wf_data.ext_time = use_time;
+            wf_data.use_ext_time = true;
+        }
         auto wf = create(std::move(wf_data), false);
 
         if (data::WorkflowSerializerToJson::deserialize(wf, j) || data::WorkflowSerializerToJson::deserialize_api(wf, j))

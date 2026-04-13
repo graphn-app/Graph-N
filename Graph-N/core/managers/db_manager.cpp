@@ -694,7 +694,7 @@ void DbManager::write_data(SQLite::Database& db, const ExcepData* data)
         query.bind(2, data->line);
         query.bind(3, cast::to_i64(data->category));
         query.bindNoCopy(4, data->message);
-        query.bind(5, tools::dt::from_current_date().raw());
+        query.bind(5, tools::dt::from_current_date().time());
         query.exec();
     }
     catch (const SQLite::Exception& ex)
@@ -719,7 +719,7 @@ void DbManager::write_data(SQLite::Database& db, const DbAppOptionData* data)
         query.bindNoCopy(1, data->name);
         query.bind(2, data->val.ival);
         query.bindNoCopy(3, data->val.sval);
-        query.bind(4, tools::dt::from_current_date().raw());
+        query.bind(4, tools::dt::from_current_date().time());
         query.exec();
         Log("Upd " << LOG_KEY_VAL(data->name, data->val));
     }
@@ -746,7 +746,7 @@ void DbManager::write_data(SQLite::Database& db, const ItemData* data)
         query.bind(2, cast::to_i32(data->type));
         query.bind(3, data->value.ival);
         query.bindNoCopy(4, data->value.sval);
-        query.bind(5, tools::dt::from_current_date().raw());
+        query.bind(5, tools::dt::from_current_date().time());
         query.exec();
         Log("Upd " << LOG_NOPT_KEY_VAL(data->hash, data->type, data->value));
     }
@@ -826,7 +826,7 @@ void DbManager::write_wf_blob(SQLite::Database& db, const WfBlob* data)
             ));
 
         query.bindNoCopy(1, cast::to_void(data->blob->data()), cast::to_i32(data->blob->size()));
-        query.bind(2, tools::dt::from_current_date().raw());
+        query.bind(2, tools::dt::from_current_date().time());
         query.bindNoCopy(3, data->uuid);
         query.exec();
         Log("Workflow blob upd: " << data->uuid << ", bl=" << data->blob->size() << " bytes");

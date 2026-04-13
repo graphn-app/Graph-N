@@ -28,8 +28,8 @@ void OptionsDlgs::init()
     data()->width = 800;
     data()->height = 750;
 
-    data()->clr_title = g::pOptsManager->color_load(AppColor::OptDlgTitleBg);
-    data()->clr_bg = g::pOptsManager->color_load(AppColor::OptDlgBg);
+    data()->clr_title = g::pOptsManager->color_load(AppColor::MiscDlgTitleBg);
+    data()->clr_bg = g::pOptsManager->color_load(AppColor::MiscDlgBg);
 
     m_opts_data.left_pane_w = 150.0f;
 

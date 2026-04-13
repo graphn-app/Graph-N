@@ -107,8 +107,8 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::OptBtnNormal)] =                      { "color_opt_btn_normal",  int64_t(IM_COL32(0, 128, 128, 200)) };
     m_ui_colors[cast::to_szt(AppColor::OptBtnHover)] =                       { "color_opt_btn_hover",  int64_t(IM_COL32(0, 160, 160, 200)) };
     m_ui_colors[cast::to_szt(AppColor::OptBtnPressed)] =                     { "color_opt_btn_pressed",  int64_t(IM_COL32(0, 95, 95, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::OptDlgTitleBg)] =                     { "color_opt_dlg_title_bg",  int64_t(IM_COL32(0, 128, 128, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::OptDlgBg)] =                          { "color_opt_dlg_bg",  int64_t(IM_COL32(0, 0, 0, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::MiscDlgTitleBg)] =                    { "color_misc_dlg_title_bg",  int64_t(IM_COL32(0, 128, 128, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::MiscDlgBg)] =                         { "color_misc_dlg_bg",  int64_t(IM_COL32(0, 0, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::PanelBg)] =                           { "color_panel_bg",  int64_t(IM_COL32(24, 24, 27, 255)) };
     m_ui_colors[cast::to_szt(AppColor::PanelActiveWfTab)] =                  { "color_active_wf_tab",  int64_t(IM_COL32(223, 144, 18, 120)) };
     m_ui_colors[cast::to_szt(AppColor::PanelActiveHoveredWfTab)] =           { "color_active_hovered_wf_tab",  int64_t(IM_COL32(194, 126, 0, 140)) };

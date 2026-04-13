@@ -4,7 +4,7 @@
 namespace data
 {
 
-bool WorkflowSerializerToJson::deserialize_all_wf_names(const std::string& payload, std::list<std::string>& names)
+bool WorkflowSerializerToJson::deserialize_all_wf_names(const std::string& payload, std::list<std::pair<std::string, tools::dt>>& projects)
 {
     try
     {
@@ -14,8 +14,26 @@ bool WorkflowSerializerToJson::deserialize_all_wf_names(const std::string& paylo
 
         for (auto& jitem : j)
         {
+            std::string name;
             if (jitem.contains("path") && jitem["path"].is_string())
-                names.push_back(jitem["path"]);
+                name = jitem["path"];
+
+            tools::dt time;
+            if (jitem.contains("modified") && jitem["modified"].is_number())
+            {
+                if (jitem["modified"].is_number_float())
+                {
+                    uint64_t t = uint64_t(jitem["modified"].get<double>());
+                    time.from_time(t);
+                }
+                else
+                {
+                    uint64_t t = jitem["modified"].get<int64_t>();
+                    time.from_time(t);
+                }
+            }
+
+            projects.push_back({ name, time });
         }
 
         return true;
