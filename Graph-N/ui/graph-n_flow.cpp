@@ -565,14 +565,29 @@ void GraphN_Flow::show_menu_bar()
                 on_menu_wf(nullptr);
             }
             ImGui::Separator();
-            for (auto& wf : m_panels_wf)
+            if (ImGui::MenuItem("Sync Projects...##WfMenuBar"))
             {
-                const auto wf_name = fmt::format(FMT_STRING("{}##PanelsMenuBar"), wf->get_panel_name_full());
-                if (ImGui::MenuItem(wf_name.c_str(), nullptr, wf.get() == m_wf_focused))
+                Log("Menu: sync projects");
+                on_menu_sync_projects();
+            }
+            if (!m_panels_wf.empty())
+            {
+                ImGui::Separator();
+                for (auto& wf : m_panels_wf)
                 {
-                    Log("Menu: wf " << wf_name);
-                    on_menu_wf(wf.get());
+                    const auto wf_name = fmt::format(FMT_STRING("{}##PanelsMenuBar"), wf->get_panel_name_full());
+                    if (ImGui::MenuItem(wf_name.c_str(), nullptr, wf.get() == m_wf_focused))
+                    {
+                        Log("Menu: wf " << wf_name);
+                        on_menu_wf(wf.get());
+                    }
                 }
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Close all Projects##WfMenuBar", nullptr, nullptr, !m_panels_wf.empty()))
+            {
+                Log("Menu: close all projects");
+                on_menu_close_all_projects();
             }
             ImGui::EndMenu();
         }
@@ -797,12 +812,28 @@ void GraphN_Flow::on_menu_wf(PanelWorkflow* wf_panel)
     LogF;
     if (wf_panel != nullptr)
     {
-        activate_wf_panel(wf_panel);
+        wf_activate(wf_panel->get_workflow()->get_id());
     }
     else
     {
         wf_create();
     }
+}
+
+void GraphN_Flow::on_menu_close_all_projects()
+{
+    LogF;
+
+    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); )
+    {
+        close_wf_panel(it->get());
+        it = m_panels_wf.begin();
+    }
+}
+
+void GraphN_Flow::on_menu_sync_projects()
+{
+    LogF;
 }
 
 // WF public ->

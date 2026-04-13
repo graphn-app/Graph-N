@@ -187,6 +187,8 @@ private:
     void on_menu_import_json();
     void on_menu_export_json(bool api);
     void on_menu_export_json_all(bool api);
+    void on_menu_close_all_projects();
+    void on_menu_sync_projects();
 
     // WF internal
     void init_workflow_panels();
