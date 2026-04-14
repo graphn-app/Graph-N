@@ -123,6 +123,7 @@ public:
     inline bool get_nodes_ready() const { return m_nodes_ready; }
     inline void set_models_ready() { m_models_ready = true; }
     inline bool get_models_ready() const { return m_models_ready; }
+    inline bool get_projects_imported() const { return m_wf_imported; }
 
     // WF public
     void wf_create();

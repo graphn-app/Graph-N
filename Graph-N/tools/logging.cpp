@@ -328,7 +328,7 @@ LogWriter& LogWriter::operator << (const byte_buff& buff)
 
 LogWriter& LogWriter::operator << (const tools::dt& dt)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("time={}"), dt.as_full_date());
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("time={}"), dt.as_full_date(true));
     return *this;
 }
 

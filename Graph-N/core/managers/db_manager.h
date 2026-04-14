@@ -40,7 +40,7 @@ public:
     std::vector<WfData> wf_load_meta_and_purge();
     void wf_update_meta(const WfData& wf);
     void wf_load_blob(const std::string& uuid, blob::Blob& blob, bool& load_saved);
-    void wf_update_blob(const std::string& uuid, blob::Blob&& blob, bool draft);
+    void wf_update_blob(const std::string& uuid, blob::Blob&& blob, bool draft, tools::dt time = {});
 
 private:
     enum class WriteType
@@ -65,6 +65,7 @@ private:
         std::string uuid;
         blob::Blob blob;
         bool draft;
+        tools::dt time;
     };
     struct WriteData final
     {

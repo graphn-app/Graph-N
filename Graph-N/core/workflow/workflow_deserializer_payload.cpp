@@ -16,7 +16,7 @@ bool WorkflowSerializerToJson::deserialize_all_wf_names(const std::string& paylo
         {
             std::string name;
             if (jitem.contains("path") && jitem["path"].is_string())
-                name = jitem["path"];
+                name = jitem["path"].get<std::string>();
 
             tools::dt time;
             if (jitem.contains("modified") && jitem["modified"].is_number())
@@ -24,12 +24,12 @@ bool WorkflowSerializerToJson::deserialize_all_wf_names(const std::string& paylo
                 if (jitem["modified"].is_number_float())
                 {
                     uint64_t t = uint64_t(jitem["modified"].get<double>());
-                    time.from_time(t);
+                    time = tools::dt::from_time(t);
                 }
                 else
                 {
                     uint64_t t = jitem["modified"].get<int64_t>();
-                    time.from_time(t);
+                    time = tools::dt::from_time(t);
                 }
             }
 

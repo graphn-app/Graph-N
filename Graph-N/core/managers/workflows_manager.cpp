@@ -701,7 +701,8 @@ void WfsManager::dump(wid wf_id) const
         drawer_state = &empty;
 
     auto wr = data::WorkflowSerializerToBlob::serialize(wf, *drawer_state);
-    g::pDbManager->wf_update_blob(data.uuid, wr.release(), data.draft);
+    g::pDbManager->wf_update_blob(data.uuid, wr.release(), data.draft, data.use_ext_time ? data.ext_time : tools::dt());
+    data.use_ext_time = false;
 
     data.dirty = false;
     if (data.draft)
@@ -740,7 +741,7 @@ wid WfsManager::import_wf(const std::string& jdata, const std::string& name, too
 
         WfData wf_data;
         wf_data.ro = false;
-        wf_data.name = name;
+        wf_data.name = std::filesystem::path(name).replace_extension().filename().u8string();
         if (!use_time.null())
         {
             wf_data.ext_time = use_time;

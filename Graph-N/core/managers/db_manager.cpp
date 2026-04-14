@@ -200,7 +200,7 @@ bool DbManager::init()
                 gdb_tbl_meta,
                 gdb_val_name, gdb_val_str, gdb_val_int));
         query_lastrun.bindNoCopy(1, gdb_valname_last_run);
-        query_lastrun.bind(2, tools::dt::from_current_date().as_full_date());
+        query_lastrun.bind(2, tools::dt::from_current_date().as_full_date(false));
         query_lastrun.bind(3, 0);
         query_lastrun.exec();
 
@@ -604,12 +604,13 @@ void DbManager::wf_update_meta(const WfData& wf)
         m_cv.notify_all();
 }
 
-void DbManager::wf_update_blob(const std::string& uuid, blob::Blob&& blob, bool draft)
+void DbManager::wf_update_blob(const std::string& uuid, blob::Blob&& blob, bool draft, tools::dt time /*= {}*/)
 {
     WfBlob wf;
     wf.uuid = uuid;
     wf.draft = draft;
     wf.blob = std::move(blob);
+    wf.time = time;
 
     WriteData data;
     data.data = std::move(wf);
@@ -826,7 +827,10 @@ void DbManager::write_wf_blob(SQLite::Database& db, const WfBlob* data)
             ));
 
         query.bindNoCopy(1, cast::to_void(data->blob->data()), cast::to_i32(data->blob->size()));
-        query.bind(2, tools::dt::from_current_date().time());
+        if (data->time.null())
+            query.bind(2, tools::dt::from_current_date().time());
+        else
+            query.bind(2, data->time.time());
         query.bindNoCopy(3, data->uuid);
         query.exec();
         Log("Workflow blob upd: " << data->uuid << ", bl=" << data->blob->size() << " bytes");

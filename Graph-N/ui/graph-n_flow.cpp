@@ -569,7 +569,7 @@ void GraphN_Flow::show_menu_bar()
                 on_menu_wf(nullptr);
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Sync Projects...##WfMenuBar"))
+            if (ImGui::MenuItem("Sync and manage Projects...##WfMenuBar"))
             {
                 Log("Menu: sync projects");
                 on_menu_sync_projects();

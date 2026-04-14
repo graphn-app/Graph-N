@@ -13,7 +13,7 @@ public:
 	static dt from_current_date();
     static dt from_time(time_t t);
 
-    inline bool null() const { return time() != 0; }
+    inline bool null() const { return time() == 0; }
 
     inline bool operator==(const dt& other) { return m_raw == other.m_raw; }
     inline bool operator!=(const dt& other) { return m_raw != other.m_raw; }
@@ -33,7 +33,7 @@ public:
 
     std::string as_log_line() const;
 	std::string as_filename() const;
-    std::string as_full_date() const;
+    std::string as_full_date(bool add_ms) const;
 
     /* length can be 1 (first char), 3 (first 3 chars) or more for full name */
 	const char* month_name(int32_t length = 5) const;
