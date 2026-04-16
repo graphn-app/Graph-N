@@ -327,6 +327,7 @@ bool GraphN_Flow::run()
     show_modal();
 
     check_connection();
+    check_http_reply();
     return true;
 }
 
@@ -376,11 +377,12 @@ void GraphN_Flow::check_connection()
     if (ConnectState::Disconnected == g::pConnectManager->get_status())
     {
         m_wf_imported = false;
+        m_projects_ready = false;
         reconnect();
     }
     else
     {
-        g::pConnectManager->check_request_status();
+        g::pConnectManager->check_http_request_status();
 
         import_user_projects();
     }
@@ -393,64 +395,67 @@ void GraphN_Flow::import_user_projects()
     m_wf_imported = true;
 
     auto projects = std::make_shared<std::list<std::pair<std::string, tools::dt>>>();
-    auto download_project = std::make_shared<mngr::ConnectManager::RequestCallback>();
 
-    *download_project = [this, projects, download_project](bool result, std::string&& payload)
+    const auto all_names = [this, projects](bool result, std::string&& payload)
     {
-        if (GraphN_Flow::get_is_quit()) return;
         if (!result)
         {
             m_wf_imported = false;
-            return;
-        }
-
-        if (g::pWfsManager->import_wf(payload, projects->front().first, projects->front().second) != 0)
-        {
-            g::pOptsManager->wf_imported_save(projects->front().first);
-        }
-        projects->pop_front();
-
-        if (projects->empty())
-        {
-            m_panel_wf_list->rebuild_items();
-            return;
-        }
-
-        const auto wf_name = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(projects->front().first));
-        g::pConnectManager->send_http_request(wf_name.c_str(), false, *download_project);
-    };
-
-    const auto all_names = [this, download_project, projects](bool result, std::string&& payload)
-    {
-        if (GraphN_Flow::get_is_quit()) return;
-        if (!result)
-        {
-            m_wf_imported = false;
+            m_projects_ready = true;
             return;
         }
 
         if (!data::WorkflowSerializerToJson::deserialize_all_wf_names(payload, *projects))
         {
+            Log("All project names deserializarion failed");
             m_wf_imported = false;
+            m_projects_ready = true;
             return;
-        }
-
-        for (auto it = projects->begin(); it != projects->end(); )
-        {
-            if (g::pOptsManager->wf_imported_load((*it).first))
-                it = projects->erase(it);
-            else
-                ++it;
         }
 
         if (projects->empty())
+        {
+            m_projects_ready = true;
             return;
+        }
 
-        const auto wf_name = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(projects->front().first));
-        g::pConnectManager->send_http_request(wf_name.c_str(), false, *download_project);
+        auto counter = std::make_shared<int32_t>();
+        for (auto& project : *projects)
+        {
+            if (!g::pOptsManager->wf_imported_load(project.first))
+            {
+                (*counter)++;
+                const auto download_project = [this, name = project.first, time = project.second, counter](bool result, std::string&& payload)
+                {
+                    if (result)
+                    {
+                        if (g::pWfsManager->import_wf(payload, name, time) != 0)
+                        {
+                            g::pOptsManager->wf_imported_save(name);
+                        }
+                    }
+
+                    (*counter)--;
+                    if (0 == *counter)
+                    {
+                        m_panel_wf_list->rebuild_items();
+                        m_projects_ready = true;
+                    }
+                };
+
+                const auto url = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(project.first));
+                http_get("Flow/Import_projects", url.c_str(), []() { return true; }, download_project);
+            }
+        }
+
+        if (0 == *counter)
+        {
+            m_panel_wf_list->rebuild_items();
+            m_projects_ready = true;
+        }
     };
 
-    g::pConnectManager->send_http_request(comfyui_http::wfs_all_names, false, all_names);
+    http_get("Flow/Import_projects", comfyui_http::wfs_all_names, []() { return true; }, all_names);
 }
 
 void GraphN_Flow::handle_connected()
@@ -504,7 +509,7 @@ void GraphN_Flow::reparse_nodes()
             m_nodes_parser->parse(std::move(data));
     };
 
-    g::pConnectManager->send_http_request(comfyui_http::object_info, false, parser);
+    http_get("Flow/reparse_nodes", comfyui_http::object_info, [](){ return true; }, parser);
 }
 
 void GraphN_Flow::show_menu_bar()
@@ -868,7 +873,7 @@ void GraphN_Flow::wf_create_copy_from(wid source, std::optional<ImRect> wf_rc, s
     m_panel_wf_list->rebuild_items();
 }
 
-void GraphN_Flow::wf_rebuild(wid id)
+void GraphN_Flow::wf_reload_view(wid id)
 {
     for (auto& panel : m_panels_wf)
     {
@@ -960,6 +965,11 @@ void GraphN_Flow::wf_locate_node(wid id, data::NodeInstance* node)
     wf_activate(id);
     if (m_wf_focused != nullptr)
         m_wf_focused->locate_node(node);
+}
+
+void GraphN_Flow::wf_reload()
+{
+    m_panel_wf_list->rebuild_items();
 }
 
 // <- WF public
@@ -1722,6 +1732,77 @@ void GraphN_Flow::modal_last_frame()
     m_windows &= ~(ViewModal | ViewModalStop);
     m_modal_message.reset();
 }
+
+void GraphN_Flow::http_get(const char* who_is_asking, const char* request, const StillAliveCallback& alive, const HttpGetResponse& callback)
+{
+    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, false);
+    m_http_get_requests.push_back({ req_id, alive, callback });
+}
+
+void GraphN_Flow::http_post(const char* who_is_asking, const char* request, std::string&& payload, const StillAliveCallback& alive, const HttpPostResponse& callback)
+{
+    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, true, std::move(payload));
+    m_http_post_requests.push_back({ req_id, alive, callback });
+}
+
+void GraphN_Flow::check_http_reply()
+{
+    if (g::pConnectManager->get_http_responses_count() == 0)
+        return;
+
+    for (auto it = m_http_get_requests.begin(); it != m_http_get_requests.end(); )
+    {
+        auto& tuple = *it;
+        auto rid = std::get<0>(tuple);
+        const auto& alive = std::get<1>(tuple);
+        const auto& callback = std::get<2>(tuple);
+
+        bool result;
+        std::string response;
+        if (g::pConnectManager->pickup_http_response(rid, result, response))
+        {
+            if (alive())
+            {
+                callback(result, std::move(response));
+                Log("HTTP-Req#" << rid << ". Processed");
+            }
+            else
+            {
+                Log("HTTP-Req#" << rid << ". Requestor is dead");
+            }
+
+            m_http_get_requests.erase(it);
+            return; // only one response per frame
+        }
+    }
+
+    for (auto it = m_http_post_requests.begin(); it != m_http_post_requests.end(); )
+    {
+        auto& tuple = *it;
+        auto rid = std::get<0>(tuple);
+        const auto& alive = std::get<1>(tuple);
+        const auto& callback = std::get<2>(tuple);
+
+        bool result;
+        std::string response;
+        if (g::pConnectManager->pickup_http_response(rid, result, response))
+        {
+            if (alive())
+            {
+                callback(result);
+                Log("HTTP-Req#" << rid << ". Processed");
+            }
+            else
+            {
+                Log("HTTP-Req#" << rid << ". Requestor is dead");
+            }
+
+            m_http_post_requests.erase(it);
+            return; // only one response per frame
+        }
+    }
+}
+
 
 }
 

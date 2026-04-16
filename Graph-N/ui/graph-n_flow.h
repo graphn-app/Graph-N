@@ -123,12 +123,15 @@ public:
     inline bool get_nodes_ready() const { return m_nodes_ready; }
     inline void set_models_ready() { m_models_ready = true; }
     inline bool get_models_ready() const { return m_models_ready; }
-    inline bool get_projects_imported() const { return m_wf_imported; }
+    inline bool get_projects_ready() const { return m_projects_ready; }
+
+    void http_get(const char* who_is_asking, const char* request, const StillAliveCallback& alive, const HttpGetResponse& callback);
+    void http_post(const char* who_is_asking, const char* request, std::string&& payload, const StillAliveCallback& alive, const HttpPostResponse& callback);
 
     // WF public
     void wf_create();
     void wf_create_copy_from(wid source, std::optional<ImRect> wf_rc, std::optional<float> wf_zoom);
-    void wf_rebuild(wid id);
+    void wf_reload_view(wid id);
     void wf_activate(wid id);
     void wf_locate(wid id);
     void wf_delete(wid id);
@@ -136,6 +139,7 @@ public:
     void wf_rename(wid id, const std::string& new_name);
     void wf_add_node_to_active_panel(data::Node* node, const std::string& select = "");
     void wf_locate_node(wid id, data::NodeInstance* node);
+    void wf_reload();
 
     // text editor panel public
     void txt_panel_create(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint);
@@ -153,6 +157,7 @@ private:
     void prepare_to_quit();
 
     void check_connection();
+    void check_http_reply();
     void handle_connected();
     void reparse_nodes();
     void import_user_projects();
@@ -215,6 +220,7 @@ private:
     static std::atomic_bool m_quit;
     std::atomic_bool m_nodes_ready = false;
     std::atomic_bool m_models_ready = false;
+    std::atomic_bool m_projects_ready = false;
 
     std::unique_ptr<mngr::NodesParser> m_nodes_parser;
 
@@ -244,5 +250,8 @@ private:
     std::list<std::unique_ptr<PanelTextEditor>> m_panels_text_editor;
     std::list<wid> m_active_sequense;
     bool m_wf_imported = false;
+
+    std::list<std::tuple<uint32_t, StillAliveCallback, HttpGetResponse>> m_http_get_requests;
+    std::list<std::tuple<uint32_t, StillAliveCallback, HttpPostResponse>> m_http_post_requests;
 };
 }

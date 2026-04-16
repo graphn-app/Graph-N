@@ -603,7 +603,7 @@ void WfsManager::copy_end(wid dest, std::optional<ImVec2> dest_point)
 
     g::pHistoryManager->multi_action_end(dest);
 
-    g::pFlow->wf_rebuild(dest);
+    g::pFlow->wf_reload_view(dest);
     Log("Copy " << m_copied_nodes.size() << " from " << m_copy_src << " to " << dest << " at " << dest_pt.x << "/" << dest_pt.y);
 }
 
@@ -702,7 +702,6 @@ void WfsManager::dump(wid wf_id) const
 
     auto wr = data::WorkflowSerializerToBlob::serialize(wf, *drawer_state);
     g::pDbManager->wf_update_blob(data.uuid, wr.release(), data.draft, data.use_ext_time ? data.ext_time : tools::dt());
-    data.use_ext_time = false;
 
     data.dirty = false;
     if (data.draft)

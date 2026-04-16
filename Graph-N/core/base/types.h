@@ -10,6 +10,10 @@ using byte_buff = std::vector<byte>;
 using primitive = std::variant<int64_t, uint64_t, double, std::string, bool, std::monostate>; // check serializer when adding new type
 using o_json = nlohmann::ordered_json;
 
+using StillAliveCallback = std::function<bool()>;
+using HttpGetResponse = std::function<void(bool, std::string&&)>;
+using HttpPostResponse = std::function<void(bool)>;
+
 enum class ExcepCategory
 {
     InconsistentMap,

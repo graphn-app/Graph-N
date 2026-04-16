@@ -18,8 +18,8 @@ private:
 private:
 
     enum class Step       { Disconnected, Loading, LoadFailed, Ready, Sync };
-    enum class SyncAction { Skip, Upload, UploadReplace, UploadRename, Download, DownloadReplace, DownloadRename, DeleteLocal };
     enum class SyncStatus { None, InProgress, Success, Error, Skipped };
+    enum class SyncAction { Skip, Upload, UploadReplace, UploadRename, Download, DownloadReplace, DownloadRename, DeleteLocal };
 
     struct SyncRow 
     {
@@ -34,7 +34,7 @@ private:
         time_t server_timestamp = 0;
         std::string server_timestamp_str;
 
-        SyncAction current_action = SyncAction::Skip;
+        SyncAction selected_action = SyncAction::Skip;
         std::vector<SyncAction> available_actions;
 
         std::string new_name;
@@ -56,13 +56,13 @@ private:
     void load_projects();
     void show_status_page();
     void setup_actions();
-    void apply();
+    void sync();
 
 private:    
     Step m_step = Step::Disconnected;
     std::shared_ptr<bool> m_alive;
     std::vector<SyncRow> m_rows;
-    std::list<Project> m_all_projects;
+    size_t m_current_row = 0;
 };
 
 

@@ -56,7 +56,12 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
             show_status_page();
         else
         {
-            if (m_step != Step::Ready) ImGui::BeginDisabled();
+            if (Step::Sync == m_step)
+                sync();
+
+            const bool disable_all = (m_step != Step::Ready);
+            if (disable_all) ImGui::BeginDisabled();
+
             const float table_height = ImGui::GetContentRegionAvail().y - 36.0f;
             const ImVec2 outer_size = ImVec2(0.0f, table_height);
             bool allow_apply = true;
@@ -96,8 +101,8 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
                                 else if (l.server_timestamp > r.server_timestamp) delta = 1;
                                 break;
                             case 4: // Action
-                                if (cast::to_i32(l.current_action) < cast::to_i32(r.current_action)) delta = -1;
-                                else if (cast::to_i32(l.current_action) > cast::to_i32(r.current_action)) delta = 1;
+                                if (cast::to_i32(l.selected_action) < cast::to_i32(r.selected_action)) delta = -1;
+                                else if (cast::to_i32(l.selected_action) > cast::to_i32(r.selected_action)) delta = 1;
                                 break;
                             default:
                                 break;
@@ -120,10 +125,10 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
                     ImGui::PushID(cast::to_i32(idx));
                     ImGui::TableNextRow();
 
-                    if (SyncAction::Skip != row.current_action)
+                    if (SyncAction::Skip != row.selected_action)
                     {
                         ImU32 row_bg_color = 0;
-                        if (SyncAction::UploadReplace == row.current_action || SyncAction::UploadRename == row.current_action || SyncAction::Upload == row.current_action)
+                        if (SyncAction::UploadReplace == row.selected_action || SyncAction::UploadRename == row.selected_action || SyncAction::Upload == row.selected_action)
                             row_bg_color = IM_COL32(46, 204, 113, 30);
                         else
                             row_bg_color = IM_COL32(52, 152, 219, 30);
@@ -152,7 +157,7 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
                         break;
                     }
 
-                    if (SyncAction::Skip == row.current_action)
+                    if (SyncAction::Skip == row.selected_action)
                         ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(150, 150, 150, 255));
 
                     ImGui::TableNextColumn();
@@ -161,13 +166,13 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
                     // Format timestamps on the fly or use pre-formatted strings
                     ImGui::TableNextColumn();
                     if (row.exists_local)   ImGui::TextUnformatted(row.local_timestamp_str.c_str());
-                    else                    ImGui::TextUnformatted("Missing");
+                    else                    ImGui::TextUnformatted("---");
 
                     ImGui::TableNextColumn();
                     if (row.exists_server)  ImGui::TextUnformatted(row.server_timestamp_str.c_str());
-                    else                    ImGui::TextUnformatted("Missing");
+                    else                    ImGui::TextUnformatted("---");
 
-                    if (SyncAction::Skip == row.current_action)
+                    if (SyncAction::Skip == row.selected_action)
                         ImGui::PopStyleColor();
 
                     const bool disable_input = (SyncStatus::InProgress == row.status || SyncStatus::Success == row.status);
@@ -175,14 +180,14 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
 
                     ImGui::TableNextColumn();
                     ImGui::SetNextItemWidth(-FLT_MIN);
-                    if (ImGui::BeginCombo("##action", get_action_name(row.current_action)))
+                    if (ImGui::BeginCombo("##action", get_action_name(row.selected_action)))
                     {
                         for (auto act : row.available_actions)
                         {
-                            const bool is_selected = (row.current_action == act);
+                            const bool is_selected = (row.selected_action == act);
                             if (ImGui::Selectable(get_action_name(act), is_selected))
                             {
-                                row.current_action = act;
+                                row.selected_action = act;
 
                                 if ((SyncAction::UploadRename == act || SyncAction::DownloadRename == act) && row.new_name.empty())
                                 {
@@ -196,9 +201,9 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
                     }
 
                     ImGui::TableNextColumn();
-                    if (SyncAction::UploadRename == row.current_action || SyncAction::DownloadRename == row.current_action)
+                    if (SyncAction::UploadRename == row.selected_action || SyncAction::DownloadRename == row.selected_action)
                     {
-                        row.new_name_invalid = (SyncAction::UploadRename == row.current_action && row.new_name == row.name);                            
+                        row.new_name_invalid = (SyncAction::UploadRename == row.selected_action && row.new_name == row.name);                            
                         if (row.new_name_invalid)
                         {
                             allow_apply = false;
@@ -222,22 +227,27 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
             {
                 apply_recommended_actions();
             }
+
             ImGui::SameLine();
             if (ImGui::Button("Reset", ImVec2(btn_width, 0)))
             {
                 reset();
             }
+
             ImGui::SameLine();
             const float right_cursor_x = ImGui::GetWindowWidth() - btn_width - ImGui::GetStyle().WindowPadding.x;
             ImGui::SetCursorPosX(right_cursor_x);
+
             if (!allow_apply) ImGui::BeginDisabled();
             if (ImGui::Button("Apply", ImVec2(btn_width, 0)))
             {
-                apply();
+                m_current_row = 0;
+                std::for_each(m_rows.begin(), m_rows.end(), [](SyncRow& row) { row.status = SyncStatus::None; });
+                m_step = Step::Sync;
             }
             if (!allow_apply) ImGui::EndDisabled();
 
-            if (m_step != Step::Ready) ImGui::EndDisabled();
+            if (disable_all) ImGui::EndDisabled();
         }
     }
     else *m_alive = false;
@@ -269,39 +279,39 @@ void SyncProjectsDlg::apply_recommended_actions()
             continue;
         if (SyncStatus::Success == row.status)
         {
-            row.current_action = SyncAction::Skip;
+            row.selected_action = SyncAction::Skip;
             continue;
         }
 
         if (row.exists_local && !row.exists_server)
         {
-            row.current_action = SyncAction::Upload;
+            row.selected_action = SyncAction::Upload;
         }
         else if (!row.exists_local && row.exists_server)
         {
-            row.current_action = SyncAction::Download;
+            row.selected_action = SyncAction::Download;
         }
         else if (row.exists_local && row.exists_server)
         {
             if (row.local_timestamp > row.server_timestamp)
             {
-                row.current_action = SyncAction::UploadReplace;
+                row.selected_action = SyncAction::UploadReplace;
             }
             else if (row.server_timestamp > row.local_timestamp)
             {
-                row.current_action = SyncAction::DownloadReplace;
+                row.selected_action = SyncAction::DownloadReplace;
             }
             else
             {
-                row.current_action = SyncAction::Skip;
+                row.selected_action = SyncAction::Skip;
             }
         }
         else
         {
-            row.current_action = SyncAction::Skip;
+            row.selected_action = SyncAction::Skip;
         }
 
-        if ((SyncAction::UploadRename == row.current_action || SyncAction::DownloadRename == row.current_action) && row.new_name.empty()) 
+        if ((SyncAction::UploadRename == row.selected_action || SyncAction::DownloadRename == row.selected_action) && row.new_name.empty()) 
         {
             row.new_name = row.name + " (Copy)";
         }
@@ -310,7 +320,7 @@ void SyncProjectsDlg::apply_recommended_actions()
 
 void SyncProjectsDlg::load_projects()
 {
-    if (!g::pFlow->get_online() || !g::pFlow->get_nodes_ready() || !g::pFlow->get_projects_imported())
+    if (!g::pFlow->get_online() || !g::pFlow->get_projects_ready())
     {
         m_step = Step::Disconnected;
         return;
@@ -331,13 +341,12 @@ void SyncProjectsDlg::load_projects()
         row.exists_local = true;
         row.exists_server = false;
         row.local_timestamp = wf->draft_exist ? wf->draft_time.time() : wf->saved_time.time();
-        row.local_timestamp_str = (0 == row.local_timestamp ? "Missing" : wf->draft_exist ? wf->draft_time.as_full_date(false) : wf->saved_time.as_full_date(false));
+        row.local_timestamp_str = (0 == row.local_timestamp ? "---" : wf->draft_exist ? wf->draft_time.as_full_date(false) : wf->saved_time.as_full_date(false));
         m_rows.push_back(std::move(row));
     }
 
-    const auto all_server_names = [this, is_alive = m_alive](bool result, std::string&& payload)
+    const auto all_server_names = [this](bool result, std::string&& payload)
     {
-        if (!*is_alive) return;
         if (!result)
         {
             m_step = Step::LoadFailed;
@@ -364,7 +373,7 @@ void SyncProjectsDlg::load_projects()
                     local_found = true;
                     row.exists_server = true;
                     row.server_timestamp = time.time();
-                    row.server_timestamp_str = (0 == row.server_timestamp ? "Missing" : time.as_full_date(false));
+                    row.server_timestamp_str = (0 == row.server_timestamp ? "---" : time.as_full_date(false));
                 }
             }
 
@@ -375,7 +384,7 @@ void SyncProjectsDlg::load_projects()
                 row.exists_local = false;
                 row.exists_server = true;
                 row.server_timestamp = time.time();
-                row.server_timestamp_str = (0 == row.server_timestamp ? "Missing" : time.as_full_date(false));
+                row.server_timestamp_str = (0 == row.server_timestamp ? "---" : time.as_full_date(false));
                 m_rows.push_back(std::move(row));
             }
         }
@@ -384,15 +393,17 @@ void SyncProjectsDlg::load_projects()
         m_step = Step::Ready;
     };
 
-    g::pConnectManager->send_http_request(comfyui_http::wfs_all_names, false, all_server_names);
+    g::pFlow->http_get("Sync/Init", comfyui_http::wfs_all_names, [is_alive = m_alive]() { return *is_alive; }, all_server_names);
 }
 
 void SyncProjectsDlg::setup_actions()
 {
     for (auto& row : m_rows)
     {
-        row.current_action = SyncAction::Skip;
+        row.selected_action = SyncAction::Skip;
+        row.available_actions.clear();
         row.available_actions.push_back(SyncAction::Skip);
+        row.status = SyncStatus::None;
 
         if (row.exists_local && !row.exists_server)
         {
@@ -422,7 +433,7 @@ void SyncProjectsDlg::reset()
 {
     for (auto& row : m_rows)
     {
-        row.current_action = SyncAction::Skip;
+        row.selected_action = SyncAction::Skip;
     }
 }
 
@@ -458,15 +469,100 @@ void SyncProjectsDlg::show_status_page()
     ImGui::TextUnformatted(text);
 }
 
-void SyncProjectsDlg::apply()
+void SyncProjectsDlg::sync()
 {
-    if (Step::Ready == m_step)
+    if (m_current_row >= m_rows.size())
     {
-        m_step = Step::Sync;
+        g::pFlow->wf_reload();
+        m_step = Step::Disconnected;
+        load_projects();
+        return;
     }
-    else if (Step::Sync == m_step)
+
+    if (SyncStatus::InProgress == m_rows[m_current_row].status)
+        return;
+
+    const auto download = [this](bool result, std::string&& payload)
     {
-    }    
+        auto& row = m_rows[m_current_row++];
+        Log("Downloaded project " << row.name);
+
+        if (!result)
+        {
+            row.status = SyncStatus::Error;
+            return;
+        }
+
+        const auto project_name = (SyncAction::DownloadRename == row.selected_action ? row.new_name : row.name);
+        if ((SyncAction::Download == row.selected_action || SyncAction::DownloadReplace == row.selected_action) && row.exists_local)
+        {
+            if (row.exists_local)
+                g::pFlow->wf_delete(row.local_id);
+        }
+
+        if (g::pWfsManager->import_wf(payload, project_name, tools::dt::from_time(row.server_timestamp)) != 0)
+        {
+            g::pOptsManager->wf_imported_save(row.name + ".json");
+            row.status = SyncStatus::Success;
+        }
+        else
+        {
+            if ((SyncAction::Download == row.selected_action || SyncAction::DownloadReplace == row.selected_action) && row.exists_local)
+                g::pFlow->wf_restore(row.local_id);
+            row.status = SyncStatus::Error;
+        }
+    };
+
+    const auto upload = [this](bool result)
+    {
+        auto& row = m_rows[m_current_row++];
+        Log("Uploaded project " << row.name);
+        row.status = result ? SyncStatus::Success : SyncStatus::Error;
+    };
+
+    while (m_current_row < m_rows.size())
+    {
+        auto& row = m_rows[m_current_row];
+        switch (row.selected_action)
+        {
+        case SyncAction::Skip:
+            {
+                m_current_row++;
+                row.status = SyncStatus::Skipped;
+            }
+            break;
+        case SyncAction::DeleteLocal:
+            {
+                m_current_row++;
+                g::pFlow->wf_delete(row.local_id);
+                row.status = SyncStatus::Success;
+            }
+            break;
+        case SyncAction::Download:
+        case SyncAction::DownloadRename:
+        case SyncAction::DownloadReplace:
+            {
+                row.status = SyncStatus::InProgress;
+                const auto url = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(row.name) + ".json");
+                g::pFlow->http_get("Sync/Action", url.c_str(), [is_alive = m_alive]() { return *is_alive; }, download);
+            }
+            break;
+        case SyncAction::Upload:
+        case SyncAction::UploadRename:
+        case SyncAction::UploadReplace:
+            {
+                row.status = SyncStatus::InProgress;
+                auto json = data::WorkflowSerializerToJson::serialize(g::pWfsManager->access(row.local_id));
+                const auto project_name = (SyncAction::UploadRename == row.selected_action ? row.new_name : row.name);
+                const auto url = fmt::format(comfyui_http::wf_upload_, tools::str::cleanup_url(project_name) + ".json");
+                g::pFlow->http_post("Sync/Action", url.c_str(), std::move(json), [is_alive = m_alive]() { return *is_alive; }, upload);
+            }
+            break;
+        }
+
+        if (SyncStatus::InProgress == row.status)
+            break;
+    }
 }
 
 }

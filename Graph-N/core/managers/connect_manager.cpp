@@ -62,7 +62,7 @@ void ConnectManager::drop_ws_connection()
     m_ws.reset();
 }
 
-void ConnectManager::check_request_status()
+void ConnectManager::check_http_request_status()
 {
     if (m_req_future.valid())
     {
@@ -72,16 +72,16 @@ void ConnectManager::check_request_status()
             if (m_req_thread.joinable())
                 m_req_thread.join();
 
-            auto req_data = m_req_future.get();
-            Log("Request '" << req_data->request << "' is done. Ok=" << req_data->success << ", data=" << req_data->data.size());
-            req_data->callback(req_data->success, std::move(req_data->data));
+            auto req = m_req_future.get();
+            Log("HTTP-Req#" << req->req_id << ". Pick-up ready");
+            m_pickup.push_back(req);
 
             std::unique_lock<std::mutex> lock(m_req_mutex);
             if (!m_requests.empty() && ConnectState::Connected == m_ws->get_state())
             {
-                req_data = m_requests.front();
+                auto queued = m_requests.front();
                 m_requests.pop();
-                send_http_request_internal(req_data);
+                send_http_request_internal(queued);
             }
         }
     }
@@ -123,23 +123,26 @@ ConnectState ConnectManager::get_status(size_t* inbox /*= nullptr*/, int64_t* la
     return ConnectState::Disconnected;
 }
 
-void ConnectManager::send_http_request(const char* request, bool post, RequestCallback callback, const std::string&& post_payload /*= ""*/)
+uint32_t ConnectManager::send_http_request(const char* who_is_asking, const char* request, bool post, const std::string&& post_payload /*= ""*/)
 {
     auto req = std::make_shared<RequestData>();
     req->request = request;
     req->post = post;
-    req->callback = callback;
     req->post_payload = std::move(post_payload);
+    req->req_id = ++m_request_id;
+    Log("HTTP-Req#" << req->req_id << ". Registered: " << (post ? "POST" : "GET") << ". Who: " << who_is_asking << ". Url: " << req->request);
 
     const auto state = m_ws ? m_ws->get_state() : ConnectState::Disconnected;
     std::unique_lock<std::mutex> lock(m_req_mutex);
     if (state != ConnectState::Connected || m_req_future.valid())
-    {
+    {        
         m_requests.push(req);
-        return;
+        Log("HTTP-Req#" << req->req_id << ". Queued(" << m_requests.size() << ")");
+        return req->req_id;
     }
 
     send_http_request_internal(req);
+    return req->req_id;
 }
 
 void ConnectManager::send_http_request_internal(std::shared_ptr<RequestData> req)
@@ -151,9 +154,10 @@ void ConnectManager::send_http_request_internal(std::shared_ptr<RequestData> req
     {
         req->reconnect = true;
         m_prev_host = req->host;
-        m_prev_port = req->port;
+        m_prev_port = req->port;        
     }
     req->conn_timeout = g::pOptsManager->comfyui_connect_timeout_load();
+    Log("HTTP-Req#" << req->req_id << ". Executing. Host: " << req->host << ":" << req->port << ". T-out: " << req->conn_timeout << "s");
 
     std::packaged_task<std::shared_ptr<RequestData>()> task(std::bind(&ConnectManager::request_thread, this, req));
     m_req_future = task.get_future();
@@ -162,7 +166,7 @@ void ConnectManager::send_http_request_internal(std::shared_ptr<RequestData> req
 
 std::shared_ptr<ConnectManager::RequestData> ConnectManager::request_thread(std::shared_ptr<RequestData> request)
 {
-    LogS("Requesting '" << request->request << "' to " << request->host << ":" << request->port);
+    LogS("HTTP-Req#" << request->req_id << ". Started");
 
     std::unique_lock<std::mutex> lock(m_cli_mutex);
     if (request->reconnect || !m_http_client)
@@ -187,7 +191,26 @@ std::shared_ptr<ConnectManager::RequestData> ConnectManager::request_thread(std:
         request->data = std::move(res->body);        
     }
 
+    LogS("HTTP-Req#" << request->req_id << ". Finished. Result: " << res->status << ". Body: " << request->data.size() << " bytes");
     return request;
+}
+
+bool ConnectManager::pickup_http_response(uint32_t req_id, bool& result, std::string& response)
+{
+    for (auto it = m_pickup.begin(); it != m_pickup.end(); ++it)   
+    {
+        auto& req = *it;
+        if (req->req_id == req_id)
+        {
+            Log("HTTP-Req#" << req->req_id << ". Picked-up. Remain: " << m_pickup.size() - 1);
+            result = req->success;
+            response = std::move(req->data);
+            m_pickup.erase(it);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 } // namespace mngr
