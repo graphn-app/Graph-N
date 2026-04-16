@@ -457,7 +457,7 @@ void PanelWorkflow::create_toolbar()
                 PanelToolbar::Element el;
                 el.type = PanelToolbar::Element::Type::Button;
                 el.icon = ICON_LC_LOCATE;
-                el.tooltip = "Show next unrecognized nodes";
+                el.tooltip = "Show next unrecognized node";
                 el.on_click = std::bind(&PanelWorkflow::on_show_dummy_node, this, std::placeholders::_1);
                 add_toolbar_element(std::move(el), false);
             }

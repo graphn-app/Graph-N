@@ -282,7 +282,7 @@ void Workflow::invalidate_current()
         m_wf_data.valid = true;
         for (auto& ptr : m_nodes)
         {
-            if (ptr->get_object()->is_dummy)
+            if (!ptr->m_group && ptr->get_object()->is_dummy)
             {
                 m_wf_data.valid = false;
                 break;
