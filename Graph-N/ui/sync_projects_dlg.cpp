@@ -90,7 +90,7 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
                             switch (sort_spec->ColumnIndex)
                             {
                             case 1: // Project Name
-                                delta = l.name.compare(r.name);
+                                delta = tools::str::to_lower_ascii(l.name).compare(tools::str::to_lower_ascii(r.name));
                                 break;
                             case 2: // Local Modified
                                 if (l.local_timestamp < r.local_timestamp) delta = -1;
@@ -175,7 +175,7 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
                     if (SyncAction::Skip == row.selected_action)
                         ImGui::PopStyleColor();
 
-                    const bool disable_input = (SyncStatus::InProgress == row.status || SyncStatus::Success == row.status);
+                    const bool disable_input = (SyncStatus::InProgress == row.status);
                     if (disable_input) ImGui::BeginDisabled();
 
                     ImGui::TableNextColumn();
@@ -234,6 +234,25 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
                 reset();
             }
 
+#ifdef _DEBUG
+            ImGui::SameLine();
+            if (ImGui::Button("Download", ImVec2(btn_width, 0)))
+            {
+                for (auto& row : m_rows)
+                {
+                    row.selected_action = SyncAction::DownloadReplace;
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Upload", ImVec2(btn_width, 0)))
+            {
+                for (auto& row : m_rows)
+                {
+                    row.selected_action = SyncAction::UploadReplace;
+                }
+            }
+#endif
+
             ImGui::SameLine();
             const float right_cursor_x = ImGui::GetWindowWidth() - btn_width - ImGui::GetStyle().WindowPadding.x;
             ImGui::SetCursorPosX(right_cursor_x);
@@ -267,6 +286,7 @@ const char* SyncProjectsDlg::get_action_name(SyncAction action)
     case SyncAction::DownloadReplace: return "Download (replace)";
     case SyncAction::DownloadRename:  return "Download (rename)";
     case SyncAction::DeleteLocal:     return "Remove (local only)";
+    case SyncAction::Undelete:        return "Restore (local only)";
     }
     LogAndThrowInternalError(ExcepCategory::Logic, "Unknown action");
 }
@@ -275,15 +295,11 @@ void SyncProjectsDlg::apply_recommended_actions()
 {
     for (auto& row : m_rows)
     {
-        if (SyncStatus::InProgress == row.status)
-            continue;
-        if (SyncStatus::Success == row.status)
+        if (row.exists_local && row.deleted)
         {
             row.selected_action = SyncAction::Skip;
-            continue;
         }
-
-        if (row.exists_local && !row.exists_server)
+        else if (row.exists_local && !row.exists_server)
         {
             row.selected_action = SyncAction::Upload;
         }
@@ -332,14 +348,16 @@ void SyncProjectsDlg::load_projects()
         return;
 
     m_rows.clear();
-    auto wfs = g::pWfsManager->get_undeleted();
+    auto wfs = g::pWfsManager->get_wfs();
     for (auto wf : wfs)
     {
         SyncRow row;
         row.local_id = wf->id;
+        if (0 == row.local_id) __debugbreak();
         row.name = wf->name;
         row.exists_local = true;
         row.exists_server = false;
+        row.deleted = wf->pending_delete;
         row.local_timestamp = wf->draft_exist ? wf->draft_time.time() : wf->saved_time.time();
         row.local_timestamp_str = (0 == row.local_timestamp ? "---" : wf->draft_exist ? wf->draft_time.as_full_date(false) : wf->saved_time.as_full_date(false));
         m_rows.push_back(std::move(row));
@@ -368,7 +386,7 @@ void SyncProjectsDlg::load_projects()
             bool local_found = false;
             for (auto& row : m_rows)
             {
-                if (row.exists_local && !row.exists_server && row.name == name)
+                if (row.exists_local && !row.deleted && !row.exists_server && row.name == name)
                 {
                     local_found = true;
                     row.exists_server = true;
@@ -400,12 +418,14 @@ void SyncProjectsDlg::setup_actions()
 {
     for (auto& row : m_rows)
     {
-        row.selected_action = SyncAction::Skip;
         row.available_actions.clear();
         row.available_actions.push_back(SyncAction::Skip);
-        row.status = SyncStatus::None;
 
-        if (row.exists_local && !row.exists_server)
+        if (row.exists_local && row.deleted)
+        {
+            row.available_actions.push_back(SyncAction::Undelete);
+        }
+        else if (row.exists_local && !row.exists_server)
         {
             row.available_actions.push_back(SyncAction::Upload);
             row.available_actions.push_back(SyncAction::UploadRename);
@@ -474,8 +494,8 @@ void SyncProjectsDlg::sync()
     if (m_current_row >= m_rows.size())
     {
         g::pFlow->wf_reload();
-        m_step = Step::Disconnected;
-        load_projects();
+        setup_actions();
+        m_step = Step::Ready;
         return;
     }
 
@@ -497,18 +517,29 @@ void SyncProjectsDlg::sync()
         if ((SyncAction::Download == row.selected_action || SyncAction::DownloadReplace == row.selected_action) && row.exists_local)
         {
             if (row.exists_local)
+            {
+                if (0 == row.local_id) __debugbreak();
                 g::pFlow->wf_delete(row.local_id);
+            }
         }
 
-        if (g::pWfsManager->import_wf(payload, project_name, tools::dt::from_time(row.server_timestamp)) != 0)
+        row.local_id = g::pWfsManager->import_wf(payload, project_name, tools::dt::from_time(row.server_timestamp));
+        if (row.local_id != 0)
         {
             g::pOptsManager->wf_imported_save(row.name + ".json");
             row.status = SyncStatus::Success;
+            row.exists_local = true;
+            row.local_timestamp = row.server_timestamp;
+            row.local_timestamp_str = row.server_timestamp_str;
+            row.selected_action = SyncAction::Skip;
         }
         else
         {
             if ((SyncAction::Download == row.selected_action || SyncAction::DownloadReplace == row.selected_action) && row.exists_local)
+            {
+                if (0 == row.local_id) __debugbreak();
                 g::pFlow->wf_restore(row.local_id);
+            }
             row.status = SyncStatus::Error;
         }
     };
@@ -517,7 +548,22 @@ void SyncProjectsDlg::sync()
     {
         auto& row = m_rows[m_current_row++];
         Log("Uploaded project " << row.name);
-        row.status = result ? SyncStatus::Success : SyncStatus::Error;
+        row.selected_action = SyncAction::Skip;
+        if (row.cleanup_wf)
+        {
+            if (0 == row.local_id) __debugbreak();
+            g::pWfsManager->access(row.local_id)->clear();
+        }
+        row.cleanup_wf = false;
+        if (result)
+        {
+            row.status = SyncStatus::Success;
+            row.exists_server = true;
+            row.server_timestamp = tools::dt::from_current_date().time();
+            row.server_timestamp_str = tools::dt::from_current_date().as_full_date(false);
+        }
+        else
+            row.status = SyncStatus::Error;
     };
 
     while (m_current_row < m_rows.size())
@@ -534,8 +580,21 @@ void SyncProjectsDlg::sync()
         case SyncAction::DeleteLocal:
             {
                 m_current_row++;
+                if (0 == row.local_id) __debugbreak();
                 g::pFlow->wf_delete(row.local_id);
+                row.deleted = true;
                 row.status = SyncStatus::Success;
+                row.selected_action = SyncAction::Skip;
+            }
+            break;
+        case SyncAction::Undelete:
+            {
+                m_current_row++;
+                if (0 == row.local_id) __debugbreak();
+                g::pFlow->wf_restore(row.local_id);
+                row.deleted = false;
+                row.status = SyncStatus::Success;
+                row.selected_action = SyncAction::Skip;
             }
             break;
         case SyncAction::Download:
@@ -552,10 +611,22 @@ void SyncProjectsDlg::sync()
         case SyncAction::UploadReplace:
             {
                 row.status = SyncStatus::InProgress;
-                auto json = data::WorkflowSerializerToJson::serialize(g::pWfsManager->access(row.local_id));
-                const auto project_name = (SyncAction::UploadRename == row.selected_action ? row.new_name : row.name);
-                const auto url = fmt::format(comfyui_http::wf_upload_, tools::str::cleanup_url(project_name) + ".json");
-                g::pFlow->http_post("Sync/Action", url.c_str(), std::move(json), [is_alive = m_alive]() { return *is_alive; }, upload);
+                if (0 == row.local_id) __debugbreak();
+                const bool loaded = g::pWfsManager->is_loaded(row.local_id);
+                blob::Blob dummy;
+                if (!loaded && !g::pWfsManager->load(row.local_id, dummy))
+                {
+                    row.status = SyncStatus::Error;
+                }
+                else
+                {
+                    row.cleanup_wf = !loaded;
+                    if (0 == row.local_id) __debugbreak();
+                    auto json = data::WorkflowSerializerToJson::serialize(g::pWfsManager->access(row.local_id));
+                    const auto project_name = (SyncAction::UploadRename == row.selected_action ? row.new_name : row.name);
+                    const auto url = fmt::format(comfyui_http::wf_upload_, tools::str::cleanup_url(project_name) + ".json");
+                    g::pFlow->http_post("Sync/Action", url.c_str(), std::move(json), [is_alive = m_alive]() { return *is_alive; }, upload);
+                }
             }
             break;
         }

@@ -69,6 +69,7 @@ const WfData& WfsManager::create(bool generate_name, bool dump_to_db, bool ro)
 
 const WfData& WfsManager::create_copy(wid source)
 {
+    if (0 == source) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     auto src_wf = access(source);
     
     WfData data;
@@ -87,8 +88,16 @@ const WfData& WfsManager::create_copy(wid source)
     return wf->get_data();
 }
 
+bool WfsManager::is_loaded(wid wf_id) const
+{
+    if (0 == wf_id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
+    auto wf = access(wf_id);
+    return !wf->get_nodes().empty();    
+}
+
 bool WfsManager::load(wid wf_id, blob::Blob& drawer_state)
 {
+    if (0 == wf_id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     auto wf = access(wf_id);
     auto& data = wf->get_data();
     if (!data.draft_exist && !data.saved_exist || data.ro)
@@ -124,6 +133,8 @@ data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db)
 
 data::Workflow* WfsManager::access(wid id) const
 {
+    if (0 == id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
+
     const auto search_rw = [this, id]() -> data::Workflow*
     {
         const auto it = m_wfs.find(id);
@@ -174,6 +185,7 @@ void WfsManager::set_active(wid id)
 
 void WfsManager::update_name(wid id, const std::string& name)
 {
+    if (0 == id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     auto& data = get_data(id);
     data.name = name;
     g::pDbManager->wf_update_meta(data);
@@ -212,6 +224,7 @@ std::vector<WfData*> WfsManager::get_deleted() const
 
 void WfsManager::delete_wf(wid id)
 {
+    if (0 == id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     auto& data = get_data(id);
     data.pending_delete = true;
     g::pDbManager->wf_update_meta(data);
@@ -221,6 +234,7 @@ void WfsManager::delete_wf(wid id)
 
 void WfsManager::undelete_wf(wid id)
 {
+    if (0 == id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     auto& data = get_data(id);
     data.pending_delete = false;
     g::pDbManager->wf_update_meta(data);
@@ -229,6 +243,7 @@ void WfsManager::undelete_wf(wid id)
 
 bool WfsManager::is_deleted(wid id) const
 {
+    if (0 == id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     auto& data = get_data(id);
     return data.pending_delete;
 }
@@ -368,6 +383,7 @@ void WfsManager::remove_label(uint32_t label_id)
 
 void WfsManager::set_wf_labels(wid wf_id, std::set<uint32_t> labels)
 {
+    if (0 == wf_id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     bool changed = false;
     for (auto& [label_id, wf_ids] : m_wfs_in_label)
     {
@@ -433,6 +449,7 @@ const std::list<wid>& WfsManager::get_wfs_in_label(uint32_t label_id) const
 
 bool WfsManager::get_is_wf_in_label(wid wf_id, uint32_t label_id) const
 {
+    if (0 == wf_id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     auto& ids = get_wfs_in_label(label_id);
     return std::find(ids.begin(), ids.end(), wf_id) != ids.end();
 }
@@ -626,6 +643,7 @@ void WfsManager::close_and_purge()
 
 void WfsManager::close(wid wf_id)
 {
+    if (0 == wf_id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     auto wf = access(wf_id);
     auto& data = wf->get_data();
 
@@ -635,6 +653,7 @@ void WfsManager::close(wid wf_id)
 
 void WfsManager::save(wid wf_id)
 {
+    if (0 == wf_id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     auto wf = access(wf_id);
     auto& data = wf->get_data();
     if (!data.dirty && !data.draft || data.ro)
@@ -650,6 +669,7 @@ void WfsManager::save(wid wf_id)
 
 void WfsManager::revert(wid wf_id, blob::Blob& drawer_state)
 {
+    if (0 == wf_id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     auto wf = access(wf_id);
     auto& data = wf->get_data();
 
@@ -687,6 +707,7 @@ void WfsManager::revert(wid wf_id, blob::Blob& drawer_state)
 
 void WfsManager::dump(wid wf_id) const
 {
+    if (0 == wf_id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     auto wf = access(wf_id);
     auto& data = wf->get_data();
     if (!data.dirty || data.critical_failure || data.ro)
@@ -771,6 +792,7 @@ wid WfsManager::import_wf(const std::string& jdata, const std::string& name, too
 
 void WfsManager::export_wf(wid wf_id, bool api, const std::filesystem::path& to)
 {
+    if (0 == wf_id) { LogAndThrowInternalError(ExcepCategory::Logic, "Zero wf access"); }
     const auto wf_it = m_wfs.find(wf_id);
     if (wf_it == m_wfs.end())
     {

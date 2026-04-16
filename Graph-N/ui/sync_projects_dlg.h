@@ -19,11 +19,14 @@ private:
 
     enum class Step       { Disconnected, Loading, LoadFailed, Ready, Sync };
     enum class SyncStatus { None, InProgress, Success, Error, Skipped };
-    enum class SyncAction { Skip, Upload, UploadReplace, UploadRename, Download, DownloadReplace, DownloadRename, DeleteLocal };
+    enum class SyncAction { Skip, Upload, UploadReplace, UploadRename, Download, DownloadReplace, DownloadRename, DeleteLocal, Undelete };
 
     struct SyncRow 
     {
         wid local_id = 0;
+        bool deleted = false;
+        bool cleanup_wf = false;
+
         std::string name;
 
         bool exists_local = false;

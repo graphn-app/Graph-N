@@ -27,6 +27,8 @@ public:
 
     const WfData& create(bool generate_name, bool dump_to_db, bool ro);
     const WfData& create_copy(wid source);
+
+    bool is_loaded(wid wf_id) const;
     bool load(wid wf_id, blob::Blob& drawer_state);
 
     data::Workflow* access(wid id) const;

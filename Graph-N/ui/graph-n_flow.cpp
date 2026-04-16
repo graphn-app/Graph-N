@@ -1747,7 +1747,7 @@ void GraphN_Flow::http_post(const char* who_is_asking, const char* request, std:
 
 void GraphN_Flow::check_http_reply()
 {
-    if (g::pConnectManager->get_http_responses_count() == 0)
+    if (get_is_quit() || g::pConnectManager->get_http_responses_count() == 0)
         return;
 
     for (auto it = m_http_get_requests.begin(); it != m_http_get_requests.end(); )
