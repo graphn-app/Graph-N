@@ -97,4 +97,10 @@ std::vector<std::string> scan_for_disks();
 
 } // namespace api
 
+namespace img
+{
+std::string extract_workflow_from_png(const std::filesystem::path& png_path);
+std::string extract_workflow_from_webp(const std::filesystem::path& webp_path);
+}
+
 };	// namespace tools

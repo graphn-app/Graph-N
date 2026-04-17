@@ -373,48 +373,51 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
 
     switch (msg)
     {
+    case WM_CREATE:
+        DragAcceptFiles(hWnd, TRUE);
+        return 0;
     case WM_ENTERSIZEMOVE:
-    {
-        MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
-        if (routine != nullptr)
-            routine->m_moving = true;
-    }
-    break;
+        {
+            MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            if (routine != nullptr)
+                routine->m_moving = true;
+        }
+        break;
     case WM_EXITSIZEMOVE:
-    {
-        MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
-        if (routine != nullptr)
-            routine->m_moving = false;
-    }
-    break;
+        {
+            MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            if (routine != nullptr)
+                routine->m_moving = false;
+        }
+        break;
     case WM_SIZE:
-    {
-        if (SIZE_MINIMIZED == wParam)
         {
-            LogS("Windows is minimized");
-            if (g::pGraphN)
-                g::pGraphN->handle_wnd_minimized();
-            return 0;
-        }
+            if (SIZE_MINIMIZED == wParam)
+            {
+                LogS("Windows is minimized");
+                if (g::pGraphN)
+                    g::pGraphN->handle_wnd_minimized();
+                return 0;
+            }
 
-        MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
-        if (routine != nullptr)
-        {
-            routine->cleanup_render_target();
-            routine->m_swap_chain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
-            if (!routine->create_render_target())
-                ::PostQuitMessage(1);
-            else
-                routine->render_frame(false /*done*/);
-        }
+            MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            if (routine != nullptr)
+            {
+                routine->cleanup_render_target();
+                routine->m_swap_chain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
+                if (!routine->create_render_target())
+                    ::PostQuitMessage(1);
+                else
+                    routine->render_frame(false /*done*/);
+            }
 
-        if (SIZE_RESTORED == wParam && g::pGraphN)
-        {
-            LogS("Windows is restored");
-            g::pGraphN->handle_wnd_restored();
+            if (SIZE_RESTORED == wParam && g::pGraphN)
+            {
+                LogS("Windows is restored");
+                g::pGraphN->handle_wnd_restored();
+            }
         }
-    }
-    return 0;
+        return 0;
     case WM_SYSCOMMAND:
         if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
             return 0;
@@ -427,6 +430,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         break;
     case WM_DESTROY:
         LogS("WM_DESTROY");
+        DragAcceptFiles(hWnd, FALSE);
         ::PostQuitMessage(0);
         return 0;
     case WM_TIMER:
@@ -442,6 +446,32 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
                 routine->m_user_msg_callback = nullptr;
             }
         }
+        return 0;
+    case WM_DROPFILES:
+        {
+            HDROP hdrop = (HDROP)wParam;
+            UINT file_count = DragQueryFileA(hdrop, 0xFFFFFFFF, NULL, 0);
+            std::list<std::filesystem::path> files;
+
+            for (UINT i = 0; i < file_count; i++)
+            {
+                char file_path[MAX_PATH];
+                if (DragQueryFileA(hdrop, i, file_path, MAX_PATH))
+                {
+                    LogS("Dropped file " << file_path);
+                    files.push_back(file_path);
+                }
+            }
+
+            DragFinish(hdrop);
+
+            MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            if (routine != nullptr && routine->m_dnd_callback != nullptr)
+            {
+                routine->m_dnd_callback(std::move(files));
+            }
+        }
+        return 0;
     }
     return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 }

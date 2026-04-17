@@ -99,7 +99,7 @@ std::vector<std::string> split(const std::string& str, char separator)
 }
 
 template<typename CONT>
-std::string merge_cont(const CONT& items, char separator)
+static std::string merge_cont(const CONT& items, char separator)
 {
     std::string out;
     out.reserve(items.size() * 10);
@@ -302,7 +302,8 @@ std::vector<byte> base64_decode(const char* base64, size_t len)
     return out;
 }
 
-constexpr uint32_t rotr(uint32_t x, uint32_t n) { return (x >> n) | (x << (32 - n)); }
+static constexpr uint32_t rotr(uint32_t x, uint32_t n) { return (x >> n) | (x << (32 - n)); }
+
 std::string sha256(const std::vector<byte>& src)
 {
     uint32_t h[8] =
@@ -424,19 +425,36 @@ namespace path
 {
 
 // --- HELPERS FOR UTF-8 ---
-inline std::filesystem::path from_utf8(const std::string& u8str)
+static inline std::filesystem::path from_utf8(const std::string& u8str)
 {
     return std::filesystem::u8path(u8str);
 }
 
-inline std::string to_utf8(const std::filesystem::path& p)
+static inline std::string to_utf8(const std::filesystem::path& p)
 {
     return p.u8string();
 }
 
 // -------------------------
 
-std::filesystem::path find_next_name(const std::filesystem::path& path); // forward decl
+std::filesystem::path find_next_name(const std::filesystem::path& path)
+{
+    const auto ext = path.extension().u8string();
+    const auto parent = path.parent_path();
+    const auto stem = path.stem().u8string();
+
+    size_t idx = 2;
+    std::filesystem::path next_path;
+    std::error_code ec;
+
+    do {
+        const std::string new_name = stem + " (" + std::to_string(idx++) + ")" + ext;
+        next_path = parent / std::filesystem::u8path(new_name);
+    }
+    while (std::filesystem::exists(next_path, ec));
+
+    return next_path;
+}
 
 bool exists(const std::filesystem::path& path)
 {
@@ -532,25 +550,6 @@ std::optional<std::filesystem::path> move(const std::filesystem::path& from, con
 
     LogS("File moved from '" << from << "' to '" << dest.value() << "'");
     return dest;
-}
-
-std::filesystem::path find_next_name(const std::filesystem::path& path)
-{
-    const auto ext = path.extension().u8string();
-    const auto parent = path.parent_path();
-    const auto stem = path.stem().u8string();
-
-    size_t idx = 2;
-    std::filesystem::path next_path;
-    std::error_code ec;
-
-    do {
-        const std::string new_name = stem + " (" + std::to_string(idx++) + ")" + ext;
-        next_path = parent / std::filesystem::u8path(new_name);
-    }
-    while (std::filesystem::exists(next_path, ec));
-
-    return next_path;
 }
 
 bool make_folder(const std::filesystem::path& dirpath)
@@ -801,7 +800,7 @@ struct FdData
     std::list<std::filesystem::path> results;
 };
 
-bool select_files(HWND hwnd, bool read, bool sel_directory, bool allow_multiselect, 
+static bool select_files(HWND hwnd, bool read, bool sel_directory, bool allow_multiselect, 
     const std::list<std::pair<std::wstring, std::wstring>>& filters, const std::filesystem::path& init_file,
     std::list<std::filesystem::path>& results)
 {
@@ -1189,5 +1188,185 @@ std::vector<std::string> scan_for_disks()
 }
 
 } // namespace api
+
+namespace img
+{
+bool icomparer(char l, char r)
+{
+    return std::tolower(static_cast<unsigned char>(l)) == std::tolower(static_cast<unsigned char>(r));
+}
+
+static std::string cleanup_json(const std::vector<char>& buffer, size_t offset)
+{
+    size_t start = offset;
+    while (start < buffer.size() && buffer[start] != '{')
+        start++;
+
+    int32_t depth = 0;
+    bool in_string = false;
+    bool is_escape = false;
+
+    for (size_t i = start; i < buffer.size(); i++) 
+    {
+        const char c = buffer[i];
+
+        // If the previous character was a backslash, skip current
+        if (is_escape) 
+        {
+            is_escape = false;
+            continue;
+        }
+
+        // Check for escape character
+        if (c == '\\') 
+        {
+            is_escape = true;
+            continue;
+        }
+
+        // Toggle string state on unescaped quotes
+        if (c == '"') 
+        {
+            in_string = !in_string;
+            continue;
+        }
+
+        // Count braces only if we are not inside a string literal
+        if (!in_string) 
+        {
+            if (c == '{') depth++;
+            else if (c == '}') depth--;
+            if (depth < 0) return {};
+
+            // When depth reaches 0, we found the exact end of the JSON object
+            if (0 == depth) 
+            {
+                return std::string(buffer.begin() + start, buffer.begin() + i + 1);
+            }
+        }
+    }
+
+    return {};
+}
+
+static uint32_t read_be32(const unsigned char* data) 
+{
+    return (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+}
+
+static size_t extract_png_tEXt(const std::vector<char>& file_data, bool search_api) 
+{
+    if (file_data.size() < 33)
+        return std::string::npos;
+
+    // Check PNG magic signature
+    const unsigned char png_sig[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
+    if (memcmp(file_data.data(), png_sig, 8) != 0)
+        return std::string::npos;
+
+    size_t offset = 8;
+    while (offset + 8 <= file_data.size()) 
+    {
+        const uint32_t length = read_be32(reinterpret_cast<const unsigned char*>(file_data.data()) + offset);
+        const std::string chunk_type(reinterpret_cast<const char*>(file_data.data() + offset + 4), 4);
+
+        offset += 8; // Move to chunk data
+        if (offset + length + 4 > file_data.size())
+            break;
+
+        if (chunk_type == "tEXt" || chunk_type == "iTXt" || chunk_type == "comf") 
+        {
+            const std::string_view json_id = (search_api ? "prompt" : "workflow");
+            const auto from = file_data.data() + offset;
+            const auto to = file_data.data() + offset + length;
+
+            auto it = std::search(from, to, json_id.begin(), json_id.end(), icomparer);
+            if (it != to)
+                return offset + std::distance(from, it);
+        }
+
+        // Jump to next chunk (+4 to skip CRC)
+        offset += length + 4; 
+    }
+
+    return std::string::npos;
+}
+
+std::string extract_workflow_from_png(const std::filesystem::path& webp_path)
+{
+    const auto file_data = tools::path::read_file(webp_path, false);
+    if (file_data.empty())
+        return {};
+
+    auto pos = extract_png_tEXt(file_data, false);
+    if (std::string::npos == pos)
+    {
+        pos = extract_png_tEXt(file_data, true);
+        if (std::string::npos == pos)
+            return {};
+    }
+
+    return cleanup_json(file_data, pos);
+}
+
+static uint32_t read_le32(const unsigned char* data) 
+{
+    return data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
+}
+
+static size_t extract_webp_exif(const std::vector<char>& file_data, bool search_api) 
+{
+    if (file_data.size() < 12)
+        return std::string::npos;
+
+    // Check RIFF header and WEBP signature
+    if (memcmp(file_data.data(), "RIFF", 4) != 0 || memcmp(file_data.data() + 8, "WEBP", 4) != 0) 
+        return std::string::npos;
+
+    size_t offset = 12;
+    while (offset + 8 <= file_data.size()) 
+    {
+        const char* chunk_id = reinterpret_cast<const char*>(file_data.data() + offset);
+        const uint32_t chunk_size = read_le32(reinterpret_cast<const unsigned char*>(file_data.data()) + offset + 4);
+
+        offset += 8;
+        if (strncmp(chunk_id, "EXIF", 4) == 0) 
+        {
+            if (offset + chunk_size <= file_data.size()) 
+            {
+                const std::string_view json_id = (search_api ? "prompt" : "workflow");
+                const auto from = file_data.data() + offset;
+                const auto to = file_data.data() + offset + chunk_size;
+                const auto it = std::search(from, to, json_id.begin(), json_id.end(), icomparer);
+                if (it != to)
+                    return offset + std::distance(from, it);
+            }
+        }
+
+        // WebP chunks are padded to even sizes
+        offset += chunk_size + (chunk_size & 1);
+    }
+
+    return std::string::npos;
+}
+
+std::string extract_workflow_from_webp(const std::filesystem::path& webp_path)
+{
+    const auto file_data = tools::path::read_file(webp_path, false);
+    if (file_data.empty())
+        return {};
+
+    auto pos = extract_webp_exif(file_data, false);
+    if (std::string::npos == pos)
+    {
+        pos = extract_webp_exif(file_data, true);
+        if (std::string::npos == pos)
+            return {};
+    }
+
+    return cleanup_json(file_data, pos);
+}
+
+} // namespace img
 
 }	//	namespace tools

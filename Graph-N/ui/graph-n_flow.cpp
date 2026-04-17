@@ -143,6 +143,13 @@ bool GraphN_Flow::init()
     ImGui::GetStyle().Colors[ImGuiCol_TabHovered] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabHovered));
     ImGui::GetStyle().Colors[ImGuiCol_TabActive] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabActive));
 
+    const auto dnd_callback = [this](std::list<std::filesystem::path>&& files)
+    {
+        if (!get_is_quit() && get_nodes_ready() && get_projects_ready())
+            import_files(std::move(files));
+    };
+    g::pMain->set_dnd_callback(dnd_callback);
+
     return true;
 }
 
@@ -429,7 +436,7 @@ void GraphN_Flow::import_user_projects()
                 {
                     if (result)
                     {
-                        if (g::pWfsManager->import_wf(payload, name, time) != 0)
+                        if (g::pWfsManager->import_wf_from_json(payload, name, time) != 0)
                         {
                             g::pOptsManager->wf_imported_save(name);
                         }
@@ -456,6 +463,25 @@ void GraphN_Flow::import_user_projects()
     };
 
     http_get("Flow/Import_projects", comfyui_http::wfs_all_names, []() { return true; }, all_names);
+}
+
+void GraphN_Flow::import_files(std::list<std::filesystem::path>&& paths)
+{
+    wid activate = 0;
+    for (auto& path : paths)
+    {
+        auto id = g::pWfsManager->import_wf(path);
+        if (id != 0)
+            activate = id;
+    }
+
+    if (paths.size() > 1)
+        activate = 0;
+
+    if (activate != 0)
+        wf_activate(activate);
+    else
+        m_panel_wf_list->rebuild_items();
 }
 
 void GraphN_Flow::handle_connected()
@@ -525,7 +551,7 @@ void GraphN_Flow::show_menu_bar()
             if (ImGui::MenuItem("Import Project from file...##FileMenuBar", nullptr, nullptr, m_nodes_ready))
             {
                 Log("Menu: Import Project");
-                on_menu_import_json();
+                on_menu_import();
             }
             if (ImGui::BeginMenu("Export...##MainMenuBar"))
             {
@@ -1198,27 +1224,13 @@ void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel)
     }
 }
 
-void GraphN_Flow::on_menu_import_json()
+void GraphN_Flow::on_menu_import()
 {
     tools::path::FdSelectResultMt callback = [this](bool result, std::list<std::filesystem::path>&& paths)
     {
         if (result)
         {
-            wid activate = 0;
-            for (auto& path : paths)
-            {
-                auto id = g::pWfsManager->import_wf(path);
-                if (id != 0)
-                    activate = id;
-            }
-
-            if (paths.size() > 1)
-                activate = 0;
-
-            if (activate != 0)
-                wf_activate(activate);
-            else
-                m_panel_wf_list->rebuild_items();
+            import_files(std::move(paths));
         }
     };
     tools::path::select_files_open({{ L"ComfyUI Workflows (*.json, *.png, *.webp)", L"*.json;*.png;*.webp" }}, callback);
@@ -1539,12 +1551,6 @@ void GraphN_Flow::show_menu_bar_net_status()
 
 void GraphN_Flow::show_panels()
 {
-    const auto id_as_name = [](std::string& id_ret, const char* panel_id)
-    {
-        id_ret = fmt::format(FMT_STRING("###{}"), panel_id);
-        return id_ret.c_str();
-    };
-
     auto viewport = ImGui::GetMainViewport();
     //m_main_dock_id = ImGui::DockSpaceOverViewport(viewport); // , ImGuiDockNodeFlags_PassthruCentralNode);
 
@@ -1569,8 +1575,11 @@ void GraphN_Flow::show_panels()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
-    ImGui::Begin("MainWorkspaceHost", nullptr, host_window_flags);
+    bool open = true;
+    bool opened = ImGui::Begin("MainWorkspaceHost", &open, host_window_flags);
     ImGui::PopStyleVar(3);
+    if (!opened)
+        return;
 
     m_main_dock_id = ImGui::GetID(APP_CAPTION "_MainDockSpace");
     ImGui::DockSpace(m_main_dock_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
@@ -1596,6 +1605,12 @@ void GraphN_Flow::show_panels()
         ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.15f, nullptr, &m_main_dock_id);
 
         std::string id;
+
+        const auto id_as_name = [](std::string& id_ret, const char* panel_id)
+        {
+            id_ret = fmt::format(FMT_STRING("###{}"), panel_id);
+            return id_ret.c_str();
+        };
 
         // left top
         ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_nodes->get_panel_id()), dock_id_left_top);

@@ -267,7 +267,7 @@ void PanelWorkflow::handle_dnd()
         {
             ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
             const hid node_id = *(const hid*)payload->Data;
-            auto node = g::pNodesManager->find_node(node_id);            
+            auto node = g::pNodesManager->find_node(node_id);
             auto inst = m_action->add_node(node, "", ImRect(m_drawer.get_mouse_pos(), ImVec2(-1, -1)));
             Log("Node '" << inst->get_name() << "' dropped");
             g::pFlow->wf_activate(m_wf->get_id());

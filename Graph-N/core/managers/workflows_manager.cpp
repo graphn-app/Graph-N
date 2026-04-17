@@ -748,12 +748,37 @@ void WfsManager::dump(wid wf_id) const
 
 wid WfsManager::import_wf(std::filesystem::path& from)
 {
-    auto file = tools::path::read_file(from, true);
-    auto name = from.filename().replace_extension().u8string();
-    return import_wf(file.data(), name);
+    Log("Import project from " << from);
+    const auto ext = tools::str::to_lower_ascii(from.extension().u8string());
+    const auto name = from.stem().u8string();
+
+    if (ext == ".json")
+    {
+        auto jdata = tools::path::read_file(from, true);
+        if (!jdata.empty())
+            return import_wf_from_json(jdata.data(), from.stem().u8string());
+        return 0;
+    }
+    if (ext == ".png")
+    {
+        auto jdata = tools::img::extract_workflow_from_png(from);
+        if (!jdata.empty())
+            return import_wf_from_json(jdata.data(), from.stem().u8string());
+        return 0;
+    }
+    if (ext == ".webp")
+    {
+        auto jdata = tools::img::extract_workflow_from_webp(from);
+        if (!jdata.empty())
+            return import_wf_from_json(jdata.data(), from.stem().u8string());
+        return 0;
+    }
+
+    Log("Can't import, unsupported file type");
+    return 0;
 }
 
-wid WfsManager::import_wf(const std::string& jdata, const std::string& name, tools::dt use_time /*= {}*/)
+wid WfsManager::import_wf_from_json(const std::string& jdata, const std::string& name, tools::dt use_time /*= {}*/)
 {
     try
     {
@@ -761,7 +786,7 @@ wid WfsManager::import_wf(const std::string& jdata, const std::string& name, too
 
         WfData wf_data;
         wf_data.ro = false;
-        wf_data.name = std::filesystem::path(name).replace_extension().filename().u8string();
+        wf_data.name = std::filesystem::path(name).stem().u8string();
         if (!use_time.null())
         {
             wf_data.ext_time = use_time;

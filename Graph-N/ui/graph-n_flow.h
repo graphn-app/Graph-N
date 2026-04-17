@@ -161,6 +161,7 @@ private:
     void handle_connected();
     void reparse_nodes();
     void import_user_projects();
+    void import_files(std::list<std::filesystem::path>&& paths);
 
     void modal_last_frame();
 
@@ -194,7 +195,7 @@ private:
     void on_menu_about();
     void on_menu_panel_window(ViewDialogs wnd);
     void on_menu_wf(PanelWorkflow* wf_panel);
-    void on_menu_import_json();
+    void on_menu_import();
     void on_menu_export_json(bool api);
     void on_menu_export_json_all(bool api);
     void on_menu_close_all_projects();

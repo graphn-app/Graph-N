@@ -777,7 +777,6 @@ void PanelNodes::on_dnd_show(int32_t idx)
 
     const auto node_item = cast::ptrs<data::NodeItem>(m_panel_items[idx].ptr);
     ImGui::TextUnformatted(node_item->name_or_category.c_str(), node_item->name_or_category.c_str() + node_item->name_or_category.size());
-    ImGui::Text("Current ImGui Cursor ID: %d", ImGui::GetMouseCursor());
 }
 
 void PanelNodes::add_node_to_wf(data::NodeItem* node_item)

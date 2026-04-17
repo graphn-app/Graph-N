@@ -4,6 +4,8 @@
 namespace platform
 {
 
+using DragAndDropCallback = std::function<void(std::list<std::filesystem::path>&&)>;
+
 class MainRoutine
 {
 public:
@@ -23,6 +25,8 @@ public:
     using flow_callback = std::function<bool(bool DoExit)>;
     virtual int32_t run(flow_callback& callback, std::atomic_bool& request_focus) = 0;
 
+    void set_dnd_callback(const DragAndDropCallback& callback) { m_dnd_callback = callback; }
+
     ImFont* get_regular_font() const { return m_font_regular; }
     ImFont* get_small_font() const { return m_font_small; }
     ImFont* get_bold_font() const { return m_font_bold; }
@@ -39,6 +43,9 @@ public:
 
 protected:
     void prepare_fonts();
+
+protected:
+    DragAndDropCallback m_dnd_callback = nullptr;
 
 private:
     bool m_vsync = true;
