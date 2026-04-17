@@ -1,4 +1,4 @@
-#include "ui/options/opts_right_pane.h"
+#include "ui/dialogs/options/opts_right_pane.h"
 #include "ui/graph-n_flow.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/comfyui_manager.h"

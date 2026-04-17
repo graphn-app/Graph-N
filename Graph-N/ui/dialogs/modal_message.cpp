@@ -1,5 +1,5 @@
 
-#include "ui/modal_message.h"
+#include "ui/dialogs/modal_message.h"
 #include "main.h"
 #include "core/managers/settings_manager.h"
 

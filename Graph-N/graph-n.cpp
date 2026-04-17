@@ -1,7 +1,7 @@
 
 #include "graph-n.h"
 #include "ui/graph-n_flow.h"
-#include "ui/textures.h"
+#include "ui/helpers/textures.h"
 #include "main.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"

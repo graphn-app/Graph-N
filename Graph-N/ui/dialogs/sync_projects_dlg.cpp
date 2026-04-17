@@ -1,5 +1,5 @@
 
-#include "ui/sync_projects_dlg.h"
+#include "ui/dialogs/sync_projects_dlg.h"
 #include "ui/graph-n_flow.h"
 #include "core/managers/connect_manager.h"
 #include "core/managers/workflows_manager.h"
@@ -240,7 +240,8 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
             {
                 for (auto& row : m_rows)
                 {
-                    row.selected_action = SyncAction::DownloadReplace;
+                    if (row.exists_server)
+                        row.selected_action = SyncAction::DownloadReplace;
                 }
             }
             ImGui::SameLine();
@@ -248,7 +249,17 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
             {
                 for (auto& row : m_rows)
                 {
-                    row.selected_action = SyncAction::UploadReplace;
+                    if (row.exists_local)
+                        row.selected_action = SyncAction::UploadReplace;
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Remove", ImVec2(btn_width, 0)))
+            {
+                for (auto& row : m_rows)
+                {
+                    if (row.exists_local)
+                        row.selected_action = SyncAction::DeleteLocal;
                 }
             }
 #endif
@@ -380,8 +391,7 @@ void SyncProjectsDlg::load_projects()
 
         for (auto& [name, time] : projects)
         {
-            std::filesystem::path path(name);
-            name = path.replace_extension().filename().u8string();
+            name = std::filesystem::path(name).stem().u8string();
 
             bool local_found = false;
             for (auto& row : m_rows)
@@ -523,7 +533,7 @@ void SyncProjectsDlg::sync()
             }
         }
 
-        row.local_id = g::pWfsManager->import_wf(payload, project_name, tools::dt::from_time(row.server_timestamp));
+        row.local_id = g::pWfsManager->import_wf_from_json(payload, project_name, tools::dt::from_time(row.server_timestamp));
         if (row.local_id != 0)
         {
             g::pOptsManager->wf_imported_save(row.name + ".json");

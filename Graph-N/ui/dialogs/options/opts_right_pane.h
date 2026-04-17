@@ -1,5 +1,5 @@
 #pragma once
-#include "ui/options/opts_defs.h"
+#include "ui/dialogs/options/opts_defs.h"
 
 namespace ui
 {
