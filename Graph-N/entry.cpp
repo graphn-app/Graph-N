@@ -100,7 +100,7 @@ int32_t main(int32_t, char**)
             [&request_focus](const std::string&)
             {
                 LogS("Another instance tried to launch");
-                request_focus = true;
+                request_focus.store(true, std::memory_order_relaxed);
             }
         );
         if (!instance.is_primary())

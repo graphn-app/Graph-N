@@ -41,8 +41,6 @@ void PanelModels::init()
 void PanelModels::stop_all_threads()
 {
     LogF;
-
-    // handle g::app_global_stop_all_threads
 }
 
 void PanelModels::create_toolbar()

@@ -45,7 +45,7 @@ public:
     void send(std::string&& text);
 
     std::list<Message> get();
-    inline size_t peek() const { return m_inbox_size; }
+    inline size_t peek() const { return m_inbox_size.load(std::memory_order_relaxed); }
 
     inline int64_t get_latency() const { return m_latency.load(std::memory_order_relaxed); }
 

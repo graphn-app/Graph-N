@@ -90,8 +90,6 @@ void PanelQueue::stop_all_threads()
     LogF;
     m_do_reload_history = false;
     m_load_history_stop = true;
-
-    // handle g::app_global_stop_all_threads
 }
 
 DlgCode PanelQueue::show(bool& focused)
@@ -1406,9 +1404,9 @@ void PanelQueue::load_history()
         {
             for (auto& [prompt_id, jdatas] : j.items())
             {
-                if (m_load_history_stop)
+                if (m_load_history_stop.load(std::memory_order_relaxed))
                 {
-                    m_history_loading_active = false;
+                    m_history_loading_active.store(false, std::memory_order_relaxed);
                     return;
                 }
 
@@ -1617,7 +1615,7 @@ void PanelQueue::load_history()
         LogExcep(ExcepCategory::API, "History parsing err " << ex.what());
     }
 
-    m_history_loading_active = false;
+    m_history_loading_active.store(false, std::memory_order_relaxed);
 }
 
 void PanelQueue::pickup_parsed_history()

@@ -65,8 +65,6 @@ private:
 
     std::shared_ptr<WebSocket> m_ws;
     std::list<std::pair<bool, std::string>> m_ws_pickup;
-
-    std::atomic_bool m_stop_all_threads = false;
 };
 
 } // namespace mngr

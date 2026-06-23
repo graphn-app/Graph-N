@@ -103,7 +103,7 @@ public:
     bool run();
     void exit();
 
-    inline static bool get_is_quit() { return m_quit; }
+    inline static bool get_is_quit() { return g::app_global_stop_all_threads.load(std::memory_order_relaxed); }
     inline bool get_online() const { return g::pConnectManager->get_status() == ConnectState::Connected; }
 
     inline ImGuiID get_main_dockspace_id() { return m_main_dock_id; }
@@ -122,11 +122,11 @@ public:
     void toggle_panel_visibility(DlgObj panel_obj);
 
     void reload_nodes();
-    inline void set_nodes_ready() { m_nodes_ready = true; }
-    inline bool get_nodes_ready() const { return m_nodes_ready; }
-    inline void set_models_ready() { m_models_ready = true; }
-    inline bool get_models_ready() const { return m_models_ready; }
-    inline bool get_projects_ready() const { return m_projects_ready; }
+    inline void set_nodes_ready() { m_nodes_ready.store(true, std::memory_order_relaxed); }
+    inline bool get_nodes_ready() const { return m_nodes_ready.load(std::memory_order_relaxed); }
+    inline void set_models_ready() { m_models_ready.store(true, std::memory_order_relaxed); }
+    inline bool get_models_ready() const { return m_models_ready.load(std::memory_order_relaxed); }
+    inline bool get_projects_ready() const { return m_projects_ready.load(std::memory_order_relaxed); }
 
     void http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback);
     void http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback);
@@ -225,7 +225,6 @@ private:
     void destroy_txt_panel(PanelTextEditor* panel);
 
 private:
-    static std::atomic_bool m_quit;
     std::atomic_bool m_nodes_ready = false;
     std::atomic_bool m_models_ready = false;
     std::atomic_bool m_projects_ready = false;

@@ -42,7 +42,6 @@ private:
     void on_frame(int64_t /*total_frames_elapsed*/) override {}
 
 private:
-    std::atomic_bool m_stop = false;
     std::atomic_bool m_pause = false;
 
     std::thread m_th_api;

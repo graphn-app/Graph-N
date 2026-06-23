@@ -27,8 +27,6 @@ void PanelMarkdownPreview::free()
 void PanelMarkdownPreview::stop_all_threads()
 {
     LogF;
-
-    // handle g::app_global_stop_all_threads
 }
 
 DlgCode PanelMarkdownPreview::show(bool& focused)

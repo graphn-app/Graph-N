@@ -49,7 +49,6 @@ private:
 
     std::vector<std::thread> m_workers;
     std::condition_variable m_cv;
-    std::atomic_bool m_stop_workers = false;
 
     std::queue<std::shared_ptr<ImageAsync>> m_waiting;
     std::map<int32_t, std::shared_ptr<ImageAsync>> m_images;

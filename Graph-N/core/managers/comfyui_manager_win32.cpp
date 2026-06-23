@@ -33,7 +33,7 @@ void ComfyUIManager_Win32::free()
 void ComfyUIManager_Win32::stop_all_threads()
 {
     LogF;
-    m_stop_flag = true;
+    m_kill_server_flag = true;
 
     if (!g::pOptsManager->comfyui_kill_server_load() && !m_console_hidden) // ignore user option if console was hidden
         enable_autokill(false);
@@ -65,8 +65,7 @@ void ComfyUIManager_Win32::run_server()
     }
     else
     {
-        m_stop_flag = false;
-        // handle g::app_global_stop_all_threads
+        m_kill_server_flag.store(false, std::memory_order_relaxed);
 
         apply_job(pi.hProcess);
 
@@ -243,7 +242,7 @@ void ComfyUIManager_Win32::kill(bool force_kill)
         }
     }
 
-    m_stop_flag = true;
+    m_kill_server_flag.store(true, std::memory_order_relaxed);
     if (m_hpipe && m_log_th.joinable())
         m_log_th.join();
 
@@ -324,7 +323,7 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
 
 void ComfyUIManager_Win32::append_log(std::deque<std::string>& logs)
 {
-    if (!m_new_data_ready)
+    if (!m_new_data_ready.load(std::memory_order_relaxed))
         return;
 
     std::unique_lock<std::mutex> lock(m_mutex);
@@ -333,7 +332,7 @@ void ComfyUIManager_Win32::append_log(std::deque<std::string>& logs)
         logs.push_back(std::move(*it));
     }
     m_logs.clear();
-    m_new_data_ready = false;
+    m_new_data_ready.store(false, std::memory_order_relaxed);
 }
 
 void ComfyUIManager_Win32::read_logs_th()
@@ -402,7 +401,7 @@ void ComfyUIManager_Win32::read_logs_th()
         return false;
     };
 
-    while (!m_stop_flag)
+    while (!m_kill_server_flag.load(std::memory_order_relaxed))
     {
         DWORD bytes_avail = 0;
         if (!::PeekNamedPipe(m_hpipe.get(), nullptr, 0, nullptr, &bytes_avail, nullptr))
@@ -418,7 +417,7 @@ void ComfyUIManager_Win32::read_logs_th()
                 std::string chunk(buffer, read);
 
                 if (flush_lines(chunk))
-                    m_new_data_ready = true;
+                    m_new_data_ready.store(true, std::memory_order_relaxed);
 
                 if (logfs.is_open() && !logfs.bad())
                     file_logs.push_back(std::move(chunk));
@@ -440,11 +439,11 @@ void ComfyUIManager_Win32::read_logs_th()
 
     if (!line_accumulator.empty())
     {
-        if (!m_stop_flag)  // comfyui stopped
+        if (!m_kill_server_flag.load(std::memory_order_relaxed))  // comfyui stopped
         {
             std::unique_lock<std::mutex> lock(m_mutex);
             m_logs.push_back(line_accumulator);
-            m_new_data_ready = true;
+            m_new_data_ready.store(true, std::memory_order_relaxed);
         }
 
         file_logs.push_back(std::move(line_accumulator));
@@ -454,7 +453,7 @@ void ComfyUIManager_Win32::read_logs_th()
     if (logfs.is_open() && !logfs.bad())
         logfs.close();
 
-    LogS("Exit. Stop flag: " << (bool)m_stop_flag);
+    LogS("Exit. Stop flag: " << m_kill_server_flag.load(std::memory_order_relaxed));
 }
 
 } // namespace mngr

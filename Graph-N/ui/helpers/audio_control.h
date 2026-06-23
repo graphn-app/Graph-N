@@ -24,7 +24,7 @@ public:
     void seek(int32_t audio_id, float pos);
 
     int32_t get_current() const { return m_audio_id; }
-    bool get_is_playing(int32_t audio_id) const { return m_audio_id == audio_id && m_is_playing; }
+    bool get_is_playing(int32_t audio_id) const { return m_audio_id == audio_id && m_is_playing.load(std::memory_order_relaxed); }
     float get_position(int32_t audio_id) const;
 
 private:

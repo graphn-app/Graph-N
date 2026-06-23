@@ -30,7 +30,6 @@ void ModelsManager::free()
 void ModelsManager::stop_all_threads()
 {
     m_stop_flag = true;
-    // handle g::app_global_stop_all_threads
 
     if (m_th.joinable())
         m_th.join();
@@ -41,7 +40,7 @@ void ModelsManager::load_models()
     stop_all_threads();
     free();
 
-    m_stop_flag = false;
+    m_stop_flag.store(false, std::memory_order_relaxed);
     m_th = std::thread(&ModelsManager::load_models_th, this);
 }
 
@@ -55,7 +54,7 @@ void ModelsManager::load_models_th()
         cli.set_keep_alive(true);
 
         auto res = cli.Get(comfyui_http::models);
-        if (m_stop_flag)
+        if (m_stop_flag.load(std::memory_order_relaxed))
         {
             Log("Models thread aborted");
             return;
@@ -74,7 +73,7 @@ void ModelsManager::load_models_th()
                 requests.push_back(jitem["name"]);
         }
 
-        if (m_stop_flag)
+        if (m_stop_flag.load(std::memory_order_relaxed))
         {
             Log("Models thread aborted");
             return;
@@ -127,7 +126,7 @@ void ModelsManager::load_models_th()
                 }
             }
 
-            if (m_stop_flag)
+            if (m_stop_flag.load(std::memory_order_relaxed))
             {
                 Log("Models thread aborted");
                 return;
@@ -136,12 +135,12 @@ void ModelsManager::load_models_th()
 
         rebuild_models(models);
 
-        while (!g::pFlow->get_nodes_ready() && !m_stop_flag)
+        while (!g::pFlow->get_nodes_ready() && !m_stop_flag.load(std::memory_order_relaxed))
         {
             std::this_thread::sleep_for(100ms);
         }
 
-        if (m_stop_flag)
+        if (m_stop_flag.load(std::memory_order_relaxed))
         {
             Log("Models thread aborted");
             return;

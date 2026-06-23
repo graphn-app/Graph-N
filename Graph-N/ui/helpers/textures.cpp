@@ -60,7 +60,7 @@ void Textures::init_ui_ready()
 
 int32_t Textures::load_image(const char* path, std::vector<byte>&& buffer, int32_t max_width, int32_t max_height, int32_t life_time)
 {
-    if (m_stop_workers)
+    if (g::app_global_stop_all_threads.load(std::memory_order_relaxed))
         return -1;
 
     if (buffer.empty() && (nullptr == path || !tools::path::exists(path)))
@@ -104,17 +104,17 @@ int32_t Textures::load_image(std::vector<byte>&& buffer, int32_t max_width, int3
 
 void Textures::worker_thread()
 {
-    while (!m_stop_workers)
+    while (!g::app_global_stop_all_threads.load(std::memory_order_relaxed))
     {
         std::shared_ptr<ImageAsync> image;
 
         {
             std::unique_lock<std::mutex> lock(m_mutex);
             m_cv.wait(lock, [this]() {
-                return !m_waiting.empty() || m_stop_workers;
+                return !m_waiting.empty() || g::app_global_stop_all_threads.load(std::memory_order_relaxed);
             });
 
-            if (m_stop_workers && m_waiting.empty())
+            if (g::app_global_stop_all_threads.load(std::memory_order_relaxed) && m_waiting.empty())
                 break;
 
             image = m_waiting.front();
@@ -361,7 +361,6 @@ void Textures::on_1s_lazy_timer(int64_t total_seconds_elapsed)
 
 void Textures::cleanup_all()
 {
-    m_stop_workers = true;
     m_cv.notify_all();
 
     for (auto& worker : m_workers)

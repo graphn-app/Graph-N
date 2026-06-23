@@ -37,8 +37,6 @@ void PanelServerLogs::init()
 void PanelServerLogs::stop_all_threads()
 {
     LogF;
-
-    // handle g::app_global_stop_all_threads
 }
 
 DlgCode PanelServerLogs::show(bool& focused)

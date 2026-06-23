@@ -41,7 +41,7 @@ private:
     std::thread m_log_th;
     uint32_t m_procid = 0;
     bool m_console_hidden = false;
-    std::atomic_bool m_stop_flag = false;
+    std::atomic_bool m_kill_server_flag = false;
     std::list<std::string> m_logs;
     std::mutex m_mutex;
     std::atomic_bool m_new_data_ready = false;

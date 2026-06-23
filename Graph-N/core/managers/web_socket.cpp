@@ -21,7 +21,7 @@ std::shared_ptr<WebSocket> WebSocket::create_and_connect(const std::string& host
     auto obj = std::shared_ptr<WebSocket>(new WebSocket);
     obj->m_timeout = timeout;
     obj->m_host = host;
-    obj->m_state = ConnectState::Connecting;
+    obj->m_state.store(ConnectState::Connecting, std::memory_order_relaxed);
 
     obj->m_th_working = std::thread([self = obj->shared_from_this()]
         {
@@ -33,7 +33,7 @@ std::shared_ptr<WebSocket> WebSocket::create_and_connect(const std::string& host
     obj->m_th_ping = std::thread([self = obj->shared_from_this(), ping_interval]
         {
             constexpr const uint32_t sleep_time = 100;
-            for (uint32_t elapsed = 0; !self->m_stop_flag; elapsed += sleep_time)
+            for (uint32_t elapsed = 0; !self->m_stop_flag.load(std::memory_order_relaxed); elapsed += sleep_time)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time));
                 if (elapsed >= ping_interval * 1000)
@@ -55,7 +55,7 @@ void WebSocket::stop_and_forget()
 {
     if (m_th_ping.joinable())
     {
-        m_stop_flag = true;
+        m_stop_flag.store(true, std::memory_order_relaxed);
         m_th_ping.detach();
     }
     if (m_th_working.joinable())
@@ -101,7 +101,7 @@ std::list<Message> WebSocket::get()
     if (!m_inbox.empty())
     {
         std::swap(result, m_inbox);
-        m_inbox_size = 0;
+        m_inbox_size.store(0, std::memory_order_relaxed);
     }
     return result;
 }
@@ -141,7 +141,7 @@ void WebSocket::on_handshake(beast::error_code ec)
 {
     if (ec)
         return fail(ec, "handshake");
-    m_state = ConnectState::Connected;
+    m_state.store(ConnectState::Connected, std::memory_order_relaxed);
 
     m_ws.control_callback([this](websocket::frame_type kind, beast::string_view payload)
     {
@@ -151,7 +151,7 @@ void WebSocket::on_handshake(beast::error_code ec)
             {
                 const auto sent = std::stoll(std::string(payload));
                 const auto curr = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-                m_latency = cast::to_i64(curr - sent);
+                m_latency.store(cast::to_i64(curr - sent), std::memory_order_relaxed);
             }
             catch(...)
             {}
@@ -187,7 +187,7 @@ void WebSocket::on_read(beast::error_code ec, std::size_t /*bytes_transferred*/)
         if (keep_msg)
         {
             m_inbox.emplace_back(is_bin, std::move(data));
-            m_inbox_size = m_inbox.size();
+            m_inbox_size.store(m_inbox.size(), std::memory_order_relaxed);
         }
     }
     m_buffer.consume(m_buffer.size());
@@ -244,7 +244,7 @@ void WebSocket::on_close(beast::error_code ec)
 
 void WebSocket::fail(beast::error_code ec, char const* what)
 {
-    m_state = ConnectState::Disconnected;
+    m_state.store(ConnectState::Disconnected, std::memory_order_relaxed);
     m_last_error = fmt::format(FMT_STRING("WS last error: {}, {}"), ec.value(), what);
 }
 } // namespace mngr

@@ -17,10 +17,6 @@ QueueManager::~QueueManager() = default;
 void QueueManager::stop_all_threads()
 {
     LogF;
-
-    // handle g::app_global_stop_all_threads
-
-    m_stop_all = true;
     dead();
 }
 

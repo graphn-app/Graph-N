@@ -69,8 +69,6 @@ void HistoryManager::free()
 void HistoryManager::stop_all_threads()
 {
     LogF;
-
-    // handle g::app_global_stop_all_threads
 }
 
 /////   interface

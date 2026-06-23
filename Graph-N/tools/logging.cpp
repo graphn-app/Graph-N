@@ -57,11 +57,6 @@ bool Logger::check_log_file_mark()
     return tools::path::exists(path);
 }
 
-bool Logger::get_log_enabled()
-{
-    return m_enabled;
-}
-
 void Logger::set_log_enabled(bool enable)
 {
     if (get_log_enabled() == enable)
@@ -105,7 +100,7 @@ Logger::~Logger()
 
 void Logger::force_flush()
 {
-    m_do_flush = true;
+    m_do_flush.store(true, std::memory_order_relaxed);
     m_cv.notify_one();
 }
 
@@ -114,7 +109,7 @@ void Logger::log_start()
     if (get_log_enabled())
         return;
 
-    m_enabled = false;
+    m_enabled.store(false, std::memory_order_relaxed);
     if (!check_log_file_mark())
         return;
 
@@ -137,7 +132,7 @@ void Logger::log_start()
     m_logfs.open(m_log_path.c_str(), std::ios::out | std::ios::app);
     if (m_logfs.is_open() && !m_logfs.bad() && tools::path::exists(m_log_path))
     {
-        m_enabled = true;        
+        m_enabled.store(true, std::memory_order_relaxed);
         m_working_thread = std::thread(&Logger::working_thread, this);
 
         const auto db_meta = mngr::DbManager::read_db_metadata();
@@ -181,13 +176,13 @@ void Logger::log_stop()
     writer << "Log ended: " << tools::dt::from_current_date().as_log_line() << "\n\n";
     write(writer);
 
-    m_do_close = true;
+    m_do_close.store(true, std::memory_order_relaxed);
     m_cv.notify_one();
 
     if (m_working_thread.joinable())
         m_working_thread.join();
 
-    m_enabled = false;
+    m_enabled.store(false, std::memory_order_relaxed);
     if (m_logfs.is_open() && !m_logfs.bad())
         m_logfs.close();
 }
@@ -205,7 +200,7 @@ void Logger::write(LogWriter& writer)
 
     std::lock_guard<std::mutex> lock(m_lock);
     m_buffer.emplace(std::move(buffer));
-    if (++m_buffer_size >= m_overflow_limit)
+    if (m_buffer_size.fetch_add(1, std::memory_order_relaxed) + 1 >= m_overflow_limit)
         m_cv.notify_one();
 }
 
@@ -216,22 +211,25 @@ void Logger::working_thread()
 
     std::queue<std::string> temp_buffer;
 
-    while (get_log_enabled() && !m_do_close)
+    while (get_log_enabled() && !m_do_close.load(std::memory_order_relaxed))
     {
         try
         {
             {
                 std::unique_lock<std::mutex> lock(m_lock);
                 m_cv.wait_for(lock, std::chrono::milliseconds(m_flush_timeout), [this] {
-                    return m_do_flush || m_do_close || m_buffer_size >= m_overflow_limit;
+                    return
+                        m_do_flush.load(std::memory_order_relaxed) ||
+                        m_do_close.load(std::memory_order_relaxed) ||
+                        m_buffer_size.load(std::memory_order_relaxed) >= m_overflow_limit;
                 });
 
-                m_do_flush = false;
-                if (0 == m_buffer_size && !m_do_close)    // spurious wakeup or flush on empty buffer
+                m_do_flush.store(false, std::memory_order_relaxed);
+                if (0 == m_buffer_size.load(std::memory_order_relaxed) && !m_do_close.load(std::memory_order_relaxed))    // spurious wakeup or flush on empty buffer
                     continue;
             
                 temp_buffer.swap(m_buffer);
-                m_buffer_size = 0;
+                m_buffer_size.store(0, std::memory_order_relaxed);
             }
 
             if (!temp_buffer.empty() && m_logfs.is_open())

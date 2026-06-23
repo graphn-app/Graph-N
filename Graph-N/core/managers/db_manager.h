@@ -105,7 +105,6 @@ private:
     std::thread m_th_backup;
     std::mutex m_lock;
     std::condition_variable m_cv;
-    std::atomic_bool m_stop_thread_flag = false;
     std::queue<WriteData> m_write_queue;
 
     std::list<WriteData> m_transaction_queue;

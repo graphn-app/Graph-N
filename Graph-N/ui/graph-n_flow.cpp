@@ -50,8 +50,6 @@ namespace ui
 static bool test_json = false;
 #endif
 
-std::atomic_bool GraphN_Flow::m_quit = false;
-
 GraphN_Flow::GraphN_Flow()
 {
     LogF;
@@ -329,15 +327,14 @@ void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
 void GraphN_Flow::exit()
 {
     LogF;
-    m_quit = true;
+    g::app_global_stop_all_threads = true;
     prepare_to_quit();
 }
 
 void GraphN_Flow::stop_all_threads()
 {
-    m_quit = true;
-    // handle g::app_global_stop_all_threads
     LogF;
+    g::app_global_stop_all_threads = true;
 }
 
 bool GraphN_Flow::run()
@@ -361,9 +358,8 @@ bool GraphN_Flow::run()
 void GraphN_Flow::prepare_to_quit()
 {
     LogF_In;
-    m_quit = true;
+    g::app_global_stop_all_threads = true;
 
-    // handle g::app_global_stop_all_threads
     g::pConnectManager->stop_all_threads();
     g::pWfsManager->close_and_purge();
 
@@ -406,7 +402,7 @@ void GraphN_Flow::check_connection()
     if (ConnectState::Disconnected == status)
     {
         m_wf_imported = false;
-        m_projects_ready = false;
+        m_projects_ready.store(false, std::memory_order_relaxed);
         reconnect();
     }
     else if (ConnectState::Connected == status)
@@ -417,7 +413,7 @@ void GraphN_Flow::check_connection()
 
 void GraphN_Flow::import_user_projects()
 {
-    if (m_wf_imported || !m_nodes_ready)
+    if (m_wf_imported || !m_nodes_ready.load(std::memory_order_relaxed))
         return;
     m_wf_imported = true;
 
@@ -428,7 +424,7 @@ void GraphN_Flow::import_user_projects()
         if (result != HTTP_RESP_OK)
         {
             m_wf_imported = false;
-            m_projects_ready = true;
+            m_projects_ready.store(true, std::memory_order_relaxed);
             return;
         }
 
@@ -436,13 +432,13 @@ void GraphN_Flow::import_user_projects()
         {
             Log("All project names deserializarion failed");
             m_wf_imported = false;
-            m_projects_ready = true;
+            m_projects_ready.store(true, std::memory_order_relaxed);
             return;
         }
 
         if (projects->empty())
         {
-            m_projects_ready = true;
+            m_projects_ready.store(true, std::memory_order_relaxed);
             return;
         }
 
@@ -466,7 +462,7 @@ void GraphN_Flow::import_user_projects()
                     if (0 == *counter)
                     {
                         m_panel_wf_list->rebuild_items();
-                        m_projects_ready = true;
+                        m_projects_ready.store(true, std::memory_order_relaxed);
                     }
                 };
 
@@ -478,7 +474,7 @@ void GraphN_Flow::import_user_projects()
         if (0 == *counter)
         {
             m_panel_wf_list->rebuild_items();
-            m_projects_ready = true;
+            m_projects_ready.store(true, std::memory_order_relaxed);
         }
     };
 
@@ -532,8 +528,8 @@ void GraphN_Flow::reparse_nodes()
         }
 
         m_windows |= ViewParsingNodes;
-        m_nodes_ready = false;
-        m_models_ready = false;
+        m_nodes_ready.store(false, std::memory_order_relaxed);
+        m_models_ready.store(false, std::memory_order_relaxed);
 
         g::pModelsManager->load_models();
 
@@ -568,7 +564,7 @@ void GraphN_Flow::show_menu_bar()
     {
         if (ImGui::BeginMenu("File##MainMenuBar"))
         {
-            if (ImGui::MenuItem("Import Project from file...##FileMenuBar", nullptr, nullptr, m_nodes_ready))
+            if (ImGui::MenuItem("Import Project from file...##FileMenuBar", nullptr, nullptr, m_nodes_ready.load(std::memory_order_relaxed)))
             {
                 Log("Menu: Import Project");
                 on_menu_import();

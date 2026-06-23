@@ -25,8 +25,7 @@ void PanelStats::init()
 
     init_disks();
 
-    m_stop = false;
-    m_pause = false;
+    m_pause.store(false, std::memory_order_relaxed);
     m_th_api = std::thread(&PanelStats::th_api, this);
     m_th_comfyui = std::thread(&PanelStats::th_comfyui, this);
 
@@ -53,9 +52,7 @@ void PanelStats::init_disks()
 void PanelStats::stop_all_threads()
 {
     LogF_In;
-    // handle g::app_global_stop_all_threads
     m_pause = false;
-    m_stop = true;
     if (m_th_api.joinable())  m_th_api.join();
     if (m_th_comfyui.joinable())  m_th_comfyui.join();
     LogF_Out;
@@ -69,12 +66,12 @@ void PanelStats::th_api()
     auto accumulated_time_disk = 0ms;
     auto accumulated_time_ram = 0ms;
 
-    while (!m_stop)
+    while (!g::app_global_stop_all_threads.load(std::memory_order_relaxed))
     {
         std::this_thread::sleep_for(sleep_step);
-        if (m_stop)
+        if (g::app_global_stop_all_threads.load(std::memory_order_relaxed))
             break;
-        if (m_pause)
+        if (m_pause.load(std::memory_order_relaxed))
         {
             accumulated_time_disk = check_disk_interval;
             accumulated_time_ram = check_ram_interval;
@@ -91,8 +88,8 @@ void PanelStats::th_api()
             info.dwLength = sizeof(MEMORYSTATUSEX);
             if (::GlobalMemoryStatusEx(&info))
             {
-                m_lram_free = info.ullAvailPhys;
-                m_lram_total = info.ullTotalPhys;
+                m_lram_free.store(info.ullAvailPhys, std::memory_order_relaxed);
+                m_lram_total.store(info.ullTotalPhys, std::memory_order_relaxed);
             }
 #elif defined __linux__
 #error Not implemented
@@ -138,12 +135,12 @@ void PanelStats::th_comfyui()
     bool system_stats_err = false;
     bool prompt_err = false;
 
-    while (!m_stop)
+    while (!g::app_global_stop_all_threads.load(std::memory_order_relaxed))
     {
         std::this_thread::sleep_for(sleep_step);
-        if (m_stop)
+        if (g::app_global_stop_all_threads.load(std::memory_order_relaxed))
             break;
-        if (m_pause || !g::pFlow->get_online())
+        if (m_pause.load(std::memory_order_relaxed) || !g::pFlow->get_online())
         {
             accumulated_time = check_interval;
             continue;
@@ -163,9 +160,9 @@ void PanelStats::th_comfyui()
                     {
                         auto& jsystem = j["system"];
                         if (jsystem.contains("ram_free") && jsystem["ram_free"].is_number_integer())
-                            m_sram_free = jsystem["ram_free"];
+                            m_sram_free.store(jsystem["ram_free"].get<uint64_t>(), std::memory_order_relaxed);
                         if (jsystem.contains("ram_total") && jsystem["ram_total"].is_number_integer())
-                            m_sram_total = jsystem["ram_total"];
+                            m_sram_total.store(jsystem["ram_total"].get<uint64_t>(), std::memory_order_relaxed);
                     }
                     if (j.contains("devices") && j["devices"].is_array())
                     {
@@ -223,7 +220,7 @@ void PanelStats::th_comfyui()
                 }
             }
 
-            m_queue_remaining = 0;
+            m_queue_remaining.store(0, std::memory_order_relaxed);
             res = cli.Get(comfyui_http::prompt);
             if (res && 200 == res->status)
             {
@@ -232,7 +229,7 @@ void PanelStats::th_comfyui()
                     const auto j = u_json::parse(res->body);
                     if (j.contains("exec_info") && j["exec_info"].contains("queue_remaining") && j["exec_info"]["queue_remaining"].is_number_integer())
                     {
-                        m_queue_remaining = j["exec_info"]["queue_remaining"];
+                        m_queue_remaining.store(j["exec_info"]["queue_remaining"].get<uint32_t>(), std::memory_order_relaxed);
                     }
                 }
                 catch (std::exception& e)
@@ -313,7 +310,7 @@ DlgCode PanelStats::show(bool& focused)
     bool opened = true;
     if (begin_panel(opened, focused) && opened)
     {
-        m_pause = false;
+        m_pause.store(false, std::memory_order_relaxed);
 
         static constexpr const std::string_view this_pc = "This PC";
         static const float this_pc_wid = ImGui::CalcTextSize(this_pc.data()).x;
@@ -344,10 +341,10 @@ DlgCode PanelStats::show(bool& focused)
         {
             ImGui::TextUnformatted("Status");
             ImGui::SameLine(val_text_offset);
-            if (m_queue_remaining > 0)
+            if (m_queue_remaining.load(std::memory_order_relaxed) > 0)
             {
                 m_buffer.clear();
-                fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("Executing: {}"), m_queue_remaining.load());
+                fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("Executing: {}"), m_queue_remaining.load(std::memory_order_relaxed));
                 ImGui::TextUnformatted(m_buffer.data(), m_buffer.data() + m_buffer.size());
             }
             else
@@ -375,7 +372,7 @@ DlgCode PanelStats::show(bool& focused)
             g::pOptsManager->stat_as_progress_save(!show_bar);
     }
     else
-        m_pause = true;
+        m_pause.store(true, std::memory_order_relaxed);
 
     return end_panel(opened);
 }
@@ -401,7 +398,7 @@ void PanelStats::print_text_stat(const char* stat_name, float val_offset, uint64
 
 void PanelStats::show_this_pc_as_text(float val_offset)
 {
-    print_text_stat("RAM", val_offset, m_lram_free,
+    print_text_stat("RAM", val_offset, m_lram_free.load(std::memory_order_relaxed),
         g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalRAM),
         g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalRAM),
         false, true);
@@ -420,9 +417,10 @@ void PanelStats::show_this_pc_as_text(float val_offset)
 
 void PanelStats::show_server_as_text(float val_offset)
 {
-    if (m_sram_free > 0)
+    if (m_sram_free.load(std::memory_order_relaxed) > 0)
     {
-        print_text_stat("RAM", val_offset, m_sram_free,
+        print_text_stat("RAM", val_offset,
+            m_sram_free.load(std::memory_order_relaxed),
             g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerRAM),
             g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerRAM),
             false, true);
@@ -574,7 +572,9 @@ void PanelStats::print_bar_stat(const char* stat_name, float val_offset, uint64_
 
 void PanelStats::show_this_pc_as_bar(float val_offset)
 {
-    print_bar_stat("RAM", val_offset, m_lram_free, m_lram_total,
+    print_bar_stat("RAM", val_offset,
+        m_lram_free.load(std::memory_order_relaxed),
+        m_lram_total.load(std::memory_order_relaxed),
         g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalRAM),
         g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalRAM),
         "Local RAM");
@@ -593,7 +593,9 @@ void PanelStats::show_this_pc_as_bar(float val_offset)
 
 void PanelStats::show_server_as_bar(float val_offset)
 {
-    print_bar_stat("RAM", val_offset, m_sram_free, m_sram_total,
+    print_bar_stat("RAM", val_offset,
+        m_sram_free.load(std::memory_order_relaxed),
+        m_sram_total.load(std::memory_order_relaxed),
         g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerRAM),
         g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerRAM),
         "Server RAM");

@@ -101,7 +101,6 @@ private:
     uint32_t m_run_no = 0;
     std::list<ExecGroup> m_queue_next;
     std::vector<ExecGroup> m_queue_past;
-    std::atomic_bool m_stop_all = false;
     std::map<wid, ExecTask*> m_failed_wfs;
     std::set<wid> m_queued_wfs;
 };

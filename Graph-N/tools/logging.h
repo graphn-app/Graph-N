@@ -11,9 +11,9 @@ public:
 	static Logger& instance();
     void stop();
 
-	static bool get_log_enabled();
+	static bool get_log_enabled() { return m_enabled.load(std::memory_order_relaxed); }
 	static void set_log_enabled(bool enable);
-    static void disable_logging() { m_enabled = false; }
+    static void disable_logging() { m_enabled.store(false, std::memory_order_relaxed); }
     static void cleanup();
 
     void force_flush();

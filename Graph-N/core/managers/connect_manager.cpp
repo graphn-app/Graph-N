@@ -31,8 +31,6 @@ void ConnectManager::stop_all_threads()
 {
     LogF_In;
 
-    m_stop_all_threads = true;
-    // handle g::app_global_stop_all_threads
     {
         std::unique_lock<std::mutex> lock(m_http_inbox_mutex);  // cleanup queue coz its a app quit
         while (!m_http_inbox.empty())
@@ -88,7 +86,7 @@ uint32_t ConnectManager::send_http_request(const char* who_is_asking, const char
     req->request = request;
     req->post = post;
     req->post_payload = std::move(post_payload);
-    req->req_id = ++m_last_request_id;
+    req->req_id = m_last_request_id.fetch_add(1, std::memory_order_relaxed) + 1;
 
     Log("HTTP-Req#" << req->req_id << ". Registered: " << (post ? "POST" : "GET") << ". Who: " << who_is_asking << ". Url: " << req->request);
 
@@ -120,7 +118,7 @@ void ConnectManager::http_worker()
 
     while (get_status() != ConnectState::Connected)
     {
-        if (m_stop_all_threads)
+        if (g::app_global_stop_all_threads.load(std::memory_order_relaxed))
             return;
         std::this_thread::sleep_for(100ms);
     }
@@ -140,17 +138,17 @@ void ConnectManager::http_worker()
 
     bool force_reconnect = false;
 
-    while (!m_stop_all_threads)
+    while (!g::app_global_stop_all_threads.load(std::memory_order_relaxed))
     {
         std::shared_ptr<RequestData> req;
 
         {
             std::unique_lock<std::mutex> lock(m_http_inbox_mutex);
             m_inbox_cv.wait(lock, [this]() {
-                return !m_http_inbox.empty() || m_stop_all_threads;
+                return !m_http_inbox.empty() || g::app_global_stop_all_threads.load(std::memory_order_relaxed);
             });
 
-            if (m_stop_all_threads && m_http_inbox.empty())
+            if (g::app_global_stop_all_threads.load(std::memory_order_relaxed) && m_http_inbox.empty())
                 break;
 
             if (m_reconnect || force_reconnect)

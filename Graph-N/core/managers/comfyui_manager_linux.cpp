@@ -12,8 +12,6 @@ ComfyUIManager_Linux::~ComfyUIManager_Linux() = default;
 void ComfyUIManager_Linux::stop_all_threads()
 {
     LogF;
-
-    // handle g::app_global_stop_all_threads
 }
 
 bool ComfyUIManager_Linux::init()

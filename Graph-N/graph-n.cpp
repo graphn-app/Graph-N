@@ -122,6 +122,7 @@ void GraphN::exit_graphn()
     LogF_In;
 
     g::app_global_stop_all_threads = true;
+    g::pTextures->cleanup_all();
 
     std::for_each(m_managers.rbegin(), m_managers.rend(), [](std::unique_ptr<mngr::Manager>& manager)
     {

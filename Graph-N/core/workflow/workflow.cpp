@@ -55,8 +55,6 @@ void Workflow::init()
 void Workflow::stop_all_threads()
 {
     LogF;
-
-    // handle g::app_global_stop_all_threads
 }
 
 iid Workflow::get_new_child_id()

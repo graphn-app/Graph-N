@@ -115,9 +115,6 @@ DbManager::~DbManager()
 
 void DbManager::stop_all_threads()
 {
-    m_stop_thread_flag = true;
-    // handle g::app_global_stop_all_threads
-
     m_cv.notify_all();
     if (m_th.joinable())
         m_th.join();
@@ -302,7 +299,6 @@ bool DbManager::init()
 
         transaction.commit();
 
-        m_stop_thread_flag = false;
         m_th = std::thread(&DbManager::write_thread, this, path);
         m_th_backup = std::thread(&DbManager::backup_thread, this, path, std::move(backup_db));
     }
@@ -318,20 +314,20 @@ bool DbManager::init()
 
 void DbManager::begin_transaction()
 {
-    if (m_transaction_flag)
+    if (m_transaction_flag.load(std::memory_order_relaxed))
         LogWarn("Transaction already started");
-    m_transaction_flag = true;
+    m_transaction_flag.store(true, std::memory_order_relaxed);
 }
 
 void DbManager::end_transaction()
 {
-    if (!m_transaction_flag)
+    if (!m_transaction_flag.load(std::memory_order_relaxed))
     {
         LogInternalLogic("Transaction wasn't started");
         return;
     }
 
-    m_transaction_flag = false;
+    m_transaction_flag.store(false, std::memory_order_relaxed);
     if (m_transaction_queue.empty())
         return;
 
@@ -377,12 +373,12 @@ void DbManager::app_option_save(const std::string& key, DbValue&& value)
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        if (!m_transaction_flag)
+        if (!m_transaction_flag.load(std::memory_order_relaxed))
             m_write_queue.push(std::move(data));
         else
             m_transaction_queue.push_back(std::move(data));
     }
-    if (!m_transaction_flag)
+    if (!m_transaction_flag.load(std::memory_order_relaxed))
         m_cv.notify_all();
 }
 
@@ -430,13 +426,13 @@ void DbManager::app_option_save_all(std::vector<DbAppOptionData>&& opts)
             WriteData data;
             data.type = WriteType::AppOption;
             data.data = std::move(o);
-            if (!m_transaction_flag)
+            if (!m_transaction_flag.load(std::memory_order_relaxed))
                 m_write_queue.push(std::move(data));
             else
                 m_transaction_queue.push_back(std::move(data));
         }
     }
-    if (!m_transaction_flag)
+    if (!m_transaction_flag.load(std::memory_order_relaxed))
         m_cv.notify_all();
 }
 
@@ -453,12 +449,12 @@ void DbManager::item_option_save(hid id, DbItemOptionType type, DbValue&& value)
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        if (!m_transaction_flag)
+        if (!m_transaction_flag.load(std::memory_order_relaxed))
             m_write_queue.push(std::move(data));
         else
             m_transaction_queue.push_back(std::move(data));
     }
-    if (!m_transaction_flag)
+    if (!m_transaction_flag.load(std::memory_order_relaxed))
         m_cv.notify_all();
 }
 
@@ -575,12 +571,12 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        if (!m_transaction_flag)
+        if (!m_transaction_flag.load(std::memory_order_relaxed))
             m_write_queue.push(std::move(data));
         else
             m_transaction_queue.push_back(std::move(data));
     }
-    if (!m_transaction_flag)
+    if (!m_transaction_flag.load(std::memory_order_relaxed))
         m_cv.notify_all();
 
     return wfs;
@@ -635,12 +631,12 @@ void DbManager::wf_update_meta(const WfData& wf)
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        if (!m_transaction_flag)
+        if (!m_transaction_flag.load(std::memory_order_relaxed))
             m_write_queue.push(std::move(data));
         else
             m_transaction_queue.push_back(std::move(data));
     }
-    if (!m_transaction_flag)
+    if (!m_transaction_flag.load(std::memory_order_relaxed))
         m_cv.notify_all();
 }
 
@@ -658,12 +654,12 @@ void DbManager::wf_update_blob(const std::string& uuid, blob::Blob&& blob, bool 
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        if (!m_transaction_flag)
+        if (!m_transaction_flag.load(std::memory_order_relaxed))
             m_write_queue.push(std::move(data));
         else
             m_transaction_queue.push_back(std::move(data));
     }
-    if (!m_transaction_flag)
+    if (!m_transaction_flag.load(std::memory_order_relaxed))
         m_cv.notify_all();
 }
 
@@ -739,12 +735,12 @@ void DbManager::history_add(ExecTask& task)
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        if (!m_transaction_flag)
+        if (!m_transaction_flag.load(std::memory_order_relaxed))
             m_write_queue.push(std::move(data));
         else
             m_transaction_queue.push_back(std::move(data));
     }
-    if (!m_transaction_flag)
+    if (!m_transaction_flag.load(std::memory_order_relaxed))
         m_cv.notify_all();
 }
 
@@ -865,12 +861,12 @@ void DbManager::history_delete(const std::string& prompt_id)
 
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        if (!m_transaction_flag)
+        if (!m_transaction_flag.load(std::memory_order_relaxed))
             m_write_queue.push(std::move(data));
         else
             m_transaction_queue.push_back(std::move(data));
     }
-    if (!m_transaction_flag)
+    if (!m_transaction_flag.load(std::memory_order_relaxed))
         m_cv.notify_all();
 }
 
@@ -1268,9 +1264,9 @@ void DbManager::write_thread(std::filesystem::path db_path)
         std::queue<WriteData> q;
         {
             std::unique_lock<std::mutex> lock(m_lock);
-            m_cv.wait_for(lock, wait_period, [this] { return m_stop_thread_flag || !m_write_queue.empty(); });
+            m_cv.wait_for(lock, wait_period, [this] { return g::app_global_stop_all_threads.load(std::memory_order_relaxed) || !m_write_queue.empty(); });
 
-            if (m_stop_thread_flag && m_write_queue.empty())
+            if (g::app_global_stop_all_threads.load(std::memory_order_relaxed) && m_write_queue.empty())
                 break;
 
             if (m_write_queue.empty())

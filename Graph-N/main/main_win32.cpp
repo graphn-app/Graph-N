@@ -139,10 +139,10 @@ int32_t MainRoutine_Win32::run(flow_callback& callback, std::atomic_bool& reques
         if (!render_frame(done))
             done = true;
 
-        if (request_focus)
+        if (request_focus.load(std::memory_order_relaxed))
         {
             wake_up();
-            request_focus = false;
+            request_focus.store(false, std::memory_order_relaxed);
         }
     }
 

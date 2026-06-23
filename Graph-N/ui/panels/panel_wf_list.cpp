@@ -154,7 +154,6 @@ void PanelWfList::create_toolbar()
 void PanelWfList::stop_all_threads()
 {
     LogF;
-    // handle g::app_global_stop_all_threads
 }
 
 DlgCode PanelWfList::show(bool& focused)

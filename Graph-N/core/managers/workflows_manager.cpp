@@ -21,8 +21,6 @@ void WfsManager::stop_all_threads()
 {
     LogF;
 
-    // handle g::app_global_stop_all_threads
-
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_timers(this);
 }

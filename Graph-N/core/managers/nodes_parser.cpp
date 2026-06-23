@@ -15,15 +15,15 @@ NodesParser::~NodesParser()
 
 void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
 {
-    if (!m_parse_finished && m_future.wait_for(0ms) == std::future_status::ready)
+    if (!m_parse_finished.load(std::memory_order_relaxed) && m_future.wait_for(0ms) == std::future_status::ready)
     {
         if (m_thread.joinable())
             m_thread.join();
 
-        if (!m_stop_thread_flag)    // ignore if parse thread was stopped by user
+        if (!m_stop_thread_flag.load(std::memory_order_relaxed))    // ignore if parse thread was stopped by user
         {
             auto copy = m_future.get();
-            if (m_parse_failed)
+            if (m_parse_failed.load(std::memory_order_relaxed))
             {
                 Log("Parsed: fail");
             }
@@ -41,25 +41,25 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
                 g::pFlow->set_nodes_ready();
             }
         }
-        m_stop_thread_flag = false;
-        m_parse_finished = true;
+        m_stop_thread_flag.store(false, std::memory_order_relaxed);
+        m_parse_finished.store(true, std::memory_order_relaxed);
     }
 
-    parsed_item = m_parsed_item;
-    parse_total = m_parsed_items_total;
+    parsed_item = m_parsed_item.load(std::memory_order_relaxed);
+    parse_total = m_parsed_items_total.load(std::memory_order_relaxed);
 }
 
 void NodesParser::parse(std::string&& data)
 {
     Log("To parse: " << data.size() << " bytes")
     stop();
-    m_parse_finished = false;
-    m_parse_failed = false;
-    m_stop_thread_flag = false;
+    m_parse_finished.store(false, std::memory_order_relaxed);
+    m_parse_failed.store(false, std::memory_order_relaxed);
+    m_stop_thread_flag.store(false, std::memory_order_relaxed);
     m_json_data = std::move(data);
 
-    m_parsed_item = 0;
-    m_parsed_items_total = 0;
+    m_parsed_item.store(0, std::memory_order_relaxed);
+    m_parsed_items_total.store(0, std::memory_order_relaxed);
 
     std::packaged_task<std::shared_ptr<NodesManager>()> task(std::bind(&NodesParser::parse_thread, this));
     m_future = task.get_future();
@@ -69,7 +69,7 @@ void NodesParser::parse(std::string&& data)
 void NodesParser::stop()
 {
     LogF;
-    m_stop_thread_flag = true;
+    m_stop_thread_flag.store(true, std::memory_order_relaxed);
 
     if (m_thread.joinable())
         m_thread.join();
@@ -83,7 +83,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
         g::pOptsManager->pin_advanced_preload();
 
         const auto j = o_json::parse(m_json_data);
-        m_parsed_items_total = j.size();
+        m_parsed_items_total.store(j.size(), std::memory_order_relaxed);
 
         auto nodes_manager = std::make_shared<NodesManager>();
         prepare_parsers_map();
@@ -92,10 +92,10 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
 
         for (auto& [jclass, jinfo] : j.items())
         {
-            m_parsed_item++;
+            m_parsed_item.fetch_add(1, std::memory_order_relaxed);
             parse_node(*nodes_manager.get(), jclass, jinfo, models_map);
 
-            if (m_stop_thread_flag)
+            if (m_stop_thread_flag.load(std::memory_order_relaxed))
             {
                 Log("Parsing thread aborted");
                 return {};
@@ -104,7 +104,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
 
         g::pModelsManager->set_nodes_map(std::move(models_map));
 
-        Log("Parsed: " << m_parsed_item << " item. Adding internal nodes");
+        Log("Parsed: " << m_parsed_item.load(std::memory_order_relaxed) << " item. Adding internal nodes");
         sort_nodes(*nodes_manager.get());
         nodes_manager->init_labels();
         Log("Nodes loading and parsing done");
@@ -116,7 +116,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
     {
         LogExcep(ExcepCategory::ComfyUI, "Parse error: " << e.what());
         g::pOptsManager->pin_advanced_release();
-        m_parse_failed = true;
+        m_parse_failed.store(true, std::memory_order_relaxed);
     }
     return {};
 }

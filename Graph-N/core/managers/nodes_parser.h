@@ -17,8 +17,8 @@ public:
     void parse(std::string&& data);
     void stop();
 
-    bool is_parse_failed() const { return m_parse_failed; };
-    bool is_parse_finished() const { return m_parse_finished; };
+    bool is_parse_failed() const { return m_parse_failed.load(std::memory_order_relaxed); };
+    bool is_parse_finished() const { return m_parse_finished.load(std::memory_order_relaxed); };
     void check_status(size_t& parsed_item, size_t& parse_total);
 
 private:
