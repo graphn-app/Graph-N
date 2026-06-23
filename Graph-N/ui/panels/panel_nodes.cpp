@@ -92,7 +92,7 @@ void PanelNodes::create_toolbar()
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_TAGS;
-            el.tooltip = "Manage Labels";
+            el.tooltip = "Manage labels";
             el.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
             add_toolbar_element(std::move(el), false);
         }
@@ -105,7 +105,7 @@ void PanelNodes::create_toolbar()
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
-            el.tooltip = "Expand All";
+            el.tooltip = "Expand all";
             el.on_click = std::bind(&PanelNodes::on_expand_all, this, std::placeholders::_1);
             el.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
             add_toolbar_element(std::move(el), false);
@@ -114,7 +114,7 @@ void PanelNodes::create_toolbar()
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
-            el.tooltip = "Collapse All";
+            el.tooltip = "Collapse all";
             el.on_click = std::bind(&PanelNodes::on_collapse_all, this, std::placeholders::_1);
             el.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
             add_toolbar_element(std::move(el), false);
@@ -123,7 +123,7 @@ void PanelNodes::create_toolbar()
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE;
-            el.tooltip = "Toggle Flat/Category View";
+            el.tooltip = "Toggle flat/Category view";
             el.on_click = std::bind(&PanelNodes::on_view, this, std::placeholders::_1);
             add_toolbar_element(std::move(el), false);
         }
@@ -136,7 +136,7 @@ void PanelNodes::create_toolbar()
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_FOLDER_SYNC;
-            el.tooltip = "Refresh Node List";
+            el.tooltip = "Refresh node list";
             el.on_click = std::bind(&PanelNodes::on_sync, this, std::placeholders::_1);
             el.on_preview = std::bind(&PanelNodes::on_pre_sync, this, std::placeholders::_1);
             add_toolbar_element(std::move(el), false);

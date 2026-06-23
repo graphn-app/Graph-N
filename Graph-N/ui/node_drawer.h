@@ -1,5 +1,6 @@
 
 #pragma once
+#include "core/base/structs.h"
 #include "imgui_node_editor_edtype.h"
 
 namespace data
@@ -43,10 +44,10 @@ public:
     void pre_draw_all(const char* id, size_t nodes_count);
     void post_draw_all(const std::function<bool()>& init_menu_handler, const std::function<bool()>& show_menu_handler, const std::function<bool()>& move_handler);
 
-    void pre_draw_node(data::NodeInstance* node);
-    void draw_node(data::NodeInstance* node, float node_w, size_t node_idx);
+    void pre_draw_node(data::NodeInstance* node, bool execution_failed);
+    void draw_node(data::NodeInstance* node, float node_w, size_t node_idx, const std::set<std::string>* failed_pins);
     void draw_group(data::NodeInstance* node, size_t node_idx);
-    void post_draw_node(data::NodeInstance* node);
+    void post_draw_node(data::NodeInstance* node, bool execution_failed);
 
     void draw_links(const std::vector<std::unique_ptr<data::Link>>& links);
     void query_new_item(const std::function<void(data::PinInstance*)>& unlink_handler, const std::function<void(data::PinInstance*, const ImVec2&)>& new_node_handler);
@@ -99,11 +100,11 @@ public:
 private:
     void draw_node_header();
     void draw_collapsed_pins(bool input);
-    void draw_input_pin(data::PinInstance* pin);
+    void draw_input_pin(data::PinInstance* pin, bool failed_pin);
     void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_output_pin(data::PinInstance* pin);
-    void draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget);
-    void draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget);
+    void draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin);
+    void draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin);
     void draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width);

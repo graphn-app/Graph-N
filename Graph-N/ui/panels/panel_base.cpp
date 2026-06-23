@@ -36,7 +36,7 @@ void PanelEmptyWithDescr::show_empty_panel_descr(
     const float total_h = line_h * 7 + spacing * 4;
 
     const ImVec2 avail = ImGui::GetContentRegionAvail();
-    float start_y = (avail.y - total_h) * 0.5f;
+    float start_y = (avail.y - total_h) * 0.3f;
     if (start_y < 20.0f)
         start_y = 20.0f; // Safety margin
 
@@ -51,7 +51,7 @@ void PanelEmptyWithDescr::show_empty_panel_descr(
         if (disabled)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (as_url)
-            click = ImGuiEx::UrlButton(url, g::pOptsManager->color_load(AppColor::UrlTextDefault), g::pOptsManager->color_load(AppColor::UrlTextHovered), nullptr);
+            click = ImGuiEx::UrlButton(url);
         else
             ImGui::TextUnformatted(text);
         if (disabled)
@@ -65,9 +65,9 @@ void PanelEmptyWithDescr::show_empty_panel_descr(
         text_centered(title, false, false);
     }
 
-    ImGui::Dummy(ImVec2(0, spacing * 2)); // Extra gap
+    if (!titles.empty())
+        ImGui::Dummy(ImVec2(0, spacing * 2)); // Extra gap
 
-                                          // Subtitles (Grey)
     for (auto& subtitle : subtitles)
     {
         text_centered(subtitle, true, false);
@@ -460,6 +460,9 @@ void PanelToolbar::draw_toolbar()
     const float regular_h = ImGui::GetTextLineHeight();
     const float regular_padding_y = style.FramePadding.y;
 
+    constexpr double blinking_interval = 0.65;
+    const bool blinking_item_show = fmod(ImGui::GetTime(), blinking_interval * 2) < blinking_interval;
+
     FontGuard fg(m_use_big_icons ? g::pMain->get_icons_font() : nullptr);
 
     const float big_h = ImGui::GetTextLineHeight();
@@ -517,21 +520,24 @@ void PanelToolbar::draw_toolbar()
             if (0 == regular_btn_size.x)
                 regular_btn_size = ImGui::GetItemRect().GetSize();
 
-            auto btn_pos = ImGui::GetItemRectMin();
-            //if (-FLT_MIN == regular_el_y)
-            //    regular_el_y = btn_pos.y;
+            if (!el.blinking || el.blinking && blinking_item_show)
+            {
+                auto btn_pos = ImGui::GetItemRectMin();
+                //if (-FLT_MIN == regular_el_y)
+                //    regular_el_y = btn_pos.y;
 
-            ImU32 color;
-            if (pressed || el.toggled || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
-                color = m_clr_pressed;
-            else if (ImGui::IsItemHovered())
-                color = m_clr_hover;
-            else
-                color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
+                ImU32 color;
+                if (pressed || el.toggled || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+                    color = m_clr_pressed;
+                else if (ImGui::IsItemHovered())
+                    color = m_clr_hover;
+                else
+                    color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
 
-            fg.push();
-            const ImVec2 ico_pos = { btn_pos.x, (btn_pos.y + regular_padding_y) - (big_h - regular_h) };
-            ImGui::GetWindowDrawList()->AddText(ico_pos, color, el.icon);
+                fg.push();
+                const ImVec2 ico_pos = { btn_pos.x, (btn_pos.y + regular_padding_y) - (big_h - regular_h) };
+                ImGui::GetWindowDrawList()->AddText(ico_pos, color, el.icon);
+            }
 
             start_pos += regular_btn_size.x + style.ItemSpacing.x;
         }
@@ -574,16 +580,47 @@ void PanelToolbar::draw_toolbar()
         else if (Element::Type::Text == el.type && el.text != nullptr)
         {
             fg.pop();
-            if (el.text_clr != 0) ImGui::PushStyleColor(ImGuiCol_Text, el.text_clr);
+
+            if (el.text_width > 0.0f)
+            {
+                const ImVec2 scrn_pos = ImGui::GetCursorScreenPos();
+                ImVec2 clip_max = ImVec2(scrn_pos.x + el.text_width, scrn_pos.y + ImGui::GetTextLineHeightWithSpacing());
+                ImGui::PushClipRect(scrn_pos, clip_max, true);
+            }
+
+            if (el.blinking && !blinking_item_show) ImGui::PushStyleColor(ImGuiCol_Text, 0);
+            else if (el.text_clr != 0) ImGui::PushStyleColor(ImGuiCol_Text, el.text_clr);
             if (el.text_bold) ImGui::PushFont(g::pMain->get_bold_font());
             ImGui::TextUnformatted(el.text);
             if (el.text_bold) ImGui::PopFont();
-            if (el.text_clr != 0) ImGui::PopStyleColor();
+            if (el.blinking && !blinking_item_show || el.text_clr != 0) ImGui::PopStyleColor();
+            if (el.text_width > 0.0f) ImGui::PopClipRect();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
                 tooltip(el.tooltip);
 
-            start_pos += ImGui::GetItemRectSize().x + style.ItemSpacing.x;
+            if (el.text_width > 0.0f)
+                start_pos += el.text_width + style.ItemSpacing.x;
+            else
+                start_pos += ImGui::GetItemRectSize().x + style.ItemSpacing.x;
+        }
+        else if (Element::Type::Combo == el.type)
+        {
+            ImGui::PopStyleColor(3);
+
+            fg.pop();
+            ImGui::SetNextItemWidth(el.input_w);
+            pressed = ImGui::Combo(el.id, &el.cb_item_sel, el.cb_items.data(), cast::to_i32(el.cb_items.size()));
+            pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
+
+            if (el.tooltip != nullptr && *el.tooltip != 0)
+                tooltip(el.tooltip);
+
+            start_pos += avail_w * el.input_w + style.ItemSpacing.x;
+
+            ImGui::PushStyleColor(ImGuiCol_Button, 0);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
         }
 
         if (pressed && el.on_click) el.on_click(el);
@@ -635,17 +672,20 @@ void PanelToolbar::draw_toolbar()
             //if (-FLT_MIN == regular_el_y)
             //    regular_el_y = btn_pos.y;
 
-            ImU32 color;
-            if (pressed || el.toggled || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
-                color = m_clr_pressed;
-            else if (ImGui::IsItemHovered())
-                color = m_clr_hover;
-            else
-                color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
+            if (!el.blinking || el.blinking && blinking_item_show)
+            {
+                ImU32 color;
+                if (pressed || el.toggled || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+                    color = m_clr_pressed;
+                else if (ImGui::IsItemHovered())
+                    color = m_clr_hover;
+                else
+                    color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
 
-            fg.push();
-            const ImVec2 ico_pos = { btn_pos.x, (btn_pos.y + regular_padding_y) - (big_h - regular_h) };
-            ImGui::GetWindowDrawList()->AddText(ico_pos, color, el.icon);
+                fg.push();
+                const ImVec2 ico_pos = { btn_pos.x, (btn_pos.y + regular_padding_y) - (big_h - regular_h) };
+                ImGui::GetWindowDrawList()->AddText(ico_pos, color, el.icon);
+            }
 
             start_pos -= regular_btn_size.x + style.ItemSpacing.x;
         }
@@ -694,20 +734,50 @@ void PanelToolbar::draw_toolbar()
         else if (Element::Type::Text == el.type && el.text != nullptr)
         {
             fg.pop();
-            auto text_w = ImGui::CalcTextSize(el.text).x;
+            auto text_w = el.text_width > 0.0f ? el.text_width : ImGui::CalcTextSize(el.text).x;
             start_pos -= text_w - style.ItemSpacing.x;
             ImGui::SetCursorPosX(start_pos);
 
+            if (el.text_width > 0.0f)
+            {
+                const ImVec2 scrn_pos = ImGui::GetCursorScreenPos();
+                ImVec2 clip_max = ImVec2(scrn_pos.x + el.text_width, scrn_pos.y + ImGui::GetTextLineHeightWithSpacing());
+                ImGui::PushClipRect(scrn_pos, clip_max, true);
+            }
+
+            if (el.blinking && !blinking_item_show) ImGui::PushStyleColor(ImGuiCol_Text, 0);
             if (el.text_clr != 0) ImGui::PushStyleColor(ImGuiCol_Text, el.text_clr);
             if (el.text_bold) ImGui::PushFont(g::pMain->get_bold_font());
             ImGui::TextUnformatted(el.text);
             if (el.text_bold) ImGui::PopFont();
-            if (el.text_clr != 0) ImGui::PopStyleColor();
+            if (el.blinking && !blinking_item_show || el.text_clr != 0) ImGui::PopStyleColor();
+            if (el.text_width > 0.0f) ImGui::PopClipRect();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
                 tooltip(el.tooltip);
 
             start_pos -= regular_btn_size.x + style.ItemSpacing.x;
+        }
+        else if (Element::Type::Combo == el.type)
+        {
+            ImGui::PopStyleColor(3);
+
+            start_pos -= el.input_w;
+            ImGui::SetCursorPosX(start_pos);
+
+            fg.pop();
+            ImGui::SetNextItemWidth(el.input_w);
+            pressed = ImGui::Combo(el.id, &el.cb_item_sel, el.cb_items.data(), cast::to_i32(el.cb_items.size()));
+            pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
+
+            if (el.tooltip != nullptr && *el.tooltip != 0)
+                tooltip(el.tooltip);
+
+            start_pos -= regular_btn_size.x + style.ItemSpacing.x;
+
+            ImGui::PushStyleColor(ImGuiCol_Button, 0);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
         }
 
         if (pressed && el.on_click) el.on_click(el);

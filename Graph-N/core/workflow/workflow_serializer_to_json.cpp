@@ -20,7 +20,7 @@ static std::string color_to_string(ImU32 color)
     return color_to_string(ImGui::ColorConvertU32ToFloat4(color));
 }
 
-std::string WorkflowSerializerToJson::serialize(const Workflow* wf)
+o_json WorkflowSerializerToJson::serialize(const Workflow* wf)
 {
     o_json j;
     j["id"] = wf->get_uuid();
@@ -35,7 +35,7 @@ std::string WorkflowSerializerToJson::serialize(const Workflow* wf)
 
     serialize_groups(wf, j);
 
-    return j.dump();
+    return j;
 }
 
 iid WorkflowSerializerToJson::serialize_nodes(const Workflow* wf, o_json& j)
@@ -152,6 +152,9 @@ void WorkflowSerializerToJson::serialize_pins(const Workflow* wf, const NodeInst
     auto jarr = o_json::array();
     for (auto& pin : node->m_input)
     {
+        if (pin->m_object->cag_pin)
+            continue;
+
         jarr.push_back(serialize_pin(pin));
     }
     j["inputs"] = std::move(jarr);
@@ -224,6 +227,8 @@ iid WorkflowSerializerToJson::serialize_links(const Workflow* wf, o_json& j)
         const auto& pins = (in ? node->get_inputs() : node->get_outputs());
         for (auto pin : pins)
         {
+            if (pin->get_object()->cag_pin)
+                continue;
             if (pin->get_instance_id() == pin_id)
             {
                 return index;

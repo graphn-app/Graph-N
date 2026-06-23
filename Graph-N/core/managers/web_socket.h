@@ -1,4 +1,3 @@
-
 #pragma once
 
 #pragma warning(push, 0)
@@ -63,6 +62,7 @@ private:
 
     void do_read();
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
+    bool is_useful(const std::string& message) const;
 
     void do_write();
     void on_write(beast::error_code ec, std::size_t bytes_transferred);

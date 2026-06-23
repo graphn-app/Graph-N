@@ -1,5 +1,6 @@
 
 #pragma once
+#include "core/base/structs.h"
 #include "core/managers/manager.h"
 
 namespace mngr
@@ -60,7 +61,7 @@ private:
         DbItemOptionType type;
         DbValue value;
     };
-    struct WfBlob
+    struct WfBlob final
     {
         std::string uuid;
         blob::Blob blob;

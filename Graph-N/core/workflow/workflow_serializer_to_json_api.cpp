@@ -10,7 +10,7 @@
 namespace data
 {
 
-std::string WorkflowSerializerToJson::serialize_to_api(const Workflow* wf)
+o_json WorkflowSerializerToJson::serialize_to_api(const Workflow* wf)
 {
     const auto& nodes = wf->m_nodes;
     o_json j;
@@ -115,11 +115,13 @@ std::string WorkflowSerializerToJson::serialize_to_api(const Workflow* wf)
 
         if (inputs_counter > 0)
             jnode["inputs"] = std::move(inputs);
+        else
+            jnode["inputs"] = nlohmann::json::object();
 
         j[std::to_string(node->get_instance_id())] = std::move(jnode);
     }
 
-    return j.dump();
+    return j;
 }
 
 } // namespace data

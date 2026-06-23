@@ -12,6 +12,8 @@ ComfyUIManager_Apple::~ComfyUIManager_Apple() = default;
 void ComfyUIManager_Apple::stop_all_threads()
 {
     LogF;
+
+    // handle g::app_global_stop_all_threads
 }
 
 bool ComfyUIManager_Apple::init()

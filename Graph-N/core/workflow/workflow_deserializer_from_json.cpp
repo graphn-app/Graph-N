@@ -239,8 +239,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                             return deserialize_node(wf, j, node_id_from_json, subgraphs, in_pins, out_pins, true);
                         }
 
-                        pin = g::pNodesManager->make_dummy_pin(node_instance->m_object, type, name, -1);
-                        
+                        pin = g::pNodesManager->make_dummy_pin(node_instance->m_object, type, name, -1);                        
                     }
                     else
                     {
@@ -650,7 +649,7 @@ bool WorkflowSerializerToJson::deserialize_links(
             {
                 if (jlink.size() < 5)
                 {
-                    LogWarnS("Num of links must be at least 5. Currently: " << jlink.size());
+                    LogWarnS("Num of links array must be at least 5. Currently: " << jlink.size());
                     continue;
                 }
                 if (!jlink[0].is_number_integer() ||

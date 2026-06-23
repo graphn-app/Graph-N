@@ -8,15 +8,14 @@
 namespace platform
 {
 
-
-void Textures_Win32::set_main_routine(MainRoutine* main)
-{
-    auto pmain = dynamic_cast<MainRoutine_Win32*>(main);
-    m_device = pmain->get_device();
-}
-
 ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32_t width, uint32_t height, bool generate_mips)
 {
+    if (nullptr == m_device)
+    {
+        auto pmain = dynamic_cast<MainRoutine_Win32*>(g::pMain);
+        m_device = pmain->get_device();
+    }
+
     if (!m_device || !image_data)
         return nullptr;
 
@@ -69,7 +68,7 @@ ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32
 
     if (FAILED(hr))
     {
-        LogWarn("CreateTexture2D failed: " << LogHEX(hr));
+        LogWarn("CreateTexture2D failed: " << LogHRES(hr));
         return nullptr;
     }
 
@@ -93,6 +92,45 @@ ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32
     ImTextureIDPtr textures = std::shared_ptr<void>(srv_ptr, [](void* p) { ID3D11ShaderResourceView* srv = (ID3D11ShaderResourceView*)p; if (srv) srv->Release(); });
     texture_ptr->Release();
     return textures;
+}
+
+bool Textures_Win32::update_gpu_texture(ImTextureIDPtr texture, const ImageData& image_data, uint32_t width, uint32_t /*height*/, bool generate_mips)
+{
+    if (nullptr == m_device)
+    {
+        auto pmain = dynamic_cast<MainRoutine_Win32*>(g::pMain);
+        m_device = pmain->get_device();
+    }
+
+    if (!m_device || !texture || !image_data)
+        return false;
+
+    ID3D11ShaderResourceView* srv = cast::ptrs<ID3D11ShaderResourceView>(texture.get());
+
+    // extract the underlying D3D11 resource (the Texture2D)
+    ID3D11Resource* resource = nullptr;
+    srv->GetResource(&resource);
+    if (nullptr == resource)
+        return false;
+
+    std::unique_ptr<ID3D11Resource, std::function <void(ID3D11Resource*)>> resource_ptr(resource, [](ID3D11Resource* r) { r->Release(); });
+
+    ID3D11DeviceContext* context = nullptr;
+    m_device->GetImmediateContext(&context);
+
+    std::unique_ptr<ID3D11DeviceContext, std::function <void(ID3D11DeviceContext*)>> context_ptr(context, [](ID3D11DeviceContext* r) { r->Release(); });
+
+    // upload raw pixels directly to VRAM
+    // pitch is width * 4 (since format is IM_COL32/RGBA - 4 bytes per pixel)
+    context->UpdateSubresource(resource, 0, nullptr, image_data.get(), width * 4, 0);
+
+    if (generate_mips)
+    {
+        // tell GPU to downscale Mip 0 and fill the rest of the mip chain
+        context->GenerateMips(srv);
+    }
+
+    return true;
 }
 
 } // namespace platform

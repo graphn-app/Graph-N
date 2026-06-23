@@ -289,6 +289,10 @@ void OptRightPane::show_local_server(const char*& help_text)
     {
         import_from_comfyui();
     }
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+    {
+        help_text = "Please note: If " APP_COMFYUI " is running as Admin, " APP_CAPTION " must also be launched as Admin to correctly detect and manage the startup process.";
+    }
     if (m_data->buffer_i[BuffShowDetectRes])
     {
         ImGui::PushStyleColor(ImGuiCol_Text, m_data->buffer_i[BuffDetectResOK] ? IM_COL32(0, 150, 0, 255) : IM_COL32(200, 0, 0, 255));
@@ -1054,7 +1058,7 @@ void OptRightPane::import_from_comfyui()
     auto hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (void**)&locator);
     if (FAILED(hres))
     {
-        LogWarn("Failed to create IWbemLocator, err: " << LogHEX(hres));
+        LogWarn("Failed to create IWbemLocator, err: " << LogHRES(hres));
         return;
     }
 
@@ -1062,14 +1066,14 @@ void OptRightPane::import_from_comfyui()
     hres = locator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &service);
     if (FAILED(hres))
     {
-        LogWarn("Failed to connect ROOT\\CIMV2, err: " << LogHEX(hres));
+        LogWarn("Failed to connect ROOT\\CIMV2, err: " << LogHRES(hres));
         return;
     }
 
     hres = CoSetProxyBlanket(service, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
     if (FAILED(hres))
     {
-        LogWarn("Failed to configure service, err: " << LogHEX(hres));
+        LogWarn("Failed to configure service, err: " << LogHRES(hres));
         return;
     }
 
@@ -1079,7 +1083,7 @@ void OptRightPane::import_from_comfyui()
         WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
     if (FAILED(hres))
     {
-        LogWarn("Failed to query python processes, err: " << LogHEX(hres));
+        LogWarn("Failed to query python processes, err: " << LogHRES(hres));
         return;
     }
 
@@ -1098,7 +1102,7 @@ void OptRightPane::import_from_comfyui()
             hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
             if (FAILED(hres))
             {
-                LogWarn("Failed to get python CommandLine, err: " << LogHEX(hres));
+                LogWarn("Failed to get python CommandLine, err: " << LogHRES(hres));
                 object.Release();
                 continue;
             }
@@ -1111,7 +1115,7 @@ void OptRightPane::import_from_comfyui()
                 hres = object->Get(L"ExecutablePath", 0, &var, nullptr, nullptr);
                 if (FAILED(hres) || var.vt != VT_BSTR)
                 {
-                    LogWarn("Failed to get python ExecutablePath, err: " << LogHEX(hres));
+                    LogWarn("Failed to get python ExecutablePath, err: " << LogHRES(hres));
                     continue;
                 }
                 python_path = var.bstrVal;
@@ -1122,7 +1126,7 @@ void OptRightPane::import_from_comfyui()
                 hres = object->Get(L"ParentProcessId", 0, &var, nullptr, nullptr);
                 if (FAILED(hres) || (var.vt != VT_UI4 && var.vt != VT_I4))
                 {
-                    LogWarn("Failed to get python ParentProcessId, err: " << LogHEX(hres));
+                    LogWarn("Failed to get python ParentProcessId, err: " << LogHRES(hres));
                     continue;
                 }
                 parent_proc = var.uintVal;
@@ -1147,7 +1151,7 @@ void OptRightPane::import_from_comfyui()
         hres = service->ExecQuery(_bstr_t(L"WQL"), _bstr_t(req.c_str()), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
         if (FAILED(hres) || nullptr == enumerator)
         {
-            LogWarn("Failed to query parent processes, err: " << LogHEX(hres));
+            LogWarn("Failed to query parent processes, err: " << LogHRES(hres));
             break;
         }
 
@@ -1159,7 +1163,7 @@ void OptRightPane::import_from_comfyui()
             hres = object->Get(L"ParentProcessId", 0, &var, nullptr, nullptr);
             if (FAILED(hres) || (var.vt != VT_UI4 && var.vt != VT_I4))
             {
-                LogWarn("Failed to get python ParentProcessId, err: " << LogHEX(hres));
+                LogWarn("Failed to get python ParentProcessId, err: " << LogHRES(hres));
                 break;
             }
             parent_proc = var.uintVal;
@@ -1168,7 +1172,7 @@ void OptRightPane::import_from_comfyui()
             hres = object->Get(L"Name", 0, &var, nullptr, nullptr);
             if (FAILED(hres) || var.vt != VT_BSTR)
             {
-                LogWarn("Failed to get process Name, err: " << LogHEX(hres));
+                LogWarn("Failed to get process Name, err: " << LogHRES(hres));
                 break;
             }
             if (_wcsicmp(var.bstrVal, L"comfyui.exe") == 0) // ComfyUI Electron installation
@@ -1182,7 +1186,7 @@ void OptRightPane::import_from_comfyui()
                 hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
                 if (FAILED(hres) || var.vt != VT_BSTR)
                 {
-                    LogWarn("Failed to get cmd.exe CommandLine, err: " << LogHEX(hres));
+                    LogWarn("Failed to get cmd.exe CommandLine, err: " << LogHRES(hres));
                     break;
                 }
                 if (wcsstr(var.bstrVal, L".bat") != nullptr) // parent cmd with .bat
@@ -1198,7 +1202,7 @@ void OptRightPane::import_from_comfyui()
                 hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
                 if (FAILED(hres) || var.vt != VT_BSTR)
                 {
-                    LogWarn("Failed to get python CommandLine, err: " << LogHEX(hres));
+                    LogWarn("Failed to get python CommandLine, err: " << LogHRES(hres));
                     break;
                 }
                 if (wcsstr(var.bstrVal, L"main.py") != nullptr) // parent python. replace with previously found 
@@ -1209,7 +1213,7 @@ void OptRightPane::import_from_comfyui()
                     hres = object->Get(L"ExecutablePath", 0, &var, nullptr, nullptr);
                     if (FAILED(hres) || var.vt != VT_BSTR)
                     {
-                        LogWarn("Failed to get python ExecutablePath, err: " << LogHEX(hres));
+                        LogWarn("Failed to get python ExecutablePath, err: " << LogHRES(hres));
                         break;
                     }
                     python_path = var.bstrVal;

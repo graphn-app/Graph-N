@@ -1,5 +1,5 @@
-
 #pragma once
+#include "core/base/structs.h"
 #include "ui/base_dlg.h"
 #include "ui/graph-n_flow.h"
 
@@ -206,10 +206,11 @@ public:
     {
         bool reset_state = false;   // immediately stop drawing
 
-        enum class Type { Empty, Button, Input, InputHint, Text, InputInt };
+        enum class Type { Empty, Button, Input, InputHint, Text, InputInt, Combo };
         Type type = Type::Button;
 
         bool enabled = true;
+        bool blinking = false; // only for button and text
 
         std::function<void(Element&)> on_click = nullptr;
         std::function<void(Element&)> on_preview = nullptr;
@@ -234,6 +235,11 @@ public:
         const char* text = nullptr;
         ImU32 text_clr = 0;
         bool text_bold = false;
+        float text_width = 0.0f;
+
+        // combo
+        std::vector<const char*> cb_items;
+        int32_t cb_item_sel = 0;
     };
 
     void clear_toolbar();

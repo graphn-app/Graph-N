@@ -3,17 +3,9 @@
 namespace cast
 {
 
-inline bool skip_check = false;
-
 template <typename DEST, typename SOURCE>
 constexpr bool can_fit(SOURCE arg)
 {
-    if (skip_check)
-    {
-        (void)arg;
-        return true;
-    }
-
     using S_Type = std::decay_t<SOURCE>;
     using D_Type = std::decay_t<DEST>;
 

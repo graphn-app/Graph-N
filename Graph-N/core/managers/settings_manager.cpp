@@ -389,7 +389,7 @@ bool SettingsManager::wf_imported_load(const std::string& project) const
 
     try
     {
-        const o_json j = o_json::parse(imported);
+        const auto j = u_json::parse(imported);
         if (j.is_object())
         {
             const std::string addr = comfyui_host_load() + ":" + std::to_string(comfyui_port_load());
@@ -421,8 +421,8 @@ void SettingsManager::wf_imported_save(const std::string& project)
     const auto& imported = *std::get_if<std::string>(&m_wf_imported.value);
     if (imported.empty())
     {
-        o_json j;
-        j[addr] = o_json::array();
+        u_json j;
+        j[addr] = u_json::array();
         j[addr].push_back(project);
         save_option(m_wf_imported, j.dump());
         return;
@@ -430,7 +430,7 @@ void SettingsManager::wf_imported_save(const std::string& project)
 
     try
     {
-        o_json j = o_json::parse(imported);
+        auto j = u_json::parse(imported);
         if (j.is_object())
         {
             for (auto& [jaddr, jprojects] : j.items())

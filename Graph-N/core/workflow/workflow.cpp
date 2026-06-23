@@ -18,7 +18,7 @@ Workflow::Workflow()
     subscribe_comfyui_validity_state();
 }
 
-Workflow::Workflow(WfData&& data)
+Workflow::Workflow(mngr::WfData&& data)
 {
     m_wf_data = std::move(data);
     if (m_wf_data.uuid.empty())
@@ -53,7 +53,11 @@ void Workflow::init()
 }
 
 void Workflow::stop_all_threads()
-{}
+{
+    LogF;
+
+    // handle g::app_global_stop_all_threads
+}
 
 iid Workflow::get_new_child_id()
 {
@@ -72,12 +76,12 @@ NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0
     return ptr;
 }
 
-NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source)
+NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source, bool copy_id)
 {
-    const auto id = get_new_child_id();
+    const auto id = (copy_id ? copy_from_source->get_instance_id() : get_new_child_id());
     auto instance = std::make_unique<NodeInstance>(copy_from_source->get_object(), m_wf_data.id, id);
     auto ptr = instance.get();
-    ptr->init(copy_from_source);
+    ptr->init(copy_from_source, copy_id);
     m_nodes.push_back(std::move(instance));
     if (copy_from_source->m_group)
     {
@@ -419,6 +423,26 @@ void Workflow::resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::
         m_action->reinit(std::move(drawer_state));
 
     m_invalidation_state = false;
+}
+
+void Workflow::increment(Workflow* copy_to)
+{
+    for (auto& node : m_nodes)
+    {
+        auto copy_to_node = (nullptr == copy_to ? nullptr : copy_to->get_node_by_instance(node->get_instance_id()));
+        auto copy_to_action = (nullptr == copy_to ? nullptr : copy_to->action());
+        node->increment(copy_to_node, copy_to_action);
+    }
+}
+
+std::string Workflow::collect_search_data() const
+{
+    std::stringstream data;
+    for (auto& node : m_nodes)
+    {
+        node->collect_search_data(data);
+    }
+    return data.str();
 }
 
 } // namespace data

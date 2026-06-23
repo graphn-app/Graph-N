@@ -25,16 +25,29 @@ std::string GlobalID::client_id()
     return self.m_client_id;
 }
 
+uint64_t GlobalID::random()
+{
+    static std::set<uint64_t> all_generated;
+
+    auto& self = instance();
+    std::lock_guard<std::mutex> lock(self.m_lock);
+    std::uniform_int_distribution<uint64_t> dist;
+
+    uint64_t ret = 0;
+    do
+    {
+        ret = dist(self.m_gen);
+        if (all_generated.insert(ret).second)
+            break;
+    }
+    while (true);
+    return ret;
+}
+
 std::string GlobalID::uuid()
 {
-    uint64_t part1 = 0, part2 = 0;
-    {
-        auto& self = instance();
-        std::lock_guard<std::mutex> lock(self.m_lock);
-        std::uniform_int_distribution<uint64_t> dist;
-        part1 = dist(self.m_gen);
-        part2 = dist(self.m_gen);
-    }
+    uint64_t part1 = random();
+    uint64_t part2 = random();
 
     // version
     part1 = (part1 & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;

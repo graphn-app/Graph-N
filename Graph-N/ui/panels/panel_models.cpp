@@ -41,6 +41,8 @@ void PanelModels::init()
 void PanelModels::stop_all_threads()
 {
     LogF;
+
+    // handle g::app_global_stop_all_threads
 }
 
 void PanelModels::create_toolbar()
@@ -457,8 +459,12 @@ void PanelModels::on_show_tt(int32_t idx)
     if (model->info.textures_id != 0)
     {
         float w, h;
-        auto textures = g::pTextures->get_image(model->info.textures_id, w, h);
-        ImGui::Image(textures, ImVec2(w, h));
+        std::optional<bool> valid;
+        auto textures = g::pTextures->get_image(model->info.textures_id, valid, &w, &h);
+        if (textures != nullptr)
+            ImGui::Image(textures, ImVec2(w, h));
+        else if (valid.has_value() && !valid)
+            ImGui::TextUnformatted("Can't render image data");
     }
 }
 

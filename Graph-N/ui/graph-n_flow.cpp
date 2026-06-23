@@ -320,6 +320,7 @@ void GraphN_Flow::exit()
 void GraphN_Flow::stop_all_threads()
 {
     m_quit = true;
+    // handle g::app_global_stop_all_threads
     LogF;
 }
 
@@ -343,6 +344,7 @@ void GraphN_Flow::prepare_to_quit()
     LogF_In;
     m_quit = true;
 
+    // handle g::app_global_stop_all_threads
     g::pConnectManager->stop_all_threads();
     g::pWfsManager->close_and_purge();
 
@@ -381,16 +383,15 @@ void GraphN_Flow::show_logs_panel(bool show)
 
 void GraphN_Flow::check_connection()
 {
-    if (ConnectState::Disconnected == g::pConnectManager->get_status())
+    const auto status = g::pConnectManager->get_status();
+    if (ConnectState::Disconnected == status)
     {
         m_wf_imported = false;
         m_projects_ready = false;
         reconnect();
     }
-    else
+    else if (ConnectState::Connected == status)
     {
-        g::pConnectManager->check_http_request_status();
-
         import_user_projects();
     }
 }
@@ -403,9 +404,9 @@ void GraphN_Flow::import_user_projects()
 
     auto projects = std::make_shared<std::list<std::pair<std::string, tools::dt>>>();
 
-    const auto all_names = [this, projects](bool result, std::string&& payload)
+    const auto all_names = [this, projects](int32_t result, std::string&& payload)
     {
-        if (!result)
+        if (result != HTTP_RESP_OK)
         {
             m_wf_imported = false;
             m_projects_ready = true;
@@ -432,9 +433,9 @@ void GraphN_Flow::import_user_projects()
             if (!g::pOptsManager->wf_imported_load(project.first))
             {
                 (*counter)++;
-                const auto download_project = [this, name = project.first, time = project.second, counter](bool result, std::string&& payload)
+                const auto download_project = [this, name = project.first, time = project.second, counter](int32_t result, std::string&& payload)
                 {
-                    if (result)
+                    if (HTTP_RESP_OK == result)
                     {
                         if (g::pWfsManager->import_wf_from_json(payload, name, time) != 0)
                         {
@@ -451,7 +452,7 @@ void GraphN_Flow::import_user_projects()
                 };
 
                 const auto url = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(project.first));
-                http_get("Flow/Import_projects", url.c_str(), []() { return true; }, download_project);
+                http_get("Flow/Import_projects", []() { return true; }, url.c_str(), download_project);
             }
         }
 
@@ -462,7 +463,7 @@ void GraphN_Flow::import_user_projects()
         }
     };
 
-    http_get("Flow/Import_projects", comfyui_http::wfs_all_names, []() { return true; }, all_names);
+    http_get("Flow/Import_projects", []() { return true; }, comfyui_http::wfs_all_names, all_names);
 }
 
 void GraphN_Flow::import_files(std::list<std::filesystem::path>&& paths)
@@ -502,10 +503,10 @@ void GraphN_Flow::reload_nodes()
 
 void GraphN_Flow::reparse_nodes()
 {
-    const auto parser = [this](bool result, std::string&& data)
+    const auto parser = [this](int32_t result, std::string&& data)
     {
         if (GraphN_Flow::get_is_quit()) return;
-        if (!result)
+        if (result != HTTP_RESP_OK)
         {
             Log("Failed to load object_info");
             return;
@@ -535,7 +536,7 @@ void GraphN_Flow::reparse_nodes()
             m_nodes_parser->parse(std::move(data));
     };
 
-    http_get("Flow/reparse_nodes", comfyui_http::object_info, [](){ return true; }, parser);
+    http_get("Flow/reparse_nodes", [](){ return true; }, comfyui_http::object_info, parser);
 }
 
 void GraphN_Flow::show_menu_bar()
@@ -1030,7 +1031,7 @@ PanelWorkflow* GraphN_Flow::find_wf_panel(wid id) const
     return nullptr;
 }
 
-PanelWorkflow* GraphN_Flow::create_wf_panel(const WfData& wf)
+PanelWorkflow* GraphN_Flow::create_wf_panel(const mngr::WfData& wf)
 {
     m_panels_wf.emplace_back(std::make_unique<ui::PanelWorkflow>(wf.id, wf.name, wf.uuid, m_main_dock_id));
     auto& panel_wf = m_panels_wf.back();
@@ -1586,6 +1587,12 @@ void GraphN_Flow::show_panels()
 
     ImGui::End();
 
+    const auto id_as_name = [](std::string& id_ret, const char* panel_id)
+    {
+        id_ret = fmt::format(FMT_STRING("###{}"), panel_id);
+        return id_ret.c_str();
+    };
+
     if (m_windows & ViewPanelsResetAll)
     {
         focus_fixed = false;
@@ -1600,17 +1607,11 @@ void GraphN_Flow::show_panels()
 
         ImGuiID dock_id_left_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.15f, nullptr, &m_main_dock_id);
         ImGuiID dock_id_left_btm = ImGui::DockBuilderSplitNode(dock_id_left_top, ImGuiDir_Down, 0.3f, nullptr, &dock_id_left_top);
-        ImGuiID dock_id_right_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.15f, nullptr, &m_main_dock_id);
+        ImGuiID dock_id_right_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.2f, nullptr, &m_main_dock_id);
         ImGuiID dock_id_right_bottom = ImGui::DockBuilderSplitNode(dock_id_right_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right_top);
-        ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.15f, nullptr, &m_main_dock_id);
+        ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.25f, nullptr, &m_main_dock_id);
 
         std::string id;
-
-        const auto id_as_name = [](std::string& id_ret, const char* panel_id)
-        {
-            id_ret = fmt::format(FMT_STRING("###{}"), panel_id);
-            return id_ret.c_str();
-        };
 
         // left top
         ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_nodes->get_panel_id()), dock_id_left_top);
@@ -1622,6 +1623,7 @@ void GraphN_Flow::show_panels()
 
         // right top
         ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_stats->get_panel_id()), dock_id_right_top);
+        ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_queue->get_panel_id()), dock_id_right_top);
 
         // right bottom
         //ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_notes->get_panel_id()), dock_id_right_bottom);
@@ -1656,6 +1658,7 @@ void GraphN_Flow::show_panels()
         std::string id;
         ImGui::SetWindowFocus(id_as_name(id, m_panel_nodes->get_panel_id()));
         ImGui::SetWindowFocus(id_as_name(id, m_panel_wf_list->get_panel_id()));
+        ImGui::SetWindowFocus(id_as_name(id, m_panel_stats->get_panel_id()));
         ImGui::SetWindowFocus(nullptr);
     }
 
@@ -1748,76 +1751,97 @@ void GraphN_Flow::modal_last_frame()
     m_modal_message.reset();
 }
 
-void GraphN_Flow::http_get(const char* who_is_asking, const char* request, const StillAliveCallback& alive, const HttpGetResponse& callback)
+void GraphN_Flow::http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback)
 {
+    std::unique_lock<std::mutex> lock(m_http_req_mutex);
     const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, false);
-    m_http_get_requests.push_back({ req_id, alive, callback });
+    if (callback != nullptr)
+        m_http_requests[req_id] = { alive, callback, ImGui::GetTime() };
 }
 
-void GraphN_Flow::http_post(const char* who_is_asking, const char* request, std::string&& payload, const StillAliveCallback& alive, const HttpPostResponse& callback)
+void GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback)
 {
+    std::unique_lock<std::mutex> lock(m_http_req_mutex);
     const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, true, std::move(payload));
-    m_http_post_requests.push_back({ req_id, alive, callback });
+    if (callback != nullptr)
+        m_http_requests[req_id] = { alive, callback, ImGui::GetTime() };
 }
 
 void GraphN_Flow::check_http_reply()
 {
-    if (get_is_quit() || g::pConnectManager->get_http_responses_count() == 0)
+    if (get_is_quit())
         return;
 
-    for (auto it = m_http_get_requests.begin(); it != m_http_get_requests.end(); )
+    const auto max_processing_time = 0.003; // max 3ms per frame
+    const auto start_time = ImGui::GetTime();
+
+    uint32_t rid;
+    int32_t result = 0;
+    std::string response;
+
+    while (g::pConnectManager->pickup_http_response(rid, result, response))
     {
-        auto& tuple = *it;
-        auto rid = std::get<0>(tuple);
-        const auto& alive = std::get<1>(tuple);
-        const auto& callback = std::get<2>(tuple);
-
-        bool result;
-        std::string response;
-        if (g::pConnectManager->pickup_http_response(rid, result, response))
+        std::unique_lock<std::mutex> lock(m_http_req_mutex);
+        const auto it = m_http_requests.find(rid);
+        if (it != m_http_requests.end())
         {
-            if (alive())
-            {
-                callback(result, std::move(response));
-                Log("HTTP-Req#" << rid << ". Processed");
-            }
-            else
-            {
-                Log("HTTP-Req#" << rid << ". Requestor is dead");
-            }
+            const auto alive = std::get<0>(it->second);
+            const auto callback = std::get<1>(it->second);
+            m_http_requests.erase(it);
+            lock.unlock();
 
-            m_http_get_requests.erase(it);
-            return; // only one response per frame
+            if (alive())
+                callback(result, std::move(response));
         }
+
+        if ((ImGui::GetTime() - start_time) > max_processing_time)
+            break;
     }
 
-    for (auto it = m_http_post_requests.begin(); it != m_http_post_requests.end(); )
+    static double last_dead_http_check = ImGui::GetTime();
+    const double now = ImGui::GetTime();
+    if (now - last_dead_http_check > HTTP_REQUEST_LIFETIME / 2.0)
     {
-        auto& tuple = *it;
-        auto rid = std::get<0>(tuple);
-        const auto& alive = std::get<1>(tuple);
-        const auto& callback = std::get<2>(tuple);
-
-        bool result;
-        std::string response;
-        if (g::pConnectManager->pickup_http_response(rid, result, response))
+        std::unique_lock<std::mutex> lock(m_http_req_mutex);
+        for (auto it = m_http_requests.begin(); it != m_http_requests.end(); )
         {
-            if (alive())
+            const auto req_time = std::get<2>(it->second);
+            if (now - req_time > HTTP_REQUEST_LIFETIME)
             {
-                callback(result);
-                Log("HTTP-Req#" << rid << ". Processed");
+                const auto alive = std::get<0>(it->second);
+                if (alive())
+                {
+                    const auto callback = std::get<1>(it->second);
+                    callback(HTTP_RESP_TIMEOUT, "");
+                }
+
+                it = m_http_requests.erase(it);
             }
             else
-            {
-                Log("HTTP-Req#" << rid << ". Requestor is dead");
-            }
-
-            m_http_post_requests.erase(it);
-            return; // only one response per frame
+                ++it;
         }
+        last_dead_http_check = now;
     }
 }
 
+void GraphN_Flow::check_ws_message(const std::function<void(bool, std::string&)>& callback)
+{
+    if (get_is_quit())
+        return;
+
+    const auto max_processing_time = 0.003; // max 3ms per frame
+    const auto start_time = ImGui::GetTime();
+
+    bool is_binary;
+    std::string msg;
+
+    while (g::pConnectManager->pickup_ws_message(is_binary, msg))        
+    {
+        callback(is_binary, msg);
+        if ((ImGui::GetTime() - start_time) > max_processing_time)
+            break;
+    }
+}
 
 }
 

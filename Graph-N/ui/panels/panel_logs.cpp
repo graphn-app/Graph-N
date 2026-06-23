@@ -37,6 +37,8 @@ void PanelServerLogs::init()
 void PanelServerLogs::stop_all_threads()
 {
     LogF;
+
+    // handle g::app_global_stop_all_threads
 }
 
 DlgCode PanelServerLogs::show(bool& focused)
@@ -261,8 +263,7 @@ void PanelServerLogs::show_logs()
                         ImGui::Selectable("##stub", false);
                     else
                     {
-                        if (ImGuiEx::UrlButton(path.u8string().c_str(),
-                            g::pOptsManager->color_load(AppColor::UrlTextDefault), g::pOptsManager->color_load(AppColor::UrlTextHovered), "Open log file"))
+                        if (ImGuiEx::UrlButton(path.u8string().c_str(), "Open log file"))
                         {
                             tools::path::open_file(g::pComfyUIManager->get_log_filepath());
                         }

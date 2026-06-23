@@ -1,6 +1,7 @@
-
 #pragma once
+#include "core/base/structs.h"
 #include "core/managers/connect_manager.h"
+#include "core/alive.h"
 
 namespace mngr
 {
@@ -125,8 +126,8 @@ public:
     inline bool get_models_ready() const { return m_models_ready; }
     inline bool get_projects_ready() const { return m_projects_ready; }
 
-    void http_get(const char* who_is_asking, const char* request, const StillAliveCallback& alive, const HttpGetResponse& callback);
-    void http_post(const char* who_is_asking, const char* request, std::string&& payload, const StillAliveCallback& alive, const HttpPostResponse& callback);
+    void http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback);
+    void http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback);
 
     // WF public
     void wf_create();
@@ -151,6 +152,9 @@ public:
     void modal_show();
     void modal_update(std::string&& message);
     void modal_stop();
+
+    // web socket
+    void check_ws_message(const std::function<void(bool, std::string&)>& callback);
 
 private:
     void stop_all_threads();
@@ -204,7 +208,7 @@ private:
     // WF internal
     void init_workflow_panels();
     PanelWorkflow* find_wf_panel(wid id) const;
-    PanelWorkflow* create_wf_panel(const WfData& wf);
+    PanelWorkflow* create_wf_panel(const mngr::WfData& wf);
     void activate_wf_panel(PanelWorkflow* wf_panel);
     void close_wf_panel(PanelWorkflow* wf_panel);    
     void rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name);
@@ -252,7 +256,7 @@ private:
     std::list<wid> m_active_sequense;
     bool m_wf_imported = false;
 
-    std::list<std::tuple<uint32_t, StillAliveCallback, HttpGetResponse>> m_http_get_requests;
-    std::list<std::tuple<uint32_t, StillAliveCallback, HttpPostResponse>> m_http_post_requests;
+    std::mutex m_http_req_mutex;
+    std::unordered_map<uint32_t, std::tuple<StillAliveCallback, HttpResponseCb, double>> m_http_requests; // key - req id
 };
 }

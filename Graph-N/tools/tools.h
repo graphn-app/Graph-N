@@ -65,6 +65,8 @@ bool is_file(const std::filesystem::path& path);
 bool is_dir(const std::filesystem::path& path);
 bool is_empty(const std::filesystem::path& path);
 
+std::string get_extension(const std::filesystem::path& path);
+
 // creates list of objects with pathes
 std::vector<std::filesystem::path> enumerate_directory(const std::filesystem::path& path,
     bool recursively, bool include_dirs, bool include_files, bool relative_pathes);
@@ -101,6 +103,7 @@ namespace img
 {
 std::string extract_workflow_from_png(const std::filesystem::path& png_path);
 std::string extract_workflow_from_webp(const std::filesystem::path& webp_path);
+void scale(int32_t image_w, int32_t image_h, int32_t max_w, int32_t max_h, int32_t& res_w, int32_t& res_h);
 }
 
 };	// namespace tools

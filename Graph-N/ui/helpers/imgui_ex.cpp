@@ -1,5 +1,6 @@
 
 #include "ui/helpers/imgui_ex.h"
+#include "core/managers/settings_manager.h"
 
 namespace ImGuiEx
 {
@@ -73,6 +74,22 @@ bool TooltipOnLastControl(const char* tt, const char* tt_end, ImGuiHoveredFlags_
     return false;
 }
 
+bool TooltipOnLastControl(const std::function<void()>& callback, ImGuiHoveredFlags_ delay /*= ImGuiHoveredFlags_DelayShort*/,
+    bool only_if_modifier_pressed /*= false*/, ImGuiKey modifier /*= ImGuiMod_Ctrl*/)
+{
+    bool show_tt = (only_if_modifier_pressed && ImGui::IsKeyDown(modifier) && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone));
+    if (!show_tt && !only_if_modifier_pressed && ImGui::IsItemHovered(delay))
+        show_tt = true;
+
+    if (show_tt && ImGui::BeginTooltip())
+    {
+        callback();
+        ImGui::EndTooltip();
+        return true;
+    }
+    return false;
+}
+
 void Spacing(size_t count)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -87,14 +104,18 @@ void Spacing(size_t count)
 
 void Separator(const char* text)
 {
+    const auto pos = ImGui::GetCursorPosX();
     ImGui::Spacing();
+    ImGui::SetCursorPosX(pos);
     ImGui::SeparatorText(text);
 }
 
 void Separator(uint32_t color, const char* text /*= ""*/)
 {
+    const auto pos = ImGui::GetCursorPosX();
     ImGui::Spacing();
-    ImGui::PushStyleColor(ImGuiCol_Text, color);
+    ImGui::PushStyleColor(ImGuiCol_Separator, color);
+    ImGui::SetCursorPosX(pos);
     ImGui::SeparatorText(text);
     ImGui::PopStyleColor();
 }
@@ -728,11 +749,16 @@ bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool l
     return pressed;
 }
 
-bool UrlButton(const char* id_label, ImU32 url_clr_def, ImU32 url_clr_hover, const char* tooltip)
+bool UrlButton(const char* id_label, const char* tooltip /*= nullptr*/, ImU32 url_clr_def /*= 0*/, ImU32 url_clr_hover /*= 0*/, bool underline /*= true*/)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
         return false;
+
+    if (0 == url_clr_def)
+        url_clr_def = g::pOptsManager->color_load(AppColor::UrlTextDefault);
+    if (0 == url_clr_hover)
+        url_clr_hover = g::pOptsManager->color_load(AppColor::UrlTextHovered);
 
     const ImVec2 p = ImGui::GetCursorScreenPos();
     const ImVec2 label_size = ImGui::CalcTextSize(id_label);
@@ -743,8 +769,11 @@ bool UrlButton(const char* id_label, ImU32 url_clr_def, ImU32 url_clr_hover, con
     const ImU32 text_color = hovered ? url_clr_hover : url_clr_def;
     window->DrawList->AddText(p, text_color, id_label);
 
-    float line_y = p.y + label_size.y /*+- 1.0f*/;
-    window->DrawList->AddLine(ImVec2(p.x, line_y), ImVec2(p.x + label_size.x, line_y), text_color, 1.0f);
+    if (underline)
+    {
+        float line_y = p.y + label_size.y /*+- 1.0f*/;
+        window->DrawList->AddLine(ImVec2(p.x, line_y), ImVec2(p.x + label_size.x, line_y), text_color, 1.0f);
+    }
 
     if (hovered)
     {
@@ -762,7 +791,7 @@ bool UrlButton(const char* id_label, ImU32 url_clr_def, ImU32 url_clr_hover, con
     return clicked;
 }
 
-Toast toast_prepare(const char* text, ImU32 frame_clr, float duration_in_ms, bool at_cursor, bool increase_wnd)
+Toast toast_prepare(const char* text, ImU32 frame_clr, float duration_in_ms, bool at_cursor, bool increase_wnd, const ImVec2* pchild_pos, const ImVec2* pchild_size)
 {
     Toast t;
     t.expired = false;
@@ -783,10 +812,18 @@ Toast toast_prepare(const char* text, ImU32 frame_clr, float duration_in_ms, boo
     }
     else
     {
-        ImVec2 child_pos = ImGui::GetWindowPos();
-        ImVec2 child_size = ImGui::GetWindowSize();
-        t.pos.x = child_pos.x + child_size.x * 0.5f;
-        t.pos.y = child_pos.y + child_size.y * 0.5f;
+        if (pchild_pos != nullptr && pchild_size != nullptr)
+        {
+            t.pos.x = pchild_pos->x + pchild_size->x * 0.5f;
+            t.pos.y = pchild_pos->y + pchild_size->y * 0.5f;
+        }
+        else
+        {
+            ImVec2 child_pos = ImGui::GetWindowPos();
+            ImVec2 child_size = ImGui::GetWindowSize();
+            t.pos.x = child_pos.x + child_size.x * 0.5f;
+            t.pos.y = child_pos.y + child_size.y * 0.5f;
+        }
     }
     return t;
 }
@@ -834,6 +871,39 @@ void toast_show(Toast& toast)
     }
     else
         toast.expired = true;
+}
+
+void IndeterminateProgressBar(const ImVec2& size_arg)
+{
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    ImVec2 size = size_arg;
+    if (size.x <= 0.0f) size.x = ImGui::GetContentRegionAvail().x;
+    if (size.y <= 0.0f) size.y = ImGui::GetFrameHeight();
+
+    const ImVec2 p0 = ImGui::GetCursorScreenPos();
+    const ImVec2 p1 = ImVec2(p0.x + size.x, p0.y + size.y);
+
+    const float rounding = ImGui::GetStyle().FrameRounding;
+
+    const ImU32 bg_color = ImGui::GetColorU32(ImGuiCol_FrameBg);
+    draw_list->AddRectFilled(p0, p1, bg_color, rounding);
+
+    const float time = (float)ImGui::GetTime();
+    const float speed = 1.0f;
+    const float strip_width = size.x * 0.25f;
+
+    const float t = (sinf(time * speed) + 1.0f) * 0.5f;
+    //const float t = fmodf(time * speed, 1.0f);
+    const float strip_x_start = p0.x + (t * (size.x - strip_width));
+    const float strip_x_end = strip_x_start + strip_width;
+
+    const ImU32 fg_color = ImGui::GetColorU32(ImGuiCol_PlotHistogram);
+    const ImVec2 strip_p0 = ImVec2(strip_x_start, p0.y);
+    const ImVec2 strip_p1 = ImVec2(strip_x_end, p1.y);
+    draw_list->AddRectFilled(strip_p0, strip_p1, fg_color, rounding);
+
+    ImGui::Dummy(size);
 }
 
 //

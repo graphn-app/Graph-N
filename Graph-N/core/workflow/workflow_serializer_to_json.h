@@ -13,8 +13,8 @@ class WorkflowSerializerToJson
     NO_COPY_MOVE_CTORS(WorkflowSerializerToJson);
 public:
 
-    static std::string serialize(const Workflow* wf);
-    static std::string serialize_to_api(const Workflow* wf);
+    static o_json serialize(const Workflow* wf);
+    static o_json serialize_to_api(const Workflow* wf);
 
     static bool deserialize(Workflow* wf, const o_json& j);
     static bool deserialize_api(Workflow* wf, const o_json& j);

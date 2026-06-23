@@ -23,6 +23,8 @@ void PanelNotes::init()
 void PanelNotes::stop_all_threads()
 {
     LogF;
+
+    // handle g::app_global_stop_all_threads
 }
 
 DlgCode PanelNotes::show(bool& focused)

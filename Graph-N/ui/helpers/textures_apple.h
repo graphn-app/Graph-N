@@ -7,7 +7,7 @@
 namespace platform
 {
 
-class Textures_Apple final : public Textures
+class Textures_Apple final : public global::Textures
 {
 public:
     Textures_Apple() = default;

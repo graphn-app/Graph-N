@@ -1,5 +1,5 @@
-
 #pragma once
+#include "core/base/structs.h"
 #include "ui/panels/panel_base.h"
 
 namespace data
@@ -59,7 +59,7 @@ private:
 
 private:
     wid m_active = 0;
-    std::vector<WfData*> m_wfs;
+    std::vector<mngr::WfData*> m_wfs;
     std::vector<PanelListItem> m_panel_items;
     bool m_deleted_mode = false;
     bool m_labels_mode = false;

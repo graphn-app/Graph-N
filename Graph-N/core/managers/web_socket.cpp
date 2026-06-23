@@ -32,8 +32,8 @@ std::shared_ptr<WebSocket> WebSocket::create_and_connect(const std::string& host
 
     obj->m_th_ping = std::thread([self = obj->shared_from_this(), ping_interval]
         {
-            constexpr const int64_t sleep_time = 100;
-            for (int64_t elapsed = 0; !self->m_stop_flag; elapsed += sleep_time)
+            constexpr const uint32_t sleep_time = 100;
+            for (uint32_t elapsed = 0; !self->m_stop_flag; elapsed += sleep_time)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time));
                 if (elapsed >= ping_interval * 1000)
@@ -174,11 +174,52 @@ void WebSocket::on_read(beast::error_code ec, std::size_t /*bytes_transferred*/)
     const bool is_bin = m_ws.got_binary();
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_inbox.emplace_back(is_bin, std::move(data));
-        m_inbox_size = m_inbox.size();
+        bool keep_msg = true;
+        if (is_bin)
+        {
+            Log("Binary message size: " << data.size() << "bytes");
+        }
+        else
+        {
+            keep_msg = is_useful(data);
+            Log("New message (" << (keep_msg ? "keep" : "ignore") << "): " << data);
+        }
+        if (keep_msg)
+        {
+            m_inbox.emplace_back(is_bin, std::move(data));
+            m_inbox_size = m_inbox.size();
+        }
     }
     m_buffer.consume(m_buffer.size());
     do_read();
+}
+
+bool WebSocket::is_useful(const std::string& message) const
+{
+    try
+    {
+        auto j = u_json::parse(message);
+        if (!j.contains("type") || !j["type"].is_string())
+            return false;
+
+        const std::string& type = j["type"].get_ref<std::string&>();
+        if (type == "execution_start" ||
+            type == "executing" ||
+            type == "progress" ||
+            type == "execution_success" ||
+            type == "execution_error" ||
+            type == "execution_interrupted" ||
+            type == "executed" ||
+            type == "status")
+        {
+            return true;
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        LogExcep(ExcepCategory::API, ex.what());
+    }
+    return false;
 }
 
 void WebSocket::do_write()

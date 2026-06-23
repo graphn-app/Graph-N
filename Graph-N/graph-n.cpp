@@ -35,6 +35,7 @@ mngr::WfsManager* pWfsManager = nullptr;
 mngr::ModelsManager* pModelsManager = nullptr;
 mngr::ComfyUIManager* pComfyUIManager = nullptr;
 mngr::HistoryManager* pHistoryManager = nullptr;
+std::atomic_bool app_global_stop_all_threads = false;
 
 void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line)
 {
@@ -111,6 +112,8 @@ bool GraphN::init_graphn()
 void GraphN::exit_graphn()
 {
     LogF_In;
+
+    g::app_global_stop_all_threads = true;
 
     std::for_each(m_managers.rbegin(), m_managers.rend(), [](std::unique_ptr<mngr::Manager>& manager)
     {
@@ -208,12 +211,12 @@ void GraphN::resolve_comfyui_objects()
     notify(listener::ComfyUiObjectValidityListener::Step::ResolvePanels);
 }
 
-void GraphN::handle_new_frame(int64_t /*frames_elapsed*/)
+void GraphN::handle_new_frame(int64_t frames_elapsed)
 {
-    //for (auto* listener : m_timer_listeners)
-    //{
-    //    listener->on_frame(frames_elapsed);
-    //}
+    for (auto* listener : m_timer_listeners)
+    {
+        listener->on_frame(frames_elapsed);
+    }
 }
 
 bool GraphN::flow()

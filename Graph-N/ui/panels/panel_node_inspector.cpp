@@ -111,7 +111,7 @@ DlgCode PanelNodeInspector::show(bool& focused)
                     "No node selected",
                 },
                 {
-                    "How to use:",
+                    "How to use (in Nodes Library):",
                     ICON_LC_MOUSE_POINTER_2 " Right-Click: Inspect single node",
                     ICON_LC_LAYERS " Ctrl + R-Click: Add/Remove nodes"
                 }

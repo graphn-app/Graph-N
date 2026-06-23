@@ -92,7 +92,7 @@ struct PinState final
     float w_name = 0.0f;
 
     primitive value;            // current value, if widget
-    iid cag = 0;
+    iid cag = 0;                // cag pin id if cag_require is true
 };
 
 struct Pin : public base::HashID

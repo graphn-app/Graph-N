@@ -11,13 +11,11 @@ namespace ui
 SyncProjectsDlg::SyncProjectsDlg()
     : BaseDlgWithData(DlgObj::OptionsDlg)
 {
-    m_alive = std::make_shared<bool>();
 }
 
 SyncProjectsDlg::~SyncProjectsDlg()
 {
     LogF;
-    *m_alive = false;
 }
 
 void SyncProjectsDlg::init()
@@ -35,7 +33,6 @@ void SyncProjectsDlg::init()
     data()->clr_title = g::pOptsManager->color_load(AppColor::MiscDlgTitleBg);
     data()->clr_bg = g::pOptsManager->color_load(AppColor::MiscDlgBg);
 
-    *m_alive = true;
     m_step = Step::Disconnected;
 }
 
@@ -280,8 +277,8 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
             if (disable_all) ImGui::EndDisabled();
         }
     }
-    else *m_alive = false;
-    if (!opened) *m_alive = false;
+    else dead();
+    if (!opened) dead();
     return cleanup_and_exit(opened);
 }
 
@@ -374,9 +371,9 @@ void SyncProjectsDlg::load_projects()
         m_rows.push_back(std::move(row));
     }
 
-    const auto all_server_names = [this](bool result, std::string&& payload)
+    const auto all_server_names = [this](int32_t result, std::string&& payload)
     {
-        if (!result)
+        if (result != HTTP_RESP_OK)
         {
             m_step = Step::LoadFailed;
             return;
@@ -421,7 +418,7 @@ void SyncProjectsDlg::load_projects()
         m_step = Step::Ready;
     };
 
-    g::pFlow->http_get("Sync/Init", comfyui_http::wfs_all_names, [is_alive = m_alive]() { return *is_alive; }, all_server_names);
+    g::pFlow->http_get("Sync/Init", get_alive_callback(), comfyui_http::wfs_all_names, all_server_names);
 }
 
 void SyncProjectsDlg::setup_actions()
@@ -512,12 +509,12 @@ void SyncProjectsDlg::sync()
     if (SyncStatus::InProgress == m_rows[m_current_row].status)
         return;
 
-    const auto download = [this](bool result, std::string&& payload)
+    const auto download = [this](int32_t result, std::string&& payload)
     {
         auto& row = m_rows[m_current_row++];
         Log("Downloaded project " << row.name);
 
-        if (!result)
+        if (result != HTTP_RESP_OK)
         {
             row.status = SyncStatus::Error;
             return;
@@ -554,7 +551,7 @@ void SyncProjectsDlg::sync()
         }
     };
 
-    const auto upload = [this](bool result)
+    const auto upload = [this](int32_t result, std::string&&)
     {
         auto& row = m_rows[m_current_row++];
         Log("Uploaded project " << row.name);
@@ -565,7 +562,7 @@ void SyncProjectsDlg::sync()
             g::pWfsManager->access(row.local_id)->clear();
         }
         row.cleanup_wf = false;
-        if (result)
+        if (HTTP_RESP_OK == result)
         {
             row.status = SyncStatus::Success;
             row.exists_server = true;
@@ -613,7 +610,7 @@ void SyncProjectsDlg::sync()
             {
                 row.status = SyncStatus::InProgress;
                 const auto url = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(row.name) + ".json");
-                g::pFlow->http_get("Sync/Action", url.c_str(), [is_alive = m_alive]() { return *is_alive; }, download);
+                g::pFlow->http_get("Sync/Action", get_alive_callback(), url.c_str(), download);
             }
             break;
         case SyncAction::Upload:
@@ -632,10 +629,10 @@ void SyncProjectsDlg::sync()
                 {
                     row.cleanup_wf = !loaded;
                     if (0 == row.local_id) __debugbreak();
-                    auto json = data::WorkflowSerializerToJson::serialize(g::pWfsManager->access(row.local_id));
+                    auto j = data::WorkflowSerializerToJson::serialize(g::pWfsManager->access(row.local_id));
                     const auto project_name = (SyncAction::UploadRename == row.selected_action ? row.new_name : row.name);
                     const auto url = fmt::format(comfyui_http::wf_upload_, tools::str::cleanup_url(project_name) + ".json");
-                    g::pFlow->http_post("Sync/Action", url.c_str(), std::move(json), [is_alive = m_alive]() { return *is_alive; }, upload);
+                    g::pFlow->http_post("Sync/Action", get_alive_callback(), url.c_str(), j.dump(), upload);
                 }
             }
             break;

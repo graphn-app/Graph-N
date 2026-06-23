@@ -1,5 +1,6 @@
 
 #pragma once
+#include "core/base/structs.h"
 #include "core/managers/manager.h"
 
 namespace mngr
@@ -28,7 +29,6 @@ public:
 
     inline int64_t app_scale_load() const { return *std::get_if<int64_t>(&m_app_scale.value); }
     void app_scale_save(int64_t scale) { save_option(m_app_scale, int64_t(scale)); }
-
 
     // ui
     inline ImU32 color_load(AppColor color) const { return cast::to_u32(*std::get_if<int64_t>(&m_ui_colors[cast::to_szt(color)].value)); }
@@ -147,7 +147,7 @@ public:
     void model_starred_save(hid model_id, bool is_starred) const { item_save(model_id, DbItemOptionType::ModelStarred, is_starred); }
 
     inline std::string wf_labels_load(hid id) const { auto val = item_load(id, DbItemOptionType::WfLabels); return (val.has_value() ? std::move(val.value().sval) : ""); }
-    void wf_labels_save(hid id, std::string&& labels) const { item_save(id, DbItemOptionType::ModelStarred, std::move(labels)); }
+    void wf_labels_save(hid id, std::string&& labels) const { item_save(id, DbItemOptionType::WfLabels, std::move(labels)); }
 
     std::string nodes_labels_load(hid id) const { auto val = item_load(id, DbItemOptionType::NodeLabels); return (val.has_value() ? std::move(val.value().sval) : ""); }
     void nodes_labels_save(hid id, std::string&& labels) const { item_save(id, DbItemOptionType::NodeLabels, std::move(labels)); }

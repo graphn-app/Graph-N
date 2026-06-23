@@ -53,6 +53,7 @@ void PanelStats::init_disks()
 void PanelStats::stop_all_threads()
 {
     LogF_In;
+    // handle g::app_global_stop_all_threads
     m_pause = false;
     m_stop = true;
     if (m_th_api.joinable())  m_th_api.join();
@@ -62,8 +63,6 @@ void PanelStats::stop_all_threads()
 
 void PanelStats::th_api()
 {
-    using namespace std::chrono_literals;
-
     const auto check_ram_interval = 1000ms;
     const auto check_disk_interval = 5000ms;
     const auto sleep_step = 150ms;
@@ -132,8 +131,6 @@ void PanelStats::th_api()
 
 void PanelStats::th_comfyui()
 {
-    using namespace std::chrono_literals;
-
     const auto check_interval = 2500ms;
     const auto sleep_step = 150ms;
     auto accumulated_time = 0ms;
@@ -161,26 +158,26 @@ void PanelStats::th_comfyui()
             {
                 try
                 {
-                    const auto data = o_json::parse(res->body);
-                    if (data.contains("system") && data["system"].contains("ram_free") && data["system"]["ram_free"].is_number_integer())
+                    const auto j = u_json::parse(res->body);
+                    if (j.contains("system") && j["system"].contains("ram_free") && j["system"]["ram_free"].is_number_integer())
                     {
-                        auto& system = data["system"];
-                        if (system.contains("ram_free") && system["ram_free"].is_number_integer())
-                            m_sram_free = system["ram_free"];
-                        if (system.contains("ram_total") && system["ram_total"].is_number_integer())
-                            m_sram_total = system["ram_total"];
+                        auto& jsystem = j["system"];
+                        if (jsystem.contains("ram_free") && jsystem["ram_free"].is_number_integer())
+                            m_sram_free = jsystem["ram_free"];
+                        if (jsystem.contains("ram_total") && jsystem["ram_total"].is_number_integer())
+                            m_sram_total = jsystem["ram_total"];
                     }
-                    if (data.contains("devices") && data["devices"].is_array())
+                    if (j.contains("devices") && j["devices"].is_array())
                     {
                         std::list<VideoDevice> list;
 
-                        auto& devices = data["devices"];
-                        for (auto& device : devices)
+                        auto& jdevices = j["devices"];
+                        for (auto& jdevice : jdevices)
                         {
                             VideoDevice vd;
-                            if (device.contains("name") && device["name"].is_string())
+                            if (jdevice.contains("name") && jdevice["name"].is_string())
                             {
-                                vd.name = device["name"];
+                                vd.name = jdevice["name"];
 
                                 tools::str::replace_this(vd.name, "cuda:0", "");
                                 tools::str::replace_this(vd.name, "cuda:1", "");
@@ -195,21 +192,21 @@ void PanelStats::th_comfyui()
                                 tools::str::replace_this(vd.name, "Laptop GPU", "");
                                 tools::str::trim_this(vd.name, " :");
                             }
-                            if (device.contains("vram_free") && device["vram_free"].is_number_integer())
+                            if (jdevice.contains("vram_free") && jdevice["vram_free"].is_number_integer())
                             {
-                                vd.vram_free = device["vram_free"];
+                                vd.vram_free = jdevice["vram_free"];
                             }
-                            if (device.contains("vram_total") && device["vram_total"].is_number_integer())
+                            if (jdevice.contains("vram_total") && jdevice["vram_total"].is_number_integer())
                             {
-                                vd.vram_total = device["vram_total"];
+                                vd.vram_total = jdevice["vram_total"];
                             }
-                            if (device.contains("torch_vram_total") && device["torch_vram_total"].is_number_integer())
+                            if (jdevice.contains("torch_vram_total") && jdevice["torch_vram_total"].is_number_integer())
                             {
-                                vd.pytorch_total = device["torch_vram_total"];
+                                vd.pytorch_total = jdevice["torch_vram_total"];
                             }
-                            if (device.contains("torch_vram_free") && device["torch_vram_free"].is_number_integer())
+                            if (jdevice.contains("torch_vram_free") && jdevice["torch_vram_free"].is_number_integer())
                             {
-                                vd.pytorch_free = device["torch_vram_free"];
+                                vd.pytorch_free = jdevice["torch_vram_free"];
                             }
                             list.push_back(std::move(vd));
                         }
@@ -226,15 +223,16 @@ void PanelStats::th_comfyui()
                 }
             }
 
+            m_queue_remaining = 0;
             res = cli.Get(comfyui_http::prompt);
             if (res && 200 == res->status)
             {
                 try
                 {
-                    const auto data = o_json::parse(res->body);
-                    if (data.contains("exec_info") && data["exec_info"].contains("queue_remaining") && data["exec_info"]["queue_remaining"].is_number_integer())
+                    const auto j = u_json::parse(res->body);
+                    if (j.contains("exec_info") && j["exec_info"].contains("queue_remaining") && j["exec_info"]["queue_remaining"].is_number_integer())
                     {
-                        m_queue_remaining = data["exec_info"]["queue_remaining"];
+                        m_queue_remaining = j["exec_info"]["queue_remaining"];
                     }
                 }
                 catch (std::exception& e)
@@ -252,7 +250,7 @@ void PanelStats::th_comfyui()
 
 void PanelStats::on_1s_lazy_timer(int64_t /*total_seconds_elapsed*/)
 {
-    g::pConnectManager->get_status(nullptr, &m_ping_mk);
+    g::pConnectManager->get_status(&m_ping_mk);
 }
 
 struct FrameSmoother final
@@ -308,7 +306,6 @@ void PanelStats::format_bytes(uint64_t bytes)
 
     m_buffer.clear();
     fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{:.2f} {}"), count, suffixes[suffix_index]);
-    m_buffer.push_back('\0');
 };
 
 DlgCode PanelStats::show(bool& focused)
@@ -336,12 +333,6 @@ DlgCode PanelStats::show(bool& focused)
 
         ImGui::BeginGroup();
 
-        if (m_queue_remaining > 0)
-        {
-            ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepSubtitle), 0.0f, queue.data(), queue.size(), queue_wid);
-            show_queue(val_text_offset);            
-        }
-
         ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepCapt), 0.0f, server.data(), server.size(), server_wid);
         if (!g::pFlow->get_online())
         {
@@ -353,7 +344,14 @@ DlgCode PanelStats::show(bool& focused)
         {
             ImGui::TextUnformatted("Status");
             ImGui::SameLine(val_text_offset);
-            ImGui::TextUnformatted(m_queue_remaining > 0 ? "Executing" : "Idle");
+            if (m_queue_remaining > 0)
+            {
+                m_buffer.clear();
+                fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("Executing: {}"), m_queue_remaining.load());
+                ImGui::TextUnformatted(m_buffer.data(), m_buffer.data() + m_buffer.size());
+            }
+            else
+                ImGui::TextUnformatted("Idle");
             print_ping(val_text_offset);
 
             if (show_bar)
@@ -622,10 +620,6 @@ void PanelStats::show_server_as_bar(float val_offset)
                 "PyTorch Video RAM");
         }
     }
-}
-
-void PanelStats::show_queue(float /*val_offset*/)
-{
 }
 
 } // namespace ui

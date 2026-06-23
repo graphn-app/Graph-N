@@ -423,7 +423,13 @@ LogWriter& LogWriter::operator << (const LogLineEnd&)
 
 LogWriter& LogWriter::operator << (const LogHex& hex_item)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("0x{:0>16X}"), hex_item.i);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("0x{:0>16X}"), hex_item.h);
+    return *this;
+}
+
+LogWriter& LogWriter::operator << (const LogHRes& hres_item)
+{
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("0x{:0>16X}"), hres_item.h);
     return *this;
 }
 

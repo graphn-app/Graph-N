@@ -1,5 +1,6 @@
 
 #pragma once
+#include "core/alive.h"
 
 namespace listener
 {
@@ -35,5 +36,10 @@ struct Timer
 inline Timer::~Timer() = default;
 
 ///////////////////////////
+
+struct ServerRestartHandler
+{
+    virtual void handle_server_killed() {}
+};
 
 } // namespace listener

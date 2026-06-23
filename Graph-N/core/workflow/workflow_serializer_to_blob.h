@@ -1,5 +1,6 @@
 
 #pragma once
+#include "core/base/structs.h"
 
 namespace data
 {

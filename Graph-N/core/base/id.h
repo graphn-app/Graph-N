@@ -12,6 +12,7 @@ class GlobalID final
 public:
     static std::string uuid();
     static std::string client_id();
+    static uint64_t random();
 
 private:
     GlobalID();

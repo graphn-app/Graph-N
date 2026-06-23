@@ -14,6 +14,82 @@
 #include "core/workflow/workflow_action.h"
 #include "imgui_node_editor.h"
 
+/*
+NODE
+
+
+|<------------------------------------------------------0------------------------------------------>|
+|<------------------------------------------------------1/21--------------------------------------->|         ---->|
+| 19
+|                                     [             node name           ]                           |              |
+|<---------------2------------------->|<--------------3/4-------------->|<-----------2------------->|         ---->| 
+| 19
+|     [       pin_ico    ]     [in_pin_name][    center      ][out_pin_name]     [ pin_ico    ]     |              |
+|<-5->|<------6/13------>|<-7->|<---8/9--->|[<-----10------->|<---11/12--->|<-7->|<---6/13--->|<-5->|         ---->|
+| 20
+|     [    widget_ico    ]     [  widget_name       ][     widget_value    ]                        |              |
+|<-5->|<------13-------->|<-7->|<-------14/15------>||<---------16/17----->|<-7->|<----6/13-->|<-5->|         ---->|
+
+|     [                                            separator                                  |     |
+|<-5->|<------13-------->|<-7->|<-----------------18-----------------------|<-7->|<----6/13-->|<-5->|
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+##  | what                   | equal to                                                         | variable                          | when
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+3   | node name              | CalcTextSize(Node::name)                                         | Node::w_name                      | on parse
+5   | pin left offset        | 4.0                                                              | w::pin_l_offset                   | app start
+6   | icon width             | CalcTextSize(ICON_CIRCLE)                                        | w::ico_circle                     | app start
+7   | pin right offset       | 4.0                                                              | w::pin_r_offset                   | app start
+8   | input pin name         | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
+11  | output pin name        | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
+13  | icon width             | CalcTextSize(ICON_EYE)                                           | w::ico_eye                        | app start
+14  | widget name            | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
+16  | widget value           | CalcTextSize(Pin::value))                                        | Pin::w_value                      | parse
+19  | vertical spacing       | 4.0                                                              | w::v_spacing                      | app start
+20  | vertical spacing       | (19)*2                                                           |                                   | app start
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+9   | max input pin name     | max(!wigdet(8))                                                  | Node::w_pin_in_max                | first instance create
+12  | max output pin name    | max(11)                                                          | Node::w_pin_out_max               | first instance create
+15  | max widget name        | max(widget(14) + 2 * ImGui::GetStyle().ItemSpacing.x)            | Node::w_widget_name_max           | first instance create
+17  | max widget value       | max(16)                                                          | Node::w_widget_value_max          | first instance create
+21  | node ideal fit         | = (1 ideal)                                                      | Node::w_fit                       | first instance create
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+0   | available width        |                                                                  |                                   | every frame
+1   | node width             | (5)*2 + (13)*2 + (7)*2 + (15) + (17)                             | NodeInstance::w_node              | every frame
+2   | node name l/r margins  | (0)/2 - (4)/2                                                    | NodeInstance::w_node_name_off     | every frame
+4   | node name              | CalcTextSize(Node::name)                                         | NodeInstance::w_name              | on node rename
+10  | central zone           | (15) + (17) - (9) - (12)                                         | NodeInstance::w_center            | every frame
+18  | hidden items separator | (0) - (5)*2 + (13)*2 + (7)*2                                     | NodeInstance:::w_separator        | every frame
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+- pin icon (16), widget ico (13) - take max depend on: tooltip, inspection, wf
+
+- empty node:       (no in pins, no out pins, no wdg):     - (1) = (100)
+- widgets only:     (no in pins, no out pins):             - (1) = (5)*2 + (13)*2 + (7)*2 + (15) + (17)
+- input only:       (no out pins, no wdg):                 - (10) = 50, (1) = (5)*2 + (13)*2 + (7)*2 + (9) + (10)
+- output only:      (no in pins, no wdg):                  - (10) = 50, (1) = (5)*2 + (13)*2 + (7)*2 + (10) + (12)
+- wdg and out:      (no in pins):                          - (1) = (5)*2 + (13)*2 + (7)*2 + (15) + (17), (10) = (15) + (17) - (12)
+- wdg and in:       (no out pins):                         - (1) = (5)*2 + (13)*2 + (7)*2 + (15) + (17), (10) = (15) + (17) - (9)
+- in and out:       (no wdg):                              - (10) = 10, (1) = (5)*2 + (13)*2 + (7)*2 + (9) + (10) + (12)
+
+- if (0) < (21):           - (15) = ((0) - (5)*2 - (13)*2 - (7)*2) / 3, but >= 0
+- (17) = ((0) - (5)*2 - (13)*2 - (7)*2) / 3 * 2, but >= 0
+- (10) = (15) + (17) - (9) - (12), but >= 0
+- (9) = ((15) + (17) / 2), but >= 0
+- (12) = ((15) + (17) / 2), but >= 0
+- (1) = (0)
+- if (0) > (21):           - (15) = fixed
+- (17) = (0) - (5)*2 - (13)*2 - (7)*2 - (15)
+- (9) = fixed
+- (12) = fixed
+- (10) = (0) - (5)*2 - (13)*2 - (7)*2 - (9) - (12)
+- (1) = (0)
+
+*/
+
 namespace ui
 {
 
@@ -199,7 +275,7 @@ void NodeDrawer::post_draw_all(
     ed::SetCurrentEditor(nullptr);
 }
 
-void NodeDrawer::pre_draw_node(data::NodeInstance* node)
+void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
 {
     if (node->m_group)
     {
@@ -209,7 +285,7 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
     }
     else
     {
-        if (node->get_object()->is_dummy)
+        if (node->get_object()->is_dummy || execution_failed)
         {
             const auto clr = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::DummyNode));
             ed::PushStyleColor(ed::StyleColor_NodeBorder, clr);
@@ -268,7 +344,7 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node)
     }
 }
 
-void NodeDrawer::post_draw_node(data::NodeInstance* node)
+void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed)
 {
     ed::EndNode();
     
@@ -279,7 +355,7 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node)
 
     if (node->m_group)
         ed::PopStyleColor(3);
-    else if (node->get_object()->is_dummy)
+    else if (node->get_object()->is_dummy || execution_failed)
         ed::PopStyleColor(6);
     else
         ed::PopStyleColor();
@@ -293,7 +369,7 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node)
     m_active_node = nullptr;
 }
 
-void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node_idx*/)
+void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node_idx*/, const std::set<std::string>* failed_pins)
 {
     m_active_node = node;
 
@@ -371,7 +447,8 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 #ifdef _DEBUG
             test_id(m_ids_imgui, pin);
 #endif
-            draw_input_pin(pin);
+            const bool failed = (failed_pins != nullptr && failed_pins->count(pin->get_object()->def_state.name));
+            draw_input_pin(pin, failed);
             ImGui::PopID();
         }
     }
@@ -676,15 +753,15 @@ void NodeDrawer::draw_collapsed_pins(bool input)
     for (auto pin : *pins)
     {
         ImGui::SetCursorPosX(pos_x);
-        draw_pin(pin, true, true);
+        draw_pin(pin, true, true, false);
         ImGui::SameLine();
     }
 }
 
-void NodeDrawer::draw_input_pin(data::PinInstance* pin)
+void NodeDrawer::draw_input_pin(data::PinInstance* pin, bool failed_pin)
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
-    draw_pin(pin, false, false);
+    draw_pin(pin, false, false, failed_pin);
     ImGui::SameLine(0.0f, w::pin_r_offset);
     if (!handle_pin_renaming(pin))
         ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
@@ -695,10 +772,10 @@ void NodeDrawer::draw_output_pin(data::PinInstance* pin)
     if (!handle_pin_renaming(pin))
         ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
     ImGui::SameLine(0, w::pin_r_offset);
-    draw_pin(pin, false, false);
+    draw_pin(pin, false, false, false);
 }
 
-void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget)
+void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin)
 {
     ImGui::PushID(&pin->state().pin_color);
 #ifdef _DEBUG
@@ -709,7 +786,7 @@ void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool alig
         ed::BeginPin(pin->ed(), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
     else
         pin->ed() = ed::BeginPin(cast::to_ptr(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
-    draw_pin_shape(pin, collapsed_mode, align_to_widget);
+    draw_pin_shape(pin, collapsed_mode, align_to_widget, failed_pin);
     ed::EndPin();
     ImGui::PopID();
 }
@@ -719,7 +796,7 @@ void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_wid
     if (!pin->get_object()->cag_pin)
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
-        draw_pin(pin, false, true);
+        draw_pin(pin, false, true, false);
         ImGui::SameLine(0, w::pin_r_offset);
     }
     else
@@ -1249,13 +1326,13 @@ void NodeDrawer::handle_deleted()
     ed::EndDelete();
 }
 
-void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget)
+void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin)
 {
     const bool querying = (m_querying_pin != nullptr);
     const bool compatible = (m_querying_pin == pin || (querying && data::Link::can_link(pin, m_querying_pin)));
     const bool connected = (m_querying_pin == pin || pin->state().links > 0);
     const auto type = (collapsed_mode ? data::PinShape::Circle : data::Pin::get_shape(pin->state().type));
-    constexpr const float thickness = 2.0f;
+    const float thickness = failed_pin ? 2.5f : 2.0f;
     constexpr const int32_t segments = 12;
     const auto draw_list = ImGui::GetWindowDrawList();
     const float alpha = (!querying || compatible ? 1.0f : 0.4f);
@@ -1268,6 +1345,16 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
     else
         cursor_pos.y += w::ico_circle / 2;
     const ImVec2 pin_center = ImVec2(cursor_pos.x + w::ico_circle / 2, cursor_pos.y);
+
+    if (failed_pin)
+    {
+        const ImU32 error_bg_color = IM_COL32(255, 40, 40, (ImU32)(alpha * 90.0f));
+        const ImU32 error_fg_color = IM_COL32(255, 40, 40, (ImU32)(alpha * 255.0f));
+        const float error_radius = radius + 3.5f;
+
+        draw_list->AddCircleFilled(pin_center, error_radius, error_bg_color, segments);
+        draw_list->AddCircle(pin_center, error_radius, error_fg_color, segments, 1.5f);
+    }
 
     switch (type)
     {

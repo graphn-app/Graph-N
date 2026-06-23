@@ -154,6 +154,7 @@ void PanelWfList::create_toolbar()
 void PanelWfList::stop_all_threads()
 {
     LogF;
+    // handle g::app_global_stop_all_threads
 }
 
 DlgCode PanelWfList::show(bool& focused)
@@ -246,7 +247,7 @@ void PanelWfList::show_wfs()
 
 void PanelWfList::rebuild_items()
 {
-    const auto sort_callback = [](const WfData* left, const WfData* right)
+    const auto sort_callback = [](const mngr::WfData* left, const mngr::WfData* right)
     {
         return tools::str::to_lower_ascii(left->name) < tools::str::to_lower_ascii(right->name);
     };
@@ -296,9 +297,9 @@ void PanelWfList::rebuild_items()
             WfLabelState* state = ((WfLabelState*)item.state.get());
             for (auto& label : labels)
             {
-                if (g::pWfsManager->get_is_wf_in_label(cast::from_ptr<wid>(item.ptr), label.second))
+                if (g::pWfsManager->get_is_wf_in_label(cast::from_ptr<wid>(item.ptr), std::get<1>(label)))
                 {
-                    state->active_labels.insert(label.second);
+                    state->active_labels.insert(std::get<1>(label));
                 }
             }
 
@@ -317,16 +318,16 @@ void PanelWfList::rebuild_items()
             for (auto& label : labels)
             {
                 WfLabelState* state = ((WfLabelState*)item.state.get());
-                bool wf_in_label = (state->active_labels.count(label.second) > 0);
+                bool wf_in_label = (state->active_labels.count(std::get<1>(label)) > 0);
 
-                ImGui::PushID(label.second);
-                if (ImGui::Checkbox(label.first.c_str(), &wf_in_label))
+                ImGui::PushID(std::get<1>(label));
+                if (ImGui::Checkbox(std::get<0>(label).c_str(), &wf_in_label))
                 {
                     item.state->changed = true;
                     if (wf_in_label)
-                        state->active_labels.insert(label.second);
+                        state->active_labels.insert(std::get<1>(label));
                     else
-                        state->active_labels.erase(label.second);
+                        state->active_labels.erase(std::get<1>(label));
                 }
                 ImGui::PopID();
             }
@@ -412,16 +413,16 @@ void PanelWfList::rebuild_items()
 
         for (auto& label : labels)
         {
-            auto& wfs_in_label = g::pWfsManager->get_wfs_in_label(label.second);
+            auto& wfs_in_label = g::pWfsManager->get_wfs_in_label(std::get<1>(label));
 
             PanelListItem label_item;
-            label_item.name = label.first;
+            label_item.name = std::get<0>(label);
             label_item.name_p2 = std::to_string(wfs_in_label.size());
             label_item.can_expand = true;
-            label_item.expanded = (expanded.count(label.second) > 0);
+            label_item.expanded = (expanded.count(std::get<1>(label)) > 0);
             label_expanded = label_item.expanded;
             label_item.icon = label_item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
-            label_item.label = label.second;
+            label_item.label = std::get<1>(label);
             m_panel_items.push_back(std::move(label_item));
 
             if (label_expanded)
@@ -588,11 +589,11 @@ void PanelWfList::rebuild_labels()
     {
         PanelListItem item;
         item.can_dblclick = true;
-        item.name = label.first;
-        item.label = label.second;
+        item.name = std::get<0>(label);
+        item.label = std::get<1>(label);
         item.on_item_handler = on_item_handler;
         item.on_hover_handler = on_hover_handler;
-        if (m_new_label == label.second)
+        if (m_new_label == std::get<1>(label))
         {
             item.renaming = true;
             item.need_focus = true;

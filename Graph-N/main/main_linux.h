@@ -7,7 +7,7 @@
 namespace platform
 {
 
-class MainRoutine_Linux final : public MainRoutine
+class MainRoutine_Linux final : public global::MainRoutine
 {
     friend class Textures_Linux;
 

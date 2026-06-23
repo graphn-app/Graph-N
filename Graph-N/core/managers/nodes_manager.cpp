@@ -182,7 +182,7 @@ void NodesManager::init_labels()
     Log("Node labels loaded: " << labels);
     try
     {
-        const auto j = o_json::parse(labels);
+        const auto j = u_json::parse(labels);
 
         for (auto& obj : j)
         {

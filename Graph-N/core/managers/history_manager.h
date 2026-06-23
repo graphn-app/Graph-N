@@ -1,5 +1,6 @@
 
 #pragma once
+#include "core/base/structs.h"
 #include "core/managers/manager.h"
 
 namespace data
@@ -135,6 +136,9 @@ public:
     void undo(wid wf_id);
     void redo(wid wf_id);
 
+    void set_ignore_actions_on(wid wf_id);
+    void set_ignore_actions_off(wid wf_id);
+
     void set_rollback_pos(wid wf_id);
     bool can_rollback(wid wf_id);
     void rollback(wid wf_id);
@@ -150,6 +154,8 @@ public:
 private:
     HistoryAction* open_action(wid wf_id, const char* action_name);
     void close_action(wid wf_id);
+
+    bool should_ignore_action(wid wf_id);
 
     struct Meta
     {
@@ -192,6 +198,7 @@ private:
     int64_t m_last_id = 0;
     std::unordered_map<wid, Meta> m_meta;
     std::unordered_map<wid, hqueue> m_history;
+    std::set<wid> m_ignore_actions;
 };
 
 } // namespace mngr

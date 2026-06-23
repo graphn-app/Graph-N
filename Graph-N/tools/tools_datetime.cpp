@@ -8,7 +8,8 @@ dt dt::from_current_date()
     const auto now = std::chrono::system_clock::now();
     const std::time_t t = std::chrono::system_clock::to_time_t(now);
     std::tm ptm;
-    localtime_s(&ptm, &t);
+    if (localtime_s(&ptm, &t) != 0)
+        return {};
 
     const auto duration = now.time_since_epoch();
     const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() % 1000;
@@ -34,10 +35,14 @@ dt dt::from_time(time_t raw)
     if (0 == raw)
         return {};
 
-    const auto t = std::chrono::system_clock::from_time_t(raw);
-    std::tm ptm;
-    localtime_s(&ptm, &raw);
+    if (raw > 100'000'000'000)
+        raw /= 1000;
 
+    std::tm ptm;
+    if (localtime_s(&ptm, &raw) != 0)
+        return {};
+
+    const auto t = std::chrono::system_clock::from_time_t(raw);
     const auto duration = t.time_since_epoch();
     const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() % 1000;
 
@@ -108,15 +113,31 @@ std::string dt::as_full_date(bool add_ms) const
 {
     if (add_ms)
     {
-        // YYYY/MMM/DD_HH:MM:SS.mmm
+        // YYYY/MMM/DD HH:MM:SS.mmm
         return fmt::format(FMT_COMPILE("{:04}/{}/{:02} {:02}:{:02}:{:02}.{:03}"),
             m_year, month_name(3), m_day,
             m_hour, m_minute, m_second, m_millisecond);
     }
 
-    // YYYY/MMM/DD_HH:MM:SS
+    // YYYY/MMM/DD HH:MM:SS
     return fmt::format(FMT_COMPILE("{:04}/{}/{:02} {:02}:{:02}:{:02}"),
         m_year, month_name(3), m_day,
+        m_hour, m_minute, m_second);
+}
+
+std::string dt::as_full_date_readable(bool add_ms) const
+{
+    if (add_ms)
+    {
+        // YYYY MMM D, HH:MM:SS.mmm
+        return fmt::format(FMT_COMPILE("{} {:02}, {:04}. {:02}:{:02}:{:02}.{:03}"),
+            month_name(3), m_day, m_year, 
+            m_hour, m_minute, m_second, m_millisecond);
+    }
+
+    // YYYY/MMM/DD_HH:MM:SS
+    return fmt::format(FMT_COMPILE("{} {:02}, {:04}. {:02}:{:02}:{:02}"),
+        month_name(3), m_day, m_year,
         m_hour, m_minute, m_second);
 }
 

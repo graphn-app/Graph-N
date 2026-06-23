@@ -69,6 +69,8 @@ void HistoryManager::free()
 void HistoryManager::stop_all_threads()
 {
     LogF;
+
+    // handle g::app_global_stop_all_threads
 }
 
 /////   interface
@@ -174,6 +176,23 @@ void HistoryManager::sync_wf_state(wid wf_id, const Meta* meta) const
     const bool stable_state = (meta->pos == meta->saved && meta->saved >= -1); 
     data.dirty = !stable_state;
     data.draft = !stable_state;
+}
+
+bool HistoryManager::should_ignore_action(wid wf_id)
+{
+    if (m_rollback)
+        return true;
+    return m_ignore_actions.count(wf_id) > 0;
+}
+
+void HistoryManager::set_ignore_actions_on(wid wf_id)
+{
+    m_ignore_actions.insert(wf_id);
+}
+
+void HistoryManager::set_ignore_actions_off(wid wf_id)
+{
+    m_ignore_actions.erase(wf_id);
 }
 
 void HistoryManager::set_rollback_pos(wid wf_id)
@@ -322,19 +341,19 @@ void HistoryManager::close_action(wid wf_id)
 
 void HistoryManager::multi_action_begin(wid wf_id, const char* action_name)
 {
-    if (m_rollback) return;
+    if (should_ignore_action(wf_id)) return;
     open_action(wf_id, action_name);
 }
 
 void HistoryManager::multi_action_end(wid wf_id)
 {
-    if (m_rollback) return;
+    if (should_ignore_action(wf_id)) return;
     close_action(wf_id);
 }
 
 void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryActionType act)
 {
-    if (m_rollback) return;
+    if (should_ignore_action(node->get_workflow_id())) return;
 
     HistoryAction* history = nullptr;
     std::unique_ptr<ActNodeBlob> step;
@@ -364,7 +383,7 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
 
 void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryActionType act, HActionT&& old_val)
 {
-    if (m_rollback) return;
+    if (should_ignore_action(node->get_workflow_id())) return;
 
     HistoryAction* history = nullptr;
     std::unique_ptr<ActOldNew> step;
@@ -415,7 +434,7 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
 
 void HistoryManager::push_pin_action(const data::PinInstance* pin, HistoryActionType act, HActionT&& old_val)
 {
-    if (m_rollback) return;
+    if (should_ignore_action(pin->get_workflow_id())) return;
 
     HistoryAction* history = nullptr;
     std::unique_ptr<ActOldNew> step;
@@ -445,7 +464,7 @@ void HistoryManager::push_pin_action(const data::PinInstance* pin, HistoryAction
 
 void HistoryManager::push_link_action(const data::Link* link, HistoryActionType act)
 {
-    if (m_rollback) return;
+    if (should_ignore_action(link->get_workflow_id())) return;
 
     HistoryAction* history = nullptr;
     std::unique_ptr<ActLink> step;

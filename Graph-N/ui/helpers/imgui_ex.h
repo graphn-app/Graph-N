@@ -12,6 +12,8 @@ ImU32 decrease_brightness(ImU32 source);
 
 bool TooltipOnLastControl(const char* tt, const char* tt_end, ImGuiHoveredFlags_ delay = ImGuiHoveredFlags_DelayShort,
     bool only_if_modifier_pressed = false, ImGuiKey modifier = ImGuiMod_Ctrl);
+bool TooltipOnLastControl(const std::function<void()>& callback, ImGuiHoveredFlags_ delay = ImGuiHoveredFlags_DelayShort,
+    bool only_if_modifier_pressed = false, ImGuiKey modifier = ImGuiMod_Ctrl);
 
 void Spacing(size_t count);
 
@@ -78,7 +80,7 @@ bool BooleanSwitch(const char* id_label, const char* label, bool* value, float w
 // bounded circle at the right
 bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool left_rounded, float width = 0.0f);
 
-bool UrlButton(const char* id_label, ImU32 url_clr_def, ImU32 url_clr_hover, const char* tooltip);
+bool UrlButton(const char* id_label, const char* tooltip = nullptr, ImU32 url_clr_def = 0, ImU32 url_clr_hover = 0, bool underline = true);
 
 struct Toast
 {
@@ -90,7 +92,9 @@ struct Toast
     bool expired = true;
     ImU32 frame_clr = 0;
 };
-Toast toast_prepare(const char* text, ImU32 frame_clr = 0, float duration_in_ms = 750.0f, bool at_cursor = false, bool increase_wnd = true);
+Toast toast_prepare(const char* text, ImU32 frame_clr = 0, float duration_in_ms = 750.0f, bool at_cursor = false, bool increase_wnd = true, const ImVec2* child_pos = nullptr, const ImVec2* child_size = nullptr);
 void toast_show(Toast& toast);
+
+void IndeterminateProgressBar(const ImVec2& size_arg);
 
 } // namespace ImGuiEx

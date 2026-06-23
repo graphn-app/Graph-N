@@ -6,12 +6,16 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include <d3d11.h>
+#include <d3d11_4.h>
+#include <wrl/client.h>
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace platform
 {
+
+using Microsoft::WRL::ComPtr;
 
 int64_t MainRoutine_Win32::m_seconds_elapsed = 0;
 
@@ -33,13 +37,13 @@ bool MainRoutine_Win32::init()
     HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE);
     if (FAILED(hr))
     {
-        LogError(ExcepCategory::API, "Failed to initialize COM, err: " << LogHEX(hr));
+        LogError(ExcepCategory::API, "Failed to initialize COM, err: " << LogHRES(hr));
         return false;
     }
     hr = CoInitializeSecurity(nullptr, -1, nullptr, nullptr, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE, nullptr);
     if (FAILED(hr))
     {
-        LogError(ExcepCategory::API, "Failed to initialize security, err: " << LogHEX(hr));
+        LogError(ExcepCategory::API, "Failed to initialize security, err: " << LogHRES(hr));
         return false;
     }
 
@@ -187,7 +191,7 @@ bool MainRoutine_Win32::render_frame(bool done)
     const HRESULT hr = m_swap_chain->Present(vsync, 0); 
     if (FAILED(hr))
     {
-        LogError(ExcepCategory::DirectX, "Device lost on Present: " << LogHEX(hr));
+        LogError(ExcepCategory::DirectX, "Device lost on Present: " << LogHRES(hr));
         ::PostQuitMessage(1);
     }
 
@@ -229,33 +233,39 @@ bool MainRoutine_Win32::create_device_d3d(HWND hWnd)
     sd.Windowed = TRUE;
     sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
-    UINT createDeviceFlags = 0;
-    //createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+    const UINT createDeviceFlags = 0; // D3D11_CREATE_DEVICE_VIDEO_SUPPORT | D3D11_CREATE_DEVICE_BGRA_SUPPORT; // | D3D11_CREATE_DEVICE_DEBUG
     D3D_FEATURE_LEVEL featureLevel;
     const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
 
-    ID3D11Device* pd3dDevice = nullptr;
-    ID3D11DeviceContext* pd3dDeviceContext = nullptr;
-    IDXGISwapChain* pSwapChain = nullptr;
+    ComPtr<ID3D11Device> pd3dDevice;
+    ComPtr<ID3D11DeviceContext> pd3dDeviceContext;
+    ComPtr<IDXGISwapChain> pSwapChain;
 
-    HRESULT res = ::D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &pSwapChain, &pd3dDevice, &featureLevel, &pd3dDeviceContext);
+    HRESULT res = ::D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, pSwapChain.GetAddressOf(), pd3dDevice.GetAddressOf(), &featureLevel, pd3dDeviceContext.GetAddressOf());
     if (DXGI_ERROR_UNSUPPORTED == res) // Try high-performance WARP software driver if hardware is not available.
-        res = ::D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &pSwapChain, &pd3dDevice, &featureLevel, &pd3dDeviceContext);
+        res = ::D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, pSwapChain.GetAddressOf(), pd3dDevice.GetAddressOf(), &featureLevel, pd3dDeviceContext.GetAddressOf());
     if (res != S_OK)
     {
         LogError(ExcepCategory::DirectX, "Failed D3D11CreateDevice with error: " << LogERR);
         return false;
     }
-    m_d3d_device.reset(pd3dDevice);
-    m_d3d_device_context.reset(pd3dDeviceContext);
-    m_swap_chain.reset(pSwapChain);
+
+    //ComPtr<ID3D11Multithread> multithread;
+    //if (SUCCEEDED(pd3dDevice->QueryInterface(IID_PPV_ARGS(multithread.GetAddressOf()))))
+    //{
+    //    multithread->SetMultithreadProtected(TRUE);
+    //}
+
+    m_d3d_device.reset(pd3dDevice.Detach());
+    m_d3d_device_context.reset(pd3dDeviceContext.Detach());
+    m_swap_chain.reset(pSwapChain.Detach());
 
     // only 1 frame in buffer
-    IDXGIDevice1* dxgiDevice = nullptr;
-    if (SUCCEEDED(m_d3d_device->QueryInterface(__uuidof(IDXGIDevice1), (void**)&dxgiDevice)))
+    ComPtr<IDXGIDevice1> dxgiDevice;
+    if (SUCCEEDED(m_d3d_device->QueryInterface(__uuidof(IDXGIDevice1), (void**)dxgiDevice.GetAddressOf())))
     {
         dxgiDevice->SetMaximumFrameLatency(1);
-        dxgiDevice->Release();
+        dxgiDevice.Reset();
     }
 
     return create_render_target();
@@ -277,23 +287,23 @@ void MainRoutine_Win32::cleanup_render_target()
 
 bool MainRoutine_Win32::create_render_target()
 {
-    ID3D11Texture2D* backBuffer = nullptr;
-    HRESULT hr = m_swap_chain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
-    if (hr != S_OK || nullptr == backBuffer)
+    ComPtr<ID3D11Texture2D> backBuffer;
+    HRESULT hr = m_swap_chain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf()));
+    if (hr != S_OK || !backBuffer)
     {
-        LogError(ExcepCategory::DirectX, "m_swap_chain->GetBuffer failed: " << LogHEX(hr));
+        LogError(ExcepCategory::DirectX, "m_swap_chain->GetBuffer failed: " << LogHRES(hr));
         return false;
     }
-    std::unique_ptr<ID3D11Texture2D, std::function <void(ID3D11Texture2D*)>> pBackBuffer(backBuffer, [](ID3D11Texture2D* p) { p->Release(); });
+    std::unique_ptr<ID3D11Texture2D, std::function <void(ID3D11Texture2D*)>> pBackBuffer(backBuffer.Detach(), [](ID3D11Texture2D* p) { p->Release(); });
 
-    ID3D11RenderTargetView* targetView = nullptr;
-    hr = m_d3d_device->CreateRenderTargetView(pBackBuffer.get(), nullptr, &targetView);
-    if (hr != S_OK || nullptr == targetView)
+    ComPtr<ID3D11RenderTargetView> targetView;
+    hr = m_d3d_device->CreateRenderTargetView(pBackBuffer.get(), nullptr, targetView.GetAddressOf());
+    if (hr != S_OK || !targetView)
     {
-        LogError(ExcepCategory::DirectX, "m_d3d_device->CreateRenderTargetView failed: " << LogHEX(hr));
+        LogError(ExcepCategory::DirectX, "m_d3d_device->CreateRenderTargetView failed: " << LogHRES(hr));
         return false;
     }
-    m_main_render_target_view.reset(targetView);
+    m_main_render_target_view.reset(targetView.Detach());
     return true;
 }
 
@@ -324,7 +334,7 @@ void MainRoutine_Win32::init_imgui_diloag_texture()
         HRESULT hr = d3d_device->CreateTexture2D(&desc, &subResource, &pTexture);
         if (FAILED(hr))
         {
-            LogError(ExcepCategory::DirectX, "CreateTexture2D failed: " << LogHEX(hr));
+            LogError(ExcepCategory::DirectX, "CreateTexture2D failed: " << LogHRES(hr));
             ::PostQuitMessage(1);
             return nullptr;
         }
@@ -340,7 +350,7 @@ void MainRoutine_Win32::init_imgui_diloag_texture()
         hr = d3d_device->CreateShaderResourceView(pTexture, &srvDesc, &pSRV);
         if (FAILED(hr))
         {
-            LogError(ExcepCategory::DirectX, "CreateShaderResourceView failed: " << LogHEX(hr));
+            LogError(ExcepCategory::DirectX, "CreateShaderResourceView failed: " << LogHRES(hr));
             ::PostQuitMessage(1);
             return nullptr;
         }

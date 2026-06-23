@@ -11,7 +11,7 @@ namespace platform
 #define USER_MESSAGE        (WM_APP + 1)
 using UserMsgCallback = std::function<void(WPARAM, LPARAM)>;
 
-class MainRoutine_Win32 final : public MainRoutine
+class MainRoutine_Win32 final : public global::MainRoutine
 {
     friend class Textures_Win32;
 

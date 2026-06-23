@@ -23,6 +23,7 @@ void PanelTemplates::init()
 void PanelTemplates::stop_all_threads()
 {
     LogF;
+    // handle g::app_global_stop_all_threads
 }
 
 DlgCode PanelTemplates::show(bool& focused)

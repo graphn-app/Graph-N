@@ -14,7 +14,6 @@ struct Node : public base::HashID
     ~Node() override;
 
     void finalize(std::unordered_map<std::string, std::list<hid>>& models_map);
-
     Pin* find_pin(hid pin_id, bool input);
 
     bool has_input = false;

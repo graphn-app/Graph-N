@@ -95,6 +95,8 @@ DbManager::~DbManager()
 void DbManager::stop_all_threads()
 {
     m_stop_thread_flag = true;
+    // handle g::app_global_stop_all_threads
+
     m_cv.notify_all();
     if (m_th.joinable())
         m_th.join();
@@ -786,16 +788,14 @@ void DbManager::write_wf_meta(SQLite::Database& db, const WfData* data)
     {
         SQLite::Statement query(db,
             fmt::format(FMT_STRING(R"(
-                        INSERT INTO {}
-                               ({}, {}, {})
+                        INSERT INTO {0}
+                               ({1}, {2}, {3})
                         VALUES (?,  ?,  ?)
-                        ON CONFLICT({}) DO UPDATE SET
-                        {} = excluded.{}, {} = excluded.{}
+                        ON CONFLICT({1}) DO UPDATE SET
+                        {2} = excluded.{2}, {3} = excluded.{3}
                 )"),
-                gdb_tbl_wfs,
-                gdb_val_uuid, gdb_val_name, gdb_val_pending_delete,
-                gdb_val_uuid,
-                gdb_val_name, gdb_val_name, gdb_val_pending_delete, gdb_val_pending_delete
+                gdb_tbl_wfs, 
+                gdb_val_uuid, gdb_val_name, gdb_val_pending_delete
             ));
 
         query.bindNoCopy(1, data->uuid);
@@ -893,7 +893,6 @@ void DbManager::purge_wf(SQLite::Database& db)
 
 void DbManager::write_thread(std::filesystem::path db_path)
 {
-    using namespace std::chrono_literals;
     constexpr const auto wait_period = 5s;
 
     SQLite::Database db(db_path, SQLite::OPEN_READWRITE);
@@ -905,7 +904,7 @@ void DbManager::write_thread(std::filesystem::path db_path)
         std::queue<WriteData> q;
         {
             std::unique_lock<std::mutex> lock(m_lock);
-            m_cv.wait_for(lock, std::chrono::milliseconds(wait_period), [this] { return m_stop_thread_flag || !m_write_queue.empty(); });
+            m_cv.wait_for(lock, wait_period, [this] { return m_stop_thread_flag || !m_write_queue.empty(); });
 
             if (m_stop_thread_flag && m_write_queue.empty())
                 break;

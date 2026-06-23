@@ -37,8 +37,6 @@ int32_t do_main(std::atomic_bool& request_focus)
     }
 
     g::pMain = main_app.get();
-
-    textures->set_main_routine(main_app.get());
     g::pTextures = textures.get();
 
     audio = std::make_unique<global::AudioControl>();

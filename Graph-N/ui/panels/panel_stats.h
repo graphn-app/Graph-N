@@ -23,7 +23,6 @@ private:
     void show_server_as_text(float val_offset);
     void show_this_pc_as_bar(float val_offset);
     void show_server_as_bar(float val_offset);
-    void show_queue(float val_offset);
     void show_app_performance(float val_offset);
 
     void th_api();
@@ -74,8 +73,7 @@ private:
     };
 
     std::mutex m_lock;
-    std::list<VideoDevice> m_video_devices;         // comfyui api /system_stats
-    Queue m_queue;                                  // ws
+    std::list<VideoDevice> m_video_devices;         // comfyui api /system_stats 
     std::vector<Disks> m_disks;                     // os api
     std::atomic_uint64_t m_lram_free = 0;           // os api
     std::atomic_uint64_t m_lram_total = 0;          // os api

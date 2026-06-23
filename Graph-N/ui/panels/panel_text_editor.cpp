@@ -36,6 +36,7 @@ void PanelTextEditor::free()
 void PanelTextEditor::stop_all_threads()
 {
     LogF;
+    // handle g::app_global_stop_all_threads
 }
 
 void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint)

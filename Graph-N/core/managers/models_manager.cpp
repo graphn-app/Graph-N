@@ -30,6 +30,8 @@ void ModelsManager::free()
 void ModelsManager::stop_all_threads()
 {
     m_stop_flag = true;
+    // handle g::app_global_stop_all_threads
+
     if (m_th.joinable())
         m_th.join();
 }
@@ -65,7 +67,7 @@ void ModelsManager::load_models_th()
         }
 
         std::list<std::string> requests;
-        o_json j = o_json::parse(res->body);
+        auto j = u_json::parse(res->body);
         for (const auto& jitem : j)
         {
             if (jitem.contains("name"))                
@@ -92,7 +94,7 @@ void ModelsManager::load_models_th()
                 continue;
             }
 
-            j = o_json::parse(res->body);
+            j = u_json::parse(res->body);
             if (j.empty())
             {
                 auto root = std::make_unique<data::ModelItem>();
@@ -134,7 +136,6 @@ void ModelsManager::load_models_th()
 
         rebuild_models(models);
 
-        using namespace std::chrono_literals;
         while (!g::pFlow->get_nodes_ready() && !m_stop_flag)
         {
             std::this_thread::sleep_for(100ms);

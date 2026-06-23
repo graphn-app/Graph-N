@@ -201,11 +201,8 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
     blob::Reader block = root.pop_block();
     node->m_obj_hid = block.pop_hid();
     node->m_iid = block.pop_iid();
-    node->m_wid = block.pop_wid();
-    if (node->m_wid != wf->get_id())
-    {
-        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Node wf ids don't match " << node->m_wid << " != " << wf->get_id());
-    }
+    /*node->m_wid = */block.pop_wid();
+    node->m_wid = wf->get_id();
 
     const auto node_class = block.pop_string();
     const auto node_name = block.pop_string();

@@ -7,7 +7,7 @@
 namespace platform
 {
 
-class Textures_Linux final : public Textures
+class Textures_Linux final : public global::Textures
 {
 public:
     Textures_Linux() = default;

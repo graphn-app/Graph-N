@@ -131,15 +131,13 @@ std::string merge(const std::set<std::string>& items, char separator)
 
 std::string to_lower_ascii(const std::string& str)
 {
-    cast::skip_check = true;
     std::string lower;
     lower.reserve(str.size());
     std::transform(str.begin(), str.end(), std::back_inserter(lower),
         [](unsigned char c)
         {
-            return cast::to_char(std::tolower(c));
+            return static_cast<char>(std::tolower(c));
         });
-    cast::skip_check = false;
     return lower;
 }
 
@@ -713,6 +711,13 @@ bool is_empty(const std::filesystem::path& path)
     return std::filesystem::is_empty(path, ec);
 }
 
+std::string get_extension(const std::filesystem::path& path)
+{
+    if (path.empty())
+        return {};
+    return path.extension().u8string();
+}
+
 std::vector<std::filesystem::path> enumerate_directory(
     const std::filesystem::path& path,
     bool recursively, bool include_dirs, bool include_files, bool relative_pathes)
@@ -878,28 +883,28 @@ static bool select_files(HWND hwnd, bool read, bool sel_directory, bool allow_mu
                                     }
                                     else
                                     {
-                                        LogWarnS("GetDisplayName failed: " << LogHEX(hr));
+                                        LogWarnS("GetDisplayName failed: " << LogHRES(hr));
                                     }
                                 }
                                 else
                                 {
-                                    LogWarnS("pItemArray->GetItemAt failed: " << LogHEX(hr));
+                                    LogWarnS("pItemArray->GetItemAt failed: " << LogHRES(hr));
                                 }
                             }
                         }
                         else
                         {
-                            LogWarnS("pItemArray->GetCount failed: " << LogHEX(hr));
+                            LogWarnS("pItemArray->GetCount failed: " << LogHRES(hr));
                         }
                     }
                     else
                     {
-                        LogWarnS("GetResults failed: " << LogHEX(hr));
+                        LogWarnS("GetResults failed: " << LogHRES(hr));
                     }
                 }
                 else
                 {
-                    LogWarnS("QueryInterface to IFileOpenDialog failed: " << LogHEX(hr));
+                    LogWarnS("QueryInterface to IFileOpenDialog failed: " << LogHRES(hr));
                 }
             }
             else
@@ -918,23 +923,23 @@ static bool select_files(HWND hwnd, bool read, bool sel_directory, bool allow_mu
                     }
                     else
                     {
-                        LogWarnS("GetDisplayName failed: " << LogHEX(hr));
+                        LogWarnS("GetDisplayName failed: " << LogHRES(hr));
                     }
                 }
                 else
                 {
-                    LogWarnS("GetResult failed: " << LogHEX(hr));
+                    LogWarnS("GetResult failed: " << LogHRES(hr));
                 }
             }
         }
         else
         {
-            LogWarnS("pFileOpen->Show filed: " << LogHEX(hr));
+            LogWarnS("pFileOpen->Show filed: " << LogHRES(hr));
         }
     }
     else
     {
-        LogWarnS("CoCreateInstance failed: " << LogHEX(hr));
+        LogWarnS("CoCreateInstance failed: " << LogHRES(hr));
     }
 
     return result;
@@ -1365,6 +1370,30 @@ std::string extract_workflow_from_webp(const std::filesystem::path& webp_path)
     }
 
     return cleanup_json(file_data, pos);
+}
+
+void scale(int32_t image_w, int32_t image_h, int32_t max_w, int32_t max_h, int32_t& res_w, int32_t& res_h)
+{
+    res_w = res_h = 0;
+    if (0 == image_w || 0 == image_h || 0 == max_w || 0 == max_h)
+        return;
+
+    if (image_w <= max_w && image_h <= max_h)
+    {
+        res_w = image_w;
+        res_h = image_h;
+        return;
+    }
+
+    const float scale_w = cast::to_float(max_w) / cast::to_float(image_w);
+    const float scale_h = cast::to_float(max_h) / cast::to_float(image_h);
+    const float scale_factor = (scale_w < scale_h) ? scale_w : scale_h;
+
+    const float res_wf = cast::to_float(image_w) * scale_factor;
+    const float res_hf = cast::to_float(image_h) * scale_factor;
+
+    res_w = cast::to_i32(std::max(res_wf, 1.0f));
+    res_h = cast::to_i32(std::max(res_hf, 1.0f));
 }
 
 } // namespace img

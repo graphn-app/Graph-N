@@ -66,6 +66,7 @@ void ComfyUIManager_Win32::run_server()
     else
     {
         m_stop_flag = false;
+        // handle g::app_global_stop_all_threads
 
         apply_job(pi.hProcess);
 
@@ -258,7 +259,7 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
     auto hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (void**)&locator);
     if (FAILED(hres))
     {
-        LogWarn("Failed to create IWbemLocator, err: " << LogHEX(hres));
+        LogWarn("Failed to create IWbemLocator, err: " << LogHRES(hres));
         return 0;
     }
 
@@ -266,14 +267,14 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
     hres = locator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &service);
     if (FAILED(hres))
     {
-        LogWarn("Failed to connect ROOT\\CIMV2, err: " << LogHEX(hres));
+        LogWarn("Failed to connect ROOT\\CIMV2, err: " << LogHRES(hres));
         return 0;
     }
 
     hres = CoSetProxyBlanket(service, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
     if (FAILED(hres))
     {
-        LogWarn("Failed to configure service, err: " << LogHEX(hres));
+        LogWarn("Failed to configure service, err: " << LogHRES(hres));
         return 0;
     }
 
@@ -283,7 +284,7 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
         WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
     if (FAILED(hres))
     {
-        LogWarn("Failed to query python processes, err: " << LogHEX(hres));
+        LogWarn("Failed to query python processes, err: " << LogHRES(hres));
         return 0;
     }
 
@@ -297,7 +298,7 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
             hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
             if (FAILED(hres))
             {
-                LogWarn("Failed to get python CommandLine, err: " << LogHEX(hres));
+                LogWarn("Failed to get python CommandLine, err: " << LogHRES(hres));
                 object.Release();
                 continue;
             }
@@ -308,7 +309,7 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
                 hres = object->Get(L"ProcessId", 0, &var, nullptr, nullptr);
                 if (FAILED(hres) || (var.vt != VT_UI4 && var.vt != VT_I4))
                 {
-                    LogWarn("Failed to get python ProcessId, err: " << LogHEX(hres));
+                    LogWarn("Failed to get python ProcessId, err: " << LogHRES(hres));
                     object.Release();
                     continue;
                 }

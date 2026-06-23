@@ -1,64 +1,8 @@
-
 #pragma once
+#include "core/base/structs.h"
 
 namespace blob
 {
-
-///////////////   Writer
-//////////////////////////////
-
-class Blob final
-{
-public:
-    Blob() = default;
-    Blob(const void* buffer, size_t len)
-    {
-        m_blob.resize(len);
-        memcpy(m_blob.data(), buffer, len);
-    }
-    ~Blob() = default;
-
-    Blob(const Blob&) = delete;
-    Blob& operator=(const Blob&) = delete;
-
-    inline Blob(Blob&& other) noexcept
-        : m_blob(std::move(other.m_blob))
-    { }
-    inline Blob& operator=(Blob&& other) noexcept
-    {
-        if (this != &other) m_blob = std::move(other.m_blob);
-        return *this;
-    }
-
-    inline Blob(byte_buff&& buffer) noexcept
-        : m_blob(std::move(buffer))
-    { }
-    inline Blob& operator=(byte_buff&& buffer) noexcept
-    {
-        m_blob = std::move(buffer);
-        return *this;
-    }
-
-    inline bool operator==(const Blob& other) const
-    {
-        if (m_blob.size() != other.m_blob.size())
-            return false;
-        return memcmp(m_blob.data(), other.m_blob.data(), m_blob.size()) == 0;
-    }
-    inline bool operator!=(const Blob& other) const
-    {
-        return !(*this == other);
-    }
-
-    inline byte_buff* operator->() { return &m_blob; }
-    inline const byte_buff* operator->() const { return &m_blob; }
-
-    inline byte_buff& operator*() { return m_blob; }
-    inline const byte_buff& operator*() const { return m_blob; }
-
-private:
-    byte_buff m_blob;
-};
 
 ///////////////   Writer
 //////////////////////////////

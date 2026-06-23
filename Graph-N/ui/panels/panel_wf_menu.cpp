@@ -260,7 +260,7 @@ bool PanelWorkflow::show_canvas_menu()
 
     if (ImGui::MenuItem("Paste", nullptr, nullptr, g::pWfsManager->copy_has_data()))
     {
-        g::pWfsManager->copy_end(m_wf->get_id(), m_menu_objs.click_pos);
+        g::pWfsManager->copy_end(m_wf, m_menu_objs.click_pos);
         close = true;
     }
     if (ImGui::MenuItem("Select all"))
@@ -362,7 +362,7 @@ bool PanelWorkflow::show_node_menu()
     }
     if (ImGui::MenuItem("Copy", nullptr, nullptr, !node->get_object()->is_dummy))
     {
-        g::pWfsManager->copy_begin(m_wf->get_id(), {});
+        g::pWfsManager->copy_begin(m_wf, {});
         g::pWfsManager->copy_add(node);
         close = true;
     }
@@ -453,7 +453,7 @@ bool PanelWorkflow::show_group_menu()
     }
     if (ImGui::MenuItem("Copy"))
     {
-        g::pWfsManager->copy_begin(m_wf->get_id(), {});
+        g::pWfsManager->copy_begin(m_wf, {});
         g::pWfsManager->copy_add(group);
         close = true;
     }
@@ -538,7 +538,7 @@ bool PanelWorkflow::show_multinode_menu()
     }
     if (ImGui::MenuItem("Copy"))
     {
-        g::pWfsManager->copy_begin(m_wf->get_id(), {});
+        g::pWfsManager->copy_begin(m_wf, {});
         for (auto node : m_menu_objs.nodes)
         {
             if (!node->get_object()->is_dummy)
@@ -687,7 +687,7 @@ bool PanelWorkflow::show_multigroup_menu()
     }
     if (ImGui::MenuItem("Copy"))
     {
-        g::pWfsManager->copy_begin(m_wf->get_id(), {});
+        g::pWfsManager->copy_begin(m_wf, {});
         for (auto& group : m_menu_objs.groups)
         {
             g::pWfsManager->copy_add(group.first);
@@ -772,7 +772,7 @@ bool PanelWorkflow::show_multiobj_menu()
     }
     if (ImGui::MenuItem("Copy"))
     {
-        g::pWfsManager->copy_begin(m_wf->get_id(), {});
+        g::pWfsManager->copy_begin(m_wf, {});
         for (auto node : m_menu_objs.nodes)
         {
             if (!node->get_object()->is_dummy)

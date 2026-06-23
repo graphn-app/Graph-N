@@ -7,6 +7,7 @@ namespace data
 
 class PinInstance;
 struct Node;
+class WorkflowAction;
 
 class NodeInstance final : public NodeInstanceBase
 {
@@ -18,7 +19,7 @@ public:
     ~NodeInstance() override;
 
     void init(const std::string& select);
-    void init(const NodeInstance* copy_from_node);
+    void init(const NodeInstance* copy_from_node, bool copy_pin_ids);
     inline void init_blank() { NodeInstanceBase::init(); }
 
     const std::string& get_name() const override;
@@ -39,6 +40,9 @@ public:
 
     void reset_width();
     void reset_state() override;
+
+    void increment(NodeInstance* copy_to, WorkflowAction* wf_action);
+    void collect_search_data(std::stringstream& data) const;
 
 protected:
     float get_additional_name_width() const override;

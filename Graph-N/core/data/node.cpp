@@ -59,6 +59,4 @@ Pin* Node::find_pin(hid pin_id, bool input)
     return find_pin_in(pin_id, output);
 }
 
-
-
 } // namespace data

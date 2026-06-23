@@ -34,6 +34,7 @@ public:
     std::string as_log_line() const;
 	std::string as_filename() const;
     std::string as_full_date(bool add_ms) const;
+    std::string as_full_date_readable(bool add_ms) const;
 
     /* length can be 1 (first char), 3 (first 3 chars) or more for full name */
 	const char* month_name(int32_t length = 5) const;

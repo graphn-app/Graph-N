@@ -1,10 +1,13 @@
 #pragma once
 #include "ui/base_dlg.h"
+#include "core/alive.h"
 
 namespace ui
 {
 
-class SyncProjectsDlg final : public BaseDlgWithData<DlgData>
+class SyncProjectsDlg final :
+    public BaseDlgWithData<DlgData>,
+    public IsAlive
 {
 public:
     SyncProjectsDlg();
@@ -63,7 +66,6 @@ private:
 
 private:    
     Step m_step = Step::Disconnected;
-    std::shared_ptr<bool> m_alive;
     std::vector<SyncRow> m_rows;
     size_t m_current_row = 0;
 };

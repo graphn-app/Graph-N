@@ -8,7 +8,7 @@ bool WorkflowSerializerToJson::deserialize_all_wf_names(const std::string& paylo
 {
     try
     {
-        auto j = o_json::parse(payload);
+        const auto j = u_json::parse(payload);
         if (!j.is_array())
             return false;
 

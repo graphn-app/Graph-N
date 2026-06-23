@@ -4,6 +4,7 @@
 #include "core/managers/workflows_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/history_manager.h"
+#include "core/managers/queue_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/node_instance.h"
@@ -37,11 +38,15 @@ PanelWorkflow::~PanelWorkflow()
 void PanelWorkflow::stop_all_threads()
 {
     LogF;
+    // handle g::app_global_stop_all_threads
+    dead();
 }
 
 void PanelWorkflow::free()
 {
     LogF;
+
+    dead();
 
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_comfyui_validity_state(this);
@@ -65,17 +70,20 @@ void PanelWorkflow::init()
     m_wf->reset();
     m_wf->get_data().activated = true;
     create_toolbar();
+    alive();
 }
 
 void PanelWorkflow::invalidate_comfyui_objects()
 {
     m_invalidation_state = true;
+    dead();
 }
 
 void PanelWorkflow::resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step /*step*/)
 {
     m_invalidation_state = false;
     create_toolbar();
+    alive();
 }
 
 DlgCode PanelWorkflow::show(bool& focused)
@@ -112,6 +120,8 @@ DlgCode PanelWorkflow::show(bool& focused)
             draw_wf();
         }
     }
+    else dead();
+    if (!opened) dead();
 
     return end_panel(opened);
 }
@@ -143,6 +153,18 @@ void PanelWorkflow::draw_wf()
     {
         auto node = nodes[node_idx].get();
 
+        bool failed_node = false;
+        const std::set<std::string>* failed_pins = nullptr;
+        if (m_failed_nodes != nullptr)
+        {
+            const auto it = m_failed_nodes->find(node->get_instance_id());
+            if (it != m_failed_nodes->end())
+            {
+                failed_node = true;
+                failed_pins = &it->second;
+            }
+        }
+
         const bool is_new = !node->ed();
         if (is_new)
         {
@@ -152,12 +174,12 @@ void PanelWorkflow::draw_wf()
         }
 
         ImGui::PushID(node);
-        m_drawer.pre_draw_node(node);
+        m_drawer.pre_draw_node(node, failed_node);
         if (node->m_group)
             m_drawer.draw_group(node, node_idx);
         else
-            m_drawer.draw_node(node, node->get_object()->w_fit, node_idx);
-        m_drawer.post_draw_node(node);
+            m_drawer.draw_node(node, node->get_object()->w_fit, node_idx, failed_pins);
+        m_drawer.post_draw_node(node, failed_node);
         ImGui::PopID();
 
         if (is_new && m_select_new_nodes)
@@ -186,6 +208,15 @@ void PanelWorkflow::draw_wf()
                 m_handle_context_menu = true;
             }
     );
+
+    if (m_first_show)
+    {
+        g::pHistoryManager->set_ignore_actions_on(m_wf->get_id());
+        std::map<data::NodeInstance*, std::set<data::NodeInstance*>> items;
+        fit(items);
+        m_first_show = false;
+        g::pHistoryManager->set_ignore_actions_off(m_wf->get_id());
+    }
 
     m_drawer.post_draw_all(
         [this]() { return context_menu_handler(); },
@@ -402,6 +433,16 @@ void PanelWorkflow::create_toolbar()
             el.on_preview = std::bind(&PanelWorkflow::on_pre_project_status, this, std::placeholders::_1);
             add_toolbar_element(std::move(el), true);
         }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), true);
+        }
+        {
+            PanelToolbar::Element el;
+            el.type = PanelToolbar::Element::Type::Empty;
+            add_toolbar_element(std::move(el), true);
+        }
 
         // right
 
@@ -410,15 +451,20 @@ void PanelWorkflow::create_toolbar()
             {
                 PanelToolbar::Element el;
                 el.type = PanelToolbar::Element::Type::Text;
-                el.text = "Idle";
+                el.text_width = ImGui::CalcTextSize("Prompt outputs failed validation").x;
                 el.on_preview = std::bind(&PanelWorkflow::on_pre_queue_status, this, std::placeholders::_1);
+                add_toolbar_element(std::move(el), false);
+            }
+            {
+                PanelToolbar::Element el;
+                el.type = PanelToolbar::Element::Type::Empty;
                 add_toolbar_element(std::move(el), false);
             }
             {
                 PanelToolbar::Element el;
                 el.type = PanelToolbar::Element::Type::Button;
                 el.icon = ICON_LC_PLAY;
-                el.tooltip = "Run tasks";
+                el.tooltip = "Run workflow (Shift to queue at front)";
                 el.on_preview = std::bind(&PanelWorkflow::on_pre_queue, this, std::placeholders::_1);
                 el.on_click = std::bind(&PanelWorkflow::on_queue, this, std::placeholders::_1);
                 add_toolbar_element(std::move(el), false);
@@ -426,22 +472,31 @@ void PanelWorkflow::create_toolbar()
             {
                 PanelToolbar::Element el;
                 el.type = PanelToolbar::Element::Type::Button;
-                el.icon = ICON_LC_SQUARE;
-                el.tooltip = "Stop queue";
-                el.on_preview = std::bind(&PanelWorkflow::on_pre_queue_stop, this, std::placeholders::_1);
-                el.on_click = std::bind(&PanelWorkflow::on_queue_stop, this, std::placeholders::_1);
+                el.icon = ICON_LC_X;
+                el.tooltip = "Terminate current task";
+                el.on_preview = std::bind(&PanelWorkflow::on_pre_queue_interrupt, this, std::placeholders::_1);
+                el.on_click = std::bind(&PanelWorkflow::on_queue_interrupt, this, std::placeholders::_1);
                 add_toolbar_element(std::move(el), false);
             }
             {
                 PanelToolbar::Element el;
-                el.type = PanelToolbar::Element::Type::InputInt;
-                el.tooltip = "Number of tasks. Zero or less to infinite";
+                el.type = PanelToolbar::Element::Type::Button;
+                el.icon = ICON_LC_SQUARE;
+                el.tooltip = "Cancel all tasks for this workflow";
+                el.on_preview = std::bind(&PanelWorkflow::on_pre_queue_drop_all, this, std::placeholders::_1);
+                el.on_click = std::bind(&PanelWorkflow::on_queue_drop_all, this, std::placeholders::_1);
+                add_toolbar_element(std::move(el), false);
+            }
+            {
+                PanelToolbar::Element el;
+                el.type = PanelToolbar::Element::Type::Combo;
+                el.tooltip = "Number of tasks to run";
                 m_queue_num_input_id = "##num_" + m_wf->get_uuid();
                 el.id = m_queue_num_input_id.c_str();
-                el.input_w = 100.0f;
-                el.buffer_int = &m_tasks_num;
-                el.int_min = -1;
-                el.int_max = 100;
+                el.input_w = 150.0f;
+                el.cb_items = { "Infinite", "1", "2", "3", "4", "5", "6", "8", "10", "15", "20" };
+                el.cb_item_sel = 1;
+                el.on_click = std::bind(&PanelWorkflow::on_tasks_num, this, std::placeholders::_1);
                 add_toolbar_element(std::move(el), false);
             }
         }
@@ -614,7 +669,69 @@ void PanelWorkflow::on_pre_project_status(PanelToolbar::Element& el)
     el.tooltip = m_tt_history_status;
 }
 
-void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& /*el*/) {}
+void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
+{
+    el.text = "Idle";
+    el.tooltip = nullptr;
+    m_failed_nodes = nullptr;
+    el.blinking = false;
+    el.text_clr = 0;
+
+    auto failed = g::pQueueManager->get_is_failed(m_wf->get_id());
+    if (failed != nullptr)
+    {
+        if (TaskResult::Interrupted == failed->result)
+        {
+            el.text = "Interrupted";
+        }
+        else
+        {
+            el.text = failed->err_message.c_str();
+            el.tooltip = failed->err_full.c_str();
+            m_failed_nodes = &failed->err_nodes;
+        }
+        el.text_clr = g::pOptsManager->color_load(AppColor::SelectedItem);
+        return;
+    }
+
+    const auto external = g::pQueueManager->is_external_task();
+    if (external > 0)
+    {
+        el.text = "External task is running";
+        m_status_buffer.clear();
+        fmt::format_to(std::back_inserter(m_status_buffer), FMT_COMPILE("Queue remaining: {}"), external);
+        m_status_buffer.push_back('\0');
+        el.tooltip = m_status_buffer.data();
+        return;
+    }
+
+    auto group = g::pQueueManager->get_current_group();
+    if (group != nullptr && group->src_wf == m_wf->get_id())
+    {
+        m_status_buffer.clear();
+        auto node = group->wf->get_node_by_instance(group->task.current_node);
+        if (node != nullptr)
+            fmt::format_to(std::back_inserter(m_status_buffer), FMT_COMPILE("Progress: {:.0f}%: {}"), group->task.progress * 100, node->get_name());
+        else
+            fmt::format_to(std::back_inserter(m_status_buffer), FMT_COMPILE("Progress: {:.0f}%"), group->task.progress * 100);
+        m_status_buffer.push_back('\0');
+        el.text = m_status_buffer.data();
+        return;
+    }
+
+    if (g::pQueueManager->is_paused())
+    { 
+        el.text = "All tasks are paused";
+        el.tooltip = "Click 'Unpause' on the Queue panel to resume";
+        el.blinking = true;
+        return;
+    }
+
+    if (g::pQueueManager->get_is_queued(m_wf->get_id()))
+    {
+        el.text = "Queued";
+    }
+}
 
 void PanelWorkflow::on_pre_queue(PanelToolbar::Element& el)
 {
@@ -623,14 +740,38 @@ void PanelWorkflow::on_pre_queue(PanelToolbar::Element& el)
 
 void PanelWorkflow::on_queue(PanelToolbar::Element& /*el*/)
 {
+    g::pQueueManager->add_to_queue(m_wf, m_tasks_num, ImGui::IsKeyDown(ImGuiMod_Shift));
 }
 
-void PanelWorkflow::on_pre_queue_stop(PanelToolbar::Element& el)
+void PanelWorkflow::on_pre_queue_interrupt(PanelToolbar::Element& el)
 {
-    el.enabled = !m_invalidation_state;
+    auto g = g::pQueueManager->get_current_group();
+    el.enabled = g != nullptr && g->src_wf == m_wf->get_id();
 }
 
-void PanelWorkflow::on_queue_stop(PanelToolbar::Element& /*el*/) {}
+void PanelWorkflow::on_queue_interrupt(PanelToolbar::Element& /*el*/)
+{
+    g::pQueueManager->interrupt_task(m_wf->get_id());
+}
+
+void PanelWorkflow::on_pre_queue_drop_all(PanelToolbar::Element& el)
+{
+    auto g = g::pQueueManager->get_current_group();
+    el.enabled = (g != nullptr && g->src_wf == m_wf->get_id()) || g::pQueueManager->get_is_queued(m_wf->get_id());
+}
+
+void PanelWorkflow::on_queue_drop_all(PanelToolbar::Element& /*el*/)
+{
+    g::pQueueManager->drop_wf_tasks(m_wf->get_id());
+}
+
+void PanelWorkflow::on_tasks_num(PanelToolbar::Element& el)
+{
+    if (0 == el.cb_item_sel)
+        m_tasks_num = -1;
+    else
+        m_tasks_num = std::strtol(el.cb_items[el.cb_item_sel], nullptr, 10);
+}
 
 void PanelWorkflow::on_show_dummy_node(PanelToolbar::Element& el)
 {

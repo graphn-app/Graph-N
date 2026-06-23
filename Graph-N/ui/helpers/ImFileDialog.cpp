@@ -4,23 +4,7 @@
 #endif
 #include "ui/helpers/ImFileDialog.h"
 
-//#include <fstream>
-//#include <algorithm>
-//#include <sys/stat.h>
-//#define IMGUI_DEFINE_MATH_OPERATORS
-//#include <imgui/imgui.h>
-//#include <imgui/imgui_internal.h>
-
-//#define STB_IMAGE_IMPLEMENTATION
-//#include "stb_image.h"
-
-#ifdef _WIN32
-//#define NOMINMAX
-//#include <windows.h>
-//#include <shellapi.h>
-//#include <lmcons.h>
-//#pragma comment(lib, "Shell32.lib")
-#else
+#ifndef _WIN32
 #include <unistd.h>
 #include <pwd.h>
 #endif

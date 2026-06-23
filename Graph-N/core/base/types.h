@@ -1,5 +1,7 @@
 #pragma once
 
+using namespace std::chrono_literals;
+
 using byte = uint8_t;
 using app_version_type = uint64_t;
 using time_type = uint64_t;
@@ -8,11 +10,29 @@ using iid = uint32_t;	// node/pin instance id, unique for each workflow
 using wid = uint32_t;   // workflow id - crc32 of uuid
 using byte_buff = std::vector<byte>;
 using primitive = std::variant<int64_t, uint64_t, double, std::string, bool, std::monostate>; // check serializer when adding new type
-using o_json = nlohmann::ordered_json;
 
-using StillAliveCallback = std::function<bool()>;
-using HttpGetResponse = std::function<void(bool, std::string&&)>;
-using HttpPostResponse = std::function<void(bool)>;
+using ImTextureIDPtr = std::shared_ptr<std::remove_pointer_t<ImTextureID>>;
+using ImageData = std::shared_ptr<byte>;
+
+using o_json = nlohmann::ordered_json;
+using u_json = nlohmann::json;
+
+constexpr double HTTP_REQUEST_LIFETIME = 30.0; // seconds
+constexpr int32_t HIDDEN_VIDEO_PLAYING = 5; // seconds
+
+constexpr int32_t HTTP_RESP_OK           = 200;
+constexpr int32_t HTTP_RESP_TIMEOUT      = 408;
+constexpr int32_t HTTP_RESP_BAD_REQUEST  = 400;
+constexpr int32_t HTTP_RESP_NOT_FOUND    = 404;
+
+
+constexpr const char* TEMP_LABEL_COMPLETED      = "Completed tasks";
+
+constexpr const char* DND_FROM_NODES_LIBRARY    = "F86C637FBBC3";
+constexpr const char* DND_FROM_SYSTEM           = "770C64EA9B66";
+constexpr const char* DND_REORDER_QUEUE         = "79C13B4685DA";
+
+using HttpResponseCb = std::function<void(int32_t, std::string&&)>; // http code, data
 
 enum class ExcepCategory
 {
@@ -67,6 +87,7 @@ enum class DlgObj
     _count
 };
 
+// in sync with DlgObj
 constexpr const char* DlgObjID[static_cast<size_t>(DlgObj::_count)] = 
 {
     ICON_LC_SETTINGS " Options###C0121D08-41AA-4BC6-90D9-DCE1D70BDE80",              // OptionsDlg: with caption
@@ -99,9 +120,6 @@ constexpr const char* DlgObjID[static_cast<size_t>(DlgObj::_count)] =
 
     "###84C3F1E0-4342-4A1B-9464-A011057E9FE1",                     // ModalMessage
 };
-
-constexpr const char* DND_FROM_NODES_LIBRARY    = "F86C637FBBC3";
-constexpr const char* DND_FROM_SYSTEM           = "770C64EA9B66";
 
 enum class OptPane
 {
@@ -289,127 +307,6 @@ enum class DbItemOptionType
     _last = _count - 1
 };
 
-struct DbValue final
-{
-    std::string sval;
-    int64_t ival = 0;
-
-    DbValue() = default;
-    ~DbValue() = default;
-
-    DbValue(const std::string& s, int64_t i)
-        : sval(s)
-        , ival(i)
-    {}
-    DbValue(int64_t i, const std::string& s)
-        : sval(s)
-        , ival(i)
-    {}
-    DbValue(int64_t i)
-        : ival(i)
-    {}
-    DbValue(const std::string& s)
-        : sval(s)
-    {}
-
-    inline bool empty() const { return 0 == ival && sval.empty(); }
-};
-
-struct DbAppOptionData final
-{
-    std::string name;
-    DbValue val;
-};
-
-struct WfData final
-{
-    std::string uuid;
-    wid id = 0;
-    std::string name;
-    bool ro = false;
-
-    bool valid = true;
-    bool critical_failure = false;
-
-    bool draft = true;
-    bool dirty = false;
-
-    bool saved_exist = 0;
-    tools::dt saved_time;
-
-    bool draft_exist = 0;
-    tools::dt draft_time;
-
-    bool activated = false;
-    bool pending_delete = false;
-
-    bool use_ext_time = false;
-    tools::dt ext_time;
-};
-
-struct PanelListItem final
-{
-    int32_t depth = 0;
-
-    bool is_separator = false;
-    bool is_empty = false;
-
-    bool selected = false;
-    
-    std::string name;
-    std::string name_p2;
-    std::string name_backup;
-    bool renaming = false;
-    bool need_focus = false;
-
-    const char* icon = nullptr;
-    const char* icon_tooltip = nullptr;
-
-    bool can_expand = false;    // exclusive ability
-    bool expanded = false;
-
-    bool icon_active = false;
-    bool icon_can_click = false;
-
-    std::function<bool(PanelListItem&, bool&)> on_hover_handler = nullptr;
-
-    std::function<bool(PanelListItem&, bool, bool, bool, bool, bool, bool&)> on_icon_handler = nullptr;
-    bool continue_processing_ico_handler = false;
-
-    bool can_rclick = false;
-    bool can_lclick = false;
-    bool can_dblclick = false;
-
-    std::function<bool(PanelListItem&, bool, bool, bool, bool, bool, bool&)> on_item_handler = nullptr;
-    bool continue_processing_item_handler = false;
-
-    uint32_t label = 0;
-    void* ptr = nullptr;
-    uint64_t dnd_data = 0;
-
-    struct State
-    {
-        bool changed = false;
-        void* ptr = nullptr;
-    };
-    std::unique_ptr<State> state;
-};
-
-struct PanelItemState final
-{
-    size_t index = 0;
-    bool rclicked = false;
-    bool rreleased = false;
-    bool lclicked = false;
-    bool lreleased = false;
-    bool dblclicked = false;
-    bool renamed = false;
-    bool item_clicked = false;
-    bool item_handled = false;
-    bool icon_clicked = false;
-    bool expanded = false;
-};
-
 enum class ConnectState
 {
     Disconnected,
@@ -434,9 +331,8 @@ namespace comfyui_http
 constexpr const char* object_info       = "/object_info";           // get
 constexpr const char* embeddings        = "/embeddings";            // get
 constexpr const char* extensions        = "/extensions";            // get
-constexpr const char* history           = "/history";               // get
 constexpr const char* system_stats      = "/system_stats";          // get
-constexpr const char* view              = "/view";                  // get
+constexpr const char* view_             = "/view?filename={}&subfolder={}&type={}";        // get
 constexpr const char* prompt            = "/prompt";                // get, post
 constexpr const char* queue             = "/queue";                 // get, post
 constexpr const char* interrupt         = "/interrupt";             // post
@@ -448,6 +344,7 @@ constexpr const char* model_meta        = "/api/view_metadata";     // get
 constexpr const char* wfs_all_names     = "/api/userdata?dir=workflows&recurse=true&split=false&full_info=true";         // get
 constexpr const char* wf_download_      = "/api/userdata/workflows%2F{}";                                                // get
 constexpr const char* wf_upload_        = "/api/userdata/workflows%2F{}?overwrite=true&full_info=true";                  // post
+constexpr const char* history_          = "/api/history?max_items={}";                                                   // get
 }
 
 namespace comfyui_ws
@@ -467,81 +364,3 @@ extern float v_spacing;
 extern std::string hidden_widgets;
 extern float hidden_widgets_len;
 }
-
-
-
-/*
-NODE
-
-
-|<------------------------------------------------------0------------------------------------------>|
-|<------------------------------------------------------1/21--------------------------------------->|         ---->|
-| 19
-|                                     [             node name           ]                           |              |
-|<---------------2------------------->|<--------------3/4-------------->|<-----------2------------->|         ---->| 
-| 19
-|     [       pin_ico    ]     [in_pin_name][    center      ][out_pin_name]     [ pin_ico    ]     |              |
-|<-5->|<------6/13------>|<-7->|<---8/9--->|[<-----10------->|<---11/12--->|<-7->|<---6/13--->|<-5->|         ---->|
-| 20
-|     [    widget_ico    ]     [  widget_name       ][     widget_value    ]                        |              |
-|<-5->|<------13-------->|<-7->|<-------14/15------>||<---------16/17----->|<-7->|<----6/13-->|<-5->|         ---->|
-
-|     [                                            separator                                  |     |
-|<-5->|<------13-------->|<-7->|<-----------------18-----------------------|<-7->|<----6/13-->|<-5->|
-
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-##  | what                   | equal to                                                         | variable                          | when
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-3   | node name              | CalcTextSize(Node::name)                                         | Node::w_name                      | on parse
-5   | pin left offset        | 4.0                                                              | w::pin_l_offset                   | app start
-6   | icon width             | CalcTextSize(ICON_CIRCLE)                                        | w::ico_circle                     | app start
-7   | pin right offset       | 4.0                                                              | w::pin_r_offset                   | app start
-8   | input pin name         | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
-11  | output pin name        | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
-13  | icon width             | CalcTextSize(ICON_EYE)                                           | w::ico_eye                        | app start
-14  | widget name            | CalcTextSize(Pin::name))                                         | Pin::w_name                       | parse
-16  | widget value           | CalcTextSize(Pin::value))                                        | Pin::w_value                      | parse
-19  | vertical spacing       | 4.0                                                              | w::v_spacing                      | app start
-20  | vertical spacing       | (19)*2                                                           |                                   | app start
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-9   | max input pin name     | max(!wigdet(8))                                                  | Node::w_pin_in_max                | first instance create
-12  | max output pin name    | max(11)                                                          | Node::w_pin_out_max               | first instance create
-15  | max widget name        | max(widget(14) + 2 * ImGui::GetStyle().ItemSpacing.x)            | Node::w_widget_name_max           | first instance create
-17  | max widget value       | max(16)                                                          | Node::w_widget_value_max          | first instance create
-21  | node ideal fit         | = (1 ideal)                                                      | Node::w_fit                       | first instance create
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-0   | available width        |                                                                  |                                   | every frame
-1   | node width             | (5)*2 + (13)*2 + (7)*2 + (15) + (17)                             | NodeInstance::w_node              | every frame
-2   | node name l/r margins  | (0)/2 - (4)/2                                                    | NodeInstance::w_node_name_off     | every frame
-4   | node name              | CalcTextSize(Node::name)                                         | NodeInstance::w_name              | on node rename
-10  | central zone           | (15) + (17) - (9) - (12)                                         | NodeInstance::w_center            | every frame
-18  | hidden items separator | (0) - (5)*2 + (13)*2 + (7)*2                                     | NodeInstance:::w_separator        | every frame
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-- pin icon (16), widget ico (13) - take max depend on: tooltip, inspection, wf
-
-- empty node:       (no in pins, no out pins, no wdg):     - (1) = (100)
-- widgets only:     (no in pins, no out pins):             - (1) = (5)*2 + (13)*2 + (7)*2 + (15) + (17)
-- input only:       (no out pins, no wdg):                 - (10) = 50, (1) = (5)*2 + (13)*2 + (7)*2 + (9) + (10)
-- output only:      (no in pins, no wdg):                  - (10) = 50, (1) = (5)*2 + (13)*2 + (7)*2 + (10) + (12)
-- wdg and out:      (no in pins):                          - (1) = (5)*2 + (13)*2 + (7)*2 + (15) + (17), (10) = (15) + (17) - (12)
-- wdg and in:       (no out pins):                         - (1) = (5)*2 + (13)*2 + (7)*2 + (15) + (17), (10) = (15) + (17) - (9)
-- in and out:       (no wdg):                              - (10) = 10, (1) = (5)*2 + (13)*2 + (7)*2 + (9) + (10) + (12)
-
-- if (0) < (21):           - (15) = ((0) - (5)*2 - (13)*2 - (7)*2) / 3, but >= 0
-- (17) = ((0) - (5)*2 - (13)*2 - (7)*2) / 3 * 2, but >= 0
-- (10) = (15) + (17) - (9) - (12), but >= 0
-- (9) = ((15) + (17) / 2), but >= 0
-- (12) = ((15) + (17) / 2), but >= 0
-- (1) = (0)
-- if (0) > (21):           - (15) = fixed
-- (17) = (0) - (5)*2 - (13)*2 - (7)*2 - (15)
-- (9) = fixed
-- (12) = fixed
-- (10) = (0) - (5)*2 - (13)*2 - (7)*2 - (9) - (12)
-- (1) = (0)
-
-*/

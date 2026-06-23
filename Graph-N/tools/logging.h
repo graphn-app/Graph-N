@@ -59,9 +59,17 @@ class LogLineEnd { };
 
 struct LogHex final
 {
-	long long i = 0;
-	LogHex(long long i_) :
-		i(i_)
+	long long h = 0;
+	LogHex(long long h_) :
+		h(h_)
+	{ }
+};
+
+struct LogHRes final
+{
+    uint32_t h = 0;
+    LogHRes(uint32_t h_) :
+		h(h_)
 	{ }
 };
 
@@ -112,6 +120,7 @@ public:
 
 	LogWriter& operator << (const LogLineEnd&);
 	LogWriter& operator << (const LogHex& hex_item);
+	LogWriter& operator << (const LogHRes& hres_item);
 	LogWriter& operator << (const LogPtr& ptr);
 
 private:
@@ -294,5 +303,6 @@ std::string format_log_msg(Args&&... args)
 #error Not implemented
 #endif
 #define LogHEX(h)					glog::LogHex(h)
+#define LogHRES(h)					glog::LogHRes(uint32_t(h))
 #define LogPTR(p)					glog::LogPtr(p)
 

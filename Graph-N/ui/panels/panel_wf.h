@@ -20,6 +20,7 @@ class PanelWorkflow final :
     public PanelToolbar,
     public PanelEmptyWithDescr,
     public PanelBase<PanelCommonData>,
+    public IsAlive,
     public listener::ComfyUiObjectValidityListener
 {
 public:
@@ -70,8 +71,11 @@ private:
     void on_pre_queue_status(PanelToolbar::Element& el); 
     void on_pre_queue(PanelToolbar::Element& el);
     void on_queue(PanelToolbar::Element& el);
-    void on_pre_queue_stop(PanelToolbar::Element& el);
-    void on_queue_stop(PanelToolbar::Element& el);
+    void on_pre_queue_interrupt(PanelToolbar::Element& el);
+    void on_queue_interrupt(PanelToolbar::Element& el);
+    void on_pre_queue_drop_all(PanelToolbar::Element& el);
+    void on_queue_drop_all(PanelToolbar::Element& el);
+    void on_tasks_num(PanelToolbar::Element& el);
     void on_show_dummy_node(PanelToolbar::Element& el);
 
     bool context_menu_handler();
@@ -105,12 +109,15 @@ private:
     bool m_active = false;
     data::NodeInstance* m_locate = nullptr;
     bool m_select_new_nodes = false;
+    bool m_first_show = true;
 
     const std::string m_context_menuid;
     bool m_handle_context_menu = false;
     bool m_context_menu_nodes_need_focus = false;
     std::string m_context_menu_nodes_filter;
     fmt::memory_buffer m_fmt_buffer;
+    fmt::memory_buffer m_status_buffer;
+    const std::map<iid, std::set<std::string>>* m_failed_nodes = nullptr;
 
     enum class MenuType { _none, Back, BackDblClick, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink, SpawnNode };
     struct MenuObjects final
@@ -125,7 +132,7 @@ private:
     MenuObjects m_menu_objs;
     float m_color_buff[4] = { -1.0f };
 
-    int64_t m_tasks_num = 1;
+    int32_t m_tasks_num = 1;
     std::string m_queue_num_input_id;
 
     bool m_can_save = false;
