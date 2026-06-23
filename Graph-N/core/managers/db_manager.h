@@ -43,10 +43,15 @@ public:
     void wf_load_blob(const std::string& uuid, blob::Blob& blob, bool& load_saved);
     void wf_update_blob(const std::string& uuid, blob::Blob&& blob, bool draft, tools::dt time = {});
 
+    void history_add(ExecTask& task);
+    std::vector<ExecTask> history_load_all();
+    void history_delete(const std::string& prompt_id);
+    void history_search(const std::string& prompt, std::list<std::string>& wfs);
+
 private:
     enum class WriteType
     {
-        Exception, AppOption, Item, WfMeta, WfBlob, WfPurge
+        Exception, AppOption, Item, WfMeta, WfBlob, WfPurge, HistoryAdd, HistoryDel
     };
     struct ExcepData final
     {
@@ -68,10 +73,17 @@ private:
         bool draft;
         tools::dt time;
     };
+    struct HistoryData final
+    {
+        blob::Blob blob;
+        std::string prompt_id;
+        std::string flow_data;
+        std::string search_data;
+    };
     struct WriteData final
     {
         WriteType type;
-        std::variant<ExcepData, DbAppOptionData, ItemData, WfData, WfBlob> data;
+        std::variant<ExcepData, DbAppOptionData, ItemData, WfData, WfBlob, HistoryData> data;
     };
 
 private:
@@ -85,6 +97,8 @@ private:
     void write_wf_blob(SQLite::Database& db, const WfBlob* data);
     void delete_wf_draft(SQLite::Database& db, const WfBlob* data);
     void purge_wf(SQLite::Database& db);
+    void add_history(SQLite::Database& db, const HistoryData* data);
+    void del_history(SQLite::Database& db, const HistoryData* data);
 
 private:
     std::thread m_th;

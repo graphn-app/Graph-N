@@ -23,6 +23,9 @@ inline constexpr auto gdb_val_saved = "saved";
 inline constexpr auto gdb_val_saved_at = "saved_at";
 inline constexpr auto gdb_val_draft = "draft";
 inline constexpr auto gdb_val_draft_at = "draft_at";
+inline constexpr auto gdb_val_flow = "flow";
+inline constexpr auto gdb_val_prompt_id = "prompt_id";
+inline constexpr auto gdb_val_data = "data";
 
 inline constexpr auto gdb_valname_app_ver = "app_ver";
 inline constexpr auto gdb_valname_last_run = "last_run";
@@ -32,6 +35,8 @@ inline constexpr auto gdb_tbl_err = "ERRORS";
 inline constexpr auto gdb_tbl_opt = "SETTINGS";
 inline constexpr auto gdb_tbl_items = "ITEMPROPS";
 inline constexpr auto gdb_tbl_wfs = "WORKFLOWS";
+inline constexpr auto gdb_tbl_history = "HISTORY";
+inline constexpr auto gdb_tbl_history_search = "HISTORY_SEARCH";
 
 /*
 _______________________________________________________________________________________________________________________________________________________________
@@ -76,6 +81,22 @@ _______________|----------------------------------------------------------------
                | int       | str           | str             | int            | time_t             | blob           | time_t    | blob            | time_t
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
                | prim      | WF id as uuid | name (caption)  | flag to purge  | create/update time | approved state | saved time | autosaved copy | draft saved time
+_______________________________________________________________________________________________________________________________________________________________________
+
+_______________________________________________________________________________________________________________________________________________________________________
+HISTORY:       | id       | prompt_id       | flow             | data
+_______________|--------------------------------------------------------------------------------------------------------------------------------------------------------
+               | int      | str             | blob             | str
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+               | prim     | task prompt id  | serialized flow  | prompt data in json
+_______________________________________________________________________________________________________________________________________________________________________
+
+_______________________________________________________________________________________________________________________________________________________________________
+HISTORY_SEARCH:   | id                      | data
+__________________|--------------------------------------------------------------------------------------------------------------------------------------------------------
+                  | int                     | str
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                  | link to HISTORY.id      | search data
 _______________________________________________________________________________________________________________________________________________________________________
 
 */
@@ -261,6 +282,23 @@ bool DbManager::init()
 			   )"), gdb_tbl_wfs, gdb_val_id,
                     gdb_val_uuid, gdb_val_name, gdb_val_pending_delete, gdb_val_when,
                     gdb_val_saved, gdb_val_saved_at, gdb_val_draft, gdb_val_draft_at));
+
+        m_db->exec(fmt::format(FMT_STRING(R"(
+					CREATE TABLE IF NOT EXISTS {} (
+						{} INTEGER PRIMARY KEY AUTOINCREMENT,
+                        {} TEXT,
+						{} BLOB,
+                        {} TEXT
+					);
+			   )"), gdb_tbl_history, gdb_val_id,
+                    gdb_val_prompt_id, gdb_val_flow, gdb_val_data));
+
+        m_db->exec(fmt::format(FMT_STRING(R"(
+					CREATE VIRTUAL TABLE IF NOT EXISTS {} USING fts5 (
+						{}
+					);
+			   )"), gdb_tbl_history_search, 
+                    gdb_val_data));
 
         transaction.commit();
 
@@ -629,6 +667,245 @@ void DbManager::wf_update_blob(const std::string& uuid, blob::Blob&& blob, bool 
         m_cv.notify_all();
 }
 
+void DbManager::history_add(ExecTask& task)
+{
+    HistoryData h;
+    h.blob = task.flow.copy();
+    h.prompt_id = task.prompt_id;
+    h.search_data = std::move(task.search_data);
+
+    u_json j;
+    j["prompt_id"] = task.prompt_id;
+    j["run_no"] = task.run_no;
+    j["err_message"] = task.err_message;
+    j["err_full"] = task.err_full;
+    j["time_start"] = task.time_start;
+    j["time_start_s"] = task.time_start_s;
+    j["time_end"] = task.time_end;
+    j["time_ms"] = task.time_ms;
+
+    switch (task.result)
+    {
+    case TaskResult::Failed:
+        j["result"] = "failed";
+        break;
+    case TaskResult::Interrupted:
+        j["result"] = "interrupted";
+        break;
+    case TaskResult::Success:
+        j["result"] = "success";
+        break;
+    default:
+        j["result"] = "";
+    }
+
+    auto jouts = u_json::array();
+    for (auto& o : task.outputs)
+    {
+        u_json jout;
+        switch (o.type)
+        {
+        case ExecTask::OutputType::Audio:
+            jout["type"] = "audio";
+            break;
+        case ExecTask::OutputType::Text:
+            jout["type"] = "text";
+            break;
+        case ExecTask::OutputType::Gif:
+            jout["type"] = "gif";
+            break;
+        case ExecTask::OutputType::Image:
+            jout["type"] = "image";
+            break;
+        default:
+            jout["type"] = "";
+        }
+
+        jout["filename"] = o.filename;
+        jout["filetype"] = o.filetype;
+        jout["subfolder"] = o.subfolder;
+        jout["format"] = o.format;
+        jout["texts"] = o.text;
+
+        jouts.push_back(std::move(jout));
+    }
+
+    j["assets"] = std::move(jouts);
+    h.flow_data = j.dump();
+
+    WriteData data;
+    data.data = std::move(h);
+    data.type = WriteType::HistoryAdd;
+
+    {
+        std::lock_guard<std::mutex> lock(m_lock);
+        if (!m_transaction_flag)
+            m_write_queue.push(std::move(data));
+        else
+            m_transaction_queue.push_back(std::move(data));
+    }
+    if (!m_transaction_flag)
+        m_cv.notify_all();
+}
+
+std::vector<ExecTask> DbManager::history_load_all()
+{
+    try
+    {
+        SQLite::Statement query(*m_db,
+            fmt::format(FMT_COMPILE(R"(
+                        SELECT {}, {}, {}
+                        FROM {}
+                )"),
+                gdb_val_prompt_id, gdb_val_flow, gdb_val_data,
+                gdb_tbl_history));
+
+        const auto temp = fs::get_temp_directory_path();
+        const bool temp_ok = tools::path::make_folder(temp);    
+
+        std::vector<ExecTask> ret;
+        ret.reserve(500);
+        while (query.executeStep())
+        {
+            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() || query.getColumn(2).isNull())
+                continue;
+
+            ExecTask task;
+            task.loaded_from_db = true;
+            task.group_id = base::GlobalID::random();
+            task.task_id = base::GlobalID::random();
+
+            try
+            {
+                const auto data = query.getColumn(2).getString();
+                const auto j = u_json::parse(data);
+                task.prompt_id = j["prompt_id"];
+                task.run_no = j["run_no"];
+                task.err_message = j["err_message"];
+                task.err_full = j["err_full"];
+                task.time_start = j["time_start"];
+                task.time_start_s = j["time_start_s"];
+                task.time_end = j["time_end"];
+                task.time_ms = j["time_ms"];
+
+                const std::string result = j["result"];                
+                if (result == "interrupted") task.result = TaskResult::Interrupted;
+                else if (result == "success") task.result = TaskResult::Success;
+                else task.result = TaskResult::Failed;
+
+                auto& jassets = j["assets"];
+                for (auto& jitem : jassets)
+                {
+                    ExecTask::Output o;
+                    const std::string type = jitem["type"];
+                    if (type == "audio") o.type = ExecTask::OutputType::Audio;
+                    else if (type == "text") o.type = ExecTask::OutputType::Text;
+                    else if (type == "gif") o.type = ExecTask::OutputType::Gif;
+                    else if (type == "image") o.type = ExecTask::OutputType::Image;
+                    else o.type = ExecTask::OutputType::Unknown;
+
+                    o.filename = jitem["filename"];
+                    o.filetype = jitem["filetype"];
+                    o.subfolder = jitem["subfolder"];
+                    o.format = jitem["format"];
+                    o.id = base::GlobalID::random();
+
+                    auto& jtexts = jitem["texts"];
+                    o.text = jtexts.get<std::string>();
+
+                    if (temp_ok && !o.filename.empty())
+                    {
+                        const auto filename = tools::str::generate_uuid_v4() + std::filesystem::path(o.filename).extension().u8string();
+                        o.binary_path = (temp / filename).u8string();
+                    }
+
+                    task.outputs.push_back(std::move(o));
+                }
+            }
+            catch (const std::exception& ex)
+            {
+                const auto prompt_id = query.getColumn(0).getString();
+                LogExcep(ExcepCategory::SQLite, "Failed to parse wf " << prompt_id << ": err " << ex.what());
+                continue;
+            }
+
+            auto blob_len = query.getColumn(1).getBytes();
+            const void* ptr = query.getColumn(1).getBlob();
+            task.flow = blob::Blob(ptr, blob_len);
+            
+            ret.push_back(std::move(task));
+        }
+
+        Log("Loaded " << ret.size() << " workflows");
+
+        const auto sort_comp = [](const mngr::ExecTask& left, const mngr::ExecTask& right)
+        {
+            if (0 == left.time_start) return false;
+            if (0 == right.time_start) return true;
+            return left.time_start > right.time_start;
+        };
+        std::sort(ret.begin(), ret.end(), sort_comp);
+        return ret;
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::SQLite, "SQLite load all history " << LOG_EXP(ex));
+    }
+    return {};
+}
+
+void DbManager::history_delete(const std::string& prompt_id)
+{
+    HistoryData h;
+    h.prompt_id = prompt_id;
+
+    WriteData data;
+    data.data = std::move(h);
+    data.type = WriteType::HistoryDel;
+
+    {
+        std::lock_guard<std::mutex> lock(m_lock);
+        if (!m_transaction_flag)
+            m_write_queue.push(std::move(data));
+        else
+            m_transaction_queue.push_back(std::move(data));
+    }
+    if (!m_transaction_flag)
+        m_cv.notify_all();
+}
+
+void DbManager::history_search(const std::string& prompt, std::list<std::string>& wfs)
+{
+    try
+    {
+        SQLite::Statement query(*m_db,
+            fmt::format(FMT_COMPILE(R"(
+                SELECT {0}.{1}, {0}.{2}
+                FROM {0}
+                JOIN {3} ON {0}.{1} = {3}.rowid
+                WHERE {3} MATCH ?;
+            )"),
+                gdb_tbl_history, gdb_val_id, gdb_val_prompt_id, gdb_tbl_history_search));
+
+        query.bindNoCopy(1, prompt);
+
+        while (query.executeStep())
+        {
+            if (query.getColumn(0).isNull() || query.getColumn(1).isNull())
+                continue;
+
+            const auto prompt_id = query.getColumn(1).getString();
+            wfs.push_back(std::move(prompt_id));
+        }
+
+        Log("Search prompt '" << prompt << "', found wfs: " << wfs.size());
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::SQLite, "SQLite history search err " << LOG_EXP(ex));
+    }
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 /////////// backup thread                   //////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////
@@ -891,6 +1168,93 @@ void DbManager::purge_wf(SQLite::Database& db)
     }
 }
 
+void DbManager::add_history(SQLite::Database& db, const HistoryData* data)
+{
+    try
+    {
+        SQLite::Statement query1(db,
+            fmt::format(FMT_STRING(R"(
+                    INSERT INTO {}
+                                ({}, {}, {})
+                        VALUES  (?,  ?,  ?)
+                )"),
+                gdb_tbl_history,
+                gdb_val_prompt_id, gdb_val_flow, gdb_val_data));
+
+        query1.bindNoCopy(1, data->prompt_id);
+        query1.bindNoCopy(2, cast::to_void(data->blob->data()), cast::to_i32(data->blob->size()));
+        query1.bindNoCopy(3, data->flow_data);
+        query1.exec();
+
+        const int64_t last_id = db.getLastInsertRowid();
+
+        SQLite::Statement query2(db,
+            fmt::format(FMT_STRING(R"(
+                    INSERT INTO {}
+                                (rowid, {})
+                        VALUES  (?,  ?)
+                )"),
+                gdb_tbl_history_search,
+                gdb_val_data));
+
+        query2.bind(1, last_id);
+        query2.bindNoCopy(2, data->search_data);
+        query2.exec();
+        Log("History wf " << data->prompt_id << " saved");
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_EXP(ex));
+    }
+}
+
+void DbManager::del_history(SQLite::Database& db, const HistoryData* data)
+{
+    try
+    {
+        SQLite::Statement query1(db,
+            fmt::format(FMT_COMPILE(R"(
+                SELECT {}
+                FROM {}
+                WHERE {} = ?
+            )"),
+                gdb_val_id, gdb_tbl_history, gdb_val_prompt_id));
+
+        query1.bindNoCopy(1, data->prompt_id);
+
+        if (query1.executeStep() && !query1.getColumn(0).isNull())
+        {
+            const auto task_id = query1.getColumn(0).getInt64();
+
+            SQLite::Statement query2(db,
+                fmt::format(FMT_COMPILE(R"(
+                DELETE FROM {}
+                WHERE rowid = ?
+            )"),
+                    gdb_tbl_history_search));
+
+            query2.bind(1, task_id);
+            query2.exec();
+
+            SQLite::Statement query3(db,
+                fmt::format(FMT_COMPILE(R"(
+                DELETE FROM {}
+                WHERE {} = ?
+            )"), 
+                    gdb_tbl_history, gdb_val_id));
+
+            query3.bind(1, task_id);
+            query3.exec();
+
+            Log("Wf " << data->prompt_id << " deleted");
+        }
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogExcep(ExcepCategory::SQLite, "SQLite history delete err " << LOG_EXP(ex));
+    }
+}
+
 void DbManager::write_thread(std::filesystem::path db_path)
 {
     constexpr const auto wait_period = 5s;
@@ -952,6 +1316,12 @@ void DbManager::write_thread(std::filesystem::path db_path)
                     break;
                 case WriteType::WfPurge:
                     purge_wf(db);
+                    break;
+                case WriteType::HistoryAdd:
+                    add_history(db, std::get_if<HistoryData>(&data.data));
+                    break;
+                case WriteType::HistoryDel:
+                    del_history(db, std::get_if<HistoryData>(&data.data));
                     break;
                 default:
                     LogError(ExcepCategory::Logic, "Unhandled data type to write: " << cast::to_i32(data.type));
