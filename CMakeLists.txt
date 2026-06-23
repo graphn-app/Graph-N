@@ -10,7 +10,7 @@ FetchContent_Declare(
   URL https://github.com/google/googletest/archive/refs/heads/main.zip
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
-# Force shared CRT for Windows (избегаем конфликтов runtime библиотек)
+# Force shared CRT for Windows
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 enable_testing()
@@ -39,12 +39,13 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
 # --- SQLite C Library ---
 add_library(sqlite3 STATIC "sqlite/sqlite3.c")
 target_include_directories(sqlite3 PUBLIC "sqlite")
+target_compile_definitions(sqlite3 PRIVATE SQLITE_ENABLE_FTS5)
 
 # Suppress warnings for sqlite3
 if(MSVC)
     target_compile_options(sqlite3 PRIVATE /W0)
 else()
-    target_compile_options(sqlite3 PRIVATE -w)	
+    target_compile_options(sqlite3 PRIVATE -w)
 endif()
 
 if(UNIX)
@@ -64,7 +65,7 @@ target_link_libraries(SQLiteCpp PUBLIC sqlite3)
 if(MSVC)
     target_compile_options(SQLiteCpp PRIVATE /W0)
 else()
-    target_compile_options(SQLiteCpp PRIVATE -w)	
+    target_compile_options(SQLiteCpp PRIVATE -w)
 endif()
 
 # ------------------------------------------------------------------------------
@@ -93,7 +94,7 @@ set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
 
 set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui.cpp
-	$<$<CONFIG:Debug>:${IMGUI_DIR}/imgui_demo.cpp>
+    $<$<CONFIG:Debug>:${IMGUI_DIR}/imgui_demo.cpp>
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
@@ -101,14 +102,14 @@ set(IMGUI_SOURCES
 
 # ImGui backend
 if(WIN32)
-    # Windows: DX11 и Win32
+    # Windows: DX11 and Win32
     list(APPEND IMGUI_SOURCES
         ${IMGUI_DIR}/backends/imgui_impl_win32.cpp
         ${IMGUI_DIR}/backends/imgui_impl_dx11.cpp
     )
     add_definitions(-DIMGUI_IMPL_WIN32_DISABLE_GAMEPAD) # suppress XInput
 else()
-    # Unix: GLFW и OpenGL3
+    # Unix: GLFW and OpenGL3
     list(APPEND IMGUI_SOURCES
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
         ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
@@ -119,8 +120,8 @@ add_library(ImGuiLib STATIC ${IMGUI_SOURCES})
 
 # Publicly define math operators so it propagates to NodeEditor and Graph-N
 target_compile_definitions(ImGuiLib PUBLIC 
-	IMGUI_DEFINE_MATH_OPERATORS
-	IMGUI_USE_WCHAR32)
+    IMGUI_DEFINE_MATH_OPERATORS
+    IMGUI_USE_WCHAR32)
 
 target_include_directories(ImGuiLib PUBLIC 
     ${IMGUI_DIR} 
@@ -135,7 +136,7 @@ endif()
 if(MSVC)
     target_compile_options(ImGuiLib PRIVATE /W0)
 else()
-    target_compile_options(ImGuiLib PRIVATE -w)	
+    target_compile_options(ImGuiLib PRIVATE -w)
 endif()
 
 # ------------------------------------------------------------------------------
@@ -163,13 +164,34 @@ target_link_libraries(NodeEditorLib PUBLIC ImGuiLib)
 if(MSVC)
     target_compile_options(NodeEditorLib PRIVATE /W0)
 else()
-    target_compile_options(NodeEditorLib PRIVATE -w)	
+    target_compile_options(NodeEditorLib PRIVATE -w)
 endif()
 
 # ------------------------------------------------------------------------------
 # boost - beast & asio
 # ------------------------------------------------------------------------------
 set(BOOST_ROOT "${CMAKE_SOURCE_DIR}/boost")
+
+# ------------------------------------------------------------------------------
+# miniaudio
+# ------------------------------------------------------------------------------
+set(MINIAUDIO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/miniaudio")
+
+set(MINIAUDIO_SOURCES
+    "${MINIAUDIO_DIR}/miniaudio.c"
+)
+
+add_library(MiniAudioLib STATIC ${MINIAUDIO_SOURCES})
+
+target_include_directories(MiniAudioLib PUBLIC 
+    "${MINIAUDIO_DIR}"
+)
+
+if(MSVC)
+    target_compile_options(MiniAudioLib PRIVATE /W0)
+else()
+    target_compile_options(MiniAudioLib PRIVATE -w)
+endif()
 
 # ------------------------------------------------------------------------------
 # RelWithDebugInfo
@@ -211,7 +233,7 @@ target_precompile_headers(Graph-N PRIVATE "Graph-N/pch.h")
 if(MSVC)
     # Force main() entry point even for GUI subsystem (fixes linker error in Release)
     target_link_options(Graph-N PRIVATE "/ENTRY:mainCRTStartup")
-	target_link_options(Graph-N PRIVATE "/IGNORE:4099")
+    target_link_options(Graph-N PRIVATE "/IGNORE:4099")
 
     # STRICT MODE: Warnings as Errors (/WX), High Warning Level (/W4)
     target_compile_options(Graph-N PRIVATE /W4 /WX /utf-8)
@@ -225,25 +247,26 @@ target_compile_definitions(Graph-N PRIVATE
     _CRT_SECURE_NO_WARNINGS
     _CRT_NON_CONFORMING_SWPRINTFS
     IMGUI_USE_WCHAR32
-	BOOST_ASIO_NO_LIB
-	_WIN32_WINNT=0x0A00
-	WIN32_LEAN_AND_MEAN
-	NOMINMAX
+    BOOST_ASIO_NO_LIB
+    _WIN32_WINNT=0x0A00
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
 )
 
 # --- Include Directories ---
 # SYSTEM flag tells compiler to ignore warnings in these headers
 target_include_directories(Graph-N SYSTEM PRIVATE
-	"Graph-N"
+    "Graph-N"
     "nlohmann/include"
     "stb"
     "cpp-httplib"
-	"${BOOST_ROOT}"
+    "${BOOST_ROOT}"
     "${CMAKE_CURRENT_SOURCE_DIR}/SQLiteCpp/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/sqlite"
     "${NODE_EDITOR_DIR}"
     "${IMGUI_DIR}" 
     "${IMGUI_DIR}/backends"
+    "${MINIAUDIO_DIR}"
 )
 
 target_include_directories(Graph-N PRIVATE "Graph-N")
@@ -255,9 +278,10 @@ if(WIN32)
         NodeEditorLib
         SQLiteCpp
         sqlite3
-		fmt::fmt
-		Shell32
-		wbemuuid
+        MiniAudioLib
+        fmt::fmt
+        Shell32
+        wbemuuid
     )
 else()
     target_link_libraries(Graph-N PRIVATE
@@ -265,8 +289,9 @@ else()
         NodeEditorLib
         SQLiteCpp
         sqlite3
+        MiniAudioLib
         opengl32
-		fmt::fmt
+        fmt::fmt
     )
 endif()
 
@@ -309,8 +334,8 @@ endif()
 # --- Include Directories ---
 # SYSTEM flag tells compiler to ignore warnings in these headers
 target_include_directories(Graph-N_MaskEditor SYSTEM PRIVATE
-	"Graph-N_MaskEditor"
-	"WebView"
+    "Graph-N_MaskEditor"
+    "WebView"
     "cpp-httplib"
     "nlohmann/include"
 )
@@ -318,9 +343,9 @@ target_include_directories(Graph-N_MaskEditor SYSTEM PRIVATE
 # --- Linking ---
 if(WIN32)
     target_link_libraries(Graph-N_MaskEditor PRIVATE
-		fmt::fmt
-		"${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_MaskEditor/res/WebView2Loader.dll.lib"
-		shlwapi
+        fmt::fmt
+        "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_MaskEditor/res/WebView2Loader.dll.lib"
+        shlwapi
     )
 endif()
 
@@ -398,40 +423,42 @@ if(MSVC)
 endif()
 
 target_include_directories(UnitTests SYSTEM PRIVATE
-	"Graph-N"
+    "Graph-N"
     "nlohmann/include"
     "stb"
     "cpp-httplib"
-	"${BOOST_ROOT}"
+    "${BOOST_ROOT}"
     "${CMAKE_CURRENT_SOURCE_DIR}/SQLiteCpp/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/sqlite"
     "${NODE_EDITOR_DIR}"
     "${IMGUI_DIR}" 
     "${IMGUI_DIR}/backends"
+    "${MINIAUDIO_DIR}"
 )
 
 target_compile_definitions(UnitTests PRIVATE 
     _CRT_SECURE_NO_WARNINGS
     _CRT_NON_CONFORMING_SWPRINTFS
     IMGUI_USE_WCHAR32
-	BOOST_ASIO_NO_LIB
-	_WIN32_WINNT=0x0A00
-	WIN32_LEAN_AND_MEAN
-	NOMINMAX
-	SKIP_DEBUG_CATCH
+    BOOST_ASIO_NO_LIB
+    _WIN32_WINNT=0x0A00
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+    SKIP_DEBUG_CATCH
 )
 
 target_precompile_headers(UnitTests PRIVATE "Graph-N/pch.h")
 
 # Link your app's dependencies PLUS Google Test
 target_link_libraries(UnitTests PRIVATE 
-	ImGuiLib
-	NodeEditorLib
-	SQLiteCpp
-	sqlite3
-	fmt::fmt
-	Shell32
-	wbemuuid
+    ImGuiLib
+    NodeEditorLib
+    SQLiteCpp
+    sqlite3
+    MiniAudioLib
+    fmt::fmt
+    Shell32
+    wbemuuid
     gtest
     gtest_main
 )

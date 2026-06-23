@@ -1,7 +1,7 @@
 
 #pragma once
 
-namespace platform
+namespace global
 {
 
 using DragAndDropCallback = std::function<void(std::list<std::filesystem::path>&&)>;
@@ -56,4 +56,4 @@ private:
     ImFont* m_font_big_icons = nullptr;
 };
 
-} // namespace platform
+} // namespace global

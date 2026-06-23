@@ -6,6 +6,7 @@ DB_Browser/
 fmt/
 googletest/
 boost/
+miniaudio/
 
 bin/
 lib/

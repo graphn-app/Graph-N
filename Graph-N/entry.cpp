@@ -11,11 +11,13 @@
 #endif
 
 #include "app_instance.h"
+#include "ui/helpers/audio_control.h"
 
 int32_t do_main(std::atomic_bool& request_focus)
 {
-    std::unique_ptr<platform::MainRoutine> main_app;
-    std::unique_ptr<platform::Textures> textures;
+    std::unique_ptr<global::MainRoutine> main_app;
+    std::unique_ptr<global::Textures> textures;
+    std::unique_ptr<global::AudioControl> audio;
 
 #ifdef _WIN32
     main_app = std::make_unique<platform::MainRoutine_Win32>();
@@ -39,12 +41,17 @@ int32_t do_main(std::atomic_bool& request_focus)
     textures->set_main_routine(main_app.get());
     g::pTextures = textures.get();
 
+    audio = std::make_unique<global::AudioControl>();
+    audio->init();
+    g::pAudioControl = audio.get();
+
+
     GraphN graphn;
     g::pGraphN = &graphn;
     if (!g::pGraphN->init_graphn())
         return 1;
 
-    platform::MainRoutine::flow_callback callback = [](bool DoExit)
+    global::MainRoutine::flow_callback callback = [](bool DoExit)
     {
         const bool res = g::pGraphN->flow();
         if (!res || DoExit)
@@ -60,6 +67,8 @@ int32_t do_main(std::atomic_bool& request_focus)
         ret = g::pGraphN->override_exit_code();
     LogS("App exit code: " << ret);
 
+    g::pAudioControl->cleanup_all();
+    g::pAudioControl = nullptr;
     g::pTextures->cleanup_all();
     g::pTextures = nullptr;
     g::pMain = nullptr;

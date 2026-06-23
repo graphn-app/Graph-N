@@ -21,10 +21,12 @@
 
 namespace g
 {
-platform::MainRoutine* pMain = nullptr;
-platform::Textures* pTextures = nullptr;
+global::MainRoutine* pMain = nullptr;
+global::Textures* pTextures = nullptr;
+global::AudioControl* pAudioControl = nullptr;
 GraphN* pGraphN = nullptr;
 ui::GraphN_Flow* pFlow = nullptr;
+
 mngr::SettingsManager* pOptsManager = nullptr;
 mngr::DbManager* pDbManager = nullptr;
 mngr::NodesManager* pNodesManager = nullptr;

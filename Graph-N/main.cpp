@@ -1,7 +1,7 @@
 
 #include "main.h"
 
-namespace platform
+namespace global
 {
 
 MainRoutine::~MainRoutine() = default;
@@ -150,4 +150,4 @@ void MainRoutine::prepare_fonts()
     Log("Fonts prepared");
 }
 
-} // namespace platform
+} // namespace global

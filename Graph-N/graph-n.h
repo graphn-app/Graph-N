@@ -2,10 +2,11 @@
 #pragma once
 #include "core/listeners.h"
 
-namespace platform
+namespace global
 {
 class MainRoutine;
 class Textures;
+class AudioControl;
 }
 
 namespace mngr
@@ -92,8 +93,9 @@ private:
 
 namespace g
 {
-extern platform::MainRoutine* pMain;
-extern platform::Textures* pTextures;
+extern global::MainRoutine* pMain;
+extern global::Textures* pTextures;
+extern global::AudioControl* pAudioControl;
 
 extern GraphN* pGraphN;
 extern ui::GraphN_Flow* pFlow;
