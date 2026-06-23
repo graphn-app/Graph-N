@@ -7,6 +7,7 @@ namespace global
 class MainRoutine;
 class Textures;
 class AudioControl;
+class VideoControl;
 }
 
 namespace mngr
@@ -96,6 +97,7 @@ namespace g
 extern global::MainRoutine* pMain;
 extern global::Textures* pTextures;
 extern global::AudioControl* pAudioControl;
+extern global::VideoControl* pVideoControl;
 
 extern GraphN* pGraphN;
 extern ui::GraphN_Flow* pFlow;

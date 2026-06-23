@@ -24,6 +24,8 @@ namespace g
 global::MainRoutine* pMain = nullptr;
 global::Textures* pTextures = nullptr;
 global::AudioControl* pAudioControl = nullptr;
+global::VideoControl* pVideoControl = nullptr;
+
 GraphN* pGraphN = nullptr;
 ui::GraphN_Flow* pFlow = nullptr;
 

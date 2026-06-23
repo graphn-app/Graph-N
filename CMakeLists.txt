@@ -282,6 +282,7 @@ if(WIN32)
         fmt::fmt
         Shell32
         wbemuuid
+        mfplat mfreadwrite mfuuid propsys
     )
 else()
     target_link_libraries(Graph-N PRIVATE
@@ -470,6 +471,7 @@ if(WIN32)
         d3d11 
         d3dcompiler 
         dwmapi
+        mfplat mfreadwrite mfuuid propsys
     )
 endif()
 

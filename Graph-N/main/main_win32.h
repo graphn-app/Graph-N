@@ -14,6 +14,7 @@ using UserMsgCallback = std::function<void(WPARAM, LPARAM)>;
 class MainRoutine_Win32 final : public global::MainRoutine
 {
     friend class Textures_Win32;
+    friend class VideoControl_Win32;
 
 public:
     MainRoutine_Win32();
