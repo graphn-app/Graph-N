@@ -10,6 +10,7 @@
 #include "core/managers/workflows_manager.h"
 #include "core/managers/models_manager.h"
 #include "core/managers/history_manager.h"
+#include "core/managers/queue_manager.h"
 #if defined _WIN32
 #include "core/managers/comfyui_manager_win32.h"
 #elif defined __linux__
@@ -37,6 +38,8 @@ mngr::WfsManager* pWfsManager = nullptr;
 mngr::ModelsManager* pModelsManager = nullptr;
 mngr::ComfyUIManager* pComfyUIManager = nullptr;
 mngr::HistoryManager* pHistoryManager = nullptr;
+mngr::QueueManager* pQueueManager = nullptr;
+
 std::atomic_bool app_global_stop_all_threads = false;
 
 void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line)
@@ -91,6 +94,9 @@ bool GraphN::init_graphn()
 #endif
     g::pComfyUIManager = (mngr::ComfyUIManager*)m_managers.back().get();
 
+    m_managers.push_back(std::make_unique<mngr::QueueManager>());
+    g::pQueueManager = (mngr::QueueManager*)m_managers.back().get();
+
     bool success = true;
     std::for_each(m_managers.begin(), m_managers.end(), [&success](std::unique_ptr<mngr::Manager>& manager)
     {
@@ -128,6 +134,7 @@ void GraphN::exit_graphn()
     m_graphn_flow.reset();
 
     g::pFlow = nullptr;
+    g::pQueueManager = nullptr;
     g::pNodesManager = nullptr;
     g::pOptsManager = nullptr;
     g::pDbManager = nullptr;

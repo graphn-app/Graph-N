@@ -31,6 +31,7 @@ class PanelTemplates;
 class PanelServerLogs;
 class PanelNotes;
 class PanelModels;
+class PanelQueue;
 class PanelTextEditor;
 class PanelMarkdownPreview;
 
@@ -59,6 +60,7 @@ enum ViewDialogs : uint64_t
     ViewPanelNotes              = 1ULL << 12,
     ViewPanelTextEditor         = 1ULL << 13,
     ViewPanelMarkdownPreview    = 1ULL << 14,
+    ViewPanelQueue              = 1ULL << 27,
 
     // debug
     ViewDebugMetrics            = 1ULL << 15,
@@ -79,12 +81,12 @@ enum ViewDialogs : uint64_t
 
     ViewSyncProjects            = 1ULL << 26,
 
-    _ViewNextAvailable          = 1ULL << 27,   // UPDATE ON NEW DIALOG
+    _ViewNextAvailable          = 1ULL << 28,   // UPDATE ON NEW DIALOG
     _ViewLastAvailable          = 1ULL << 63,
 
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWf | ViewPanelWfList | ViewPanelModels |
-                                  ViewPanelTemplates | ViewPanelOutput | ViewPanelNotes | ViewPanelTextEditor | ViewPanelMarkdownPreview,
+                                  ViewPanelTemplates | ViewPanelOutput | ViewPanelNotes | ViewPanelTextEditor | ViewPanelMarkdownPreview | ViewPanelQueue,
     ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector,
     ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewSyncProjects | ViewAllMenuBar | ViewPanelWf,
 };
@@ -188,6 +190,7 @@ private:
     void show_panel_text_editor();
     void show_panel_wf_list();
     void show_panel_models();
+    void show_panel_queue();
     void show_panel_output();
     void show_panel_templates();
     void show_panel_notes();
@@ -249,6 +252,7 @@ private:
     //std::unique_ptr<PanelNotes> m_panel_notes;
     std::unique_ptr<PanelModels> m_panel_models;
     std::unique_ptr<PanelWfList> m_panel_wf_list;
+    std::unique_ptr<PanelQueue> m_panel_queue;
 
     PanelWorkflow* m_wf_focused = nullptr;
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;

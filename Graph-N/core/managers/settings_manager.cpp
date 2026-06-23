@@ -59,6 +59,10 @@ bool SettingsManager::init()
     m_wf_link_thickness =                             { "link_thickness",           int64_t(2) };
     m_wf_imported =                                   { "imported_wfs",             std::string("") };
 
+    // queue
+    m_queue_favs =                                    { "queue_favorited",          std::string("") };
+    m_queue_history_num =                             { "queue_history_num",        int64_t(50) };
+
     // logs
     m_log_db_backup_num =                             { "db_backup_save_num",       int64_t(3) };
     m_log_app_log_num =                               { "app_log_save_num",         int64_t(3) };
@@ -218,6 +222,8 @@ bool SettingsManager::init()
     values.push_back(&m_wf_link_thickness);
     values.push_back(&m_wf_snap_nodes);
     values.push_back(&m_wf_imported);
+    values.push_back(&m_queue_favs);
+    values.push_back(&m_queue_history_num);
     values.push_back(&m_stat_as_progress);
     values.push_back(&m_stat_enabled_disks);
 
@@ -454,6 +460,53 @@ void SettingsManager::wf_imported_save(const std::string& project)
     {
         LogWarn("Failed to parse imported projects: " << ex.what());
     }
+}
+
+//////////////////////////////////////////////////////////////////////
+////////       QUEUE                    /////////////////////////////
+//////////////////////////////////////////////////////////////////////
+
+std::set<std::string> SettingsManager::queue_favorited_load() const
+{
+    const auto& jfavs = *std::get_if<std::string>(&m_queue_favs.value);
+    if (jfavs.empty())
+        return {};
+
+    std::set<std::string> favs;
+    try
+    {
+        const auto j = u_json::parse(jfavs);
+        if (j.contains("favorited") && j["favorited"].is_array())
+        {
+            favs = j["favorited"].get<std::set<std::string>>();
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        LogWarn("Failed to parse favorited outputs: " << ex.what());
+    }
+
+    return favs;
+}
+
+std::set<std::string> SettingsManager::queue_favorited_save(const std::string& prompt_id, bool add)
+{
+    std::set<std::string> all_favs = queue_favorited_load(); 
+    try
+    {
+        if (add && !all_favs.insert(prompt_id).second) return all_favs;
+        if (!add && all_favs.erase(prompt_id) == 0) return all_favs;
+
+        u_json jsave;
+        jsave["favorited"] = all_favs;
+        save_option(m_queue_favs, jsave.dump());
+    }
+    catch (const std::exception& ex)
+    {
+        LogWarn("Failed to parse favorited outputs: " << ex.what());
+    }
+
+    return all_favs;
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -25,6 +25,13 @@ constexpr int32_t HTTP_RESP_TIMEOUT      = 408;
 constexpr int32_t HTTP_RESP_BAD_REQUEST  = 400;
 constexpr int32_t HTTP_RESP_NOT_FOUND    = 404;
 
+constexpr int32_t QUEUE_IMAGE_RECT = 512; // size
+constexpr int32_t QUEUE_AUDIO_RECT = 20; // size
+constexpr int32_t QUEUE_TEXT_RECT = 50; // size
+constexpr int32_t QUEUE_IMAGE_LIFETIME = 30; // seconds
+constexpr int32_t QUEUE_TT_IMAGE_LIFETIME = 1; // seconds
+constexpr int32_t QUEUE_MAX_RUNS = 100; // count
+constexpr int32_t QUEUE_DEAD_TASK = 5 * 60; // seconds
 
 constexpr const char* TEMP_LABEL_COMPLETED      = "Completed tasks";
 
@@ -79,6 +86,8 @@ enum class DlgObj
     PanelModels,
     PanelModels_ItemsList,
     PanelModels_ItemMenu,
+    PanelQueue,
+    PanelQueue_ItemsList,
     PanelTextEditor,
     PanelMarkdownPreview,
 
@@ -115,6 +124,8 @@ constexpr const char* DlgObjID[static_cast<size_t>(DlgObj::_count)] =
     "###BE4E0091-6B9C-447F-B8FB-39DCDE0D6237",                     // PanelModels
     "###51B65039-85B0-4388-B521-BD616B636269",                     // PanelModels_ItemsList
     "###C6287EE2-BC97-4F8D-AE27-B39F59751D10",                     // PanelModels_ItemMenu
+    "###61395CFA-BB2F-4375-B10A-634CC98E970D",                     // PanelQueue
+    "###103105C5-D8D7-497F-8539-B81067A0DB1B",                     // PanelQueue_ItemsList
     "###28677371-A471-4242-AA17-A3830EC4D528",                     // PanelTextEditor
     "###D92D3506-6C6B-4613-BAB2-AEF2B33E81CE",                     // PanelMarkdownPreview
 
@@ -293,6 +304,16 @@ enum class AppColor
     Pin_Bus,
 
     _count
+};
+
+enum class TaskResult
+{
+    None,
+    InProgress,
+    Success,
+    Failed,
+    Interrupted,
+    Lost
 };
 
 enum class DbItemOptionType

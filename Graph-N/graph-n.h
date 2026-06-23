@@ -21,6 +21,7 @@ class WfsManager;
 class ModelsManager;
 class ComfyUIManager;
 class HistoryManager;
+class QueueManager;
 }
 
 namespace ui
@@ -110,6 +111,8 @@ extern mngr::WfsManager* pWfsManager;
 extern mngr::ModelsManager* pModelsManager;
 extern mngr::ComfyUIManager* pComfyUIManager;
 extern mngr::HistoryManager* pHistoryManager;
+extern mngr::QueueManager* pQueueManager;
+
 extern std::atomic_bool app_global_stop_all_threads;
 
 void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line);

@@ -13,6 +13,7 @@
 #include "ui/panels/panel_text_editor.h"
 #include "ui/panels/panel_wf_list.h"
 #include "ui/panels/panel_models.h"
+#include "ui/panels/panel_queue.h"
 #include "ui/panels/panel_notes.h"
 #include "ui/panels/panel_logs.h"
 #include "ui/panels/panel_templates.h"
@@ -24,6 +25,7 @@
 #include "core/managers/models_manager.h"
 #include "core/managers/comfyui_manager.h"
 #include "core/managers/history_manager.h"
+#include "core/managers/queue_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/workflow_serializer_to_json.h"
@@ -116,6 +118,10 @@ bool GraphN_Flow::init()
     m_panel_models->init();
     m_all_dialogs.insert(m_panel_models.get());
 
+    m_panel_queue = std::make_unique<ui::PanelQueue>();
+    m_panel_queue->init();
+    m_all_dialogs.insert(m_panel_queue.get());
+
   //  init_workflow_panels();
 
     // activity bar
@@ -124,6 +130,7 @@ bool GraphN_Flow::init()
     m_activity_bar->register_panels({ // except PanelServerLogs
         DlgObj::PanelNodes,
         DlgObj::PanelModels,
+        DlgObj::PanelQueue,
         DlgObj::PanelNodeInspector,
         DlgObj::PanelWfList,
         DlgObj::PanelTemplates,
@@ -184,6 +191,8 @@ bool GraphN_Flow::is_panel_active(DlgObj panel_obj) const
         return (m_windows & ViewPanelNodes) != 0;
     case DlgObj::PanelModels:
         return (m_windows & ViewPanelModels) != 0;
+    case DlgObj::PanelQueue:
+        return (m_windows & ViewPanelQueue) != 0;
     case DlgObj::PanelNodeInspector:
         return (m_windows & ViewPanelNodeInpector) != 0;
     case DlgObj::PanelWfList:
@@ -215,6 +224,8 @@ const char* GraphN_Flow::get_panel_icon(DlgObj panel_obj) const
         return ICON_LC_BOOK_OPEN;
     case DlgObj::PanelModels:
         return ICON_LC_COMPONENT;
+    case DlgObj::PanelQueue:
+        return ICON_LC_FOOTPRINTS;
     case DlgObj::PanelNodeInspector:
         return ICON_LC_TANGENT;
     case DlgObj::PanelWfList:
@@ -246,6 +257,8 @@ const char* GraphN_Flow::get_panel_name(DlgObj panel_obj) const
         return m_panel_nodes->get_panel_name();
     case DlgObj::PanelModels:
         return m_panel_models->get_panel_name();
+    case DlgObj::PanelQueue:
+        return m_panel_queue->get_panel_name();
     case DlgObj::PanelNodeInspector:
         return m_panel_node_inspector->get_panel_name();
     case DlgObj::PanelWfList:
@@ -276,6 +289,9 @@ void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
         break;
     case DlgObj::PanelModels:
         panel_view = ViewPanelModels;
+        break;
+    case DlgObj::PanelQueue:
+        panel_view = ViewPanelQueue;
         break;
     case DlgObj::PanelNodeInspector:
         panel_view = ViewPanelNodeInpector;
@@ -336,6 +352,9 @@ bool GraphN_Flow::run()
 
     check_connection();
     check_http_reply();
+
+    g::pQueueManager->process();
+
     return true;
 }
 
@@ -654,6 +673,11 @@ void GraphN_Flow::show_menu_bar()
                 Log("Menu: stats panel");
                 on_menu_panel_window(ViewPanelStats);
             }
+            if (ImGui::MenuItem("Queue##PanelsMenuBar", nullptr, (m_windows & ViewPanelQueue)))
+            {
+                Log("Menu: queue panel");
+                on_menu_panel_window(ViewPanelQueue);
+            }
             if (ImGui::MenuItem("Notes##PanelsMenuBar", nullptr, (m_windows & ViewPanelNotes)))
             {
                 Log("Menu: notes panel");
@@ -809,6 +833,10 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
     case DlgObj::PanelModels:
         m_windows &= ~ViewPanelModels;
         Log("Models panel closed");
+        break;
+    case DlgObj::PanelQueue:
+        m_windows &= ~ViewPanelQueue;
+        Log("Queue panel closed");
         break;
     case DlgObj::ActivityBarL:
         m_windows &= ~ViewActivityBarL;
@@ -1424,6 +1452,11 @@ void GraphN_Flow::show_panel_models()
     show_panel(m_panel_models.get(), DlgObj::PanelModels);
 }
 
+void GraphN_Flow::show_panel_queue()
+{
+    show_panel(m_panel_queue.get(), DlgObj::PanelQueue);
+}
+
 void GraphN_Flow::show_panel_output()
 {
     show_panel(m_panel_logs.get(), DlgObj::PanelServerLogs);
@@ -1672,6 +1705,8 @@ void GraphN_Flow::show_panels()
         show_panel_wf_list();
     if (m_windows & ViewPanelModels)
         show_panel_models();
+    if (m_windows & ViewPanelQueue)
+        show_panel_queue();
     if (m_windows & ViewPanelNotes)
         show_panel_notes();
     if (m_windows & ViewPanelOutput)
