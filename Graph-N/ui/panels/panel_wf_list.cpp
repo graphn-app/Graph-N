@@ -161,11 +161,6 @@ DlgCode PanelWfList::show(bool& focused)
     bool opened = true;
     if (begin_panel(opened, focused) && opened)
     {
-        if (!g::pFlow->get_nodes_ready())
-            ImGui::BeginDisabled();
-
-        draw_toolbar();
-
         if (!m_labels_mode && !m_deleted_mode && m_wfs.empty())
         {
             show_empty_panel_descr(
@@ -223,11 +218,23 @@ DlgCode PanelWfList::show(bool& focused)
                 {}
             );
         }
+        else if (!g::pFlow->get_nodes_ready())
+        {
+            show_empty_panel_descr(
+                ICON_LC_INFO " Create, manage, and organize your projects.",
+                {
+                    ICON_LC_UNPLUG,
+                    "Waiting for connection.",
+                    "Projects are unavailable."
+                },
+                {}
+            );
+        }
         else
+        {
+            draw_toolbar();
             show_wfs();
-
-        if (!g::pFlow->get_nodes_ready())
-            ImGui::EndDisabled();
+        }
     }
     return end_panel(opened);
 }
@@ -669,8 +676,11 @@ void PanelWfList::on_add_new_wf(PanelToolbar::Element& /*el*/)
     g::pFlow->wf_create();
 }
 
-void PanelWfList::on_rename_wf(PanelToolbar::Element& /*el*/)
+void PanelWfList::rename_project()
 {
+    if (!g::pFlow->get_nodes_ready())
+        return;
+
     for (auto& item : m_panel_items)
     {
         if (cast::from_ptr<wid>(item.ptr) == m_active)
@@ -681,6 +691,11 @@ void PanelWfList::on_rename_wf(PanelToolbar::Element& /*el*/)
             break;
         }
     }
+}
+
+void PanelWfList::on_rename_wf(PanelToolbar::Element& /*el*/)
+{
+    rename_project();
 }
 
 void PanelWfList::on_pre_rename_wf(PanelToolbar::Element& el)

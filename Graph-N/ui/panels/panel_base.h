@@ -20,9 +20,8 @@ template <typename DataType>
 class PanelBase : public BaseDlgWithData<DataType>
 {
 public:
-    PanelBase(DlgObj obj, const std::string& name, const std::string& id = "", bool need_focus = false)
+    inline PanelBase(DlgObj obj, const std::string& name, const std::string& id = "")
         : BaseDlgWithData(obj)
-        , m_need_focus(need_focus)
     {
         m_id = id.empty() ? DlgObjID[cast::to_szt(obj)] : id;
         if (m_id.find("###") == std::string::npos)
@@ -38,9 +37,10 @@ public:
     inline const char* get_panel_name_full() const { return m_name_full.c_str(); }
     inline const char* get_panel_id() const { return m_id.c_str(); }
 
-    inline void set_focused(bool focused) { m_activate = focused; }
+    inline void set_force_focused(bool focused) { m_grab_focus = focused; }
+    inline bool get_force_focused() const { return m_grab_focus; }
 
-    void mark_dirty(bool dirty)
+    inline void mark_dirty(bool dirty)
     {
         if (dirty == m_dirty)
             return;
@@ -52,9 +52,11 @@ public:
         build_names();
     }
 
+    inline void set_sequential_number(size_t number) { m_sequential_number = number; build_names(); }
+
 protected:
-    void set_name(const std::string& new_name) { m_name = new_name; build_names(); }
-    void set_id(const std::string& new_id)
+    inline void set_name(const std::string& new_name) { m_name = new_name; build_names(); }
+    inline void set_id(const std::string& new_id)
     {
         m_id = new_id;
         if (m_id.find("###") == std::string::npos)
@@ -62,7 +64,7 @@ protected:
         build_names();
     }
 
-    bool begin_panel(bool& opened, bool& focused, bool save_pos = true, bool always_active = false)
+    inline bool begin_panel(bool& opened, bool& focused, bool save_pos = true)
     {
         // m_class.ClassId = cast::to_u32(data()->class_id);
         // ImGui::SetNextWindowClass(&m_class);
@@ -71,19 +73,9 @@ protected:
         if (m_panel_w > 0 && m_panel_w < m_panel_name_w + 60.0f)
             name = &m_name_shortened_name_full;
 
-        m_always_active = always_active;
-        if (m_always_active)
+        if (m_grab_focus)
         {
-            ImGui::PushStyleColor(ImGuiCol_TabHovered, data()->clr_active_hov_wf);
-            ImGui::PushStyleColor(ImGuiCol_TabActive, data()->clr_active_wf);
-            ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, data()->clr_active_wf);
-            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, data()->clr_active_wf);
-            ImGui::PushStyleColor(ImGuiCol_TitleBg, data()->clr_active_wf);
-        }
-
-        if (m_activate)
-        {
-            m_activate = false;
+            m_grab_focus = false;
             ImGui::SetWindowFocus(name->c_str());
         }
 
@@ -94,7 +86,7 @@ protected:
             (save_pos ? ImGuiWindowFlags_None : ImGuiWindowFlags_NoSavedSettings));
         m_panel_w = ImGui::GetWindowWidth();
 
-        if (expanded && m_need_focus)
+        if (expanded)
             focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
         return expanded;
     }
@@ -102,7 +94,7 @@ protected:
     inline DlgCode end_panel(bool opened)
     {
         ImGui::End();
-        ImGui::PopStyleColor(m_always_active ? 6 : 1);
+        ImGui::PopStyleColor();
         return opened ? DlgCode::Progress : DlgCode::Cancel;
     }
 
@@ -117,7 +109,10 @@ protected:
 private:
     inline void build_names()
     {
-        m_name_full = fmt::format(FMT_COMPILE("{} {}{}"), m_icon, m_name, m_id);
+        if (m_sequential_number > 0 && m_sequential_number < 10)
+            m_name_full = fmt::format(FMT_COMPILE("{} [{}]: {}{}"), m_icon, m_sequential_number, m_name, m_id);
+        else
+            m_name_full = fmt::format(FMT_COMPILE("{} {}{}"), m_icon, m_name, m_id);
         m_name_shortened_name_full = fmt::format(FMT_COMPILE("{}{}"), m_icon, m_id);
         m_panel_name_w = ImGui::CalcTextSize(fmt::format(FMT_COMPILE("{} {}"), m_icon, m_name).c_str()).x;
     }
@@ -128,11 +123,10 @@ private:
     std::string m_icon;
     std::string m_name_full;
     std::string m_name_shortened_name_full;
+    size_t m_sequential_number = 0;
     float m_panel_name_w = 0.0f;
     float m_panel_w = 0.0f;
-    bool m_need_focus = false;
-    bool m_always_active = false;
-    bool m_activate = false;
+    bool m_grab_focus = false;
     bool m_dirty = false;
     //  ImGuiWindowClass m_class;
 };

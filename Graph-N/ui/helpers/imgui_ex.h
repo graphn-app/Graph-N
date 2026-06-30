@@ -19,6 +19,7 @@ void Spacing(size_t count);
 
 void Separator(const char* text);
 void Separator(uint32_t color, const char* text = "");
+void Separator(uint32_t sep_color, uint32_t text_color, const char* text);
 void Separator(uint32_t color, float width, const char* text, size_t text_len = 0, float text_width = 0.0f);
 
 void PushDlgTitleStyles(const uint32_t color);

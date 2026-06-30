@@ -259,7 +259,7 @@ void VideoControl_Win32::play(int32_t video_id)
 {
     if (m_video_id != video_id)
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Video must be loaded first");
+        LogInternalLogic("Video must be loaded first");
     }
 
     if (!m_initialized || !m_has_video || m_is_playing.load(std::memory_order_relaxed))
@@ -277,7 +277,7 @@ void VideoControl_Win32::stop(int32_t video_id)
 {
     if (m_video_id != video_id)
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Video must be loaded first");
+        LogInternalLogic("Video must be loaded first");
     }
 
     if (!m_initialized || !m_has_video)
@@ -290,7 +290,7 @@ void VideoControl_Win32::seek(int32_t video_id, float pos)
 {
     if (m_video_id != video_id)
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Video must be loaded first");
+        LogInternalLogic("Video must be loaded first");
     }
 
     if (!m_initialized || !m_has_video)
@@ -322,7 +322,7 @@ ImTextureID VideoControl_Win32::get_frame(int32_t video_id, float* out_w /*= nul
 {
     if (m_video_id != video_id)
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Video must be loaded first");
+        LogInternalLogic("Video must be loaded first");
     }
 
     if (!m_initialized || !m_has_video)

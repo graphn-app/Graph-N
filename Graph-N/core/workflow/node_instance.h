@@ -26,7 +26,7 @@ public:
     void set_name(std::string name) override;
 
     void pin(bool pin);
-    inline bool pinned() const { return m_pinned; }
+    inline bool get_pinned() const { return m_pinned; }
 
     void set_mode(NodeMode mode);
     inline NodeMode get_mode() const { return m_mode; }

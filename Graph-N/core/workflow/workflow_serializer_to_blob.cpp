@@ -222,7 +222,7 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
         node->m_object = g::pNodesManager->find_node(node->m_obj_hid);
         if (node->m_object != nullptr && node->m_object->is_dummy)
         {
-            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Dummy node " << node_class << " in base map");
+            LogInternalLogicS("Dummy node " << node_class << " in base map");
         }
         if (nullptr == node->m_object || dummy)
         {
@@ -232,7 +232,7 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
 
         if (node->m_object->get_id() != node->m_obj_hid)
         {
-            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Node ids don't match " << node->m_object->get_id() << " != " << node->m_obj_hid);
+            LogInternalLogicS("Node ids don't match " << node->m_object->get_id() << " != " << node->m_obj_hid);
         }
     }
     node->set_name(std::string(node_name));
@@ -274,7 +274,7 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
         }
         if (pin->get_id() != h_id)
         {
-            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Pin ids don't match " << pin->get_id() << " != " << h_id);
+            LogInternalLogicS("Pin ids don't match " << pin->get_id() << " != " << h_id);
         }
 
         auto instance = wf->add_pin(node, pin, i_id);
@@ -302,7 +302,7 @@ void WorkflowSerializerToBlob::deserialize_node(Workflow* wf, NodeInstance* node
         }
         if (pin->get_id() != h_id)
         {
-            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Pin ids don't match " << pin->get_id() << " != " << h_id);
+            LogInternalLogicS("Pin ids don't match " << pin->get_id() << " != " << h_id);
         }
 
         auto instance = wf->add_pin(node, pin, i_id);
@@ -329,7 +329,7 @@ void WorkflowSerializerToBlob::deserialize_pin(PinInstance* pin, blob::Reader& r
     }
     else if (pin->m_object->def_state.type_str != def_type_str)
     {
-        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Pin " << def_type_str << " must be dummy");
+        LogInternalLogicS("Pin " << def_type_str << " must be dummy");
     }
 
     pin->set_name(std::string(block.pop_string()));
@@ -348,11 +348,11 @@ void WorkflowSerializerToBlob::deserialize_link(Workflow* wf, blob::Reader& read
     auto p2 = wf->get_pin_by_instance(block.pop_iid());
     if (nullptr == p1 || nullptr == p2)
     {
-        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Can't create link - pin(s) not found");
+        LogInternalLogicS("Can't create link - pin(s) not found");
     }
     if (Link::link(p1, p2, id) == nullptr)
     {
-        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Can't create link");
+        LogInternalLogicS("Can't create link");
     }
 }
 

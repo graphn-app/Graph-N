@@ -6,12 +6,12 @@ namespace cast
 template <typename DEST, typename SOURCE>
 constexpr bool can_fit(SOURCE arg)
 {
+    (void)arg;
     using S_Type = std::decay_t<SOURCE>;
     using D_Type = std::decay_t<DEST>;
 
     if constexpr (std::is_same_v<D_Type, S_Type>)
     {
-        (void)arg;
         return true;
     }
 
@@ -51,7 +51,6 @@ constexpr bool can_fit(SOURCE arg)
     // Integer -> Float
     else if constexpr (std::is_integral_v<S_Type> && std::is_floating_point_v<D_Type>)
     {
-        (void)arg;
         return true; 
     }
 

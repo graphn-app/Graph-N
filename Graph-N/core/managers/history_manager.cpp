@@ -136,12 +136,12 @@ const HistoryAction* HistoryManager::get_redo(wid wf_id, const Meta** meta) cons
 
 void HistoryManager::undo(wid wf_id)
 {
-    if (m_rollback) { LogAndThrowInternalError(ExcepCategory::Logic, "Already in progress"); }
+    if (m_rollback) { LogInternalLogic("Already in progress"); }
     m_rollback = true;
 
     const Meta* meta = nullptr;
     auto h = get_undo(wf_id, &meta);
-    if (nullptr == h) { LogAndThrowInternalError(ExcepCategory::Logic, "Can't undo"); }
+    if (nullptr == h) { LogInternalLogic("Can't undo"); }
     pop_action(h, true);
     (*const_cast<Meta*>(meta)).pos--;
     sync_wf_state(wf_id, meta);
@@ -152,12 +152,12 @@ void HistoryManager::undo(wid wf_id)
 
 void HistoryManager::redo(wid wf_id)
 {
-    if (m_rollback) { LogAndThrowInternalError(ExcepCategory::Logic, "Already in progress"); }
+    if (m_rollback) { LogInternalLogic("Already in progress"); }
     m_rollback = true;
 
     const Meta* meta = nullptr;
     auto h = get_redo(wf_id, &meta);
-    if (nullptr == h) { LogAndThrowInternalError(ExcepCategory::Logic, "Can't redo"); }
+    if (nullptr == h) { LogInternalLogic("Can't redo"); }
     pop_action(h, false);
     (*const_cast<Meta*>(meta)).pos++;
     sync_wf_state(wf_id, meta);
@@ -210,8 +210,8 @@ bool HistoryManager::can_rollback(wid wf_id)
 
 void HistoryManager::rollback(wid wf_id)
 {
-    if (m_rollback) { LogAndThrowInternalError(ExcepCategory::Logic, "Already in progress"); }
-    if (!can_rollback(wf_id)) { LogAndThrowInternalError(ExcepCategory::Logic, "Can't rollback"); }
+    if (m_rollback) { LogInternalLogic("Already in progress"); }
+    if (!can_rollback(wf_id)) { LogInternalLogic("Can't rollback"); }
     m_rollback = true;
 
     auto& meta = m_meta[wf_id];
@@ -282,9 +282,9 @@ HistoryAction* HistoryManager::open_action(wid wf_id, const char* action_name)
 void HistoryManager::close_action(wid wf_id)
 {
     hqueue& h = m_history[wf_id];
-    if (h.empty()) { LogAndThrowInternalError(ExcepCategory::Logic, "No actions to close"); }
+    if (h.empty()) { LogInternalLogic("No actions to close"); }
     auto& act = h.back();
-    if (0 == act.counter) { LogAndThrowInternalError(ExcepCategory::Logic, "Actions already closed"); }
+    if (0 == act.counter) { LogInternalLogic("Actions already closed"); }
 
     if (--act.counter > 0)
     {
@@ -367,10 +367,10 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
         step = std::make_unique<ActNodeDel>();
         break;
     default:
-        { LogAndThrowInternalError(ExcepCategory::Logic, "Invalid action pushed"); }
+        { LogInternalLogic("Invalid action pushed"); }
     }
 
-    if (history->wf != node->get_workflow_id()) { LogAndThrowInternalError(ExcepCategory::Logic, "Wf don't match"); }
+    if (history->wf != node->get_workflow_id()) { LogInternalLogic("Wf don't match"); }
     step->id = node->get_instance_id();
     step->debug_name = node->get_name();
     step->node = data::WorkflowSerializerToBlob::serialize_node(node);
@@ -406,10 +406,10 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
     case HistoryActionType::NodePin:
         history = open_action(node->get_workflow_id(), "Pin node");
         step = std::make_unique<ActNodePin>();
-        step->new_val = node->pinned();
+        step->new_val = node->get_pinned();
         break;
     case HistoryActionType::NodeRect:
-        history = open_action(node->get_workflow_id(), "Positioning");
+        history = open_action(node->get_workflow_id(), "Move");
         step = std::make_unique<ActNodeRect>();
         step->new_val = node->m_rc;
         break;
@@ -419,10 +419,10 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
         step->new_val = node->get_name();
         break;
     default:
-        { LogAndThrowInternalError(ExcepCategory::Logic, "Invalid action pushed"); }
+        { LogInternalLogic("Invalid action pushed"); }
     }
 
-    if (history->wf != node->get_workflow_id()) { LogAndThrowInternalError(ExcepCategory::Logic, "Wf don't match"); }
+    if (history->wf != node->get_workflow_id()) { LogInternalLogic("Wf don't match"); }
     step->id = node->get_instance_id();
     step->old_val = std::move(old_val);
     history->steps.push_back(std::move(step));
@@ -450,9 +450,9 @@ void HistoryManager::push_pin_action(const data::PinInstance* pin, HistoryAction
         step->new_val = pin->state().value;
     }
     else
-    { LogAndThrowInternalError(ExcepCategory::Logic, "Invalid action pushed"); }
+    { LogInternalLogic("Invalid action pushed"); }
 
-    if (history->wf != pin->get_workflow_id()) { LogAndThrowInternalError(ExcepCategory::Logic, "Wf don't match"); }
+    if (history->wf != pin->get_workflow_id()) { LogInternalLogic("Wf don't match"); }
     step->id = pin->get_instance_id();
     step->old_val = std::move(old_val);
     history->steps.push_back(std::move(step));
@@ -478,9 +478,9 @@ void HistoryManager::push_link_action(const data::Link* link, HistoryActionType 
         step = std::make_unique<ActLinkDel>();
     }
     else
-    { LogAndThrowInternalError(ExcepCategory::Logic, "Invalid action pushed"); }
+    { LogInternalLogic("Invalid action pushed"); }
 
-    if (history->wf != link->get_workflow_id()) { LogAndThrowInternalError(ExcepCategory::Logic, "Wf don't match");  }
+    if (history->wf != link->get_workflow_id()) { LogInternalLogic("Wf don't match");  }
     step->id = link->get_instance_id();
     step->in = link->get_input()->get_instance_id();
     step->out = link->get_output()->get_instance_id();
@@ -558,7 +558,7 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
         pop_link_del(wf, step, do_undo);
         break;
     default:
-        { LogAndThrowInternalError(ExcepCategory::Logic, "Unhandled undo/redo action"); }
+        { LogInternalLogic("Unhandled undo/redo action"); }
     }
 }
 
@@ -571,7 +571,7 @@ void HistoryManager::pop_node_add(data::Workflow* dest_wf, const HistoryStep* st
     }
 
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogAndThrowInternalError(ExcepCategory::Logic, "Node not found in dest wf"); }
+    if (nullptr == node) { LogInternalLogic("Node not found in dest wf"); }
 
     dest_wf->action()->delete_node(node);
 }
@@ -600,7 +600,7 @@ void HistoryManager::pop_node_clr(data::Workflow* dest_wf, const HistoryStep* st
 {
     const ActNodeClr* real_step = cast::dynamic<const ActNodeClr*>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogAndThrowInternalError(ExcepCategory::Logic, "Node not found in wf"); }
+    if (nullptr == node) { LogInternalLogic("Node not found in wf"); }
 
     dest_wf->action()->set_node_color(node, *std::get_if<ImU32>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
@@ -609,7 +609,7 @@ void HistoryManager::pop_node_expand(data::Workflow* dest_wf, const HistoryStep*
 {
     const ActNodeExpand* real_step = cast::dynamic<const ActNodeExpand*>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogAndThrowInternalError(ExcepCategory::Logic, "Node not found in wf"); }
+    if (nullptr == node) { LogInternalLogic("Node not found in wf"); }
 
     dest_wf->action()->set_node_expanded(node, *std::get_if<bool>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
@@ -618,7 +618,7 @@ void HistoryManager::pop_node_ren(data::Workflow* dest_wf, const HistoryStep* st
 {
     const ActNodeRen* real_step = cast::dynamic<const ActNodeRen*>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogAndThrowInternalError(ExcepCategory::Logic, "Node not found in wf"); }
+    if (nullptr == node) { LogInternalLogic("Node not found in wf"); }
 
     dest_wf->action()->set_node_name(node, *std::get_if<std::string>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
@@ -627,7 +627,7 @@ void HistoryManager::pop_node_mode(data::Workflow* dest_wf, const HistoryStep* s
 {
     const ActNodeMode* real_step = cast::dynamic<const ActNodeMode*>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogAndThrowInternalError(ExcepCategory::Logic, "Node not found in wf"); } 
+    if (nullptr == node) { LogInternalLogic("Node not found in wf"); } 
 
     dest_wf->action()->set_node_mode(node, *std::get_if<NodeMode>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
@@ -636,7 +636,7 @@ void HistoryManager::pop_node_pin(data::Workflow* dest_wf, const HistoryStep* st
 {
     const ActNodePin* real_step = cast::dynamic<const ActNodePin*>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogAndThrowInternalError(ExcepCategory::Logic, "Node not found in wf"); } 
+    if (nullptr == node) { LogInternalLogic("Node not found in wf"); } 
 
     dest_wf->action()->set_node_pinning(node, *std::get_if<bool>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
@@ -645,16 +645,16 @@ void HistoryManager::pop_node_rect(data::Workflow* dest_wf, const HistoryStep* s
 {
     const ActNodeRect* real_step = cast::dynamic<const ActNodeRect*>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogAndThrowInternalError(ExcepCategory::Logic, "Node not found in wf"); } 
+    if (nullptr == node) { LogInternalLogic("Node not found in wf"); } 
 
-    dest_wf->action()->set_group_rect(node, *std::get_if<ImRect>(do_undo ? &real_step->old_val : &real_step->new_val));
+    dest_wf->action()->set_node_rect(node, *std::get_if<ImRect>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
 
 void HistoryManager::pop_pin_ren(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
     const ActPinRen* real_step = cast::dynamic<const ActPinRen*>(step);
     auto pin = dest_wf->get_pin_by_instance(step->id);
-    if (nullptr == pin) { LogAndThrowInternalError(ExcepCategory::Logic, "Pin not found in wf"); } 
+    if (nullptr == pin) { LogInternalLogic("Pin not found in wf"); } 
 
     dest_wf->action()->set_pin_name(pin, *std::get_if<std::string>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
@@ -663,7 +663,7 @@ void HistoryManager::pop_pin_val(data::Workflow* dest_wf, const HistoryStep* ste
 {
     const ActPinVal* real_step = cast::dynamic<const ActPinVal*>(step);
     auto pin = dest_wf->get_pin_by_instance(step->id);
-    if (nullptr == pin) { LogAndThrowInternalError(ExcepCategory::Logic, "Pin not found in wf"); } 
+    if (nullptr == pin) { LogInternalLogic("Pin not found in wf"); } 
 
     pin->state().value = *std::get_if<primitive>(do_undo ? &real_step->old_val : &real_step->new_val);
 }
@@ -678,7 +678,7 @@ void HistoryManager::pop_link_add(data::Workflow* dest_wf, const HistoryStep* st
     const ActLink* real_step = cast::dynamic<const ActLink*>(step);
     auto p1 = dest_wf->get_pin_by_instance(real_step->in);
     auto p2 = dest_wf->get_pin_by_instance(real_step->out);
-    if (nullptr == p1 || nullptr == p2) { LogAndThrowInternalError(ExcepCategory::Logic, "Pin(s) not found in wf"); }
+    if (nullptr == p1 || nullptr == p2) { LogInternalLogic("Pin(s) not found in wf"); }
     dest_wf->action()->unlink(p1, p2);
 }
 
@@ -693,7 +693,7 @@ void HistoryManager::pop_link_del(data::Workflow* dest_wf, const HistoryStep* st
     const ActLink* real_step = cast::dynamic<const ActLink*>(step);
     auto p1 = dest_wf->get_pin_by_instance(real_step->in);
     auto p2 = dest_wf->get_pin_by_instance(real_step->out);
-    if (nullptr == p1 || nullptr == p2) { LogAndThrowInternalError(ExcepCategory::Logic, "Pin(s) not found in wf"); }
+    if (nullptr == p1 || nullptr == p2) { LogInternalLogic("Pin(s) not found in wf"); }
     dest_wf->action()->link(p1, p2, real_step->id);
 }
 

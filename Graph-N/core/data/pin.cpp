@@ -91,13 +91,13 @@ void Pin::finalize()
 {
     if (input == output)
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Pin can't be input and output at the same time");
+        LogInternalLogic("Pin can't be input and output at the same time");
     }
 
     if (output && advanced)
     {
         LogInvalidJson("Output pin can't be advanced");
-        LogAndThrowInternalError(ExcepCategory::Logic, "Output pin can't be advanced");
+        LogInternalLogic("Output pin can't be advanced");
     }
 
     else if (input)
@@ -106,14 +106,14 @@ void Pin::finalize()
         {
             display_as_color = display_as_slider = false;
             LogInvalidJson("Both display_as_color and display_as_slider can't be set");
-            LogAndThrowInternalError(ExcepCategory::Logic, "Both display_as_color and display_as_slider can't be set");
+            LogInternalLogic("Both display_as_color and display_as_slider can't be set");
         }
         display_as_number = !(display_as_color || display_as_slider);
 
         if (!required && !optional && !hidden)
         {
             LogInvalidJson("Unknown pin visibility");
-            LogAndThrowInternalError(ExcepCategory::Logic, "Unknown pin visibility");
+            LogInternalLogic("Unknown pin visibility");
         }
 
         if (PinType::FLOAT == def_state.type)
@@ -216,7 +216,7 @@ void Pin::finalize()
     if (!is_widget() && advanced)
     {
         LogInvalidJson("Non-widget pin can't be advanced");
-        //LogAndThrowInternalError(ExcepCategory::Logic, "Non-widget pin can't be advanced");
+        //LogInternalLogic("Non-widget pin can't be advanced");
     }
 
     def_state.value = def;
@@ -371,7 +371,7 @@ void Pin::generate_pin_color()
 {
     if (0 == def_state.type_hash)
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Hash wasn't generated. id=" << get_id());
+        LogInternalLogic("Hash wasn't generated. id=" << get_id());
     }
 
     switch (def_state.type)

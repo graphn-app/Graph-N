@@ -83,7 +83,7 @@ o_json WorkflowSerializerToJson::serialize_to_api(const Workflow* wf)
                         auto src_node = wf->get_node_by_instance(src_node_iid);
                         if (nullptr == src_node)
                         {
-                            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Parent node " << src_node_iid << " not found");
+                            LogInternalLogicS("Parent node " << src_node_iid << " not found");
                         }
 
                         int32_t index = 0;
@@ -100,7 +100,7 @@ o_json WorkflowSerializerToJson::serialize_to_api(const Workflow* wf)
 
                         if (0 == out_pin_id)
                         {
-                            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Output pin not found");
+                            LogInternalLogicS("Output pin not found");
                         }
 
                         jarr.push_back(index);

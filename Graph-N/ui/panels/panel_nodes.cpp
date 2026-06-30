@@ -172,7 +172,7 @@ DlgCode PanelNodes::show(bool& focused)
                 ICON_LC_INFO " Node Library: Browse, search, and add nodes to your workflow.",
                 {
                     ICON_LC_UNPLUG,
-                    "Waiting for Connection.",
+                    "Waiting for connection.",
                     "Node definitions are unavailable."
                 },
                 {

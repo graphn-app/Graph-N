@@ -123,7 +123,7 @@ void NodeInstance::increment(NodeInstance* copy_to, WorkflowAction* wf_action)
             auto& value = pin->state().value;
             if (!std::holds_alternative<uint64_t>(value))
             {
-                LogAndThrowInternalError(ExcepCategory::Logic, "CAG required pin holds wrong type");
+                LogInternalLogic("CAG required pin holds wrong type");
             }
             else
             {
@@ -136,26 +136,26 @@ void NodeInstance::increment(NodeInstance* copy_to, WorkflowAction* wf_action)
                 auto cag_pin = find_pin(m_input, pin->state().cag);
                 if (nullptr == cag_pin)
                 {
-                    LogAndThrowInternalError(ExcepCategory::Logic, "CAG pin not found");
+                    LogInternalLogic("CAG pin not found");
                 }
                 else if (!cag_pin->get_object()->cag_pin)
                 {
-                    LogAndThrowInternalError(ExcepCategory::Logic, "Linked CAG pin is not CAG");
+                    LogInternalLogic("Linked CAG pin is not CAG");
                 }
                 else if (cag_pin->get_object()->def_state.type != PinType::COMBO)
                 {
-                    LogAndThrowInternalError(ExcepCategory::Logic, "Linked CAG pin is not COMBO");
+                    LogInternalLogic("Linked CAG pin is not COMBO");
                 }
                 else if (!std::holds_alternative<int64_t>(cag_pin->get_object()->def_state.value))
                 {
-                    LogAndThrowInternalError(ExcepCategory::Logic, "Linked CAG pin holds wrong type");
+                    LogInternalLogic("Linked CAG pin holds wrong type");
                 }
                 else
                 {
                     const auto cb_idx = *Pin::get_int(cag_pin->state().value);
                     if (cb_idx < ControlAfterGenerate::_first || cb_idx > ControlAfterGenerate::_last)
                     {
-                        LogAndThrowInternalError(ExcepCategory::Logic, "Linked CAG pin holds wrong value");
+                        LogInternalLogic("Linked CAG pin holds wrong value");
                     }
                     else
                     {
@@ -175,7 +175,7 @@ void NodeInstance::increment(NodeInstance* copy_to, WorkflowAction* wf_action)
                             break;
                         default:
                             {
-                                LogAndThrowInternalError(ExcepCategory::Logic, "Linked CAG pin holds wrong value");
+                                LogInternalLogic("Linked CAG pin holds wrong value");
                             }
                         }
 

@@ -151,7 +151,7 @@ void OptRightPane::show(OptsData& /*data*/)
 // autoupdate
 void OptRightPane::show_general(const char*& /*help_text*/)
 {
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Common");
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, "Common");
     ImGui::Spacing();
 
     // auto update
@@ -163,7 +163,7 @@ void OptRightPane::show_general(const char*& /*help_text*/)
 // vsync
 void OptRightPane::show_rendering(const char*& help_text)
 {
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Rendering");
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, "Rendering");
     ImGui::Spacing();
 
     // vsync
@@ -213,7 +213,7 @@ void OptRightPane::show_rendering(const char*& help_text)
 void OptRightPane::show_connection(const char*& help_text)
 {
     ///////////////       ComfyUI address
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), APP_COMFYUI " Address");
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, APP_COMFYUI " Address");
     ImGui::Spacing();
 
 
@@ -239,7 +239,7 @@ void OptRightPane::show_connection(const char*& help_text)
 
 
     /////////////////       timeouts
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), APP_COMFYUI " Server Timeouts");
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, APP_COMFYUI " Server Timeouts");
     ImGui::Spacing();
 
 
@@ -258,16 +258,15 @@ void OptRightPane::show_connection(const char*& help_text)
 
 
     /////////////// apply
-    if (show_full_row_button("Save/Apply connection settings", m_data->buffer_i[BuffConnOptChanged] && !m_data->buffer_s[BuffHost].empty(), true))
+    if (show_full_row_button("Save/Apply connection settings", m_data->buffer_i[BuffConnOptChanged] && !m_data->buffer_s[BuffHost].empty(), true, false))
     {
         g::pOptsManager->comfyui_host_save(m_data->buffer_s[BuffHost]);
         g::pOptsManager->comfyui_port_save(m_data->buffer_i[BuffPort]);
         g::pOptsManager->comfyui_connect_timeout_save(m_data->buffer_i[BuffConnTm]);
         m_data->buffer_i[BuffConnOptChanged] = 0;
     }
-    ImGui::SameLine();
     if (show_full_row_button(g::pFlow->get_online() ? "Reconnect to server" : "Connect to server",
-        !g::pOptsManager->comfyui_host_load().empty(), true))
+        !g::pOptsManager->comfyui_host_load().empty(), true, true))
     {
         //TODO
         //g::pFlow->reconnect();
@@ -278,14 +277,14 @@ void OptRightPane::show_connection(const char*& help_text)
 void OptRightPane::show_local_server(const char*& help_text)
 {
     /////////////////       server paths
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), APP_COMFYUI " Server Paths");
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, APP_COMFYUI " Server Paths");
     ImGui::Spacing();
 
     // Detect
     ImGui::TextWrapped("These settings allow " APP_CAPTION " to launch and manage the " APP_COMFYUI " server automatically.\n"
         "You can configure the paths manually below, or launch " APP_COMFYUI " externally and click 'Import Config from Active Process' to auto-detect the settings.");
     const auto y = ImGui::GetCursorPosY();
-    if (show_full_row_button("Detect and import config from active process", true, false))
+    if (show_full_row_button("Detect and import config from active process", true, false, false))
     {
         import_from_comfyui();
     }
@@ -376,15 +375,14 @@ void OptRightPane::show_local_server(const char*& help_text)
 
     // start
     if (show_full_row_button("Start " APP_COMFYUI,
-        !m_data->buffer_s[BuffMainpy].empty() && !m_data->buffer_s[BuffPython].empty() && !m_data->buffer_s[BuffWorkDir].empty(), true))
+        !m_data->buffer_s[BuffMainpy].empty() && !m_data->buffer_s[BuffPython].empty() && !m_data->buffer_s[BuffWorkDir].empty(), true, false))
     {
         g::pComfyUIManager->run(true);
     }
-    ImGui::SameLine();
     std::string caption = "Stop " APP_COMFYUI;
     if (g::pComfyUIManager->get_process_started())
         caption = fmt::format(FMT_STRING("Stop " APP_COMFYUI " [PID: {}]"), g::pComfyUIManager->get_started_proc_id());
-    if (show_full_row_button(caption.c_str(), g::pComfyUIManager->get_process_started(), true))
+    if (show_full_row_button(caption.c_str(), g::pComfyUIManager->get_process_started(), true, true))
     {
         g::pComfyUIManager->kill(true);
     }
@@ -543,7 +541,7 @@ void OptRightPane::show_widget_input(const char*& help_text)
         return false;
     };
 
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSeparator));
+    ImGui::PushStyleColor(ImGuiCol_Separator, g::pOptsManager->color_load(AppColor::OptSeparator));
     ImGui::TextUnformatted("Default Input Styles");
     ImGui::PopStyleColor();
     ImGui::Separator();
@@ -553,7 +551,7 @@ void OptRightPane::show_widget_input(const char*& help_text)
     int32_t idx = 0;
 
     ///////////////       numbers
-    ImGuiEx::Separator(m_clr_subsep, "Numbers");
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, "Numbers");
     ImGui::Spacing();
 
 
@@ -602,7 +600,7 @@ void OptRightPane::show_widget_input(const char*& help_text)
 
 
     ///////////////       booleans
-    ImGuiEx::Separator(m_clr_subsep, "Booleans");
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, "Booleans");
     ImGui::Spacing();
 
 
@@ -641,7 +639,7 @@ void OptRightPane::show_canvas(const char*& help_text)
     // Canvas
     ImGui::Spacing();
     ImGui::Separator();
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSeparator));
+    ImGui::PushStyleColor(ImGuiCol_Separator, g::pOptsManager->color_load(AppColor::OptSeparator));
     ImGui::TextUnformatted("Canvas");
     ImGui::PopStyleColor();
     ImGui::Separator();
@@ -685,7 +683,7 @@ void OptRightPane::show_activity_bar(const char*& help_text)
     // activity bar
     ImGui::Spacing();
     ImGui::Separator();
-    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptSeparator));
+    ImGui::PushStyleColor(ImGuiCol_Separator, g::pOptsManager->color_load(AppColor::OptSeparator));
     ImGui::TextUnformatted("Activity Bar");
     ImGui::PopStyleColor();
     ImGui::Separator();
@@ -807,7 +805,7 @@ void OptRightPane::show_thresholds(const char*& help_text)
         "Set limits for system resources.\n"
         "Values exceeding these limits will be highlighted in red in the Stats panel.");
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator));
+    ImGuiEx::Separator(m_clr_subsep);
 
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::TextUnformatted("Warnings");
@@ -815,7 +813,7 @@ void OptRightPane::show_thresholds(const char*& help_text)
     ImGui::SetCursorPosX(m_data->input_offset_x + ImGui::GetStyle().ItemSpacing.x + m_data->input_w / 2);
     ImGui::TextUnformatted("Criticals");
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "Server Threasholds");
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, "Server Threasholds");
 
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("RAM:");
@@ -859,7 +857,7 @@ void OptRightPane::show_thresholds(const char*& help_text)
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerPing, m_data->buffer_i[BuffPingW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerPing, m_data->buffer_i[BuffPingC]);
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), "This PC Threasholds");
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, "This PC Threasholds");
 
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("RAM:");
@@ -919,7 +917,7 @@ void OptRightPane::show_thresholds(const char*& help_text)
     //    }
     //}
 
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), APP_CAPTION " performance");
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, APP_CAPTION " performance");
 
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("UI latency:");
@@ -968,9 +966,12 @@ void OptRightPane::show_help_text(const char* help_text)
     }
 }
 
-bool OptRightPane::show_full_row_button(const char* text, bool enabled, bool half_w)
+bool OptRightPane::show_full_row_button(const char* text, bool enabled, bool half_w, bool same_line)
 {
-    ImGuiEx::Spacing(2);
+    if (same_line)
+        ImGui::SameLine();
+    else
+        ImGuiEx::Spacing(2);
 
     if (!enabled)
         ImGui::BeginDisabled();

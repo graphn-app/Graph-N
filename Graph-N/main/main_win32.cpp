@@ -149,15 +149,26 @@ int32_t MainRoutine_Win32::run(flow_callback& callback, std::atomic_bool& reques
     m_callback = nullptr;
     return 0;
 }
-
 bool MainRoutine_Win32::render_frame(bool done)
 {
+    // apply pending resize buffers before starting a new frame
+    if (m_pending_resize_w > 0 && m_pending_resize_h > 0)
+    {
+        cleanup_render_target();
+        m_swap_chain->ResizeBuffers(0, m_pending_resize_w, m_pending_resize_h, DXGI_FORMAT_UNKNOWN, 0);
+        create_render_target();
+        m_pending_resize_w = 0;
+        m_pending_resize_h = 0;
+    }
+
     if (!m_main_render_target_view)
     {
         LogError(ExcepCategory::DirectX, "Render target is null");
         ::PostQuitMessage(1);
         return false;
     }
+
+    m_is_rendering = true; // lock re-entrancy
 
     const auto start_tick = std::chrono::high_resolution_clock::now();
 
@@ -169,10 +180,10 @@ bool MainRoutine_Win32::render_frame(bool done)
     bool ret = true;
     if (m_callback)
     {
-        ret = (*m_callback)(done);	// main Graph-N flow
+        ret = (*m_callback)(done);  // main Graph-N flow
     }
 
-    // Rendering
+    // rendering
     ImGui::Render();
 
     const float clear_color_with_alpha[4] = { m_clear_color.x * m_clear_color.w, m_clear_color.y * m_clear_color.w, m_clear_color.z * m_clear_color.w, m_clear_color.w };
@@ -194,6 +205,8 @@ bool MainRoutine_Win32::render_frame(bool done)
         LogError(ExcepCategory::DirectX, "Device lost on Present: " << LogHRES(hr));
         ::PostQuitMessage(1);
     }
+
+    m_is_rendering = false; // unlock
 
     return ret;
 }
@@ -413,12 +426,22 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
             MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
             if (routine != nullptr)
             {
-                routine->cleanup_render_target();
-                routine->m_swap_chain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
-                if (!routine->create_render_target())
-                    ::PostQuitMessage(1);
+                // defer resize if it was triggered programmatically from within the UI loop
+                if (routine->m_is_rendering)
+                {
+                    routine->m_pending_resize_w = (UINT)LOWORD(lParam);
+                    routine->m_pending_resize_h = (UINT)HIWORD(lParam);
+                }
                 else
-                    routine->render_frame(false /*done*/);
+                {
+                    // Safe to resize immediately during OS drag/resize events
+                    routine->cleanup_render_target();
+                    routine->m_swap_chain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
+                    if (!routine->create_render_target())
+                        ::PostQuitMessage(1);
+                    else
+                        routine->render_frame(false /*done*/);
+                }
             }
 
             if (SIZE_RESTORED == wParam && g::pGraphN)
@@ -534,6 +557,46 @@ void MainRoutine_Win32::wnd_hide()
 {
     Log("Window hide cmd");
     ::ShowWindow(m_hwnd, SW_HIDE);
+}
+
+void MainRoutine_Win32::wnd_toggle_fullscreen()
+{
+    DWORD styles = ::GetWindowLong(m_hwnd, GWL_STYLE);
+
+    if (get_is_fullscreen())
+    {
+        styles |= WS_OVERLAPPEDWINDOW;
+        styles &= ~WS_POPUP;
+        ::SetWindowLong(m_hwnd, GWL_STYLE, styles);
+        ::SetWindowPlacement(m_hwnd, &m_fullscreen_pl);
+
+        // SWP_FRAMECHANGED is critical here to tell Windows to recalculate the non-client area
+        ::SetWindowPos(m_hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    }
+    else
+    {
+        ::GetWindowPlacement(m_hwnd, &m_fullscreen_pl);
+
+        // get the specific monitor the window is currently on
+        HMONITOR h_monitor = ::MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO mi = {};
+        mi.cbSize = sizeof(mi);
+        if (::GetMonitorInfo(h_monitor, &mi))
+        {
+            styles &= ~WS_OVERLAPPEDWINDOW;
+            styles |= WS_POPUP;
+            ::SetWindowLong(m_hwnd, GWL_STYLE, styles);
+
+            // force the window to exactly match the monitor's dimensions and update the frame
+            ::SetWindowPos(m_hwnd, HWND_TOP,
+                mi.rcMonitor.left, mi.rcMonitor.top,
+                mi.rcMonitor.right - mi.rcMonitor.left,
+                mi.rcMonitor.bottom - mi.rcMonitor.top,
+                SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+        }
+    }
+
+    m_fullscreen = !m_fullscreen;
 }
 
 } // namespace platform

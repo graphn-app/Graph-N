@@ -106,13 +106,16 @@ DlgCode PanelModels::show(bool& focused)
         {
             show_empty_panel_descr(
                 ICON_LC_INFO " Model Library",
-                {},
+                {
+                    ICON_LC_UNPLUG,
+                    "Waiting for connection.",
+                    "Model definitions are unavailable."
+                },
                 {
                     "Displays available Checkpoints,",
                     "LoRAs, VAEs, and other models.",
-                    "Make sure " APP_CAPTION " is connected",
-                    "to the " APP_COMFYUI " server.",
-                    "Click model to quickly create loader node",
+                    "Click model to quickly",
+                    "create loader node",
                 }                
             );
             return end_panel(true);

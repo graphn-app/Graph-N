@@ -32,6 +32,7 @@ public:
     void stop_all_threads() override;
 
     void rebuild_items();
+    void rename_project();
 
 private:
     DlgCode show(bool& focused) override;

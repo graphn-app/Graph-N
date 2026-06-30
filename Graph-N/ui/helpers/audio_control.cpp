@@ -145,7 +145,7 @@ void AudioControl::play(int32_t audio_id)
 {
     if (m_audio_id != audio_id)
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Audio must be loaded first");
+        LogInternalLogic("Audio must be loaded first");
     }
 
     if (!m_initialized || !m_has_sound || m_is_playing.load(std::memory_order_relaxed))
@@ -163,7 +163,7 @@ void AudioControl::stop(int32_t audio_id)
 {
     if (m_audio_id != audio_id)
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Audio must be loaded first");
+        LogInternalLogic("Audio must be loaded first");
     }
 
     if (!m_initialized || !m_has_sound || !m_is_playing.load(std::memory_order_relaxed))
@@ -177,7 +177,7 @@ void AudioControl::seek(int32_t audio_id, float pos)
 {
     if (m_audio_id != audio_id)
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Audio must be loaded first");
+        LogInternalLogic("Audio must be loaded first");
     }
 
     if (!m_initialized || !m_has_sound)

@@ -120,6 +120,17 @@ void Separator(uint32_t color, const char* text /*= ""*/)
     ImGui::PopStyleColor();
 }
 
+void Separator(uint32_t sep_color, uint32_t text_color, const char* text)
+{
+    const auto pos = ImGui::GetCursorPosX();
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Separator, sep_color);
+    ImGui::PushStyleColor(ImGuiCol_Text, text_color);
+    ImGui::SetCursorPosX(pos);
+    ImGui::SeparatorText(text);
+    ImGui::PopStyleColor(2);
+}
+
 void Separator(uint32_t color, float width, const char* text, size_t text_len /*= 0*/, float text_width /*= 0.0f*/)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();

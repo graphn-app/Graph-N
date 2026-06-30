@@ -156,7 +156,7 @@ void QueueManager::process()
         return;
     }
 
-    LogAndThrowInternalError(ExcepCategory::Logic, "Unknown task state");
+    LogInternalLogic("Unknown task state");
 }
 
 void QueueManager::go_next_task()
@@ -251,7 +251,7 @@ void QueueManager::go_next_task()
         return;
     }
 
-    LogAndThrowInternalError(ExcepCategory::Logic, "Current group in wrong state");
+    LogInternalLogic("Current group in wrong state");
 }
 
 const ExecTask* QueueManager::get_is_failed(wid wf_id) const

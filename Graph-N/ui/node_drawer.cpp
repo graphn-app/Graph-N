@@ -179,10 +179,19 @@ void NodeDrawer::locate_node(data::NodeInstance* node)
 
     ed::ClearSelection();
     ed::SelectNode(node->ed());
+    ed::NavigateToContent();
     ed::NavigateToSelection(false, 0.5f);
 
     if (nullptr == prev_context)
         ed::SetCurrentEditor(nullptr);
+}
+
+void NodeDrawer::locate_selected()
+{
+    if (ed::GetSelectedNodesCount() > 0)
+        ed::NavigateToSelection(true, 0.5f);
+    else
+        ed::NavigateToContent();
 }
 
 data::PinInstance* NodeDrawer::get_ml_widget_active() const
@@ -332,7 +341,7 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
 
     if (!node->m_pinned_set)
     {
-        ed::SetNodeDraggable(node->ed(), !node->pinned());
+        ed::SetNodeDraggable(node->ed(), !node->get_pinned());
         node->m_pinned_set = true;
     }
 
@@ -405,7 +414,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     //if (node_size.x > 0 && node_size.y > 0) // TODO:FIX resizing
     //{
-    //    m_resizing_w[node_idx] = (m_active_node->pinned() || !m_active_node->expanded() ? -1 : node_w);
+    //    m_resizing_w[node_idx] = (m_active_node->get_pinned() || !m_active_node->get_expanded() ? -1 : node_w);
     //    if (m_resizing_w[node_idx] > 0)
     //    {
     //        m_resizing_grip_positions[node_idx].Min =
@@ -660,7 +669,7 @@ void NodeDrawer::draw_node_header()
             m_need_renaming_focus = true;
         }
 
-        if (m_active_node->pinned())
+        if (m_active_node->get_pinned())
         {
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
@@ -1502,12 +1511,18 @@ bool NodeDrawer::get_bg_menu_active(bool& rclick, bool& dbl_click) const
     return (rclick || dbl_click);
 }
 
-ImVec2 NodeDrawer::get_mouse_pos() const
+ImVec2 NodeDrawer::get_mouse_pos(const ImVec2* convert_pos /*= nullptr*/) const
 {
     auto prev_context = ed::GetCurrentEditor();
     if (nullptr == prev_context)
         ed::SetCurrentEditor(m_context);
-    const auto pos = ed::ScreenToCanvas(ImGui::GetMousePos());
+
+    ImVec2 pos;
+    if (convert_pos != nullptr)
+        pos = ed::ScreenToCanvas(*convert_pos);
+    else
+        pos = ed::ScreenToCanvas(ImGui::GetMousePos());
+
     if (nullptr == prev_context)
         ed::SetCurrentEditor(nullptr);
     return pos;
@@ -1679,7 +1694,7 @@ void NodeDrawer::delete_node(const data::NodeInstance* node)
     }
     else
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Node id is null");
+        LogInternalLogic("Node id is null");
     }
 }
 

@@ -230,17 +230,18 @@ void WorkflowAction::reset_node_name(data::NodeInstance* node)
     set_node_name(node, node->get_name_original());
 }
 
-bool WorkflowAction::set_group_rect(data::NodeInstance* group, const ImRect& rect)
+bool WorkflowAction::set_node_rect(data::NodeInstance* node, const ImRect& rect)
 {
-    const auto old_rc = group->m_rc;
+    const auto old_rc = node->m_rc;
     if (old_rc == rect)
         return false;
 
-    group->m_rc = rect;
-    group->m_pos_set = false;
-    group->m_size_set = false;
+    node->m_rc = rect;
+    node->m_pos_set = false;
+    if (node->m_group)
+        node->m_size_set = false;
 
-    g::pHistoryManager->push_node_action(group, mngr::HistoryActionType::NodeRect, mngr::HActionT(old_rc));
+    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeRect, mngr::HActionT(old_rc));
     return true;
 }
 
@@ -267,10 +268,10 @@ void WorkflowAction::set_node_expanded(data::NodeInstance* node, bool expanded)
 
 void WorkflowAction::set_node_pinning(data::NodeInstance* node, bool pin)
 {
-    if (node->pinned() == pin)
+    if (node->get_pinned() == pin)
         return;
     node->pin(pin);
-    m_drawer->pin_node(node->ed(), node->pinned());
+    m_drawer->pin_node(node->ed(), node->get_pinned());
     g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodePin, !pin);
 }
 

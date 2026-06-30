@@ -53,11 +53,12 @@ public:
     void query_new_item(const std::function<void(data::PinInstance*)>& unlink_handler, const std::function<void(data::PinInstance*, const ImVec2&)>& new_node_handler);
 
     void locate_node(data::NodeInstance* node);
+    void locate_selected();
 
     inline ImGuiExNe::DeferredAction* get_deffered_action() const { return m_deffered_action.get(); }
     data::PinInstance* get_ml_widget_active() const;
 
-    ImVec2 get_mouse_pos() const;
+    ImVec2 get_mouse_pos(const ImVec2* convert_pos = nullptr) const;
     bool get_bg_menu_active(bool& rclick, bool& dbl_click) const;
 
     data::PinInstance* get_hovered_pin() const;

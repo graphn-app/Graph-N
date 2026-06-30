@@ -57,9 +57,9 @@ enum ViewDialogs : uint64_t
     ViewPanelModels             = 1ULL << 9,
     ViewPanelTemplates          = 1ULL << 10,
     ViewPanelOutput             = 1ULL << 11,
-    ViewPanelNotes              = 1ULL << 12,
+    //ViewPanelNotes              = 1ULL << 12,
     ViewPanelTextEditor         = 1ULL << 13,
-    ViewPanelMarkdownPreview    = 1ULL << 14,
+    //ViewPanelMarkdownPreview    = 1ULL << 14,
     ViewPanelQueue              = 1ULL << 27,
 
     // debug
@@ -85,8 +85,7 @@ enum ViewDialogs : uint64_t
     _ViewLastAvailable          = 1ULL << 63,
 
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes,
-    ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWf | ViewPanelWfList | ViewPanelModels |
-                                  ViewPanelTemplates | ViewPanelOutput | ViewPanelNotes | ViewPanelTextEditor | ViewPanelMarkdownPreview | ViewPanelQueue,
+    ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWfList | ViewPanelModels | ViewPanelTemplates | ViewPanelOutput | ViewPanelQueue /*| ViewPanelNotes*/,
     ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector,
     ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewSyncProjects | ViewAllMenuBar | ViewPanelWf,
 };
@@ -131,12 +130,13 @@ public:
     void http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback);
     void http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback);
 
-    // WF public
+    // WF
+    PanelWorkflow* wf_get_active_panel() const { return m_wf_focused; }
     void wf_create();
     void wf_create_copy_from(wid source, std::optional<ImRect> wf_rc, std::optional<float> wf_zoom);
     void wf_reload_view(wid id);
     void wf_activate(wid id);
-    void wf_locate(wid id);
+    //void wf_locate(wid id);
     void wf_delete(wid id);
     void wf_restore(wid id);
     void wf_rename(wid id, const std::string& new_name);
@@ -193,7 +193,7 @@ private:
     void show_panel_queue();
     void show_panel_output();
     void show_panel_templates();
-    void show_panel_notes();
+    //void show_panel_notes();
 
     void on_dlg_closed(DlgObj dlg);
 
@@ -205,18 +205,17 @@ private:
     void on_menu_import();
     void on_menu_export_json(bool api);
     void on_menu_export_json_all(bool api);
-    void on_menu_close_all_projects();
     void on_menu_sync_projects();
+    void on_menu_about();  
+    void on_menu_close_all_projects();
 
-    // WF internal
-    void init_workflow_panels();
-    PanelWorkflow* find_wf_panel(wid id) const;
-    PanelWorkflow* create_wf_panel(const mngr::WfData& wf);
-    void activate_wf_panel(PanelWorkflow* wf_panel);
-    void close_wf_panel(PanelWorkflow* wf_panel);    
-    void rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name);
-    PanelWorkflow* get_last_open_wf_panel(wid closed);
-    // WF internal
+    // WF & WF panels
+    void wf_panels_init();
+    PanelWorkflow* wf_panel_find(wid id) const;
+    PanelWorkflow* wf_panel_create(const mngr::WfData& wf);
+    void wf_panel_activate(PanelWorkflow* wf_panel);
+    void wf_panel_activate_next(bool next);
+    void wf_panel_rename(PanelWorkflow* wf_panel, const std::string& new_name);
 
     // text editor panel internal
     ImGuiID find_def_txt_panel_dock();
@@ -233,6 +232,7 @@ private:
 
     ImGuiID m_main_dock_id = 0;
     uint64_t m_windows = ViewNone;
+    uint64_t m_windows_toggled = ViewNone;
     std::set<BaseDlg*> m_all_dialogs;
 
     std::unique_ptr<ModalMessage> m_modal_message;
@@ -252,11 +252,11 @@ private:
     std::unique_ptr<PanelModels> m_panel_models;
     std::unique_ptr<PanelWfList> m_panel_wf_list;
     std::unique_ptr<PanelQueue> m_panel_queue;
+    std::list<std::unique_ptr<PanelTextEditor>> m_panels_text_editor;
 
     PanelWorkflow* m_wf_focused = nullptr;
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
-    std::list<std::unique_ptr<PanelTextEditor>> m_panels_text_editor;
-    std::list<wid> m_active_sequense;
+    //std::list<wid> m_active_wf_sequense;
     bool m_wf_imported = false;
 
     std::mutex m_http_req_mutex;

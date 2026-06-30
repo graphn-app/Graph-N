@@ -90,7 +90,7 @@ public:
     NO_COPY_MOVE(LogWriter);
 
 	std::string extract_buffer() { return std::move(m_buffer); }
-    const std::string& get_buffer() const { return std::move(m_buffer); }
+    const std::string& get_buffer() const { return m_buffer; }
 
 	void log_line_start(const void* this_, const char* foo, int32_t line);
 

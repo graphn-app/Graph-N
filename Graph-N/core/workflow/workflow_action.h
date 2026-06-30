@@ -47,7 +47,7 @@ public:
     void set_node_name(data::NodeInstance* node, const std::string& name);
     void reset_node_name(data::NodeInstance* node);
 
-    bool set_group_rect(data::NodeInstance* group, const ImRect& rect);
+    bool set_node_rect(data::NodeInstance* node, const ImRect& rect);
     void reset_node_size(data::NodeInstance* node);
 
     void set_node_expanded(data::NodeInstance* node, bool expanded);

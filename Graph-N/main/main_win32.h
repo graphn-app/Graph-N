@@ -38,6 +38,7 @@ private:
     void wnd_maximize() override;
     void wnd_show() override;
     void wnd_hide() override;
+    void wnd_toggle_fullscreen() override;
 
 private:
     ID3D11Device* get_device() const { return m_d3d_device.get(); }
@@ -79,6 +80,11 @@ private:
     double m_frame_render_time = 0;
 
     static int64_t m_seconds_elapsed;
+
+    WINDOWPLACEMENT m_fullscreen_pl;
+    bool m_is_rendering = false;
+    UINT m_pending_resize_w = 0;
+    UINT m_pending_resize_h = 0;
 };
 
 } // namespace platform

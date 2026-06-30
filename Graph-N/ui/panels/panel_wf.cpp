@@ -15,7 +15,7 @@ namespace ui
 {
 
 PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std::string& panel_id, ImGuiID dock)
-    : PanelBase(DlgObj::PanelWf, name, panel_id, true)
+    : PanelBase(DlgObj::PanelWf, name, panel_id)
     , m_wf(g::pWfsManager->access(workflow_id))
     , m_dock(dock)
     , m_action(m_wf->action())
@@ -90,20 +90,20 @@ DlgCode PanelWorkflow::show(bool& focused)
     bool opened = true;
     ImGui::SetNextWindowDockID(m_dock, m_restore_pos ? ImGuiCond_Always : ImGuiCond_FirstUseEver);
     m_restore_pos = false;
-    if (begin_panel(opened, focused, false, m_active) && opened)
+
+    const bool active = (g::pFlow->wf_get_active() == get_workflow()->get_id());
+    if (active)
     {
-        //if (m_nodes.empty())
-        //{
-        //    show_empty_panel_descr(
-        //        "",
-        //        {},
-        //            {
-        //                "Empty Canvas.",
-        //                "Right Click or load from " ICON_LC_BOOK_OPEN " Nodes Library to add the first node."
-        //            }
-        //        );
-        //}
-        //else
+        ImGui::PushStyleColor(ImGuiCol_TabHovered, data()->clr_active_hov_wf);
+        ImGui::PushStyleColor(ImGuiCol_TabActive, data()->clr_active_wf);
+        ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, data()->clr_active_wf);
+        ImGui::PushStyleColor(ImGuiCol_TitleBgActive, data()->clr_active_wf);
+        ImGui::PushStyleColor(ImGuiCol_TitleBg, data()->clr_active_wf);
+    }
+
+    if (begin_panel(opened, focused, false) && opened)
+    {
+        handle_panel_context_menu();
 
         auto& data = m_wf->get_data();
         if (data.critical_failure)
@@ -122,7 +122,37 @@ DlgCode PanelWorkflow::show(bool& focused)
     else dead();
     if (!opened) dead();
 
-    return end_panel(opened);
+    const auto code = end_panel(opened);
+
+    if (active)
+        ImGui::PopStyleColor(5);
+    
+    return code;
+}
+
+void PanelWorkflow::handle_panel_context_menu()
+{
+    //TODO
+
+    //ImGuiContext& g = *GImGui;
+    //ImGuiWindow* window = ImGui::GetCurrentWindow();
+    //const bool dock_tab_hovered = (g.HoveredId == window->TabId);
+    //const bool title_bar_hovered = (g.HoveredId == window->MoveId);
+    //LogV(dock_tab_hovered, title_bar_hovered);
+
+    //if ((dock_tab_hovered || title_bar_hovered) && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+    //    ImGui::OpenPopup("StrictTitleContext");
+
+    //if (title_bar_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+    //    ImGui::OpenPopup("WfpanelContextMenu");
+
+    //if (ImGui::BeginPopup("WfpanelContextMenu"))
+    //{
+    //    if (ImGui::MenuItem("Menu item"))
+    //    {        
+    //    }
+    //    ImGui::EndPopup();
+    //}
 }
 
 void PanelWorkflow::set_wf_view(std::optional<ImRect> wf_rc, std::optional<float> wf_zoom)
@@ -131,6 +161,77 @@ void PanelWorkflow::set_wf_view(std::optional<ImRect> wf_rc, std::optional<float
         m_drawer.set_viewport_rect(wf_rc.value());
     if (wf_zoom.has_value())
         m_drawer.set_zoom(wf_zoom.value());
+}
+
+bool PanelWorkflow::can_run() const
+{
+    return !m_wf->get_data().critical_failure && m_wf->get_data().valid && !m_invalidation_state;
+}
+
+void PanelWorkflow::run(bool add_front)
+{
+    g::pQueueManager->add_to_queue(m_wf, m_tasks_num, add_front);
+}
+
+void PanelWorkflow::set_num_of_runs(int32_t num)
+{
+    m_tasks_num = (0 == num ? -1 : num);
+}
+
+bool PanelWorkflow::get_node_selected(data::NodeInstance* node) const
+{
+    return m_drawer.is_node_selected(node->ed());
+}
+
+void PanelWorkflow::group_nodes(const std::set<data::NodeInstance*>& nodes)
+{
+    m_action->multi_action_on("Add group");
+    auto group = m_action->add_group(std::nullopt);
+    m_action->set_node_rect(group, m_drawer.fit_group_rect(group, nodes));
+    m_action->multi_action_off();
+}
+
+void PanelWorkflow::delete_nodes(const std::set<data::NodeInstance*>& nodes)
+{
+    m_action->multi_action_on("Remove");
+    for (auto node : nodes)
+    {
+        m_action->delete_node(node);
+    }
+    m_action->multi_action_off();
+}
+
+void PanelWorkflow::copy_nodes(const std::set<data::NodeInstance*>& nodes, std::optional<ImVec2> src_point)
+{
+    g::pWfsManager->copy_begin(m_wf, src_point);
+    for (auto node : nodes)
+    {
+        if (!node->get_object()->is_dummy)
+            g::pWfsManager->copy_add(node);
+    }
+}
+
+void PanelWorkflow::paste_copied(std::optional<ImVec2> paste_at)
+{
+    g::pWfsManager->copy_end(m_wf, paste_at);
+}
+
+void PanelWorkflow::save() const
+{
+    if (can_save())
+        g::pWfsManager->save(m_wf->get_id());
+}
+
+void PanelWorkflow::undo() const
+{
+    if (can_undo())
+        g::pHistoryManager->undo(m_wf->get_id());
+}
+
+void PanelWorkflow::redo() const
+{
+    if (can_redo())
+        g::pHistoryManager->redo(m_wf->get_id());
 }
 
 void PanelWorkflow::draw_wf()
@@ -181,16 +282,22 @@ void PanelWorkflow::draw_wf()
         m_drawer.post_draw_node(node, failed_node);
         ImGui::PopID();
 
-        if (is_new && m_select_new_nodes)
+        if (is_new && m_select_new_nodes || m_select_all_nodes)
             m_drawer.select_node(node->ed(), true);
     }
 
     m_select_new_nodes = false;
+    m_select_all_nodes = false;
 
     if (m_locate != nullptr)
     {
         m_drawer.locate_node(m_locate);
         m_locate = nullptr;
+    }
+    else if (m_locate_selected)
+    {
+        m_drawer.locate_selected();
+        m_locate_selected = false;
     }
 
     m_drawer.draw_links(m_wf->get_links());
@@ -268,7 +375,7 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
         {
             if (node != it->first && node->m_group && items.find(node) != items.end())
             {
-                if (m_action->set_group_rect(node, m_drawer.fit_group_rect(node, m_drawer.get_nodes_in_group(node, m_wf->get_nodes()))))
+                if (m_action->set_node_rect(node, m_drawer.fit_group_rect(node, m_drawer.get_nodes_in_group(node, m_wf->get_nodes()))))
                     add_y.insert(it->first);
                 items.erase(node);
             }
@@ -277,7 +384,7 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
 
     for (auto& [group, nodes] : items)
     {
-        m_action->set_group_rect(group, m_drawer.fit_group_rect(group, nodes));
+        m_action->set_node_rect(group, m_drawer.fit_group_rect(group, nodes));
         if (add_y.find(group) != add_y.end())
             group->m_rc.Max.y += ImGui::GetTextLineHeight();
     }
@@ -493,8 +600,9 @@ void PanelWorkflow::create_toolbar()
                 m_queue_num_input_id = "##num_" + m_wf->get_uuid();
                 el.id = m_queue_num_input_id.c_str();
                 el.input_w = 150.0f;
-                el.cb_items = { "Infinite", "1", "2", "3", "4", "5", "6", "8", "10", "15", "20" };
+                el.cb_items = { "Infinite", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "15", "20" };
                 el.cb_item_sel = 1;
+                el.on_preview = std::bind(&PanelWorkflow::on_pre_tasks_num, this, std::placeholders::_1);
                 el.on_click = std::bind(&PanelWorkflow::on_tasks_num, this, std::placeholders::_1);
                 add_toolbar_element(std::move(el), false);
             }
@@ -617,12 +725,12 @@ void PanelWorkflow::check_history()
 
 void PanelWorkflow::on_pre_save(PanelToolbar::Element& el)
 {
-    el.enabled = m_can_save && !m_invalidation_state;
+    el.enabled = can_save();
 }
 
 void PanelWorkflow::on_save(PanelToolbar::Element& /*el*/)
 {
-    g::pWfsManager->save(m_wf->get_id());
+    save();    
 }
 
 void PanelWorkflow::on_pre_revert(PanelToolbar::Element& el)
@@ -642,24 +750,24 @@ void PanelWorkflow::on_revert(PanelToolbar::Element& /*el*/)
 
 void PanelWorkflow::on_pre_undo(PanelToolbar::Element& el)
 {
-    el.enabled = *m_undo_name != 0 && !m_invalidation_state;
+    el.enabled = can_undo();
     el.tooltip = m_undo_name;
 }
 
 void PanelWorkflow::on_undo(PanelToolbar::Element& /*el*/)
 {
-    g::pHistoryManager->undo(m_wf->get_id());
+    undo();
 }
 
 void PanelWorkflow::on_pre_redo(PanelToolbar::Element& el)
 {
-    el.enabled = *m_redo_name != 0 && !m_invalidation_state;
+    el.enabled = can_redo();
     el.tooltip = m_redo_name;
 }
 
 void PanelWorkflow::on_redo(PanelToolbar::Element& /*el*/)
 {
-    g::pHistoryManager->redo(m_wf->get_id());
+    redo();
 }
 
 void PanelWorkflow::on_pre_project_status(PanelToolbar::Element& el)
@@ -739,7 +847,7 @@ void PanelWorkflow::on_pre_queue(PanelToolbar::Element& el)
 
 void PanelWorkflow::on_queue(PanelToolbar::Element& /*el*/)
 {
-    g::pQueueManager->add_to_queue(m_wf, m_tasks_num, ImGui::IsKeyDown(ImGuiMod_Shift));
+    run(ImGui::IsKeyDown(ImGuiMod_Shift));
 }
 
 void PanelWorkflow::on_pre_queue_interrupt(PanelToolbar::Element& el)
@@ -770,6 +878,14 @@ void PanelWorkflow::on_tasks_num(PanelToolbar::Element& el)
         m_tasks_num = -1;
     else
         m_tasks_num = std::strtol(el.cb_items[el.cb_item_sel], nullptr, 10);
+}
+
+void PanelWorkflow::on_pre_tasks_num(PanelToolbar::Element& el)
+{
+    if (-1 == m_tasks_num || 0 == m_tasks_num)
+        el.cb_item_sel = 0;
+    else
+        el.cb_item_sel = m_tasks_num;
 }
 
 void PanelWorkflow::on_show_dummy_node(PanelToolbar::Element& el)

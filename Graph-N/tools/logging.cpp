@@ -258,7 +258,7 @@ void Logger::working_thread()
 
 LogWriter::LogWriter()
 {
-    m_buffer.reserve(512);
+    m_buffer.reserve(1024);
 }
 
 void LogWriter::log_line_start(const void* this_, const char* foo, int32_t line)

@@ -46,10 +46,6 @@ float hidden_widgets_len;
 namespace ui
 {
 
-#ifdef _DEBUG
-static bool test_json = false;
-#endif
-
 GraphN_Flow::GraphN_Flow()
 {
     LogF;
@@ -120,7 +116,7 @@ bool GraphN_Flow::init()
     m_panel_queue->init();
     m_all_dialogs.insert(m_panel_queue.get());
 
-  //  init_workflow_panels();
+  //  wf_panels_init();
 
     // activity bar
     m_activity_bar = std::make_unique<ui::ActivityBar>();
@@ -201,14 +197,14 @@ bool GraphN_Flow::is_panel_active(DlgObj panel_obj) const
         return (m_windows & ViewPanelStats) != 0;
     case DlgObj::PanelServerLogs:
         return (m_windows & ViewPanelOutput) != 0;
-    case DlgObj::PanelNotes:
-        return (m_windows & ViewPanelNotes) != 0;
+    //case DlgObj::PanelNotes:
+    //    return (m_windows & ViewPanelNotes) != 0;
     case DlgObj::PanelWf:
         return (m_windows & ViewPanelWf) != 0;
     case DlgObj::PanelTextEditor:
         return (m_windows & ViewPanelTextEditor) != 0;
-    case DlgObj::PanelMarkdownPreview:
-        return (m_windows & ViewPanelMarkdownPreview) != 0;
+    //case DlgObj::PanelMarkdownPreview:
+    //    return (m_windows & ViewPanelMarkdownPreview) != 0;
     }
     LogInternalLogic("Unhandled panel id " << cast::to_i32(panel_obj));
     return false;
@@ -306,12 +302,12 @@ void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
     case DlgObj::PanelServerLogs:
         panel_view = ViewPanelOutput;
         break;
-    case DlgObj::PanelMarkdownPreview:
-        panel_view = ViewPanelMarkdownPreview;
-        break;
-    case DlgObj::PanelNotes:
-        panel_view = ViewPanelNotes;
-        break;
+    //case DlgObj::PanelMarkdownPreview:
+    //    panel_view = ViewPanelMarkdownPreview;
+    //    break;
+    //case DlgObj::PanelNotes:
+    //    panel_view = ViewPanelNotes;
+    //    break;
     default:
         {
             LogInternalLogic("Unhandled panel id " << cast::to_i32(panel_obj));
@@ -322,6 +318,7 @@ void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
         m_windows &= ~panel_view;
     else
         m_windows |= panel_view;
+    g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
 void GraphN_Flow::exit()
@@ -534,21 +531,7 @@ void GraphN_Flow::reparse_nodes()
         g::pModelsManager->load_models();
 
         m_nodes_parser = std::make_unique<mngr::NodesParser>();
-#ifdef _DEBUG
-        if (test_json)
-        {
-            auto test_json_path = fs::get_root_directory_path();
-            test_json_path /= "test_json_broken.json";
-            auto test_json_data = tools::path::read_file(test_json_path, true);
-            std::string test_json_string;
-            test_json_string.reserve(test_json_data.size() + 1);
-            test_json_string = test_json_data.data();
-            test_json_string.at(test_json_data.size()) = 0;
-            m_nodes_parser->parse(std::move(test_json_string));
-        }
-        else
-#endif
-            m_nodes_parser->parse(std::move(data));
+        m_nodes_parser->parse(std::move(data));
     };
 
     http_get("Flow/reparse_nodes", [](){ return true; }, comfyui_http::object_info, parser);
@@ -822,10 +805,10 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
         m_windows &= ~ViewPanelOutput;
         Log("Output panel closed");
         break;
-    case DlgObj::PanelNotes:
-        m_windows &= ~ViewPanelNotes;
-        Log("Notes panel closed");
-        break;
+    //case DlgObj::PanelNotes:
+    //    m_windows &= ~ViewPanelNotes;
+    //    Log("Notes panel closed");
+    //    break;
     case DlgObj::PanelModels:
         m_windows &= ~ViewPanelModels;
         Log("Models panel closed");
@@ -1189,7 +1172,7 @@ void GraphN_Flow::txt_panel_create(wid wf, data::NodeInstance* node, data::PinIn
     }
 
     m_windows |= ViewPanelTextEditor;
-    current_panel->set_focused(true);
+    current_panel->set_force_focused(true);
     current_panel->update(wf, node, pin, buffer, hint);
 }
 
@@ -1463,10 +1446,11 @@ void GraphN_Flow::show_panel_templates()
     show_panel(m_panel_templates.get(), DlgObj::PanelTemplates);
 }
 
-void GraphN_Flow::show_panel_notes()
-{
-    //show_panel(m_panel_notes.get(), DlgObj::PanelNotes);
-}
+//void GraphN_Flow::show_panel_notes()
+//{
+//    //TODO
+//    //show_panel(m_panel_notes.get(), DlgObj::PanelNotes);
+//}
 
 void GraphN_Flow::show_panel_wf_list()
 {
@@ -1494,19 +1478,27 @@ void GraphN_Flow::show_panel_text_editor()
 
 void GraphN_Flow::show_panel_wf()
 {
-    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end();)
+    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); )
     {
         auto& panel = *it;
-        ++it;
-
+        ++it; // wf_panel_close might remove element
         bool focused = false;
+
         if (panel->show_dialog(focused) != DlgCode::Progress)
         {
-            close_wf_panel(panel.get());
+            wf_panel_close(panel.get());
         }
         else if (focused && panel.get() != m_wf_focused)
         {
-            wf_activate(panel->get_workflow()->get_id());
+            bool forced = false;
+            for (auto it2 = m_panels_wf.begin(); it2 != m_panels_wf.end(); ++it2)
+            {
+                if (!forced) forced = (*it2)->get_force_focused();
+                else break;
+            }
+
+            if (!forced)
+                wf_activate(panel->get_workflow()->get_id());
         }
     }
 }
@@ -1516,11 +1508,13 @@ void GraphN_Flow::handle_comfyui_runserver_error(int32_t error, const std::strin
     (void)error;
     (void)title;
     (void)description;
+    // TODO
 }
 
 void GraphN_Flow::show_menu_bar_net_status()
 {
-    std::string text;
+    static fmt::memory_buffer text;
+
     if ((m_windows & ViewConnect) || !get_online())
     {
         const auto status = g::pConnectManager->get_status();
@@ -1531,11 +1525,13 @@ void GraphN_Flow::show_menu_bar_net_status()
         }
         if (ConnectState::Disconnected == status)
         {
-            text = APP_COMFYUI " disconnected";
+            //text.clear();
+            //fmt::format_to(std::back_inserter(text), APP_COMFYUI " disconnected");
         }
         else if (ConnectState::Connecting == status)
         {
-            text = fmt::format(FMT_STRING("Connecting to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
+            text.clear();
+            fmt::format_to(std::back_inserter(text), FMT_STRING("Connecting to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
         }
     }
     else if (m_windows & ViewParsingNodes)
@@ -1544,13 +1540,15 @@ void GraphN_Flow::show_menu_bar_net_status()
         {
             size_t parsed_item = 0, parse_total = 0;
             m_nodes_parser->check_status(parsed_item, parse_total);
-            text = fmt::format(FMT_STRING("Parsing node {} of {}"), parsed_item, parse_total);
+            text.clear();
+            fmt::format_to(std::back_inserter(text), FMT_STRING("Parsing node {} of {}"), parsed_item, parse_total);
 
             if (m_nodes_parser->is_parse_finished())
             {
                 if (m_nodes_parser->is_parse_failed())
                 {
-                    text = "Failed to parse loaded nodes";
+                    text.clear();
+                    fmt::format_to(std::back_inserter(text), "Failed to parse loaded nodes");
                 }
                 else
                 {
@@ -1562,10 +1560,11 @@ void GraphN_Flow::show_menu_bar_net_status()
     }
     else if (get_online())
     {
-        text = fmt::format(FMT_STRING("Connected to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
+        text.clear();
+        fmt::format_to(std::back_inserter(text), FMT_STRING("Connected to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
     }
 
-    const float text_width = ImGui::CalcTextSize(text.c_str()).x;
+    const float text_width = ImGui::CalcTextSize(text.data()).x;
     const float spacing = ImGui::GetStyle().ItemSpacing.x;
     const float right_align_pos = ImGui::GetWindowWidth() - (text_width + spacing + 10.0f);
     if (right_align_pos > ImGui::GetCursorPosX())
@@ -1575,7 +1574,7 @@ void GraphN_Flow::show_menu_bar_net_status()
 
     ImGui::AlignTextToFramePadding();
     ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::DisconnectedMenuBarText));
-    ImGui::TextUnformatted(text.c_str(), text.c_str() + text.size());
+    ImGui::TextUnformatted(text.data(), text.data() + text.size());
     ImGui::PopStyleColor();
 }
 
@@ -1676,7 +1675,7 @@ void GraphN_Flow::show_panels()
         static bool wf_panels_initilized = false;
         if (!wf_panels_initilized)
         {
-            init_workflow_panels();
+            wf_panels_init();
             wf_panels_initilized = true;
         }
     }
@@ -1703,8 +1702,8 @@ void GraphN_Flow::show_panels()
         show_panel_models();
     if (m_windows & ViewPanelQueue)
         show_panel_queue();
-    if (m_windows & ViewPanelNotes)
-        show_panel_notes();
+    //if (m_windows & ViewPanelNotes)
+    //    show_panel_notes();
     if (m_windows & ViewPanelOutput)
         show_panel_output();
     if (m_windows & ViewPanelTemplates)

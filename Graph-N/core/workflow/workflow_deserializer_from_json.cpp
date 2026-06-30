@@ -148,7 +148,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
         auto node = g::pNodesManager->find_node(node_hash);
         if (node != nullptr && node->is_dummy)
         {
-            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Dummy node " << node_class << " in base map");
+            LogInternalLogicS("Dummy node " << node_class << " in base map");
         }
         if (nullptr == node || dummy)
         {
@@ -158,7 +158,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
         auto node_instance = wf->add_node(node, rc);
         if (node_instance->m_object->get_id() != node_hash)
         {
-            LogAndThrowInternalErrorS(ExcepCategory::Logic, "Node ids don't match " << node_instance->m_object->get_id() << " != " << node_hash);
+            LogInternalLogicS("Node ids don't match " << node_instance->m_object->get_id() << " != " << node_hash);
         }
 
         // name
@@ -249,7 +249,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
 
                     if (pin->get_id() != pin_hash)
                     {
-                        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Pin ids don't match " << pin->get_id() << " != " << pin_hash);
+                        LogInternalLogicS("Pin ids don't match " << pin->get_id() << " != " << pin_hash);
                     }
 
                     PinInstance* pin_instance = nullptr;
@@ -265,7 +265,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                         pin_instance = wf->get_pin_by_hash(node_instance->get_instance_id(), pin_hash);
                         if (nullptr == pin_instance)
                         {
-                            LogAndThrowInternalErrorS(ExcepCategory::Logic, "PinInstance " << pin_hash << " not found in wf");
+                            LogInternalLogicS("PinInstance " << pin_hash << " not found in wf");
                         }
                     }
                     if (jinput.contains("label") && jinput["label"].is_string())
@@ -428,7 +428,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
 
                     if (pin->get_id() != pin_hash)
                     {
-                        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Pin ids don't match " << pin->get_id() << " != " << pin_hash);
+                        LogInternalLogicS("Pin ids don't match " << pin->get_id() << " != " << pin_hash);
                     }
 
                     PinInstance* pin_instance = nullptr;
@@ -444,7 +444,7 @@ NodeInstance* WorkflowSerializerToJson::deserialize_node(
                         pin_instance = wf->get_pin_by_hash(node_instance->get_instance_id(), pin_hash);
                         if (nullptr == pin_instance)
                         {
-                            LogAndThrowInternalErrorS(ExcepCategory::Logic, "PinInstance " << pin_hash << " not found in wf");
+                            LogInternalLogicS("PinInstance " << pin_hash << " not found in wf");
                         }
                     }
 

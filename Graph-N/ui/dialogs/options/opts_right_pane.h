@@ -30,7 +30,7 @@ private:
 
     void show_help_mark(const char*& help_text_ptr, const char* hint);
     void show_help_text(const char* help_text);
-    bool show_full_row_button(const char* text, bool enabled, bool half_w);
+    bool show_full_row_button(const char* text, bool enabled, bool half_w, bool same_line);
 
     void import_from_comfyui();
     void browse_for_python();

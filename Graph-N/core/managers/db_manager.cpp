@@ -1320,7 +1320,7 @@ void DbManager::write_thread(std::filesystem::path db_path)
                     del_history(db, std::get_if<HistoryData>(&data.data));
                     break;
                 default:
-                    LogError(ExcepCategory::Logic, "Unhandled data type to write: " << cast::to_i32(data.type));
+                    LogInternalLogic("Unhandled data type to write: " << cast::to_i32(data.type));
                 }
                 q.pop();
             }

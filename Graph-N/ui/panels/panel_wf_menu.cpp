@@ -17,6 +17,27 @@ bool PanelWorkflow::context_menu_handler()
     if (m_invalidation_state || m_wf->get_data().critical_failure)
         return false;
 
+    if (m_display_new_node_menu)
+    {
+        m_display_new_node_menu = false;
+        m_handle_context_menu = true;
+        m_menu_objs = {};
+        m_context_menu_type = MenuType::BackDblClick;
+        if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_RootWindow | ImGuiHoveredFlags_ChildWindows))
+        {
+            const ImVec2 win_pos = ImGui::GetWindowPos();
+            const ImVec2 start_pos = ImGui::GetCursorStartPos();
+            const auto offset = ImGui::GetTextLineHeight() + ImGui::GetStyle().FramePadding.y + 10.0f;
+            m_menu_objs.click_pos = ImVec2(win_pos.x + start_pos.x + 10.0f, win_pos.y + start_pos.y + offset);
+            m_menu_objs.align_menu_pos = true;
+        }
+        else
+            m_menu_objs.click_pos = m_drawer.get_mouse_pos();
+
+        Log("Bg menu initiated: new node");
+        return true;
+    }
+
     bool rclick = false, dbl_click = false;
     if (m_drawer.get_bg_menu_active(rclick, dbl_click))
     {
@@ -140,8 +161,11 @@ bool PanelWorkflow::show_context_menu()
         ImGui::OpenPopup(m_context_menuid.c_str());
         m_handle_context_menu = false;
         m_context_menu_nodes_need_focus = true;
-        m_context_menu_nodes_filter.clear();
+        m_context_menu_nodes_filter.clear();        
     }
+
+    if (m_menu_objs.align_menu_pos)
+        ImGui::SetNextWindowPos(m_menu_objs.click_pos, ImGuiCond_Appearing);
 
     if (ImGui::BeginPopup(m_context_menuid.c_str()))
     {
@@ -412,7 +436,7 @@ bool PanelWorkflow::show_group_menu()
     {
         if (ImGui::MenuItem("Fit"))
         {
-            m_action->set_group_rect(group, m_drawer.fit_group_rect(group, nodes));
+            m_action->set_node_rect(group, m_drawer.fit_group_rect(group, nodes));
             close = true;
         }
         if (ImGui::MenuItem("Select nodes"))

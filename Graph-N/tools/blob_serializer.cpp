@@ -208,7 +208,7 @@ void Writer::patch(size_t offset, uint32_t val)
 {
     if (offset + sizeof(uint32_t) > m_buffer->size())
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Patch: Out of range");
+        LogInternalLogicS("Patch: Out of range");
     }
 
     std::memcpy(m_buffer->data() + offset, &val, sizeof(uint32_t));
@@ -264,7 +264,7 @@ void Reader::test_len(size_t len) const
 {
     if (len > m_size - m_offset)
     {
-        LogAndThrowInternalError(ExcepCategory::Logic, "Reader len: Out of range");
+        LogInternalLogicS("Reader len: Out of range");
     }
 }
 
@@ -379,7 +379,7 @@ primitive Reader::pop_primitive()
         break;
     default:
         {
-            LogAndThrowInternalError(ExcepCategory::Logic, "Undefined primitive type");
+            LogInternalLogicS("Undefined primitive type");
         }
     }
     return ret;
@@ -470,7 +470,7 @@ Block::~Block()
 
 void Block::begin()
 {
-    if (m_opened) { LogAndThrowInternalError(ExcepCategory::Logic, "Block already open"); }
+    if (m_opened) { LogInternalLogicS("Block already open"); }
     m_opened = true;
 
     m_size_offset = m_writer.get()->size();
@@ -480,7 +480,7 @@ void Block::begin()
 
 void Block::end()
 {
-    if (!m_opened) { LogAndThrowInternalError(ExcepCategory::Logic, "Block wasn't open"); }
+    if (!m_opened) { LogInternalLogicS("Block wasn't open"); }
     m_opened = false;
 
     const uint32_t payload_size = uint32_t(m_writer.get()->size() - m_start_offset);

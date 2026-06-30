@@ -19,12 +19,12 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
 {
     if (nullptr == i1 || nullptr == i2 || i1->get_object() == nullptr || i2->get_object() == nullptr)
     {
-        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Null link");
+        LogInternalLogicS("Null link");
     }
 
     if (i1->get_workflow_id() != i2->get_workflow_id())
     {
-        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Different workflows");
+        LogInternalLogicS("Different workflows");
     }
 
     const auto p1 = i1->get_object();
@@ -55,14 +55,14 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
 {
     if (!can_link(i1, i2))
     {
-        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Check can link before entablish connection");
+        LogInternalLogicS("Check can link before entablish connection");
     }
 
     auto wf = g::pWfsManager->access(i1->get_workflow_id());
 
     if (i1->state().links > 0 && i1->get_object()->input || i2->state().links > 0 && i2->get_object()->input)
     {
-        LogAndThrowInternalErrorS(ExcepCategory::Logic, "Input pin can't has more than 1 links");
+        LogInternalLogicS("Input pin can't has more than 1 links");
     }
 
     auto link = wf->add_link(instance_id);

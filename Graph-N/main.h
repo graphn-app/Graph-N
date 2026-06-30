@@ -39,6 +39,9 @@ public:
     virtual void wnd_show() = 0;
     virtual void wnd_hide() = 0;
 
+    virtual void wnd_toggle_fullscreen() = 0;
+    inline bool get_is_fullscreen() const { return m_fullscreen; }
+
     virtual bool get_ini_config_exists() const = 0;
 
 protected:
@@ -46,6 +49,7 @@ protected:
 
 protected:
     DragAndDropCallback m_dnd_callback = nullptr;
+    bool m_fullscreen = false;
 
 private:
     bool m_vsync = true;
