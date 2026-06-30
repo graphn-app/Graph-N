@@ -7,6 +7,7 @@
 #include "core/managers/workflows_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/history_manager.h"
+#include "core/managers/hotkeys_manager.h"
 #include "ui/graph-n_flow.h"
 
 namespace ui
@@ -252,6 +253,7 @@ bool PanelWorkflow::show_canvas_menu()
 
     auto history = g::pHistoryManager->get_state(m_wf->get_id());
     const char* undo = nullptr;
+    const char* hotkey = g::pHotkeysManager->get_key_binding_name(KeyTarget::Workspace_Undo);
     if (history.undo_name != nullptr)
     {
         m_fmt_buffer.clear();
@@ -259,7 +261,7 @@ bool PanelWorkflow::show_canvas_menu()
         m_fmt_buffer.push_back('\0');
         undo = m_fmt_buffer.data();
     }
-    if (ImGui::MenuItem(nullptr == undo ? "Undo" : undo, nullptr, nullptr, undo != nullptr))
+    if (ImGui::MenuItem(nullptr == undo ? "Undo" : undo, hotkey, nullptr, undo != nullptr))
     {
         m_drawer.clear_selection();
         g::pHistoryManager->undo(m_wf->get_id());
@@ -267,14 +269,15 @@ bool PanelWorkflow::show_canvas_menu()
     }
 
     const char* redo = nullptr;
+    hotkey = g::pHotkeysManager->get_key_binding_name(KeyTarget::Workspace_Redo);
     if (history.redo_name != nullptr)
     {
         m_fmt_buffer.clear();
         fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("Redo: {}"), *history.redo_name);
         m_fmt_buffer.push_back('\0');
-        redo = m_fmt_buffer.data();
+        redo = m_fmt_buffer.data();        
     }
-    if (ImGui::MenuItem(nullptr == redo ? "Redo" : redo, nullptr, nullptr, redo != nullptr))
+    if (ImGui::MenuItem(nullptr == redo ? "Redo" : redo, hotkey, nullptr, redo != nullptr))
     {
         m_drawer.clear_selection();
         g::pHistoryManager->redo(m_wf->get_id());
@@ -282,12 +285,12 @@ bool PanelWorkflow::show_canvas_menu()
     }
     ImGui::Separator();
 
-    if (ImGui::MenuItem("Paste", nullptr, nullptr, g::pWfsManager->copy_has_data()))
+    if (ImGui::MenuItem("Paste", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Paste), nullptr, g::pWfsManager->copy_has_data()))
     {
-        g::pWfsManager->copy_end(m_wf, m_menu_objs.click_pos);
+        paste_copied(m_menu_objs.click_pos);
         close = true;
     }
-    if (ImGui::MenuItem("Select all"))
+    if (ImGui::MenuItem("Select all", g::pHotkeysManager->get_key_binding_name(KeyTarget::Workspace_SelAll)))
     {
         m_drawer.select_node({}, false);
         for (auto& node : m_wf->get_nodes())
@@ -345,49 +348,48 @@ bool PanelWorkflow::show_node_menu()
     //    node->reset_width();
     //    close = true;
     //}
-    if (ImGui::MenuItem(node->pinned() ? "Unpin" : "Pin"))
+    if (ImGui::MenuItem(node->get_pinned() ? "Unpin" : "Pin", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Pin)))
     {
-        m_action->set_node_pinning(node, !node->pinned());
+        m_action->set_node_pinning(node, !node->get_pinned());
         close = true;
     }
-    if (ImGui::MenuItem(node->get_expanded() ? "Collapse" : "Expand"))
+    if (ImGui::MenuItem(node->get_expanded() ? "Collapse" : "Expand", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Collapse)))
     {
         m_action->set_node_expanded(node, !node->get_expanded());
         close = true;
     }
-    if (ImGui::MenuItem("Group"))
+    if (ImGui::MenuItem("Group", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Group)))
     {
-        m_action->add_group(m_drawer.calc_group_rect(node->m_rc));
+        group_nodes({ node });
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Always", nullptr, node->get_mode() == NodeMode::Always, !node->get_object()->is_dummy))
+    if (ImGui::MenuItem("Always", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Always), node->get_mode() == NodeMode::Always, !node->get_object()->is_dummy))
     {
         m_action->set_node_mode(node, NodeMode::Always);
         close = true;
     }
-    if (ImGui::MenuItem("Bypass", nullptr, node->get_mode() == NodeMode::Bypass, !node->get_object()->is_dummy))
+    if (ImGui::MenuItem("Bypass", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Bypass), node->get_mode() == NodeMode::Bypass, !node->get_object()->is_dummy))
     {
         m_action->set_node_mode(node, NodeMode::Bypass);
         close = true;
     }
-    if (ImGui::MenuItem("Mute", nullptr, node->get_mode() == NodeMode::Mute || node->get_mode() == NodeMode::OnTrigger || node->get_mode() == NodeMode::OnEvent, !node->get_object()->is_dummy))
+    if (ImGui::MenuItem("Mute", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Mute), node->get_mode() == NodeMode::Mute || node->get_mode() == NodeMode::OnTrigger || node->get_mode() == NodeMode::OnEvent, !node->get_object()->is_dummy))
     {
         m_action->set_node_mode(node, NodeMode::Mute);
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Remove"))
+    if (ImGui::MenuItem("Remove", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Remove)))
     {
-        m_action->delete_node(node);
+        delete_nodes({ node });
         close = true;
         create_toolbar();
         return close;
     }
-    if (ImGui::MenuItem("Copy", nullptr, nullptr, !node->get_object()->is_dummy))
+    if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy), nullptr, !node->get_object()->is_dummy))
     {
-        g::pWfsManager->copy_begin(m_wf, {});
-        g::pWfsManager->copy_add(node);
+        copy_nodes({ node }, {});
         close = true;
     }
     ImGui::Separator();
@@ -449,9 +451,9 @@ bool PanelWorkflow::show_group_menu()
         }
     }
     ImGui::Separator();
-    if (ImGui::MenuItem(nodes.empty() ? "Remove" : "Remove group"))
+    if (ImGui::MenuItem(nodes.empty() ? "Remove" : "Remove group", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Remove)))
     {
-        m_action->delete_group(group);
+        delete_nodes({ group });
         close = true;
     }
     if (!nodes.empty())
@@ -462,23 +464,22 @@ bool PanelWorkflow::show_group_menu()
 
         if (ImGui::MenuItem(m_fmt_buffer.data()))
         {
-            m_action->multi_action_on("Remove");
+            std::set<data::NodeInstance*> objs;
             for (auto node : nodes)
             {
-                m_action->delete_node(node);
+                objs.insert(node);
             }
-            m_action->delete_group(group);
-            m_action->multi_action_off();
+            objs.insert(group);
+            delete_nodes(objs);
 
             close = true;
             create_toolbar();
             return close;
         }
     }
-    if (ImGui::MenuItem("Copy"))
+    if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy)))
     {
-        g::pWfsManager->copy_begin(m_wf, {});
-        g::pWfsManager->copy_add(group);
+        copy_nodes({ group }, {});
         close = true;
     }
     ImGui::Separator();
@@ -539,39 +540,26 @@ bool PanelWorkflow::show_multinode_menu()
     //    }
     //    close = true;
     //}
-    if (ImGui::MenuItem("Group"))
+    if (ImGui::MenuItem("Group", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Group)))
     {
-        m_action->multi_action_on("Add group");
-        auto group = m_action->add_group(std::nullopt);
-        m_action->set_group_rect(group, m_drawer.fit_group_rect(group, m_menu_objs.nodes));
-        m_action->multi_action_off();
+        group_nodes(m_menu_objs.nodes);
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Remove"))
+    if (ImGui::MenuItem("Remove", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Remove)))
     {
-        m_action->multi_action_on("Remove");
-        for (auto node : m_menu_objs.nodes)
-        {
-            m_action->delete_node(node);
-        }
-        m_action->multi_action_off();
+        delete_nodes(m_menu_objs.nodes);
         close = true;
         create_toolbar();
         return close;
     }
-    if (ImGui::MenuItem("Copy"))
+    if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy)))
     {
-        g::pWfsManager->copy_begin(m_wf, {});
-        for (auto node : m_menu_objs.nodes)
-        {
-            if (!node->get_object()->is_dummy)
-                g::pWfsManager->copy_add(node);
-        }
+        copy_nodes(m_menu_objs.nodes, {});        
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Pin"))
+    if (ImGui::MenuItem("Pin", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Pin)))
     {
         m_action->multi_action_on("Pin");
         for (auto node : m_menu_objs.nodes)
@@ -600,7 +588,7 @@ bool PanelWorkflow::show_multinode_menu()
         }
         close = true;
     }
-    if (ImGui::MenuItem("Collapse"))
+    if (ImGui::MenuItem("Collapse", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Collapse)))
     {
         for (auto node : m_menu_objs.nodes)
         {
@@ -609,7 +597,7 @@ bool PanelWorkflow::show_multinode_menu()
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Always"))
+    if (ImGui::MenuItem("Always", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Always)))
     {
         m_action->multi_action_on("Always mode");
         for (auto node : m_menu_objs.nodes)
@@ -620,7 +608,7 @@ bool PanelWorkflow::show_multinode_menu()
         m_action->multi_action_off();
         close = true;
     }
-    if (ImGui::MenuItem("Bypass"))
+    if (ImGui::MenuItem("Bypass", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Bypass)))
     {
         m_action->multi_action_on("Bypass");
         for (auto node : m_menu_objs.nodes)
@@ -631,7 +619,7 @@ bool PanelWorkflow::show_multinode_menu()
         m_action->multi_action_off();
         close = true;
     }
-    if (ImGui::MenuItem("Mute"))
+    if (ImGui::MenuItem("Mute", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Mute)))
     {
         m_action->multi_action_on("Mute");
         for (auto node : m_menu_objs.nodes)
@@ -679,43 +667,40 @@ bool PanelWorkflow::show_multigroup_menu()
     }
 
     bool close = false;
-    if (ImGui::MenuItem("Remove"))
+    if (ImGui::MenuItem("Remove", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Remove)))
     {
-        m_action->multi_action_on("Remove");
+        std::set<data::NodeInstance*> objs;
         for (const auto& pair : m_menu_objs.groups)
         {
-            m_action->delete_group(pair.first);
+            objs.insert(pair.first);
         }
-        m_action->multi_action_off();
+        delete_nodes(objs);
         close = true;
     }
     if (nodes_inside > 0)
     {
         if (ImGui::MenuItem("Remove groups and nodes inside"))
         {
-            m_action->multi_action_on("Remove");
+            std::set<data::NodeInstance*> objs;
             for (const auto&[group, nodes] : m_menu_objs.groups)
             {
-                m_action->delete_group(group);
-
-                for (auto node : nodes)
-                {
-                    m_action->delete_node(node);
-                }
+                objs.insert(group);
+                objs.insert(nodes.begin(), nodes.end());
             }
-            m_action->multi_action_off();
+            delete_nodes(objs);
             close = true;
             create_toolbar();
             return close;
         }
     }
-    if (ImGui::MenuItem("Copy"))
+    if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy)))
     {
-        g::pWfsManager->copy_begin(m_wf, {});
+        std::set<data::NodeInstance*> objs;
         for (auto& group : m_menu_objs.groups)
         {
-            g::pWfsManager->copy_add(group.first);
+            objs.insert(group.first);
         }
+        copy_nodes(objs, {});
         close = true;
     }
     ImGui::Separator();
@@ -726,7 +711,7 @@ bool PanelWorkflow::show_multigroup_menu()
             m_action->multi_action_on("Fit");
             for (const auto&[group, nodes] : m_menu_objs.groups)
             {
-                m_action->set_group_rect(group, m_drawer.fit_group_rect(group, nodes));
+                m_action->set_node_rect(group, m_drawer.fit_group_rect(group, nodes));
             }
             m_action->multi_action_off();
             close = true;
@@ -778,34 +763,51 @@ bool PanelWorkflow::show_multigroup_menu()
 bool PanelWorkflow::show_multiobj_menu()
 {
     bool close = false;
-    if (ImGui::MenuItem("Remove"))
+    if (ImGui::MenuItem("Group", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Group)))
     {
-        m_action->multi_action_on("Remove");
+        std::set<data::NodeInstance*> objs;
         for (auto node : m_menu_objs.nodes)
         {
-            m_action->delete_node(node);
+            objs.insert(node);
         }
         for (auto& group : m_menu_objs.groups)
         {
-            m_action->delete_node(group.first);
+            objs.insert(group.first);
         }
-        m_action->multi_action_off();
+
+        group_nodes(objs);
+        close = true;
+    }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Remove", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Remove)))
+    {
+        std::set<data::NodeInstance*> objs;
+        for (auto node : m_menu_objs.nodes)
+        {
+            objs.insert(node);
+        }
+        for (auto& group : m_menu_objs.groups)
+        {
+            objs.insert(group.first);
+        }
+        delete_nodes(objs);
         close = true;
         create_toolbar();
         return close;
     }
-    if (ImGui::MenuItem("Copy"))
+    if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy)))
     {
-        g::pWfsManager->copy_begin(m_wf, {});
+        std::set<data::NodeInstance*> objs;
         for (auto node : m_menu_objs.nodes)
         {
             if (!node->get_object()->is_dummy)
-                g::pWfsManager->copy_add(node);
+                objs.insert(node);
         }
         for (auto& group : m_menu_objs.groups)
         {
-            g::pWfsManager->copy_add(group.first);
+            objs.insert(group.first);
         }
+        copy_nodes(objs, {});
         close = true;
     }
     ImGui::Separator();
@@ -894,10 +896,10 @@ bool PanelWorkflow::show_link_menu()
         m_action->unlink(link);
         close = true;
     }
-    if (ImGui::MenuItem("Insert angle")) // TODO. deny if dummy
-    {
-        close = true;
-    }
+    //if (ImGui::MenuItem("Insert angle")) // TODO. deny if dummy
+    //{
+    //    close = true;
+    //}
 
     return close;
 }

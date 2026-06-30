@@ -42,7 +42,11 @@ public:
     void free();
 
     void pre_draw_all(const char* id, size_t nodes_count);
-    void post_draw_all(const std::function<bool()>& init_menu_handler, const std::function<bool()>& show_menu_handler, const std::function<bool()>& move_handler);
+    void post_draw_all(
+        const std::function<bool()>& init_menu_handler,
+        const std::function<bool()>& show_menu_handler,
+        const std::function<bool()>& move_handler,
+        const std::function<bool()>& hotkey_handler);
 
     void pre_draw_node(data::NodeInstance* node, bool execution_failed);
     void draw_node(data::NodeInstance* node, float node_w, size_t node_idx, const std::set<std::string>* failed_pins);

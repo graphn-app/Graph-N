@@ -26,6 +26,7 @@
 #include "core/managers/comfyui_manager.h"
 #include "core/managers/history_manager.h"
 #include "core/managers/queue_manager.h"
+#include "core/managers/hotkeys_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/workflow_serializer_to_json.h"
@@ -151,6 +152,8 @@ bool GraphN_Flow::init()
     };
     g::pMain->set_dnd_callback(dnd_callback);
 
+    load_hotkeys();
+    g::block_hotkeys_counter = 0;
     return true;
 }
 
@@ -325,6 +328,7 @@ void GraphN_Flow::exit()
 {
     LogF;
     g::app_global_stop_all_threads = true;
+    g::block_hotkeys_counter = 0xffff;
     prepare_to_quit();
 }
 
@@ -332,11 +336,14 @@ void GraphN_Flow::stop_all_threads()
 {
     LogF;
     g::app_global_stop_all_threads = true;
+    g::block_hotkeys_counter = 0xffff;
 }
 
 bool GraphN_Flow::run()
 {
     show_menu_bar();
+    test_hotkeys();
+
     show_activity_bar();
     show_options_dlg();
     show_sync_projs_dlg();
@@ -356,6 +363,7 @@ void GraphN_Flow::prepare_to_quit()
 {
     LogF_In;
     g::app_global_stop_all_threads = true;
+    g::block_hotkeys_counter = 0xffff;
 
     g::pConnectManager->stop_all_threads();
     g::pWfsManager->close_and_purge();
@@ -537,226 +545,6 @@ void GraphN_Flow::reparse_nodes()
     http_get("Flow/reparse_nodes", [](){ return true; }, comfyui_http::object_info, parser);
 }
 
-void GraphN_Flow::show_menu_bar()
-{
-    const bool connecting_mode = (m_windows & ViewConnect);
-    if (connecting_mode)
-        ImGui::PushStyleColor(ImGuiCol_MenuBarBg, g::pOptsManager->color_load(AppColor::DisconnectedMenuBarBg));
-
-    if (ImGui::BeginMainMenuBar())
-    {
-        if (ImGui::BeginMenu("File##MainMenuBar"))
-        {
-            if (ImGui::MenuItem("Import Project from file...##FileMenuBar", nullptr, nullptr, m_nodes_ready.load(std::memory_order_relaxed)))
-            {
-                Log("Menu: Import Project");
-                on_menu_import();
-            }
-            if (ImGui::BeginMenu("Export...##MainMenuBar"))
-            {
-                if (ImGui::MenuItem("Export Project to json...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_active() != 0))
-                {
-                    Log("Menu: Export Project");
-                    on_menu_export_json(false);
-                }
-                if (ImGui::MenuItem("Export Project to json (API)...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_active() != 0))
-                {
-                    Log("Menu: Export Project (API)");
-                    on_menu_export_json(true);
-                }
-                ImGui::Separator();
-                if (ImGui::MenuItem("Export all Projects to json...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_wfs_count() > 0))
-                {
-                    Log("Menu: Export all Projects");
-                    on_menu_export_json_all(false);
-                }
-                if (ImGui::MenuItem("Export all Projects to json (API)...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_wfs_count() > 0))
-                {
-                    Log("Menu: Export all Projects (API)");
-                    on_menu_export_json_all(true);
-                }
-                ImGui::EndMenu();
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Options##FileMenuBar"))
-            {
-                Log("Menu: Options");
-                on_menu_options();
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Quit " APP_CAPTION "##FileMenuBar", "Ctrl+Q"))
-            {
-                Log("Menu: Quit");
-                on_menu_quit();
-            }
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Projects##MainMenuBar"))
-        {
-            if (ImGui::MenuItem("Add new Project##WfMenuBar"))
-            {
-                Log("Menu: new wf");
-                on_menu_wf(nullptr);
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Sync and manage Projects...##WfMenuBar"))
-            {
-                Log("Menu: sync projects");
-                on_menu_sync_projects();
-            }
-            if (!m_panels_wf.empty())
-            {
-                ImGui::Separator();
-                for (auto& wf : m_panels_wf)
-                {
-                    const auto wf_name = fmt::format(FMT_STRING("{}##PanelsMenuBar"), wf->get_panel_name_full());
-                    if (ImGui::MenuItem(wf_name.c_str(), nullptr, wf.get() == m_wf_focused))
-                    {
-                        Log("Menu: wf " << wf_name);
-                        on_menu_wf(wf.get());
-                    }
-                }
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Close all Projects##WfMenuBar", nullptr, nullptr, !m_panels_wf.empty()))
-            {
-                Log("Menu: close all projects");
-                on_menu_close_all_projects();
-            }
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Panels##MainMenuBar"))
-        {
-            if (ImGui::MenuItem("Nodes Library##PanelsMenuBar", nullptr, (m_windows & ViewPanelNodes)))
-            {
-                Log("Menu: Nodes Library");
-                on_menu_panel_window(ViewPanelNodes);
-            }
-            if (ImGui::MenuItem("Models Library##PanelsMenuBar", nullptr, (m_windows & ViewPanelModels)))
-            {
-                Log("Menu: models panel");
-                on_menu_panel_window(ViewPanelModels);
-            }
-            if (ImGui::MenuItem("Node Inspector##PanelsMenuBar", nullptr, (m_windows & ViewPanelNodeInpector)))
-            {
-                Log("Menu: Node Inspector");
-                on_menu_panel_window(ViewPanelNodeInpector);
-            }
-            if (ImGui::MenuItem("My Projects##PanelsMenuBar", nullptr, (m_windows & ViewPanelWfList)))
-            {
-                Log("Menu: wf list panel");
-                on_menu_panel_window(ViewPanelWfList);
-            }
-            if (ImGui::MenuItem("Stats##PanelsMenuBar", nullptr, (m_windows & ViewPanelStats)))
-            {
-                Log("Menu: stats panel");
-                on_menu_panel_window(ViewPanelStats);
-            }
-            if (ImGui::MenuItem("Queue##PanelsMenuBar", nullptr, (m_windows & ViewPanelQueue)))
-            {
-                Log("Menu: queue panel");
-                on_menu_panel_window(ViewPanelQueue);
-            }
-            if (ImGui::MenuItem("Notes##PanelsMenuBar", nullptr, (m_windows & ViewPanelNotes)))
-            {
-                Log("Menu: notes panel");
-                on_menu_panel_window(ViewPanelNotes);
-            }
-            if (ImGui::MenuItem("Templates##PanelsMenuBar", nullptr, (m_windows & ViewPanelTemplates)))
-            {
-                Log("Menu: templates panel");
-                on_menu_panel_window(ViewPanelTemplates);
-            }
-            if (ImGui::MenuItem("Server Log##PanelsMenuBar", nullptr, (m_windows & ViewPanelOutput)))
-            {
-                Log("Menu: output panel");
-                on_menu_panel_window(ViewPanelOutput);
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Reset default layout##PanelsMenuBar"))
-            {
-                Log("Menu: Reset default layout");
-                on_menu_panel_window(ViewPanelsResetAll);
-            }
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Help##MainMenuBar"))
-        {
-#ifdef _DEBUG
-            if (ImGui::MenuItem("Debug metrics##HelpMenuBar", nullptr, (m_windows & ViewDebugMetrics)))
-            {
-                if (m_windows & ViewDebugMetrics)
-                    m_windows &= ~ViewDebugMetrics;
-                else
-                    m_windows |= ViewDebugMetrics;
-            }
-            if (ImGui::MenuItem("Debug logs##HelpMenuBar", nullptr, (m_windows & ViewDebugLogs)))
-            {
-                if (m_windows & ViewDebugLogs)
-                    m_windows &= ~ViewDebugLogs;
-                else
-                    m_windows |= ViewDebugLogs;
-            }
-            if (ImGui::MenuItem("Demo##HelpMenuBar", nullptr, (m_windows & ViewDebugDemo)))
-            {
-                if (m_windows & ViewDebugDemo)
-                    m_windows &= ~ViewDebugDemo;
-                else
-                    m_windows |= ViewDebugDemo;
-            }
-            if (ImGui::MenuItem("Stack tool##HelpMenuBar", nullptr, (m_windows & ViewStackTool)))
-            {
-                if (m_windows & ViewStackTool)
-                    m_windows &= ~ViewStackTool;
-                else
-                    m_windows |= ViewStackTool;
-            }
-            if (ImGui::MenuItem("Style editor##HelpMenuBar", nullptr, (m_windows & ViewStyleEditor)))
-            {
-                if (m_windows & ViewStyleEditor)
-                    m_windows &= ~ViewStyleEditor;
-                else
-                    m_windows |= ViewStyleEditor;
-            }
-            if (ImGui::MenuItem("Style selector##HelpMenuBar", nullptr, (m_windows & ViewStyleSelector)))
-            {
-                if (m_windows & ViewStyleSelector)
-                    m_windows &= ~ViewStyleSelector;
-                else
-                    m_windows |= ViewStyleSelector;
-            }
-            if (ImGui::MenuItem("Font selector##HelpMenuBar", nullptr, (m_windows & ViewFontSelector)))
-            {
-                if (m_windows & ViewFontSelector)
-                    m_windows &= ~ViewFontSelector;
-                else
-                    m_windows |= ViewFontSelector;
-            }
-            ImGui::Separator();
-#endif
-            if (ImGui::MenuItem("About " APP_CAPTION "##HelpMenuBar"))
-            {
-                Log("Menu: About");
-                on_menu_about();
-            }
-#ifdef _DEBUG
-            if (ImGui::MenuItem("Use test json##HelpMenuBar", nullptr, test_json))
-            {
-                test_json = !test_json;
-            }
-#endif
-            ImGui::EndMenu();
-        }
-
-        show_menu_bar_net_status();
-
-        ImGui::EndMainMenuBar();
-    }
-
-    if (connecting_mode)
-        ImGui::PopStyleColor();
-}
-
 void GraphN_Flow::on_dlg_closed(DlgObj dlg)
 {
     switch (dlg)
@@ -831,314 +619,6 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
 
     g::pOptsManager->ui_open_wnds_save(m_windows);
 }
-
-void GraphN_Flow::on_menu_options()
-{
-    m_windows |= ViewOptions;
-    g::pOptsManager->ui_open_wnds_save(m_windows);
-}
-
-void GraphN_Flow::on_menu_quit()
-{
-    LogF;
-    g::pGraphN->handle_wnd_on_close();
-}
-
-void GraphN_Flow::on_menu_about()
-{
-    LogF;
-}
-
-void GraphN_Flow::on_menu_panel_window(ViewDialogs wnd)
-{
-    m_windows |= wnd;
-    if (wnd != ViewPanelsResetAll)
-        g::pOptsManager->ui_open_wnds_save(m_windows);
-}
-
-void GraphN_Flow::on_menu_wf(PanelWorkflow* wf_panel)
-{
-    LogF;
-    if (wf_panel != nullptr)
-    {
-        wf_activate(wf_panel->get_workflow()->get_id());
-    }
-    else
-    {
-        wf_create();
-    }
-}
-
-void GraphN_Flow::on_menu_close_all_projects()
-{
-    LogF;
-
-    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); )
-    {
-        close_wf_panel(it->get());
-        it = m_panels_wf.begin();
-    }
-}
-
-void GraphN_Flow::on_menu_sync_projects()
-{
-    LogF;
-    m_windows |= ViewSyncProjects;
-    g::pOptsManager->ui_open_wnds_save(m_windows);
-}
-
-// WF public ->
-void GraphN_Flow::wf_create()
-{
-    auto& data = g::pWfsManager->create(true /*generate_name*/, true /*dump_to_db*/, false /*ro*/);
-    g::pWfsManager->set_active(data.id);
-    auto panel = create_wf_panel(data);
-    activate_wf_panel(panel);
-    m_panel_wf_list->rebuild_items();
-}
-
-void GraphN_Flow::wf_create_copy_from(wid source, std::optional<ImRect> wf_rc, std::optional<float> wf_zoom)
-{
-    auto info = g::pWfsManager->create_copy(source);
-    g::pWfsManager->set_active(info.id);
-    auto panel = create_wf_panel(info);
-    activate_wf_panel(panel);
-    panel->set_wf_view(wf_rc, wf_zoom);
-    m_panel_wf_list->rebuild_items();
-}
-
-void GraphN_Flow::wf_reload_view(wid id)
-{
-    for (auto& panel : m_panels_wf)
-    {
-        if (panel->get_workflow()->get_id() == id)
-        {
-            panel->select_new_nodes();
-            break;
-        }
-    }
-}
-
-void GraphN_Flow::wf_activate(wid id)
-{
-    if (0 == id && !m_panels_wf.empty())
-        id = m_panels_wf.begin()->get()->get_workflow()->get_id();
-
-    g::pWfsManager->set_active(id);
-    auto panel = find_wf_panel(id);
-    if (nullptr == panel && id != 0)
-    {
-        auto& data = g::pWfsManager->get_data(id);
-        panel = create_wf_panel(data);
-    }
-    activate_wf_panel(panel);
-
-    m_panel_wf_list->rebuild_items();
-}
-
-void GraphN_Flow::wf_locate(wid id)
-{
-    auto panel = find_wf_panel(id);
-    if (nullptr == panel)
-    {
-        auto& data = g::pWfsManager->get_data(id);
-        panel = create_wf_panel(data);
-    }
-    wf_activate(id);
-    panel->restore_pos();
-    m_panel_wf_list->rebuild_items();
-}
-
-void GraphN_Flow::wf_delete(wid id)
-{
-    auto wf = g::pWfsManager->get_active();
-    if (wf == id)
-    {
-        auto last_panel = get_last_open_wf_panel(id);
-        g::pWfsManager->set_active(nullptr == last_panel ? 0 : last_panel->get_workflow()->get_id());
-        activate_wf_panel(last_panel);
-    }
-
-    g::pWfsManager->delete_wf(id);
-    g::pHistoryManager->cleanup(id);
-
-    auto panel = find_wf_panel(id);
-    if (panel != nullptr)
-    {
-        close_wf_panel(panel);
-    }
-    m_panel_wf_list->rebuild_items();    
-}
-
-void GraphN_Flow::wf_restore(wid id)
-{
-    g::pWfsManager->undelete_wf(id);
-    m_panel_wf_list->rebuild_items();
-}
-
-void GraphN_Flow::wf_rename(wid id, const std::string& new_name)
-{
-    g::pWfsManager->update_name(id, new_name);
-
-    auto panel = find_wf_panel(id);
-    if (panel != nullptr)
-        rename_wf_panel(panel, new_name);
-
-    m_panel_wf_list->rebuild_items();
-}
-
-void GraphN_Flow::wf_add_node_to_active_panel(data::Node* node, const std::string& select /*= ""*/)
-{
-    if (nullptr == m_wf_focused)
-        g::pFlow->wf_create();
-    m_wf_focused->get_action()->add_node(node, select, {});
-}
-
-void GraphN_Flow::wf_locate_node(wid id, data::NodeInstance* node)
-{
-    wf_activate(id);
-    if (m_wf_focused != nullptr)
-        m_wf_focused->locate_node(node);
-}
-
-void GraphN_Flow::wf_reload()
-{
-    m_panel_wf_list->rebuild_items();
-}
-
-// <- WF public
-
-// WF internal ->
-void GraphN_Flow::init_workflow_panels()
-{
-    if (g::pDbManager->get_is_first_run())
-    {
-        wf_create();
-    }
-    else
-    {
-        auto active = g::pWfsManager->get_active();
-        if (active != 0)
-        {
-            auto& data = g::pWfsManager->get_data(active);
-            auto panel = create_wf_panel(data);
-            activate_wf_panel(panel);
-            m_panel_wf_list->rebuild_items();
-        }
-    }
-}
-
-PanelWorkflow* GraphN_Flow::find_wf_panel(wid id) const
-{
-    for (const auto& panel : m_panels_wf)
-    {
-        if (panel->get_workflow()->get_id() == id)
-            return panel.get();
-    }
-    return nullptr;
-}
-
-PanelWorkflow* GraphN_Flow::create_wf_panel(const mngr::WfData& wf)
-{
-    m_panels_wf.emplace_back(std::make_unique<ui::PanelWorkflow>(wf.id, wf.name, wf.uuid, m_main_dock_id));
-    auto& panel_wf = m_panels_wf.back();
-    panel_wf->init();
-    m_all_dialogs.insert(panel_wf.get());
-    m_windows |= ViewPanelWf;
-    return panel_wf.get();
-}
-
-void GraphN_Flow::activate_wf_panel(PanelWorkflow* wf_panel)
-{
-    if (m_wf_focused != wf_panel)
-    {
-        for (auto& panel : m_panels_wf)
-        {
-            panel->set_active(false);
-            panel->mark_dirty(panel->get_workflow()->get_data().dirty);
-        }
-        if (wf_panel != nullptr)
-        {
-            wf_panel->set_active(true);
-            activate_txt_panels(wf_panel->get_workflow()->get_id());
-        }
-
-        m_wf_focused = wf_panel;
-        if (m_wf_focused != nullptr)
-        {
-            if (m_active_sequense.empty() || m_active_sequense.back() != m_wf_focused->get_workflow()->get_id())
-                m_active_sequense.push_back(m_wf_focused->get_workflow()->get_id());
-        }
-    }
-}
-
-void GraphN_Flow::close_wf_panel(PanelWorkflow* wf_panel)
-{
-    wf_panel->stop_all_threads();
-    m_all_dialogs.erase(wf_panel);
-
-    const wid panel_wf = wf_panel->get_workflow()->get_id();
-    txt_panel_clear(panel_wf);
-    g::pHistoryManager->cleanup(panel_wf);
-    g::pWfsManager->close(panel_wf);
-
-    if (m_panels_wf.empty())
-        destroy_txt_panels();
-    wf_panel->free();
-
-    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
-    {
-        if ((*it).get() == wf_panel)
-        {
-            m_panels_wf.erase(it);
-            break;
-        }
-    }
-
-    if (m_wf_focused == wf_panel)
-    {
-        auto last_open = get_last_open_wf_panel(panel_wf);
-        wf_activate(nullptr == last_open ? 0 : last_open->get_workflow()->get_id());
-    }
-
-    on_dlg_closed(DlgObj::PanelWf);
-}
-
-void GraphN_Flow::rename_wf_panel(PanelWorkflow* wf_panel, const std::string& new_name)
-{
-    wf_panel->rename_panel(new_name);
-}
-
-PanelWorkflow* GraphN_Flow::get_last_open_wf_panel(wid closed)
-{
-    if (m_active_sequense.empty())
-        return nullptr;
-
-    wid last_open = 0;
-    if (m_active_sequense.back() == closed)
-    {
-        m_active_sequense.pop_back();
-        last_open = (m_active_sequense.empty() ? 0 : m_active_sequense.back());
-    }
-    else
-        last_open = m_active_sequense.back();
-
-    if (0 == last_open)
-        return nullptr;
-
-    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
-    {
-        auto& panel = *it;
-        if (panel->get_workflow()->get_id() == last_open)
-        {
-            return panel.get();
-        }
-    }
-
-    return get_last_open_wf_panel(last_open);
-}
-
-// <- WF internal
 
 void GraphN_Flow::txt_panel_create(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint)
 {
@@ -1232,64 +712,10 @@ void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel)
     }
 }
 
-void GraphN_Flow::on_menu_import()
-{
-    tools::path::FdSelectResultMt callback = [this](bool result, std::list<std::filesystem::path>&& paths)
-    {
-        if (result)
-        {
-            import_files(std::move(paths));
-        }
-    };
-    tools::path::select_files_open({{ L"ComfyUI Workflows (*.json, *.png, *.webp)", L"*.json;*.png;*.webp" }}, callback);
-}
-
-void GraphN_Flow::on_menu_export_json(bool api)
-{
-    const auto id = g::pWfsManager->get_active();
-    if (0 == id)
-        return;
-    const auto& data = g::pWfsManager->access(id)->get_data();
-    auto filename = data.name;
-    filename = tools::path::clear_filename(filename) + (api ? " (API).json" : ".json");
-
-    tools::path::FdSelectResultSg callback = [api, id](bool result, std::filesystem::path&& path)
-    {
-        if (result)
-        {
-            g::pWfsManager->export_wf(id, api, path);
-        }
-    };
-
-    tools::path::select_file_save({{ L"Json file (*.json)", L"*.json" }}, filename, callback);
-}
-
-void GraphN_Flow::on_menu_export_json_all(bool api)
-{
-    tools::path::FdSelectResultSg callback = [api](bool result, std::filesystem::path&& path)
-    {
-        if (result)
-        {
-            const auto wfs = g::pWfsManager->get_undeleted();
-            if (wfs.empty())
-                return;
-
-            for (auto wf_data : wfs)
-            {
-                const auto& data = g::pWfsManager->access(wf_data->id)->get_data();
-                auto filename = data.name;
-                filename = tools::path::clear_filename(filename) + (api ? " (API).json" : ".json");
-                g::pWfsManager->export_wf(wf_data->id, api, path / filename);
-            }
-        }
-    };
-
-    tools::path::select_dir(callback);
-}
-
 void GraphN_Flow::open_settings_dlg(OptPane section /*= OptPane::_none*/)
 {
     m_windows |= ViewOptions;
+    g::block_hotkeys_counter++;
     show_options_dlg();
     m_opts_dlg->select_right_pane(section);
 }
@@ -1311,6 +737,8 @@ void GraphN_Flow::show_options_dlg()
     if (m_opts_dlg->show_dialog(focused) != DlgCode::Progress)
     {
         on_dlg_closed(DlgObj::OptionsDlg);
+        g::block_hotkeys_counter--;
+        load_hotkeys();
     }
 }
 
@@ -1321,6 +749,7 @@ void GraphN_Flow::show_sync_projs_dlg()
 
     if (!m_sync_projs_dlg)
     {
+        g::block_hotkeys_counter++;
         m_sync_projs_dlg = std::make_unique<ui::SyncProjectsDlg>();
         m_sync_projs_dlg->init();
         m_all_dialogs.insert(m_sync_projs_dlg.get());
@@ -1331,6 +760,7 @@ void GraphN_Flow::show_sync_projs_dlg()
     if (m_sync_projs_dlg->show_dialog(focused) != DlgCode::Progress)
     {
         on_dlg_closed(DlgObj::SyncProjects);
+        g::block_hotkeys_counter--;
     }
 }
 
@@ -1396,10 +826,15 @@ void GraphN_Flow::show_debug_windows()
 void GraphN_Flow::show_modal()
 {
     if (m_windows & ViewModal)
+    {
+        g::block_hotkeys_counter++;
         modal_show();
+    }
     else if (m_windows & ViewModalStop)
+    {
+        g::block_hotkeys_counter--;
         modal_last_frame();
-
+    }
 }
 
 void GraphN_Flow::show_panel(BaseDlg* panel, DlgObj obj)
@@ -1781,6 +1216,12 @@ void GraphN_Flow::modal_last_frame()
     m_modal_message.reset();
 }
 
+void GraphN_Flow::load_hotkeys()
+{
+    g::pOptsManager->ui_hotkeys_load();
+    wf_assign_sequential_numbers();
+}
+
 void GraphN_Flow::http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
@@ -1871,6 +1312,11 @@ void GraphN_Flow::check_ws_message(const std::function<void(bool, std::string&)>
         if ((ImGui::GetTime() - start_time) > max_processing_time)
             break;
     }
+}
+
+void GraphN_Flow::test_hotkeys()
+{
+    g::pHotkeysManager->process_hotkey();
 }
 
 }

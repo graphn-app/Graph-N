@@ -22,6 +22,7 @@ class ModelsManager;
 class ComfyUIManager;
 class HistoryManager;
 class QueueManager;
+class HotkeysManager;
 }
 
 namespace ui
@@ -112,8 +113,10 @@ extern mngr::ModelsManager* pModelsManager;
 extern mngr::ComfyUIManager* pComfyUIManager;
 extern mngr::HistoryManager* pHistoryManager;
 extern mngr::QueueManager* pQueueManager;
+extern mngr::HotkeysManager* pHotkeysManager;
 
 extern std::atomic_bool app_global_stop_all_threads;
+extern int32_t block_hotkeys_counter;
 
 void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line);
 }

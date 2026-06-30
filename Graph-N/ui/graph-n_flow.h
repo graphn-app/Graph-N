@@ -13,6 +13,7 @@ namespace data
 struct Node;
 class NodeInstance;
 class PinInstance;
+class WorkflowAction;
 }
 
 namespace ui
@@ -114,6 +115,7 @@ public:
     void show_logs_panel(bool show);
 
     void load_activity_bar_mode();
+    void load_hotkeys();
 
     bool is_panel_active(DlgObj panel_obj) const;
     const char* get_panel_icon(DlgObj panel_obj) const;
@@ -143,6 +145,47 @@ public:
     void wf_add_node_to_active_panel(data::Node* node, const std::string& select = "");
     void wf_locate_node(wid id, data::NodeInstance* node);
     void wf_reload();
+    void wf_rename();
+    wid wf_get_active() const;
+    bool wf_can_run() const;
+    void wf_run(bool add_front) const;
+    void wf_num_of_runs(int32_t num) const;
+    void wf_panel_activate_sequential(size_t sequential_number);
+    bool wf_save(bool check_only);
+    bool wf_undo(bool check_only);
+    bool wf_redo(bool check_only);
+    void wf_focus();
+    void wf_node_select_all();
+    void wf_panel_close(PanelWorkflow* wf_panel);
+    void wf_new_node();
+    void wf_node_toggle_pin();
+    void wf_node_toggle_collapse();
+    void wf_node_group();
+    void wf_node_always();
+    void wf_node_toggle_mute();
+    void wf_node_toggle_bypass();
+    void wf_node_remove();
+    void wf_node_copy();
+    bool wf_node_paste(bool check_only);
+    void wf_node_duplicate();
+    void wf_node_move(bool left, bool right, bool up, bool down);
+    void wf_node_align(bool left, bool top);
+    void wf_node_unlink();
+
+    // menu
+    void on_menu_import();
+    void on_menu_quit();
+    void on_menu_fullscreen();
+    void on_menu_command();
+    void on_menu_restart();
+    void on_menu_options();
+    void on_menu_panel_toggle_active();
+    void on_menu_next_project(bool next);
+    void on_menu_panel_window(ViewDialogs wnd, bool toggle = false);   
+    void on_menu_activate_wf(PanelWorkflow* wf_panel);
+    void on_menu_wf_rename();
+    void on_menu_queue_pause();
+    void on_menu_queue_interrupt();
 
     // text editor panel public
     void txt_panel_create(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint);
@@ -182,6 +225,8 @@ private:
     void show_debug_windows();
     void show_modal();
 
+    void test_hotkeys();
+
     void show_panel(BaseDlg* panel, DlgObj obj);
     void show_panel_nodes();
     void show_panel_node_inspector();
@@ -197,12 +242,6 @@ private:
 
     void on_dlg_closed(DlgObj dlg);
 
-    void on_menu_options();
-    void on_menu_quit();
-    void on_menu_about();
-    void on_menu_panel_window(ViewDialogs wnd);
-    void on_menu_wf(PanelWorkflow* wf_panel);
-    void on_menu_import();
     void on_menu_export_json(bool api);
     void on_menu_export_json_all(bool api);
     void on_menu_sync_projects();
@@ -216,6 +255,12 @@ private:
     void wf_panel_activate(PanelWorkflow* wf_panel);
     void wf_panel_activate_next(bool next);
     void wf_panel_rename(PanelWorkflow* wf_panel, const std::string& new_name);
+    void wf_assign_sequential_numbers();
+    void wf_node_get_any_selected(bool& sel_nodes, bool& sel_groups);
+    void wf_node_action_on_selected(
+        const std::function<const char*(bool)>& action_name_cb,
+        const std::function<bool(data::NodeInstance*)>& first_cb,
+        const std::function<void(data::NodeInstance*, data::WorkflowAction*, bool)>& action_cb);
 
     // text editor panel internal
     ImGuiID find_def_txt_panel_dock();

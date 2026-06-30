@@ -2,6 +2,7 @@
 #include "ui/graph-n_flow.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/comfyui_manager.h"
+#include "core/managers/hotkeys_manager.h"
 
 namespace ui
 {
@@ -93,6 +94,8 @@ void OptRightPane::init(OptsData& data)
     m_data->input.numbers = g::pOptsManager->wf_widget_input_numbers_load();
     m_data->input.booleans = g::pOptsManager->wf_widget_input_bools_load();
 
+    load_hotkeys(false);
+
     m_clr_subsep = ImGuiEx::decrease_brightness(g::pOptsManager->color_load(AppColor::OptSeparator));
 }
 
@@ -110,7 +113,6 @@ void OptRightPane::init_sizes()
     m_data->input_with_browse_w = m_data->input_w - m_data->browse_btn_w - ImGui::GetStyle().ItemSpacing.x;
     m_data->full_row_input_w = right_pane_w - ImGui::GetStyle().ItemSpacing.x * 2;
     m_data->full_row_input_with_browse_w = m_data->full_row_input_w - m_data->browse_btn_w - ImGui::GetStyle().ItemSpacing.x;
-
 }
 
 void OptRightPane::show(OptsData& /*data*/)
@@ -928,12 +930,351 @@ void OptRightPane::show_thresholds(const char*& help_text)
     changed = show_thresholds("##LatencyWarning", "##LatencyCritical", m_data->buffer_i[BuffFpsW], m_data->buffer_i[BuffFpsC], false, true, 0.01f, 20.0f, "%.2f ms");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsC]);
+}
 
+void OptRightPane::load_hotkeys(bool defaults)
+{
+    std::vector<ui::KeyBinding> hotkeys;
+    if (defaults)
+        hotkeys = g::pHotkeysManager->get_default_key_bindings();
+    else
+        hotkeys = g::pHotkeysManager->get_key_bindings();
+
+    m_data->hotkeys.clear();
+    m_data->hotkeys_names_k.clear();
+    m_data->hotkeys_names_n.clear();
+
+    const auto key_names = g::pHotkeysManager->get_key_names();
+    m_data->hotkeys_names_k.reserve(key_names.size());
+    m_data->hotkeys_names_n.reserve(key_names.size());
+
+    for (auto& [key, name] : key_names)
+    {
+        m_data->hotkeys_names_k.push_back(key);
+        m_data->hotkeys_names_n.push_back(name);
+    }
+
+    for (size_t i = cast::to_szt(KeyTarget::_first); i <= cast::to_szt(KeyTarget::_last); i++)
+    {
+        bool user_defined = false;
+        for (auto& hk : hotkeys)
+        {
+            if (cast::to_szt(hk.target) == i)
+            {
+                user_defined = true;
+                OptsData::KeyBindEx kb(hk);
+                kb.cb_index = hotkey_to_cb_index(hk.key);
+                m_data->hotkeys.push_back(kb);
+                break;
+            }
+        }
+        if (!user_defined)
+        {
+            OptsData::KeyBindEx kb;
+            kb.target = cast::to_enum<KeyTarget>(i);
+            kb.enabled = false;
+            m_data->hotkeys.push_back(kb);
+        }
+    }
+}
+
+int32_t OptRightPane::hotkey_to_cb_index(ImGuiKey key) const
+{
+    for (size_t idx = 0; idx < m_data->hotkeys_names_k.size(); idx++)
+    {
+        if (m_data->hotkeys_names_k[idx] == key)
+            return cast::to_i32(idx);
+    }
+    return 0;
+}
+
+ImGuiKey OptRightPane::hotkey_to_imgui_key(int32_t cb_index) const
+{
+    if (cb_index < 0 || cast::to_szt(cb_index) >= m_data->hotkeys_names_k.size())
+        return ImGuiKey_None;
+    return m_data->hotkeys_names_k[cb_index];
 }
 
 // key bindings
-void OptRightPane::show_keys(const char*& /*help_text*/)
-{}
+void OptRightPane::show_keys(const char*& help_text)
+{
+    static const char* texts[] = 
+    {
+        // --- Application ---
+        "", "", // first
+        "Import workflow",  "Import a workflow from a file",
+        "Options",          "Open settings dialog",
+        "Quit",             "Exit the application",
+        "Toggle active panels", "Hide or restore currently opened side panels",
+        "Full screen",      "Toggle full screen mode",
+        "Command palette",  "Open quick search for commands and actions",
+        "Restart ComfyUI",  "Restart the ComfyUI server backend",
+        "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // reserved
+        "", "", // last
+
+        // --- Workflows ---
+        "", "", // first
+        "Workflow 1",       "Switch to workflow tab 1",
+        "Workflow 2",       "Switch to workflow tab 2",
+        "Workflow 3",       "Switch to workflow tab 3",
+        "Workflow 4",       "Switch to workflow tab 4",
+        "Workflow 5",       "Switch to workflow tab 5",
+        "Workflow 6",       "Switch to workflow tab 6",
+        "Workflow 7",       "Switch to workflow tab 7",
+        "Workflow 8",       "Switch to workflow tab 8",
+        "Workflow 9",       "Switch to workflow tab 9",
+        "Next workflow",    "Switch to the next workflow tab",
+        "Prev. workflow",   "Switch to the previous workflow tab",
+        "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // reserved
+        "", "", // last
+
+        // --- Panels ---
+        "", "", // first
+        "Nodes panel",      "Toggle Nodes panel",
+        "Models panel",     "Toggle Models panel",
+        "Projects panel",   "Toggle Projects panel",
+        "Templates panel",  "Toggle Templates panel",
+        "Logs panel",       "Toggle Logs panel",
+        "Stats panel",      "Toggle Stats panel",
+        "Queue panel",      "Toggle Queue panel",
+        "Inspector panel",  "Toggle Node Inspector panel",
+        "Notes",            "Toggle Notes panel",
+        "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // reserved
+        "", "", // last
+
+        // --- Project ---
+        "", "", // first
+        "New project",      "Create a blank project",
+        "Rename project",   "Rename the current project",
+        "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // reserved
+        "", "", // last
+
+        // --- Queue ---
+        "", "", // first
+        "Pause queue",      "Pause or resume the execution queue",
+        "Interrupt",        "Interrupt the currently running task",
+        "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // reserved
+        "", "", // last
+
+        // --- Workspace ---
+        "", "", // first
+        "Save project",     "Save the current project",
+        "Undo",             "Undo the last action",
+        "Redo",             "Redo the previously undone action",
+        "Select all",       "Select all nodes in the workflow",
+        "Frame selection",  "Center view on selected nodes or the entire graph",
+        "Run: Infinite",    "Set number of runs to infinite",
+        "Run: 1-9 times",   "Set a modifier key to use with [1-9] for the exact number of runs",
+        "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // runs 2-9
+        "Queue prompt",     "Add the current workflow to the end of the queue",
+        "Queue prompt (Front)", "Add the current workflow to the front of the queue",
+        "Close workflow",   "Close the current workflow tab",
+        "New node",         "Open the 'Add Node' search menu",
+        "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // reserved
+        "", "", // last
+
+        // --- Nodes ---
+        "", "", // first
+        "Pin/unpin",        "Toggle pin state for selected nodes",
+        "Collapse/expand",  "Toggle collapse state for selected nodes",
+        "Group nodes",      "Wrap selected nodes in a group",
+        "Enable nodes",     "Set selected nodes state to 'Always'",
+        "Mute nodes",       "Toggle mute state (node will not execute)",
+        "Bypass nodes",     "Toggle bypass state (pass inputs to outputs)",
+        "Remove nodes",     "Delete selected nodes",
+        "Copy nodes",       "Copy selected nodes to clipboard",
+        "Paste nodes",      "Paste nodes from clipboard",
+        "Duplicate",        "Duplicate selected nodes",
+        "Disconnect links", "Remove all connections from selected nodes",
+        "Add reroute",      "Insert a reroute node on the selected link",
+        "Align left",       "Align left edges of selected nodes",
+        "Align top",        "Align top edges of selected nodes",
+        "Move left",        "Move selected nodes left",
+        "Move right",       "Move selected nodes right",
+        "Move up",          "Move selected nodes up",
+        "Move down",        "Move selected nodes down",
+        "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // reserved
+        "", "", // last
+    };
+
+    const auto to_hotkeys = [](const std::vector<OptsData::KeyBindEx>& kbs)
+    {
+        std::vector<ui::KeyBinding> hotkeys;
+        for (auto& hk : kbs)
+        {
+            hotkeys.push_back(hk.to_keybinds());
+        }
+        return hotkeys;
+    };
+
+    const float footer_height_to_reserve = (ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing()) * 2;
+
+    if (ImGui::BeginChild("KeyBindingsOpt", ImVec2(-FLT_MIN, -footer_height_to_reserve), false))
+    {
+        bool changed = false;
+
+        const auto table = [this, &help_text, &changed](const char* table_id, KeyTarget first_target, KeyTarget last_target, const char* separator)
+        {
+            ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, separator);
+            ImGui::Spacing();
+
+            constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchSame;
+            constexpr int32_t columns = 6;
+
+            if (ImGui::BeginTable(table_id, columns, table_flags))
+            {
+                ImGui::TableSetupColumn("", 0, 0.4f);
+                ImGui::TableSetupColumn("", 0, 0.1f);
+                ImGui::TableSetupColumn("", 0, 0.1f);
+                ImGui::TableSetupColumn("", 0, 0.1f);
+                ImGui::TableSetupColumn("", 0, 0.1f);
+                ImGui::TableSetupColumn("", 0, 0.2f);
+
+                bool process = false;
+                for (size_t txt_f = 0, hk_f = 0; txt_f < sizeof(texts) / sizeof(texts[0]); txt_f++, hk_f++)
+                {
+                    auto& kb = m_data->hotkeys[hk_f];
+                    if (!process)
+                    {
+                        if (kb.target == first_target)
+                            process = true;
+                        txt_f++;
+                        continue;
+                    }
+                    if (kb.target == last_target)
+                        break;
+
+                    if (g::pHotkeysManager->should_skip_target(kb.target))
+                    {
+                        txt_f++;
+                        continue;
+                    }
+
+                    ImGui::PushID(cast::to_i32(hk_f + 1));
+                    ImGui::TableNextRow();                    
+
+                    ImGui::TableNextColumn();
+                    if (!kb.valid) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::MsgBoxError));
+                    changed |= ImGui::Checkbox(texts[txt_f++], &kb.enabled);
+                    if (!kb.valid) ImGui::PopStyleColor();
+                    show_help_mark(help_text, texts[txt_f]);
+
+                    const bool enabled = kb.enabled;
+                    if (!enabled)
+                        ImGui::BeginDisabled();
+
+                    ImGui::TableNextColumn();
+                    changed |= ImGui::Checkbox("Ctrl", &kb.ctrl);
+
+#ifdef __APPLE__
+                    ImGui::TableNextColumn();
+                    changed |= ImGui::Checkbox("Cmd", &kb.cmd);
+#endif
+
+                    ImGui::TableNextColumn();
+                    changed |= ImGui::Checkbox("Alt", &kb.alt);
+
+                    ImGui::TableNextColumn();
+                    changed |= ImGui::Checkbox("Shift", &kb.shift);
+
+#ifndef __APPLE__
+                    ImGui::TableNextColumn();
+#endif
+
+                    ImGui::TableNextColumn();
+                    if (KeyTarget::Workspace_Runs1 == kb.target)
+                    {
+                        ImGui::TextUnformatted("[1-9]");
+                    }
+                    else
+                    {
+                        ImGui::SetNextItemWidth(-FLT_MIN);
+                        if (ImGui::Combo("##keys", &kb.cb_index, m_data->hotkeys_names_n.data(), cast::to_i32(m_data->hotkeys_names_n.size())))
+                        {
+                            kb.key = hotkey_to_imgui_key(kb.cb_index);
+                            kb.enabled = (kb.key != ImGuiKey::ImGuiKey_None);
+                            changed = true;
+                        }
+                    }
+
+                    if (!enabled)
+                        ImGui::EndDisabled();
+
+                    ImGui::PopID();
+                }
+                ImGui::EndTable();        
+            }
+        };
+
+        table("KeyBindingsTblApp", KeyTarget::App_First, KeyTarget::App_Last, "Application");
+        table("KeyBindingsTblWf", KeyTarget::Wf_First, KeyTarget::Wf_Last, "Workflows");
+        table("KeyBindingsTblPanel", KeyTarget::PanelOpen_First, KeyTarget::PanelOpen_Last, "Panels");
+        table("KeyBindingsTblProject", KeyTarget::Project_First, KeyTarget::Project_Last, "Project");
+        table("KeyBindingsTblQueue", KeyTarget::Queue_First, KeyTarget::Queue_Last, "Queue");
+        table("KeyBindingsTblWorkspace", KeyTarget::Workspace_First, KeyTarget::Workspace_Last, "Workspace");
+        table("KeyBindingsTblNodes", KeyTarget::Node_First, KeyTarget::Node_Last, "Nodes");
+
+        if (changed)
+        {
+            OptsData::KeyBindEx kb1;
+            for (auto& kb : m_data->hotkeys)
+            {
+                switch (kb.target)
+                {
+                case KeyTarget::Workspace_Runs1:
+                    kb1 = kb;
+                    break;
+                case KeyTarget::Workspace_Runs2:
+                case KeyTarget::Workspace_Runs3:
+                case KeyTarget::Workspace_Runs4:
+                case KeyTarget::Workspace_Runs5:
+                case KeyTarget::Workspace_Runs6:
+                case KeyTarget::Workspace_Runs7:
+                case KeyTarget::Workspace_Runs8:
+                case KeyTarget::Workspace_Runs9:
+                    {
+                        const auto target = kb.target;
+                        const auto key = kb.key;
+                        kb = kb1;
+                        kb.target = target;
+                        kb.key = key;
+                    }
+                    break;
+                }
+            }
+
+            std::set<KeyTarget> failed;
+            m_data->hotkeys_valid = g::pHotkeysManager->test(to_hotkeys(m_data->hotkeys), failed);
+            for (auto& hk : m_data->hotkeys)
+            {
+                hk.valid = (failed.count(hk.target) == 0);
+            }
+            m_data->hotkeys_changed = m_data->hotkeys_valid;
+        }
+    }
+    ImGui::EndChild();
+
+
+    ImGui::Separator();
+    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::OptHelpText));
+    ImGui::PushTextWrapPos(0.0f);
+    ImGui::TextUnformatted(help_text != nullptr ? help_text : "");
+    ImGui::PopTextWrapPos();
+    ImGui::PopStyleColor();
+    help_text = nullptr;
+
+    if (show_full_row_button("Reset to defaults", true, true, false))
+    {
+        m_data->hotkeys_changed = true;
+        load_hotkeys(true);
+    }
+    if (show_full_row_button("Apply changes", m_data->hotkeys_changed && m_data->hotkeys_valid, true, true))
+    {
+        g::pHotkeysManager->save(to_hotkeys(m_data->hotkeys));
+        m_data->hotkeys_changed = false;
+        load_hotkeys(false);
+    }
+}
 
 ////////////////////////  helpers
 

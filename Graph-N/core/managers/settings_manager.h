@@ -50,6 +50,9 @@ public:
 
     inline bool ui_activity_bar_show_restart_load() const { return *std::get_if<bool>(&m_ui_activity_bar_show_restart.value); }
     inline void ui_activity_bar_show_restart_save(bool show) { save_option(m_ui_activity_bar_show_restart, bool(show)); }
+    
+    std::vector<ui::KeyBinding> ui_hotkeys_load();
+    inline void ui_hotkeys_save(const std::vector<ui::KeyBinding>& hotkeys) { save_option(m_ui_hotkeys, format_hotkeys_to_json(hotkeys)); }
 
     // comfyui
     inline const std::string& comfyui_host_load() const { return *std::get_if<std::string>(&m_comfyui_host.value); }
@@ -172,7 +175,6 @@ public:
     inline void stat_as_progress_save(bool enabled) { save_option(m_stat_as_progress, bool(enabled)); }
     
 private:
-
     struct OptionValue final
     {
         const char* db_name = nullptr;
@@ -181,6 +183,8 @@ private:
 
     void init_options(std::vector<OptionValue*>& values);
     void init_disks();
+
+    std::string format_hotkeys_to_json(const std::vector<ui::KeyBinding>& hotkeys) const;
 
     void save_option(OptionValue& option, const std::string& new_str);
     void save_option(OptionValue& option, int64_t new_int);
@@ -209,6 +213,7 @@ private:
     OptionValue m_ui_activity_bar_mode; // int
     OptionValue m_ui_activity_bar_big_icons; // int
     OptionValue m_ui_activity_bar_show_restart; // int
+    OptionValue m_ui_hotkeys; // str
 
     // comfyui
     OptionValue m_comfyui_host; // str

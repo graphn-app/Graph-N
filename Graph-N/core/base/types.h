@@ -347,6 +347,119 @@ enum class NodeMode
     _last = Bypass
 };
 
+// keep order in sync with the 'texts' array in OptRightPane::show_keys
+// check ui_hotkey_is_skipped
+enum class KeyTarget 
+{
+    None,
+
+    App_First,
+    App_Import,
+    App_Options,
+    App_Quit,
+    App_TogglePanels,
+    App_FullScreen,
+    App_Command, // skip
+    App_Restart,
+    App_ReservedFirst, // skip
+    App_ReservedLast = App_ReservedFirst + 8, // skip
+    App_Last,
+
+    Wf_First,
+    Wf_1,
+    Wf_2,
+    Wf_3,
+    Wf_4,
+    Wf_5,
+    Wf_6,
+    Wf_7,
+    Wf_8,
+    Wf_9,
+    Wf_Next,
+    Wf_Prev,
+    Wf_ReservedFirst, // skip
+    Wf_ReservedLast = Wf_ReservedFirst + 8, // skip
+    Wf_Last,
+
+    PanelOpen_First,
+    PanelOpen_Nodes,
+    PanelOpen_Models,
+    PanelOpen_Projects,
+    PanelOpen_Templates,
+    PanelOpen_Logs,
+    PanelOpen_Stats,
+    PanelOpen_Queue,
+    PanelOpen_Inspector,
+    PanelOpen_Notes, // skip
+    PanelOpen_ReservedFirst, // skip
+    PanelOpen_ReservedLast = PanelOpen_ReservedFirst + 8, // skip
+    PanelOpen_Last,
+
+    Project_First,
+    Project_CreateNew,
+    Project_Rename,
+    Project_ReservedFirst, // skip
+    Project_ReservedLast = Project_ReservedFirst + 8, // skip
+    Project_Last,
+
+    Queue_First,
+    Queue_Pause,
+    Queue_Interrupt,
+    Queue_ReservedFirst, // skip
+    Queue_ReservedLast = Queue_ReservedFirst + 8, // skip
+    Queue_Last,
+
+    Workspace_First,
+    Workspace_Save,
+    Workspace_Undo,
+    Workspace_Redo,
+    Workspace_SelAll,
+    Workspace_Focus,
+    Workspace_RunsInf,
+    Workspace_Runs1,
+    Workspace_Runs2,
+    Workspace_Runs3,
+    Workspace_Runs4,
+    Workspace_Runs5,
+    Workspace_Runs6,
+    Workspace_Runs7,
+    Workspace_Runs8,
+    Workspace_Runs9,
+    Workspace_RunBack,
+    Workspace_RunFront,
+    Workspace_Close,
+    Workspace_NewNode,
+    Workspace_ReservedFirst, // skip
+    Workspace_ReservedLast = Workspace_ReservedFirst + 8, // skip
+    Workspace_Last,
+
+    Node_First,
+    Node_Pin,
+    Node_Collapse,
+    Node_Group,
+    Node_Always,
+    Node_Mute,
+    Node_Bypass,
+    Node_Remove,
+    Node_Copy,
+    Node_Paste,
+    Node_Dup,
+    Node_Unlink,
+    Node_Reroute,
+    Node_AlignLeft,
+    Node_AlignTop,
+    Node_MoveLeft,
+    Node_MoveRight,
+    Node_MoveUp,
+    Node_MoveDown,
+    Node_ReservedFirst, // skip
+    Node_ReservedLast = Node_ReservedFirst + 8, // skip
+    Node_Last,
+
+    _first = App_First,
+    _last = Node_Last
+};
+
 namespace comfyui_http
 {
 constexpr const char* object_info       = "/object_info";           // get

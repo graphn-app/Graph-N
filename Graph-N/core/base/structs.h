@@ -328,4 +328,22 @@ struct PanelItemState final
     bool icon_clicked = false;
     bool expanded = false;
 };
+
+///////////////////////////////////////////////////////////////////
+///////      ui::KeyBinding                  /////////////////////////
+///////////////////////////////////////////////////////////////////
+
+struct KeyBinding
+{
+    bool enabled = true;
+    KeyTarget target = KeyTarget::None;
+    bool ctrl = false;
+    bool alt = false;
+    bool shift = false;
+    bool cmd = false;
+    ImGuiKey key = ImGuiKey::ImGuiKey_None;
+    bool node_related = false;
+    bool repeatable = false;
+};
+
 } // namespace ui

@@ -1,6 +1,7 @@
 
 #include "core/managers/settings_manager.h"
 #include "core/managers/db_manager.h"
+#include "core/managers/hotkeys_manager.h"
 #include "ui/graph-n_flow.h"
 
 namespace mngr
@@ -30,7 +31,8 @@ bool SettingsManager::init()
     m_ui_theme =                                      { "theme",                    int64_t(0) };
     m_ui_activity_bar_mode =                          { "activity_bar_mode",        int64_t(cast::to_i64(ActivityBarMode::Smart)) };
     m_ui_activity_bar_big_icons =                     { "activity_bar_big_icons",   bool(false) };
-    m_ui_activity_bar_show_restart =                  { "activity_bar_add_restart", bool(false) };
+    m_ui_activity_bar_show_restart =                  { "activity_bar_add_restart", bool(false) };    
+    m_ui_hotkeys =                                    { "key_bindings",             format_hotkeys_to_json(g::pHotkeysManager->get_default_key_bindings()) };
 
     // comfyui
     m_comfyui_host =                                  { "comfyui_host",             std::string("127.0.0.1") };
@@ -195,6 +197,7 @@ bool SettingsManager::init()
     values.push_back(&m_ui_activity_bar_mode);
     values.push_back(&m_ui_activity_bar_big_icons);
     values.push_back(&m_ui_activity_bar_show_restart);
+    values.push_back(&m_ui_hotkeys);
     values.push_back(&m_comfyui_host);
     values.push_back(&m_comfyui_port);
     values.push_back(&m_comfyui_conn_time);
@@ -381,6 +384,97 @@ void SettingsManager::ui_open_wnds_save(int64_t windows)
 {
     windows &= ~ui::ViewAlwaysClose;
     save_option(m_ui_open_wnds, windows);
+}
+
+std::string SettingsManager::format_hotkeys_to_json(const std::vector<ui::KeyBinding>& hotkeys) const
+{
+    auto j = u_json::array();
+    for (const auto& hk : hotkeys)
+    {
+        u_json jhk;
+        jhk["target"] = cast::to_i32(hk.target);
+        jhk["ctrl"] = hk.ctrl;
+        jhk["cmd"] = hk.cmd;
+        jhk["alt"] = hk.alt;
+        jhk["shift"] = hk.shift;
+        jhk["key"] = cast::to_i32(hk.key);
+        jhk["enabled"] = hk.enabled;
+        jhk["node_related"] = hk.node_related;
+        jhk["repeatable"] = hk.repeatable;
+        j.push_back(std::move(jhk));
+    }
+
+    return j.dump();
+}
+
+std::vector<ui::KeyBinding> SettingsManager::ui_hotkeys_load()
+{
+    const std::string* val = std::get_if<std::string>(&m_ui_hotkeys.value);
+    if (nullptr == val || val->empty())
+        return {};
+
+    try
+    {
+        std::vector<ui::KeyBinding> hotkeys;
+        const auto j = u_json::parse(*val);
+
+        const auto key_names = g::pHotkeysManager->get_key_names();
+        const auto is_supported = [&key_names](ImGuiKey test)
+        {
+            for (auto& key : key_names)
+            {
+                if (key.first == test)
+                    return true;
+            }
+            return false;
+        };
+
+        if (j.is_array())
+        {
+            for (auto& jval : j)
+            {
+                ui::KeyBinding kb;
+                if (jval.contains("target") && jval["target"].is_number_integer())
+                {
+                    const auto target = jval["target"].get<int32_t>();
+                    if (target >= cast::to_i32(KeyTarget::_first) && target <= cast::to_i32(KeyTarget::_last))
+                        kb.target = cast::to_enum<KeyTarget>(target);
+                }
+                if (jval.contains("key") && jval["key"].is_number_integer())
+                {
+                    const auto key = cast::to<int32_t, ImGuiKey>(jval["key"].get<int32_t>());
+                    if (key >= ImGuiKey_NamedKey_BEGIN && key <= ImGuiKey_NamedKey_END && is_supported(key))
+                        kb.key = key;
+                }
+                if (jval.contains("ctrl") && jval["ctrl"].is_boolean())
+                    kb.ctrl = jval["ctrl"];
+                if (jval.contains("cmd") && jval["cmd"].is_boolean())
+                    kb.cmd = jval["cmd"];
+                if (jval.contains("alt") && jval["alt"].is_boolean())
+                    kb.alt = jval["alt"];
+                if (jval.contains("shift") && jval["shift"].is_boolean())
+                    kb.shift = jval["shift"];
+                if (jval.contains("node_related") && jval["node_related"].is_boolean())
+                    kb.node_related = jval["node_related"];
+                if (jval.contains("repeatable") && jval["repeatable"].is_boolean())
+                    kb.repeatable = jval["repeatable"];
+                if (jval.contains("enabled") && jval["enabled"].is_boolean())
+                    kb.enabled = jval["enabled"];
+                else
+                    kb.enabled = false;
+
+                if (kb.key != ImGuiKey_None && kb.target != KeyTarget::None)
+                    hotkeys.push_back(kb);
+            }
+        }
+
+        return hotkeys;
+    }
+    catch (const std::exception& ex)
+    {
+        LogExcep(ExcepCategory::Logic, "Failed to parse key bindings: " << ex.what());        
+    }
+    return {};
 }
 
 //////////////////////////////////////////////////////////////////////

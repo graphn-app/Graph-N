@@ -11,6 +11,7 @@
 #include "core/managers/models_manager.h"
 #include "core/managers/history_manager.h"
 #include "core/managers/queue_manager.h"
+#include "core/managers/hotkeys_manager.h"
 #if defined _WIN32
 #include "core/managers/comfyui_manager_win32.h"
 #elif defined __linux__
@@ -39,8 +40,10 @@ mngr::ModelsManager* pModelsManager = nullptr;
 mngr::ComfyUIManager* pComfyUIManager = nullptr;
 mngr::HistoryManager* pHistoryManager = nullptr;
 mngr::QueueManager* pQueueManager = nullptr;
+mngr::HotkeysManager* pHotkeysManager = nullptr;
 
 std::atomic_bool app_global_stop_all_threads = false;
+int32_t block_hotkeys_counter = 0;
 
 void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line)
 {
@@ -96,6 +99,9 @@ bool GraphN::init_graphn()
 
     m_managers.push_back(std::make_unique<mngr::QueueManager>());
     g::pQueueManager = (mngr::QueueManager*)m_managers.back().get();
+
+    m_managers.push_back(std::make_unique<mngr::HotkeysManager>());
+    g::pHotkeysManager = (mngr::HotkeysManager*)m_managers.back().get();
 
     bool success = true;
     std::for_each(m_managers.begin(), m_managers.end(), [&success](std::unique_ptr<mngr::Manager>& manager)

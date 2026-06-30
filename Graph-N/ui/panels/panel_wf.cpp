@@ -5,6 +5,7 @@
 #include "core/managers/nodes_manager.h"
 #include "core/managers/history_manager.h"
 #include "core/managers/queue_manager.h"
+#include "core/managers/hotkeys_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/node_instance.h"
@@ -327,7 +328,9 @@ void PanelWorkflow::draw_wf()
     m_drawer.post_draw_all(
         [this]() { return context_menu_handler(); },
         [this]() { return show_context_menu(); },
-        [this]() { return handle_moves(); });
+        [this]() { return handle_moves(); },
+        [this]() { return g::pHotkeysManager->process_node_hotkey(this); }
+    );
 
     ImGui::GetIO().ConfigFlags = old_flags;
 

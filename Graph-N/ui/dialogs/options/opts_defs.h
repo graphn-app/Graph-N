@@ -23,6 +23,45 @@ struct OptsData final
     std::vector<std::string> buffer_s;
     std::vector<int64_t> buffer_i;
 
+    struct KeyBindEx final : public ui::KeyBinding
+    {
+        int32_t cb_index = 0;
+        bool valid = true;
+
+        KeyBindEx() = default;
+        KeyBindEx(const ui::KeyBinding& kb)
+        {
+            target = kb.target;
+            enabled = kb.enabled;
+            key = kb.key;
+            alt = kb.alt;
+            cmd = kb.cmd;
+            ctrl = kb.ctrl;
+            shift = kb.shift;
+            node_related = kb.node_related;
+            repeatable = kb.repeatable;
+        }
+        ui::KeyBinding to_keybinds() const
+        {
+            ui::KeyBinding kb;
+            kb.target = target;
+            kb.enabled = enabled;
+            kb.key = key;
+            kb.alt = alt;
+            kb.cmd = cmd;
+            kb.ctrl = ctrl;
+            kb.shift = shift;
+            kb.node_related = node_related;
+            kb.repeatable = repeatable;
+            return kb;
+        }
+    };
+    std::vector<KeyBindEx> hotkeys;
+    std::vector<ImGuiKey> hotkeys_names_k;
+    std::vector<const char*> hotkeys_names_n;
+    bool hotkeys_changed = false;
+    bool hotkeys_valid = true;
+
     struct Input final
     {
         NO_COPY_MOVE_CTORS(Input);

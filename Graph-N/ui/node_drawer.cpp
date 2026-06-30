@@ -240,7 +240,10 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/)
 }
 
 void NodeDrawer::post_draw_all(
-    const std::function<bool()>& init_menu_handler, const std::function<bool()>& show_menu_handler, const std::function<bool()>& move_handler)
+    const std::function<bool()>& init_menu_handler,
+    const std::function<bool()>& show_menu_handler,
+    const std::function<bool()>& move_handler,
+    const std::function<bool()>& hotkey_handler)
 {
     ed::Suspend();
 
@@ -256,6 +259,8 @@ void NodeDrawer::post_draw_all(
     ed::End();
 
     canvas_busy = show_menu_handler();
+    if (!canvas_busy)
+        canvas_busy = hotkey_handler();
 
     if (!canvas_busy && m_deffered_action->combo.is_active)
     {

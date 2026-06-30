@@ -38,6 +38,10 @@ private:
     void browse_for_workdir();
     void browse_for_outputdir();
 
+    void load_hotkeys(bool defaults);
+    int32_t hotkey_to_cb_index(ImGuiKey key) const;
+    ImGuiKey hotkey_to_imgui_key(int32_t cb_index) const;
+
 private:
     OptsData* m_data = nullptr;
     ImU32 m_clr_subsep = 0;
