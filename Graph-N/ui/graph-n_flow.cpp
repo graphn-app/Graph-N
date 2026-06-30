@@ -353,6 +353,7 @@ bool GraphN_Flow::run()
 
     check_connection();
     check_http_reply();
+    check_wf_panels_initialized();
 
     g::pQueueManager->process();
 
@@ -1106,13 +1107,6 @@ void GraphN_Flow::show_panels()
         }
 
         ImGui::DockBuilderFinish(m_main_dock_id);
-
-        static bool wf_panels_initilized = false;
-        if (!wf_panels_initilized)
-        {
-            wf_panels_init();
-            wf_panels_initilized = true;
-        }
     }
 
     if (ImGui::GetFrameCount() > 10 && !focus_fixed)

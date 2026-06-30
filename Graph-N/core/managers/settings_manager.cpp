@@ -481,6 +481,50 @@ std::vector<ui::KeyBinding> SettingsManager::ui_hotkeys_load()
 ////////       WF                        /////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
+std::list<std::pair<std::string, bool>> SettingsManager::wf_active_load() const
+{
+    const std::string* val = std::get_if<std::string>(&m_wf_active.value);
+    if (nullptr == val || val->empty())
+        return {};
+
+    try
+    {
+        std::list<std::pair<std::string, bool>> ret;
+        const auto j = u_json::parse(*val);
+        if (j.is_array())
+        {
+            for (auto& jval : j)
+            {                
+                if (jval.contains("id") && jval["id"].is_string() &&
+                    jval.contains("active") && jval["active"].is_boolean())
+                {
+                    ret.push_back(std::make_pair(jval["id"].get<std::string>(), jval["active"].get<bool>()));
+                }
+            }
+        }
+        return ret;
+    }
+    catch (const std::exception& ex)
+    {
+        LogExcep(ExcepCategory::Logic, "Failed to parse active workflows: " << ex.what());        
+    }
+    return {};
+}
+
+void SettingsManager::wf_active_save(const std::list<std::pair<std::string, bool>>& active_wfs)
+{
+    auto j = u_json::array();
+    for (const auto& wf : active_wfs)
+    {
+        u_json jhk;
+        jhk["id"] = wf.first;
+        jhk["active"] = wf.second;
+        j.push_back(std::move(jhk));
+    }
+
+    save_option(m_wf_active, j.dump());
+}
+
 bool SettingsManager::wf_imported_load(const std::string& project) const
 {
     const auto& imported = *std::get_if<std::string>(&m_wf_imported.value);

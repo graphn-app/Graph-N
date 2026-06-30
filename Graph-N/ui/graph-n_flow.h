@@ -211,6 +211,7 @@ private:
     void reparse_nodes();
     void import_user_projects();
     void import_files(std::list<std::filesystem::path>&& paths);
+    void check_wf_panels_initialized();
 
     void modal_last_frame();
 
@@ -249,7 +250,6 @@ private:
     void on_menu_close_all_projects();
 
     // WF & WF panels
-    void wf_panels_init();
     PanelWorkflow* wf_panel_find(wid id) const;
     PanelWorkflow* wf_panel_create(const mngr::WfData& wf);
     void wf_panel_activate(PanelWorkflow* wf_panel);

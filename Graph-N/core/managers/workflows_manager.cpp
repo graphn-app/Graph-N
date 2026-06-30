@@ -232,13 +232,11 @@ void WfsManager::set_active(wid id)
 
     if (0 == id)
     {
-        g::pOptsManager->wf_active_save("");
         m_active = 0;
     }
     else
     {
-        auto& data = access(id)->get_data();
-        g::pOptsManager->wf_active_save(data.uuid);
+        const auto& data = access(id)->get_data();
         m_active = data.id;
     }    
     Log("Wf id=" << id << " activated");

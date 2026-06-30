@@ -102,7 +102,7 @@ DlgCode PanelWorkflow::show(bool& focused)
         ImGui::PushStyleColor(ImGuiCol_TitleBg, data()->clr_active_wf);
     }
 
-    if (begin_panel(opened, focused, false) && opened)
+    if (begin_panel(opened, focused) && opened)
     {
         handle_panel_context_menu();
 

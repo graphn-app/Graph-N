@@ -6,6 +6,7 @@
 #include "core/managers/history_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/hotkeys_manager.h"
+#include "core/managers/settings_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/node_instance.h"
@@ -16,6 +17,38 @@
 
 namespace ui
 {
+
+void GraphN_Flow::check_wf_panels_initialized()
+{
+    static bool wf_panels_initialized = false;
+    if (wf_panels_initialized || !get_nodes_ready())
+        return;
+
+    wf_panels_initialized = true;
+    auto wf_panels = g::pOptsManager->wf_active_load();
+    auto wfs = g::pWfsManager->get_wfs();
+    PanelWorkflow* activate = nullptr;
+
+    for (auto& [wf_uuid, active] : wf_panels)
+    {
+        for (auto& wf_data : wfs)
+        {
+            if (wf_data->uuid == wf_uuid)
+            {
+                auto panel = wf_panel_create(*wf_data);
+                if (active)
+                    activate = panel;
+                break;
+            }
+        }
+    }
+
+    if (activate != nullptr)
+        wf_panel_activate(activate);
+
+    else if (g::pDbManager->get_is_first_run())
+        wf_create();
+}
 
 // WF public ->
 void GraphN_Flow::wf_create()
@@ -163,25 +196,6 @@ void GraphN_Flow::wf_num_of_runs(int32_t num) const
 // <- WF public
 // WF internal ->
 
-void GraphN_Flow::wf_panels_init()
-{
-    if (g::pDbManager->get_is_first_run())
-    {
-        wf_create();
-    }
-    else
-    {
-        auto active = g::pWfsManager->get_active();
-        if (active != 0)
-        {
-            auto& data = g::pWfsManager->get_data(active);
-            auto panel = wf_panel_create(data);
-            wf_panel_activate(panel);
-            m_panel_wf_list->rebuild_items();
-        }
-    }
-}
-
 PanelWorkflow* GraphN_Flow::wf_panel_find(wid id) const
 {
     for (const auto& panel : m_panels_wf)
@@ -207,10 +221,15 @@ void GraphN_Flow::wf_panel_activate(PanelWorkflow* wf_panel)
 {
     if (m_wf_focused != wf_panel)
     {
+        std::list<std::pair<std::string, bool>> active_wfs;
+
         for (auto& panel : m_panels_wf)
         {
             panel->set_force_focused(false);
             panel->mark_dirty(panel->get_workflow()->get_data().dirty);
+
+            if (wf_panel != panel.get())
+                active_wfs.push_back({ panel->get_workflow()->get_uuid(), false });
         }
         if (wf_panel != nullptr)
         {
@@ -218,9 +237,11 @@ void GraphN_Flow::wf_panel_activate(PanelWorkflow* wf_panel)
             g::pWfsManager->set_active(wf_panel->get_workflow()->get_id());
             m_panel_wf_list->rebuild_items();
             activate_txt_panels(wf_panel->get_workflow()->get_id());
+            active_wfs.push_back({ wf_panel->get_workflow()->get_uuid(), true });
         }
 
         m_wf_focused = wf_panel;
+        g::pOptsManager->wf_active_save(active_wfs);
     }
 }
 
@@ -285,16 +306,22 @@ void GraphN_Flow::wf_panel_close(PanelWorkflow* wf_panel)
         destroy_txt_panels();
     wf_panel->free();
 
-    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
+    std::list<std::pair<std::string, bool>> active_wfs;
+    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end();)
     {
         auto& panel = *it;
         if (panel.get() == wf_panel)
         {
-            m_panels_wf.erase(it);
-            break;
+            it = m_panels_wf.erase(it);
+        }
+        else
+        {
+            active_wfs.push_back({ panel->get_workflow()->get_uuid(), m_wf_focused == panel.get() });
+            ++it;
         }
     }
 
+    g::pOptsManager->wf_active_save(active_wfs);
     wf_assign_sequential_numbers();
     on_dlg_closed(DlgObj::PanelWf);
 }

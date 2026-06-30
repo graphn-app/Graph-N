@@ -110,8 +110,8 @@ public:
     inline WidgetInput wf_widget_input_bools_load() const { return cast::to_enum<WidgetInput>(*std::get_if<int64_t>(&m_wf_widget_input_bools.value)); }
     inline void wf_widget_input_bools_save(WidgetInput bools) { save_option(m_wf_widget_input_bools, cast::to_i64<>(bools)); }
 
-    inline const std::string& wf_active_load() const { return *std::get_if<std::string>(&m_wf_active.value); }
-    inline void wf_active_save(const std::string& active) { save_option(m_wf_active, active); }
+    std::list<std::pair<std::string, bool>> wf_active_load() const;
+    void wf_active_save(const std::list<std::pair<std::string, bool>>& active);
 
     inline bool wf_show_grid_load() const { return *std::get_if<bool>(&m_wf_show_grid.value); }
     inline void wf_show_grid_save(bool show) { save_option(m_wf_show_grid, bool(show)); }
