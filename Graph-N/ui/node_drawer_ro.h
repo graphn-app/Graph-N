@@ -14,23 +14,23 @@ namespace ui
 class RoNodeDrawer final
 {
 public:
-    RoNodeDrawer(data::Workflow* wf);
-    ~RoNodeDrawer();
+    RoNodeDrawer(data::Workflow* wf) noexcept;
+    ~RoNodeDrawer() noexcept;
 
     RoNodeDrawer(const RoNodeDrawer&) = delete;
     RoNodeDrawer& operator=(const RoNodeDrawer&) = delete;
 
-    RoNodeDrawer(RoNodeDrawer&&);
-    RoNodeDrawer& operator=(RoNodeDrawer&&);
+    RoNodeDrawer(RoNodeDrawer&&) noexcept;
+    RoNodeDrawer& operator=(RoNodeDrawer&&) noexcept;
 
     float draw(data::NodeInstanceRo* node, bool tooltip_mode, float max_w);
 
 private:
-    void draw_node_header(data::NodeInstanceRo* node);
-    void draw_input_pin(data::PinInstance* pin);
+    void draw_node_header(const data::NodeInstanceRo* node) noexcept;
+    void draw_input_pin(data::PinInstance* pin) noexcept;
     void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
-    void draw_output_pin(data::PinInstance* pin);
-    void draw_pin_icon(ImU32 color);
+    void draw_output_pin(data::PinInstance* pin) noexcept;
+    void draw_pin_icon(ImU32 color) noexcept;
     void draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width);
@@ -40,7 +40,7 @@ private:
     void draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width);
-    void draw_widget_separator(float offset, float width);
+    void draw_widget_separator(float offset, float width) noexcept;
 
 private:
     const ImU32 m_clr_node_header_bg;

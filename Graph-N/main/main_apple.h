@@ -12,8 +12,8 @@ class MainRoutine_Apple final : public MainRoutine_Apple
     friend class Textures_Apple;
 
 public:
-    MainRoutine_Apple() = default;
-    ~MainRoutine_Apple() override = default;
+    MainRoutine_Apple() noexcept = default;
+    ~MainRoutine_Apple() override noexcept = default;
 
 private:
     /*

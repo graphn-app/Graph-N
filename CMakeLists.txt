@@ -1,26 +1,39 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.24)
 project(Graph-N)
 
 # ------------------------------------------------------------------------------
-# Google Test (Unit Tests Framework)
+# ANALYZERS SETTINGS
 # ------------------------------------------------------------------------------
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/refs/heads/main.zip
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-# Force shared CRT for Windows
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
-enable_testing()
+option(ANALYZERS_ON "Enable MSVC and Clang-Tidy static analyzers" OFF)
 
 # ------------------------------------------------------------------------------
 # Global Settings
 # ------------------------------------------------------------------------------
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+if(MSVC)
+    # remove default warning config
+    string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    string(REGEX REPLACE "/W[0-4]" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+
+    # ASan is incompatible with Edit and Continue (/ZI). 
+    # Replace /ZI with /Zi globally for debug builds.
+    string(REPLACE "/ZI" "/Zi" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+    string(REPLACE "/ZI" "/Zi" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+    
+    add_compile_options(/MP8)
+    
+    # Disable incremental linking globally to silence LNK4300
+    add_link_options(/INCREMENTAL:NO)
+
+    # Force MSVC to ignore warnings and code analysis in SYSTEM headers
+    add_compile_options(/external:W0 /analyze:external-)
+
+    # DYNAMIC ANALYZER (AddressSanitizer) - ALWAYS ON
+    add_compile_options(/fsanitize=address)
+endif()
 
 # Define the working directory variable
 set(WORK_DIR "${CMAKE_SOURCE_DIR}/work_dir")
@@ -34,19 +47,20 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
 
 # ------------------------------------------------------------------------------
+# Google Test (Unit Tests Framework)
+# ------------------------------------------------------------------------------
+# Force shared CRT for Windows
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+add_subdirectory(googletest)
+enable_testing()
+
+# ------------------------------------------------------------------------------
 # SQLite & SQLiteCpp
 # ------------------------------------------------------------------------------
 # --- SQLite C Library ---
 add_library(sqlite3 STATIC "sqlite/sqlite3.c")
 target_include_directories(sqlite3 PUBLIC "sqlite")
 target_compile_definitions(sqlite3 PRIVATE SQLITE_ENABLE_FTS5)
-
-# Suppress warnings for sqlite3
-if(MSVC)
-    target_compile_options(sqlite3 PRIVATE /W0)
-else()
-    target_compile_options(sqlite3 PRIVATE -w)
-endif()
 
 if(UNIX)
     target_link_libraries(sqlite3 PRIVATE m dl pthread)
@@ -61,13 +75,6 @@ target_include_directories(SQLiteCpp PUBLIC
 )
 target_link_libraries(SQLiteCpp PUBLIC sqlite3)
 
-# Suppress warnings for SQLiteCpp
-if(MSVC)
-    target_compile_options(SQLiteCpp PRIVATE /W0)
-else()
-    target_compile_options(SQLiteCpp PRIVATE -w)
-endif()
-
 # ------------------------------------------------------------------------------
 # fmt
 # ------------------------------------------------------------------------------
@@ -78,13 +85,6 @@ option(FMT_TEST "Build the test suite" OFF)
 option(FMT_DOC "Build the documentation" OFF)
 
 add_subdirectory(fmt)
-
-if(MSVC)
-    target_compile_options(fmt PRIVATE /W0)
-else()
-    target_compile_options(fmt PRIVATE -w)
-endif()
-
 set_target_properties(fmt PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES $<TARGET_PROPERTY:fmt,INTERFACE_INCLUDE_DIRECTORIES>)
 
 # ------------------------------------------------------------------------------
@@ -128,15 +128,15 @@ target_include_directories(ImGuiLib PUBLIC
     ${IMGUI_DIR}/backends
 )
 
-if(UNIX)
-    target_link_libraries(ImGuiLib PRIVATE glfw)
+if(MSVC)
+	target_compile_options(ImGuiLib PRIVATE "/EHs-c-")
+    target_compile_definitions(ImGuiLib PRIVATE _HAS_EXCEPTIONS=0)
+else()
+    target_compile_options(ImGuiLib PRIVATE "-fno-exceptions")
 endif()
 
-# Suppress warnings for ImGui
-if(MSVC)
-    target_compile_options(ImGuiLib PRIVATE /W0)
-else()
-    target_compile_options(ImGuiLib PRIVATE -w)
+if(UNIX)
+    target_link_libraries(ImGuiLib PRIVATE glfw)
 endif()
 
 # ------------------------------------------------------------------------------
@@ -160,11 +160,11 @@ target_include_directories(NodeEditorLib PUBLIC
 
 target_link_libraries(NodeEditorLib PUBLIC ImGuiLib)
 
-# Suppress warnings for Node Editor
 if(MSVC)
-    target_compile_options(NodeEditorLib PRIVATE /W0)
+	target_compile_options(NodeEditorLib PRIVATE "/EHs-c-")
+    target_compile_definitions(NodeEditorLib PRIVATE _HAS_EXCEPTIONS=0)
 else()
-    target_compile_options(NodeEditorLib PRIVATE -w)
+    target_compile_options(NodeEditorLib PRIVATE "-fno-exceptions")
 endif()
 
 # ------------------------------------------------------------------------------
@@ -186,12 +186,6 @@ add_library(MiniAudioLib STATIC ${MINIAUDIO_SOURCES})
 target_include_directories(MiniAudioLib PUBLIC 
     "${MINIAUDIO_DIR}"
 )
-
-if(MSVC)
-    target_compile_options(MiniAudioLib PRIVATE /W0)
-else()
-    target_compile_options(MiniAudioLib PRIVATE -w)
-endif()
 
 # ------------------------------------------------------------------------------
 # RelWithDebugInfo
@@ -224,6 +218,7 @@ add_executable(Graph-N WIN32 ${GRAPHN_SOURCES} ${GRAPHN_HEADERS} ${GRAPHN_RESOUR
 
 if(MSVC)
     # enable /EHa, this will override /EHsc
+	set_target_properties(Graph-N PROPERTIES CXX_STANDARD_EXCEPTIONS OFF)
     target_compile_options(Graph-N PRIVATE /EHa /bigobj)
 endif()
 
@@ -237,9 +232,6 @@ if(MSVC)
 
     # STRICT MODE: Warnings as Errors (/WX), High Warning Level (/W4)
     target_compile_options(Graph-N PRIVATE /W4 /WX /utf-8)
-    
-    # Optional: Disable very specific annoying warnings if needed, e.g.:
-    # target_compile_options(Graph-N PRIVATE /wd4100) # Unreferenced formal parameter
 endif()
 
 # defines
@@ -256,7 +248,6 @@ target_compile_definitions(Graph-N PRIVATE
 # --- Include Directories ---
 # SYSTEM flag tells compiler to ignore warnings in these headers
 target_include_directories(Graph-N SYSTEM PRIVATE
-    "Graph-N"
     "nlohmann/include"
     "stb"
     "cpp-httplib"
@@ -335,11 +326,12 @@ endif()
 # --- Include Directories ---
 # SYSTEM flag tells compiler to ignore warnings in these headers
 target_include_directories(Graph-N_MaskEditor SYSTEM PRIVATE
-    "Graph-N_MaskEditor"
     "WebView"
     "cpp-httplib"
     "nlohmann/include"
 )
+
+target_include_directories(Graph-N_MaskEditor PRIVATE "Graph-N_MaskEditor")
 
 # --- Linking ---
 if(WIN32)
@@ -351,27 +343,59 @@ if(WIN32)
 endif()
 
 # ------------------------------------------------------------------------------
+# ANALYZERS SETTINGS
+# ------------------------------------------------------------------------------
+
+if(ANALYZERS_ON)
+    # MSVC Code Analysis
+    if(MSVC)
+        set_target_properties(Graph-N PROPERTIES
+            VS_GLOBAL_RunCodeAnalysis "true"
+            VS_GLOBAL_CodeAnalysisRuleSet "CppCoreCheckRules.ruleset"
+        )
+        set_target_properties(Graph-N_MaskEditor PROPERTIES
+            VS_GLOBAL_RunCodeAnalysis "true"
+            VS_GLOBAL_CodeAnalysisRuleSet "CppCoreCheckRules.ruleset"
+        )
+    endif()
+
+    # Clang-Tidy
+    find_program(CLANG_TIDY_EXE NAMES "clang-tidy" PATHS "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/Llvm/x64/bin")
+    if (CLANG_TIDY_EXE)
+        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=bugprone-*,performance-*,modernize-*,readability-*")
+    endif()
+else()	
+    if(MSVC)
+        set_target_properties(Graph-N PROPERTIES
+            VS_GLOBAL_RunCodeAnalysis "false"
+            VS_GLOBAL_EnableMicrosoftCodeAnalysis "false"
+        )
+        set_target_properties(Graph-N_MaskEditor PROPERTIES
+            VS_GLOBAL_RunCodeAnalysis "false"
+            VS_GLOBAL_EnableMicrosoftCodeAnalysis "false"
+        )
+    endif()
+
+    unset(CMAKE_CXX_CLANG_TIDY CACHE)
+    set(CMAKE_CXX_CLANG_TIDY "")
+endif()
+
+# ------------------------------------------------------------------------------
 # Debug Workflow Automation
 # ------------------------------------------------------------------------------
 
 # copying to work_dir
+
 add_custom_command(TARGET Graph-N POST_BUILD
-    COMMAND $<$<CONFIG:Debug>:${CMAKE_COMMAND}> 
-            $<$<CONFIG:Debug>:-E> 
-            $<$<CONFIG:Debug>:copy_if_different> 
-            $<$<CONFIG:Debug>:$<TARGET_FILE:Graph-N>> 
-            $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>>
+    COMMAND ${CMAKE_COMMAND} -E $<$<CONFIG:Debug>:copy_if_different> $<$<CONFIG:Debug>:$<TARGET_FILE:Graph-N>> $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>>
     COMMENT "Copying Debug executable to work_dir..."
 )
 
 add_custom_command(TARGET Graph-N_MaskEditor POST_BUILD
-    COMMAND $<$<CONFIG:Debug>:${CMAKE_COMMAND}> 
-            $<$<CONFIG:Debug>:-E> 
-            $<$<CONFIG:Debug>:copy_if_different> 
-            $<$<CONFIG:Debug>:$<TARGET_FILE:Graph-N_MaskEditor>> 
-            $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N_MaskEditor>>
+    COMMAND ${CMAKE_COMMAND} -E $<$<CONFIG:Debug>:copy_if_different> $<$<CONFIG:Debug>:$<TARGET_FILE:Graph-N>> $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N_MaskEditor>>
     COMMENT "Copying Debug executable to work_dir..."
 )
+
 
 # debug run - Visual Studio (F5)
 set_target_properties(Graph-N PROPERTIES 
@@ -421,10 +445,12 @@ add_executable(UnitTests ${ALL_TEST_FILES})
 
 if(MSVC)
     target_compile_options(UnitTests PRIVATE /bigobj)
+    
+    # STRICT MODE: Warnings as Errors (/WX), High Warning Level (/W4)
+    target_compile_options(UnitTests PRIVATE /W4 /WX /utf-8)
 endif()
 
 target_include_directories(UnitTests SYSTEM PRIVATE
-    "Graph-N"
     "nlohmann/include"
     "stb"
     "cpp-httplib"
@@ -436,6 +462,8 @@ target_include_directories(UnitTests SYSTEM PRIVATE
     "${IMGUI_DIR}/backends"
     "${MINIAUDIO_DIR}"
 )
+
+target_include_directories(UnitTests PRIVATE "Graph-N")
 
 target_compile_definitions(UnitTests PRIVATE 
     _CRT_SECURE_NO_WARNINGS
@@ -484,11 +512,7 @@ gtest_discover_tests(UnitTests)
 
 # copying to work_dir
 add_custom_command(TARGET UnitTests POST_BUILD
-    COMMAND $<$<CONFIG:Debug>:${CMAKE_COMMAND}> 
-            $<$<CONFIG:Debug>:-E> 
-            $<$<CONFIG:Debug>:copy_if_different> 
-            $<$<CONFIG:Debug>:$<TARGET_FILE:UnitTests>> 
-            $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>>
+    COMMAND ${CMAKE_COMMAND} -E $<$<CONFIG:Debug>:copy_if_different> $<$<CONFIG:Debug>:$<TARGET_FILE:Graph-N>> $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>>
     COMMENT "Copying Debug executable to work_dir..."
 )
 

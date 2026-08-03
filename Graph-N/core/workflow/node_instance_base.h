@@ -1,6 +1,6 @@
 
 #pragma once
-#include "core/workflow/instance.h"
+#include "core/workflow/cni_base.h"
 
 namespace data
 {
@@ -8,35 +8,43 @@ namespace data
 class PinInstance;
 struct Node;
 
-class NodeInstanceBase : public Instance<Node>
+class NodeInstanceBase : public CNI_Base
 {
 public:
-    using Instance<data::Node>::Instance;
-    ~NodeInstanceBase() override;
+    using CNI_Base::CNI_Base;
+    ~NodeInstanceBase() noexcept override;
 
     void init() override;
 
-    float calc_node_width(bool ro, bool use_big_pin_icon);
-    float recalc_node_width(float new_width, bool ro, bool use_big_pin_icon);
+    float calc_node_width(bool ro, bool use_big_pin_icon) noexcept;
+    float recalc_node_width(float new_width, bool ro, bool use_big_pin_icon) noexcept;
+    virtual void reset_width() noexcept;
 
-    virtual const std::string& get_name() const;
-    virtual const std::string& get_name_original() const;
-    virtual void set_name(std::string name);
+    virtual const std::string& get_name() const noexcept;
+    virtual const std::string& get_name_original() const noexcept;
+    virtual void set_name(std::string name) noexcept;
 
-    inline float get_ideal_width() const { return m_ideal_w; }
+    float get_ideal_width() const noexcept { return m_ideal_w; }
 
-    inline const std::vector<PinInstance*>& get_inputs() const { return m_input; }
-    inline const std::vector<PinInstance*>& get_outputs() const { return m_output; }
+    const std::vector<PinInstance*>& get_inputs() const noexcept { return m_input; }
+    const std::vector<PinInstance*>& get_outputs() const noexcept { return m_output; }
 
-    void set_object(Node* obj) override;
+    virtual std::list<PinType> get_supported_pin_types(PinInstance* pin) const;
+
+    void add_input(PinInstance* pin);
+    void add_output(PinInstance* pin);
+
+    void remove_pin(const PinInstance* pin) noexcept;
+    void reset_pins() noexcept;
+
+    void link_cag_pins() noexcept;
 
 protected:
-    virtual float get_additional_name_width() const { return 0.0f; }
-    virtual float get_additional_node_width() const { return 0.0f; }
-    virtual bool do_need_calc_node_widths() const { return true; }
-    void link_cag_pins();
+    virtual float get_additional_name_width() const noexcept { return 0.0f; }
+    virtual float get_additional_node_width() const noexcept { return 0.0f; }
+    virtual bool do_need_calc_node_widths() const noexcept { return true; }
 
-    void reset_state() override;
+    void reset_state() noexcept override;
 
 public:
     float w_node = 0.0f;

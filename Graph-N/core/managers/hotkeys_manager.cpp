@@ -7,8 +7,8 @@
 namespace mngr
 {
 
-HotkeysManager::HotkeysManager() = default;
-HotkeysManager::~HotkeysManager() = default;
+HotkeysManager::HotkeysManager() noexcept = default;
+HotkeysManager::~HotkeysManager() noexcept = default;
 
 bool HotkeysManager::init()
 {
@@ -50,7 +50,7 @@ std::vector<ui::KeyBinding> HotkeysManager::get_default_key_bindings() const
     { ui::KeyBinding kb; kb.target = KeyTarget::PanelOpen_Nodes;     kb.key = ImGuiKey::ImGuiKey_N;                                              hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::PanelOpen_Models;    kb.key = ImGuiKey::ImGuiKey_M;                                              hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::PanelOpen_Projects;  kb.key = ImGuiKey::ImGuiKey_P;                                              hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::PanelOpen_Templates; kb.key = ImGuiKey::ImGuiKey_T;                                              hks.push_back(kb); }
+    //{ ui::KeyBinding kb; kb.target = KeyTarget::PanelOpen_Templates; kb.key = ImGuiKey::ImGuiKey_T;                                              hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::PanelOpen_Logs;      kb.key = ImGuiKey::ImGuiKey_L;                                              hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::PanelOpen_Stats;     kb.key = ImGuiKey::ImGuiKey_S;                                              hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::PanelOpen_Queue;     kb.key = ImGuiKey::ImGuiKey_Q;                                              hks.push_back(kb); }
@@ -103,10 +103,7 @@ std::vector<ui::KeyBinding> HotkeysManager::get_default_key_bindings() const
     { ui::KeyBinding kb; kb.target = KeyTarget::Node_MoveDown;       kb.key = ImGuiKey::ImGuiKey_DownArrow;  kb.ctrl = true;                     kb.repeatable = true; kb.node_related = true;  hks.push_back(kb); }
 
     std::set<KeyTarget> failed;
-    if (!test(hks, failed))
-    {
-        LogInternalLogic("Invalid predefined hotkeys");
-    }
+    LogRAssert(test(hks, failed), "Invalid predefined hotkeys", decltype(hks){});
     return hks;
 }
 
@@ -269,11 +266,7 @@ const char* HotkeysManager::get_key_binding_name(KeyTarget target, const char* a
         }
     }
 
-    if (nullptr == keyname)
-    {
-        LogInternalLogic("Key name not found for " << cast::to_i32(bind->key));
-        return append_to;
-    }
+    LogRAssert(keyname, "Key name not found for " << cast::to_i32(bind->key), append_to);
 
     text.clear();
     if (append_to != nullptr)
@@ -298,6 +291,7 @@ bool HotkeysManager::should_skip_target(KeyTarget target) const
     if (skip.empty())
     {
         skip.insert(KeyTarget::App_Command);
+        skip.insert(KeyTarget::PanelOpen_Templates);
         skip.insert(KeyTarget::PanelOpen_Notes);
 
         skip.insert(KeyTarget::Workspace_Runs2);
@@ -438,9 +432,9 @@ bool HotkeysManager::process_hotkey() const
     case KeyTarget::PanelOpen_Projects:
         g::pFlow->on_menu_panel_window(ui::ViewPanelWfList, true);
         return true;
-    case KeyTarget::PanelOpen_Templates:
-        g::pFlow->on_menu_panel_window(ui::ViewPanelTemplates, true);
-        return true;
+    //case KeyTarget::PanelOpen_Templates:
+    //    g::pFlow->on_menu_panel_window(ui::ViewPanelTemplates, true);
+    //    return true;
     case KeyTarget::PanelOpen_Logs:
         g::pFlow->on_menu_panel_window(ui::ViewPanelOutput, true);
         return true;
@@ -514,11 +508,10 @@ bool HotkeysManager::process_hotkey() const
         return true;
     }
 
-    LogInternalLogic("Unhandled global hotkey target " << cast::to_i32(active_bind->target));
-    return false;
+    LogRError("Unhandled global hotkey target " << cast::to_i32(active_bind->target), false);
 }
 
-bool HotkeysManager::process_node_hotkey(ui::PanelWorkflow* wf_panel) const
+bool HotkeysManager::process_node_hotkey(const ui::PanelWorkflow* wf_panel) const
 {
     if (g::pFlow->wf_get_active_panel() != wf_panel)
         return false;
@@ -584,8 +577,7 @@ bool HotkeysManager::process_node_hotkey(ui::PanelWorkflow* wf_panel) const
         return true;
     }
 
-    LogInternalLogic("Unhandled global hotkey target " << cast::to_i32(active_bind->target));
-    return false;
+    LogRError("Unhandled global hotkey target " << cast::to_i32(active_bind->target), false);
 }
 
 } // namespace mngr

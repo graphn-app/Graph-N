@@ -8,8 +8,8 @@ namespace platform
 class VideoControl_Apple final : public global::VideoControl
 {
 public:
-    VideoControl_Apple() = default;
-    ~VideoControl_Apple() override;
+    VideoControl_Apple() noexcept = default;
+    ~VideoControl_Apple() noexcept override;
 };
 
 } // namespace platform

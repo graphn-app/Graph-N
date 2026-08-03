@@ -2,28 +2,18 @@
 #include "core/managers/models_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
+#include "core/base/comfyui_web_paths.h"
 #include "ui/graph-n_flow.h"
 
 namespace mngr
 {
 
-ModelsManager::~ModelsManager()
-{
-    LogF;
-}
-
-bool ModelsManager::init()
-{
-    LogF;
-    if (!Manager::init())
-        return false;
-    return true;
-}
+ModelsManager::~ModelsManager() noexcept = default;
 
 void ModelsManager::free()
-{
-    m_model_items.clear();
-    m_model_to_nodes_map.clear();
+{    
+    m_model_items.clear(); m_model_items.shrink_to_fit();
+    m_model_to_nodes_map.clear(); m_model_to_nodes_map.rehash(0);
     m_service_components_found = false;
 }
 
@@ -116,7 +106,7 @@ void ModelsManager::load_models_th()
                         req_path = comfyui_http::model_meta;
                         req_path += "/" + req;
                         httplib::Params params;
-                        params.emplace("filename", filename.filename().u8string());
+                        params.emplace("filename", tools::str::path_to_string(filename.filename()));
                         res = cli.Get(req_path, params, httplib::Headers());
                         if (res && res->status == 200 && !res->body.empty())
                             parse_file_info(item.get(), std::move(res->body));
@@ -157,7 +147,7 @@ void ModelsManager::load_models_th()
     catch (const std::exception& ex)
     {
         g::pOptsManager->model_starred_release();
-        LogExcep(ExcepCategory::ComfyUI, "Models thread err " << ex.what());
+        LogExcep("Models thread ex " << ex.what());
     }
 }
 
@@ -178,7 +168,7 @@ std::unique_ptr<data::ModelItem> ModelsManager::add_file(std::string root_folder
         {
             auto fn = std::make_unique<data::ModelItem>();
             fn->is_model = false;
-            fn->name = (*part).u8string();
+            fn->name = tools::str::path_to_string(*part);
             fn->search = tools::str::to_lower_ascii(fn->name);
             auto ptr = fn.get();
             parent->children.push_back(std::move(fn));
@@ -188,10 +178,10 @@ std::unique_ptr<data::ModelItem> ModelsManager::add_file(std::string root_folder
 
     auto file = std::make_unique<data::ModelItem>();
     file->is_model = true;
-    file->name = file_path.filename().u8string();
+    file->name = tools::str::path_to_string(file_path.filename());
     file->search = tools::str::to_lower_ascii(file->name);
-    file->id = base::HashID::make_hash(file->name);
-    const auto starred = g::pOptsManager->model_starred_load(file->id);
+    file->hash = base::HashID::make_hash(file->name);
+    const auto starred = g::pOptsManager->model_starred_load(file->hash);
     if (starred.has_value())
         file->starred = starred.value();
     parent->children.push_back(std::move(file));
@@ -199,7 +189,7 @@ std::unique_ptr<data::ModelItem> ModelsManager::add_file(std::string root_folder
     return root;
 }
 
-void ModelsManager::parse_file_info(data::ModelItem* item, std::string info)
+void ModelsManager::parse_file_info(data::ModelItem* item, std::string&& info)
 {
     while (!item->children.empty())
     {
@@ -251,7 +241,6 @@ void ModelsManager::parse_file_info(data::ModelItem* item, std::string info)
             if (pos != std::string::npos)
             {
                 const char* base64 = image.c_str() + ++pos;
-                const size_t len = image.size() - pos;
                 const auto binary = tools::str::base64_decode(base64);
                 if (!binary.empty())
                 {
@@ -303,7 +292,7 @@ void ModelsManager::rebuild_models(const std::vector<std::unique_ptr<data::Model
                 auto new_item = std::make_unique<data::ModelItem>();
                 new_item->is_model = model->is_model;
                 new_item->starred = model->starred;
-                new_item->id = model->id;
+                new_item->hash = model->hash;
                 new_item->name = std::move(model->name);
                 new_item->search = std::move(model->search);
                 new_item->file_name = std::move(model->file_name);
@@ -473,7 +462,7 @@ void ModelsManager::setup_model_behaviour()
     }
 }
 
-const std::vector<std::unique_ptr<data::ModelItem>>& ModelsManager::get_models() const
+const std::vector<std::unique_ptr<data::ModelItem>>& ModelsManager::get_models() const noexcept
 {
     if (!g::pFlow->get_models_ready())
     {
@@ -520,7 +509,6 @@ void ModelsManager::calc_number_inside(const std::string& filter)
 
     uint32_t count = 0;
     calculator(m_model_items, &count, false);
-    Log("Filter = (" << filter << "), count=" << count);
 }
 
 } // namespace mngr

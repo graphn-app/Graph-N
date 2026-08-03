@@ -4,12 +4,12 @@
 namespace ui
 {
 
-TextWrapperRO::TextWrapperRO(TextWrapperRO&& other)
+TextWrapperRO::TextWrapperRO(TextWrapperRO&& other) noexcept
 {
     *this = std::move(other);
 }
 
-TextWrapperRO& TextWrapperRO::operator=(TextWrapperRO&& other)
+TextWrapperRO& TextWrapperRO::operator=(TextWrapperRO&& other) noexcept
 {
     if (this == &other)
         return *this;
@@ -17,8 +17,7 @@ TextWrapperRO& TextWrapperRO::operator=(TextWrapperRO&& other)
     m_font = other.m_font;
     m_raw_text = other.m_raw_text;
     other.m_raw_text = nullptr;
-    m_wrapped_text = std::move(other.m_wrapped_text);
-    other.m_wrapped_text.clear();
+    m_wrapped_text.swap(other.m_wrapped_text);
     m_wrapped_h = other.m_wrapped_h;
     m_calculated_w = other.m_calculated_w;
     return *this;
@@ -26,6 +25,7 @@ TextWrapperRO& TextWrapperRO::operator=(TextWrapperRO&& other)
 
 void TextWrapperRO::set_raw_text(const std::string* text)
 {
+    LogRAssert(text, "Zero ptr", );
     m_raw_text = text;
     m_wrapped_text.reserve(text->size() * 2);
     m_calculated_w = 0.0f;
@@ -38,7 +38,7 @@ void TextWrapperRO::re_calc(ImVec2 rect)
 
     m_wrapped_text.clear();
 
-    ImGuiStyle& style = ImGui::GetStyle();
+    const ImGuiStyle& style = ImGui::GetStyle();
     const float line_height = ImGui::GetTextLineHeight();
     const float min_height = (2 * line_height) + (style.FramePadding.y * 2.0f);
     m_wrapped_h = min_height;
@@ -46,12 +46,12 @@ void TextWrapperRO::re_calc(ImVec2 rect)
     if (nullptr == m_raw_text || m_raw_text->empty())
         return;
 
-    const auto need_wrap_on_char = [](char c)
+    const auto need_wrap_on_char = [](char c) noexcept
     {
         return (' ' == c || '\t' == c);
     };
 
-    const auto get_next_line_start = [&need_wrap_on_char](const char* text, const char* text_end)
+    const auto get_next_line_start = [&need_wrap_on_char](const char* text, const char* text_end) noexcept
     {
         while (text < text_end && need_wrap_on_char(*text))
             text++;

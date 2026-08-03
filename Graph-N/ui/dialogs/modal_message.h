@@ -10,8 +10,8 @@ public:
 
     void init(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def = ModalDlgCtrl::BtnOK);
     ModalDlgCtrl show();
-    inline void update(std::string&& message) { m_message = std::move(message); }
-    inline void stop() { m_stop = true; }
+    void update(std::string&& message) noexcept { m_message = std::move(message); }
+    void stop() noexcept { m_stop = true; }
 
 private:
     std::string m_caption; 
@@ -23,9 +23,9 @@ private:
     bool m_stop = false;
     ModalDlgCtrl m_return = ModalDlgCtrl::BtnOK;
     
-    struct Button
+    struct Button final
     {
-        ModalDlgCtrl code;
+        ModalDlgCtrl code = _btn_none;
         const char* text = nullptr;
         float width = 100.0f;
     };

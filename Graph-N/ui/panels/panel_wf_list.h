@@ -25,14 +25,13 @@ class PanelWfList final :
 {
 public:
     PanelWfList();
-    ~PanelWfList() override;
+    ~PanelWfList() noexcept override;
 
     void init() override;
-    void free() override;
-    void stop_all_threads() override;
+    void free() noexcept override;
 
     void rebuild_items();
-    void rename_project();
+    void rename_project() noexcept;
 
 private:
     DlgCode show(bool& focused) override;
@@ -47,16 +46,16 @@ private:
     void handle_dirty_trash(const PanelItemState& dirty_item);
 
     void on_add_new_wf(PanelToolbar::Element& el);
-    void on_rename_wf(PanelToolbar::Element& el);
-    void on_pre_rename_wf(PanelToolbar::Element& el);
+    void on_rename_wf(PanelToolbar::Element& el) noexcept;
+    void on_pre_rename_wf(PanelToolbar::Element& el) noexcept;
     void on_copy_wf(PanelToolbar::Element& el);
-    void on_pre_copy_wf(PanelToolbar::Element& el);
+    void on_pre_copy_wf(PanelToolbar::Element& el) noexcept;
     void on_delete_wf(PanelToolbar::Element& el);
-    void on_pre_delete_wf(PanelToolbar::Element& el);
+    void on_pre_delete_wf(PanelToolbar::Element& el) noexcept;
     void on_deleted_mode(PanelToolbar::Element& el);
     void on_labels_mode(PanelToolbar::Element& el);
     void on_add_label(PanelToolbar::Element& el);
-    void on_show_tt(int32_t idx);
+    void on_show_tt(int32_t idx) noexcept;
 
 private:
     wid m_active = 0;

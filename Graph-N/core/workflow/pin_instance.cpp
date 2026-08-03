@@ -7,31 +7,24 @@
 namespace data
 {
 
-PinInstance::PinInstance(NodeInstanceBase* parent_node, Pin* obj, wid workflow_id, iid instance_id)
+PinInstance::PinInstance(NodeInstanceBase* parent_node, Pin* obj, wid workflow_id, iid instance_id) noexcept
     : Instance<Pin>(obj, workflow_id, instance_id)
     , m_parent_node(parent_node->get_instance_id())
-    , m_parent_obj_hid(parent_node->get_object()->get_id())
 {
 }
 
-PinInstance::~PinInstance() = default;
+PinInstance::~PinInstance() noexcept = default;
 
 void PinInstance::init()
 {
     Instance<data::Pin>::init();
-    m_state = m_object->def_state;
-    m_obj_class = m_object->def_state.name;
-    m_obj_in = m_object->input;
-    m_obj_out_idx = m_object->out_index;
+    get_object()->def_state.copy_to(m_state);
 }
 
 void PinInstance::set_object(Pin* obj)
 {
     Instance<Pin>::set_object(obj);
-    m_state = m_object->def_state;
-    m_obj_class = m_object->def_state.name;
-    m_obj_in = m_object->input;
-    m_obj_out_idx = m_object->out_index;
+    get_object()->def_state.copy_to(m_state);
 }
 
 void PinInstance::set_name(const std::string& name)

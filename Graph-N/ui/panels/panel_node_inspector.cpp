@@ -18,32 +18,32 @@ PanelNodeInspector::PanelNodeInspector()
     g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
 }
 
-PanelNodeInspector::~PanelNodeInspector()
+PanelNodeInspector::~PanelNodeInspector() noexcept
 {
-    LogF;
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_comfyui_validity_state(this);
 }
 
 void PanelNodeInspector::init()
 {
-    LogF;
     PanelBase::init();
 
-    data()->clr_descr_frame = g::pOptsManager->color_load(AppColor::PanelNodesInspDescrFrame);
-    data()->clr_selected_node = g::pOptsManager->color_load(AppColor::PanelNodesSelNode);
+    dlg_data()->clr_descr_frame = g::pOptsManager->color_load(AppColor::PanelNodesInspDescrFrame);
+    dlg_data()->clr_selected_node = g::pOptsManager->color_load(AppColor::PanelNodesSelNode);
 
-    auto wf_id = g::pWfsManager->create(false /*generate_name*/, false /*dump_to_db*/, true /*ro*/).id;
+    const auto wf_id = g::pWfsManager->create(false /*generate_name*/, false /*dump_to_db*/, true /*ro*/).id;
     m_wf = g::pWfsManager->access(wf_id);
 }
 
 void PanelNodeInspector::add_inspecting_node(data::Node* node)
 {    
-    if (nullptr == node)
+    LogRAssert(node, "Zero ptr", );
+    if (std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) noexcept
+        { return d.node->get_object()->get_hash() == node->get_hash(); }) != m_inspecting.end())
+    {
         return;
-    if (std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object()->get_id() == node->get_id(); }) != m_inspecting.end())
-        return;
-    Log("Add node '" << node->name << "' id=" << node->get_id());
+    }
+    Log("Add node. n:" << node->name << ", cl:" << node->node_class);
 
     Data data(m_wf);
     data.node = m_wf->add_node_ro(node);
@@ -61,38 +61,35 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
 
 void PanelNodeInspector::remove_inspecting_node(data::Node* node)
 {
-    Log("Remove node '" << node->name << "' id=" << node->get_id());
+    LogRAssert(node, "Zero ptr", );
+    Log("Remove node. n:" << node->name << ", cl:" << node->node_class);
 
-    const auto it = std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) { return d.node->get_object()->get_id() == node->get_id(); });
-    if (it == m_inspecting.end())
-    {
-        LogInternalMap("Can't remove node");
-    }
-    else
-    {
-        m_wf->remove_node(it->node);
-        m_inspecting.erase(it);
-    }
+    const auto it = std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) noexcept { return d.node->get_object()->get_hash() == node->get_hash(); });
+    LogRAssert(it != m_inspecting.end(), "Node not found", );
+
+    m_wf->remove_node(it->node);
+    m_inspecting.erase(it);    
 }
 
-void PanelNodeInspector::reset_inspecting_nodes()
+void PanelNodeInspector::reset_inspecting_nodes() noexcept
 {
     Log("Remove all nodes");
     m_wf->clear();
-    m_inspecting.clear();
+    m_inspecting.clear(); m_inspecting.shrink_to_fit();
 }
 
-bool PanelNodeInspector::is_node_inspecting(data::Node* node) const
+bool PanelNodeInspector::is_node_inspecting(const data::Node* node) const noexcept
 {
+    LogRAssert(node, "Zero ptr", false);
     for (auto& data : m_inspecting)
     {
-        if (data.node->get_object()->get_id() == node->get_id())
+        if (data.node->get_object()->get_hash() == node->get_hash())
             return true;
     }
     return false;
 }
 
-void PanelNodeInspector::invalidate_comfyui_objects()
+void PanelNodeInspector::invalidate_comfyui_objects() noexcept
 {
     reset_inspecting_nodes();
 }
@@ -128,7 +125,7 @@ DlgCode PanelNodeInspector::show(bool& focused)
 
 void PanelNodeInspector::show_nodes()
 {
-    ImGuiStyle& style = ImGui::GetStyle();
+    const ImGuiStyle& style = ImGui::GetStyle();
     const auto avail_w = ImGui::GetContentRegionAvail().x;
     constexpr float min_descr_w = 200.0f;
     float curr_y = 0.0f;
@@ -164,11 +161,11 @@ void PanelNodeInspector::show_nodes()
     }
 }
 
-void PanelNodeInspector::show_description(std::string* descr, const ImVec2& descr_sz, float max_w)
+void PanelNodeInspector::show_description(std::string* descr, const ImVec2& descr_sz, float max_w) noexcept
 {
     if (descr != nullptr && !descr->empty())
     {
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, data()->clr_bg);
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, dlg_data()->clr_bg);
         ImGui::PushStyleColor(ImGuiCol_Border, 0);
         ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeDescription));
 

@@ -28,8 +28,9 @@ struct OptsData final
         int32_t cb_index = 0;
         bool valid = true;
 
-        KeyBindEx() = default;
-        KeyBindEx(const ui::KeyBinding& kb)
+        KeyBindEx() noexcept = default;
+        ~KeyBindEx() noexcept = default;
+        KeyBindEx(const ui::KeyBinding& kb) noexcept
         {
             target = kb.target;
             enabled = kb.enabled;
@@ -41,7 +42,7 @@ struct OptsData final
             node_related = kb.node_related;
             repeatable = kb.repeatable;
         }
-        ui::KeyBinding to_keybinds() const
+        ui::KeyBinding to_keybinds() const noexcept
         {
             ui::KeyBinding kb;
             kb.target = target;

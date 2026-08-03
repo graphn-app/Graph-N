@@ -8,10 +8,7 @@
 namespace mngr
 {
 
-NodesParser::~NodesParser()
-{
-    LogF;
-}
+NodesParser::~NodesParser() noexcept = default;
 
 void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
 {
@@ -51,7 +48,7 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
 
 void NodesParser::parse(std::string&& data)
 {
-    Log("To parse: " << data.size() << " bytes")
+    Log("To parse: " << data.size() << " bytes");
     stop();
     m_parse_finished.store(false, std::memory_order_relaxed);
     m_parse_failed.store(false, std::memory_order_relaxed);
@@ -68,7 +65,6 @@ void NodesParser::parse(std::string&& data)
 
 void NodesParser::stop()
 {
-    LogF;
     m_stop_thread_flag.store(true, std::memory_order_relaxed);
 
     if (m_thread.joinable())
@@ -77,7 +73,6 @@ void NodesParser::stop()
 
 std::shared_ptr<NodesManager> NodesParser::parse_thread()
 {
-    LogF;
     try
     {
         g::pOptsManager->pin_advanced_preload();
@@ -112,9 +107,9 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
         g::pOptsManager->pin_advanced_release();
         return nodes_manager;
     }
-    catch (std::exception& e)
+    catch (const std::exception& ex)
     {
-        LogExcep(ExcepCategory::ComfyUI, "Parse error: " << e.what());
+        LogExcep("Parse error: " << ex.what());
         g::pOptsManager->pin_advanced_release();
         m_parse_failed.store(true, std::memory_order_relaxed);
     }
@@ -129,27 +124,26 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
         auto node = std::make_unique<data::Node>(node_class);
         parse_names(*node.get(), node_class, jnode);        // name, display name, category, description
 
-        //if (node_class == "KSampler")
-        //    __debugbreak();
+        //BREAK_IF(node_class == "DrawArcFaceLandmarks");
 
         parse_input(manager, *node.get(), jnode);        // input, input_order
         parse_output(manager, *node.get(), jnode);        // output, output_is_list, output_name, output_node, output_tooltips
         parse_others(*node.get(), jnode);                // python_module, experimental, deprecated, api_node
 
-        node->finalize(models_map);
+        node->finalize(&models_map);
         put_in_tree(manager, node.get());
 
         auto ptr = node.get();
-        if (!manager.m_nodes.try_emplace(node->get_id(), std::move(node)).second)
+        if (!manager.m_nodes.try_emplace(node->get_hash(), std::move(node)).second)
         {
             LogInvalidJson("Duplicate of node " << ptr->name);
         }
         else
             Log("Node " << node_class << " parse: end");
     }
-    catch (std::exception& e)
+    catch (const std::exception& ex)
     {
-        LogExcep(ExcepCategory::ComfyUI, "Parse node '" << node_class << "' error: " << e.what());
+        LogExcep("Parse node '" << node_class << "' error: " << ex.what());
     }
 }
 
@@ -157,7 +151,6 @@ void NodesParser::parse_names(data::Node& node, const std::string& node_class, c
 {
     // name, display name, category, description
 
-    node.node_class = node_class;
     if (jnode.contains("name") && jnode["name"].is_string())
         node.name = jnode["name"];
     if (node.name.empty())
@@ -177,7 +170,35 @@ void NodesParser::parse_names(data::Node& node, const std::string& node_class, c
     }
 }
 
-static std::optional<primitive> get_combo_item(const o_json& j)
+template <typename TYPE>
+TYPE json_to_number(const o_json& j)
+{
+    if (j.is_number())
+    {
+        return j.get<TYPE>();
+    }
+    if (j.is_boolean())
+    {
+        return j.get<bool>() ? 1 : 0;
+    }
+    if (j.is_string())
+    {
+        if constexpr (std::is_same_v<TYPE, int64_t>)
+            return cast::to_i64(strtoll(j.get_ref<const std::string&>().c_str(), nullptr, 10));
+        else if constexpr (std::is_same_v<TYPE, double>)
+            return cast::to_double(strtod(j.get_ref<const std::string&>().c_str(), nullptr));
+    }
+    if (j.is_null())
+    {
+        return {};
+    }
+
+    LogRErrorS("json data unknown type " << j.type_name() << " (number expected)", TYPE());
+}
+
+namespace
+{
+std::optional<Primitive> get_combo_item(const o_json& j)
 {
     if (j.is_string())
         return std::string(j);
@@ -193,34 +214,7 @@ static std::optional<primitive> get_combo_item(const o_json& j)
     return std::nullopt;
 }
 
-template <typename TYPE>
-static TYPE json_to_number(const o_json& j)
-{
-    if (j.is_number())
-    {
-        return j.get<TYPE>();
-    }
-    if (j.is_boolean())
-    {
-        return j.get<bool>() ? 1 : 0;
-    }
-    if (j.is_string())
-    {
-        if (std::is_same_v<TYPE, int64_t>)
-            return cast::to<int64_t, TYPE>(strtoll(j.get_ref<const std::string&>().c_str(), nullptr, 10));
-        if (std::is_same_v<TYPE, double>)
-            return cast::to<double, TYPE>(strtod(j.get_ref<const std::string&>().c_str(), nullptr));
-    }
-    if (j.is_null())
-    {
-        return {};
-    }
-
-    LogInternalLogicS("json data unknown type " << j.type_name() << " (number expected)");
-    return {};
-}
-
-static std::string json_to_string(const o_json& j)
+std::string json_to_string(const o_json& j)
 {
     if (j.is_string())
     {
@@ -243,11 +237,10 @@ static std::string json_to_string(const o_json& j)
         return {};
     }
 
-    LogInternalLogicS("json data unknown type " << j.type_name() << " (string expected)");
-    return {};
+    LogRErrorS("Json data unknown type " << j.type_name() << " (string expected)", std::string());
 }
 
-static bool json_to_bool(const o_json& j)
+bool json_to_bool(const o_json& j)
 {
     if (j.is_boolean())
     {
@@ -267,25 +260,23 @@ static bool json_to_bool(const o_json& j)
         return false;
     }
 
-    LogInternalLogicS("json data unknown type " << j.type_name() << " (bool expected)");
-    return false;
+    LogRErrorS("Json data unknown type " << j.type_name() << " (bool expected)", false);
 }
 
-static primitive get_from_pin_type(const data::Node& jnode, data::Pin& pin, const o_json& j, const char* attr)
+Primitive get_from_pin_type(const data::Node& jnode, const data::Pin& pin, const o_json& j, const char* attr)
 {
     switch (pin.def_state.type)
     {
-    case data::PinType::INT:
-    case data::PinType::NUMBER:
+    case PinType::INT:
         return json_to_number<int64_t>(j);
-    case data::PinType::FLOAT:
+    case PinType::FLOAT:
         return json_to_number<double>(j);
-    case data::PinType::BOOLEAN:
+    case PinType::BOOLEAN:
         return json_to_bool(j);
-    case data::PinType::STRING:
-    case data::PinType::COLOR:
+    case PinType::STRING:
+    case PinType::COLOR:
         return json_to_string(j);
-    case data::PinType::COMBO:
+    case PinType::COMBO:
         {
             auto value = get_combo_item(j);
             if (value.has_value())
@@ -297,6 +288,7 @@ static primitive get_from_pin_type(const data::Node& jnode, data::Pin& pin, cons
     LogUnhandledJsonS("Wrong pin type. node=" << jnode.name << ", pin=" << pin.def_state.name << ", attr=" << attr << ", type=" << j.type_name());
     return {};
 }
+} // namespace
 
 void NodesParser::prepare_parsers_map()
 {
@@ -436,13 +428,13 @@ void NodesParser::prepare_parsers_map()
     m_parsers["options"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (data::PinType::COMBO == pin.def_state.type && j.is_array())
+        if (PinType::COMBO == pin.def_state.type && j.is_array())
         {
             for (const auto& jval : j)
             {
                 auto value = get_combo_item(jval);
                 if (value.has_value())
-                    pin.list.push_back(std::move(value.value()));
+                    pin.combo_items.push_back(std::move(value.value()));
                 else
                     log_err_type(node, pin, jval, "COMBO/options/item");
             }
@@ -514,13 +506,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
         auto jitems = jobjects.items();
         for (const auto& [jpin, jinfo] : jitems)
         {
-            auto pin = std::make_unique<data::Pin>(&node, jpin);
-            input.pins.push_back(pin.get());
-
-            pin->input = true;
-            pin->required = is_required;
-            pin->optional = is_optional;
-            pin->hidden = is_hidden;
+            auto pin = std::make_unique<data::Pin>(&node, jpin, is_required, is_optional, is_hidden);
             pin->def_state.name = jpin;
 
             //Log("Node: " << node.name << ", Pin: " << pin_name);
@@ -530,7 +516,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
                 if (jinfo.size() == 1 && jinfo[0].is_string())
                 {
                     pin->initialize(jinfo[0]);
-                    if (data::PinType::CUSTOM == pin->def_state.type)
+                    if (PinType::CUSTOM == pin->def_state.type)
                     {
                         LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->def_state.name);
                     }
@@ -538,7 +524,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
                 else if (jinfo.size() == 2 && jinfo[0].is_string() && jinfo[1].is_object())
                 {
                     pin->initialize(jinfo[0]);
-                    if (data::PinType::CUSTOM == pin->def_state.type)
+                    if (PinType::CUSTOM == pin->def_state.type)
                     {
                         LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->def_state.name);
                     }
@@ -556,7 +542,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
                     {
                         auto value = get_combo_item(jitem);
                         if (value.has_value())
-                            pin->list.push_back(std::move(value.value()));
+                            pin->combo_items.push_back(std::move(value.value()));
                         else
                         {
                             LogUnhandledJson("/input/<>/COMBO/item. Unknown item type. Node=" << node.name << ", pin="
@@ -585,26 +571,28 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
 
             pin->finalize();
             auto ptr = pin.get();
-            if (!manager.m_pins.try_emplace(ptr->get_id(), std::move(pin)).second)
+            if (!manager.m_pins.try_emplace(ptr->get_hash(), std::move(pin)).second)
             {
+                LogError("Input pin name duplicate");
                 LogUnhandledJson("/input/. Pin name duplicate. Node=" << node.name << ", pin=" << ptr->def_state.name << ", type=" << jinfo.type_name());
             }
-            else if (ptr->cag_require)
+            else
             {
-                auto cag = std::make_unique<data::Pin>(&node, ptr->def_state.name + "_control");
-                input.pins.push_back(cag.get());
+                input.pins.push_back(ptr);
+                if (ptr->cag_require)
+                {
+                    auto cag = std::make_unique<data::Pin>(&node, base::GlobalID::uuid(), is_required, is_optional, is_hidden);
+                    input.pins.push_back(cag.get());
 
-                cag->input = true;
-                cag->required = is_required;
-                cag->optional = is_optional;
-                cag->hidden = is_hidden;
-                cag->cag_pin = true;
-                cag->def_state.name = "control";
-                cag->initialize("COMBO");
-                cag->finalize();
+                    cag->cag_pin = true;
+                    cag->can_link = false;
+                    cag->def_state.name = "control";
+                    cag->initialize("COMBO");
+                    cag->finalize();
 
-                ptr = cag.get();
-                manager.m_pins.emplace(ptr->get_id(), std::move(cag));
+                    ptr = cag.get();
+                    manager.m_pins.emplace(ptr->get_hash(), std::move(cag));
+                }
             }
         }
     };
@@ -696,7 +684,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
         auto& joutput = jnode["output"];
         if (joutput.is_array())
         {
-            int64_t index = 0;
+            int32_t index = 0;
             for (const auto& jitem : joutput)
             {
                 auto pin = std::make_unique<data::Pin>(&node, index++);
@@ -705,7 +693,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
                 if (jitem.is_string())
                 {
                     pin->initialize(jitem);
-                    if (data::PinType::CUSTOM == pin->def_state.type)
+                    if (PinType::CUSTOM == pin->def_state.type)
                     {
                         LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->def_state.name);
                     }
@@ -716,7 +704,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
                     for (const auto& out_item : jitem)
                     {
                         if (out_item.is_string())
-                            pin->list.push_back(std::string(out_item));
+                            pin->combo_items.push_back(std::string(out_item));
                         else
                         {
                             LogUnhandledJson("/output. Combo item not a string. Node=" << node.name << ", type=" << out_item.type_name());
@@ -731,7 +719,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
 
                 auto ptr = pin.get();
                 node.output.push_back(pin.get());
-                if (!manager.m_pins.emplace(pin->get_id(), std::move(pin)).second)
+                if (!manager.m_pins.emplace(pin->get_hash(), std::move(pin)).second)
                 {
                     LogUnhandledJson("/output/. Pin name duplicate. Node=" << node.name << ", pin=" << ptr->def_state.name << ", idx=" << index);
                 }
@@ -903,9 +891,13 @@ void NodesParser::parse_others(data::Node& node, const o_json& jnode)
         LogUnhandledJson("/unhandled node's attr. Node=" << node.name << ", attr=" << name);
     }
 }
+
 void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 {
-    const auto search_branch = [](std::vector<data::NodeItem*>* items, const std::string& category)
+    if (nullptr == node)
+        return;
+
+    const auto search_branch = [](std::vector<data::NodeItem*>* items, const std::string& category) noexcept
     {
         for (auto it = items->begin(); it != items->end(); ++it)
         {

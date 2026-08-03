@@ -10,14 +10,13 @@ namespace platform
 
 ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32_t width, uint32_t height, bool generate_mips)
 {
+    LogRAssert(image_data, "Invalid input", nullptr);
     if (nullptr == m_device)
     {
-        auto pmain = dynamic_cast<MainRoutine_Win32*>(g::pMain);
+        const auto* pmain = cast::dynamic<MainRoutine_Win32>(g::pMain);
         m_device = pmain->get_device();
     }
-
-    if (!m_device || !image_data)
-        return nullptr;
+    LogRAssert(m_device, "Device not initialized", nullptr);
 
     D3D11_TEXTURE2D_DESC desc;
     ::ZeroMemory(&desc, sizeof(desc));
@@ -88,6 +87,10 @@ ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32
         context->GenerateMips(srv_ptr);
         context->Release();
     }
+    else
+    {
+        LogWarn("CreateShaderResourceView failed, err " << LogHRES(hr));
+    }
 
     ImTextureIDPtr textures = std::shared_ptr<void>(srv_ptr, [](void* p) { ID3D11ShaderResourceView* srv = (ID3D11ShaderResourceView*)p; if (srv) srv->Release(); });
     texture_ptr->Release();
@@ -96,14 +99,13 @@ ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32
 
 bool Textures_Win32::update_gpu_texture(ImTextureIDPtr texture, const ImageData& image_data, uint32_t width, uint32_t /*height*/, bool generate_mips)
 {
+    LogRAssert(image_data && texture, "Invalid input", false);
     if (nullptr == m_device)
     {
-        auto pmain = dynamic_cast<MainRoutine_Win32*>(g::pMain);
+        const auto* pmain = cast::dynamic<MainRoutine_Win32>(g::pMain);
         m_device = pmain->get_device();
     }
-
-    if (!m_device || !texture || !image_data)
-        return false;
+    LogRAssert(m_device, "Device not initialized", false);
 
     ID3D11ShaderResourceView* srv = cast::ptrs<ID3D11ShaderResourceView>(texture.get());
 
@@ -113,12 +115,12 @@ bool Textures_Win32::update_gpu_texture(ImTextureIDPtr texture, const ImageData&
     if (nullptr == resource)
         return false;
 
-    std::unique_ptr<ID3D11Resource, std::function <void(ID3D11Resource*)>> resource_ptr(resource, [](ID3D11Resource* r) { r->Release(); });
+    std::unique_ptr<ID3D11Resource, std::function <void(ID3D11Resource*)>> resource_ptr(resource, [](ID3D11Resource* r) { if (r) r->Release(); });
 
     ID3D11DeviceContext* context = nullptr;
     m_device->GetImmediateContext(&context);
 
-    std::unique_ptr<ID3D11DeviceContext, std::function <void(ID3D11DeviceContext*)>> context_ptr(context, [](ID3D11DeviceContext* r) { r->Release(); });
+    std::unique_ptr<ID3D11DeviceContext, std::function <void(ID3D11DeviceContext*)>> context_ptr(context, [](ID3D11DeviceContext* r) { if (r) r->Release(); });
 
     // upload raw pixels directly to VRAM
     // pitch is width * 4 (since format is IM_COL32/RGBA - 4 bytes per pixel)

@@ -6,8 +6,8 @@
 namespace mngr
 {
 
-ComfyUIManager::ComfyUIManager() = default;
-ComfyUIManager::~ComfyUIManager() = default;
+ComfyUIManager::ComfyUIManager() noexcept = default;
+ComfyUIManager::~ComfyUIManager() noexcept = default;
 
 void ComfyUIManager::run(bool force_start)
 {

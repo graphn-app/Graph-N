@@ -1,10 +1,9 @@
-
-#include "core/workflow/workflow_serializer_to_json.h"
+#include "core/workflow/serializer/wf_deserializer_from_json.h"
 
 namespace data
 {
 
-bool WorkflowSerializerToJson::deserialize_all_wf_names(const std::string& payload, std::list<std::pair<std::string, tools::dt>>& projects)
+bool WfDeserializerFromJson::deserialize_all_wf_names(const std::string& payload, std::list<std::pair<std::string, tools::dt>>& projects)
 {
     try
     {
@@ -23,12 +22,12 @@ bool WorkflowSerializerToJson::deserialize_all_wf_names(const std::string& paylo
             {
                 if (jitem["modified"].is_number_float())
                 {
-                    uint64_t t = uint64_t(jitem["modified"].get<double>());
+                    const uint64_t t = uint64_t(jitem["modified"].get<double>());
                     time = tools::dt::from_time(t);
                 }
                 else
                 {
-                    uint64_t t = jitem["modified"].get<int64_t>();
+                    const uint64_t t = jitem["modified"].get<int64_t>();
                     time = tools::dt::from_time(t);
                 }
             }
@@ -38,9 +37,9 @@ bool WorkflowSerializerToJson::deserialize_all_wf_names(const std::string& paylo
 
         return true;
     }
-    catch (std::exception& ex)
+    catch (const std::exception& ex)
     {
-        LogExcepS(ExcepCategory::API, ex.what());
+        LogExcepS("Wf json all names parse ex:" << ex.what());
     }
     return false;
 }

@@ -12,12 +12,11 @@ class PanelServerLogs final
 {
 public:
     PanelServerLogs();
-    ~PanelServerLogs() override;
+    ~PanelServerLogs() noexcept override;
 
     void init() override;
-    void stop_all_threads() override;
 
-    inline void get_parsed_address(std::string& host, int64_t& port) const { host = m_host; port = m_port; }
+    void get_parsed_address(std::string& host, int64_t& port) const { host = m_host; port = m_port; }
 
 private:
     DlgCode show(bool& focused) override;
@@ -27,11 +26,11 @@ private:
     void search_for_address(size_t from, size_t to);
 
     void create_toolbar();
-    void on_pre_search(PanelToolbar::Element& el);
+    void on_pre_search(PanelToolbar::Element& el) noexcept;
     void on_search_up(PanelToolbar::Element& el);
     void on_search_down(PanelToolbar::Element& el);
-    void on_autoscroll(PanelToolbar::Element& el);
-    void on_clear(PanelToolbar::Element& el);
+    void on_autoscroll(PanelToolbar::Element& el) noexcept;
+    void on_clear(PanelToolbar::Element& el) noexcept;
 
 private:
     std::deque<std::string> m_logs;    

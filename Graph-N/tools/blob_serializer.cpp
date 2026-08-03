@@ -8,6 +8,7 @@ namespace blob
 
 enum PrimitiveType
 {
+    pt_none,
     pt_i64,
     pt_u64,
     pt_double,
@@ -21,12 +22,12 @@ template <typename TRIVIAL>
 void push_trivial(TRIVIAL val, Blob& buffer)
 {
     static_assert(std::is_trivially_copyable_v<TRIVIAL>, "Type is not safe for memcpy!");
-    const byte* ptr = reinterpret_cast<const byte*>(&val);
+    const byte* ptr = cast::ptrs<const byte>(&val);
     buffer->insert(buffer->end(), ptr, ptr + sizeof(TRIVIAL));
 }
 
 template <typename TRIVIAL>
-TRIVIAL pop_trivial(const byte* data, size_t& offset)
+TRIVIAL pop_trivial(const byte* data, size_t& offset) noexcept
 {
     static_assert(std::is_trivially_copyable_v<TRIVIAL>, "Type is not safe for memcpy!");
     TRIVIAL value = {};
@@ -38,15 +39,15 @@ TRIVIAL pop_trivial(const byte* data, size_t& offset)
 ///////////////   Writer
 //////////////////////////////   
 
-Writer::Writer() = default;
-Writer::~Writer() = default;
+Writer::Writer() noexcept = default;
+Writer::~Writer() noexcept = default;
 
-Writer::Writer(Writer&& other)
+Writer::Writer(Writer&& other) noexcept
 {
     *this = std::move(other);
 }
 
-Writer& Writer::operator=(Writer&& other)
+Writer& Writer::operator=(Writer&& other) noexcept
 {
     if (this == &other)
         return *this;
@@ -135,7 +136,7 @@ Writer& Writer::push(const std::string& val)
     return *this;
 }
 
-Writer& Writer::push(const primitive& val)
+Writer& Writer::push(const Primitive& val)
 {
     std::visit([this](const auto& v)
     {
@@ -169,7 +170,7 @@ Writer& Writer::push(const primitive& val)
         {
             static_assert(sizeof(T) == 0, "Undefined primitive type in visitor");
         }
-    }, val);
+    }, val.value());
 
     return *this;
 }
@@ -204,40 +205,36 @@ Writer& Writer::push(const Writer& val)
     return *this;
 }
 
-void Writer::patch(size_t offset, uint32_t val)
+void Writer::patch(size_t offset, uint32_t val) noexcept
 {
-    if (offset + sizeof(uint32_t) > m_buffer->size())
-    {
-        LogInternalLogicS("Patch: Out of range");
-    }
-
+    LogRAssert(offset + sizeof(uint32_t) <= m_buffer->size(), "Patch: Out of range", );
     std::memcpy(m_buffer->data() + offset, &val, sizeof(uint32_t));
 }
 
 ///////////////   Reader
 //////////////////////////////   
 
-Reader::Reader(const Blob& buffer)
+Reader::Reader(const Blob& buffer) noexcept
     : m_data(buffer->data())
     , m_size(buffer->size())
     , m_offset(0)
 {}
 
-Reader::Reader(const byte* data, size_t size)
+Reader::Reader(const byte* data, size_t size) noexcept
     : m_data(data)
     , m_size(size)
     , m_offset(0)
 {}
 
-Reader::~Reader() = default;
+Reader::~Reader() noexcept = default;
 
-Reader::Reader(Reader&& other)
+Reader::Reader(Reader&& other) noexcept
     : m_data(std::exchange(other.m_data, nullptr))
     , m_size(std::exchange(other.m_size, 0))
     , m_offset(std::exchange(other.m_offset, 0))
 {}
 
-Reader& Reader::operator=(Reader&& other)
+Reader& Reader::operator=(Reader&& other) noexcept
 {
     if (this == &other)
         return *this;
@@ -248,86 +245,84 @@ Reader& Reader::operator=(Reader&& other)
     return *this;
 }
 
-bool Reader::empty() const
+bool Reader::empty() const noexcept
 {
     return m_offset >= m_size;
 }
 
-Reader Reader::clone() const
+Reader Reader::clone() const noexcept
 {
     Reader clone(m_data, m_size);
     clone.m_offset = m_offset;
     return clone;
 }
 
-void Reader::test_len(size_t len) const
+bool Reader::test_len(size_t len) const noexcept
 {
-    if (len > m_size - m_offset)
-    {
-        LogInternalLogicS("Reader len: Out of range");
-    }
+    LogRAssert(len <= m_size - m_offset, "Reader len: Out of range", false);
+    return true;
 }
 
-bool Reader::pop_bool()
+bool Reader::pop_bool() noexcept
 {
-    test_len(sizeof(bool));
+    if (!test_len(sizeof(bool))) return false;
     return pop_trivial<bool>(m_data, m_offset);
 }
 
-uint8_t Reader::pop_u8()
+uint8_t Reader::pop_u8() noexcept
 {
-    test_len(sizeof(uint8_t));
+    if (!test_len(sizeof(uint8_t))) return 0;
     return pop_trivial<uint8_t>(m_data, m_offset);
 }
 
-int32_t Reader::pop_i32()
+int32_t Reader::pop_i32() noexcept
 {
-    test_len(sizeof(int32_t));
+    if (!test_len(sizeof(int32_t))) return 0;
     return pop_trivial<int32_t>(m_data, m_offset);
 }
 
-uint32_t Reader::pop_u32()
+uint32_t Reader::pop_u32() noexcept
 {
-    test_len(sizeof(uint32_t));
+    if (!test_len(sizeof(uint32_t))) return 0;
     return pop_trivial<uint32_t>(m_data, m_offset);
 }
 
-int64_t Reader::pop_i64()
+int64_t Reader::pop_i64() noexcept
 {
-    test_len(sizeof(int64_t));
+    if (!test_len(sizeof(int64_t))) return 0;
     return pop_trivial<int64_t>(m_data, m_offset);
 }
 
-uint64_t Reader::pop_u64()
+uint64_t Reader::pop_u64() noexcept
 {
-    test_len(sizeof(uint64_t));
+    if (!test_len(sizeof(uint64_t))) return 0;
     return pop_trivial<uint64_t>(m_data, m_offset);
 }
 
-float Reader::pop_float()
+float Reader::pop_float() noexcept
 {
-    test_len(sizeof(float));
+    if (!test_len(sizeof(float))) return 0.0f;
     return pop_trivial<float>(m_data, m_offset);
 }
 
-double Reader::pop_double()
+double Reader::pop_double() noexcept
 {
-    test_len(sizeof(double));
+    if (!test_len(sizeof(double))) return 0.0f;
     return pop_trivial<double>(m_data, m_offset);
 }
 
-void Reader::pop_buff(float* arr)
+void Reader::pop_buff(float* arr) noexcept
 {
     const size_t len = pop_u32();
-    test_len(len);
+    if (0 == len || !test_len(len)) return;
     std::memcpy(arr, m_data + m_offset, len);
     m_offset += len;
 }
 
-void Reader::pop_buff(byte* data)
+void Reader::pop_buff(byte* data) noexcept
 {
     const size_t len = pop_u32();
-    test_len(len);
+    if (0 == len || !test_len(len)) return;
     std::memcpy(data, m_data + m_offset, len);
     m_offset += len;
 }
@@ -335,7 +330,7 @@ void Reader::pop_buff(byte* data)
 byte_buff Reader::pop_buff()
 {
     const size_t len = pop_u32();
-    test_len(len);
+    if (0 == len || !test_len(len)) return {};
     byte_buff buff;
     buff.resize(len);
     std::memcpy(buff.data(), m_data + m_offset, len);
@@ -344,18 +339,22 @@ byte_buff Reader::pop_buff()
 }
 
 
-std::string_view Reader::pop_string()
+std::string_view Reader::pop_string() noexcept
 {
     const uint32_t len = pop_u32();
-    test_len(len);
+    if (0 == len || !test_len(len))
+    {
+        static const char* empty = "";
+        return std::string_view(empty);
+    };
     std::string_view view(cast::ptrs<char>(m_data + m_offset), len);
     m_offset += len;
     return view;
 }
 
-primitive Reader::pop_primitive()
+Primitive Reader::pop_primitive()
 {
-    primitive ret;
+    Primitive ret;
     const byte type = pop_u8();
     switch (type)
     {
@@ -375,55 +374,53 @@ primitive Reader::pop_primitive()
         ret = std::string(pop_string());
         break;
     case pt_monostate:
-        ret = std::monostate();
+        // do nothing
         break;
     default:
-        {
-            LogInternalLogicS("Undefined primitive type");
-        }
+        LogError("Undefined primitive type");
     }
     return ret;
 }
 
-ImVec2 Reader::pop_vec2()
+ImVec2 Reader::pop_vec2() noexcept
 {
-    test_len(sizeof(float) * 2);
+    if (!test_len(sizeof(float) * 2)) return {};
     return pop_trivial<ImVec2>(m_data, m_offset);
 }
 
-ImVec4 Reader::pop_vec4()
+ImVec4 Reader::pop_vec4() noexcept
 {
-    test_len(sizeof(float) * 4);
+    if (!test_len(sizeof(float) * 4)) return {};
     return pop_trivial<ImVec4>(m_data, m_offset);
 }
 
-ImRect Reader::pop_rect()
+ImRect Reader::pop_rect() noexcept
 {
-    test_len(sizeof(float) * 4);
+    if (!test_len(sizeof(float) * 4)) return {};
     return pop_trivial<ImRect>(m_data, m_offset);
 }
 
-ImU32 Reader::pop_clr()
+ImU32 Reader::pop_clr() noexcept
 {
-    test_len(sizeof(ImU32));
+    if (!test_len(sizeof(ImU32))) return 0;
     return pop_trivial<ImU32>(m_data, m_offset);
 }
 
-iid Reader::pop_iid()
+iid Reader::pop_iid() noexcept
 {
-    test_len(sizeof(iid));
+    if (!test_len(sizeof(iid))) return 0;
     return pop_trivial<iid>(m_data, m_offset);
 }
 
-wid Reader::pop_wid()
+wid Reader::pop_wid() noexcept
 {
-    test_len(sizeof(wid));
+    if (!test_len(sizeof(wid))) return 0;
     return pop_trivial<wid>(m_data, m_offset);
 }
 
-hid Reader::pop_hid()
+hid Reader::pop_hid() noexcept
 {
-    test_len(sizeof(hid));
+    if (!test_len(sizeof(hid))) return 0;
     return pop_trivial<hid>(m_data, m_offset);
 }
 
@@ -434,10 +431,10 @@ Blob Reader::pop_blob()
     return b;
 }
 
-Reader Reader::pop_block()
+Reader Reader::pop_block() noexcept
 {
     const uint32_t len = pop_u32();
-    test_len(len);
+    if (!test_len(len) || 0 == len) return Reader({});
     Reader nested_reader(m_data + m_offset, len);
     m_offset += len;
     return nested_reader;
@@ -470,7 +467,7 @@ Block::~Block()
 
 void Block::begin()
 {
-    if (m_opened) { LogInternalLogicS("Block already open"); }
+    if (m_opened) { LogError("Block already open"); }
     m_opened = true;
 
     m_size_offset = m_writer.get()->size();
@@ -480,7 +477,7 @@ void Block::begin()
 
 void Block::end()
 {
-    if (!m_opened) { LogInternalLogicS("Block wasn't open"); }
+    if (!m_opened) { LogError("Block wasn't open"); }
     m_opened = false;
 
     const uint32_t payload_size = uint32_t(m_writer.get()->size() - m_start_offset);

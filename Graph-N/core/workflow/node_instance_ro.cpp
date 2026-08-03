@@ -7,7 +7,7 @@
 namespace data
 {
 
-NodeInstanceRo::~NodeInstanceRo() {};
+NodeInstanceRo::~NodeInstanceRo() noexcept = default;
 
 void NodeInstanceRo::init()
 {
@@ -24,10 +24,10 @@ void NodeInstanceRo::init()
         }
     };
 
-    add_pins(m_object->required.pins, m_input);
-    add_pins(m_object->optional.pins, m_input);
-    add_pins(m_object->hidden.pins, m_input);
-    add_pins(m_object->output, m_output);
+    add_pins(get_object()->required.pins, m_input);
+    add_pins(get_object()->optional.pins, m_input);
+    add_pins(get_object()->hidden.pins, m_input);
+    add_pins(get_object()->output, m_output);
 
     link_cag_pins();
 }

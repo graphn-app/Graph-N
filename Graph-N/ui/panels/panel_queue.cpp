@@ -7,8 +7,8 @@
 #include "core/managers/db_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/node_instance.h"
-#include "core/workflow/workflow_serializer_to_blob.h"
-#include "core/workflow/workflow_serializer_to_json.h"
+#include "core/workflow/serializer/wf_serializers.h"
+#include "core/base/comfyui_web_paths.h"
 
 namespace ui
 {
@@ -28,14 +28,10 @@ PanelQueue::PanelQueue()
     : PanelBase(DlgObj::PanelQueue, "Queue")
 {}
 
-PanelQueue::~PanelQueue()
-{
-    LogF;
-}
+PanelQueue::~PanelQueue() noexcept = default;
 
 void PanelQueue::init()
 {
-    LogF;
     PanelBase::init();
 
     m_favorited = g::pOptsManager->queue_favorited_load();
@@ -85,9 +81,8 @@ void PanelQueue::init_history()
     }
 }
 
-void PanelQueue::stop_all_threads()
+void PanelQueue::stop_all_threads() noexcept
 {
-    LogF;
     m_do_reload_history = false;
     m_load_history_stop = true;
 }
@@ -243,12 +238,12 @@ void PanelQueue::create_toolbar()
     finalize_toolbar();
 }
 
-int32_t PanelQueue::show_tasks_num(int32_t curr)
+int32_t PanelQueue::show_tasks_num(int32_t curr) noexcept
 {
     if (curr < 0) curr = -1;
     int32_t imgui_idx = curr + 1;
     if (ImGui::Combo("", &imgui_idx,
-        [](void* /*data*/, int idx, const char** out_text)
+        [](void* /*data*/, int idx, const char** out_text) noexcept
         {
             if (0 == idx)
             {
@@ -327,7 +322,7 @@ void PanelQueue::show_current_task()
     ImGui::TextUnformatted("Node:");
     if (t.current_node != 0)
     {
-        auto node = group->wf->get_node_by_instance(t.current_node);
+        const auto* node = group->wf->get_node_by_instance(t.current_node);
         if (node != nullptr)
         {
             ImGui::SameLine();
@@ -404,7 +399,7 @@ void PanelQueue::show_next_tasks()
 
         const auto start_pos = ImGui::GetCursorPos();
         ImGui::AlignTextToFramePadding();
-        ImGui::Selectable("##DND_REORDER_QUEUE", false, ImGuiSelectableFlags_SpanAvailWidth | ImGuiSelectableFlags_AllowItemOverlap);
+        ImGui::Selectable("##DND_REORDER_QUEUE", false, int32_t(ImGuiSelectableFlags_SpanAvailWidth) | int32_t(ImGuiSelectableFlags_AllowItemOverlap));
 
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
         {
@@ -638,7 +633,7 @@ void PanelQueue::show_history_tasks()
 
 void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const std::string& wf_name /*= ""*/)
 {
-    const auto align_and_set_pos2 = [this]()
+    const auto align_and_set_pos2 = [this]() noexcept
     {
         m_curr_pos2_x = std::max(m_curr_pos2_x, ImGui::GetCursorPosX());
         ImGui::SetCursorPosX(m_curr_pos2_x);
@@ -684,7 +679,7 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
             g::pQueueManager->create_from_past_task(group_id, task->task_id);
         else
         {
-            auto& blob = task->flow;
+            const auto& blob = task->flow;
             const std::string new_wf = (wf_name.empty() ? task->prompt_id : wf_name.c_str());
             auto& data = g::pWfsManager->create_temp(blob, "Q:" + std::to_string(task->run_no) + ":" + new_wf, TEMP_LABEL_COMPLETED);
             task->open_id = data.id;
@@ -833,7 +828,7 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
                             }
                         };
 
-                        const auto data_request = fmt::format(comfyui_http::view_, o.filename, o.subfolder, o.filetype);
+                        const auto data_request = fmt::format(comfyui_http::view_, tools::str::url_encode(o.filename), tools::str::url_encode(o.subfolder), tools::str::url_encode(o.filetype));
                         g::pFlow->http_get("QPanel/Output", get_alive_callback(), data_request.c_str(), data_callback);
                         o.preparing = true;
                     }
@@ -1041,15 +1036,17 @@ void PanelQueue::show_image(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
     }
 }
 
-static const char* format_timeline(char buffer[32], float duration, float pos)
+namespace
 {
-    const auto get_times = [](const float time, int32_t& h, int32_t& m, int32_t& s, int32_t& ms)
+const char* format_timeline(char buffer[32], float duration, float pos)
+{
+    const auto get_times = [](const float time, int32_t& h, int32_t& m, int32_t& s, int32_t& ms) noexcept
     {
         s = cast::to_i32(time);
         ms = cast::to_i32((time - s) * 1000.0f);
         h = s / 3600;
-        m  = (s % 3600) / 60;
-        s  = s % 60;
+        m = (s % 3600) / 60;
+        s = s % 60;
     };
 
     int32_t total_h, total_m, total_s, total_ms;
@@ -1067,6 +1064,7 @@ static const char* format_timeline(char buffer[32], float duration, float pos)
 
     return buffer;
 }
+} // namespace
 
 void PanelQueue::show_audio(mngr::ExecTask::Output& output, ImVec2 rect, bool& show_stub)
 {
@@ -1256,19 +1254,19 @@ void PanelQueue::show_video(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
     ImGui::PopItemWidth();
 }
 
-void PanelQueue::on_pre_pause(PanelToolbar::Element& el)
+void PanelQueue::on_pre_pause(PanelToolbar::Element& el) noexcept
 {
     el.tooltip = g::pQueueManager->is_paused() ? "Resume" : "Pause";
     el.icon = g::pQueueManager->is_paused() ? ICON_LC_PLAY : ICON_LC_PAUSE;
     el.blinking = g::pQueueManager->is_paused();
 }
 
-void PanelQueue::on_pause(PanelToolbar::Element& /*el*/)
+void PanelQueue::on_pause(PanelToolbar::Element& /*el*/) noexcept
 {
     g::pQueueManager->toggle_pause();
 }
 
-void PanelQueue::on_pre_terminate_current(PanelToolbar::Element& el)
+void PanelQueue::on_pre_terminate_current(PanelToolbar::Element& el) noexcept
 {
     el.enabled = g::pQueueManager->get_current_group() != nullptr;
 }
@@ -1278,38 +1276,38 @@ void PanelQueue::on_terminate_current(PanelToolbar::Element& /*el*/)
     g::pQueueManager->interrupt_task();
 }
 
-void PanelQueue::on_pre_remove_all(PanelToolbar::Element& el)
+void PanelQueue::on_pre_remove_all(PanelToolbar::Element& el) noexcept
 {
     el.enabled = g::pQueueManager->get_current_group() != nullptr || !g::pQueueManager->get_next_tasks().empty();
 }
 
-void PanelQueue::on_remove_all(PanelToolbar::Element& /*el*/)
+void PanelQueue::on_remove_all(PanelToolbar::Element& /*el*/) noexcept
 {
     g::pQueueManager->drop_all();
 }
 
-void PanelQueue::on_pre_toggle_favorited(PanelToolbar::Element& el)
+void PanelQueue::on_pre_toggle_favorited(PanelToolbar::Element& el) noexcept
 {
     el.tooltip = (m_toggled_favs ? "Hide favorited" : "Show favorited");
 }
 
-void PanelQueue::on_toggle_favorited(PanelToolbar::Element& /*el*/)
+void PanelQueue::on_toggle_favorited(PanelToolbar::Element& /*el*/) noexcept
 {
     m_toggled_favs = !m_toggled_favs;
 }
 
-void PanelQueue::on_pre_toggle_past(PanelToolbar::Element& el)
+void PanelQueue::on_pre_toggle_past(PanelToolbar::Element& el) noexcept
 {
     el.enabled = !g::pQueueManager->get_past_tasks().empty();
     el.tooltip = (m_toggled_past ? "Hide completed" : "Show completed");
 }
 
-void PanelQueue::on_toggle_past(PanelToolbar::Element& /*el*/)
+void PanelQueue::on_toggle_past(PanelToolbar::Element& /*el*/) noexcept
 {
     m_toggled_past = !m_toggled_past;
 }
 
-void PanelQueue::on_pre_toggle_history(PanelToolbar::Element& el)
+void PanelQueue::on_pre_toggle_history(PanelToolbar::Element& el) noexcept
 {
     el.enabled = !m_history_tasks.empty();
     el.tooltip = (m_toggled_history ? "Collapse all history" : "Expand all history");
@@ -1336,19 +1334,22 @@ void PanelQueue::on_toggle_history(PanelToolbar::Element& /*el*/)
     m_toggled_history = !m_toggled_history;
 }
 
-void PanelQueue::on_reload_history(PanelToolbar::Element& /*el*/)
+void PanelQueue::on_reload_history(PanelToolbar::Element& /*el*/) noexcept
 {
     m_force_reload_history = true;
 }
 
-static void append_err(std::string& full, const std::string& err)
+namespace
+{
+void append_err(std::string& full, const std::string& err)
 {
     if (!err.empty())
     {
         if (full.empty()) full = err;
         else full += "\r\n" + err;
     }
-};
+}
+} // namespace
 
 void PanelQueue::load_history()
 {
@@ -1359,7 +1360,7 @@ void PanelQueue::load_history()
     std::shared_ptr<std::atomic_int> http_status = std::make_shared<std::atomic_int>(0);
     std::shared_ptr<std::string> http_data = std::make_shared<std::string>();
 
-    const auto history_callback = [http_status, http_data](int32_t result, std::string&& binary)
+    const auto history_callback = [http_status, http_data](int32_t result, std::string&& binary) noexcept
     {
         if (HTTP_RESP_OK == result)
             *http_data = std::move(binary);
@@ -1571,8 +1572,8 @@ void PanelQueue::load_history()
 
                                                     if (temp_ok && !out.filename.empty())
                                                     {
-                                                        const auto filename = tools::str::generate_uuid_v4() + std::filesystem::path(out.filename).extension().u8string();
-                                                        out.binary_path = (temp / filename).u8string();
+                                                        const auto filename = tools::str::generate_uuid_v4() + tools::str::path_to_string(std::filesystem::path(out.filename).extension());
+                                                        out.binary_path = tools::str::path_to_string(temp / filename);
                                                     }
                                                 }
 
@@ -1612,7 +1613,7 @@ void PanelQueue::load_history()
     }
     catch (const std::exception& ex)
     {
-        LogExcep(ExcepCategory::API, "History parsing err " << ex.what());
+        LogExcep("History parsing err " << ex.what());
     }
 
     m_history_loading_active.store(false, std::memory_order_relaxed);
@@ -1641,7 +1642,7 @@ void PanelQueue::pickup_parsed_history()
     if (m_history_parsed_temp.empty() || !g::pFlow->get_nodes_ready())
         return;
 
-    const auto max_processing_time = 0.003; // max 3ms per frame to process tasks + sorting
+    constexpr auto max_processing_time = 0.003; // max 3ms per frame to process tasks + sorting
     const auto start_time = ImGui::GetTime();
 
     for (auto it = m_history_parsed_temp.begin(); it != m_history_parsed_temp.end(); )
@@ -1670,13 +1671,13 @@ void PanelQueue::pickup_parsed_history()
             wfid = g::pWfsManager->import_wf_from_json(task.flow_json_api, task.prompt_id, {}, true);
         if (wfid != 0)
         {
-            const auto wf = g::pWfsManager->access(wfid);
-            task.flow = data::WorkflowSerializerToBlob::serialize(wf, {}).release();
+            auto* wf = g::pWfsManager->access(wfid);
+            task.flow = data::WfSerializerToBlob(wf).serialize({}).release();
             task.search_data = wf->collect_search_data();
             g::pWfsManager->erase_wf(wfid);
         }
-        task.flow_json.clear();
-        task.flow_json_api.clear();
+        task.flow_json.clear(); task.flow_json.shrink_to_fit();
+        task.flow_json_api.clear(); task.flow_json_api.shrink_to_fit();
 
         for (auto& out : task.outputs)
         {
@@ -1696,7 +1697,7 @@ void PanelQueue::pickup_parsed_history()
             break;
     }
 
-    const auto sort_comp = [](const mngr::ExecTask& left, const mngr::ExecTask& right)
+    const auto sort_comp = [](const mngr::ExecTask& left, const mngr::ExecTask& right) noexcept
     {
         if (0 == left.time_start) return false;
         if (0 == right.time_start) return true;
@@ -1706,7 +1707,7 @@ void PanelQueue::pickup_parsed_history()
         std::sort(m_history_tasks.begin(), m_history_tasks.end(), sort_comp);
 }
 
-void PanelQueue::load_output_data(uint64_t task_id, uint64_t out_id, std::string&& data)
+void PanelQueue::load_output_data(uint64_t task_id, uint64_t out_id, const std::string&& data)
 {
     for (auto& task : m_history_tasks)
     {

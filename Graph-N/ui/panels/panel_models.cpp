@@ -17,18 +17,16 @@ PanelModels::PanelModels()
     g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
 }
 
-PanelModels::~PanelModels()
+PanelModels::~PanelModels() noexcept
 {
-    LogF;
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_comfyui_validity_state(this);
 }
 
 void PanelModels::init()
 {
-    LogF;
     PanelBase::init();
-    data()->buffer.resize(PanelModelsData::_buf_count);
+    dlg_data()->buffer.resize(PanelModelsData::_buf_count);
 
     m_tt_callbacks.on_alloc_tt_data = std::bind(&PanelModels::on_alloc_tt_data, this, std::placeholders::_1);
     m_tt_callbacks.on_show_tt = std::bind(&PanelModels::on_show_tt, this, std::placeholders::_1);
@@ -36,11 +34,6 @@ void PanelModels::init()
 
     create_toolbar();
     rebuild_items();
-}
-
-void PanelModels::stop_all_threads()
-{
-    LogF;
 }
 
 void PanelModels::create_toolbar()
@@ -86,7 +79,7 @@ void PanelModels::create_toolbar()
     finalize_toolbar();
 }
 
-void PanelModels::invalidate_comfyui_objects()
+void PanelModels::invalidate_comfyui_objects() noexcept
 {
     m_panel_items.clear();
     m_prev_model_items_count = 0;
@@ -125,12 +118,12 @@ DlgCode PanelModels::show(bool& focused)
         ImGui::Spacing();
 
         ImGui::SetNextItemWidth(-FLT_MIN);
-        if (ImGuiEx::InputTextWithHint("##filtermodels", "filter models", &data()->buffer[PanelModelsData::BuffFilter],
+        if (ImGuiEx::InputTextWithHint("##filtermodels", "filter models", &dlg_data()->buffer[PanelModelsData::BuffFilter],
             ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
         {
-            data()->buffer[PanelModelsData::BuffFilterLowered] = tools::str::to_lower_ascii(data()->buffer[PanelModelsData::BuffFilter]);
-            Log("Filter by: " << data()->buffer[PanelModelsData::BuffFilterLowered]);
-            g::pModelsManager->calc_number_inside(tools::str::trim_this(data()->buffer[PanelModelsData::BuffFilterLowered]));
+            dlg_data()->buffer[PanelModelsData::BuffFilterLowered] = tools::str::to_lower_ascii(dlg_data()->buffer[PanelModelsData::BuffFilter]);
+            Log("Filter by: " << dlg_data()->buffer[PanelModelsData::BuffFilterLowered]);
+            g::pModelsManager->calc_number_inside(tools::str::trim_this(dlg_data()->buffer[PanelModelsData::BuffFilterLowered]));
             rebuild_items(true);
         }
 
@@ -152,13 +145,12 @@ DlgCode PanelModels::show(bool& focused)
 
 void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
 {
-    LogF;
-
     const auto on_item_handler = [this]
         (PanelListItem& item, bool /*l_clicked*/, bool /*l_dbl_clicked*/, bool /*l_released*/, bool /*r_clicked*/, bool r_released, bool& handler_processed)
     {
         auto model = cast::ptrs<data::ModelItem>(item.ptr);
-        bool dirty = false, close = false;
+        constexpr bool dirty = false;
+        bool close = false;
         if (!item.continue_processing_item_handler && r_released)
         {
             ImGui::OpenPopup(DlgObjID[cast::to_szt(DlgObj::PanelModels_ItemMenu)]);
@@ -266,7 +258,7 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
 
     std::function<void(const std::vector<std::unique_ptr<data::ModelItem>>&, std::vector<PanelListItem>&, int32_t, bool, bool, bool)> go_tree;
     go_tree = [&go_tree, &expanded_models, &on_item_handler, force_expand_all, 
-        is_filter_empty = data()->buffer[PanelModelsData::BuffFilter].empty()]
+        is_filter_empty = dlg_data()->buffer[PanelModelsData::BuffFilter].empty()]
         (const std::vector<std::unique_ptr<data::ModelItem>>& models, std::vector<PanelListItem>& dest, int32_t depth,
             bool show_main_models, bool show_favorited_models, bool show_service_components)
     {
@@ -307,7 +299,6 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
                     item.expanded = force_expand_all || expanded_models.count(model.get()) > 0;
                     expanded = item.expanded;
                     item.icon = item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
-                    const bool item_expanded = item.expanded;
                     item.ptr = model.get();
                     dest.push_back(std::move(item));
                 }
@@ -363,12 +354,11 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
 
 void PanelModels::handle_dirty(const PanelItemState& dirty_item)
 {
-    if (dirty_item.index >= m_panel_items.size())
-    {
-        LogError(ExcepCategory::Logic, "Index out of bounds");
-    }
+    LogRAssert(dirty_item.index < m_panel_items.size(), "Index out of bounds", );
 
+#ifdef _DEBUG
     Log("Dirty: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
+#endif
 
     if (dirty_item.expanded)
     {
@@ -379,7 +369,7 @@ void PanelModels::handle_dirty(const PanelItemState& dirty_item)
     {
         auto* model = cast::ptrs<data::ModelItem>(m_panel_items[dirty_item.index].ptr);
         model->starred = !model->starred;
-        g::pOptsManager->model_starred_save(model->id, model->starred);
+        g::pOptsManager->model_starred_save(model->hash, model->starred);
         rebuild_items();
         return;
     }
@@ -393,7 +383,7 @@ void PanelModels::handle_dirty(const PanelItemState& dirty_item)
     }
     else if (!dirty_item.lreleased)
     {
-        LogInternalLogic("Unhandled dirty state");
+        LogError("Unhandled dirty state");
     }
 }
 
@@ -409,10 +399,10 @@ void PanelModels::on_alloc_tt_data(int32_t idx)
     if (g::pTextures->get_image_alive(model->info.textures_id))
         return;
 
-    model->info.textures_id = g::pTextures->load_image(model->info.image_path.u8string().c_str(), 300, 300, 20);
+    model->info.textures_id = g::pTextures->load_image(tools::str::path_to_string(model->info.image_path).c_str(), 300, 300, 20);
 }
 
-bool PanelModels::on_pre_tt(int32_t idx)
+bool PanelModels::on_pre_tt(int32_t idx) noexcept
 {
     if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ptr)
         return false;
@@ -491,13 +481,13 @@ void PanelModels::on_collapse_all(PanelToolbar::Element& /*el*/)
     rebuild_items();
 }
 
-void PanelModels::on_sync(PanelToolbar::Element& /*el*/)
+void PanelModels::on_sync(PanelToolbar::Element& /*el*/) noexcept
 {
     //TODO
     //g::pFlow->reconnect();
 }
 
-void PanelModels::on_pre_sync(PanelToolbar::Element& el)
+void PanelModels::on_pre_sync(PanelToolbar::Element& el) noexcept
 {
     el.enabled = g::pFlow->get_online();    
 }

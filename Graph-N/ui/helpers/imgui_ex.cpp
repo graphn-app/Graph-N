@@ -32,7 +32,7 @@ const char* cut_text_with_ellipsis(const std::string& text, float width, const c
     return pbeg;
 }
 
-ImU32 increase_brightness(ImU32 source)
+ImU32 increase_brightness(ImU32 source) noexcept
 {
     ImVec4 c = ImGui::ColorConvertU32ToFloat4(source);
     float h, s, v;
@@ -43,7 +43,7 @@ ImU32 increase_brightness(ImU32 source)
     return ImGui::ColorConvertFloat4ToU32(c);
 }
 
-ImU32 decrease_brightness(ImU32 source)
+ImU32 decrease_brightness(ImU32 source) noexcept
 {
     ImVec4 c = ImGui::ColorConvertU32ToFloat4(source);
     float h, s, v;
@@ -54,7 +54,7 @@ ImU32 decrease_brightness(ImU32 source)
 }
 
 bool TooltipOnLastControl(const char* tt, const char* tt_end, ImGuiHoveredFlags_ delay /*= ImGuiHoveredFlags_DelayShort*/,
-    bool only_if_modifier_pressed /*= false*/, ImGuiKey modifier /*= ImGuiMod_Ctrl*/)
+    bool only_if_modifier_pressed /*= false*/, ImGuiKey modifier /*= ImGuiMod_Ctrl*/) noexcept
 {
     if (nullptr == tt || 0 == *tt)
         return false;
@@ -90,9 +90,9 @@ bool TooltipOnLastControl(const std::function<void()>& callback, ImGuiHoveredFla
     return false;
 }
 
-void Spacing(size_t count)
+void Spacing(size_t count) noexcept
 {
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    const auto* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
         return;
 
@@ -102,7 +102,7 @@ void Spacing(size_t count)
     }
 }
 
-void Separator(const char* text)
+void Separator(const char* text) noexcept
 {
     const auto pos = ImGui::GetCursorPosX();
     ImGui::Spacing();
@@ -110,7 +110,7 @@ void Separator(const char* text)
     ImGui::SeparatorText(text);
 }
 
-void Separator(uint32_t color, const char* text /*= ""*/)
+void Separator(uint32_t color, const char* text /*= ""*/) noexcept
 {
     const auto pos = ImGui::GetCursorPosX();
     ImGui::Spacing();
@@ -120,7 +120,7 @@ void Separator(uint32_t color, const char* text /*= ""*/)
     ImGui::PopStyleColor();
 }
 
-void Separator(uint32_t sep_color, uint32_t text_color, const char* text)
+void Separator(uint32_t sep_color, uint32_t text_color, const char* text) noexcept
 {
     const auto pos = ImGui::GetCursorPosX();
     ImGui::Spacing();
@@ -131,9 +131,9 @@ void Separator(uint32_t sep_color, uint32_t text_color, const char* text)
     ImGui::PopStyleColor(2);
 }
 
-void Separator(uint32_t color, float width, const char* text, size_t text_len /*= 0*/, float text_width /*= 0.0f*/)
+void Separator(uint32_t color, float width, const char* text, size_t text_len /*= 0*/, float text_width /*= 0.0f*/) noexcept
 {
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    const auto* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
         return;
 
@@ -171,19 +171,19 @@ void Separator(uint32_t color, float width, const char* text, size_t text_len /*
     ImGui::ItemSize(ImVec2(width, font_size * 2.0f));
 }
 
-void PushDlgTitleStyles(const uint32_t color)
+void PushDlgTitleStyles(const uint32_t color) noexcept
 {
     ImGui::PushStyleColor(ImGuiCol_TitleBgActive, color);
     ImGui::PushStyleColor(ImGuiCol_TitleBg, color);
     ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, color);
 }
 
-void PopDlgTitleStyles()
+void PopDlgTitleStyles() noexcept
 {
     ImGui::PopStyleColor(3);
 }
 
-void HelpMarkerOnLastControl(const char* tooltip)
+void HelpMarkerOnLastControl(const char* tooltip) noexcept
 {
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
     {
@@ -194,7 +194,7 @@ void HelpMarkerOnLastControl(const char* tooltip)
     }
 }
 
-void HelpMarker(const char* tooltip, const char* help_mark, bool same_line /*= true*/)
+void HelpMarker(const char* tooltip, const char* help_mark, bool same_line /*= true*/) noexcept
 {
     if (same_line)
         ImGui::SameLine();
@@ -207,14 +207,14 @@ void HelpMarker(const char* tooltip, const char* help_mark, bool same_line /*= t
     HelpMarkerOnLastControl(tooltip);
 }
 
-bool CheckMultiselectControls()
+bool CheckMultiselectControls() noexcept
 {
-    const int32_t mouse_button = (ImGuiPopupFlags_MouseButtonRight & ImGuiPopupFlags_MouseButtonMask_);
+    constexpr int32_t mouse_button = (ImGuiPopupFlags_MouseButtonRight & ImGuiPopupFlags_MouseButtonMask_);
     const bool r_click = (ImGui::IsMouseReleased(mouse_button) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup));
     return r_click || ImGui::GetIO().KeyCtrl || ImGui::GetIO().KeyShift;
 }
 
-void Label(const char* label, float x_offset, const char* text)
+void Label(const char* label, float x_offset, const char* text) noexcept
 {
     ImGui::TextUnformatted(label);
     ImGui::SameLine();
@@ -222,7 +222,7 @@ void Label(const char* label, float x_offset, const char* text)
     ImGui::TextUnformatted(text);
 }
 
-void Label(const char* label, float x_offset, const std::string& text)
+void Label(const char* label, float x_offset, const std::string& text) noexcept
 {
     Label(label, x_offset, text.c_str());
 }
@@ -234,7 +234,9 @@ struct InputTextCallback_UserData final
     void*                   ChainCallbackUserData;
 };
 
-static int32_t InputTextCallback(ImGuiInputTextCallbackData* data)
+namespace
+{
+int32_t InputTextCallback(ImGuiInputTextCallbackData* data)
 {
     InputTextCallback_UserData* user_data = (InputTextCallback_UserData*)data->UserData;
     if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
@@ -254,6 +256,7 @@ static int32_t InputTextCallback(ImGuiInputTextCallbackData* data)
     }
     return 0;
 }
+} // namespace 
 
 bool InputText(const char* label, std::string* str, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
 {
@@ -282,31 +285,33 @@ bool InputTextWithHint(const char* label, const char* hint, std::string* str, Im
 bool InputTextMultiline(const char* label, std::string* str, const ImVec2& size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
 {
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
-    flags |= ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_Multiline;
+
+    const int32_t str_flags = flags | ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_Multiline;
 
     InputTextCallback_UserData cb_user_data;
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return ImGui::InputTextEx(label, nullptr, (char*)str->c_str(), cast::to_i32(str->capacity() + 1), size, flags, InputTextCallback, &cb_user_data);
+    return ImGui::InputTextEx(label, nullptr, (char*)str->c_str(), cast::to_i32(str->capacity() + 1), size, str_flags, InputTextCallback, &cb_user_data);
 }
 
 bool InputTextMultilineWithHint(const char* label, const char* hint, std::string* str, const ImVec2& size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
 {
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
-    flags |= ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_Multiline;
+
+    const int32_t str_flags = flags | ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_Multiline;
 
     InputTextCallback_UserData cb_user_data;
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return ImGui::InputTextEx(label, hint, (char*)str->c_str(), cast::to_i32(str->capacity() + 1), size, flags, InputTextCallback, &cb_user_data);
+    return ImGui::InputTextEx(label, hint, (char*)str->c_str(), cast::to_i32(str->capacity() + 1), size, str_flags, InputTextCallback, &cb_user_data);
 }
 
-ImVec2 CalcTextSizeForMultilineWithHScroll(const std::string& text)
+ImVec2 CalcTextSizeForMultilineWithHScroll(const std::string& text) noexcept
 {
     ImVec2 size = ImGui::CalcTextSize(text.c_str(), text.c_str() + text.size());
-    auto& style = ImGui::GetStyle();
+    const auto& style = ImGui::GetStyle();
     size.x += style.FramePadding.x * 2.0f;
     size.y += style.FramePadding.y * 2.0f + style.ScrollbarSize + ImGui::GetTextLineHeight();
     return size;
@@ -319,7 +324,7 @@ std::pair<bool, bool> InputTextMultilineWithHScroll(
     const ImVec2& text_sz,
     ImGuiInputTextFlags flags /*= 0*/)
 {
-    ImGuiStyle& style = ImGui::GetStyle();
+    const ImGuiStyle& style = ImGui::GetStyle();
 
     float child_h = max_widget_h;
     if (text_sz.x > max_widget_w)
@@ -352,7 +357,7 @@ std::pair<bool, bool> InputTextMultilineWithHintWithHScroll(
     const ImVec2& text_sz,
     ImGuiInputTextFlags flags /*= 0*/)
 {
-    ImGuiStyle& style = ImGui::GetStyle();
+    const ImGuiStyle& style = ImGui::GetStyle();
 
     float child_h = max_widget_h;
     if (text_sz.x > max_widget_w)
@@ -378,7 +383,7 @@ std::pair<bool, bool> InputTextMultilineWithHintWithHScroll(
     return std::make_pair(edited, deactivated);
 }
 
-void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button)
+void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button) noexcept
 {
     ImGuiContext& g = *ImGui::GetCurrentContext();
     ImGuiWindow* window = g.CurrentWindow;
@@ -398,7 +403,7 @@ void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button
 template <typename TYPE>
 bool InputTypeSmart(const char* label_id,
     TYPE* value, TYPE step, TYPE min, TYPE max, ImGuiDataType_ type,
-    const std::string& format_named, const std::string& format_unnamed)
+    const std::string& format_named, const std::string& format_unnamed) noexcept
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
@@ -432,7 +437,7 @@ bool InputTypeSmart(const char* label_id,
 bool InputIntSmart(
     const char* label_id, 
     int64_t* value, int64_t step, int64_t min, int64_t max,
-    const std::string& format_named, const std::string& format_unnamed)
+    const std::string& format_named, const std::string& format_unnamed) noexcept
 {
     return InputTypeSmart(label_id, value, step, min, max, ImGuiDataType_S64, format_named, format_unnamed);
 }
@@ -440,7 +445,7 @@ bool InputIntSmart(
 bool InputUIntSmart(
     const char* label_id,
     uint64_t* value, uint64_t step, uint64_t min, uint64_t max,
-    const std::string& format_named, const std::string& format_unnamed)
+    const std::string& format_named, const std::string& format_unnamed) noexcept
 {
     return InputTypeSmart(label_id, value, step, min, max, ImGuiDataType_U64, format_named, format_unnamed);
 }
@@ -448,13 +453,13 @@ bool InputUIntSmart(
 bool InputDoubleSmart(
     const char* label_id, 
     double* value, double step, double min, double max,
-    const std::string& format_named, const std::string& format_unnamed)
+    const std::string& format_named, const std::string& format_unnamed) noexcept
 {
     return InputTypeSmart(label_id, value, step, min, max, ImGuiDataType_Double, format_named, format_unnamed);
 }
 
 template <typename TYPE>
-bool DragTypeSmart(const char* label, TYPE* value, TYPE min, TYPE max, ImGuiDataType_ type, const char* format)
+bool DragTypeSmart(const char* label, TYPE* value, TYPE min, TYPE max, ImGuiDataType_ type, const char* format) noexcept
 {
     // Calculate the full range
     const TYPE range = max - min;
@@ -485,23 +490,23 @@ bool DragTypeSmart(const char* label, TYPE* value, TYPE min, TYPE max, ImGuiData
     return false;
 }
 
-bool DragDoubleSmart(const char* label, double* value, double min, double max, const char* format)
+bool DragDoubleSmart(const char* label, double* value, double min, double max, const char* format) noexcept
 {
     return DragTypeSmart(label, value, min, max, ImGuiDataType_Double, format);
 }
 
-bool DragIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format)
+bool DragIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format) noexcept
 {
     return DragTypeSmart(label, value, min, max, ImGuiDataType_S64, format);
 }
 
-bool DragUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format)
+bool DragUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format) noexcept
 {
     return DragTypeSmart(label, value, min, max, ImGuiDataType_U64, format);
 }
 
 template <typename TYPE>
-bool SliderTypeSmart(const char* label, TYPE* value, TYPE min, TYPE max, ImGuiDataType_ type, const char* format, TYPE step)
+bool SliderTypeSmart(const char* label, TYPE* value, TYPE min, TYPE max, ImGuiDataType_ type, const char* format, TYPE step) noexcept
 {
     if (ImGui::SliderScalar(label, type, value, &min, &max, format))
     {
@@ -512,29 +517,29 @@ bool SliderTypeSmart(const char* label, TYPE* value, TYPE min, TYPE max, ImGuiDa
         {
             const auto s = cast::to_float(step);
             const auto v = cast::to_float(*value);
-            *value = static_cast<TYPE>(roundf(v / s) * s);
+            *value = cast::to<TYPE>(roundf(v / s) * s);
         }
         return true;
     }
     return false;
 }
 
-bool SliderDoubleSmart(const char* label, double* value, double min, double max, const char* format, double step /*= 0*/)
+bool SliderDoubleSmart(const char* label, double* value, double min, double max, const char* format, double step /*= 0*/) noexcept
 {
     return SliderTypeSmart(label, value, min, max, ImGuiDataType_Double, format, step);
 }
 
-bool SliderIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format, int64_t step /*= 0*/)
+bool SliderIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format, int64_t step /*= 0*/) noexcept
 {
     return SliderTypeSmart(label, value, min, max, ImGuiDataType_S64, format, step);
 }
 
-bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format, uint64_t step /*= 0*/)
+bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format, uint64_t step /*= 0*/) noexcept
 {
     return SliderTypeSmart(label, value, min, max, ImGuiDataType_U64, format, step);
 }
 
-bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* value, ImVec2 size_arg /*= ImVec2(0, 0)*/)
+bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* value, ImVec2 size_arg /*= ImVec2(0, 0)*/) noexcept
 {
     bool state_changed = false;
 
@@ -624,10 +629,14 @@ bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* va
     return state_changed;
 }
 
-bool BooleanButtons2(const char* id_label, const char* label, bool* value)
+bool BooleanButtons2(const char* id_label, const char* label, bool* value) noexcept
 {
-    uint8_t u8val = *value, min = 0, max = 1;
-    if (ImGui::SliderScalar(id_label, ImGuiDataType_U8, &u8val, &min, &max, label, ImGuiSliderFlags_NoInput))
+    uint8_t u8val = *value;
+    constexpr uint8_t min = 0, max = 1;
+    if (false == *value) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImGui::GetColorU32(ImGuiCol_TextDisabled));
+    const bool clicked = ImGui::SliderScalar(id_label, ImGuiDataType_U8, &u8val, &min, &max, label, ImGuiSliderFlags_NoInput);
+    if (false == *value) ImGui::PopStyleColor();
+    if (clicked)
     {
         *value = (1 == u8val);
         return true;
@@ -635,10 +644,10 @@ bool BooleanButtons2(const char* id_label, const char* label, bool* value)
     return false;
 }
 
-bool BooleanSwitch(const char* id_label, const char* label, bool* value, float width /*= 0.0f*/)
+bool BooleanSwitch(const char* id_label, const char* label, bool* value, float width /*= 0.0f*/) noexcept
 {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
-    ImGuiStyle& style = ImGui::GetStyle();
+    const ImGuiStyle& style = ImGui::GetStyle();
 
     // Setup geometry
     const float height = ImGui::GetFrameHeight();
@@ -702,7 +711,7 @@ bool BooleanSwitch(const char* id_label, const char* label, bool* value, float w
     return pressed;
 }
 
-bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool left_rounded, float width /*= 0.0f*/)
+bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool left_rounded, float width /*= 0.0f*/) noexcept
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
@@ -727,7 +736,11 @@ bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool l
     bool hovered = false, held = false;
     const bool pressed = ImGui::ButtonBehavior(total_bb, id, &hovered, &held);
     if (pressed)
+    {
         *value = !*value;
+        // trigger ImGui::IsItemDeactivatedAfterEdit()
+        ImGui::MarkItemEdited(id);
+    }
 
     // Draw Frame (Oval/Capsule)
     // Force rounding to height * 0.5 to make it a perfect pill/oval
@@ -760,7 +773,7 @@ bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool l
     return pressed;
 }
 
-bool UrlButton(const char* id_label, const char* tooltip /*= nullptr*/, ImU32 url_clr_def /*= 0*/, ImU32 url_clr_hover /*= 0*/, bool underline /*= true*/)
+bool UrlButton(const char* id_label, const char* tooltip /*= nullptr*/, ImU32 url_clr_def /*= 0*/, ImU32 url_clr_hover /*= 0*/, bool underline /*= true*/) noexcept
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
@@ -782,7 +795,7 @@ bool UrlButton(const char* id_label, const char* tooltip /*= nullptr*/, ImU32 ur
 
     if (underline)
     {
-        float line_y = p.y + label_size.y /*+- 1.0f*/;
+        const float line_y = p.y + label_size.y /*+- 1.0f*/;
         window->DrawList->AddLine(ImVec2(p.x, line_y), ImVec2(p.x + label_size.x, line_y), text_color, 1.0f);
     }
 
@@ -830,8 +843,8 @@ Toast toast_prepare(const char* text, ImU32 frame_clr, float duration_in_ms, boo
         }
         else
         {
-            ImVec2 child_pos = ImGui::GetWindowPos();
-            ImVec2 child_size = ImGui::GetWindowSize();
+            const ImVec2 child_pos = ImGui::GetWindowPos();
+            const ImVec2 child_size = ImGui::GetWindowSize();
             t.pos.x = child_pos.x + child_size.x * 0.5f;
             t.pos.y = child_pos.y + child_size.y * 0.5f;
         }
@@ -839,7 +852,7 @@ Toast toast_prepare(const char* text, ImU32 frame_clr, float duration_in_ms, boo
     return t;
 }
 
-void toast_show(Toast& toast)
+void toast_show(Toast& toast) noexcept
 {
     if (toast.expired)
         return;
@@ -849,7 +862,7 @@ void toast_show(Toast& toast)
 
     if (elapsed < toast.duration)
     {
-        const float rounding = 7.0f;
+        constexpr float rounding = 7.0f;
 
         float alpha = 1.0f;
         if (elapsed > toast.duration * 0.5f)
@@ -884,7 +897,7 @@ void toast_show(Toast& toast)
         toast.expired = true;
 }
 
-void IndeterminateProgressBar(const ImVec2& size_arg)
+void IndeterminateProgressBar(const ImVec2& size_arg) noexcept
 {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
@@ -901,7 +914,7 @@ void IndeterminateProgressBar(const ImVec2& size_arg)
     draw_list->AddRectFilled(p0, p1, bg_color, rounding);
 
     const float time = (float)ImGui::GetTime();
-    const float speed = 1.0f;
+    constexpr float speed = 1.0f;
     const float strip_width = size.x * 0.25f;
 
     const float t = (sinf(time * speed) + 1.0f) * 0.5f;

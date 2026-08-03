@@ -3,13 +3,16 @@ namespace tools
 {
 dt dt::m_start_time;
 
-dt dt::from_current_date()
+dt dt::from_current_date() noexcept
 {
     const auto now = std::chrono::system_clock::now();
     const std::time_t t = std::chrono::system_clock::to_time_t(now);
     std::tm ptm;
     if (localtime_s(&ptm, &t) != 0)
+    {
+        LogWarnS("localtime_s failed");
         return {};
+    }
 
     const auto duration = now.time_since_epoch();
     const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() % 1000;
@@ -30,17 +33,17 @@ dt dt::from_current_date()
     return date;
 }
 
-dt dt::from_time(time_t raw)
+dt dt::from_time(time_t raw) noexcept
 {
-    if (0 == raw)
-        return {};
-
     if (raw > 100'000'000'000)
         raw /= 1000;
 
     std::tm ptm;
     if (localtime_s(&ptm, &raw) != 0)
+    {
+        LogWarnS("localtime_s failed");
         return {};
+    }
 
     const auto t = std::chrono::system_clock::from_time_t(raw);
     const auto duration = t.time_since_epoch();
@@ -62,7 +65,7 @@ dt dt::from_time(time_t raw)
     return date;
 }
 
-const char* dt::month_name(int32_t length /*= 0*/) const
+const char* dt::month_name(int32_t length /*= 0*/) const noexcept
 {
     switch (m_month)
     {

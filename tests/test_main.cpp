@@ -10,22 +10,22 @@
 #if defined _WIN32
 #include "core/managers/comfyui_manager_win32.h"
 #include "main/main_win32.h"
-#include "ui/textures_win32.h"
+#include "ui/helpers/textures_win32.h"
 #elif defined __linux__
 #include "core/managers/comfyui_manager_linux.h"
 #include "main/main_linux.h"
-#include "ui/textures_linux.h"
+#include "ui/helpers/textures_linux.h"
 #elif defined __APPLE__
 #include "core/managers/comfyui_manager_apple.h"
 #include "main/main_apple.h"
-#include "ui/textures_apple.h"
+#include "ui/helpers/textures_apple.h"
 #endif
 #include "ui/graph-n_flow.h"
 
 class ImGuiEnvironment : public ::testing::Environment
 {
-    std::unique_ptr<platform::MainRoutine> main_app;
-    std::unique_ptr<platform::Textures> textures;
+    std::unique_ptr<global::MainRoutine> main_app;
+    std::unique_ptr<global::Textures> textures;
     GraphN graphn;
 
 public:
@@ -51,8 +51,6 @@ public:
 
         main_app->init();
         g::pMain = main_app.get();
-
-        textures->set_main_routine(main_app.get());
         g::pTextures = textures.get();
 
         unsigned char* pixels;

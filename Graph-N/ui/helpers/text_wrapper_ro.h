@@ -7,24 +7,24 @@ namespace ui
 class TextWrapperRO final
 {
 public:
-    TextWrapperRO() = default;
-    ~TextWrapperRO() = default;
+    TextWrapperRO() noexcept = default;
+    ~TextWrapperRO() noexcept = default;
 
     TextWrapperRO(const TextWrapperRO&) = delete;
     TextWrapperRO& operator=(const TextWrapperRO&) = delete;
 
-    TextWrapperRO(TextWrapperRO&&);
-    TextWrapperRO& operator=(TextWrapperRO&&);
+    TextWrapperRO(TextWrapperRO&&) noexcept;
+    TextWrapperRO& operator=(TextWrapperRO&&) noexcept;
 
     void set_raw_text(const std::string* text);
-    void set_font(ImFont* font) { m_font = font; }
+    void set_font(ImFont* font) noexcept { m_font = font; }
 
     void re_calc(ImVec2 rect);
 
-    const char* get_raw_text() const { return (nullptr == m_raw_text ? nullptr : m_raw_text->c_str()); }
-    std::string* get_wrapped_text() { return &m_wrapped_text; }
-    size_t get_wrapped_size() const { return m_wrapped_text.size(); }
-    float get_wrapped_height() const { return m_wrapped_h; }
+    const char* get_raw_text() const noexcept { return (nullptr == m_raw_text ? nullptr : m_raw_text->c_str()); }
+    std::string* get_wrapped_text() noexcept { return &m_wrapped_text; }
+    size_t get_wrapped_size() const noexcept { return m_wrapped_text.size(); }
+    float get_wrapped_height() const noexcept { return m_wrapped_h; }
 
 private:
     ImFont* m_font = nullptr;

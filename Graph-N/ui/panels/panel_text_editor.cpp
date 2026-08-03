@@ -15,31 +15,16 @@ PanelTextEditor::PanelTextEditor(const char* panel_id, bool is_def /*= false*/)
     , m_default(is_def)
 {}
 
-PanelTextEditor::~PanelTextEditor()
-{
-    LogF;
-}
+PanelTextEditor::~PanelTextEditor() noexcept = default;
 
-void PanelTextEditor::init()
+void PanelTextEditor::free() noexcept
 {
-    LogF;
-    PanelBase::init();
-
-}
-
-void PanelTextEditor::free()
-{
-    LogF;
     reset();
-}
-
-void PanelTextEditor::stop_all_threads()
-{
-    LogF;
 }
 
 void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint)
 {
+    LogRAssert(node && pin && buffer, "Zero ptr", );
     clear_toolbar();
     m_current = nullptr;
     m_editing = nullptr;
@@ -107,7 +92,7 @@ bool PanelTextEditor::activate(wid wf)
     return false;
 }
 
-void PanelTextEditor::reset()
+void PanelTextEditor::reset() noexcept
 {
     clear_toolbar();
     m_current = nullptr;
@@ -119,32 +104,13 @@ void PanelTextEditor::reset()
     m_pinned = false;
 }
 
-void PanelTextEditor::reset(wid wf)
+void PanelTextEditor::reset(wid wf, const data::NodeInstance* node /*= nullptr*/, const data::PinInstance* pin /*= nullptr*/) noexcept
 {
     for (auto it = m_editors.begin(); it != m_editors.end(); ++it)
     {
-        if (it->wf == wf)
-        {
-            if (m_current != nullptr && m_current->wf == wf)
-            {
-                clear_toolbar();
-                m_pinned = false;
-                m_current = nullptr;
-                m_editing = nullptr;
-                m_was_edited = nullptr;
-                m_old_pin_val = {};
-            }
-            m_editors.erase(it);
-            return;
-        }
-    }
-}
-
-void PanelTextEditor::reset(wid wf, data::NodeInstance* node)
-{
-    for (auto it = m_editors.begin(); it != m_editors.end(); ++it)
-    {
-        if (it->wf == wf && it->node == node)
+        if (it->wf == wf &&
+            (it->node == node || nullptr == node) &&
+            (it->pin == pin || nullptr == pin))
         {
             if (m_current == &*it)
             {
@@ -186,7 +152,7 @@ void PanelTextEditor::pin()
     set_id(new_id);
 }
 
-void PanelTextEditor::unpin()
+void PanelTextEditor::unpin() noexcept
 {
     if (nullptr == m_current)
         return;
@@ -252,7 +218,7 @@ void PanelTextEditor::create_toolbar()
     set_use_regular_size_icons();
 }
 
-void PanelTextEditor::on_pre_pin(PanelToolbar::Element& el)
+void PanelTextEditor::on_pre_pin(PanelToolbar::Element& el) noexcept
 {
     el.icon = (m_pinned ? ICON_LC_PIN_OFF : ICON_LC_PIN);
     el.tooltip = (!m_pinned ? "Pin this editor to keep it open" : "Unpin editor");

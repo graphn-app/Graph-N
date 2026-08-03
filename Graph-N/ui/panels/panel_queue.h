@@ -14,10 +14,10 @@ class PanelQueue final
 {
 public:
     PanelQueue();
-    ~PanelQueue() override;
+    ~PanelQueue() noexcept override;
 
     void init() override;
-    void stop_all_threads() override;
+    void stop_all_threads() noexcept override;
 
 private:
     DlgCode show(bool& focused) override;
@@ -28,7 +28,7 @@ private:
     void show_past_tasks();
     void show_history_tasks();
     void show_past_task(uint64_t group_id, mngr::ExecTask* task, const std::string& wf_name = "");
-    int32_t show_tasks_num(int32_t curr);
+    int32_t show_tasks_num(int32_t curr) noexcept;
     void show_image(mngr::ExecTask::Output& output, ImVec2 rect, bool& show_stub);
     void show_audio(mngr::ExecTask::Output& output, ImVec2 rect, bool& show_stub);
     void show_video(mngr::ExecTask::Output& output, ImVec2 rect, bool& show_stub);
@@ -38,21 +38,21 @@ private:
     void init_history();
     void load_history();
     void pickup_parsed_history();
-    void load_output_data(uint64_t task_id, uint64_t out_id, std::string&& data);
+    void load_output_data(uint64_t task_id, uint64_t out_id, const std::string&& data);
 
-    void on_pre_pause(PanelToolbar::Element& el);
-    void on_pause(PanelToolbar::Element& el);
-    void on_pre_terminate_current(PanelToolbar::Element& el);
+    void on_pre_pause(PanelToolbar::Element& el) noexcept;
+    void on_pause(PanelToolbar::Element& el) noexcept;
+    void on_pre_terminate_current(PanelToolbar::Element& el) noexcept;
     void on_terminate_current(PanelToolbar::Element& el);
-    void on_pre_remove_all(PanelToolbar::Element& el);
-    void on_remove_all(PanelToolbar::Element& el);
-    void on_pre_toggle_favorited(PanelToolbar::Element& el);
-    void on_toggle_favorited(PanelToolbar::Element& el);
-    void on_pre_toggle_past(PanelToolbar::Element& el);
-    void on_toggle_past(PanelToolbar::Element& el);
-    void on_pre_toggle_history(PanelToolbar::Element& el);
+    void on_pre_remove_all(PanelToolbar::Element& el) noexcept;
+    void on_remove_all(PanelToolbar::Element& el) noexcept;
+    void on_pre_toggle_favorited(PanelToolbar::Element& el) noexcept;
+    void on_toggle_favorited(PanelToolbar::Element& el) noexcept;
+    void on_pre_toggle_past(PanelToolbar::Element& el) noexcept;
+    void on_toggle_past(PanelToolbar::Element& el) noexcept;
+    void on_pre_toggle_history(PanelToolbar::Element& el) noexcept;
     void on_toggle_history(PanelToolbar::Element& el);
-    void on_reload_history(PanelToolbar::Element& el);
+    void on_reload_history(PanelToolbar::Element& el) noexcept;
 
 private:
     float m_curr_pos_x = 0.0f;

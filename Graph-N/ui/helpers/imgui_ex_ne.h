@@ -23,7 +23,7 @@ struct DeferredAction final
     }
     combo;
 
-    struct MlInput
+    struct MlInput final
     {
         bool is_active = false;
         const char* hint = nullptr;
@@ -38,9 +38,9 @@ struct DeferredAction final
 inline DeferredAction g_combo_deferred_action;
 inline void* g_hovered_item = nullptr;
 
-void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, int64_t* current_item, const char* const items[], int64_t items_count);
+void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, int64_t* current_item, const char* const items[], int64_t items_count) noexcept;
 void RenderDeferredCombo(DeferredAction& act);
 
-bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, const char* hint, std::string* str);
+bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, const char* hint, std::string* str) noexcept;
 
 } // namespace ImGuiExNe

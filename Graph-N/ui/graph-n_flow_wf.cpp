@@ -70,7 +70,7 @@ void GraphN_Flow::wf_create_copy_from(wid source, std::optional<ImRect> wf_rc, s
     m_panel_wf_list->rebuild_items();
 }
 
-void GraphN_Flow::wf_reload_view(wid id)
+void GraphN_Flow::wf_reload_view(wid id) noexcept
 {
     for (auto& panel : m_panels_wf)
     {
@@ -91,7 +91,7 @@ void GraphN_Flow::wf_activate(wid id)
     auto panel = wf_panel_find(id);
     if (nullptr == panel && id != 0)
     {
-        auto& data = g::pWfsManager->get_data(id);
+        const auto& data = g::pWfsManager->get_data(id);
         panel = wf_panel_create(data);
     }
     wf_panel_activate(panel);
@@ -146,7 +146,8 @@ void GraphN_Flow::wf_add_node_to_active_panel(data::Node* node, const std::strin
 {
     if (nullptr == m_wf_focused)
         g::pFlow->wf_create();
-    m_wf_focused->get_action()->add_node(node, select, {});
+    if (m_wf_focused != nullptr)
+        m_wf_focused->get_action()->add_node(node, select, {});
 }
 
 void GraphN_Flow::wf_locate_node(wid id, data::NodeInstance* node)
@@ -162,17 +163,17 @@ void GraphN_Flow::wf_reload()
     m_panel_wf_list->rebuild_items();
 }
 
-void GraphN_Flow::wf_rename()
+void GraphN_Flow::wf_rename() noexcept
 {
     m_panel_wf_list->rename_project();
 }
 
-wid GraphN_Flow::wf_get_active() const
+wid GraphN_Flow::wf_get_active() const noexcept
 {
     return nullptr == m_wf_focused ? 0 : m_wf_focused->get_workflow()->get_id();
 }
 
-bool GraphN_Flow::wf_can_run() const
+bool GraphN_Flow::wf_can_run() const noexcept
 {
     if (nullptr == m_wf_focused)
         return false;
@@ -186,7 +187,7 @@ void GraphN_Flow::wf_run(bool add_front) const
     return m_wf_focused->run(add_front);
 }
 
-void GraphN_Flow::wf_num_of_runs(int32_t num) const
+void GraphN_Flow::wf_num_of_runs(int32_t num) const noexcept
 {
     if (nullptr == m_wf_focused)
         return;
@@ -196,7 +197,7 @@ void GraphN_Flow::wf_num_of_runs(int32_t num) const
 // <- WF public
 // WF internal ->
 
-PanelWorkflow* GraphN_Flow::wf_panel_find(wid id) const
+PanelWorkflow* GraphN_Flow::wf_panel_find(wid id) const noexcept
 {
     for (const auto& panel : m_panels_wf)
     {
@@ -274,7 +275,6 @@ void GraphN_Flow::wf_panel_activate_next(bool next)
 
 void GraphN_Flow::wf_panel_activate_sequential(size_t sequential_number)
 {
-    Log(sequential_number);
     size_t number = 0;
     for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
     {
@@ -328,6 +328,7 @@ void GraphN_Flow::wf_panel_close(PanelWorkflow* wf_panel)
 
 void GraphN_Flow::wf_panel_rename(PanelWorkflow* wf_panel, const std::string& new_name)
 {
+    LogRAssert(wf_panel, "Zero ptr", );
     wf_panel->rename_panel(new_name);
 }
 
@@ -373,7 +374,6 @@ bool GraphN_Flow::wf_save(bool check_only)
 
     if (wf_save(true))
     {
-        LogF;
         m_wf_focused->save();
     }
     return true;
@@ -386,7 +386,6 @@ bool GraphN_Flow::wf_undo(bool check_only)
 
     if (wf_undo(true))
     {
-        LogF;
         m_wf_focused->undo();
     }
     return true;
@@ -399,36 +398,33 @@ bool GraphN_Flow::wf_redo(bool check_only)
     
     if (wf_redo(true))
     {
-        LogF;
         m_wf_focused->redo();
     }
     return true;
 }
 
-void GraphN_Flow::wf_focus()
+void GraphN_Flow::wf_focus() noexcept
 {
     if (m_wf_focused != nullptr)
     {
-        LogF;
         m_wf_focused->locate_selected_node();
     }
 }
 
-void GraphN_Flow::wf_new_node()
+void GraphN_Flow::wf_new_node() noexcept
 {
     if (m_wf_focused != nullptr)
     {
-        LogF;
         m_wf_focused->display_new_node_menu();
     }
 }
 
-void GraphN_Flow::wf_node_get_any_selected(bool& sel_nodes, bool& sel_groups)
+void GraphN_Flow::wf_node_get_any_selected(bool& sel_nodes, bool& sel_groups) noexcept
 {
     sel_nodes = sel_groups = false;
     if (m_wf_focused != nullptr)
     {
-        auto wf = m_wf_focused->get_workflow();
+        const auto* wf = m_wf_focused->get_workflow();
         auto& nodes = wf->get_nodes();
         for (auto& node : nodes)
         {
@@ -444,11 +440,10 @@ void GraphN_Flow::wf_node_get_any_selected(bool& sel_nodes, bool& sel_groups)
     }
 }
 
-void GraphN_Flow::wf_node_select_all()
+void GraphN_Flow::wf_node_select_all() noexcept
 {
     if (m_wf_focused != nullptr)
     {
-        LogF;
         m_wf_focused->select_all_nodes();
     }
 }
@@ -478,11 +473,11 @@ void GraphN_Flow::wf_node_action_on_selected(
 
 void GraphN_Flow::wf_node_toggle_pin()
 {
-    const auto action_name_cb = [](bool first)
+    const auto action_name_cb = [](bool first) noexcept
     {
         return first ? "Unpin" : "Pin";
     };
-    const auto first_cb = [](data::NodeInstance* node)
+    const auto first_cb = [](data::NodeInstance* node) noexcept
     {
         return node->get_pinned();
     };
@@ -495,11 +490,11 @@ void GraphN_Flow::wf_node_toggle_pin()
 
 void GraphN_Flow::wf_node_toggle_collapse()
 {
-    const auto action_name_cb = [](bool first)
+    const auto action_name_cb = [](bool first) noexcept
     {
         return first ? "Collapse" : "Expand";
     };
-    const auto first_cb = [](data::NodeInstance* node)
+    const auto first_cb = [](data::NodeInstance* node) noexcept
     {
         return node->get_expanded();
     };
@@ -514,7 +509,6 @@ void GraphN_Flow::wf_node_group()
 {
     if (m_wf_focused != nullptr)
     {
-        LogF;
         std::set<data::NodeInstance*> nodes = m_wf_focused->get_selected_nodes();
         m_wf_focused->group_nodes(nodes);
     }
@@ -539,11 +533,11 @@ void GraphN_Flow::wf_node_always()
 
 void GraphN_Flow::wf_node_toggle_mute()
 {
-    const auto action_name_cb = [](bool /*first*/)
+    const auto action_name_cb = [](bool /*first*/) noexcept
     {
         return "Set mode";
     };
-    const auto first_cb = [](data::NodeInstance* node)
+    const auto first_cb = [](data::NodeInstance* node) noexcept
     {
         return node->get_mode() == NodeMode::Mute;
     };
@@ -556,11 +550,11 @@ void GraphN_Flow::wf_node_toggle_mute()
 
 void GraphN_Flow::wf_node_toggle_bypass()
 {
-    const auto action_name_cb = [](bool /*first*/)
+    const auto action_name_cb = [](bool /*first*/) noexcept
     {
         return "Set mode";
     };
-    const auto first_cb = [](data::NodeInstance* node)
+    const auto first_cb = [](data::NodeInstance* node) noexcept
     {
         return node->get_mode() == NodeMode::Bypass;
     };
@@ -575,7 +569,6 @@ void GraphN_Flow::wf_node_remove()
 {
     if (m_wf_focused != nullptr)
     {
-        LogF;
         std::set<data::NodeInstance*> nodes = m_wf_focused->get_selected_nodes();
         m_wf_focused->delete_nodes(nodes);
     }
@@ -585,7 +578,6 @@ void GraphN_Flow::wf_node_copy()
 {
     if (m_wf_focused != nullptr)
     {
-        LogF;
         std::set<data::NodeInstance*> nodes = m_wf_focused->get_selected_nodes();
         m_wf_focused->copy_nodes(nodes, {});
     }
@@ -598,7 +590,6 @@ bool GraphN_Flow::wf_node_paste(bool check_only)
 
     if (m_wf_focused != nullptr)
     {
-        LogF;
         m_wf_focused->paste_copied({});
     }
     return true;
@@ -612,14 +603,14 @@ void GraphN_Flow::wf_node_duplicate()
 
 void GraphN_Flow::wf_node_move(bool left, bool right, bool up, bool down)
 {
-    const auto action_name_cb = [left, right, up, down](bool /*first*/)
+    const auto action_name_cb = [left, right, up, down](bool /*first*/) noexcept
     {
         if (left) return "Move left";
         if (right) return "Move right";
         if (up) return "Move up";
         return "Move down";
     };
-    const auto first_cb = [](data::NodeInstance* /*node*/)
+    const auto first_cb = [](data::NodeInstance* /*node*/) noexcept
     {
         return true;
     };
@@ -639,7 +630,6 @@ void GraphN_Flow::wf_node_align(bool left, bool top)
 {
     if (m_wf_focused != nullptr)
     {
-        LogF;
         auto selected = m_wf_focused->get_selected_nodes();
         if (!selected.empty())
         {
@@ -687,25 +677,28 @@ void GraphN_Flow::wf_node_unlink()
     auto action = m_wf_focused->get_action();
     action->multi_action_on("Unlink");
 
+    const auto unlink_pins = [action](const std::function<std::vector<data::PinInstance*>()>& get_pins)
+    {
+        auto pins = get_pins();
+        for (auto it = pins.begin(); it != pins.end(); )
+        {
+            const auto* pin = *it;
+            if (pin->state().links > 0)
+            {
+                action->unlink(pin);
+                pins = get_pins();
+                it = pins.begin();
+            }
+            else
+                ++it;
+        }
+    };
+
     auto selected = m_wf_focused->get_selected_nodes();
     for (auto node : selected)
     {
-        auto& inputs = node->get_inputs();
-        for (auto pin : inputs)
-        {
-            if (pin->state().links > 0)
-            {
-                action->unlink(pin);
-            }
-        }
-        auto& outputs = node->get_outputs();
-        for (auto pin : outputs)
-        {
-            if (pin->state().links > 0)
-            {
-                action->unlink(pin);
-            }
-        }
+        unlink_pins([node] { return node->get_inputs(); });
+        unlink_pins([node] { return node->get_outputs(); });
     }
 
     action->multi_action_off();

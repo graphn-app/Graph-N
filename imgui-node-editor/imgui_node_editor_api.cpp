@@ -606,6 +606,14 @@ bool ax::NodeEditor::DeleteNode(const EdType& edNode)
     return s_Editor->GetItemDeleter().Add(edNode);
 }
 
+bool ax::NodeEditor::DeleteNode(const NodeId& pNode)
+{
+    IM_ASSERT(!!pNode);
+    if (auto node = s_Editor->FindNode(pNode))
+        return s_Editor->GetItemDeleter().Add(node);
+    return false;
+}
+
 bool ax::NodeEditor::DeleteLink(const EdType& edLink)
 {
     IM_ASSERT(!!edLink);

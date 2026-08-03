@@ -18,7 +18,7 @@ namespace mngr
 {
 
 // !! types order must remain the same due to serialization
-using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, NodeMode /*mode*/, bool /*pinning*/, ImRect /*pos*/, primitive /*pin val*/>;
+using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, NodeMode /*mode*/, bool /*pinning*/, ImRect /*pos*/, Primitive /*pin val*/>;
 
 enum class HistoryActionType
 {
@@ -34,8 +34,8 @@ enum class HistoryActionType
 
 struct HistoryStep
 {
-    HistoryStep(HistoryActionType t);
-    virtual ~HistoryStep();
+    HistoryStep(HistoryActionType t) noexcept;
+    virtual ~HistoryStep() noexcept;
     
     NO_COPY_MOVE(HistoryStep);
 
@@ -45,13 +45,13 @@ struct HistoryStep
 
 struct HistoryAction final
 {
-    HistoryAction(int64_t id_, wid wf_);
-    ~HistoryAction();
+    HistoryAction(int64_t id_, wid wf_) noexcept;
+    ~HistoryAction() noexcept;
 
     HistoryAction(const HistoryAction&) = delete;
     HistoryAction& operator=(const HistoryAction&) = delete;
-    HistoryAction(HistoryAction&& other);
-    HistoryAction& operator=(HistoryAction&& other);
+    HistoryAction(HistoryAction&& other) noexcept;
+    HistoryAction& operator=(HistoryAction&& other) noexcept;
 
     int64_t id = 0;
     wid wf = 0;
@@ -66,8 +66,8 @@ struct HistoryAction final
 
 struct ActNodeBlob : public HistoryStep
 {
-    ActNodeBlob(HistoryActionType t) : HistoryStep(t) { }
-    ~ActNodeBlob() override = default;
+    ActNodeBlob(HistoryActionType t) noexcept : HistoryStep(t) { }
+    ~ActNodeBlob() noexcept override = default;
 
     blob::Blob node;
     std::string debug_name;
@@ -75,8 +75,8 @@ struct ActNodeBlob : public HistoryStep
 
 struct ActOldNew : public HistoryStep
 {
-    ActOldNew(HistoryActionType t) : HistoryStep(t) { }
-    ~ActOldNew() override = default;
+    ActOldNew(HistoryActionType t) noexcept : HistoryStep(t) { }
+    ~ActOldNew() noexcept override = default;
 
     HActionT old_val;
     HActionT new_val;
@@ -84,33 +84,38 @@ struct ActOldNew : public HistoryStep
 
 struct ActLink : public HistoryStep
 {
-    ActLink(HistoryActionType t) : HistoryStep(t) { }
-    ~ActLink() override = default;
+    ActLink(HistoryActionType t) noexcept : HistoryStep(t) { }
+    ~ActLink() noexcept override = default;
 
-    iid in = 0;
-    iid out = 0;
+    iid node_in = 0;
+    iid pin_in = 0;
+    std::string pin_in_name;
+    iid node_out = 0;
+    iid pin_out = 0;
+    int32_t pin_out_index = 0;
+    std::string linked_pins_type;
 };
 
 ////////// SPECIALIZATION       /////////////////////
 /////////////////////////////////////////////////////
 
-struct ActNodeAdd final : public ActNodeBlob { ActNodeAdd() : ActNodeBlob(HistoryActionType::NodeAdd) {} };
-struct ActNodeDel final : public ActNodeBlob { ActNodeDel() : ActNodeBlob(HistoryActionType::NodeDel) {} };
-struct ActNodeRen final : public ActOldNew   { ActNodeRen() : ActOldNew(HistoryActionType::NodeRen) {} };
-struct ActNodeRect final : public ActOldNew  { ActNodeRect() : ActOldNew(HistoryActionType::NodeRect) {} };
-struct ActNodePin final : public ActOldNew   { ActNodePin() : ActOldNew(HistoryActionType::NodePin) {} };
-struct ActNodeMode final : public ActOldNew  { ActNodeMode() : ActOldNew(HistoryActionType::NodeMode) {} };
-struct ActNodeClr final : public ActOldNew   { ActNodeClr() : ActOldNew(HistoryActionType::NodeClr) {} };
-struct ActNodeExpand final : public ActOldNew   { ActNodeExpand() : ActOldNew(HistoryActionType::NodeExpand) {} };
-struct ActPinRen final : public ActOldNew    { ActPinRen() : ActOldNew(HistoryActionType::PinRen) {} };
-struct ActPinVal final : public ActOldNew    { ActPinVal() : ActOldNew(HistoryActionType::PinVal) {} };
-struct ActLinkAdd final : public ActLink     { ActLinkAdd() : ActLink(HistoryActionType::LinkAdd) {} };
-struct ActLinkDel final : public ActLink     { ActLinkDel() : ActLink(HistoryActionType::LinkDel) {} };
+struct ActNodeAdd final : public ActNodeBlob { ActNodeAdd() noexcept : ActNodeBlob(HistoryActionType::NodeAdd) {} };
+struct ActNodeDel final : public ActNodeBlob { ActNodeDel() noexcept : ActNodeBlob(HistoryActionType::NodeDel) {} };
+struct ActNodeRen final : public ActOldNew   { ActNodeRen() noexcept : ActOldNew(HistoryActionType::NodeRen) {} };
+struct ActNodeRect final : public ActOldNew  { ActNodeRect() noexcept : ActOldNew(HistoryActionType::NodeRect) {} };
+struct ActNodePin final : public ActOldNew   { ActNodePin() noexcept : ActOldNew(HistoryActionType::NodePin) {} };
+struct ActNodeMode final : public ActOldNew  { ActNodeMode() noexcept : ActOldNew(HistoryActionType::NodeMode) {} };
+struct ActNodeClr final : public ActOldNew   { ActNodeClr() noexcept : ActOldNew(HistoryActionType::NodeClr) {} };
+struct ActNodeExpand final : public ActOldNew   { ActNodeExpand() noexcept : ActOldNew(HistoryActionType::NodeExpand) {} };
+struct ActPinRen final : public ActOldNew    { ActPinRen() noexcept : ActOldNew(HistoryActionType::PinRen) {} };
+struct ActPinVal final : public ActOldNew    { ActPinVal() noexcept : ActOldNew(HistoryActionType::PinVal) {} };
+struct ActLinkAdd final : public ActLink     { ActLinkAdd() noexcept : ActLink(HistoryActionType::LinkAdd) {} };
+struct ActLinkDel final : public ActLink     { ActLinkDel() noexcept : ActLink(HistoryActionType::LinkDel) {} };
 
 ////////// HISTORY - main interface  /////////////////////
 //////////////////////////////////////////////////////////
 
-struct HistoryState
+struct HistoryState final
 {
     int32_t pos = -1;
     int32_t saved_pos = -1;
@@ -121,13 +126,8 @@ struct HistoryState
 class HistoryManager final : public Manager
 {
 public:
-    HistoryManager();
-    ~HistoryManager() override;
-
-    bool init() override;
-    void free() override;
-
-    void stop_all_threads() override;
+    HistoryManager() noexcept;
+    ~HistoryManager() noexcept override;
 
     void cleanup(wid wf_id);
 
@@ -137,7 +137,7 @@ public:
     void redo(wid wf_id);
 
     void set_ignore_actions_on(wid wf_id);
-    void set_ignore_actions_off(wid wf_id);
+    void set_ignore_actions_off(wid wf_id) noexcept;
 
     void set_rollback_pos(wid wf_id);
     bool can_rollback(wid wf_id);
@@ -157,7 +157,7 @@ private:
 
     bool should_ignore_action(wid wf_id);
 
-    struct Meta
+    struct Meta final
     {
         int32_t pos = -1;
         int32_t saved = -2;
@@ -174,16 +174,16 @@ private:
 
     void pop_node_add(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_del(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_node_clr(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_node_expand(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_node_ren(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_node_mode(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_node_pin(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_node_rect(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_pin_ren(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_pin_val(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_link_add(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_link_del(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_node_clr(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_node_expand(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_node_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_node_mode(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_node_pin(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_node_rect(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_pin_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_pin_val(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_link_add(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_link_del(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
 
     void LogAction(const HistoryAction& action, const char* state, int32_t pos = 0, int32_t saved_pos = 0, size_t total = 0) const;
     void LogAction(wid wf_id, const char* state, int32_t pos = 0, int32_t saved_pos = 0, size_t total = 0) const;

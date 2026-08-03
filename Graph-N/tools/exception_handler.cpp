@@ -22,22 +22,25 @@ private:
     uint32_t nSE = 0;
 
 public:
-    SehException() {}
-    SehException(uint32_t n) : nSE(n) {}
+    SehException() noexcept = default;
+    SehException(uint32_t n) noexcept : nSE(n) {}
+    ~SehException() noexcept = default;
 
     // No need for NO_COPY_MOVE usually, exception needs to be copyable mostly
-    uint32_t getSeNumber() const { return nSE; }
+    uint32_t getSeNumber() const noexcept { return nSE; }
 
-    const char* what() const override { return "SEH Exception (Access Violation, etc.)"; }
+    const char* what() const noexcept override { return "SEH Exception (Access Violation, etc.)"; }
 
     static wchar_t dump_path[MAX_PATH * 2 + 1];
 };
 
 wchar_t SehException::dump_path[MAX_PATH * 2 + 1];
 
-static void dump_mini_dump(HANDLE hdumpfile, PEXCEPTION_POINTERS excp_info)
+namespace
 {
-    MINIDUMP_EXCEPTION_INFORMATION eInfo;
+void dump_mini_dump(HANDLE hdumpfile, PEXCEPTION_POINTERS excp_info) noexcept
+{
+    MINIDUMP_EXCEPTION_INFORMATION eInfo = {};
     eInfo.ThreadId = ::GetCurrentThreadId();
     eInfo.ExceptionPointers = excp_info;
     eInfo.ClientPointers = FALSE;
@@ -52,7 +55,7 @@ static void dump_mini_dump(HANDLE hdumpfile, PEXCEPTION_POINTERS excp_info)
 
 // Helper to construct path without heap allocation if possible (simplified here)
 // In a real strict handler, use wchar_t buffer[MAX_PATH] and GetModuleFileName
-int32_t __cdecl record_exception_info(PEXCEPTION_POINTERS pExceptPtrs)
+int32_t __cdecl record_exception_info(PEXCEPTION_POINTERS pExceptPtrs) noexcept
 {
     static std::atomic_flag bFirstTime = ATOMIC_FLAG_INIT;
     if (bFirstTime.test_and_set(std::memory_order_acquire))
@@ -78,7 +81,7 @@ int32_t __cdecl record_exception_info(PEXCEPTION_POINTERS pExceptPtrs)
     try
     {
         HANDLE hdump = ::CreateFileW(SehException::dump_path,
-            GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH, NULL);
+            GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH, nullptr);
 
         if (hdump != INVALID_HANDLE_VALUE)
         {
@@ -94,8 +97,9 @@ int32_t __cdecl record_exception_info(PEXCEPTION_POINTERS pExceptPtrs)
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
+
 // 1. Unhandled Exception Filter (Top-level catch)
-LONG WINAPI SEHFilter(EXCEPTION_POINTERS* pExp)
+LONG WINAPI SEHFilter(EXCEPTION_POINTERS* pExp) noexcept
 {
     record_exception_info(pExp);
 
@@ -112,6 +116,7 @@ void SEHTranslator(uint32_t u, EXCEPTION_POINTERS* pExp)
 
     throw SehException(u);
 }
+} // namespace
 
 void set_exception_translator()
 {

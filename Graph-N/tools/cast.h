@@ -4,36 +4,65 @@ namespace cast
 {
 
 template <typename DEST, typename SOURCE>
-constexpr bool can_fit(SOURCE arg)
+constexpr bool can_fit(SOURCE arg) noexcept
 {
-    (void)arg;
     using S_Type = std::decay_t<SOURCE>;
     using D_Type = std::decay_t<DEST>;
 
-    if constexpr (std::is_same_v<D_Type, S_Type>)
+    if constexpr (std::same_as<D_Type, S_Type>)
     {
         return true;
     }
-
-    // double->float
-    else if constexpr (std::is_floating_point_v<S_Type> && std::is_floating_point_v<D_Type>)
+    // Integer -> Integer
+    else if constexpr (std::integral<S_Type> && std::integral<D_Type>)
     {
-        if (!std::isfinite(arg)) 
-            return false;
-        if constexpr (sizeof(D_Type) >= sizeof(S_Type))
-            return true;
-        return arg >= std::numeric_limits<D_Type>::lowest() && arg <= std::numeric_limits<D_Type>::max();
-    }
+        if constexpr (std::same_as<D_Type, bool>)
+        {
+            return arg == 0 || arg == 1;
+        }
+        else if constexpr (std::same_as<S_Type, bool>)
+        {
+            return true; // A boolean 0 or 1 will fit into any other integer type
+        }
+        else
+        {
+            // std::in_range strictly requires standard integer types.
+            // plain char, wchar_t, etc., are std::integral but NOT standard integers.
+            // map them to their standard equivalents (e.g., char -> signed/unsigned char).
+            using Std_D_Type = std::conditional_t<std::is_signed_v<D_Type>, std::make_signed_t<D_Type>, std::make_unsigned_t<D_Type>>;
+            using Std_S_Type = std::conditional_t<std::is_signed_v<S_Type>, std::make_signed_t<S_Type>, std::make_unsigned_t<S_Type>>;
 
-    // Float -> Integer
-    else if constexpr (std::is_floating_point_v<S_Type> && std::is_integral_v<D_Type>)
+            return std::in_range<Std_D_Type>(static_cast<Std_S_Type>(arg));
+        }
+    }
+    // Float -> Float
+    // Float -> Float
+    else if constexpr (std::floating_point<S_Type> && std::floating_point<D_Type>)
     {
         if (!std::isfinite(arg))
             return false;
 
-        if constexpr (std::is_unsigned_v<D_Type>)
+        if constexpr (sizeof(D_Type) >= sizeof(S_Type))
         {
-            if (arg < 0)
+            // Upcasting or same size casting is always safe
+            return true;
+        }
+        else
+        {
+            // Downcasting requires a bounds check
+            return arg >= static_cast<S_Type>(std::numeric_limits<D_Type>::lowest()) && 
+                arg <= static_cast<S_Type>(std::numeric_limits<D_Type>::max());
+        }
+    }
+    // Float -> Integer
+    else if constexpr (std::floating_point<S_Type> && std::integral<D_Type>)
+    {
+        if (!std::isfinite(arg))
+            return false;
+
+        if constexpr (std::unsigned_integral<D_Type>)
+        {
+            if (arg < 0.0)
                 return false;
         }
         else
@@ -47,142 +76,145 @@ constexpr bool can_fit(SOURCE arg)
 
         return true;
     }
-
     // Integer -> Float
-    else if constexpr (std::is_integral_v<S_Type> && std::is_floating_point_v<D_Type>)
+    else if constexpr (std::integral<S_Type> && std::floating_point<D_Type>)
     {
         return true; 
     }
-
-    // Integer -> Integer
-    else if constexpr (std::is_integral_v<S_Type> && std::is_integral_v<D_Type>)
-    {
-        // Signed -> Unsigned
-        if constexpr (std::is_signed_v<S_Type> && !std::is_signed_v<D_Type>)
-        {
-            return arg >= 0 && static_cast<std::make_unsigned_t<S_Type>>(arg) <= std::numeric_limits<D_Type>::max();
-        }
-        // Unsigned -> Signed
-        else if constexpr (!std::is_signed_v<S_Type> && std::is_signed_v<D_Type>)
-        {
-            return arg <= static_cast<std::make_unsigned_t<D_Type>>(std::numeric_limits<D_Type>::max());
-        }
-
-        else
-        {
-            return arg >= std::numeric_limits<D_Type>::lowest() && arg <= std::numeric_limits<D_Type>::max();
-        }
-    }
     else
     {
-        // eczotic
+        // Exotic
         return true;
     }
 }
 
-template <typename SOURCE, typename DEST>
-constexpr DEST to(SOURCE param)
+template <typename DEST, typename SOURCE>
+constexpr DEST to(SOURCE param) noexcept
 {
     if (!can_fit<DEST>(param))
     {
 #ifdef _DEBUG
-        DEBUG_CATCH;
-        throw std::runtime_error("Data loss due to casting");
+        ERROR_MESSAGE("Can't convert types");
+        return {};
 #endif
     }
     return static_cast<DEST>(param);
 }
 
 template <typename ENUM, typename T>
-constexpr ENUM to_enum(T value)
+constexpr ENUM to_enum(T value) noexcept
 {
     static_assert(std::is_enum_v<ENUM>, "Target type must be an enum");
     using Underlying = std::underlying_type_t<ENUM>;
 
     if (!can_fit<Underlying>(value))
     {
-        DEBUG_CATCH;
-        throw std::runtime_error("Value out of bounds for enum underlying type");
+#ifdef _DEBUG
+        ERROR_MESSAGE("Value out of bounds for enum underlying type");
+#endif
+        return ENUM::_none;
     }
 
     const Underlying val = static_cast<Underlying>(value);
     if (val < static_cast<Underlying>(ENUM::_first) || val > static_cast<Underlying>(ENUM::_last))
     {
-        DEBUG_CATCH;
-        throw std::runtime_error("Value is outside explicit ENUM range");
+#ifdef _DEBUG
+        ERROR_MESSAGE("Value is outside explicit ENUM range");
+#endif
+        return ENUM::_none;
     }
 
     return static_cast<ENUM>(value);
 }
 
 template <typename T>
-constexpr char to_char(T param)
+constexpr char to_char(T param) noexcept
 {
-    return to<T, char>(param);
+    return to<char>(param);
 }
 
 template <typename T>
-constexpr unsigned char to_uchar(T param)
+constexpr unsigned char to_uchar(T param) noexcept
 {
-    if constexpr (std::is_same_v<std::decay_t<T>, char> || std::is_same_v<std::decay_t<T>, signed char>)
+    if constexpr (std::same_as<std::decay_t<T>, char> || std::same_as<std::decay_t<T>, signed char>)
         return static_cast<unsigned char>(param);
     else
-        return to<T, unsigned char>(param);
+        return to<unsigned char>(param);
 }
 
 template <typename T>
-constexpr wchar_t to_wchar(T param)
+constexpr wchar_t to_wchar(T param) noexcept
 {
-    return to<T, wchar_t>(param);
+    return to<wchar_t>(param);
 }
 
 template <typename T>
-constexpr void* to_void(T param)
+constexpr void* to_void(T param) noexcept
 {
-    return reinterpret_cast<void*>(std::uintptr_t(param));
+    if constexpr (std::is_pointer_v<T>)
+    {
+        return const_cast<void*>(static_cast<const volatile void*>(param));
+    }
+    else
+    {
+        return reinterpret_cast<void*>(static_cast<std::uintptr_t>(param));
+    }
 }
 
 template <typename T>
-constexpr std::uintptr_t to_ptr(const T* param)
+constexpr std::uintptr_t to_ptr(const T* param) noexcept
 {
     return std::uintptr_t(param);
 }
 
 template <typename T>
-constexpr const T* ptrs(const void* param)
+constexpr const T* ptrs(const void* param) noexcept
 {
     return reinterpret_cast<const T*>(param);
 }
 
 template <typename T>
-constexpr T* ptrs(void* param)
+constexpr T* ptrs(void* param) noexcept
 {
     return reinterpret_cast<T*>(param);
 }
 
 template <typename T>
-constexpr T* ptrs(const std::uintptr_t param)
+constexpr T* ptrs(const std::uintptr_t param) noexcept
 {
     return reinterpret_cast<T*>(param);
 }
 
 template <typename T>
-constexpr T from_ptr(const void* param)
+constexpr T from_ptr(const void* param) noexcept
 {
-    return static_cast<T>(to_ptr(param));
+    return static_cast<T>(reinterpret_cast<std::uintptr_t>(param));
+}
+
+// dynamic_cast is legal in constant expressions since C++20 (for polymorphic types)
+template <typename DEST, typename SRC>
+constexpr DEST* dynamic(SRC* param) noexcept
+{
+    return dynamic_cast<DEST*>(param);
 }
 
 template <typename DEST, typename SRC>
-constexpr DEST dynamic(SRC* param)
+constexpr const DEST* dynamic(const SRC* param) noexcept
 {
-    return dynamic_cast<DEST>(param);
+    return dynamic_cast<const DEST*>(param);
+}
+
+template <typename TYPE>
+constexpr TYPE* remove_const(const TYPE* type) noexcept
+{
+    return const_cast<TYPE*>(type);
 }
 
 #define CAST_HELPER(NAME, TYPE) \
     template <typename T> \
-    constexpr TYPE NAME(T param) { \
+    constexpr TYPE NAME(T param) noexcept { \
         if constexpr (std::is_enum_v<T>) return static_cast<TYPE>(param); \
-        else return to<T, TYPE>(param); \
+        else return to<TYPE>(param); \
     }
 
 CAST_HELPER(to_u8,  uint8_t)
@@ -195,6 +227,7 @@ CAST_HELPER(to_u64, uint64_t)
 CAST_HELPER(to_szt, size_t)
 CAST_HELPER(to_float, float)
 CAST_HELPER(to_double, double)
+CAST_HELPER(to_imguikey, ImGuiKey)
 
 #undef CAST_HELPER
 

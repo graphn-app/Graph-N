@@ -28,22 +28,22 @@ class PanelNodeInspector final :
 {
 public:
     PanelNodeInspector();
-    ~PanelNodeInspector() override;
+    ~PanelNodeInspector() noexcept override;
 
     void init() override;
 
     void add_inspecting_node(data::Node* node);
     void remove_inspecting_node(data::Node* node);
-    void reset_inspecting_nodes();
-    bool is_node_inspecting(data::Node* node) const;
+    void reset_inspecting_nodes() noexcept;
+    bool is_node_inspecting(const data::Node* node) const noexcept;
 
     //ComfyUiObjectValidityListener
-    void invalidate_comfyui_objects() override;
+    void invalidate_comfyui_objects() noexcept override;
 
 private:
     DlgCode show(bool& focused) override;
     void show_nodes();
-    void show_description(std::string* descr, const ImVec2& descr_sz, float max_w);
+    void show_description(std::string* descr, const ImVec2& descr_sz, float max_w) noexcept;
 
 private:
     data::Workflow* m_wf = nullptr;

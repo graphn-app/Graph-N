@@ -95,37 +95,91 @@ namespace ui
 
 namespace ed = ax::NodeEditor;
 
-NodeDrawer::NodeDrawer(data::Workflow* wf)
+namespace {
+ed::NodeId obj_to_ed(std::map<uint64_t, void*>& ed_objects, const data::NodeInstance* node)
+{
+    LogRAssertS(node, "Zero ptr", ed::NodeId{});
+    ed_objects[node->ed().id()] = cast::to_void(node);
+    //LogS("Node obj ed. w:" << node->get_workflow_id() << ", n:" << node->get_instance_id());
+    return ed::NodeId(node->ed().id());
+}
+ed::PinId obj_to_ed(std::map<uint64_t, void*>& ed_objects, const data::PinInstance* pin)
+{
+    LogRAssertS(pin, "Zero ptr", ed::PinId{});
+    ed_objects[pin->ed().id()] = cast::to_void(pin);
+    //LogS("Pin obj ed. w:" << pin->get_workflow_id() << ", p:" << pin->get_instance_id());
+    return ed::PinId(pin->ed().id());
+}
+ed::LinkId obj_to_ed(std::map<uint64_t, void*>& ed_objects, const data::Link* link)
+{
+    LogRAssertS(link, "Zero ptr", ed::LinkId{});
+    ed_objects[link->ed().id()] = cast::to_void(link);
+    //LogS("Link obj ed. w:" << link->get_workflow_id() << ", l:" << link->get_instance_id());
+    return ed::LinkId(link->ed().id());
+}
+
+void ed_del(std::map<uint64_t, void*>& ed_objects, data::NodeInstance* node) noexcept
+{
+    ed_objects.erase(node->ed().id());
+    node->ed().reset();
+}
+void ed_del(std::map<uint64_t, void*>& ed_objects, data::PinInstance* pin) noexcept
+{
+    ed_objects.erase(pin->ed().id());
+    pin->ed().reset();
+}
+void ed_del(std::map<uint64_t, void*>& ed_objects, data::Link* link) noexcept
+{
+    ed_objects.erase(link->ed().id());
+    link->ed().reset();
+}
+
+data::NodeInstance* ed_to_obj(const std::map<uint64_t, void*>& ed_objects, const ed::NodeId& edid)
+{
+    if (!edid) return nullptr;
+    const uint64_t id = uint64_t(edid.Get());
+    const auto it = ed_objects.find(id);
+    LogRAssertS(it != ed_objects.end(), "Node not found from id " << id, nullptr);
+    return cast::ptrs<data::NodeInstance>(it->second);
+}
+data::PinInstance* ed_to_obj(const std::map<uint64_t, void*>& ed_objects, const ed::PinId& edid)
+{
+    if (!edid) return nullptr;
+    const uint64_t id = uint64_t(edid.Get());
+    const auto it = ed_objects.find(id);
+    LogRAssertS(it != ed_objects.end(), "Pin not found from id " << id, nullptr);
+    return cast::ptrs<data::PinInstance>(it->second);
+}
+data::Link* ed_to_obj(const std::map<uint64_t, void*>& ed_objects, const ed::LinkId& edid)
+{
+    if (!edid) return nullptr;
+    const uint64_t id = uint64_t(edid.Get());
+    const auto it = ed_objects.find(id);
+    LogRAssertS(it != ed_objects.end(), "Link not found from id " << id, nullptr);
+    return cast::ptrs<data::Link>(it->second);
+}
+} // namespace
+
+#define OBJ_CREATE(obj) obj_to_ed(m_ed_objects, obj)
+#define OBJ_LOAD(obj) ed_to_obj(m_ed_objects, obj)
+#define OBJ_ID(obj) obj->ed()
+#define OBJ_DEL(obj) ed_del(m_ed_objects, obj)
+
+NodeDrawer::NodeDrawer(data::Workflow* wf) noexcept
     : m_wf(wf)
     , m_clr_node_header_text(g::pOptsManager->color_load(AppColor::NodeHeaderText))
     , m_clr_node_pin_text(g::pOptsManager->color_load(AppColor::NodePinText))    
 {
-    LogF;
 }
 
-NodeDrawer::~NodeDrawer()
+NodeDrawer::~NodeDrawer() noexcept
 {
-    LogF;
-
     if (m_context != nullptr)
         ed::DestroyEditor(m_context);
 }
 
-#ifdef _DEBUG
-void test_id(std::set<void*>& set, void* ptr)
-{
-    auto res = set.insert(ptr);
-    if (!res.second)
-    {
-        DEBUG_CATCH;
-    }
-}
-#endif // #ifdef _DEBUG
-
 void NodeDrawer::init(blob::Blob&& state)
 {
-    LogF;
-
     m_deffered_action = std::make_unique<ImGuiExNe::DeferredAction>();
 
     m_state = std::move(state);
@@ -159,10 +213,8 @@ void NodeDrawer::init(blob::Blob&& state)
     m_context = ed::CreateEditor(&config);
 }
 
-void NodeDrawer::free()
+void NodeDrawer::free() noexcept
 {
-    LogF;
-
     m_deffered_action.reset();
     m_state->clear();
 
@@ -171,14 +223,15 @@ void NodeDrawer::free()
     m_context = nullptr;
 }
 
-void NodeDrawer::locate_node(data::NodeInstance* node)
+void NodeDrawer::locate_node(data::NodeInstance* node) noexcept
 {
-    auto prev_context = ed::GetCurrentEditor();
+    LogRAssert(node, "Zero ptr", );
+    const auto* prev_context = ed::GetCurrentEditor();
     if (nullptr == prev_context)
         ed::SetCurrentEditor(m_context);
 
     ed::ClearSelection();
-    ed::SelectNode(node->ed());
+    ed::SelectNode(OBJ_ID(node));
     ed::NavigateToContent();
     ed::NavigateToSelection(false, 0.5f);
 
@@ -186,7 +239,7 @@ void NodeDrawer::locate_node(data::NodeInstance* node)
         ed::SetCurrentEditor(nullptr);
 }
 
-void NodeDrawer::locate_selected()
+void NodeDrawer::locate_selected() noexcept
 {
     if (ed::GetSelectedNodesCount() > 0)
         ed::NavigateToSelection(true, 0.5f);
@@ -194,7 +247,7 @@ void NodeDrawer::locate_selected()
         ed::NavigateToContent();
 }
 
-data::PinInstance* NodeDrawer::get_ml_widget_active() const
+data::PinInstance* NodeDrawer::get_ml_widget_active() const noexcept
 {
     if (nullptr == m_deffered_action->active_pin)
         return nullptr;
@@ -291,6 +344,7 @@ void NodeDrawer::post_draw_all(
 
 void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
 {
+    LogRAssert(node, "Zero ptr", );
     if (node->m_group)
     {
         ed::PushStyleColor(ed::StyleColor_GroupBg, ImVec4(0, 0, 0, 0));
@@ -324,29 +378,29 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
 
     if (!node->m_pos_set)
     {
-        if (node->ed())
-            ed::SetNodePosition(node->ed(), node->m_rc.Min);
+        if (OBJ_ID(node))
+            ed::SetNodePosition(OBJ_ID(node), node->m_rc.Min);
         else
-            node->ed() = ed::SetNodePosition(cast::to_ptr(node), node->m_rc.Min);
+            OBJ_ID(node) = ed::SetNodePosition(OBJ_CREATE(node), node->m_rc.Min);
         node->m_pos_set = true;
     }
     if (!node->m_size_set && node->m_group)
     {
-        if (node->ed())
-            ed::SetGroupSize(node->ed(), node->m_rc.Max);
+        if (OBJ_ID(node))
+            ed::SetGroupSize(OBJ_ID(node), node->m_rc.Max);
         else
-            node->ed() = ed::SetGroupSize(cast::to_ptr(node), node->m_rc.Max);
+            OBJ_ID(node) = ed::SetGroupSize(OBJ_CREATE(node), node->m_rc.Max);
         node->m_size_set = true;
     }
 
-    if (node->ed())
-        ed::BeginNode(node->ed());
+    if (OBJ_ID(node))
+        ed::BeginNode(OBJ_ID(node));
     else
-        node->ed() = ed::BeginNode(cast::to_ptr(node));
+        OBJ_ID(node) = ed::BeginNode(OBJ_CREATE(node));
 
     if (!node->m_pinned_set)
     {
-        ed::SetNodeDraggable(node->ed(), !node->get_pinned());
+        ed::SetNodeDraggable(OBJ_ID(node), !node->get_pinned());
         node->m_pinned_set = true;
     }
 
@@ -358,13 +412,14 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
     }
 }
 
-void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed)
+void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed) noexcept
 {
+    LogRAssert(node, "Zero ptr", );
     ed::EndNode();
     
-    node->m_rc.Min = ed::GetNodePosition(node->ed());
+    node->m_rc.Min = ed::GetNodePosition(OBJ_ID(node));
     if (!node->m_ignore_size_on_frame_end)
-        node->m_rc.Max = ed::GetNodeSize(node->ed());
+        node->m_rc.Max = ed::GetNodeSize(OBJ_ID(node));
     node->m_ignore_size_on_frame_end = false;
 
     if (node->m_group)
@@ -385,14 +440,8 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed)
 
 void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node_idx*/, const std::set<std::string>* failed_pins)
 {
+    LogRAssert(node, "Zero ptr", );
     m_active_node = node;
-
-#ifdef _DEBUG
-    m_ids_imgui.clear();
-    m_ids_nodelib.clear();
-    m_ids_imgui.insert(m_active_node);
-    m_ids_nodelib.insert(m_active_node);
-#endif
 
     ImVec2 node_size/*, node_pos*/;
 
@@ -402,10 +451,10 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     //}
     //else
     {
-        node_size = ed::GetNodeSize(m_active_node->ed());
+        node_size = ed::GetNodeSize(OBJ_ID(m_active_node));
         if (node_size.x > 0 && node_size.y > 0)
         {
-            //node_pos = ed::GetNodePosition(m_active_node->ed());
+            //node_pos = ed::GetNodePosition(OBJ_ID(m_active_node));
             node_w = node_size.x - ed::GetStyle().NodePadding.x - ed::GetStyle().NodePadding.z;
         }
     }
@@ -455,12 +504,9 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     const auto& input = m_active_node->get_inputs();
     for (auto pin : input)
     {
-        if (!pin->get_object()->is_widget())
+        if (!pin->get_object()->hidden && !pin->get_object()->is_widget(pin->state()))
         {
             ImGui::PushID(pin);
-#ifdef _DEBUG
-            test_id(m_ids_imgui, pin);
-#endif
             const bool failed = (failed_pins != nullptr && failed_pins->count(pin->get_object()->def_state.name));
             draw_input_pin(pin, failed);
             ImGui::PopID();
@@ -480,15 +526,15 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     // --- PINS - OUTPUT ---
 
-    const auto out_pins_pos = ImGui::GetCursorPosX();
+    //const auto out_pins_pos = ImGui::GetCursorPosX();
 
     const auto& output = m_active_node->get_outputs();
     for (auto pin : output)
     {
+        if (pin->get_object()->hidden)
+            continue;
+
         ImGui::PushID(pin);
-#ifdef _DEBUG
-        test_id(m_ids_imgui, pin);
-#endif
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + m_active_node->w_pin_in + m_active_node->w_center +
             m_active_node->w_pin_out - pin->state().w_name);
 
@@ -515,12 +561,9 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
             auto obj = pin->get_object();
             if (obj->advanced)
                 advanced++;
-            else if (obj->is_widget())
+            else if (obj->is_widget(pin->state()))
             {
                 ImGui::PushID(pin);
-#ifdef _DEBUG
-                test_id(m_ids_imgui, pin);
-#endif
                 draw_input_widget(pin, m_active_node->w_widget_name, m_active_node->w_widget_value);
                 ImGui::PopID();
             }
@@ -537,9 +580,6 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
                     if (obj->advanced)
                     {
                         ImGui::PushID(pin);
-#ifdef _DEBUG
-                        test_id(m_ids_imgui, pin);
-#endif
                         draw_input_widget(pin, m_active_node->w_widget_name, m_active_node->w_widget_value);
                         ImGui::PopID();
                     }
@@ -562,7 +602,7 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
     m_curr_node_left_offset = ImGui::GetCursorScreenPos().x;
     m_curr_node_top_offset = ImGui::GetCursorScreenPos().y;
 
-    auto& style = ed::GetStyle();
+    const auto& style = ed::GetStyle();
 
     const float rc_x = m_curr_node_left_offset - style.NodePadding.x + style.GroupBorderWidth;
     const ImVec2 text_lt(m_curr_node_left_offset + ImGui::GetStyle().ItemSpacing.x, m_curr_node_top_offset);
@@ -623,6 +663,7 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
         {
             m_wf->action()->set_node_name(m_renaming_node, m_renaming_buff);
             m_renaming_buff.clear();
+            m_renaming_buff.shrink_to_fit();
             m_renaming_node = nullptr;
         }
         else if (ImGui::IsKeyPressed(ImGuiKey_Escape))
@@ -639,7 +680,7 @@ void NodeDrawer::draw_node_header()
     auto draw_list = ImGui::GetWindowDrawList();
     if (draw_list != nullptr)
     {
-        auto& style = ed::GetStyle();
+        const auto& style = ed::GetStyle();
 
         //const ImU32 bg_color = (m_active_node->m_clr_custom ? m_active_node->m_clr_head : m_defclr_node_header_bg);
         const float header_h = ImGui::GetTextLineHeight() * 1.5f - (m_active_node->get_expanded() ? 0 : style.NodeBorderWidth);
@@ -664,7 +705,11 @@ void NodeDrawer::draw_node_header()
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_name_off);
         ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->get_object()->is_dummy ? g::pOptsManager->color_load(AppColor::DummyNode) : m_clr_node_header_text);
+#ifdef _DEBUG
+        ImGui::TextUnformatted((m_active_node->get_name() + "[" + std::to_string(m_active_node->get_instance_id()) + "]").c_str());
+#else
         ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
+#endif
         ImGui::PopStyleColor();
 
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -716,17 +761,20 @@ void NodeDrawer::draw_node_header()
             ImGui::SetCursorPosX(m_curr_node_left_offset + (m_renaming_node->get_inputs().empty() ? 0 : (w::pin_l_offset_rw + w::ico_circle + w::pin_r_offset + ImGui::GetStyle().ItemSpacing.x)));
             ImGui::SetNextItemWidth(m_active_node->w_node - (m_renaming_node->get_outputs().empty() ? 0 : ((w::pin_l_offset_rw + w::ico_circle + w::pin_r_offset + ImGui::GetStyle().ItemSpacing.x) * 2)));
         }
+
         if (ImGuiEx::InputText("##noderename", &m_renaming_buff, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue) ||
             ImGui::IsItemDeactivatedAfterEdit())
         {
             m_wf->action()->set_node_name(m_renaming_node, m_renaming_buff);
             m_renaming_buff.clear();
+            m_renaming_buff.shrink_to_fit();
             m_renaming_node = nullptr;
             m_renaming_pin = nullptr;
         }
         else if (ImGui::IsKeyPressed(ImGuiKey_Escape))
         {
             m_renaming_buff.clear();
+            m_renaming_buff.shrink_to_fit();
             m_renaming_node = nullptr;
             m_renaming_pin = nullptr;
         }
@@ -792,14 +840,10 @@ void NodeDrawer::draw_output_pin(data::PinInstance* pin)
 void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin)
 {
     ImGui::PushID(&pin->state().pin_color);
-#ifdef _DEBUG
-    test_id(m_ids_imgui, &pin->state().pin_color);
-    test_id(m_ids_nodelib, pin);
-#endif
-    if (pin->ed())
-        ed::BeginPin(pin->ed(), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
+    if (OBJ_ID(pin))
+        ed::BeginPin(OBJ_ID(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
     else
-        pin->ed() = ed::BeginPin(cast::to_ptr(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
+        OBJ_ID(pin) = ed::BeginPin(OBJ_CREATE(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
     draw_pin_shape(pin, collapsed_mode, align_to_widget, failed_pin);
     ed::EndPin();
     ImGui::PopID();
@@ -807,57 +851,60 @@ void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool alig
 
 void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
-    if (!pin->get_object()->cag_pin)
+    float widget_pos = 0.0f;
+    if (pin->get_object()->can_link)
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
         draw_pin(pin, false, true, false);
         ImGui::SameLine(0, w::pin_r_offset);
+        widget_pos = ImGui::GetCursorPosX();
     }
     else
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle);
     draw_widget(pin, widget_name_width, widget_value_width);
+    if (!pin->get_object()->cag_pin)
+        m_active_node->cni_draw_widget(pin, widget_pos, widget_name_width + widget_value_width);
 }
 
 void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     switch (pin->state().type)
     {
-    case data::PinType::INT:
-    case data::PinType::NUMBER:
+    case PinType::INT:
         if (pin->get_object()->is_unsigned)
             draw_widget_uint(pin, widget_name_width, widget_value_width);
         else
             draw_widget_int(pin, widget_name_width, widget_value_width);
         break;
-    case data::PinType::FLOAT:
+    case PinType::FLOAT:
         draw_widget_float(pin, widget_name_width, widget_value_width);
         break;
-    case data::PinType::BOOLEAN:
+    case PinType::BOOLEAN:
         draw_widget_bool(pin, widget_name_width, widget_value_width);
         break;
-    case data::PinType::STRING:
+    case PinType::STRING:
         if (pin->get_object()->multiline)
             draw_widget_str_ml(pin, widget_name_width, widget_value_width);
         else
             draw_widget_str(pin, widget_name_width, widget_value_width);
         break;
-    case data::PinType::COMBO:
+    case PinType::COMBO:
         draw_widget_combo(pin, widget_name_width, widget_value_width);
         break;
-    case data::PinType::COLOR:
+    case PinType::COLOR:
         draw_widget_color(pin, widget_name_width, widget_value_width);
         break;
     }
 }
 
-void NodeDrawer::handle_widget_active_state(data::PinInstance* pin, const primitive* backup /*= nullptr*/)
+void NodeDrawer::handle_widget_active_state(data::PinInstance* pin, const Primitive* backup /*= nullptr*/)
 {
     if (ImGui::IsItemActivated())
-        ed::SelectNode(m_active_node->ed());
+        ed::SelectNode(OBJ_ID(m_active_node));
 
     if (pin != nullptr)
     {
-        if (data::PinType::STRING == pin->state().type && !pin->get_object()->multiline)
+        if (PinType::STRING == pin->state().type && !pin->get_object()->multiline)
         {
             if (ImGui::IsItemActivated())
                 m_old_pin_val_pr = pin->state().value;
@@ -881,7 +928,7 @@ void NodeDrawer::handle_widget_active_state(data::PinInstance* pin, const primit
         }
         else if (ImGui::IsItemActivated() && backup != nullptr)
             m_old_pin_val_pr = *backup;
-        else if (ImGui::IsItemDeactivatedAfterEdit() && pin->state().type != data::PinType::STRING)
+        else if (ImGui::IsItemDeactivatedAfterEdit() && pin->state().type != PinType::STRING)
             m_wf->action()->set_pin_val(pin, std::move(m_old_pin_val_pr));
     }
 }
@@ -891,16 +938,14 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
     auto obj = pin->get_object();
     auto& state = pin->state();
 
-    const primitive backup = state.value;
-    int64_t* val = data::Pin::get_int(state.value);
-    const int64_t* step = data::Pin::get_int(obj->step);
-    const int64_t* min = data::Pin::get_int(obj->min);
-    const int64_t* max = data::Pin::get_int(obj->max);
+    const Primitive backup = state.value;
+    int64_t* val = state.value.get_int_ref();
+    LogRAssert(val, "Zero val", );
+    const int64_t step = obj->step.get_int();
+    const int64_t min = obj->min.get_int();
+    const int64_t max = obj->max.get_int();
 
     ImGui::PushID(&state.value);
-#ifdef _DEBUG
-    test_id(m_ids_imgui, &state.value);
-#endif
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -916,14 +961,13 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
     switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::Direct:
-        ImGuiEx::InputIntSmart("##value", val, *step, *min, *max, obj->precision, obj->precision);
+    default:
+        ImGuiEx::InputIntSmart("##value", val, step, min, max, obj->precision, obj->precision);
         break;
     case WidgetInput::Drag:
-        ImGuiEx::DragIntSmart("##value", val, *min, *max, obj->precision.c_str());
-        break;
+        //ImGuiEx::DragIntSmart("##value", val, min, max, obj->precision.c_str());
     case WidgetInput::Slider:
-    default:
-        ImGuiEx::SliderIntSmart("##value", val, *min, *max, obj->precision.c_str());
+        ImGuiEx::SliderIntSmart("##value", val, min, max, obj->precision.c_str());                
         break;
     }
     if (linked) ImGui::EndDisabled();
@@ -938,17 +982,14 @@ void NodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_widt
     auto obj = pin->get_object();
     auto& state = pin->state();
 
-    const primitive backup = state.value;
-    uint64_t* val = data::Pin::get_uint(state.value);
-    const uint64_t* step = data::Pin::get_uint(obj->step);
-    const uint64_t* min = data::Pin::get_uint(obj->min);
-    const uint64_t* max = data::Pin::get_uint(obj->max);
+    const Primitive backup = state.value;
+    uint64_t* val = state.value.get_uint_ref();
+    LogRAssert(val, "Zero val", );
+    const uint64_t step = obj->step.get_uint();
+    const uint64_t min = obj->min.get_uint();
+    const uint64_t max = obj->max.get_uint();
 
     ImGui::PushID(&state.value);
-#ifdef _DEBUG
-    test_id(m_ids_imgui, &state.value);
-#endif
-
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
@@ -963,12 +1004,13 @@ void NodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_widt
     switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::Direct:
-        ImGuiEx::InputUIntSmart("##value", val, *step, *min, *max, obj->precision, obj->precision);
-        break;
-    case WidgetInput::Slider:
-    case WidgetInput::Drag:
     default:
-        ImGuiEx::DragUIntSmart("##value", val, *min, *max, obj->precision.c_str());
+        ImGuiEx::InputUIntSmart("##value", val, step, min, max, obj->precision, obj->precision);
+        break;
+    case WidgetInput::Drag:
+        //ImGuiEx::DragUIntSmart("##value", val, min, max, obj->precision.c_str());
+    case WidgetInput::Slider:
+        ImGuiEx::SliderUIntSmart("##value", val, min, max, obj->precision.c_str());                
         break;
     }
     if (linked) ImGui::EndDisabled();
@@ -983,17 +1025,14 @@ void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_wid
     auto obj = pin->get_object();
     auto& state = pin->state();
 
-    const primitive backup = state.value;
-    double* val = data::Pin::get_float(state.value);
-    const double* min = data::Pin::get_float(obj->min);
-    const double* max = data::Pin::get_float(obj->max);
-    const double* step = data::Pin::get_float(obj->step);
+    const Primitive backup = state.value;
+    double* val = state.value.get_float_ref();
+    LogRAssert(val, "Zero val", );
+    const double min = obj->min.get_float();
+    const double max = obj->max.get_float();
+    const double step = obj->step.get_float();
 
     ImGui::PushID(&state.value);
-#ifdef _DEBUG
-    test_id(m_ids_imgui, &state.value);
-#endif
-
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
@@ -1008,14 +1047,13 @@ void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_wid
     switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::Direct:
-        ImGuiEx::InputDoubleSmart("##value", val, *step, *min, *max, obj->precision, obj->precision);
+    default:
+        ImGuiEx::InputDoubleSmart("##value", val, step, min, max, obj->precision, obj->precision);
         break;
     case WidgetInput::Drag:
-        ImGuiEx::DragDoubleSmart("##value", val, *min, *max, obj->precision.c_str());
-        break;
+        //ImGuiEx::DragDoubleSmart("##value", val, min, max, obj->precision.c_str());
     case WidgetInput::Slider:
-    default:
-        ImGuiEx::SliderDoubleSmart("##value", val, *min, *max, obj->precision.c_str());
+        ImGuiEx::SliderDoubleSmart("##value", val, min, max, obj->precision.c_str());        
         break;
     }
     if (linked) ImGui::EndDisabled();
@@ -1030,14 +1068,11 @@ void NodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_widt
     auto obj = pin->get_object();
     auto& state = pin->state();
 
-    const primitive backup = state.value;
-    bool* val = data::Pin::get_bool(state.value);
+    const Primitive backup = state.value;
+    bool* val = state.value.get_bool_ref();
+    LogRAssert(val, "Zero val", );
 
     ImGui::PushID(&state.value);
-#ifdef _DEBUG
-    test_id(m_ids_imgui, &state.value);
-#endif
-
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
@@ -1069,14 +1104,11 @@ void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width
 {
     auto obj = pin->get_object();
 
-    auto& placeholder = (obj->placeholder.empty() ? pin->state().name : obj->placeholder);
-    std::string* val = data::Pin::get_string(pin->state().value);
+    const auto& placeholder = (obj->placeholder.empty() ? pin->state().name : obj->placeholder);
+    std::string* val = pin->state().value.get_string_ref();
+    LogRAssert(val, "Zero val", );
 
     ImGui::PushID(&pin->state().value);
-#ifdef _DEBUG
-    test_id(m_ids_imgui, &pin->state().value);
-#endif
-
     ImGui::PushItemWidth(widget_name_width + widget_value_width);
     const auto linked = pin->state().links > 0;
     if (linked) ImGui::BeginDisabled();
@@ -1095,18 +1127,15 @@ void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width
     ImGui::PopID();
 }
 
-void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width) noexcept
 {
     auto obj = pin->get_object();
 
-    auto& placeholder = (obj->placeholder.empty() ? pin->state().name : obj->placeholder);
-    std::string* val = data::Pin::get_string(pin->state().value);
+    const auto& placeholder = (obj->placeholder.empty() ? pin->state().name : obj->placeholder);
+    std::string* val = pin->state().value.get_string_ref();
+    LogRAssert(val, "Zero val", );
 
     ImGui::PushID(&pin->state().value);
-#ifdef _DEBUG
-    test_id(m_ids_imgui, &pin->state().value);
-#endif
-
     ImGui::PushTextWrapPos(0.0f);
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
     const auto linked = pin->state().links > 0;
@@ -1116,7 +1145,7 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
     ImGui::PopTextWrapPos();
 
     if (clicked)
-        ed::SelectNode(m_active_node->ed(), false);
+        ed::SelectNode(OBJ_ID(m_active_node), false);
 
     bool tt_mod = false;
     if (!val->empty())
@@ -1131,13 +1160,10 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
 void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
-    int64_t* index = data::Pin::get_int(pin->state().value);
+    int64_t* index = pin->state().value.get_int_ref();
+    LogRAssert(index, "Zero val", );
 
     ImGui::PushID(&pin->state().value);
-#ifdef _DEBUG
-    test_id(m_ids_imgui, &pin->state().value);
-#endif
-
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
@@ -1162,13 +1188,9 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
 void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
-    auto& state = pin->state();
+    const auto& state = pin->state();
 
     ImGui::PushID(&state.value);
-#ifdef _DEBUG
-    test_id(m_ids_imgui, &state.value);
-#endif
-
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
@@ -1178,7 +1200,7 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::SetNextItemWidth(widget_value_width);
 
-    const ImVec4 vec4 = ImGui::ColorConvertU32ToFloat4(cast::to_u32(*data::Pin::get_uint(state.value)));
+    const ImVec4 vec4 = ImGui::ColorConvertU32ToFloat4(cast::to_u32(state.value.get_uint()));
     float colors[4];
     vec4.to_arr(colors);
     const auto linked = pin->state().links > 0;
@@ -1196,7 +1218,7 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     ImGui::PopID();
 }
 
-void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_open)
+void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_open) noexcept
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + offset);
 
@@ -1215,7 +1237,7 @@ void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_op
     if (pressed)
     {
         opened = !opened;
-        ed::SelectNode(m_active_node->ed());
+        ed::SelectNode(OBJ_ID(m_active_node));
     }
     else if (ImGui::IsItemHovered())
         temp_open = true;
@@ -1230,17 +1252,12 @@ void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& link
 {
     for (auto& link : links)
     {
-#ifdef _DEBUG
-        test_id(m_ids_nodelib, link.get());
-#endif
         auto in = link->get_input();
         auto out = link->get_output();
-        if (link->ed())
-            ed::Link(link->ed(), in->ed(), out->ed(), in->state().pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load()));
+        if (OBJ_ID(link))
+            ed::Link(OBJ_ID(link), OBJ_ID(in), OBJ_ID(out), in->state().pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load()));
         else
-        {
-            link->ed() = ed::Link(cast::to_ptr(link.get()), in->ed(), out->ed(), in->state().pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load()));
-        }
+            OBJ_ID(link) = ed::Link(OBJ_CREATE(link.get()), OBJ_ID(in), OBJ_ID(out), in->state().pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load()));
     }
 }
 
@@ -1254,8 +1271,8 @@ void NodeDrawer::query_new_item(
         ed::PinId pin = 0;
         if (ed::QueryNewLink(&start, &end))
         {
-            data::PinInstance* p1 = cast::ptrs<data::PinInstance>(start.Get());
-            data::PinInstance* p2 = cast::ptrs<data::PinInstance>(end.Get());
+            data::PinInstance* p1 = OBJ_LOAD(start);
+            data::PinInstance* p2 = OBJ_LOAD(end);
             bool allow = (p1 != p2 && p1 != nullptr && p2 != nullptr);
 
             if (allow)
@@ -1281,6 +1298,16 @@ void NodeDrawer::query_new_item(
                     m_querying_pin = nullptr;
                     m_wf->action()->link(p1, p2);
                     m_wf->action()->multi_action_off();
+
+                    auto node = m_wf->get_node_by_instance(p1->get_parent_node());
+                    node->reset_width();
+                    if (p1->get_object()->input)
+                        g::pFlow->txt_panel_delete(m_wf->get_id(), node, p1);
+
+                    node = m_wf->get_node_by_instance(p2->get_parent_node());
+                    node->reset_width();
+                    if (p2->get_object()->input)
+                        g::pFlow->txt_panel_delete(m_wf->get_id(), node, p2);
                 }
             }
             else
@@ -1290,11 +1317,11 @@ void NodeDrawer::query_new_item(
         }
         else if (ed::QueryNewNode(&pin))
         {
-            m_querying_pin = cast::ptrs<data::PinInstance>(pin.Get());
+            m_querying_pin = OBJ_LOAD(pin);
             if (ed::AcceptNewItem())
             {
-                if (!m_querying_pin->get_object()->parent_node->is_dummy)
-                    new_node_handler(cast::ptrs<data::PinInstance>(pin.Get()), ed::ScreenToCanvas(ImGui::GetMousePos()));
+                if (m_querying_pin != nullptr && !m_querying_pin->get_object()->parent_node->is_dummy)
+                    new_node_handler(m_querying_pin, ed::ScreenToCanvas(ImGui::GetMousePos()));
                 m_querying_pin = nullptr;
             }
         }
@@ -1306,35 +1333,20 @@ void NodeDrawer::query_new_item(
     }
 }
 
-void NodeDrawer::handle_deleted()
+void NodeDrawer::handle_deleted() noexcept
 {
     if (ed::BeginDelete())
     {
         ed::NodeId node_id;
         while (ed::QueryDeletedNode(&node_id))
         {
-            if (m_pending_delete.erase(cast::to_void(node_id)) == 0)
-            {
-                LogAndThrowInternalError(ExcepCategory::API, "Node to delete not found in pending delete list");
-            }
             ed::AcceptDeletedItem();
         }
 
         ed::LinkId link_id;
         while (ed::QueryDeletedLink(&link_id))
         {
-            void* ptr = cast::to_void(link_id);
-            Log("QUERY DELETE: " << LogPTR(ptr)); // TODO
-            if (m_pending_delete.erase(cast::to_void(link_id)) == 0)
-            {
-                LogAndThrowInternalError(ExcepCategory::API, "Link to delete not found in pending delete list");
-            }
             ed::AcceptDeletedItem();
-        }
-
-        if (!m_pending_delete.empty())
-        {
-            LogAndThrowInternalError(ExcepCategory::API, "Not all pending delete items were removed");
         }
     }
     ed::EndDelete();
@@ -1342,17 +1354,23 @@ void NodeDrawer::handle_deleted()
 
 void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin)
 {
+    LogRAssert(pin, "Zero ptr", );
+
     const bool querying = (m_querying_pin != nullptr);
+#if 0
+    const bool compatible = true;
+#else
     const bool compatible = (m_querying_pin == pin || (querying && data::Link::can_link(pin, m_querying_pin)));
+#endif
     const bool connected = (m_querying_pin == pin || pin->state().links > 0);
-    const auto type = (collapsed_mode ? data::PinShape::Circle : data::Pin::get_shape(pin->state().type));
+    const auto type = (collapsed_mode ? PinShape::Circle : data::Pin::get_shape(pin->state().type));
     const float thickness = failed_pin ? 2.5f : 2.0f;
     constexpr const int32_t segments = 12;
     const auto draw_list = ImGui::GetWindowDrawList();
     const float alpha = (!querying || compatible ? 1.0f : 0.4f);
     const auto color = (collapsed_mode ? IM_COL32_WHITE : ((pin->state().pin_color & 0x00FFFFFF) | ((ImU32)(alpha * 255.0f) << 24)));
     const float radius = (!querying ? 4.0f : (compatible ? 5.0f : 3.0f));
-    const float diameter = radius * 2.0f;
+    //const float diameter = radius * 2.0f;
     ImVec2 cursor_pos = ImGui::GetCursorScreenPos();
     if (align_to_widget)
         cursor_pos.y += ImGui::GetTextLineHeightWithSpacing() / 2;
@@ -1372,7 +1390,7 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
 
     switch (type)
     {
-    case data::PinShape::Diamond:
+    case PinShape::Diamond:
         {
             const float r = radius * 1.1f;
             if (connected)
@@ -1393,7 +1411,7 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
             }
         }
         break;
-    case data::PinShape::Hexagon:
+    case PinShape::Hexagon:
         {
             const float r = radius * 0.95f;
             if (connected)
@@ -1411,14 +1429,14 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
                 draw_list->PathClear();
                 for (int32_t i = 0; i < 6; ++i)
                 {
-                    float angle = cast::to_float(i) * 1.047f;
+                    const float angle = cast::to_float(i) * 1.047f;
                     draw_list->PathLineTo(ImVec2(pin_center.x + r * cosf(angle), pin_center.y + r * sinf(angle)));
                 }
                 draw_list->PathStroke(color, ImDrawFlags_Closed, thickness);
             }
         }
         break;
-    case data::PinShape::SemiCircle:
+    case PinShape::SemiCircle:
         {
             const bool in = pin->get_object()->input;
             if (in)
@@ -1428,7 +1446,7 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
             draw_list->PathFillConvex(color);
         }
         break;
-    case data::PinShape::Square:
+    case PinShape::Square:
         {
             if (connected)
                 draw_list->AddRectFilled(pin_center - ImVec2(radius, radius) * 0.85f, pin_center + ImVec2(radius, radius) * 0.85f, color, radius * 0.2f);
@@ -1436,10 +1454,10 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
                 draw_list->AddRect(pin_center - ImVec2(radius, radius) * 0.85f, pin_center + ImVec2(radius, radius) * 0.85f, color, radius * 0.2f, ImDrawFlags_None, thickness);
         }
         break;
-    case data::PinShape::Triangle:
+    case PinShape::Triangle:
         {
             const float r = radius * 1.1f;
-            const float angle_offset = 0.0f;
+            constexpr float angle_offset = 0.0f;
             const ImVec2 p1 = ImVec2(pin_center.x + r * cosf(angle_offset), pin_center.y + r * sinf(angle_offset));
             const ImVec2 p2 = ImVec2(pin_center.x + r * cosf(angle_offset + 2.094f), pin_center.y + r * sinf(angle_offset + 2.094f));
             const ImVec2 p3 = ImVec2(pin_center.x + r * cosf(angle_offset + 4.188f), pin_center.y + r * sinf(angle_offset + 4.188f));
@@ -1449,9 +1467,9 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
                 draw_list->AddTriangle(p1, p2, p3, color, thickness);
         }
         break;
-    default:
-        LogInternalLogic("Unhandled pin shape, pin type " << cast::to_i32(type));
-    case data::PinShape::Circle:
+    default: // fallthrough to default Circle
+        LogError("Unhandled pin shape, pin type " << cast::to_i32(type));
+    case PinShape::Circle:
         {
             if (connected)
                 draw_list->AddCircleFilled(pin_center, radius, color, segments);
@@ -1464,7 +1482,7 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
     ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
 }
 
-bool NodeDrawer::handle_node_resize()
+bool NodeDrawer::handle_node_resize() noexcept
 {
     if (m_resizing_grip_positions.empty())
         return false;
@@ -1493,9 +1511,9 @@ bool NodeDrawer::handle_node_resize()
             if (active && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
             {
                 m_now_resizing = idx;
-                ImVec2 p1 = ed::ScreenToCanvas(ImVec2(0, 0));
-                ImVec2 p2 = ed::ScreenToCanvas(ImGui::GetIO().MouseDelta);
-                ImVec2 canvas_delta = ImVec2(p2.x - p1.x, p2.y - p1.y);
+                const ImVec2 p1 = ed::ScreenToCanvas(ImVec2(0, 0));
+                const ImVec2 p2 = ed::ScreenToCanvas(ImGui::GetIO().MouseDelta);
+                const ImVec2 canvas_delta = ImVec2(p2.x - p1.x, p2.y - p1.y);
                 m_resizing_w[m_now_resizing] += canvas_delta.x;
                 m_resizing_w[m_now_resizing] = std::max(0.0f, m_resizing_w[m_now_resizing]);
             }
@@ -1506,7 +1524,7 @@ bool NodeDrawer::handle_node_resize()
     return m_now_resizing != -1;
 }
 
-bool NodeDrawer::get_bg_menu_active(bool& rclick, bool& dbl_click) const
+bool NodeDrawer::get_bg_menu_active(bool& rclick, bool& dbl_click) const noexcept
 {
     rclick = dbl_click = false;
     if (ed::ShowBackgroundContextMenu())
@@ -1516,9 +1534,9 @@ bool NodeDrawer::get_bg_menu_active(bool& rclick, bool& dbl_click) const
     return (rclick || dbl_click);
 }
 
-ImVec2 NodeDrawer::get_mouse_pos(const ImVec2* convert_pos /*= nullptr*/) const
+ImVec2 NodeDrawer::get_mouse_pos(const ImVec2* convert_pos /*= nullptr*/) const noexcept
 {
-    auto prev_context = ed::GetCurrentEditor();
+    const auto* prev_context = ed::GetCurrentEditor();
     if (nullptr == prev_context)
         ed::SetCurrentEditor(m_context);
 
@@ -1535,17 +1553,17 @@ ImVec2 NodeDrawer::get_mouse_pos(const ImVec2* convert_pos /*= nullptr*/) const
 
 data::PinInstance* NodeDrawer::get_hovered_pin() const
 {
-    return cast::ptrs<data::PinInstance>((std::uintptr_t)ed::GetHoveredPin());
+    return OBJ_LOAD(ed::GetHoveredPin());
 }
 
 data::NodeInstance* NodeDrawer::get_hovered_node() const
 {
-    return cast::ptrs<data::NodeInstance>((std::uintptr_t)ed::GetHoveredNode());
+    return OBJ_LOAD(ed::GetHoveredNode());
 }
 
 data::Link* NodeDrawer::get_hovered_link() const
 {
-    return cast::ptrs<data::Link>((std::uintptr_t)ed::GetHoveredLink());
+    return OBJ_LOAD(ed::GetHoveredLink());
 }
 
 std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes() const
@@ -1561,17 +1579,17 @@ std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes() const
     std::set<data::NodeInstance*> ret;
     for (auto id : nodes)
     {
-        ret.insert(cast::ptrs<data::NodeInstance>((std::uintptr_t)id));
+        ret.insert(OBJ_LOAD(id));
     }
     return ret;
 }
 
-bool NodeDrawer::is_node_selected(const EdType& node) const
+bool NodeDrawer::is_node_selected(const EdType& node) const noexcept
 {
     return ed::IsNodeSelected(node);
 }
 
-void NodeDrawer::select_node(const EdType& node, bool append_to_selection) const
+void NodeDrawer::select_node(const EdType& node, bool append_to_selection) const noexcept
 {
     if (node)
         ed::SelectNode(node, append_to_selection);
@@ -1589,17 +1607,17 @@ std::set<data::Link*> NodeDrawer::get_selected_links() const
     std::set<data::Link*> ret;
     for (auto id : links)
     {
-        ret.insert(cast::ptrs<data::Link>((std::uintptr_t)id));
+        ret.insert(OBJ_LOAD(id));
     }
     return ret;
 }
 
-bool NodeDrawer::is_link_selected(const EdType& link) const
+bool NodeDrawer::is_link_selected(const EdType& link) const noexcept
 {
     return ed::IsLinkSelected(link);
 }
 
-void NodeDrawer::select_link(const EdType& link, bool append_to_selection) const
+void NodeDrawer::select_link(const EdType& link, bool append_to_selection) const noexcept
 {
     if (link)
         ed::SelectLink(link, append_to_selection);
@@ -1607,12 +1625,12 @@ void NodeDrawer::select_link(const EdType& link, bool append_to_selection) const
         ed::ClearSelection();
 }
 
-void NodeDrawer::clear_selection()
+void NodeDrawer::clear_selection() noexcept
 {
     ed::ClearSelection();
 }
 
-std::set<data::NodeInstance*> NodeDrawer::get_nodes_in_group(data::NodeInstance* group, const std::vector<std::unique_ptr<data::NodeInstance>>& all_nodes) const
+std::set<data::NodeInstance*> NodeDrawer::get_nodes_in_group(const data::NodeInstance* group, const std::vector<std::unique_ptr<data::NodeInstance>>& all_nodes) const
 {
     std::set<data::NodeInstance*> ret;
     const float group_capt_height = ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y;
@@ -1630,34 +1648,36 @@ std::set<data::NodeInstance*> NodeDrawer::get_nodes_in_group(data::NodeInstance*
     return ret;
 }
 
-void NodeDrawer::pin_node(const EdType& node, bool pin) const
+void NodeDrawer::pin_node(const EdType& node, bool pin) const noexcept
 {
     ed::SetNodeDraggable(node, !pin);
 }
 
-void NodeDrawer::rename_node(data::NodeInstance* node)
+void NodeDrawer::rename_node(data::NodeInstance* node) noexcept
 {
+    LogRAssert(node, "Zero ptr", );
     m_renaming_node = node;
     m_renaming_pin = nullptr;
     m_renaming_buff = node->get_name();
     m_need_renaming_focus = true;
 }
 
-void NodeDrawer::rename_pin(data::PinInstance* pin)
+void NodeDrawer::rename_pin(data::PinInstance* pin) noexcept
 {
+    LogRAssert(pin, "Zero ptr", );
     m_renaming_node = nullptr;
     m_renaming_pin = pin;
     m_renaming_buff = pin->state().name;
     m_need_renaming_focus = true;
 }
 
-ImRect NodeDrawer::calc_group_rect(const ImRect& node_rc) const
+ImRect NodeDrawer::calc_group_rect(const ImRect& node_rc) const noexcept
 {
     return ImRect(ImVec2(node_rc.Min.x - ImGui::GetStyle().ItemSpacing.x * 2, node_rc.Min.y - ImGui::GetTextLineHeight() * 2 - ImGui::GetStyle().ItemSpacing.y * 2),
         ImVec2(node_rc.Max.x + ImGui::GetStyle().ItemSpacing.x * 4, node_rc.Max.y + ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 2));
 }
 
-ImRect NodeDrawer::fit_group_rect(const data::NodeInstance* group, const std::set<data::NodeInstance*>& nodes) const
+ImRect NodeDrawer::fit_group_rect(const data::NodeInstance* group, const std::set<data::NodeInstance*>& nodes) const noexcept
 {
     if (nodes.empty())
         return {};
@@ -1680,74 +1700,76 @@ ImRect NodeDrawer::fit_group_rect(const data::NodeInstance* group, const std::se
     return rect;
 }
 
-void NodeDrawer::delete_node(const data::NodeInstance* node)
+void NodeDrawer::delete_node(data::NodeInstance* node) noexcept
 {
-    if (node->ed())
-    {
-        auto editor = ed::GetCurrentEditor();
-        if (nullptr == editor)
-            ed::SetCurrentEditor(m_context);
+    LogRAssert(node, "Zero ptr", );
+    if (nullptr == m_context) return;
 
-        if (m_context != nullptr)
-        {
-            ed::DeleteNode(node->ed());
-            m_pending_delete.insert(cast::to_void(node));
-        }
-
-        if (nullptr == editor)
-            ed::SetCurrentEditor(nullptr);
-    }
-    else
-    {
-        LogInternalLogic("Node id is null");
-    }
-}
-
-void NodeDrawer::delete_link(const data::Link* link)
-{
-    auto editor = ed::GetCurrentEditor();
+    const auto* editor = ed::GetCurrentEditor();
     if (nullptr == editor)
         ed::SetCurrentEditor(m_context);
 
     if (m_context != nullptr)
     {
-        bool result = false;
-        Log("DELETE LINK: " << LogPTR(link)); // TODO
-        if (link->ed())
-            result = ed::DeleteLink(link->ed());
+        if (OBJ_ID(node))
+            ed::DeleteNode(OBJ_ID(node));
         else
-            result = ed::DeleteLink(cast::to_ptr(link));
-        if (result)
-            m_pending_delete.insert(cast::to_void(link));
+            ed::DeleteNode(OBJ_CREATE(node));
+
+        OBJ_DEL(node);
+        for (auto pin : node->get_inputs())  { OBJ_DEL(pin); }
+        for (auto pin : node->get_outputs()) { OBJ_DEL(pin); }
+    }
+
+    if (nullptr == editor)
+        ed::SetCurrentEditor(nullptr);
+}
+
+void NodeDrawer::delete_link(data::Link* link) noexcept
+{
+    LogRAssert(link, "Zero ptr", );
+    if (nullptr == m_context) return;
+
+    const auto* editor = ed::GetCurrentEditor();
+    if (nullptr == editor)
+        ed::SetCurrentEditor(m_context);
+
+    if (m_context != nullptr)
+    {
+        if (OBJ_ID(link))
+            ed::DeleteLink(OBJ_ID(link));
+        else
+            ed::DeleteLink(OBJ_CREATE(link));
+        OBJ_DEL(link);
     }
 
     if (nullptr == editor)
         ed::SetCurrentEditor(nullptr);    
 }
 
-float NodeDrawer::get_zoom() const
+float NodeDrawer::get_zoom() const noexcept
 {
     return ed::GetCurrentZoom();
 }
 
-void NodeDrawer::set_zoom(float zoom)
+void NodeDrawer::set_zoom(float zoom) noexcept
 {
     m_zoom = zoom;
     m_zoom_set = false;
 }
 
-const ImRect& NodeDrawer::get_viewport_rect() const
+const ImRect& NodeDrawer::get_viewport_rect() const noexcept
 {
     return ed::GetCurrentView();
 }
 
-void NodeDrawer::set_viewport_rect(const ImRect& rect)
+void NodeDrawer::set_viewport_rect(const ImRect& rect) noexcept
 {
     m_view_rect = rect;
     m_view_set = false;
 }
 
-ImVec2 NodeDrawer::get_visible_pos(std::optional<ImVec2> add_offset) const
+ImVec2 NodeDrawer::get_visible_pos(std::optional<ImVec2> add_offset) const noexcept
 {    
     const ImVec2 add_pt = add_offset.has_value() ? add_offset.value() : ImVec2(0, 0);
     if (nullptr == m_context)
@@ -1763,7 +1785,7 @@ ImVec2 NodeDrawer::get_visible_pos(std::optional<ImVec2> add_offset) const
     return target_screen_pos;
 }
 
-bool NodeDrawer::handle_pin_renaming(data::PinInstance* curr_pin)
+bool NodeDrawer::handle_pin_renaming(const data::PinInstance* curr_pin)
 {
     if (m_renaming_pin == curr_pin)
     {
@@ -1778,6 +1800,7 @@ bool NodeDrawer::handle_pin_renaming(data::PinInstance* curr_pin)
         {
             m_wf->action()->set_pin_name(m_renaming_pin, m_renaming_buff);
             m_renaming_buff.clear();
+            m_renaming_buff.shrink_to_fit();
             m_renaming_pin = nullptr;
             m_renaming_node = nullptr;
         }
@@ -1791,7 +1814,7 @@ bool NodeDrawer::handle_pin_renaming(data::PinInstance* curr_pin)
     return false;
 }
 
-void NodeDrawer::handle_node_collapsing(data::NodeInstance* node)
+void NodeDrawer::handle_node_collapsing(const data::NodeInstance* node)
 {
     g::pFlow->txt_panel_delete(m_wf->get_id(), node);
     if (m_deffered_action->active_node == node)
@@ -1805,6 +1828,7 @@ void NodeDrawer::handle_node_collapsing(data::NodeInstance* node)
     {
         m_wf->action()->set_node_name(m_renaming_node, m_renaming_buff);
         m_renaming_buff.clear();
+        m_renaming_buff.shrink_to_fit();
         m_renaming_node = nullptr;
         m_renaming_pin = nullptr;
     }
@@ -1813,7 +1837,8 @@ void NodeDrawer::handle_node_collapsing(data::NodeInstance* node)
         if (pin == m_renaming_pin)
         {
             m_wf->action()->set_pin_name(m_renaming_pin, m_renaming_buff);
-            m_renaming_buff.clear();            
+            m_renaming_buff.clear();
+            m_renaming_buff.shrink_to_fit();
             m_renaming_pin = nullptr;
             m_renaming_node = nullptr;
         }
@@ -1829,7 +1854,8 @@ void NodeDrawer::handle_node_collapsing(data::NodeInstance* node)
         if (pin == m_renaming_pin)
         {
             m_wf->action()->set_pin_name(m_renaming_pin, m_renaming_buff);
-            m_renaming_buff.clear();            
+            m_renaming_buff.clear();
+            m_renaming_buff.shrink_to_fit();
             m_renaming_pin = nullptr;
             m_renaming_node = nullptr;
             break;

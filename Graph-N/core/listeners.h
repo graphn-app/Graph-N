@@ -7,8 +7,8 @@ namespace listener
 
 struct ComfyUiObjectValidityListener
 {
-    ComfyUiObjectValidityListener() = default;
-    virtual ~ComfyUiObjectValidityListener() = 0;
+    ComfyUiObjectValidityListener() noexcept = default;
+    virtual ~ComfyUiObjectValidityListener() noexcept = 0;
 
     NO_COPY_MOVE(ComfyUiObjectValidityListener);
 
@@ -18,27 +18,29 @@ struct ComfyUiObjectValidityListener
     virtual void resolve_comfyui_objects(Step /*step*/) {}
 };
 
-inline ComfyUiObjectValidityListener::~ComfyUiObjectValidityListener() = default;
+inline ComfyUiObjectValidityListener::~ComfyUiObjectValidityListener() noexcept = default;
 
 ///////////////////////////
 
 struct Timer
 {
-    Timer() = default;
-    virtual ~Timer() = 0;
+    Timer() noexcept = default;
+    virtual ~Timer() noexcept = 0;
 
     NO_COPY_MOVE(Timer);
 
-    virtual void on_1s_lazy_timer(int64_t total_seconds_elapsed) = 0;
-    virtual void on_frame(int64_t total_frames_elapsed) = 0;
+    virtual void on_1s_lazy_timer(int64_t total_seconds_elapsed) {}
+    virtual void on_frame(int64_t total_frames_elapsed) {}
 };
 
-inline Timer::~Timer() = default;
+inline Timer::~Timer() noexcept = default;
 
 ///////////////////////////
 
 struct ServerRestartHandler
 {
+    ServerRestartHandler() noexcept = default;
+    virtual ~ServerRestartHandler() noexcept = default;
     virtual void handle_server_killed() {}
 };
 

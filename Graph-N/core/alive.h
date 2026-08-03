@@ -6,15 +6,15 @@ class IsAlive
 {
 public:
     IsAlive() { m_alive = std::make_shared<bool>(true); }
-    ~IsAlive() { dead(); }
+    ~IsAlive() noexcept { dead(); }
 
     NO_COPY_MOVE(IsAlive);
 
-    inline StillAliveCallback get_alive_callback() const { return [is_alive = m_alive]() { return *is_alive; }; }
+    StillAliveCallback get_alive_callback() const { return [is_alive = m_alive]() noexcept { return *is_alive; }; }
 
 protected:
-    inline void alive() { *m_alive = true; }
-    inline void dead() { *m_alive = false; }
+    void alive() noexcept { *m_alive = true; }
+    void dead() noexcept { *m_alive = false; }
 
 private:
     const char* m_obj_name = nullptr;

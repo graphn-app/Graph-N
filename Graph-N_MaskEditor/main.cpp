@@ -52,7 +52,7 @@ g_data;
 void get_app_directory()
 {
     wchar_t buffer[MAX_PATH];
-    GetModuleFileNameW(NULL, buffer, MAX_PATH);
+    GetModuleFileNameW(nullptr, buffer, MAX_PATH);
     std::filesystem::path path(buffer);
     g_data.curr_directory = path.parent_path();
 }
@@ -67,7 +67,7 @@ std::vector<BYTE> read_stream(IStream* stream)
     if (SUCCEEDED(stream->Stat(&stat, STATFLAG_NONAME)))
         data.reserve(static_cast<size_t>(stat.cbSize.QuadPart));
 
-    BYTE buffer[4096];
+    BYTE buffer[4096] = {};
     ULONG bytesRead = 0;
     while (SUCCEEDED(stream->Read(buffer, sizeof(buffer), &bytesRead)) && bytesRead > 0)
     {
@@ -134,7 +134,7 @@ bool load_image()
     if (!WaitNamedPipeW(pipe_name.c_str(), NMPWAIT_USE_DEFAULT_WAIT))
         return false;
 
-    HANDLE hpipe = CreateFileW(pipe_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, nullptr);
+    HANDLE hpipe = CreateFileW(pipe_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
     if (INVALID_HANDLE_VALUE == hpipe)
         return false;
 
@@ -195,13 +195,13 @@ bool load_image_debug()
     return true;
 }
 
-bool save_image()
+bool save_image() noexcept
 {
     if (!g_data.hpipe)
         return false;
 
     DWORD written = 0;
-    uint32_t size = static_cast<uint32_t>(g_data.image_data.size());
+    const uint32_t size = static_cast<uint32_t>(g_data.image_data.size());
     if (!::WriteFile(g_data.hpipe, &size, 4, &written, nullptr) || written != 4)
     {
         ::MessageBoxW(g_data.hwnd, L"Failed to save mask", g_data.caption.c_str(), MB_ICONSTOP);
@@ -323,12 +323,12 @@ int32_t main(int32_t, char**)
     wcex.cbSize = sizeof(WNDCLASSEXW);
     wcex.style = CS_HREDRAW | CS_VREDRAW;
     wcex.lpfnWndProc = WndProc;
-    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszClassName = L"GraphN_Shim_Host_ME";
     RegisterClassExW(&wcex);
 
-    g_data.hwnd = CreateWindowW(L"GraphN_Shim_Host_ME", g_data.caption.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, 1280, 800, NULL, NULL, wcex.hInstance, NULL);
+    g_data.hwnd = CreateWindowW(L"GraphN_Shim_Host_ME", g_data.caption.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, 1280, 800, nullptr, nullptr, wcex.hInstance, nullptr);
     if (nullptr == g_data.hwnd)
     {
         ::MessageBoxW(nullptr, L"Failed to create app window", g_data.caption.c_str(), MB_ICONSTOP);
@@ -344,6 +344,8 @@ int32_t main(int32_t, char**)
         Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [](HRESULT /*result*/, ICoreWebView2Environment* env) -> HRESULT
     {
+        if (nullptr == env)
+            return E_INVALIDARG;
         const auto hres = env->CreateCoreWebView2Controller(g_data.hwnd, Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
             [env](HRESULT /*result*/, ICoreWebView2Controller* controller) -> HRESULT
         {
@@ -363,6 +365,8 @@ int32_t main(int32_t, char**)
             hres = g_data.webview->add_WebResourceRequested(Microsoft::WRL::Callback<ICoreWebView2WebResourceRequestedEventHandler>(
                 [env](ICoreWebView2*, ICoreWebView2WebResourceRequestedEventArgs* args) -> HRESULT
             {
+                if (nullptr == args)
+                    return E_INVALIDARG;
                 Microsoft::WRL::ComPtr<ICoreWebView2WebResourceRequest> req;
                 auto hres = args->get_Request(&req);
                 if (SUCCEEDED(hres))
@@ -519,7 +523,7 @@ int32_t main(int32_t, char**)
     }
 
     MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0))
+    while (GetMessage(&msg, nullptr, 0, 0))
     {
         TranslateMessage(&msg);
         DispatchMessage(&msg);

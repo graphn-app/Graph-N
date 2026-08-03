@@ -25,44 +25,44 @@ class PanelWorkflow final :
 {
 public:
     PanelWorkflow(wid workflow_id, const std::string& name, const std::string& panel_id, ImGuiID dock);
-    ~PanelWorkflow() override;
+    ~PanelWorkflow() noexcept override;
 
     void init() override;    
 
-    void stop_all_threads() override;
-    void free() override;
+    void stop_all_threads() noexcept override;
+    void free() noexcept override;
 
-    inline data::Workflow* get_workflow() const { return m_wf; }
-    inline data::WorkflowAction* get_action() const { return m_action; }
+    data::Workflow* get_workflow() const noexcept { return m_wf; }
+    data::WorkflowAction* get_action() const noexcept { return m_action; }
 
-    inline void select_new_nodes() { m_select_new_nodes = true; }
-    inline void select_all_nodes() { m_select_all_nodes = true; }
+    void select_new_nodes() noexcept { m_select_new_nodes = true; }
+    void select_all_nodes() noexcept { m_select_all_nodes = true; }
 
-    inline void restore_pos() { m_restore_pos = true; }
-    inline void rename_panel(const std::string& new_name) { set_name(new_name); }
+    void restore_pos() noexcept { m_restore_pos = true; }
+    void rename_panel(const std::string& new_name) { set_name(new_name); }
 
-    inline void locate_node(data::NodeInstance* node) { m_locate = node; }
-    inline void locate_selected_node() { m_locate_selected = true; }
+    void locate_node(data::NodeInstance* node) noexcept { m_locate = node; }
+    void locate_selected_node() noexcept { m_locate_selected = true; }
 
     void set_wf_view(std::optional<ImRect> wf_rc, std::optional<float> wf_zoom);
 
-    inline void display_new_node_menu() { m_display_new_node_menu = true; }
+    void display_new_node_menu() noexcept { m_display_new_node_menu = true; }
 
-    bool can_run() const;
+    bool can_run() const noexcept;
     void run(bool add_front);
 
-    void set_num_of_runs(int32_t num);
+    void set_num_of_runs(int32_t num) noexcept;
 
-    bool get_node_selected(data::NodeInstance* node) const;
-    inline std::set<data::NodeInstance*> get_selected_nodes() const { return m_drawer.get_selected_nodes(); }
+    bool get_node_selected(data::NodeInstance* node) const noexcept;
+    std::set<data::NodeInstance*> get_selected_nodes() const { return m_drawer.get_selected_nodes(); }
 
-    inline bool can_save() const { return m_can_save && !m_invalidation_state; }
+    bool can_save() const noexcept { return m_can_save && !m_invalidation_state; }
     void save() const;
 
-    inline bool can_undo() const { return *m_undo_name != 0 && !m_invalidation_state; }
+    bool can_undo() const noexcept { return *m_undo_name != 0 && !m_invalidation_state; }
     void undo() const;
 
-    inline bool can_redo() const { return *m_redo_name != 0 && !m_invalidation_state; }
+    bool can_redo() const noexcept { return *m_redo_name != 0 && !m_invalidation_state; }
     void redo() const;
 
     void group_nodes(const std::set<data::NodeInstance*>& nodes);
@@ -73,33 +73,33 @@ public:
 private:
     DlgCode show(bool& focused) override;
     void draw_wf();
-    void handle_panel_context_menu();
+    void handle_panel_context_menu() noexcept;
 
     // ComfyUiObjectValidityListener
-    void invalidate_comfyui_objects() override;
+    void invalidate_comfyui_objects() noexcept override;
     void resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step step) override;
 
     void check_history();
     void create_toolbar();
 
-    void on_pre_save(PanelToolbar::Element& el);
+    void on_pre_save(PanelToolbar::Element& el) noexcept;
     void on_save(PanelToolbar::Element& el);
-    void on_pre_revert(PanelToolbar::Element& el);
+    void on_pre_revert(PanelToolbar::Element& el) noexcept;
     void on_revert(PanelToolbar::Element& el);
-    void on_pre_undo(PanelToolbar::Element& el);
+    void on_pre_undo(PanelToolbar::Element& el) noexcept;
     void on_undo(PanelToolbar::Element& el);
-    void on_pre_redo(PanelToolbar::Element& el);
+    void on_pre_redo(PanelToolbar::Element& el) noexcept;
     void on_redo(PanelToolbar::Element& el);
-    void on_pre_project_status(PanelToolbar::Element& el);
+    void on_pre_project_status(PanelToolbar::Element& el) noexcept;
 
     void on_pre_queue_status(PanelToolbar::Element& el); 
-    void on_pre_queue(PanelToolbar::Element& el);
+    void on_pre_queue(PanelToolbar::Element& el) noexcept;
     void on_queue(PanelToolbar::Element& el);
-    void on_pre_queue_interrupt(PanelToolbar::Element& el);
+    void on_pre_queue_interrupt(PanelToolbar::Element& el) noexcept;
     void on_queue_interrupt(PanelToolbar::Element& el);
     void on_pre_queue_drop_all(PanelToolbar::Element& el);
     void on_queue_drop_all(PanelToolbar::Element& el);
-    void on_pre_tasks_num(PanelToolbar::Element& el);
+    void on_pre_tasks_num(PanelToolbar::Element& el) noexcept;
     void on_tasks_num(PanelToolbar::Element& el);
     void on_show_dummy_node(PanelToolbar::Element& el);
 
@@ -117,7 +117,7 @@ private:
     bool show_multilink_menu();
     bool show_new_node_menu();
     bool show_colors_menu(bool& close, bool& reset, bool show_alpha, const ImVec4& init);
-    data::Node* show_nodes_menu(const std::string& in_pin_filter, const std::string& out_pin_filter);
+    data::Node* show_nodes_menu(const std::list<PinType>& in_pins, const std::list<PinType>& out_pins);
 
     void fit(std::map<data::NodeInstance*, std::set<data::NodeInstance*>>& items);
 

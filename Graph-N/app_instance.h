@@ -6,17 +6,16 @@ namespace httplib { class Server; }
 class AppInstance final
 {
 public:
-    // Колбэк, который будет вызван, если кто-то попытался запустить вторую копию
     using WakeUpCallback = std::function<void(const std::string& args)>;
 
     AppInstance(WakeUpCallback on_wake_up);
-    ~AppInstance();
+    ~AppInstance() noexcept;
 
     NO_COPY_MOVE(AppInstance);
 
     // returns true, if this is first instance
     // returns false, if main instance already running (we should close)
-    bool is_primary() const { return m_is_primary; }
+    bool is_primary() const noexcept { return m_is_primary; }
 
 private:
     void notify_existing_instance();

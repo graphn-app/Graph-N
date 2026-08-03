@@ -16,28 +16,28 @@ using Microsoft::WRL::ComPtr;
 namespace platform
 {
 
-VideoControl_Win32::VideoControl_Win32()
+VideoControl_Win32::VideoControl_Win32() noexcept
     : m_reader(nullptr, [](IMFSourceReader* p) { if (p) p->Release(); })
 {
 }
 
-VideoControl_Win32::~VideoControl_Win32()
+VideoControl_Win32::~VideoControl_Win32() noexcept
 {
     if (m_initialized)
     {
-        cleanup();
-        MFShutdown();
+        try
+        {
+            cleanup();
+            MFShutdown();
+        }
+        catch (...) {}
     }
 }
 
-void VideoControl_Win32::init()
+void VideoControl_Win32::init() noexcept
 {
-    HRESULT hr = MFStartup(MF_VERSION);
-    if (FAILED(hr))
-    {
-        LogWarn("failed to initialize media foundation, err " << LogHRES(hr));
-        return;
-    }
+    const HRESULT hr = MFStartup(MF_VERSION);
+    LogRAssert(SUCCEEDED(hr), "failed to initialize media foundation, err " << LogHRES(hr), );
 
     m_initialized = true;
 }
@@ -86,7 +86,7 @@ mngr::VideoInfo VideoControl_Win32::get_info(const std::string& filepath, std::o
     hr = reader->GetPresentationAttribute(cast::to_u32(MF_SOURCE_READER_MEDIASOURCE), MF_PD_DURATION, &var);
     if (SUCCEEDED(hr))
     {
-        info.duration_sec = static_cast<float>(var.uhVal.QuadPart) / 10000000.0f;
+        info.duration_sec = cast::to_float(var.uhVal.QuadPart) / 10000000.0f;
         PropVariantClear(&var);
     }
 
@@ -106,7 +106,7 @@ mngr::VideoInfo VideoControl_Win32::get_info(const std::string& filepath, std::o
         hr = MFGetAttributeRatio(media_type.Get(), MF_MT_FRAME_RATE, &num, &den);
         if (SUCCEEDED(hr) && den != 0)
         {
-            info.fps = static_cast<float>(num) / static_cast<float>(den);
+            info.fps = cast::to_float(num) / cast::to_float(den);
         }
 
         if (info.width > 0 && info.height > 0)
@@ -116,7 +116,9 @@ mngr::VideoInfo VideoControl_Win32::get_info(const std::string& filepath, std::o
     return info;
 }
 
-static void scale(UINT32& size_w, UINT32& size_h, UINT32 max_size)
+namespace
+{
+void scale(UINT32& size_w, UINT32& size_h, UINT32 max_size) noexcept
 {
     if (size_w > max_size || size_h > max_size)
     {
@@ -136,6 +138,7 @@ static void scale(UINT32& size_w, UINT32& size_h, UINT32 max_size)
         size_h = (size_h / 2) * 2;
     }
 }
+} // namespace
 
 int32_t VideoControl_Win32::load(const std::string& filepath, uint32_t max_side_len)
 {
@@ -255,13 +258,9 @@ int32_t VideoControl_Win32::load(const std::string& filepath, uint32_t max_side_
     return m_video_id;
 }
 
-void VideoControl_Win32::play(int32_t video_id)
+void VideoControl_Win32::play(int32_t video_id) noexcept
 {
-    if (m_video_id != video_id)
-    {
-        LogInternalLogic("Video must be loaded first");
-    }
-
+    LogRAssert(m_video_id == video_id, "Video must be loaded first", );
     if (!m_initialized || !m_has_video || m_is_playing.load(std::memory_order_relaxed))
         return;
 
@@ -273,26 +272,18 @@ void VideoControl_Win32::play(int32_t video_id)
     m_cv.notify_all();
 }
 
-void VideoControl_Win32::stop(int32_t video_id)
+void VideoControl_Win32::stop(int32_t video_id) noexcept
 {
-    if (m_video_id != video_id)
-    {
-        LogInternalLogic("Video must be loaded first");
-    }
-
+    LogRAssert(m_video_id == video_id, "Video must be loaded first", );
     if (!m_initialized || !m_has_video)
         return;
 
     m_is_playing.store(false, std::memory_order_relaxed);
 }
 
-void VideoControl_Win32::seek(int32_t video_id, float pos)
+void VideoControl_Win32::seek(int32_t video_id, float pos) noexcept
 {
-    if (m_video_id != video_id)
-    {
-        LogInternalLogic("Video must be loaded first");
-    }
-
+    LogRAssert(m_video_id == video_id, "Video must be loaded first", );
     if (!m_initialized || !m_has_video)
         return;
 
@@ -304,14 +295,14 @@ void VideoControl_Win32::seek(int32_t video_id, float pos)
     m_cv.notify_all();
 }
 
-bool VideoControl_Win32::get_is_playing(int32_t video_id) const
+bool VideoControl_Win32::get_is_playing(int32_t video_id) const noexcept
 {
     if (!m_initialized || !m_has_video || m_video_id != video_id)
         return false;
     return m_is_playing.load(std::memory_order_relaxed);
 }
 
-float VideoControl_Win32::get_position(int32_t video_id) const
+float VideoControl_Win32::get_position(int32_t video_id) const noexcept
 {
     if (!m_initialized || !m_has_video || m_video_id != video_id)
         return 0.0f;
@@ -320,11 +311,7 @@ float VideoControl_Win32::get_position(int32_t video_id) const
 
 ImTextureID VideoControl_Win32::get_frame(int32_t video_id, float* out_w /*= nullptr*/, float* out_h /*= nullptr*/)
 {
-    if (m_video_id != video_id)
-    {
-        LogInternalLogic("Video must be loaded first");
-    }
-
+    LogRAssert(m_video_id == video_id, "Video must be loaded first", nullptr);
     if (!m_initialized || !m_has_video)
         return nullptr;
 
@@ -374,7 +361,7 @@ void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
         if (!is_playing && !seek_req && !frame_needed)
         {
             std::unique_lock<std::mutex> lock(m_mutex);
-            m_cv.wait(lock, [this]()
+            m_cv.wait(lock, [this]() noexcept
                 {
                     return
                         m_is_playing.load(std::memory_order_relaxed) || 
@@ -390,7 +377,8 @@ void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
         {
             const float target = m_seek_target.load(std::memory_order_relaxed);
             PROPVARIANT var;
-            HRESULT hr = InitPropVariantFromInt64(cast::to_i64(target * 10000000.0f), &var);
+            PropVariantInit(&var);
+            const HRESULT hr = InitPropVariantFromInt64(cast::to_i64(target * 10000000.0f), &var);
             if (SUCCEEDED(hr))
             {
                 m_reader->SetCurrentPosition(GUID_NULL, var);
@@ -443,7 +431,7 @@ void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
 
                         for (size_t i = 0; i < pixels; ++i)
                         {
-                            uint32_t pixel = src[i];
+                            const uint32_t pixel = src[i];
                             dst[i] = (pixel & 0xFF00FF00) | ((pixel & 0x00FF0000) >> 16) | ((pixel & 0x000000FF) << 16);
                         }
 
@@ -464,7 +452,7 @@ void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
             if (time_to_sleep > 0ms)
             {
                 std::unique_lock<std::mutex> lock(m_mutex);
-                m_cv.wait_for(lock, time_to_sleep, [this]()
+                m_cv.wait_for(lock, time_to_sleep, [this]() noexcept
                     {
                         return
                             m_seek_requested.load(std::memory_order_relaxed) || 
@@ -506,7 +494,7 @@ std::string VideoControl_Win32::get_thumbnail(const std::string& filename, uint3
     if (FAILED(hr)) return log_err("Failed to set attr video processing for");
 
     auto dest = tools::str::generate_uuid_v4() + ".png";
-    dest = (temp / dest).u8string();
+    dest = tools::str::path_to_string(temp / dest);
     std::filesystem::path wfilepath(filename);
 
     IMFSourceReader* reader = nullptr;
@@ -595,7 +583,7 @@ std::string VideoControl_Win32::get_thumbnail(const std::string& filename, uint3
                     // swizzle bgra to rgba (im_col32 format)
                     for (size_t i = 0; i < pixels; ++i)
                     {
-                        uint32_t pixel = src[i];
+                        const uint32_t pixel = src[i];
                         dst[i] = (pixel & 0xFF00FF00) | ((pixel & 0x00FF0000) >> 16) | ((pixel & 0x000000FF) << 16);
                     }
 

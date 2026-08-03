@@ -9,25 +9,25 @@ struct FontGuard;
 class ActivityBar final
 {
 public:
-    ActivityBar();
-    ~ActivityBar();
+    ActivityBar() noexcept;
+    ~ActivityBar() noexcept;
 
     void register_panels(const std::vector<DlgObj>& panels);
     void show(ActivityBarMode mode);
 
-    inline float get_l_width() const { return m_bar_l_width; }
-    inline float get_r_width() const { return m_bar_r_width; }
+    float get_l_width() const noexcept { return m_bar_l_width; }
+    float get_r_width() const noexcept { return m_bar_r_width; }
 
 private:
-    void calc_window_sizes(bool left, bool right);
-    void recalc_viewport_size(bool left, bool right);
+    void calc_window_sizes(bool left, bool right) noexcept;
+    void recalc_viewport_size(bool left, bool right) noexcept;
 
     enum class Direction { None, Left, Right, Bottom };
-    Direction get_panel_direction(DlgObj panel_obj, ImRect center_rc);
+    Direction get_panel_direction(DlgObj panel_obj, ImRect center_rc) noexcept;
     void draw_panel_buttons(DlgObj panel_obj, bool active);
     void draw_additional_buttons();
 
-    void show_tooltip(FontGuard* fg, const char* text);
+    void show_tooltip(FontGuard* fg, const char* text) noexcept;
 
 private:
     ImU32 m_clr_bg = 0;
@@ -42,7 +42,7 @@ private:
     ImU32 m_clr_restart_hover = 0;
 
     std::vector<std::pair<DlgObj, Direction>> m_panels;
-    ActivityBarMode m_mode;
+    ActivityBarMode m_mode = ActivityBarMode::Smart;
     ImRect m_left_rc;
     ImRect m_right_rc;
 

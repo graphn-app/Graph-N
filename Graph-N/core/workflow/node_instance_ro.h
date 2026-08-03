@@ -8,11 +8,11 @@ namespace data
 class PinInstance;
 struct Node;
 
-class NodeInstanceRo final : public NodeInstanceBase
+class NodeInstanceRo : public NodeInstanceBase
 {
 public:
     using NodeInstanceBase::NodeInstanceBase;
-    ~NodeInstanceRo() override;
+    ~NodeInstanceRo() noexcept override;
 
     void init() override;
 };

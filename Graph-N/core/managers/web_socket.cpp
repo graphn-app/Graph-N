@@ -1,5 +1,6 @@
 
 #include "core/managers/web_socket.h"
+#include "core/base/comfyui_web_paths.h"
 
 namespace mngr
 {
@@ -8,17 +9,13 @@ WebSocket::WebSocket()
     : m_resolver(net::make_strand(m_ioc))
     , m_ws(net::make_strand(m_ioc)) 
 {
-    LogF;
 }
 
-WebSocket::~WebSocket()
-{
-    // DO NOT LOG, logger object might be destroyed already
-}
+WebSocket::~WebSocket() noexcept = default;
 
 std::shared_ptr<WebSocket> WebSocket::create_and_connect(const std::string& host, int64_t port, int64_t timeout, int64_t ping_interval)
 {
-    auto obj = std::shared_ptr<WebSocket>(new WebSocket);
+    auto obj = std::shared_ptr<WebSocket>(new WebSocket); // def ctor is private
     obj->m_timeout = timeout;
     obj->m_host = host;
     obj->m_state.store(ConnectState::Connecting, std::memory_order_relaxed);
@@ -177,12 +174,14 @@ void WebSocket::on_read(beast::error_code ec, std::size_t /*bytes_transferred*/)
         bool keep_msg = true;
         if (is_bin)
         {
-            Log("Binary message size: " << data.size() << "bytes");
+            Log("New binary message size: " << data.size() << " bytes");
         }
         else
         {
             keep_msg = is_useful(data);
-            Log("New message (" << (keep_msg ? "keep" : "ignore") << "): " << data);
+            Log("New text message (" << (keep_msg ? "keep" : "ignore") << ") size: " << data.size() << " bytes");
+            if (glog::Logger::get_log_web_response_enabled())
+                LogClear(data);
         }
         if (keep_msg)
         {
@@ -217,7 +216,7 @@ bool WebSocket::is_useful(const std::string& message) const
     }
     catch (const std::exception& ex)
     {
-        LogExcep(ExcepCategory::API, ex.what());
+        LogExcep("Parse ws message: " << ex.what());
     }
     return false;
 }
@@ -246,6 +245,7 @@ void WebSocket::fail(beast::error_code ec, char const* what)
 {
     m_state.store(ConnectState::Disconnected, std::memory_order_relaxed);
     m_last_error = fmt::format(FMT_STRING("WS last error: {}, {}"), ec.value(), what);
+    Log(m_last_error);
 }
 } // namespace mngr
 

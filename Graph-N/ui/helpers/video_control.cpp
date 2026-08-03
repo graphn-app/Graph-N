@@ -3,7 +3,6 @@
 namespace global
 {
 
-VideoControl::~VideoControl()
-{}
+VideoControl::~VideoControl() noexcept = default;
 
 }

@@ -8,12 +8,12 @@
 namespace global
 {
 
-struct ImageAsync
+struct ImageAsync final
 {
     int32_t image_id = 0;
     ImTextureIDPtr textures;
     std::string path;
-    std::vector<byte> buffer;
+    std::string buffer;
     ImageData image_data;
 
     int32_t width = 0;
@@ -43,14 +43,16 @@ Textures::Textures()
     }
 }
 
-Textures::~Textures()
+Textures::~Textures() noexcept
 {
-    LogF_In;
-    if (g::pGraphN != nullptr)
-        g::pGraphN->unsubscribe_timers(this);
+    try
+    {
+        if (g::pGraphN != nullptr)
+            g::pGraphN->unsubscribe_timers(this);
 
-    cleanup_all();
-    LogF_Out;
+        cleanup_all();
+    }
+    catch (...) {}
 }
 
 void Textures::init_ui_ready()
@@ -58,15 +60,14 @@ void Textures::init_ui_ready()
     g::pGraphN->subscribe_timers(this);
 }
 
-int32_t Textures::load_image(const char* path, std::vector<byte>&& buffer, int32_t max_width, int32_t max_height, int32_t life_time)
+int32_t Textures::load_image(const char* path, std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time)
 {
     if (g::app_global_stop_all_threads.load(std::memory_order_relaxed))
         return -1;
 
     if (buffer.empty() && (nullptr == path || !tools::path::exists(path)))
     {
-        LogInternalLogic("Can't load image: no input data");
-        return -1;
+        LogRError("Can't load image: no input data", -1);
     }
 
     std::shared_ptr<ImageAsync> image = std::make_shared<ImageAsync>();
@@ -97,7 +98,7 @@ int32_t Textures::load_image(const char* path, int32_t max_width, int32_t max_he
     return load_image(path, {}, max_width, max_height, life_time);
 }
 
-int32_t Textures::load_image(std::vector<byte>&& buffer, int32_t max_width, int32_t max_height, int32_t life_time)
+int32_t Textures::load_image(std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time)
 {
     return load_image("", std::move(buffer), max_width, max_height, life_time);
 }
@@ -110,7 +111,7 @@ void Textures::worker_thread()
 
         {
             std::unique_lock<std::mutex> lock(m_mutex);
-            m_cv.wait(lock, [this]() {
+            m_cv.wait(lock, [this]() noexcept {
                 return !m_waiting.empty() || g::app_global_stop_all_threads.load(std::memory_order_relaxed);
             });
 
@@ -125,11 +126,11 @@ void Textures::worker_thread()
         {
             image->load_failed.store(true, std::memory_order_release);
             image->image_data_ready.store(true, std::memory_order_release);
-            LogS("Image early exit. ID: " << image->image_id);
+            Log("Image early exit. ID: " << image->image_id);
             continue;
         }
 
-        LogS("Image processing started. ID: " << image->image_id);
+        Log("Image processing started. ID: " << image->image_id);
 
         ImageData image_data(nullptr, [](stbi_uc* p) { stbi_image_free(p); });
 
@@ -138,11 +139,11 @@ void Textures::worker_thread()
             if (image->buffer.empty())
                 image_data.reset(stbi_load(image->path.c_str(), &image->width_or, &image->height_or, nullptr, 4));
             else
-                image_data.reset(stbi_load_from_memory(image->buffer.data(), cast::to_i32(image->buffer.size()), &image->width_or, &image->height_or, nullptr, 4));
+                image_data.reset(stbi_load_from_memory((stbi_uc*)image->buffer.data(), cast::to_i32(image->buffer.size()), &image->width_or, &image->height_or, nullptr, 4));
 
             if (!image_data || image->width_or <= 0 || image->height_or <= 0 || image->width_or > 16384 || image->height_or > 16384)
             {
-                LogS("Image load failed. ID: " << image->image_id << ". w=" << image->width_or << ", h=" << image->height_or);
+                Log("Image load failed. ID: " << image->image_id << ". w=" << image->width_or << ", h=" << image->height_or);
                 image->load_failed.store(true, std::memory_order_release);
             }
             else
@@ -157,7 +158,7 @@ void Textures::worker_thread()
 
                     if (!image_data_resized)
                     {
-                        LogS("Image resize failed. ID: " << image->image_id);
+                        Log("Image resize failed. ID: " << image->image_id);
                         image->load_failed.store(true, std::memory_order_release);
                     }
                     else
@@ -178,19 +179,19 @@ void Textures::worker_thread()
         }
         catch (const std::exception& ex)
         {
-            LogExcep(ExcepCategory::API, "Exception in texture load/resize for ID: " << image->image_id << ". " << ex.what());
+            LogExcep("Exception in texture load/resize for ID: " << image->image_id << ". " << ex.what());
             image->load_failed.store(true, std::memory_order_release);
         }
         catch (...)
         {
-            LogExcep(ExcepCategory::API, "Exception in texture load/resize for ID: " << image->image_id);
+            LogExcep("Exception in texture load/resize for ID: " << image->image_id);
             image->load_failed.store(true, std::memory_order_release);
         }
 
-        image->buffer.clear();
-        image->path.clear();
+        image->buffer.clear(); image->buffer.shrink_to_fit();
+        image->path.clear(); image->path.shrink_to_fit();
 
-        LogS("Image processing finished. ID: " << image->image_id);
+        Log("Image processing finished. ID: " << image->image_id);
 
         image->image_data_ready.store(true, std::memory_order_release);
     }
@@ -239,13 +240,13 @@ ImTextureID Textures::get_image(int32_t image_id, std::optional<bool>& image_val
         }
         catch (const std::exception& ex)
         {
-            LogExcepS(ExcepCategory::API, "Exception during processing image ID: " << image->image_id << ". " << ex.what());
+            LogExcep("Exception during processing image ID: " << image->image_id << ". " << ex.what());
             m_images.erase(it);
             return nullptr;
         }
         catch (...)
         {
-            LogExcepS(ExcepCategory::API, "Exception during processing image ID: " << image->image_id);
+            LogExcep("Exception during processing image ID: " << image->image_id);
             m_images.erase(it);
             return nullptr;
         }
@@ -263,14 +264,14 @@ ImTextureID Textures::get_image(int32_t image_id, std::optional<bool>& image_val
 
 bool Textures::get_image_alive(int32_t image_id)
 {
-    if (image_id <= 0) return false;
+    LogRAssert(image_id > 0, "Invalid image id", false);
     std::unique_lock<std::mutex> lock(m_mutex);
     return (m_images.find(image_id) != m_images.end());
 }
 
 void Textures::get_original_image_size(int32_t image_id, int32_t& width, int32_t& height)
 {
-    if (image_id <= 0) return;
+    LogRAssert(image_id > 0, "Invalid image id", );
     std::unique_lock<std::mutex> lock(m_mutex);
     const auto it = m_images.find(image_id);
     if (it == m_images.end())
@@ -282,6 +283,8 @@ void Textures::get_original_image_size(int32_t image_id, int32_t& width, int32_t
 
 void Textures::release_image(int32_t image_id)
 {
+    LogRAssert(image_id > 0, "Invalid image id", );
+
     std::unique_lock<std::mutex> lock(m_mutex);
 
     auto it = m_images.find(image_id);
@@ -303,8 +306,10 @@ void Textures::release_image(int32_t image_id)
     }
 }
 
-bool Textures::check_image_lifecycle(ImageAsync* image)
+bool Textures::check_image_lifecycle(const ImageAsync* image) noexcept
 {
+    LogRAssert(image, "Zero ptr", false);
+
     if (image->image_data_ready.load(std::memory_order_acquire) && image->life_time > 0)
     {
         if (m_seconds_passed - image->last_access_time > image->life_time)
@@ -324,7 +329,7 @@ void Textures::on_1s_lazy_timer(int64_t total_seconds_elapsed)
         std::unique_lock<std::mutex> lock(m_mutex);
         for (auto it = m_images.begin(); it != m_images.end(); )
         {
-            auto image = it->second.get();
+            const auto* image = it->second.get();
             if (!image)
             {
                 it = m_images.erase(it);
@@ -333,7 +338,7 @@ void Textures::on_1s_lazy_timer(int64_t total_seconds_elapsed)
 
             if (!image->ever_requested && m_frames_passed - image->frame_requested > 60)
             {
-                LogS("Image early exit. ID: " << image->image_id);
+                Log("Image early exit. ID: " << image->image_id);
                 it = m_images.erase(it);
             }
             else if (image->image_data_ready.load(std::memory_order_acquire))
@@ -368,7 +373,7 @@ void Textures::cleanup_all()
         if (worker.joinable())
             worker.join();
     }
-    m_workers.clear();
+    m_workers.clear(); m_workers.shrink_to_fit();
 
     std::unique_lock<std::mutex> lock(m_mutex);
     std::queue<std::shared_ptr<ImageAsync>> empty_queue;

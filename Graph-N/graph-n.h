@@ -33,8 +33,8 @@ class GraphN_Flow;
 class GraphN final
 {
 public:
-    GraphN();
-    ~GraphN();
+    GraphN() noexcept;
+    ~GraphN() noexcept;
 
     NO_COPY_MOVE(GraphN);
 
@@ -53,22 +53,22 @@ public:
     void exit_graphn();
 
     bool flow();
-    int32_t override_exit_code();
+    int32_t override_exit_code() noexcept;
 
     void subscribe_timers(listener::Timer* listener);
-    void unsubscribe_timers(listener::Timer* listener);
+    void unsubscribe_timers(listener::Timer* listener) noexcept;
 
     void subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step step, listener::ComfyUiObjectValidityListener* listener);
-    void unsubscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener);
+    void unsubscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener) noexcept;
 
     void invalidate_comfyui_objects();
     void resolve_comfyui_objects();
 
 public:
     // main wnd handlers
-    void handle_wnd_minimized() {}
-    void handle_wnd_restored() {}
-    void handle_wnd_on_close();
+    void handle_wnd_minimized() noexcept {}
+    void handle_wnd_restored() noexcept {}
+    void handle_wnd_on_close() noexcept;
     void handle_1sec_timer(int64_t seconds_elapsed);
     void handle_new_frame(int64_t frames_elapsed);
 
@@ -76,7 +76,7 @@ private:
     // flow
     bool init();
     bool start_server();
-    bool connect();
+    bool connect() noexcept;
     bool run_graphn();
 
 private:
@@ -118,5 +118,5 @@ extern mngr::HotkeysManager* pHotkeysManager;
 extern std::atomic_bool app_global_stop_all_threads;
 extern int32_t block_hotkeys_counter;
 
-void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line);
+void save_exception(std::string message, const char* file, int32_t line) noexcept;
 }

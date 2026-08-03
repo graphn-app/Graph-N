@@ -11,10 +11,7 @@ class PanelNotes final :
 {
 public:
     PanelNotes();
-    ~PanelNotes() override;
-
-    void init() override;
-    void stop_all_threads() override;
+    ~PanelNotes() noexcept override;
 
 private:
     DlgCode show(bool& focused) override;

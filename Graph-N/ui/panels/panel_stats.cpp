@@ -2,6 +2,7 @@
 #include "ui/panels/panel_stats.h"
 #include "ui/graph-n_flow.h"
 #include "core/managers/connect_manager.h"
+#include "core/base/comfyui_web_paths.h"
 #include "main.h"
 
 namespace ui
@@ -11,16 +12,14 @@ PanelStats::PanelStats()
     : PanelBase(DlgObj::PanelStats, "Stats")
 {}
 
-PanelStats::~PanelStats()
+PanelStats::~PanelStats() noexcept
 {
-    LogF;
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_timers(this);
 }
 
 void PanelStats::init()
 {
-    LogF;
     PanelBase::init();
 
     init_disks();
@@ -51,11 +50,9 @@ void PanelStats::init_disks()
 
 void PanelStats::stop_all_threads()
 {
-    LogF_In;
     m_pause = false;
     if (m_th_api.joinable())  m_th_api.join();
     if (m_th_comfyui.joinable())  m_th_comfyui.join();
-    LogF_Out;
 }
 
 void PanelStats::th_api()
@@ -212,10 +209,10 @@ void PanelStats::th_comfyui()
                         m_video_devices = std::move(list);
                     }
                 }
-                catch (std::exception& e)
+                catch (const std::exception& ex)
                 {
                     if (!system_stats_err)
-                        LogExcep(ExcepCategory::ComfyUI, "/system_stats parse error: " << e.what());
+                        LogExcep("/system_stats parse error: " << ex.what());
                     system_stats_err = true;
                 }
             }
@@ -232,10 +229,10 @@ void PanelStats::th_comfyui()
                         m_queue_remaining.store(j["exec_info"]["queue_remaining"].get<uint32_t>(), std::memory_order_relaxed);
                     }
                 }
-                catch (std::exception& e)
+                catch (const std::exception& ex)
                 {
                     if (!prompt_err)
-                        LogExcep(ExcepCategory::ComfyUI, "/prompt parse error: " << e.what());
+                        LogExcep("/prompt parse error: " << ex.what());
                     prompt_err = true;
                 }
             }
@@ -245,7 +242,7 @@ void PanelStats::th_comfyui()
     }
 }
 
-void PanelStats::on_1s_lazy_timer(int64_t /*total_seconds_elapsed*/)
+void PanelStats::on_1s_lazy_timer(int64_t /*total_seconds_elapsed*/) noexcept
 {
     g::pConnectManager->get_status(&m_ping_mk);
 }
@@ -255,19 +252,21 @@ struct FrameSmoother final
     double values[60] = {};
     int32_t offset = 0;
 
-    float update(double new_val)
+    float update(double new_val) noexcept
     {
         values[offset] = new_val;
         offset = (offset + 1) % 60;
 
         double sum = 0;
-        for(double v : values)
+        for (const double v : values)
+        {
             sum += v;
+        }
         return cast::to_float(sum / 60);
     }
 };
 
-ImU32 PanelStats::get_color(int64_t value, bool& stay_default, int64_t lim_warn, int64_t lim_crit, bool is_lower_better)
+ImU32 PanelStats::get_color(int64_t value, bool& stay_default, int64_t lim_warn, int64_t lim_crit, bool is_lower_better) noexcept
 {
     stay_default = false;
 
@@ -465,7 +464,7 @@ void PanelStats::show_server_as_text(float val_offset)
 
 void PanelStats::print_fps(float val_offset)
 {
-    const float instant_fps = ImGui::GetIO().Framerate;
+    //const float instant_fps = ImGui::GetIO().Framerate;
     static float accumulated_time = 0.0f;
     static int32_t frame_counter = 0;
     static FrameSmoother smoother;
@@ -497,7 +496,7 @@ void PanelStats::print_fps(float val_offset)
         ImGui::PopStyleColor();
 }
 
-void PanelStats::print_ping(float val_offset)
+void PanelStats::print_ping(float val_offset) noexcept
 {
     bool def_clr = true;
     const auto color = get_color(m_ping_mk / 1000, def_clr,

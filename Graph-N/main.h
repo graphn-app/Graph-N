@@ -9,16 +9,16 @@ using DragAndDropCallback = std::function<void(std::list<std::filesystem::path>&
 class MainRoutine
 {
 public:
-    MainRoutine() = default;
-    virtual ~MainRoutine() = 0;
+    MainRoutine() noexcept = default;
+    virtual ~MainRoutine() noexcept = 0;
 
     NO_COPY_MOVE(MainRoutine);
 
     virtual bool init() = 0;
     virtual void free() = 0;
 
-    inline void set_vsync_enabled(bool enable) { m_vsync = enable; }
-    inline bool get_vsync_enabled() { return m_vsync; }
+    void set_vsync_enabled(bool enable) noexcept { m_vsync = enable; }
+    bool get_vsync_enabled() noexcept { return m_vsync; }
 
     virtual double get_frame_render_time() const = 0;
 
@@ -27,11 +27,11 @@ public:
 
     void set_dnd_callback(const DragAndDropCallback& callback) { m_dnd_callback = callback; }
 
-    ImFont* get_regular_font() const { return m_font_regular; }
-    ImFont* get_small_font() const { return m_font_small; }
-    ImFont* get_bold_font() const { return m_font_bold; }
-    ImFont* get_icons_font() const { return m_font_icons; }
-    ImFont* get_big_icons_font() const { return m_font_big_icons; }
+    ImFont* get_regular_font() const noexcept { return m_font_regular; }
+    ImFont* get_small_font() const noexcept { return m_font_small; }
+    ImFont* get_bold_font() const noexcept { return m_font_bold; }
+    ImFont* get_icons_font() const noexcept { return m_font_icons; }
+    ImFont* get_big_icons_font() const noexcept { return m_font_big_icons; }
 
     virtual void wnd_restore() = 0;
     virtual void wnd_minimize() = 0;
@@ -40,7 +40,7 @@ public:
     virtual void wnd_hide() = 0;
 
     virtual void wnd_toggle_fullscreen() = 0;
-    inline bool get_is_fullscreen() const { return m_fullscreen; }
+    bool get_is_fullscreen() const noexcept { return m_fullscreen; }
 
     virtual bool get_ini_config_exists() const = 0;
 

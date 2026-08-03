@@ -4,39 +4,40 @@
 
 namespace mngr
 {
+namespace
+{
+constexpr auto gdb_val_id = "id";
+constexpr auto gdb_val_file = "file";
+constexpr auto gdb_val_line = "line";
+constexpr auto gdb_val_message = "message";
+constexpr auto gdb_val_name = "name";
+constexpr auto gdb_val_when = "at";
+constexpr auto gdb_val_hash = "hash";
+constexpr auto gdb_val_int = "value_int";
+constexpr auto gdb_val_str = "value_str";
+constexpr auto gdb_val_opt = "option";
+constexpr auto gdb_val_uuid = "uuid";
+constexpr auto gdb_val_type = "type";
+constexpr auto gdb_val_pending_delete = "pending_delete";
+constexpr auto gdb_val_saved = "saved";
+constexpr auto gdb_val_saved_at = "saved_at";
+constexpr auto gdb_val_draft = "draft";
+constexpr auto gdb_val_draft_at = "draft_at";
+constexpr auto gdb_val_flow = "flow";
+constexpr auto gdb_val_prompt_id = "prompt_id";
+constexpr auto gdb_val_data = "data";
 
-inline constexpr auto gdb_val_id = "id";
-inline constexpr auto gdb_val_file = "file";
-inline constexpr auto gdb_val_line = "line";
-inline constexpr auto gdb_val_category = "category";
-inline constexpr auto gdb_val_message = "message";
-inline constexpr auto gdb_val_name = "name";
-inline constexpr auto gdb_val_when = "at";
-inline constexpr auto gdb_val_hash = "hash";
-inline constexpr auto gdb_val_int = "value_int";
-inline constexpr auto gdb_val_str = "value_str";
-inline constexpr auto gdb_val_opt = "option";
-inline constexpr auto gdb_val_uuid = "uuid";
-inline constexpr auto gdb_val_type = "type";
-inline constexpr auto gdb_val_pending_delete = "pending_delete";
-inline constexpr auto gdb_val_saved = "saved";
-inline constexpr auto gdb_val_saved_at = "saved_at";
-inline constexpr auto gdb_val_draft = "draft";
-inline constexpr auto gdb_val_draft_at = "draft_at";
-inline constexpr auto gdb_val_flow = "flow";
-inline constexpr auto gdb_val_prompt_id = "prompt_id";
-inline constexpr auto gdb_val_data = "data";
+constexpr auto gdb_valname_app_ver = "app_ver";
+constexpr auto gdb_valname_last_run = "last_run";
 
-inline constexpr auto gdb_valname_app_ver = "app_ver";
-inline constexpr auto gdb_valname_last_run = "last_run";
-
-inline constexpr auto gdb_tbl_meta = "METADATA";
-inline constexpr auto gdb_tbl_err = "ERRORS";
-inline constexpr auto gdb_tbl_opt = "SETTINGS";
-inline constexpr auto gdb_tbl_items = "ITEMPROPS";
-inline constexpr auto gdb_tbl_wfs = "WORKFLOWS";
-inline constexpr auto gdb_tbl_history = "HISTORY";
-inline constexpr auto gdb_tbl_history_search = "HISTORY_SEARCH";
+constexpr auto gdb_tbl_meta = "METADATA";
+constexpr auto gdb_tbl_err = "ERRORS";
+constexpr auto gdb_tbl_opt = "SETTINGS";
+constexpr auto gdb_tbl_items = "ITEMPROPS";
+constexpr auto gdb_tbl_wfs = "WORKFLOWS";
+constexpr auto gdb_tbl_history = "HISTORY";
+constexpr auto gdb_tbl_history_search = "HISTORY_SEARCH";
+} // namespace
 
 /*
 _______________________________________________________________________________________________________________________________________________________________
@@ -106,12 +107,10 @@ ________________________________________________________________________________
 #define LOG_KEY_VAL(k, v)              LOG_KEY(k) << " = " << LOG_VALUE(v)
 #define LOG_NOPT_KEY(h, k)             "id=" << h << ", opt: '" << cast::to_i32(k)
 #define LOG_NOPT_KEY_VAL(h, k, v)      LOG_NOPT_KEY(h, k) << "' = " << LOG_VALUE(v)
-#define LOG_EXP(e)                     "err: (" << e.getErrorCode() << ", " << e.getErrorStr() << ", " << ex.what()
+#define LOG_EXP(e)                     "err: (" << e.getErrorCode() << ", " << e.getErrorStr() << ", " << ex.what() << ")"
 
-DbManager::~DbManager()
-{
-    LogF;
-}
+DbManager::DbManager() = default;
+DbManager::~DbManager() = default;
 
 void DbManager::stop_all_threads()
 {
@@ -133,10 +132,10 @@ DbMetadata DbManager::read_db_metadata()
 
     try
     {
-        auto db = std::make_unique<SQLite::Database>(path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
-        meta.db_ver = db->execAndGet("PRAGMA user_version");
+        SQLite::Database db(path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
+        meta.db_ver = db.execAndGet("PRAGMA user_version");
 
-        SQLite::Statement query(*db,
+        SQLite::Statement query(db,
             fmt::format(FMT_COMPILE(R"(
                     SELECT {}, {}, {}
                     FROM {}
@@ -162,7 +161,6 @@ DbMetadata DbManager::read_db_metadata()
 
 bool DbManager::init()
 {
-    LogF;
     if (!Manager::init())
         return false;
 
@@ -230,11 +228,10 @@ bool DbManager::init()
 						{} TEXT,
 						{} INTEGER,
 						{} TEXT,
-						{} TEXT,
                         {} INTEGER
 					);
 			   )"), gdb_tbl_err, gdb_val_id,
-                    gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message,
+                    gdb_val_file, gdb_val_line, gdb_val_message,
                     gdb_val_when));
 
         m_db->exec(fmt::format(FMT_STRING(R"(
@@ -304,7 +301,7 @@ bool DbManager::init()
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite initialization " << LOG_EXP(ex));
+        LogSqlDbErr("SQLite initialization " << LOG_EXP(ex));
         return false;
     }
 
@@ -314,19 +311,13 @@ bool DbManager::init()
 
 void DbManager::begin_transaction()
 {
-    if (m_transaction_flag.load(std::memory_order_relaxed))
-        LogWarn("Transaction already started");
+    LogAssert(!m_transaction_flag.load(std::memory_order_relaxed), "Transaction already started");    
     m_transaction_flag.store(true, std::memory_order_relaxed);
 }
 
 void DbManager::end_transaction()
 {
-    if (!m_transaction_flag.load(std::memory_order_relaxed))
-    {
-        LogInternalLogic("Transaction wasn't started");
-        return;
-    }
-
+    LogAssert(m_transaction_flag.load(std::memory_order_relaxed), "Transaction wasn't started");
     m_transaction_flag.store(false, std::memory_order_relaxed);
     if (m_transaction_queue.empty())
         return;
@@ -342,22 +333,21 @@ void DbManager::end_transaction()
     m_cv.notify_all();
 }
 
-void DbManager::exception_save(ExcepCategory category, std::string&& message, const char* file, int32_t line)
+void DbManager::exception_save(std::string&& message, const char* file, int32_t line) noexcept
 {
-    WriteData data;
-    ExcepData e;
-    e.category = category;
-    e.file = file;
-    e.line = line;
-    e.message = std::move(message);
+    ExcepData data;
+    //data.category = category;
+    data.file = file;
+    data.line = line;
+    data.message = std::move(message);
 
-    data.type = WriteType::Exception;
-    data.data = std::move(e);
-
+    try
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        m_write_queue.push(std::move(data));
+        m_exception_write_data = std::move(data);
+        m_exception_write_data_flag.store(true, std::memory_order_relaxed);
     }
+    catch(...) {}
     m_cv.notify_all();
 }
 
@@ -412,7 +402,7 @@ std::vector<DbAppOptionData> DbManager::app_option_load_all()
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite load all options " << LOG_EXP(ex));
+        LogSqlDbErr("Load all options " << LOG_EXP(ex));
     }
     return {};
 }
@@ -436,11 +426,11 @@ void DbManager::app_option_save_all(std::vector<DbAppOptionData>&& opts)
         m_cv.notify_all();
 }
 
-void DbManager::item_option_save(hid id, DbItemOptionType type, DbValue&& value)
+void DbManager::item_option_save(hid hash, DbItemOptionType type, DbValue&& value)
 {
     WriteData data;
     ItemData item;
-    item.hash = id;
+    item.hash = hash;
     item.type = type;
     item.value = std::move(value);
 
@@ -458,7 +448,7 @@ void DbManager::item_option_save(hid id, DbItemOptionType type, DbValue&& value)
         m_cv.notify_all();
 }
 
-std::optional<DbValue> DbManager::item_option_load(hid id, DbItemOptionType type)
+std::optional<DbValue> DbManager::item_option_load(hid hash, DbItemOptionType type)
 {
     try
     {
@@ -472,7 +462,7 @@ std::optional<DbValue> DbManager::item_option_load(hid id, DbItemOptionType type
                 gdb_tbl_items,
                 gdb_val_hash, gdb_val_type));
 
-        query.bind(1, std::to_string(id));
+        query.bind(1, std::to_string(hash));
         query.bind(2, cast::to_i32(type));
 
         if (!query.executeStep())
@@ -486,7 +476,7 @@ std::optional<DbValue> DbManager::item_option_load(hid id, DbItemOptionType type
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite load " << LOG_NOPT_KEY(id, type) << ", " << LOG_EXP(ex));
+        LogSqlDbErr("Load opt " << LOG_NOPT_KEY(hash, type) << ", " << LOG_EXP(ex));
     }
     return std::nullopt;
 }
@@ -522,7 +512,7 @@ std::vector<std::pair<hid, DbValue>> DbManager::item_option_load_all(DbItemOptio
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite load all opts " << LOG_EXP(ex));
+        LogSqlDbErr("Load all opts " << LOG_EXP(ex));
     }
     return {};
 }
@@ -563,7 +553,7 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite load all workflows, " << LOG_EXP(ex));
+        LogSqlDbErr("Load all workflows " << LOG_EXP(ex));
     }
 
     WriteData data;
@@ -605,8 +595,8 @@ void DbManager::wf_load_blob(const std::string& uuid, blob::Blob& blob, bool& lo
             return;
         }
 
-        auto saved_len = query.getColumn(0).getBytes();
-        auto draft_len = query.getColumn(1).getBytes();
+        const auto saved_len = query.getColumn(0).getBytes();
+        const auto draft_len = query.getColumn(1).getBytes();
 
         if (!load_saved && 0 == draft_len)
             load_saved = true;
@@ -615,11 +605,11 @@ void DbManager::wf_load_blob(const std::string& uuid, blob::Blob& blob, bool& lo
 
         const void* ptr = query.getColumn(load_saved ? 0 : 1).getBlob();
         blob = blob::Blob(ptr, load_saved ? saved_len : draft_len);
-        Log("Workflow loaded: " << uuid << ", b=" << (load_saved ? saved_len : draft_len) << " bytes, loaded " << (load_saved ? "saved" : "draft") << " copy");
+        Log("Workflow blob loaded: " << uuid << ", b=" << (load_saved ? saved_len : draft_len) << " bytes, loaded " << (load_saved ? "stable" : "draft") << " version");
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite load blob workflow " << uuid << ", " << LOG_EXP(ex));
+        LogSqlDbErr("Load workflow blob " << uuid << ", " << LOG_EXP(ex));
     }
 }
 
@@ -811,8 +801,8 @@ std::vector<ExecTask> DbManager::history_load_all()
 
                     if (temp_ok && !o.filename.empty())
                     {
-                        const auto filename = tools::str::generate_uuid_v4() + std::filesystem::path(o.filename).extension().u8string();
-                        o.binary_path = (temp / filename).u8string();
+                        const auto filename = tools::str::generate_uuid_v4() + tools::str::path_to_string(std::filesystem::path(o.filename).extension());
+                        o.binary_path = tools::str::path_to_string(temp / filename);
                     }
 
                     task.outputs.push_back(std::move(o));
@@ -821,11 +811,11 @@ std::vector<ExecTask> DbManager::history_load_all()
             catch (const std::exception& ex)
             {
                 const auto prompt_id = query.getColumn(0).getString();
-                LogExcep(ExcepCategory::SQLite, "Failed to parse wf " << prompt_id << ": err " << ex.what());
+                LogSqlDbErr("Failed to parse wf " << prompt_id << ": err " << ex.what());
                 continue;
             }
 
-            auto blob_len = query.getColumn(1).getBytes();
+            const auto blob_len = query.getColumn(1).getBytes();
             const void* ptr = query.getColumn(1).getBlob();
             task.flow = blob::Blob(ptr, blob_len);
             
@@ -845,7 +835,7 @@ std::vector<ExecTask> DbManager::history_load_all()
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite load all history " << LOG_EXP(ex));
+        LogSqlDbErr("Load all history " << LOG_EXP(ex));
     }
     return {};
 }
@@ -890,7 +880,7 @@ void DbManager::history_search(const std::string& prompt, std::list<std::string>
             if (query.getColumn(0).isNull() || query.getColumn(1).isNull())
                 continue;
 
-            const auto prompt_id = query.getColumn(1).getString();
+            auto prompt_id = query.getColumn(1).getString();
             wfs.push_back(std::move(prompt_id));
         }
 
@@ -898,7 +888,7 @@ void DbManager::history_search(const std::string& prompt, std::list<std::string>
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite history search err " << LOG_EXP(ex));
+        LogSqlDbErr("History search " << LOG_EXP(ex));
     }
 }
 
@@ -937,15 +927,15 @@ void DbManager::backup_thread(std::filesystem::path db_path, std::unique_ptr<SQL
         }
 
         backup /= tools::dt::get_app_start_time().as_filename() + ".db";
-        auto path = backup.generic_u8string();
+        auto path = tools::str::u8_to_string(backup.generic_u8string());
         tools::str::replace_this(path, "'", "''");
         const std::string command = fmt::format(FMT_STRING("VACUUM INTO '{}';"), path);
         db->exec(command);
-        Log("Db backuped up to " << path);
+        Log("Db backed up to " << path);
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite backup err: " << LOG_EXP(ex));
+        LogSqlDbErr("Backup " << LOG_EXP(ex));
     }
 }
 
@@ -953,33 +943,32 @@ void DbManager::backup_thread(std::filesystem::path db_path, std::unique_ptr<SQL
 /////////// write thread                   //////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////
 
-void DbManager::write_data(SQLite::Database& db, const ExcepData* data)
+void DbManager::write_data(const SQLite::Database& db, const ExcepData& data)
 {
     try
     {
         SQLite::Statement query(db,
             fmt::format(FMT_STRING(R"(
                     INSERT INTO {}
-                                ({}, {}, {}, {}, {})
-                        VALUES  (?,  ?,  ?,  ?,  ?)
+                                ({}, {}, {}, {})
+                        VALUES  (?,  ?,  ?,  ?)
                 )"),
                 gdb_tbl_err,
-                gdb_val_file, gdb_val_line, gdb_val_category, gdb_val_message, gdb_val_when));
+                gdb_val_file, gdb_val_line, gdb_val_message, gdb_val_when));
 
-        query.bindNoCopy(1, data->file);
-        query.bind(2, data->line);
-        query.bind(3, cast::to_i64(data->category));
-        query.bindNoCopy(4, data->message);
-        query.bind(5, tools::dt::from_current_date().time());
+        query.bindNoCopy(1, data.file);
+        query.bind(2, data.line);
+        query.bindNoCopy(3, data.message);
+        query.bind(4, tools::dt::from_current_date().time());
         query.exec();
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_EXP(ex));
+        LogSqlDbErr("Save exception data " << LOG_EXP(ex));
     }
 }
 
-void DbManager::write_data(SQLite::Database& db, const DbAppOptionData* data)
+void DbManager::write_data(const SQLite::Database& db, const DbAppOptionData* data)
 {
     try
     {
@@ -1001,11 +990,11 @@ void DbManager::write_data(SQLite::Database& db, const DbAppOptionData* data)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_KEY_VAL(data->name, data->val) << ", " << LOG_EXP(ex));
+        LogSqlDbErr("Save opt data " << LOG_KEY_VAL(data->name, data->val) << ", " << LOG_EXP(ex));
     }
 }
 
-void DbManager::write_data(SQLite::Database& db, const ItemData* data)
+void DbManager::write_data(const SQLite::Database& db, const ItemData* data)
 {
     try
     {
@@ -1028,11 +1017,11 @@ void DbManager::write_data(SQLite::Database& db, const ItemData* data)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_NOPT_KEY_VAL(data->hash, data->type, data->value) << ", " << LOG_EXP(ex));
+        LogSqlDbErr("Save item data " << LOG_NOPT_KEY_VAL(data->hash, data->type, data->value) << ", " << LOG_EXP(ex));
     }
 }
 
-void DbManager::delete_data(SQLite::Database& db, const ItemData* data)
+void DbManager::delete_data(const SQLite::Database& db, const ItemData* data)
 {
     try
     {
@@ -1051,11 +1040,11 @@ void DbManager::delete_data(SQLite::Database& db, const ItemData* data)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_NOPT_KEY_VAL(data->hash, data->type, data->value) << ", " << LOG_EXP(ex));
+        LogSqlDbErr("Delete item data " << LOG_NOPT_KEY_VAL(data->hash, data->type, data->value) << ", " << LOG_EXP(ex));
     }
 }
 
-void DbManager::write_wf_meta(SQLite::Database& db, const WfData* data)
+void DbManager::write_wf_meta(const SQLite::Database& db, const WfData* data)
 {
     try
     {
@@ -1079,11 +1068,11 @@ void DbManager::write_wf_meta(SQLite::Database& db, const WfData* data)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite upd workflow " << data->name << "###" << data->uuid << ", " << LOG_EXP(ex));
+        LogSqlDbErr("Upd workflow " << data->name << "###" << data->uuid << ", " << LOG_EXP(ex));
     }
 }
 
-void DbManager::write_wf_blob(SQLite::Database& db, const WfBlob* data)
+void DbManager::write_wf_blob(const SQLite::Database& db, const WfBlob* data)
 {
     try
     {
@@ -1110,11 +1099,11 @@ void DbManager::write_wf_blob(SQLite::Database& db, const WfBlob* data)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite upd blob workflow " << data->uuid << ", " << LOG_EXP(ex));
+        LogSqlDbErr("Upd workflow blob " << data->uuid << ", " << LOG_EXP(ex));
     }
 }
 
-void DbManager::delete_wf_draft(SQLite::Database& db, const WfBlob* data)
+void DbManager::delete_wf_draft(const SQLite::Database& db, const WfBlob* data)
 {
     try
     {
@@ -1131,17 +1120,17 @@ void DbManager::delete_wf_draft(SQLite::Database& db, const WfBlob* data)
 
         query.bind(1);
         query.bind(2);
-        query.bindNoCopy(2, data->uuid);
+        query.bindNoCopy(3, data->uuid);
         query.exec();
         Log("Workflow draft blob clear: " << data->uuid << ", bl=" << data->blob->size() << " bytes");
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite clear draft blob, wf=" << data->uuid << ", " << LOG_EXP(ex));
+        LogSqlDbErr("Delete draft wf blob " << data->uuid << ", " << LOG_EXP(ex));
     }
 }
 
-void DbManager::purge_wf(SQLite::Database& db)
+void DbManager::purge_wf(const SQLite::Database& db)
 {
     try
     {
@@ -1156,15 +1145,15 @@ void DbManager::purge_wf(SQLite::Database& db)
 
         const auto num = query1.exec();
 
-        Log("Purged WFs: " << num);
+        Log("Purged wfs: " << num);
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite purge workflows " << LOG_EXP(ex));
+        LogSqlDbErr("Purge workflows " << LOG_EXP(ex));
     }
 }
 
-void DbManager::add_history(SQLite::Database& db, const HistoryData* data)
+void DbManager::add_history(const SQLite::Database& db, const HistoryData* data)
 {
     try
     {
@@ -1200,11 +1189,11 @@ void DbManager::add_history(SQLite::Database& db, const HistoryData* data)
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite save " << LOG_EXP(ex));
+        LogSqlDbErr("Save history " << LOG_EXP(ex));
     }
 }
 
-void DbManager::del_history(SQLite::Database& db, const HistoryData* data)
+void DbManager::del_history(const SQLite::Database& db, const HistoryData* data)
 {
     try
     {
@@ -1242,12 +1231,12 @@ void DbManager::del_history(SQLite::Database& db, const HistoryData* data)
             query3.bind(1, task_id);
             query3.exec();
 
-            Log("Wf " << data->prompt_id << " deleted");
+            Log("Wf history " << data->prompt_id << " deleted");
         }
     }
     catch (const SQLite::Exception& ex)
     {
-        LogExcep(ExcepCategory::SQLite, "SQLite history delete err " << LOG_EXP(ex));
+        LogSqlDbErr("Delete history " << LOG_EXP(ex));
     }
 }
 
@@ -1259,77 +1248,94 @@ void DbManager::write_thread(std::filesystem::path db_path)
     db.exec("PRAGMA journal_mode = WAL;");
     db.exec("PRAGMA synchronous = NORMAL;");
 
+    ExcepData except_data;
+    bool except_data_flag = false;
+
     while(true)
     {
         std::queue<WriteData> q;
         {
             std::unique_lock<std::mutex> lock(m_lock);
-            m_cv.wait_for(lock, wait_period, [this] { return g::app_global_stop_all_threads.load(std::memory_order_relaxed) || !m_write_queue.empty(); });
+            m_cv.wait_for(lock, wait_period, [this]() noexcept { return g::app_global_stop_all_threads.load(std::memory_order_relaxed) || !m_write_queue.empty(); });
 
-            if (g::app_global_stop_all_threads.load(std::memory_order_relaxed) && m_write_queue.empty())
+            if (g::app_global_stop_all_threads.load(std::memory_order_relaxed) && m_write_queue.empty() && !m_exception_write_data_flag.load(std::memory_order_relaxed))
                 break;
 
-            if (m_write_queue.empty())
+            if (m_write_queue.empty() && !m_exception_write_data_flag.load(std::memory_order_relaxed))
                 continue;
 
-            std::swap(q, m_write_queue);
+            if (m_exception_write_data_flag.load(std::memory_order_relaxed))
+            {
+                except_data = std::move(m_exception_write_data);
+                m_exception_write_data_flag.store(false, std::memory_order_relaxed);
+                except_data_flag = true;
+            }
+            else
+            {
+                std::swap(q, m_write_queue);
+            }
         }
 
         try
         {
-            SQLite::Transaction transaction(db);
-
-            while (!q.empty())
+            if (except_data_flag)
             {
-                auto& data = q.front();
-                switch (data.type)
+                except_data_flag = false;
+                write_data(db, except_data);
+            }
+            else
+            {
+                SQLite::Transaction transaction(db);
+
+                while (!q.empty())
                 {
-                case WriteType::Exception:
-                    write_data(db, std::get_if<ExcepData>(&data.data));
-                    break;
-                case WriteType::AppOption:
-                    write_data(db, std::get_if<DbAppOptionData>(&data.data));
-                    break;
-                case WriteType::Item:
+                    auto& data = q.front();
+                    switch (data.type)
                     {
-                        auto node_data = std::get_if<ItemData>(&data.data);
+                    case WriteType::AppOption:
+                        write_data(db, std::get_if<DbAppOptionData>(&data.data));
+                        break;
+                    case WriteType::Item:
+                    {
+                        const auto* node_data = std::get_if<ItemData>(&data.data);
                         if (node_data->value.empty())
                             delete_data(db, node_data);
                         else
-                            write_data(db, node_data);                    
+                            write_data(db, node_data);
                     }
                     break;
-                case WriteType::WfMeta:
-                    write_wf_meta(db, std::get_if<WfData>(&data.data));
-                    break;
-                case WriteType::WfBlob:
+                    case WriteType::WfMeta:
+                        write_wf_meta(db, std::get_if<WfData>(&data.data));
+                        break;
+                    case WriteType::WfBlob:
                     {
-                        auto wf_data = std::get_if<WfBlob>(&data.data);
+                        const auto* wf_data = std::get_if<WfBlob>(&data.data);
                         write_wf_blob(db, wf_data);
                         if (!wf_data->draft)
                             delete_wf_draft(db, wf_data);
                     }
                     break;
-                case WriteType::WfPurge:
-                    purge_wf(db);
-                    break;
-                case WriteType::HistoryAdd:
-                    add_history(db, std::get_if<HistoryData>(&data.data));
-                    break;
-                case WriteType::HistoryDel:
-                    del_history(db, std::get_if<HistoryData>(&data.data));
-                    break;
-                default:
-                    LogInternalLogic("Unhandled data type to write: " << cast::to_i32(data.type));
+                    case WriteType::WfPurge:
+                        purge_wf(db);
+                        break;
+                    case WriteType::HistoryAdd:
+                        add_history(db, std::get_if<HistoryData>(&data.data));
+                        break;
+                    case WriteType::HistoryDel:
+                        del_history(db, std::get_if<HistoryData>(&data.data));
+                        break;
+                    default:
+                        LogError("Unhandled data type to write: " << cast::to_i32(data.type));
+                    }
+                    q.pop();
                 }
-                q.pop();
-            }
 
-            transaction.commit();
+                transaction.commit();
+            }
         }
         catch (const SQLite::Exception& ex)
         {
-            LogExcep(ExcepCategory::SQLite, "SQLite commit err: " << LOG_EXP(ex));
+            LogSqlDbErr("Commit " << LOG_EXP(ex));
         }
     }
 }

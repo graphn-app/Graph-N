@@ -8,35 +8,42 @@ class Logger final
     friend class LogWriter;
 
 public:
-	static Logger& instance();
-    void stop();
+    static Logger& instance() noexcept;
+    void stop() noexcept;
 
-	static bool get_log_enabled() { return m_enabled.load(std::memory_order_relaxed); }
-	static void set_log_enabled(bool enable);
-    static void disable_logging() { m_enabled.store(false, std::memory_order_relaxed); }
-    static void cleanup();
+    static bool get_log_enabled() noexcept { return m_enabled.load(std::memory_order_relaxed); }
+    static bool get_log_web_response_enabled() { return check_web_dump_file_mark(); }
+    static bool get_log_object_info_enabled() { return check_object_info_file_mark(); }
 
-    void force_flush();
-    void write(LogWriter& writer);
+    static void set_log_enabled(bool enable);
+    static void disable_logging() noexcept { m_enabled.store(false, std::memory_order_relaxed); }
+    static void cleanup() noexcept;
+
+    void force_flush() noexcept;
+    void write(LogWriter& writer) noexcept;
 
 private:
-    Logger();
-    ~Logger();
+    Logger() noexcept;
+    ~Logger() noexcept;
     NO_COPY_MOVE(Logger);
 
     static bool check_log_file_mark();
+    static bool check_web_dump_file_mark();
+    static bool check_object_info_file_mark();
 
-	void log_start();
-	void log_stop();
+    void log_start() noexcept;
+    void log_stop() noexcept;
 
     void working_thread();
 
 private:
-	static const char* m_log_file_mark;
+    static const char* m_log_file_mark;
+    static const char* m_log_web_dump_file_mark;
+    static const char* m_log_object_info_file_mark;
     static std::atomic_bool m_enabled;
 
-	std::ofstream m_logfs;
-	std::string m_log_path;
+    std::ofstream m_logfs;
+    std::string m_log_path;
 
     std::atomic_bool m_do_flush = false;
     std::atomic_bool m_do_close = false;
@@ -53,90 +60,90 @@ private:
 };
 
 ////////////////////////////////////////////////////
-///////////////		LogWriter
+///////////////        LogWriter
 
 class LogLineEnd { };
 
 struct LogHex final
 {
-	long long h = 0;
-	LogHex(long long h_) :
-		h(h_)
-	{ }
+    long long h = 0;
+    LogHex(long long h_) noexcept :
+        h(h_)
+    { }
 };
 
 struct LogHRes final
 {
     uint32_t h = 0;
-    LogHRes(uint32_t h_) :
-		h(h_)
-	{ }
+    LogHRes(uint32_t h_) noexcept :
+        h(h_)
+    { }
 };
 
 struct LogPtr final
 {
-	const void* ptr = nullptr;
-	LogPtr(const void* ptr_) :
-		ptr(ptr_)
-	{ }
+    const void* ptr = nullptr;
+    LogPtr(const void* ptr_) noexcept :
+        ptr(ptr_)
+    { }
 };
 
 class LogWriter final
 { 
 public:
     LogWriter();
-    ~LogWriter() = default;
+    ~LogWriter() noexcept = default;
 
     NO_COPY_MOVE(LogWriter);
 
-	std::string extract_buffer() { return std::move(m_buffer); }
-    const std::string& get_buffer() const { return m_buffer; }
+    std::string extract_buffer() noexcept { return std::move(m_buffer); }
+    const std::string& get_buffer() const noexcept { return m_buffer; }
 
-	void log_line_start(const void* this_, const char* foo, int32_t line);
+    void log_line_start(const void* this_, const char* foo, int32_t line);
 
-	LogWriter& operator << (const char* str);
-	LogWriter& operator << (const std::string& str);
-	LogWriter& operator << (std::string_view str);
-	LogWriter& operator << (const std::filesystem::path& path);
+    LogWriter& operator << (const char* str);
+    LogWriter& operator << (const std::string& str);
+    LogWriter& operator << (std::string_view str);
+    LogWriter& operator << (const std::filesystem::path& path);
 
-	LogWriter& operator << (const byte_buff& buff);
-	LogWriter& operator << (const tools::dt& dt);
+    LogWriter& operator << (const byte_buff& buff);
+    LogWriter& operator << (const tools::dt& dt);
 
     LogWriter& operator << (const ImVec2& vec2);
     LogWriter& operator << (const ImVec4& vec4);
     LogWriter& operator << (const ImRect& rc);
 
-	LogWriter& operator << (int32_t i32);
-	LogWriter& operator << (uint32_t ui32);
-	LogWriter& operator << (int64_t i64);
-	LogWriter& operator << (uint64_t ui64);
-	LogWriter& operator << (float f);
+    LogWriter& operator << (int32_t i32);
+    LogWriter& operator << (uint32_t ui32);
+    LogWriter& operator << (int64_t i64);
+    LogWriter& operator << (uint64_t ui64);
+    LogWriter& operator << (float f);
     LogWriter& operator << (double d);
-	LogWriter& operator << (bool b);
+    LogWriter& operator << (bool b);
 
-	LogWriter& operator << (DlgCode code);
+    LogWriter& operator << (DlgCode code);
 
-	LogWriter& operator << (const type_info& type);
+    LogWriter& operator << (const type_info& type);
 
-	LogWriter& operator << (const LogLineEnd&);
-	LogWriter& operator << (const LogHex& hex_item);
-	LogWriter& operator << (const LogHRes& hres_item);
-	LogWriter& operator << (const LogPtr& ptr);
+    LogWriter& operator << (const LogLineEnd&);
+    LogWriter& operator << (const LogHex& hex_item);
+    LogWriter& operator << (const LogHRes& hres_item);
+    LogWriter& operator << (const LogPtr& ptr);
 
 private:
-	std::string m_buffer;
+    std::string m_buffer;
 };
 
 struct LogGuard final
 {
-	LogGuard()
-	{
-		Logger::instance();
-	}
-	~LogGuard()
-	{
+    LogGuard()
+    {
+        Logger::instance();
+    }
+    ~LogGuard()
+    {
         Logger::instance().stop();
-	}
+    }
 };
 
 } // namespace glog
@@ -147,103 +154,127 @@ struct LogGuard final
 #define WIDELINE(x) WIDELINE2(x)
 #define __WIDEFILE__ WIDELINE(__FILE__)
 
-#ifdef _DEBUG
-// #define SAVE_EXCEPTION(category, message)     { (void)category; void(message); }
-#define SAVE_EXCEPTION(category, message)     g::save_exception(category, message, __FILE__, __LINE__)
-
-#else
-#define SAVE_EXCEPTION(category, message)     g::save_exception(category, message, __FILE__, __LINE__)
-#define DEBUG_CATCH
-#endif
-
+#define SAVE_EXCEPTION(message)         g::save_exception(message, __FILE__, __LINE__)
 
 #define LogFull(ptr, message) \
-	if (glog::Logger::get_log_enabled()) \
+    { if (glog::Logger::get_log_enabled()) \
     { \
         try { \
             glog::LogWriter log_writer__; \
-			log_writer__.log_line_start(ptr, __FUNCTION__, __LINE__); \
-			log_writer__ << message << glog::LogLineEnd(); \
+            log_writer__.log_line_start(ptr, __FUNCTION__, __LINE__); \
+            log_writer__ << message << glog::LogLineEnd(); \
             glog::Logger::instance().write(log_writer__); \
         } \
-        catch (const std::exception& e) { \
-            SAVE_EXCEPTION(ExcepCategory::Logger, e.what()); \
+        catch (...) { \
             glog::Logger::instance().disable_logging(); \
             DEBUG_CATCH; \
+        } \
+    } }
+
+#define LogClear(message) \
+    { if (glog::Logger::get_log_enabled()) \
+    { \
+        try { \
+            glog::LogWriter log_writer__; \
+            log_writer__ << message << glog::LogLineEnd(); \
+            glog::Logger::instance().write(log_writer__); \
         } \
         catch (...) { \
-            SAVE_EXCEPTION(ExcepCategory::Logger, "Unknown exception"); \
             glog::Logger::instance().disable_logging(); \
             DEBUG_CATCH; \
         } \
-	}
+    } }
 
 #define Log(message)    LogFull(this, message)
 #define LogS(message)   LogFull(nullptr, message)
 
-#define LOG_SOMETHING_HAPPENED(ptr, category, log_prefix, message, do_throw) \
+#define LOG_AND_CATCH(ptr, log_prefix, message, save) \
     { \
-        glog::LogWriter log_writer_1__; \
-        log_writer_1__ << message; \
-        const std::string& buffer__ = log_writer_1__.get_buffer(); \
-        SAVE_EXCEPTION(category, buffer__); \
-	    if (glog::Logger::get_log_enabled()) \
-        { \
-            try { \
-                glog::LogWriter log_writer_2__; \
-			    log_writer_2__.log_line_start(ptr, __FUNCTION__, __LINE__); \
-			    log_writer_2__ << "[" << log_prefix << "] " << buffer__ << glog::LogLineEnd(); \
-                glog::Logger::instance().write(log_writer_2__); \
+        try { \
+            glog::LogWriter log_writer_1__; \
+            log_writer_1__ << message; \
+            const std::string& buffer__ = log_writer_1__.get_buffer(); \
+            if (save) { SAVE_EXCEPTION(buffer__); } \
+            if (glog::Logger::get_log_enabled()) \
+            { \
+                    glog::LogWriter log_writer_2__; \
+                    log_writer_2__.log_line_start(ptr, __FUNCTION__, __LINE__); \
+                    log_writer_2__ << "[" << log_prefix << "] " << buffer__ << glog::LogLineEnd(); \
+                    glog::Logger::instance().write(log_writer_2__); \
+                    glog::Logger::instance().force_flush(); \
             } \
-            catch (const std::exception& e) { \
-                SAVE_EXCEPTION(ExcepCategory::Logger, e.what()); \
-                glog::Logger::instance().disable_logging(); \
-                DEBUG_CATCH; \
-            } \
-            catch (...) { \
-                SAVE_EXCEPTION(ExcepCategory::Logger, "Unknown exception"); \
-                glog::Logger::instance().disable_logging(); \
-                DEBUG_CATCH; \
-            } \
-	    } \
-        DEBUG_CATCH; \
-        if (do_throw) \
-        { \
-            throw std::runtime_error(buffer__); \
         } \
+        catch (...) { \
+            glog::Logger::instance().disable_logging(); \
+            DEBUG_CATCH; \
+        } \
+        DEBUG_CATCH; \
     }
 
+#define LOG_CRITICAL(ptr, log_prefix, message) \
+    { \
+        try { \
+            glog::LogWriter log_writer_1__; \
+            log_writer_1__ << message; \
+            const std::string& buffer__ = log_writer_1__.get_buffer(); \
+            SAVE_EXCEPTION(buffer__); \
+            if (glog::Logger::get_log_enabled()) \
+            { \
+                    glog::LogWriter log_writer_2__; \
+                    log_writer_2__.log_line_start(ptr, __FUNCTION__, __LINE__); \
+                    log_writer_2__ << "[" << log_prefix << "] " << buffer__ << glog::LogLineEnd(); \
+                    glog::Logger::instance().write(log_writer_2__); \
+                    glog::Logger::instance().force_flush(); \
+            } \
+            const std::string msg__ = "Critical error:\n" + buffer__; \
+            ERROR_MESSAGE(msg__.c_str()); \
+        } \
+        catch (...) { \
+            glog::Logger::instance().disable_logging(); \
+            DEBUG_CATCH; \
+        } \
+        ::exit(1); \
+    }
 
-#define LogWarn(message)                             Log("[WARNING] " << message)
-#define LogWarnS(message)                            LogS("[WARNING] " << message)
-#define LogExcep(category, message)                  LOG_SOMETHING_HAPPENED(this, category, "EXCEPTION", message, false)
-#define LogExcepS(category, message)                 LOG_SOMETHING_HAPPENED(nullptr, category, "EXCEPTION", message, false)
-#define LogError(category, message)                  LOG_SOMETHING_HAPPENED(this, category, "ERROR", message, false)
-#define LogErrorS(category, message)                 LOG_SOMETHING_HAPPENED(nullptr, category, "ERROR", message, false)
-#define LogInternalLogic(message)                    LOG_SOMETHING_HAPPENED(this, ExcepCategory::Logic, "INTERNAL_LOGIC_ERROR", message, false)
-#define LogInternalLogicS(message)                   LOG_SOMETHING_HAPPENED(nullptr, ExcepCategory::Logic, "INTERNAL_LOGIC_ERROR", message, false)
-#define LogInternalMap(message)                      LOG_SOMETHING_HAPPENED(this, ExcepCategory::InconsistentMap, "INTERNAL_LOGIC_ERROR:MAP", message, false)
-#define LogInternalMapS(message)                     LOG_SOMETHING_HAPPENED(nullptr, ExcepCategory::InconsistentMap, "INTERNAL_LOGIC_ERROR:MAP", message, false)
-#define LogInternalPtr(message)                      LOG_SOMETHING_HAPPENED(this, ExcepCategory::InconsistentObjPtr, "INTERNAL_LOGIC_ERROR:OBJPTR", message, false)
-#define LogInternalPtrS(message)                     LOG_SOMETHING_HAPPENED(nullptr, ExcepCategory::InconsistentObjPtr, "INTERNAL_LOGIC_ERROR:OBJPTR", message, false)
-#define LogUnhandledJson(message)	                 Log("[JSON_UNHANDLED] " << message)
-#define LogUnhandledJsonS(message)	                 LogS("[JSON_UNHANDLED] " << message)
-#define LogInvalidJson(message)		                 Log("[JSON_INVALID] " << message)
-#define LogInvalidJsonS(message)		             LogS("[JSON_INVALID] " << message)
+#define LogWarn(message)                         Log("[WARNING] " << message)
+#define LogWarnS(message)                        LogS("[WARNING] " << message)
 
-#define LogAndThrow(category, message)               LOG_SOMETHING_HAPPENED(this, category, "EXCEPTION", message, true)
-#define LogAndThrowS(category, message)              LOG_SOMETHING_HAPPENED(nullptr, category, "EXCEPTION", message, true)
-#define LogAndThrowInternalError(category, message)  LOG_SOMETHING_HAPPENED(this, category, "INTERNAL_LOGIC_ERROR", message, true)
-#define LogAndThrowInternalErrorS(category, message) LOG_SOMETHING_HAPPENED(nullptr, category, "INTERNAL_LOGIC_ERROR", message, true)
+#define LogExcep(message)                        LOG_AND_CATCH(this, "EXCEPTION", message, true)
+#define LogExcepS(message)                       LOG_AND_CATCH(nullptr, "EXCEPTION", message, true)
 
-#define LogF						Log("")
-#define LogFS						LogS("")
+#define LogError(message)                        LOG_AND_CATCH(this, "ASSERT", message, true)
+#define LogErrorS(message)                       LOG_AND_CATCH(nullptr, "ASSERT", message, true)
 
-#define LogF_In						Log(" > in")
-#define LogFS_In					LogS(" > in")
+#define LogRError(message, ret)                  { LOG_AND_CATCH(this, "ASSERT", message, true); return ret; }
+#define LogRErrorS(message, ret)                 { LOG_AND_CATCH(nullptr, "ASSERT", message, true); return ret; }
 
-#define LogF_Out    				Log(" < out")
-#define LogFS_Out    				LogS(" < out")
+#define LogCritical(message)                     LOG_CRITICAL(this, "CRITICAL", message)
+#define LogCriticalS(message)                    LOG_CRITICAL(nullptr, "CRITICAL", message)
+
+#define LogCriticalIf(true_cond, message)        if (!(true_cond)) { LOG_CRITICAL(this, "CRITICAL", message); }
+#define LogCriticalIfS(true_cond, message)       if (!(true_cond)) { LOG_CRITICAL(nullptr, "CRITICAL", message); }
+
+#define LogAssert(true_cond, message)            if (!(true_cond)) { LOG_AND_CATCH(this, "ASSERT", message, true); }
+#define LogAssertS(true_cond, message)           if (!(true_cond)) { LOG_AND_CATCH(nullptr, "ASSERT", message, true); }
+
+#define LogRAssert(true_cond, message, ret)      if (!(true_cond)) { LOG_AND_CATCH(this, "ASSERT", message, true); return ret; }
+#define LogRAssertS(true_cond, message, ret)     if (!(true_cond)) { LOG_AND_CATCH(nullptr, "ASSERT", message, true); return ret; }
+
+#define LogCAssert(true_cond, message)           if (!(true_cond)) { LOG_AND_CATCH(this, "ASSERT", message, true); continue; }
+#define LogCAssertS(true_cond, message)          if (!(true_cond)) { LOG_AND_CATCH(nullptr, "ASSERT", message, true); continue; }
+
+#define LogSqlDbErr(message)                     LOG_AND_CATCH(this, "SQL_ERROR", message, false)
+
+#define LogUnhandledJson(message)                Log("[JSON_UNHANDLED] " << message)
+#define LogUnhandledJsonS(message)               LogS("[JSON_UNHANDLED] " << message)
+#define LogInvalidJson(message)                  Log("[JSON_INVALID] " << message)
+#define LogInvalidJsonS(message)                 LogS("[JSON_INVALID] " << message)
+
+#define LogIn                                    Log(" > in")
+#define LogInS                                   LogS(" > in")
+
+#define LogOut                                   Log(" < out")
+#define LogOutS                                  LogS(" < out")
 
 
 // Helper to convert types that fmt doesn't handle by default (like enums)
@@ -292,17 +323,17 @@ std::string format_log_msg(Args&&... args)
 
     return fmt::to_string(out);
 }
-#define LogV(...)				    Log(format_log_msg(__VA_ARGS__))
-#define LogVS(...)				    LogS(format_log_msg(__VA_ARGS__))
+#define LogV(...)                    Log(format_log_msg(__VA_ARGS__))
+#define LogVS(...)                   LogS(format_log_msg(__VA_ARGS__))
 
 #ifdef _WIN32
-#define LogERR						uint32_t(GetLastError())
+#define LogApiERR                    uint32_t(GetLastError())
 #elif defined __APPLE__
 #error Not implemented
 #elif defined __linux__
 #error Not implemented
 #endif
-#define LogHEX(h)					glog::LogHex(h)
-#define LogHRES(h)					glog::LogHRes(uint32_t(h))
-#define LogPTR(p)					glog::LogPtr(p)
+#define LogHEX(h)                    glog::LogHex(h)
+#define LogHRES(h)                   glog::LogHRes(uint32_t(h))
+#define LogPTR(p)                    glog::LogPtr(p)
 

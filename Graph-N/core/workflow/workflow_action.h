@@ -18,11 +18,11 @@ class Workflow;
 class WorkflowAction final
 {
 public:
-    WorkflowAction(data::Workflow* wf);
-    ~WorkflowAction();
+    WorkflowAction(data::Workflow* wf) noexcept;
+    ~WorkflowAction() noexcept;
 
-    inline void set_drawer(ui::NodeDrawer* drawer) { m_drawer = drawer; }
-    const blob::Blob* get_drawer_state() const;
+    void set_drawer(ui::NodeDrawer* drawer) noexcept { m_drawer = drawer; }
+    const blob::Blob* get_drawer_state() const noexcept;
 
     void multi_action_on(const char* action_name) const;
     void multi_action_off() const;
@@ -33,12 +33,12 @@ public:
     void delete_node(data::NodeInstance* node);
     void delete_group(data::NodeInstance* group);
 
-    void hard_reset();
+    void hard_reset() noexcept;
     void reinit(blob::Blob&& state);
 
     data::Link* link(data::PinInstance* p1, data::PinInstance* p2, iid instance_id = 0);
-    void unlink(data::PinInstance* pin);
-    void unlink(data::PinInstance* p1, data::PinInstance* p2);
+    void unlink(const data::PinInstance* pin);
+    void unlink(const data::PinInstance* p1, const data::PinInstance* p2);
     void unlink(data::Link* link);
 
     void set_node_color(data::NodeInstance* node, ImU32 color);
@@ -56,12 +56,12 @@ public:
 
     void begin_nodes_move(const std::set<data::NodeInstance*>& nodes);
     void end_nodes_move(bool cancel);
-    inline bool is_moving() const { return m_moving; }
+    bool is_moving() const noexcept { return m_moving; }
 
     void set_pin_name(data::PinInstance* pin, const std::string& name);
     void reset_pin_name(data::PinInstance* pin);
 
-    void set_pin_val(data::PinInstance* pin, primitive&& old_val);
+    void set_pin_val(data::PinInstance* pin, Primitive&& old_val);
     void set_pin_val(data::PinInstance* pin, int64_t old_idx);
     void set_pin_val(data::PinInstance* pin, const float* new_colors);
 

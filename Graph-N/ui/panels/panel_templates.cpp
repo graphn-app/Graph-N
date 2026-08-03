@@ -8,22 +8,7 @@ PanelTemplates::PanelTemplates()
     : PanelBase(DlgObj::PanelTemplates, "Templates")
 {}
 
-PanelTemplates::~PanelTemplates()
-{
-    LogF;
-}
-
-void PanelTemplates::init()
-{
-    LogF;
-    PanelBase::init();
-
-}
-
-void PanelTemplates::stop_all_threads()
-{
-    LogF;
-}
+PanelTemplates::~PanelTemplates() noexcept = default;
 
 DlgCode PanelTemplates::show(bool& focused)
 {

@@ -8,6 +8,7 @@ googletest/
 boost/
 miniaudio/
 
+cppcheck/
 bin/
 lib/
 Debug/
@@ -17,6 +18,7 @@ build/
 work_dir/
 copy/
 todo/
+dump/
 
 *.vcxproj*
 *.user
@@ -24,6 +26,7 @@ todo/
 *.sln
 
 CMakeCache.txt
+CMakeSettings.json
 .vs
 
 graph-n.ini

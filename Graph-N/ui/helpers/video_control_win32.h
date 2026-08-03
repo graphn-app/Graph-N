@@ -11,21 +11,21 @@ namespace platform
 class VideoControl_Win32 final : public global::VideoControl
 {
 public:
-    VideoControl_Win32();
-    ~VideoControl_Win32() override;
+    VideoControl_Win32() noexcept;
+    ~VideoControl_Win32() noexcept override;
 
-    void init() override;
+    void init() noexcept override;
     void cleanup() override;
 
     mngr::VideoInfo get_info(const std::string& filepath, std::optional<bool>& valid) override;
 
     int32_t load(const std::string& filepath, uint32_t max_side_len) override;
-    void play(int32_t video_id) override;
-    void stop(int32_t video_id) override;
-    void seek(int32_t video_id, float pos) override;
+    void play(int32_t video_id) noexcept override;
+    void stop(int32_t video_id) noexcept override;
+    void seek(int32_t video_id, float pos) noexcept override;
 
-    bool get_is_playing(int32_t video_id) const override;
-    float get_position(int32_t video_id) const override;
+    bool get_is_playing(int32_t video_id) const noexcept override;
+    float get_position(int32_t video_id) const noexcept override;
 
     ImTextureID get_frame(int32_t video_id, float* out_w = nullptr, float* out_h = nullptr) override;
     std::string get_thumbnail(const std::string& filename, uint32_t max_side_len) override;

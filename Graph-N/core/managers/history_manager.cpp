@@ -6,7 +6,7 @@
 #include "core/workflow/link.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
-#include "core/workflow/workflow_serializer_to_blob.h"
+#include "core/workflow/serializer/wf_serializers.h"
 #include "core/data/node.h"
 #include "core/data/pin.h"
 
@@ -15,21 +15,21 @@ namespace mngr
 
 /////////////////////////////////////////////////////
 
-HistoryStep::HistoryStep(HistoryActionType t)
+HistoryStep::HistoryStep(HistoryActionType t) noexcept
     : type(t)
 {}
-HistoryStep::~HistoryStep() = default;
+HistoryStep::~HistoryStep() noexcept = default;
 
-HistoryAction::HistoryAction(int64_t id_, wid wf_)
+HistoryAction::HistoryAction(int64_t id_, wid wf_) noexcept
     : id(id_)
     , wf(wf_)
 {}
-HistoryAction::~HistoryAction() = default;
-HistoryAction::HistoryAction(HistoryAction&& other)
+HistoryAction::~HistoryAction() noexcept = default;
+HistoryAction::HistoryAction(HistoryAction&& other) noexcept
 {
     *this = std::move(other);
 }
-HistoryAction& HistoryAction::operator=(HistoryAction&& other)
+HistoryAction& HistoryAction::operator=(HistoryAction&& other) noexcept
 {
     if (this == &other)
         return *this;
@@ -43,33 +43,11 @@ HistoryAction& HistoryAction::operator=(HistoryAction&& other)
 
 ////////////////////////////////////////////////////
 
-HistoryManager::HistoryManager()
+HistoryManager::HistoryManager() noexcept
     : m_limit(200)
-{
-}
+{}
 
-HistoryManager::~HistoryManager()
-{
-    LogF;
-}
-
-bool HistoryManager::init()
-{
-    LogF;
-    if (!Manager::init())
-        return false;
-    return true;
-}
-
-void HistoryManager::free()
-{
-    LogF;
-}
-
-void HistoryManager::stop_all_threads()
-{
-    LogF;
-}
+HistoryManager::~HistoryManager() noexcept = default;
 
 /////   interface
 //////////////////////////////////////
@@ -136,14 +114,15 @@ const HistoryAction* HistoryManager::get_redo(wid wf_id, const Meta** meta) cons
 
 void HistoryManager::undo(wid wf_id)
 {
-    if (m_rollback) { LogInternalLogic("Already in progress"); }
+    LogAssert(!m_rollback, "Rollback already in progress");
     m_rollback = true;
 
     const Meta* meta = nullptr;
     auto h = get_undo(wf_id, &meta);
-    if (nullptr == h) { LogInternalLogic("Can't undo"); }
+    LogRAssert(h, "Can't undo, zero history ptr", );
+
     pop_action(h, true);
-    (*const_cast<Meta*>(meta)).pos--;
+    (*cast::remove_const<Meta>(meta)).pos--;
     sync_wf_state(wf_id, meta);
     m_rollback = false;
 
@@ -152,14 +131,15 @@ void HistoryManager::undo(wid wf_id)
 
 void HistoryManager::redo(wid wf_id)
 {
-    if (m_rollback) { LogInternalLogic("Already in progress"); }
+    LogAssert(!m_rollback, "Rollback already in progress");
     m_rollback = true;
 
     const Meta* meta = nullptr;
     auto h = get_redo(wf_id, &meta);
-    if (nullptr == h) { LogInternalLogic("Can't redo"); }
+    LogRAssert(h, "Can't redo, zero history ptr", );
+
     pop_action(h, false);
-    (*const_cast<Meta*>(meta)).pos++;
+    (*cast::remove_const<Meta>(meta)).pos++;
     sync_wf_state(wf_id, meta);
     m_rollback = false;
 
@@ -188,7 +168,7 @@ void HistoryManager::set_ignore_actions_on(wid wf_id)
     m_ignore_actions.insert(wf_id);
 }
 
-void HistoryManager::set_ignore_actions_off(wid wf_id)
+void HistoryManager::set_ignore_actions_off(wid wf_id) noexcept
 {
     m_ignore_actions.erase(wf_id);
 }
@@ -210,8 +190,8 @@ bool HistoryManager::can_rollback(wid wf_id)
 
 void HistoryManager::rollback(wid wf_id)
 {
-    if (m_rollback) { LogInternalLogic("Already in progress"); }
-    if (!can_rollback(wf_id)) { LogInternalLogic("Can't rollback"); }
+    LogAssert(!m_rollback, "Rollback already in progress");
+    LogRAssert(can_rollback(wf_id), "Can't rollback", );
     m_rollback = true;
 
     auto& meta = m_meta[wf_id];
@@ -282,9 +262,10 @@ HistoryAction* HistoryManager::open_action(wid wf_id, const char* action_name)
 void HistoryManager::close_action(wid wf_id)
 {
     hqueue& h = m_history[wf_id];
-    if (h.empty()) { LogInternalLogic("No actions to close"); }
+    LogRAssert(!h.empty(), "No actions to close", );
+    
     auto& act = h.back();
-    if (0 == act.counter) { LogInternalLogic("Actions already closed"); }
+    LogRAssert(act.counter != 0, "Actions already closed", );
 
     if (--act.counter > 0)
     {
@@ -351,6 +332,7 @@ void HistoryManager::multi_action_end(wid wf_id)
 
 void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryActionType act)
 {
+    LogRAssert(node, "Zero ptr", );
     if (should_ignore_action(node->get_workflow_id())) return;
 
     HistoryAction* history = nullptr;
@@ -367,13 +349,14 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
         step = std::make_unique<ActNodeDel>();
         break;
     default:
-        { LogInternalLogic("Invalid action pushed"); }
+        LogRError("Invalid action pushed", );
     }
 
-    if (history->wf != node->get_workflow_id()) { LogInternalLogic("Wf don't match"); }
+    LogRAssert(history->wf == node->get_workflow_id(), "Wfs don't match. hw:" << history->wf << " != nw:" << node->get_workflow_id() << ", n:" << node->get_instance_id(), );
+
     step->id = node->get_instance_id();
     step->debug_name = node->get_name();
-    step->node = data::WorkflowSerializerToBlob::serialize_node(node);
+    step->node = data::WfSerializerToBlob(nullptr).serialize_node(node);
     history->steps.push_back(std::move(step));
 
     close_action(node->get_workflow_id());
@@ -381,6 +364,7 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
 
 void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryActionType act, HActionT&& old_val)
 {
+    LogRAssert(node, "Zero ptr", );
     if (should_ignore_action(node->get_workflow_id())) return;
 
     HistoryAction* history = nullptr;
@@ -419,10 +403,11 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
         step->new_val = node->get_name();
         break;
     default:
-        { LogInternalLogic("Invalid action pushed"); }
+        LogRError("Invalid action pushed", );
     }
 
-    if (history->wf != node->get_workflow_id()) { LogInternalLogic("Wf don't match"); }
+    LogRAssert(history->wf == node->get_workflow_id(), "Wfs don't match. hw:" << history->wf << " != nw:" << node->get_workflow_id() << ", n:" << node->get_instance_id(), );
+
     step->id = node->get_instance_id();
     step->old_val = std::move(old_val);
     history->steps.push_back(std::move(step));
@@ -432,6 +417,7 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
 
 void HistoryManager::push_pin_action(const data::PinInstance* pin, HistoryActionType act, HActionT&& old_val)
 {
+    LogRAssert(pin, "Zero ptr", );
     if (should_ignore_action(pin->get_workflow_id())) return;
 
     HistoryAction* history = nullptr;
@@ -450,9 +436,12 @@ void HistoryManager::push_pin_action(const data::PinInstance* pin, HistoryAction
         step->new_val = pin->state().value;
     }
     else
-    { LogInternalLogic("Invalid action pushed"); }
+    {
+        LogRError("Invalid action pushed", );
+    }
 
-    if (history->wf != pin->get_workflow_id()) { LogInternalLogic("Wf don't match"); }
+    LogRAssert(history->wf == pin->get_workflow_id(), "Wfs don't match. hw:" << history->wf << " != pw:" << pin->get_workflow_id() << ", p:" << pin->get_instance_id(), );
+    
     step->id = pin->get_instance_id();
     step->old_val = std::move(old_val);
     history->steps.push_back(std::move(step));
@@ -462,6 +451,7 @@ void HistoryManager::push_pin_action(const data::PinInstance* pin, HistoryAction
 
 void HistoryManager::push_link_action(const data::Link* link, HistoryActionType act)
 {
+    LogRAssert(link, "Zero ptr", );
     if (should_ignore_action(link->get_workflow_id())) return;
 
     HistoryAction* history = nullptr;
@@ -478,12 +468,20 @@ void HistoryManager::push_link_action(const data::Link* link, HistoryActionType 
         step = std::make_unique<ActLinkDel>();
     }
     else
-    { LogInternalLogic("Invalid action pushed"); }
+    {
+        LogRError("Invalid action pushed", );
+    }
 
-    if (history->wf != link->get_workflow_id()) { LogInternalLogic("Wf don't match");  }
+    LogRAssert(history->wf == link->get_workflow_id(), "Wfs don't match. hw:" << history->wf << " != lw:" << link->get_workflow_id() << ", l:" << link->get_instance_id(), );
+
     step->id = link->get_instance_id();
-    step->in = link->get_input()->get_instance_id();
-    step->out = link->get_output()->get_instance_id();
+    step->node_in = link->get_input()->get_parent_node();
+    step->pin_in = link->get_input()->get_instance_id();
+    step->pin_in_name = link->get_input()->get_object()->def_state.name;
+    step->node_out = link->get_output()->get_parent_node();
+    step->pin_out = link->get_output()->get_instance_id();
+    step->pin_out_index = link->get_output()->get_object()->out_index;
+    step->linked_pins_type = link->get_input()->get_object()->def_state.type_str;
     history->steps.push_back(std::move(step));
 
     close_action(link->get_workflow_id());
@@ -494,6 +492,7 @@ void HistoryManager::push_link_action(const data::Link* link, HistoryActionType 
 
 void HistoryManager::pop_action(const HistoryAction* action, bool do_undo)
 {
+    LogRAssert(action, "Zero ptr", );
     LogAction(*action, do_undo ? "UNDO" : "REDO");
     data::Workflow* wf = g::pWfsManager->access(action->wf);
 
@@ -519,6 +518,8 @@ void HistoryManager::pop_action(const HistoryAction* action, bool do_undo)
 
 void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, bool do_undo)
 {
+    LogRAssert(wf && step, "Zero ptr", );
+
     switch (step->type)
     {
     case HistoryActionType::NodeAdd:
@@ -558,7 +559,7 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
         pop_link_del(wf, step, do_undo);
         break;
     default:
-        { LogInternalLogic("Unhandled undo/redo action"); }
+        LogRError("Unhandled undo/redo action", );
     }
 }
 
@@ -571,7 +572,11 @@ void HistoryManager::pop_node_add(data::Workflow* dest_wf, const HistoryStep* st
     }
 
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogInternalLogic("Node not found in dest wf"); }
+    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
+
+    // we have to re-save node cuz if could be changed
+    const ActNodeBlob* real_step = cast::dynamic<const ActNodeBlob>(step);
+    cast::remove_const<ActNodeBlob>(real_step)->node = data::WfSerializerToBlob(nullptr).serialize_node(node);
 
     dest_wf->action()->delete_node(node);
 }
@@ -584,105 +589,106 @@ void HistoryManager::pop_node_del(data::Workflow* dest_wf, const HistoryStep* st
         return;
     }
 
-    const ActNodeBlob* real_step = cast::dynamic<const ActNodeBlob*>(step);
+    const ActNodeBlob* real_step = cast::dynamic<const ActNodeBlob>(step);
     blob::Reader reader(real_step->node);
     try
     {
-        data::WorkflowSerializerToBlob::deserialize_node(dest_wf, reader);
+        data::WfDeserializerFromBlob(dest_wf).deserialize_node(reader);
     }
     catch (const std::exception&)
     {
-        LogExcep(ExcepCategory::InconsistentObjPtr, "Node deserialization failure");
+        LogExcep("Node deserialization failed");
     }
 }
 
-void HistoryManager::pop_node_clr(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_node_clr(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    const ActNodeClr* real_step = cast::dynamic<const ActNodeClr*>(step);
+    const ActNodeClr* real_step = cast::dynamic<const ActNodeClr>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogInternalLogic("Node not found in wf"); }
+    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     dest_wf->action()->set_node_color(node, *std::get_if<ImU32>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
 
-void HistoryManager::pop_node_expand(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_node_expand(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    const ActNodeExpand* real_step = cast::dynamic<const ActNodeExpand*>(step);
+    const ActNodeExpand* real_step = cast::dynamic<const ActNodeExpand>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogInternalLogic("Node not found in wf"); }
+    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     dest_wf->action()->set_node_expanded(node, *std::get_if<bool>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
 
-void HistoryManager::pop_node_ren(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_node_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    const ActNodeRen* real_step = cast::dynamic<const ActNodeRen*>(step);
+    const ActNodeRen* real_step = cast::dynamic<const ActNodeRen>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogInternalLogic("Node not found in wf"); }
+    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     dest_wf->action()->set_node_name(node, *std::get_if<std::string>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
 
-void HistoryManager::pop_node_mode(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_node_mode(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    const ActNodeMode* real_step = cast::dynamic<const ActNodeMode*>(step);
+    const ActNodeMode* real_step = cast::dynamic<const ActNodeMode>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogInternalLogic("Node not found in wf"); } 
+    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     dest_wf->action()->set_node_mode(node, *std::get_if<NodeMode>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
 
-void HistoryManager::pop_node_pin(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_node_pin(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    const ActNodePin* real_step = cast::dynamic<const ActNodePin*>(step);
+    const ActNodePin* real_step = cast::dynamic<const ActNodePin>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogInternalLogic("Node not found in wf"); } 
+    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     dest_wf->action()->set_node_pinning(node, *std::get_if<bool>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
 
-void HistoryManager::pop_node_rect(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_node_rect(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    const ActNodeRect* real_step = cast::dynamic<const ActNodeRect*>(step);
+    const ActNodeRect* real_step = cast::dynamic<const ActNodeRect>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
-    if (nullptr == node) { LogInternalLogic("Node not found in wf"); } 
+    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     dest_wf->action()->set_node_rect(node, *std::get_if<ImRect>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
 
-void HistoryManager::pop_pin_ren(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_pin_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    const ActPinRen* real_step = cast::dynamic<const ActPinRen*>(step);
+    const ActPinRen* real_step = cast::dynamic<const ActPinRen>(step);
     auto pin = dest_wf->get_pin_by_instance(step->id);
-    if (nullptr == pin) { LogInternalLogic("Pin not found in wf"); } 
+    LogRAssert(pin != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     dest_wf->action()->set_pin_name(pin, *std::get_if<std::string>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
 
-void HistoryManager::pop_pin_val(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_pin_val(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    const ActPinVal* real_step = cast::dynamic<const ActPinVal*>(step);
+    const ActPinVal* real_step = cast::dynamic<const ActPinVal>(step);
     auto pin = dest_wf->get_pin_by_instance(step->id);
-    if (nullptr == pin) { LogInternalLogic("Pin not found in wf"); } 
+    LogRAssert(pin != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
-    pin->state().value = *std::get_if<primitive>(do_undo ? &real_step->old_val : &real_step->new_val);
+    pin->state().value = *std::get_if<Primitive>(do_undo ? &real_step->old_val : &real_step->new_val);
 }
 
-void HistoryManager::pop_link_add(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_link_add(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
     if (!do_undo)
     {
         pop_link_del(dest_wf, step, true);
         return;
     }
-    const ActLink* real_step = cast::dynamic<const ActLink*>(step);
-    auto p1 = dest_wf->get_pin_by_instance(real_step->in);
-    auto p2 = dest_wf->get_pin_by_instance(real_step->out);
-    if (nullptr == p1 || nullptr == p2) { LogInternalLogic("Pin(s) not found in wf"); }
+    const ActLink* real_step = cast::dynamic<const ActLink>(step);
+    const auto* p1 = dest_wf->get_pin_by_instance(real_step->pin_in);
+    const auto* p2 = dest_wf->get_pin_by_instance(real_step->pin_out);
+    LogRAssert(p1 != nullptr && p2 != nullptr, "Pin(s) not found in wf. w:" << dest_wf->get_id() << ", p1:" << real_step->pin_in << ":" << (p1 != nullptr) << ", p2:" << real_step->pin_out << ":" << (p2 != nullptr), );
+    
     dest_wf->action()->unlink(p1, p2);
 }
 
-void HistoryManager::pop_link_del(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_link_del(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
     if (!do_undo)
     {
@@ -690,10 +696,13 @@ void HistoryManager::pop_link_del(data::Workflow* dest_wf, const HistoryStep* st
         return;
     }
 
-    const ActLink* real_step = cast::dynamic<const ActLink*>(step);
-    auto p1 = dest_wf->get_pin_by_instance(real_step->in);
-    auto p2 = dest_wf->get_pin_by_instance(real_step->out);
-    if (nullptr == p1 || nullptr == p2) { LogInternalLogic("Pin(s) not found in wf"); }
+    const ActLink* real_step = cast::dynamic<const ActLink>(step);
+    auto p1 = dest_wf->get_pin_by_instance(real_step->pin_in);
+    auto p2 = dest_wf->get_pin_by_instance(real_step->pin_out);
+    LogRAssert(p1 != nullptr && p2 != nullptr, "Pin(s) not found in wf. w:" << dest_wf->get_id()
+        << ", n1:" << real_step->node_in << ", p1:" << real_step->pin_in << ":" << (p1 != nullptr)
+        << ", n2:" << real_step->node_out << ", p2:" << real_step->pin_out << ":" << (p2 != nullptr), );
+
     dest_wf->action()->link(p1, p2, real_step->id);
 }
 

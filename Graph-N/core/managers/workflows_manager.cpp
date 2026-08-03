@@ -7,27 +7,23 @@
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/workflow_action.h"
-#include "core/workflow/workflow_serializer_to_blob.h"
-#include "core/workflow/workflow_serializer_to_json.h"
+#include "core/workflow/serializer/wf_serializers.h"
 #include "ui/graph-n_flow.h"
 
 namespace mngr
 {
 
-WfsManager::WfsManager() = default;
-WfsManager::~WfsManager() = default;
+WfsManager::WfsManager() noexcept = default;
+WfsManager::~WfsManager() noexcept = default;
 
-void WfsManager::stop_all_threads()
+void WfsManager::stop_all_threads() noexcept
 {
-    LogF;
-
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_timers(this);
 }
 
 bool WfsManager::init()
 {
-    LogF;
     if (!Manager::init())
         return false;
 
@@ -51,9 +47,8 @@ bool WfsManager::init()
 
 void WfsManager::free()
 {
-    LogF;
     m_active = 0;
-    m_wfs.clear();
+    m_wfs.clear(); m_wfs.rehash(0);
     m_wfs_ro.clear();
     m_labels.clear();
 }
@@ -70,7 +65,13 @@ const WfData& WfsManager::create(bool generate_name, bool dump_to_db, bool ro)
 
 const WfData& WfsManager::create_copy(wid source)
 {
-    if (0 == source) { LogInternalLogic("Zero wf access"); }
+    if (0 == source)
+    {
+        static WfData empty;
+        LogError("Zero wf source");
+        return empty;
+    }
+
     auto src_wf = access(source);
     
     WfData data;
@@ -89,12 +90,15 @@ const WfData& WfsManager::create_copy(wid source)
     return wf->get_data();
 }
 
-std::shared_ptr<data::Workflow> WfsManager::create_copy_virtual(data::Workflow* src_wf)
+std::shared_ptr<data::Workflow> WfsManager::create_copy_virtual(const data::Workflow* src_wf)
 {
+    LogRAssert(src_wf, "Zero ptr", std::shared_ptr<data::Workflow>{});
+
     WfData data;
     data.name = src_wf->get_data().name;
     data.virt = true;
     auto wf = std::make_shared<data::Workflow>(std::move(data));
+    Log("Virtual wf created. w:" << wf->get_id() << ", source:" << src_wf->get_id() << ", n:" << wf->get_data().name << ", u:" << wf->get_data().uuid);
     m_wfs_virt.push_back(wf);
     wf->init();
 
@@ -112,7 +116,12 @@ std::shared_ptr<data::Workflow> WfsManager::create_copy_virtual(data::Workflow* 
 
 const WfData& WfsManager::create_temp(const blob::Blob& source, const std::string& name, const std::string& label)
 {
-    if (source->empty()) { LogInternalLogic("Source data is empty"); }
+    if (source->empty())
+    {
+        static WfData empty;
+        LogError("Empty blob");
+        return empty;
+    }
 
     WfData data;
     data.temp = true;
@@ -120,7 +129,7 @@ const WfData& WfsManager::create_temp(const blob::Blob& source, const std::strin
     auto wf = create(std::move(data), false);
 
     blob::Blob drawer_state;
-    data::WorkflowSerializerToBlob::deserialize(wf, source, drawer_state);
+    data::WfDeserializerFromBlob(wf, source).deserialize(drawer_state);
     data.draft = true;
     data.draft_exist = false;
     data.saved_exist = false;
@@ -141,14 +150,14 @@ const WfData& WfsManager::create_temp(const blob::Blob& source, const std::strin
 
 bool WfsManager::is_loaded(wid wf_id) const
 {
-    if (0 == wf_id) { LogInternalLogic("Zero wf access"); }
-    auto wf = access(wf_id);
+    LogRAssert(wf_id != 0, "Zero wf id", false);
+    const auto* wf = access(wf_id);
     return !wf->get_nodes().empty();    
 }
 
 bool WfsManager::load(wid wf_id, blob::Blob& drawer_state)
 {
-    if (0 == wf_id) { LogInternalLogic("Zero wf access"); }
+    LogRAssert(wf_id != 0, "Zero wf id", false);
     auto wf = access(wf_id);
     auto& data = wf->get_data();
     if (!data.draft_exist && !data.saved_exist || data.ro)
@@ -159,7 +168,7 @@ bool WfsManager::load(wid wf_id, blob::Blob& drawer_state)
     g::pDbManager->wf_load_blob(data.uuid, blob, load_saved);
     if (!blob->empty())
     {
-        const bool result = data::WorkflowSerializerToBlob::deserialize(wf, blob, drawer_state);
+        const bool result = data::WfDeserializerFromBlob(wf, blob).deserialize(drawer_state);
         data.draft = !load_saved || !result;
         return true;
     }
@@ -170,9 +179,10 @@ data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db)
 {
     const bool ro = data.ro;
     auto wf = std::make_unique<data::Workflow>(std::move(data));
+    Log("Wf created. w:" << wf->get_id() << ", ro:" << ro << ", n:" << wf->get_data().name << ", u:" << wf->get_data().uuid);
     auto wf_ptr = wf.get();
     wf_ptr->init();
-    auto& new_data = wf_ptr->get_data();
+    const auto& new_data = wf_ptr->get_data();
     if (ro)
         m_wfs_ro.push_back(std::move(wf));
     else
@@ -182,29 +192,29 @@ data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db)
     return wf_ptr;
 }
 
-data::Workflow* WfsManager::access(wid id) const
+data::Workflow* WfsManager::access(wid wf_id) const
 {
-    if (0 == id) { LogInternalLogic("Zero wf access"); }
+    LogRAssert(wf_id != 0, "Zero wf id", nullptr);
 
-    const auto search_rw = [this, id]() -> data::Workflow*
+    const auto search_rw = [this, wf_id]() -> data::Workflow*
     {
-        const auto it = m_wfs.find(id);
+        const auto it = m_wfs.find(wf_id);
         if (it == m_wfs.end())
             return nullptr;
         return it->second.get();
     };
 
-    const auto search_virt = [this, id]() -> data::Workflow*
+    const auto search_virt = [this, wf_id]() -> data::Workflow*
     {
-        const auto it = std::find_if(m_wfs_virt.begin(), m_wfs_virt.end(), [id](const std::shared_ptr<data::Workflow>& ptr) { return ptr->get_id() == id; });
+        const auto it = std::find_if(m_wfs_virt.begin(), m_wfs_virt.end(), [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
         if (it == m_wfs_virt.end())
             return nullptr;
         return (*it).get();
     };
 
-    const auto search_ro = [this, id]() -> data::Workflow*
+    const auto search_ro = [this, wf_id]() -> data::Workflow*
     {
-        const auto it = std::find_if(m_wfs_ro.begin(), m_wfs_ro.end(), [id](const std::unique_ptr<data::Workflow>& ptr) { return ptr->get_id() == id; });
+        const auto it = std::find_if(m_wfs_ro.begin(), m_wfs_ro.end(), [wf_id](const std::unique_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
         if (it == m_wfs_ro.end())
             return nullptr;
         return (*it).get();
@@ -215,40 +225,39 @@ data::Workflow* WfsManager::access(wid id) const
         wf = search_virt();
     if (nullptr == wf)
         wf = search_ro();
-    if (nullptr == wf)
-    {
-        LogInternalLogic("Wf id=" << id << " not found");
-        return nullptr;
-    }
+
+    LogRAssert(wf, "No access. Wf not found. w:" << wf_id, nullptr);
     return wf;
 }
 
-void WfsManager::set_active(wid id)
+void WfsManager::set_active(wid wf_id)
 {
-    if (m_active == id)
+    if (m_active == wf_id)
         return;
     if (m_active != 0)
         dump(m_active);
 
-    if (0 == id)
+    if (0 == wf_id)
     {
         m_active = 0;
     }
     else
     {
-        const auto& data = access(id)->get_data();
+        const auto& data = access(wf_id)->get_data();
         m_active = data.id;
     }    
-    Log("Wf id=" << id << " activated");
+    Log("Wf activated. w:" << wf_id);
 }
 
-void WfsManager::update_name(wid id, const std::string& name)
+void WfsManager::update_name(wid wf_id, const std::string& name)
 {
-    if (0 == id) { LogInternalLogic("Zero wf access"); }
-    auto& data = get_data(id);
+    LogRAssert(wf_id != 0, "Zero wf id", );
+    LogRAssert(!name.empty(), "Empty name", );
+    
+    auto& data = get_data(wf_id);
     data.name = name;
     g::pDbManager->wf_update_meta(data);
-    Log("Wf id=" << id << " n=" << name);
+    Log("Wf renamed. w:" << wf_id << ", n:" << name);
 }
 
 namespace
@@ -264,7 +273,7 @@ std::vector<WfData*> filter_wfs(const std::unordered_map<wid, std::unique_ptr<da
     }
     return ret;
 }
-}
+} // namespace
 
 std::vector<WfData*> WfsManager::get_wfs() const
 {
@@ -281,78 +290,77 @@ std::vector<WfData*> WfsManager::get_deleted() const
     return filter_wfs(m_wfs, [](const WfData& data) { return data.pending_delete && !data.temp; });
 }
 
-void WfsManager::delete_wf(wid id)
+void WfsManager::delete_wf(wid wf_id)
 {
-    if (0 == id) { LogInternalLogic("Zero wf access"); }
-    auto& data = get_data(id);
+    LogRAssert(wf_id != 0, "Zero wf id", );
+    auto& data = get_data(wf_id);
     data.pending_delete = true;
     if (!data.temp)
         g::pDbManager->wf_update_meta(data);
 
-    set_wf_labels(id, {});
-    Log("Wf id=" << id << " deleted");
+    set_wf_labels(wf_id, {});
+    Log("Wf deleted. w:" << wf_id);
 }
 
-void WfsManager::undelete_wf(wid id)
+void WfsManager::undelete_wf(wid wf_id)
 {
-    if (0 == id) { LogInternalLogic("Zero wf access"); }
-    auto& data = get_data(id);
+    LogRAssert(wf_id != 0, "Zero wf id", );
+    auto& data = get_data(wf_id);
     data.pending_delete = false;
     g::pDbManager->wf_update_meta(data);
-    Log("Wf id=" << id << " restored");
+    Log("Wf restored. w:" << wf_id);
 }
 
-bool WfsManager::is_deleted(wid id) const
+bool WfsManager::is_deleted(wid wf_id) const
 {
-    if (0 == id) { LogInternalLogic("Zero wf access"); }
-    auto& data = get_data(id);
+    LogRAssert(wf_id != 0, "Zero wf id", false);
+    auto& data = get_data(wf_id);
     return data.pending_delete;
 }
 
-void WfsManager::erase_wf(wid id)
+void WfsManager::erase_wf(wid wf_id)
 {
-    if (0 == id) { LogInternalLogic("Zero wf erase"); }
+    LogRAssert(wf_id != 0, "Zero wf id", );
 
-    const auto delete_rw = [this, id]()
+    const auto delete_rw = [this, wf_id]()
     {
-        const auto it = m_wfs.find(id);
+        const auto it = m_wfs.find(wf_id);
         if (it == m_wfs.end())
             return false;
         m_wfs.erase(it);
         return true;
     };
 
-    const auto delete_virt = [this, id]()
+    const auto delete_virt = [this, wf_id]()
     {
-        const auto it = std::find_if(m_wfs_virt.begin(), m_wfs_virt.end(), [id](const std::shared_ptr<data::Workflow>& ptr) { return ptr->get_id() == id; });
+        const auto it = std::find_if(m_wfs_virt.begin(), m_wfs_virt.end(), [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
         if (it == m_wfs_virt.end())
             return false;
         m_wfs_virt.erase(it);
         return true;
     };
 
-    const auto delete_ro = [this, id]()
+    const auto delete_ro = [this, wf_id]()
     {
-        const auto it = std::find_if(m_wfs_ro.begin(), m_wfs_ro.end(), [id](const std::unique_ptr<data::Workflow>& ptr) { return ptr->get_id() == id; });
+        const auto it = std::find_if(m_wfs_ro.begin(), m_wfs_ro.end(), [wf_id](const std::unique_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
         if (it == m_wfs_ro.end())
             return false;
         m_wfs_ro.erase(it);
         return true;
     };
 
-    if (!delete_rw() && !delete_virt() && !delete_ro())
-    {
-        LogInternalLogic("Wf id=" << id << " not found");
-    }
+    LogAssert(delete_rw() || delete_virt() || delete_ro(), "Wf not found. w:" << wf_id);
+    Log("Wf erased. w:" << wf_id);
 }
 
-void WfsManager::remove_virtual_wf(wid id)
+void WfsManager::remove_virtual_wf(wid wf_id)
 {
-    const auto it = std::find_if(m_wfs_virt.begin(), m_wfs_virt.end(), [id](const std::shared_ptr<data::Workflow>& ptr) { return ptr->get_id() == id; });
+    LogRAssert(wf_id != 0, "Zero wf id", );
+    const auto it = std::find_if(m_wfs_virt.begin(), m_wfs_virt.end(), [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
     if (it == m_wfs_virt.end())
         return;
     m_wfs_virt.erase(it);
-    Log("Virtual wf " << id << " removed");
+    Log("Virtual wf removed. w:" << wf_id);
 }
 
 void WfsManager::init_labels()
@@ -405,7 +413,7 @@ void WfsManager::init_labels()
     }
     catch (const std::exception& ex)
     {
-        LogInternalLogic("Failed to parse labels (" << labels << "). Err: " << ex.what());
+        LogExcep("Failed to parse labels (" << labels << "). Err: " << ex.what());
     }
 }
 
@@ -466,11 +474,7 @@ bool WfsManager::rename_label(uint32_t label_id, const std::string& new_name)
             return false;
     }
 
-    if (label_it == m_labels.end())
-    {
-        LogInternalLogic("Can't rename label " << label_id << ": id not found");
-        return false;
-    }
+    LogRAssert(label_it != m_labels.end(), "Label " << label_id << ": id not found", false);
 
     auto& label = *label_it;
     Log("Label renamed from '" << std::get<0>(label) << "' to '" << new_name << "'");
@@ -484,6 +488,7 @@ bool WfsManager::rename_label(uint32_t label_id, const std::string& new_name)
 
 void WfsManager::remove_label(uint32_t label_id)
 {
+    LogRAssert(label_id != 0, "Zero label id", );
     bool label_found = false;
     for (auto it = m_labels.begin(); it != m_labels.end(); ++it)
     {
@@ -496,11 +501,7 @@ void WfsManager::remove_label(uint32_t label_id)
         }
     }
 
-    if (!label_found)
-    {
-        LogInternalLogic("Can't remove label " << label_id << ": id not found");
-        return;
-    }
+    LogRAssert(label_found, "Label " << label_id << " not found", );
 
     m_wfs_in_label.erase(label_id);
     save_labels();
@@ -508,7 +509,7 @@ void WfsManager::remove_label(uint32_t label_id)
 
 void WfsManager::set_wf_labels(wid wf_id, std::set<uint32_t> labels)
 {
-    if (0 == wf_id) { LogInternalLogic("Zero wf access"); }
+    LogRAssert(wf_id != 0, "Zero wf id", );
     bool changed = false;
     for (auto& [label_id, wf_ids] : m_wfs_in_label)
     {
@@ -532,6 +533,7 @@ void WfsManager::set_wf_labels(wid wf_id, std::set<uint32_t> labels)
 
 bool WfsManager::is_auto_label(uint32_t label_id) const
 {
+    LogRAssert(label_id != 0, "Zero label id", false);
     const auto it = std::find_if(m_labels.begin(), m_labels.end(), [label_id](const std::tuple<std::string, uint32_t, bool>& t) { return std::get<1>(t) == label_id; });
     if (it != m_labels.end())
         return std::get<2>(*it);
@@ -585,7 +587,8 @@ const std::list<wid>& WfsManager::get_wfs_in_label(uint32_t label_id) const
 
 bool WfsManager::get_is_wf_in_label(wid wf_id, uint32_t label_id) const
 {
-    if (0 == wf_id) { LogInternalLogic("Zero wf access"); }
+    LogRAssert(wf_id != 0, "Zero wf id", false);
+    LogRAssert(label_id != 0, "Zero label id", false);
     auto& ids = get_wfs_in_label(label_id);
     return std::find(ids.begin(), ids.end(), wf_id) != ids.end();
 }
@@ -600,7 +603,7 @@ void WfsManager::sort_wfs(std::list<wid>& wfs)
     });
 }
 
-void WfsManager::copy_begin(data::Workflow* wf_src, std::optional<ImVec2> src_point)
+void WfsManager::copy_begin(const data::Workflow* wf_src, std::optional<ImVec2> src_point)
 {
     if (nullptr == wf_src)
     {
@@ -625,42 +628,31 @@ void WfsManager::copy_begin(data::Workflow* wf_src, std::optional<ImVec2> src_po
 
 void WfsManager::copy_add(data::NodeInstance* node)
 {
-    if (nullptr == m_copy_src)
-    {
-        LogInternalLogic("Copy wasn't initiated");
-        return;
-    }
-    if (m_copy_src->get_id() != node->get_workflow_id())
-    {
-        LogInternalLogic("Node to copy is from diff wf");
-        return;
-    }
+    LogRAssert(node, "Zero ptr", );
+    LogRAssert(m_copy_src, "Copy wasn't initiated", );
+    LogRAssert(m_copy_src->get_id() == node->get_workflow_id(),
+        "Node to copy is from diff wf. cpw:" << m_copy_src->get_id() << ", nw:" << node->get_workflow_id() << ", n:" << node->get_instance_id(), );
     m_copied_nodes.insert(node);
-    Log("Node " << node->get_instance_id() << " added to copy");
+    Log("Node added to copy. w:" << node->get_workflow_id() << ", n:" << node->get_instance_id());
 }
 
 void WfsManager::copy_del(data::NodeInstance* node)
 {
-    if (nullptr == m_copy_src)
+    if (nullptr == m_copy_src) // valid case
         return;
+
+    LogRAssert(node, "Zero ptr", );
     if (m_copied_nodes.erase(node) > 0)
     {
-        Log("Node " << node->get_instance_id() << " removed from copy");
+        Log("Node removed from copy. w:" << node->get_workflow_id() << ", n:" << node->get_instance_id());
     }
 }
 
 void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_point)
 {
-    if (nullptr == m_copy_src)
-    {
-        Log("Copy wasn't initiated");
-        return;
-    }
-    if (nullptr == wf_dest)
-    {
-        Log("Dest wf is uindefined");
-        return;
-    }
+    LogRAssert(m_copy_src, "Copy wasn't initiated", );
+    LogRAssert(wf_dest, "Zero ptr", );
+
     if (m_copied_nodes.empty())
     {
         Log("No nodes to copy");
@@ -675,19 +667,25 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
             src_pt.x = std::min(src_pt.x, node->m_rc.Min.x);
             src_pt.y = std::min(src_pt.y, node->m_rc.Min.y);
         }
-        Log("Copy source point set to " << src_pt.x << "/" << src_pt.y);
+        Log("Copy source point autoset to " << src_pt.x << "/" << src_pt.y);
     }
     else
+    {
         src_pt = m_copy_point.value();
+        Log("Copy source point set to " << src_pt.x << "/" << src_pt.y);
+    }
 
     ImVec2 dest_pt;
     if (!dest_point.has_value())
     {
         dest_pt.x = dest_pt.y = 0;
-        Log("Copy source point set to 0/0");
+        Log("Copy dest point autoset to 0/0");
     }
     else
+    {
         dest_pt = dest_point.value();
+        Log("Copy dest point set to " << dest_pt.x << "/" << dest_pt.y);
+    }
 
 
     const auto& dest_wf_data = wf_dest->get_data();
@@ -711,11 +709,13 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
         curr_node_to_new_node[node->get_instance_id()] = new_node;
     }
 
-    const auto& links = m_copy_src->get_links();
-    for (auto& link : links)
+    const auto& link_ptrs = m_copy_src->get_links();
+    std::vector<data::Link*> links;
+    std::for_each(link_ptrs.begin(), link_ptrs.end(), [&links](const std::unique_ptr<data::Link>& ptr) { links.push_back(ptr.get()); });
+    for (auto link : links)
     {
-        const auto src_in_pin = link->get_input();
-        const auto src_out_pin = link->get_output();
+        const auto* src_in_pin = link->get_input();
+        const auto* src_out_pin = link->get_output();
 
         const auto in_it = curr_node_to_new_node.find(src_in_pin->get_parent_node());
         const auto out_it = curr_node_to_new_node.find(src_out_pin->get_parent_node());
@@ -729,7 +729,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
 
         for (auto pin : dest_in_node->get_inputs())
         {
-            if (pin->get_object()->get_id() == src_in_pin->get_object()->get_id())
+            if (pin->get_object()->get_hash() == src_in_pin->get_object()->get_hash())
             {
                 dest_in_pin = pin;
                 break;
@@ -737,7 +737,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
         }
         for (auto pin : dest_out_node->get_outputs())
         {
-            if (pin->get_object()->get_id() == src_out_pin->get_object()->get_id())
+            if (pin->get_object()->get_hash() == src_out_pin->get_object()->get_hash())
             {
                 dest_out_pin = pin;
                 break;
@@ -745,11 +745,13 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
         }
         if (nullptr == dest_in_pin || nullptr == dest_out_pin)
         {
-            LogInternalLogic("Dest pin not found");
+            LogError("Dest pin(s) not found. wsrc:" << m_copy_src->get_id() << ", wdst:" << wf_dest->get_id()
+                << ", din:" << dest_in_node->get_instance_id() << ", sip:" << src_in_pin->get_instance_id() << ":" << (dest_in_pin != nullptr)
+                << ", don:" << dest_out_node->get_instance_id() << ", sop:" << src_out_pin->get_instance_id() << ":" << (dest_out_pin != nullptr));
         }
         else
         {
-            auto new_link = data::Link::link(dest_in_pin, dest_out_pin);
+            const auto* new_link = data::Link::link(dest_in_pin, dest_out_pin);
             if (!dest_wf_data.virt)
                 g::pHistoryManager->push_link_action(new_link, HistoryActionType::LinkAdd);
         }
@@ -761,7 +763,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
     if (!dest_wf_data.virt)
     {
         g::pFlow->wf_reload_view(wf_dest->get_id());
-        Log("Copy " << m_copied_nodes.size() << " from " << m_copy_src << " to " << wf_dest->get_id() << " at " << dest_pt.x << "/" << dest_pt.y);
+        Log("Copied " << m_copied_nodes.size() << " nodes from " << m_copy_src->get_id() << " to " << wf_dest->get_id());
     }
 }
 
@@ -785,7 +787,7 @@ void WfsManager::close_and_purge()
 
 void WfsManager::close(wid wf_id)
 {
-    if (0 == wf_id) { LogInternalLogic("Zero wf access"); }
+    LogRAssert(wf_id != 0, "Zero wf id", );
     auto wf = access(wf_id);
     auto& data = wf->get_data();
 
@@ -799,11 +801,29 @@ void WfsManager::close(wid wf_id)
         dump(wf_id);
     else if (data.temp)
         delete_wf(wf_id);
+
+    std::list<data::Link*> links;
+    auto& links_ptr = wf->get_links();
+    std::for_each(links_ptr.begin(), links_ptr.end(), [&links](const std::unique_ptr<data::Link>& link) { links.push_back(link.get()); });
+    for (auto link : links)
+    {        
+        wf->remove_link(link);
+    }
+
+    std::list<data::NodeInstance*> nodes;
+    auto& nodes_ptr = wf->get_nodes();
+    std::for_each(nodes_ptr.begin(), nodes_ptr.end(), [&nodes](const std::unique_ptr<data::NodeInstance>& node) { nodes.push_back(node.get()); });
+    for (auto node : nodes)
+    {
+        wf->remove_node(node);
+    }
+
+    Log("Wf closed. w:" << wf_id);
 }
 
 void WfsManager::save(wid wf_id)
 {
-    if (0 == wf_id) { LogInternalLogic("Zero wf access"); }
+    LogRAssert(wf_id != 0, "Zero wf id", );
     auto wf = access(wf_id);
     auto& data = wf->get_data();
 
@@ -824,11 +844,13 @@ void WfsManager::save(wid wf_id)
     data.dirty = true;
     data.temp = false;
     dump(wf_id);
+
+    Log("Wf saved. w:" << wf_id);
 }
 
 void WfsManager::revert(wid wf_id, blob::Blob& drawer_state)
 {
-    if (0 == wf_id) { LogInternalLogic("Zero wf access"); }
+    LogRAssert(wf_id != 0, "Zero wf id", );
     auto wf = access(wf_id);
     auto& data = wf->get_data();
 
@@ -846,16 +868,11 @@ void WfsManager::revert(wid wf_id, blob::Blob& drawer_state)
         blob::Blob blob;
         bool load_saved = true;
         g::pDbManager->wf_load_blob(data.uuid, blob, load_saved);
-        if (!load_saved)
-        {
-            LogWarn("Wf " << wf_id << ": failed to load state");
-            return;
-        }
+        LogAssert(load_saved, "Wf failed to load state. w:" << wf_id);
 
-        const bool res = data::WorkflowSerializerToBlob::deserialize(wf, blob, drawer_state);
+        const bool res = data::WfDeserializerFromBlob(wf, blob).deserialize(drawer_state);
         g::pHistoryManager->cleanup(wf_id);
-        if (load_saved)
-            g::pHistoryManager->set_rollback_pos(wf->get_id());
+        g::pHistoryManager->set_rollback_pos(wf->get_id());
         Log("Wf " << wf_id << " reverted via hard reset, res: " << (res ? "ok" : "fail"));
     }
 
@@ -866,7 +883,7 @@ void WfsManager::revert(wid wf_id, blob::Blob& drawer_state)
 
 void WfsManager::dump(wid wf_id) const
 {
-    if (0 == wf_id) { LogInternalLogic("Zero wf access"); }
+    LogRAssert(wf_id != 0, "Zero wf id", );
     auto wf = access(wf_id);
     auto& data = wf->get_data();
 
@@ -880,13 +897,13 @@ void WfsManager::dump(wid wf_id) const
 
     blob::Blob empty;
     const blob::Blob* drawer_state = nullptr;
-    auto wf_action = wf->action();
+    const auto* wf_action = wf->action();
     if (wf_action != nullptr)
         drawer_state = wf_action->get_drawer_state();
     if (nullptr == drawer_state)
         drawer_state = &empty;
 
-    auto wr = data::WorkflowSerializerToBlob::serialize(wf, *drawer_state);
+    auto wr = data::WfSerializerToBlob(wf).serialize(*drawer_state);
     g::pDbManager->wf_update_blob(data.uuid, wr.release(), data.draft, data.use_ext_time ? data.ext_time : tools::dt());
 
     data.dirty = false;
@@ -908,50 +925,50 @@ void WfsManager::dump(wid wf_id) const
     }
     data.use_ext_time = false;
     
-    Log("Wf " << wf_id << " dumped " << (data.draft ? "(draft)" : "(explicit save)"));
+    Log("Wf dumped. w:" << wf_id << (data.draft ? ", draft" : ", explicit save"));
 }
 
-wid WfsManager::import_wf(std::filesystem::path& from)
+wid WfsManager::import_wf(const std::filesystem::path& from)
 {
     Log("Import project from " << from);
-    const auto ext = tools::str::to_lower_ascii(from.extension().u8string());
-    const auto name = from.stem().u8string();
+    const auto ext = tools::str::to_lower_ascii(tools::str::path_to_string(from.extension()));
+    const auto name = tools::str::path_to_string(from.stem());
 
     if (ext == ".json")
     {
         auto jdata = tools::path::read_file(from, true);
         if (!jdata.empty())
-            return import_wf_from_json(jdata.data(), from.stem().u8string());
+            return import_wf_from_json(jdata.data(), tools::str::path_to_string(from.stem()));
         return 0;
     }
     if (ext == ".png")
     {
         auto jdata = tools::img::extract_workflow_from_png(from);
         if (!jdata.empty())
-            return import_wf_from_json(jdata.data(), from.stem().u8string());
+            return import_wf_from_json(jdata.data(), tools::str::path_to_string(from.stem()));
         return 0;
     }
     if (ext == ".webp")
     {
         auto jdata = tools::img::extract_workflow_from_webp(from);
         if (!jdata.empty())
-            return import_wf_from_json(jdata.data(), from.stem().u8string());
+            return import_wf_from_json(jdata.data(), tools::str::path_to_string(from.stem()));
         return 0;
     }
 
-    Log("Can't import, unsupported file type");
-    return 0;
+    LogRError("Can't import, unsupported file type", 0);
 }
 
 wid WfsManager::import_wf_from_json(const std::string& jdata, const std::string& name, tools::dt use_time /*= {}*/, bool virt /*= false*/)
 {
     try
     {
+        Log("Start import json. f:" << name);
         const auto j = o_json::parse(jdata);
 
         WfData wf_data;
         wf_data.ro = false;
-        wf_data.name = std::filesystem::path(name).stem().u8string();
+        wf_data.name = tools::str::path_to_string(std::filesystem::path(name).stem());
         if (!use_time.null())
         {
             wf_data.ext_time = use_time;
@@ -959,7 +976,7 @@ wid WfsManager::import_wf_from_json(const std::string& jdata, const std::string&
         }
         auto wf = create(std::move(wf_data), false);
 
-        if (data::WorkflowSerializerToJson::deserialize(wf, j) || data::WorkflowSerializerToJson::deserialize_api(wf, j))
+        if (data::WfDeserializerFromJson(wf, j).deserialize() || data::WfDeserializerFromJsonApi(wf, j).deserialize())
         {
             if (!virt)
             {
@@ -977,7 +994,7 @@ wid WfsManager::import_wf_from_json(const std::string& jdata, const std::string&
     }
     catch (const std::exception& ex)
     {
-        LogExcep(ExcepCategory::API, "Failed to parse json, err " << ex.what());
+        LogExcep("Failed to parse json, err " << ex.what());
     }
 
     return 0;
@@ -985,13 +1002,9 @@ wid WfsManager::import_wf_from_json(const std::string& jdata, const std::string&
 
 void WfsManager::export_wf(wid wf_id, bool api, const std::filesystem::path& to)
 {
-    if (0 == wf_id) { LogInternalLogic("Zero wf access"); }
+    LogRAssert(wf_id != 0, "Zero wf id", );
     const auto wf_it = m_wfs.find(wf_id);
-    if (wf_it == m_wfs.end())
-    {
-        LogWarn("Can't export - active wf " << wf_id << " not found");
-        return;
-    }
+    LogRAssert(wf_it != m_wfs.end(), "Can't export - active wf not found. w:" << wf_id, );
 
     auto wf = wf_it->second.get();
     if (wf->get_nodes().empty())
@@ -1000,12 +1013,12 @@ void WfsManager::export_wf(wid wf_id, bool api, const std::filesystem::path& to)
         load(wf->get_id(), dummy);
     }
 
-    Log("Starting export wf=" << wf_id << " as API=" << api << " to " << to.string());
+    Log("Start export. w" << wf_id << ", API:" << api << ", f:" << to.string());
     o_json j;
     if (api)
-        j = data::WorkflowSerializerToJson::serialize_to_api(wf);
+        j = data::WfSerializerToJsonApi(wf).serialize();
     else
-        j = data::WorkflowSerializerToJson::serialize(wf);
+        j = data::WfSerializerToJson(wf).serialize();
 
     auto jdump = j.dump();
     if (!tools::path::make_file_path(to, true, jdump))

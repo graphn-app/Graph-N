@@ -12,32 +12,37 @@ class ConnectManager final : public Manager
     friend class ui::GraphN_Flow;
 
 public:
-    ConnectManager();
-    ~ConnectManager() override;
+    ConnectManager() noexcept;
+    ~ConnectManager() noexcept override;
 
     bool init() override;
     void stop_all_threads() override;
 
-    ConnectState get_status(int64_t* latency = nullptr);
+    ConnectState get_status(int64_t* latency = nullptr) noexcept;
 
 private:
     void reconnect();
 
-    uint32_t send_http_request(const char* who_is_asking, const char* request, bool post, const std::string&& post_payload = "");
+    uint32_t send_http_request(const char* who_is_asking, const char* request, bool post,
+        std::string&& post_payload, httplib::UploadFormDataItems&& post_payload_items, bool retry_on_timeout );
 
     bool pickup_http_response(uint32_t& req_id, int32_t& result, std::string& response);
     bool pickup_ws_message(bool& is_binary, std::string& message);
 
-    struct RequestData
+    struct RequestData final
     {
         uint32_t req_id = 0;
 
         std::string request;
         bool post = true;
         std::string post_payload;
+        httplib::UploadFormDataItems post_payload_items;
+        bool is_object_info = false;
 
         int32_t status = 0;
         std::string data;
+
+        bool retry_on_timeout = false;
     };
 
     void http_worker();

@@ -89,7 +89,7 @@ ModalDlgCtrl ModalMessage::show()
     ImGui::PushStyleColor(ImGuiCol_Text, m_color);
     ImGui::PushFont(g::pMain->get_big_icons_font());
 
-    const float icon_width = ImGui::CalcTextSize(m_icon).x;
+    //const float icon_width = ImGui::CalcTextSize(m_icon).x;
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 20.0f); 
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 50 / 2 );
 

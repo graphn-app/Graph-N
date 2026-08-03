@@ -12,8 +12,8 @@ class MainRoutine_Linux final : public global::MainRoutine
     friend class Textures_Linux;
 
 public:
-    MainRoutine_Linux() = default;
-    ~MainRoutine_Linux() override = default;
+    MainRoutine_Linux() noexcept = default;
+    ~MainRoutine_Linux() override noexcept = default;
 
 private:
     /*

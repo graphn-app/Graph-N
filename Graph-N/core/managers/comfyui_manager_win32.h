@@ -11,16 +11,15 @@ using Handle = std::unique_ptr<void, decltype(&::CloseHandle)>;
 class ComfyUIManager_Win32 final : public ComfyUIManager
 {
 public:
-    ComfyUIManager_Win32();
-    ~ComfyUIManager_Win32() override;
+    ComfyUIManager_Win32() noexcept;
+    ~ComfyUIManager_Win32() noexcept override;
 
     bool init() override;
-    void free() override;
     void stop_all_threads() override;
 
     uint32_t check_existing_process() const override;
-    bool get_process_started() const override { return m_procid != 0; }
-    uint32_t get_started_proc_id() const override { return m_procid; }
+    bool get_process_started() const noexcept override { return m_procid != 0; }
+    uint32_t get_started_proc_id() const noexcept override { return m_procid; }
     void kill(bool force_kill) override;
     void setup_auto_kill(bool enable) override;
     void append_log(std::deque<std::string>& logs) override;

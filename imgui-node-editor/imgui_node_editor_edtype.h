@@ -1,30 +1,28 @@
-
 #pragma once
+#include <atomic>
 
-namespace ax
-{
-namespace NodeEditor
-{
-namespace Detail
+namespace ax { namespace NodeEditor { namespace Detail
 {
 struct Node;
 struct Pin;
 struct Link;
 struct Object;
-}
-}
+} } }
+
+namespace {
+static std::atomic_uint64_t g_id = 1;
 }
 
 class EdType
 {
 public:
-    EdType() {}
-    EdType(ax::NodeEditor::Detail::Node* n) : obj(n) {}
-    EdType(ax::NodeEditor::Detail::Pin* p) : obj(p) {}
-    EdType(ax::NodeEditor::Detail::Link* l) : obj(l) {}
-    EdType(ax::NodeEditor::Detail::Object* o) : obj(o) {}
+    EdType() noexcept { ed_id = g_id.fetch_add(1, std::memory_order_relaxed);; }
+    EdType(ax::NodeEditor::Detail::Node* n) noexcept : EdType() { obj = n; }
+    EdType(ax::NodeEditor::Detail::Pin* p) noexcept : EdType() { obj = p; }
+    EdType(ax::NodeEditor::Detail::Link* l) noexcept : EdType() { obj = l; }
+    EdType(ax::NodeEditor::Detail::Object* o) noexcept : EdType() { obj = o; }
 
-    inline EdType& operator=(const EdType& other)
+    EdType& operator=(const EdType& other) noexcept
     {
         if (this != &other)
         {
@@ -33,33 +31,40 @@ public:
         return *this;
     }
 
-    inline void reset()
+    void reset() noexcept
     {
         obj = nullptr;
     }
 
-    inline operator ax::NodeEditor::Detail::Node*() const
+    operator ax::NodeEditor::Detail::Node*() const noexcept
     {
         return reinterpret_cast<ax::NodeEditor::Detail::Node*>(obj);
     }
-    inline operator ax::NodeEditor::Detail::Pin*() const
+    operator ax::NodeEditor::Detail::Pin*() const noexcept
     {
         return reinterpret_cast<ax::NodeEditor::Detail::Pin*>(obj);
     }
-    inline operator ax::NodeEditor::Detail::Link*() const
+    operator ax::NodeEditor::Detail::Link*() const noexcept
     {
         return reinterpret_cast<ax::NodeEditor::Detail::Link*>(obj);
     }
-    inline operator ax::NodeEditor::Detail::Object*() const
+    operator ax::NodeEditor::Detail::Object*() const noexcept
     {
         return reinterpret_cast<ax::NodeEditor::Detail::Object*>(obj);
     }
+    uint64_t id() const noexcept
+    {
+        return ed_id;
+    }
 
-    inline explicit operator bool() const
+    explicit operator bool() const noexcept
     {
         return obj != nullptr;
     }
 
 private:
     void* obj = nullptr;
+    uint64_t ed_id = 0;
+    
 };
+

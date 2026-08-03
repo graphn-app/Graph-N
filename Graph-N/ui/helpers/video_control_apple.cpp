@@ -4,9 +4,7 @@
 
 namespace platform
 {
-VideoControl_Apple::~VideoControl_Apple()
-{
-}
+VideoControl_Apple::~VideoControl_Apple() noexcept = default;
 } // namespace platform
 
 #endif // #ifdef __APPLE__

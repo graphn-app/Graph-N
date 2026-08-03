@@ -8,22 +8,7 @@ PanelNotes::PanelNotes()
     : PanelBase(DlgObj::PanelNotes, "Notes")
 {}
 
-PanelNotes::~PanelNotes()
-{
-    LogF;
-}
-
-void PanelNotes::init()
-{
-    LogF;
-    PanelBase::init();
-
-}
-
-void PanelNotes::stop_all_threads()
-{
-    LogF;
-}
+PanelNotes::~PanelNotes() noexcept = default;
 
 DlgCode PanelNotes::show(bool& focused)
 {

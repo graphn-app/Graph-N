@@ -9,8 +9,8 @@ namespace mngr
 class ComfyUIManager_Apple final : public ComfyUIManager
 {
 public:
-    ComfyUIManager_Apple();
-    ~ComfyUIManager_Apple() override;
+    ComfyUIManager_Apple() noexcept;
+    ~ComfyUIManager_Apple() noexcept override;
 
     bool init() override;
     void free() override;

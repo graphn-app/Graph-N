@@ -44,10 +44,10 @@ void MainRoutine::prepare_fonts()
 
     // paths
     const auto res_path = fs::get_res_directory_path();
-    const auto path_inter_reg = (res_path / "Inter_18pt-Regular.ttf").u8string();
-    const auto path_inter_bold = (res_path / "Inter_18pt-Bold.ttf").u8string(); // Твой жирный шрифт
-    const auto path_emoji = (res_path / "NotoEmoji-Regular.ttf").u8string();
-    const auto path_icons = (res_path / FONT_ICON_FILE_NAME_LC).u8string();
+    const auto path_inter_reg = tools::str::path_to_string(res_path / "Inter_18pt-Regular.ttf");
+    const auto path_inter_bold = tools::str::path_to_string(res_path / "Inter_18pt-Bold.ttf");
+    const auto path_emoji = tools::str::path_to_string(res_path / "NotoEmoji-Regular.ttf");
+    const auto path_icons = tools::str::path_to_string(res_path / FONT_ICON_FILE_NAME_LC);
 
     // ================= REGULAR FONT =================
 

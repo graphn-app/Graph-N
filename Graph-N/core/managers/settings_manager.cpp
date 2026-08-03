@@ -7,14 +7,10 @@
 namespace mngr
 {
 
-SettingsManager::~SettingsManager()
-{
-    LogF;
-}
+SettingsManager::~SettingsManager() noexcept = default;
 
 bool SettingsManager::init()
 {
-    LogF;
     if (!Manager::init())
         return false;
 
@@ -53,7 +49,7 @@ bool SettingsManager::init()
     m_comfyui_ping_interval =                         { "comfyui_ping_interval",    int64_t(2) };
 
     // wf
-    m_wf_widget_input_numbers =                       { "widget_input_numbers",     cast::to_i64(WidgetInput::Slider) };
+    m_wf_widget_input_numbers =                       { "widget_input_numbers",     cast::to_i64(WidgetInput::Direct) };
     m_wf_widget_input_bools =                         { "widget_input_bools",       cast::to_i64(WidgetInput::Select) };
     m_wf_active =                                     { "active_wf",                std::string("") };
     m_wf_show_grid =                                  { "show_grid",                bool(true) };
@@ -130,7 +126,7 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::NodeWidgetHiddenSep)] =               { "color_node_widget_hidden_sep", int64_t(IM_COL32(0, 180, 180, 200)) };
     m_ui_colors[cast::to_szt(AppColor::NodeDescription)] =                   { "color_node_description", int64_t(IM_COL32(0, 180, 180, 255)) };
     m_ui_colors[cast::to_szt(AppColor::NodeHeaderIcon)] =                    { "color_node_header_icon", int64_t(IM_COL32(0, 180, 180, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::NodeBorderMuted)] =                   { "color_node_border_muted", int64_t(IM_COL32(255, 50, 50, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::NodeBorderMuted)] =                   { "color_node_border_muted", int64_t(IM_COL32(92, 92, 95, 255)) };
     m_ui_colors[cast::to_szt(AppColor::NodeBorderBypassed)] =                { "color_node_border_bypassed", int64_t(IM_COL32(255, 0, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::GroupBg)] =                           { "color_group_bg", int64_t(IM_COL32(38, 71, 93, 0)) };
     m_ui_colors[cast::to_szt(AppColor::StatNorm)] =                          { "color_stat_norm", int64_t(IM_COL32(255, 255, 255, 150)) };
@@ -162,6 +158,7 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::TabInactive)] =                       { "color_tab_inactive",  int64_t(IM_COL32(17, 26, 38, 255)) };
     m_ui_colors[cast::to_szt(AppColor::TabHovered)] =                        { "color_tab_hovered",  int64_t(IM_COL32(0, 150, 150, 255)) };
     m_ui_colors[cast::to_szt(AppColor::DummyNode)] =                         { "color_dummy_node",  int64_t(IM_COL32(255, 0, 0, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::NoteNode)] =                          { "color_note_node",  int64_t(IM_COL32(30, 47, 64, 212)) };
 
     // stats
     m_stat_limits_warn.resize(cast::to_szt(MetricLimit::_count));
@@ -263,11 +260,11 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
             else if (std::holds_alternative<std::string>(val->value))
                 val->value = it->val.sval;
             else if (std::holds_alternative<std::filesystem::path>(val->value))
-                val->value = std::filesystem::u8path(it->val.sval);
+                val->value = std::filesystem::path(std::u8string(it->val.sval.begin(), it->val.sval.end()));
             else if (std::holds_alternative<bool>(val->value))
                 val->value = bool(it->val.ival == 1);
             else
-                LogInternalLogic("Unhandled option type");
+                LogError("Unhandled option type");
         }
         else
         {
@@ -285,7 +282,7 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
                 }
                 else if constexpr (std::is_same_v<T, std::filesystem::path>)
                 {
-                    db_opt.val = v.u8string();
+                    db_opt.val = tools::str::path_to_string(v);
                 }
                 else
                 {
@@ -324,56 +321,39 @@ void SettingsManager::init_disks()
     stat_disks_enabled_save();
 }
 
+template <typename OPT_T>
+void save_option_impl(std::variant<std::string, int64_t, std::filesystem::path, bool>& option_value, const char* option_db_name,
+    const OPT_T& new_value, DbValue&& db_value, const char* type_str)
+{
+    LogRAssertS(std::holds_alternative<OPT_T>(option_value), "Value " << option_db_name << " is not a " << type_str, );
+
+    auto* ptr = std::get_if<OPT_T>(&option_value);
+    LogRAssertS(ptr, "Value " << option_db_name << " zero ptr", );
+    if (*ptr != new_value)
+    {
+        *ptr = new_value;
+        g::pDbManager->app_option_save(option_db_name, std::move(db_value));
+    }
+}
+
 void SettingsManager::save_option(OptionValue& option, const std::string& new_str)
 {
-    if (!std::holds_alternative<std::string>(option.value))
-    {
-        LogExcep(ExcepCategory::Logic, "Value " << option.db_name << " is not a string");
-    }
-    else if (*std::get_if<std::string>(&option.value) != new_str)
-    {
-        *std::get_if<std::string>(&option.value) = new_str;
-        g::pDbManager->app_option_save(option.db_name, { new_str });
-    }
+    save_option_impl(option.value, option.db_name, new_str, { new_str }, "string");
 }
 
 void SettingsManager::save_option(OptionValue& option, int64_t new_int)
 {
-    if (!std::holds_alternative<int64_t>(option.value))
-    {
-        LogExcep(ExcepCategory::Logic, "Value " << option.db_name << " is not a number");
-    }
-    else if (*std::get_if<int64_t>(&option.value) != new_int)
-    {
-        *std::get_if<int64_t>(&option.value) = new_int;
-        g::pDbManager->app_option_save(option.db_name, { new_int });
-    }
+    save_option_impl(option.value, option.db_name, new_int, { new_int }, "int");
 }
 
 void SettingsManager::save_option(OptionValue& option, bool new_bool)
 {
-    if (!std::holds_alternative<bool>(option.value))
-    {
-        LogExcep(ExcepCategory::Logic, "Value " << option.db_name << " is not a boolean");
-    }
-    else if (*std::get_if<bool>(&option.value) != new_bool)
-    {
-        *std::get_if<bool>(&option.value) = new_bool;
-        g::pDbManager->app_option_save(option.db_name, { new_bool ? 1 : 0 });
-    }
+    save_option_impl(option.value, option.db_name, new_bool, { new_bool ? 1 : 0 }, "bool");
 }
 
 void SettingsManager::save_option(OptionValue& option, const std::filesystem::path& new_path)
 {
-    if (!std::holds_alternative<std::filesystem::path>(option.value))
-    {
-        LogExcep(ExcepCategory::Logic, "Value " << option.db_name << " is not a path");
-    }
-    else if (*std::get_if<std::filesystem::path>(&option.value) != new_path)
-    {
-        *std::get_if<std::filesystem::path>(&option.value) = new_path;
-        g::pDbManager->app_option_save(option.db_name, { new_path.u8string() });
-    }
+    save_option_impl(option.value, option.db_name, new_path, { tools::str::path_to_string(new_path) }, "path");
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -407,7 +387,7 @@ std::string SettingsManager::format_hotkeys_to_json(const std::vector<ui::KeyBin
     return j.dump();
 }
 
-std::vector<ui::KeyBinding> SettingsManager::ui_hotkeys_load()
+std::vector<ui::KeyBinding> SettingsManager::ui_hotkeys_load() noexcept
 {
     const std::string* val = std::get_if<std::string>(&m_ui_hotkeys.value);
     if (nullptr == val || val->empty())
@@ -419,7 +399,7 @@ std::vector<ui::KeyBinding> SettingsManager::ui_hotkeys_load()
         const auto j = u_json::parse(*val);
 
         const auto key_names = g::pHotkeysManager->get_key_names();
-        const auto is_supported = [&key_names](ImGuiKey test)
+        const auto is_supported = [&key_names](int32_t test)
         {
             for (auto& key : key_names)
             {
@@ -442,9 +422,9 @@ std::vector<ui::KeyBinding> SettingsManager::ui_hotkeys_load()
                 }
                 if (jval.contains("key") && jval["key"].is_number_integer())
                 {
-                    const auto key = cast::to<int32_t, ImGuiKey>(jval["key"].get<int32_t>());
+                    const auto key = jval["key"].get<int32_t>();
                     if (key >= ImGuiKey_NamedKey_BEGIN && key <= ImGuiKey_NamedKey_END && is_supported(key))
-                        kb.key = key;
+                        kb.key = cast::to_imguikey(key);
                 }
                 if (jval.contains("ctrl") && jval["ctrl"].is_boolean())
                     kb.ctrl = jval["ctrl"];
@@ -463,7 +443,7 @@ std::vector<ui::KeyBinding> SettingsManager::ui_hotkeys_load()
                 else
                     kb.enabled = false;
 
-                if (kb.key != ImGuiKey_None && kb.target != KeyTarget::None)
+                if (kb.key != ImGuiKey_None && kb.target != KeyTarget::_none)
                     hotkeys.push_back(kb);
             }
         }
@@ -472,7 +452,7 @@ std::vector<ui::KeyBinding> SettingsManager::ui_hotkeys_load()
     }
     catch (const std::exception& ex)
     {
-        LogExcep(ExcepCategory::Logic, "Failed to parse key bindings: " << ex.what());        
+        LogExcep("Failed to parse key bindings: " << ex.what());        
     }
     return {};
 }
@@ -481,7 +461,7 @@ std::vector<ui::KeyBinding> SettingsManager::ui_hotkeys_load()
 ////////       WF                        /////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-std::list<std::pair<std::string, bool>> SettingsManager::wf_active_load() const
+std::list<std::pair<std::string, bool>> SettingsManager::wf_active_load() const noexcept
 {
     const std::string* val = std::get_if<std::string>(&m_wf_active.value);
     if (nullptr == val || val->empty())
@@ -506,7 +486,7 @@ std::list<std::pair<std::string, bool>> SettingsManager::wf_active_load() const
     }
     catch (const std::exception& ex)
     {
-        LogExcep(ExcepCategory::Logic, "Failed to parse active workflows: " << ex.what());        
+        LogExcep("Failed to parse active workflows: " << ex.what());        
     }
     return {};
 }
@@ -525,7 +505,7 @@ void SettingsManager::wf_active_save(const std::list<std::pair<std::string, bool
     save_option(m_wf_active, j.dump());
 }
 
-bool SettingsManager::wf_imported_load(const std::string& project) const
+bool SettingsManager::wf_imported_load(const std::string& project) const noexcept
 {
     const auto& imported = *std::get_if<std::string>(&m_wf_imported.value);
     if (imported.empty())
@@ -553,7 +533,7 @@ bool SettingsManager::wf_imported_load(const std::string& project) const
     }
     catch (const std::exception& ex)
     {
-        LogWarn("Failed to parse imported projects: " << ex.what());
+        LogExcep("Failed to parse imported projects: " << ex.what());
     }
 
     return false;
@@ -581,7 +561,7 @@ void SettingsManager::wf_imported_save(const std::string& project)
             {
                 if (jaddr == addr && jprojects.is_array())
                 {
-                    for (auto& jproject : jprojects)
+                    for (const auto& jproject : jprojects)
                     {
                         if (jproject.is_string() && jproject == project)
                             return;
@@ -596,7 +576,7 @@ void SettingsManager::wf_imported_save(const std::string& project)
     }
     catch (const std::exception& ex)
     {
-        LogWarn("Failed to parse imported projects: " << ex.what());
+        LogExcep("Failed to parse imported projects: " << ex.what());
     }
 }
 
@@ -604,7 +584,7 @@ void SettingsManager::wf_imported_save(const std::string& project)
 ////////       QUEUE                    /////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-std::set<std::string> SettingsManager::queue_favorited_load() const
+std::set<std::string> SettingsManager::queue_favorited_load() const noexcept
 {
     const auto& jfavs = *std::get_if<std::string>(&m_queue_favs.value);
     if (jfavs.empty())
@@ -621,7 +601,7 @@ std::set<std::string> SettingsManager::queue_favorited_load() const
     }
     catch (const std::exception& ex)
     {
-        LogWarn("Failed to parse favorited outputs: " << ex.what());
+        LogExcep("Failed to parse favorited outputs: " << ex.what());
     }
 
     return favs;
@@ -630,19 +610,13 @@ std::set<std::string> SettingsManager::queue_favorited_load() const
 std::set<std::string> SettingsManager::queue_favorited_save(const std::string& prompt_id, bool add)
 {
     std::set<std::string> all_favs = queue_favorited_load(); 
-    try
-    {
-        if (add && !all_favs.insert(prompt_id).second) return all_favs;
-        if (!add && all_favs.erase(prompt_id) == 0) return all_favs;
 
-        u_json jsave;
-        jsave["favorited"] = all_favs;
-        save_option(m_queue_favs, jsave.dump());
-    }
-    catch (const std::exception& ex)
-    {
-        LogWarn("Failed to parse favorited outputs: " << ex.what());
-    }
+    if (add && !all_favs.insert(prompt_id).second)  return all_favs;
+    if (!add && all_favs.erase(prompt_id) == 0)     return all_favs;
+
+    u_json jsave;
+    jsave["favorited"] = all_favs;
+    save_option(m_queue_favs, jsave.dump());
 
     return all_favs;
 }
@@ -669,19 +643,19 @@ void SettingsManager::model_starred_preload()
     }
 }
 
-std::optional<DbValue> SettingsManager::item_load(hid id, DbItemOptionType type) const
+std::optional<DbValue> SettingsManager::item_load(hid hash, DbItemOptionType type) const
 {
-    return g::pDbManager->item_option_load(id, type);
+    return g::pDbManager->item_option_load(hash, type);
 }
 
-void SettingsManager::item_save(hid id, DbItemOptionType type, int64_t value) const
+void SettingsManager::item_save(hid hash, DbItemOptionType type, int64_t value) const
 {
-    g::pDbManager->item_option_save(id, type, DbValue(value));
+    g::pDbManager->item_option_save(hash, type, DbValue(value));
 }
 
-void SettingsManager::item_save(hid id, DbItemOptionType type, std::string&& value) const
+void SettingsManager::item_save(hid hash, DbItemOptionType type, std::string&& value) const
 {
-    g::pDbManager->item_option_save(id, type, DbValue(std::move(value)));
+    g::pDbManager->item_option_save(hash, type, DbValue(std::move(value)));
 }
 
 //////////////////////////////////////////////////////////////////////

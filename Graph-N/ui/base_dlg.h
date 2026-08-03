@@ -9,8 +9,8 @@ namespace ui
 
 struct DlgData
 {
-    DlgData() = default;
-    virtual ~DlgData() = default;
+    DlgData() noexcept = default;
+    virtual ~DlgData() noexcept = default;
 
     NO_COPY_MOVE(DlgData);
 
@@ -31,10 +31,10 @@ struct DlgData
 class BaseDlg
 {
 public:
-    BaseDlg(DlgObj obj)
+    BaseDlg(DlgObj obj) noexcept
         : m_obj(obj)
     {}
-    virtual ~BaseDlg() = default;
+    virtual ~BaseDlg() noexcept = default;
 
     NO_COPY_MOVE(BaseDlg);
 
@@ -44,19 +44,14 @@ public:
             return DlgCode::Cancel;
         return show(focused);
     }
-    void close_dialog()
+    void close_dialog() noexcept
     {
         m_close_called = true;
     }
 
-    virtual void init()
-    {
-    }
-
-    virtual void free()
-    {}
-
-    virtual void stop_all_threads() { LogF; }
+    virtual void init() {}
+    virtual void free() {}
+    virtual void stop_all_threads() {}
 
 protected:
     virtual DlgCode show(bool& focused) = 0;
@@ -68,13 +63,13 @@ protected:
     //	m_data->y = pos.y;
     //}
 
-    DlgObj get_dlg_obj() const { return m_obj; }
+    DlgObj get_dlg_obj() const noexcept { return m_obj; }
 
     //void set_exit_code(DlgCode code) { m_exit_code = code; }
     //void set_exit_code_ok() { m_exit_code = DlgCode::OK; }
     //DlgCode exit_code() const { return m_exit_code; }
 
-    DlgCode cleanup_and_exit(bool in_progress, bool end_dlg = true, bool pop_title_styles = true, bool pop_bg_style = true)
+    DlgCode cleanup_and_exit(bool in_progress, bool end_dlg = true, bool pop_title_styles = true, bool pop_bg_style = true) noexcept
     {
         if (end_dlg)
             ImGui::End();
@@ -88,7 +83,7 @@ protected:
         return in_progress ? DlgCode::Progress : DlgCode::Cancel;
     }
 
-    DlgCode cleanup_and_exit_popup(bool end_dlg, bool pop_styles, DlgCode exit_code)
+    DlgCode cleanup_and_exit_popup(bool end_dlg, bool pop_styles, DlgCode exit_code) noexcept
     {
         if (end_dlg)
             ImGui::EndPopup();
@@ -110,19 +105,19 @@ class BaseDlgWithData : public BaseDlg
 {
 public:
     using BaseDlg::BaseDlg;
-    ~BaseDlgWithData() override = default;
+    ~BaseDlgWithData() noexcept override = default;
 
     void init() override
     {
         if (m_dlg_initialized)
             return;
         m_data = std::make_unique<DlgDataType>();
-        data()->clr_bg = g::pOptsManager->color_load(AppColor::PanelBg);
+        dlg_data()->clr_bg = g::pOptsManager->color_load(AppColor::PanelBg);
         m_dlg_initialized = true;
     }
 
 protected:
-    DlgDataType* data() { return m_data.get(); }
+    DlgDataType* dlg_data() const noexcept { return m_data.get(); }
 
 private:
     bool m_dlg_initialized = false;

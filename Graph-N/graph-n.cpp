@@ -45,25 +45,27 @@ mngr::HotkeysManager* pHotkeysManager = nullptr;
 std::atomic_bool app_global_stop_all_threads = false;
 int32_t block_hotkeys_counter = 0;
 
-void save_exception(ExcepCategory category, std::string message, const char* file, int32_t line)
+void save_exception(std::string message, const char* file, int32_t line) noexcept
 {
-    if (g::pDbManager != nullptr && category != ExcepCategory::SQLite)
-        g::pDbManager->exception_save(category, std::move(message), file, line);
+    if (g::pDbManager != nullptr)
+        g::pDbManager->exception_save(std::move(message), file, line);
 }
 }
 
-GraphN::GraphN()
+GraphN::GraphN() noexcept
 {
-    LogF;
+    Log("");
 }
 
-GraphN::~GraphN()
+GraphN::~GraphN() noexcept
 {
-    LogF;
+    Log("");
 }
 
 bool GraphN::init_graphn()
 {
+    LogIn;
+
     m_managers.push_back(std::make_unique<mngr::DbManager>());
     g::pDbManager = (mngr::DbManager*)m_managers.back().get();
 
@@ -75,9 +77,6 @@ bool GraphN::init_graphn()
 
     m_managers.push_back(std::make_unique<mngr::ModelsManager>());
     g::pModelsManager = (mngr::ModelsManager*)m_managers.back().get();
-
-    m_managers.push_back(std::make_unique<mngr::NodesManager>());
-    g::pNodesManager = (mngr::NodesManager*)m_managers.back().get();
 
     m_managers.push_back(std::make_unique<mngr::ConnectManager>());
     g::pConnectManager = (mngr::ConnectManager*)m_managers.back().get();
@@ -109,23 +108,21 @@ bool GraphN::init_graphn()
         if (success && !manager->init())
             success = false;
     });
-    if (!success)
-    {
-        Log("Failed to initialize managers");
-        return false;
-    }
+    LogCriticalIf(success, "Failed to initialize managers");
+
     Log("Managers ready");
 
     g::pMain->set_vsync_enabled(g::pOptsManager->app_vsync_load());
 
     m_flow_step = Flow::Init;
     Log("Next step: init");
+    LogOut;
     return true;
 }
 
 void GraphN::exit_graphn()
 {
-    LogF_In;
+    LogIn;
 
     g::app_global_stop_all_threads = true;
     g::pTextures->cleanup_all();
@@ -150,18 +147,17 @@ void GraphN::exit_graphn()
     auto temp = fs::get_temp_directory_path();
     tools::path::remove(temp);
 
-    LogF_Out;
+    LogOut;
 }
 
-int32_t GraphN::override_exit_code()
+int32_t GraphN::override_exit_code() noexcept
 {
     LogV(m_exit_code);
     return m_exit_code;
 }
 
-void GraphN::handle_wnd_on_close()
+void GraphN::handle_wnd_on_close() noexcept
 {
-    LogF;
     m_flow_step = Flow::PrepareToExit;
     Log("Next step: PrepareToExit");
 }
@@ -171,9 +167,11 @@ void GraphN::subscribe_timers(listener::Timer* listener)
     m_timer_listeners.push_back(listener);
 }
 
-void GraphN::unsubscribe_timers(listener::Timer* listener)
+void GraphN::unsubscribe_timers(listener::Timer* listener) noexcept
 {
-    m_timer_listeners.remove(listener);
+    try {
+        m_timer_listeners.remove(listener);
+    } catch(...) {}
 }
 
 void GraphN::handle_1sec_timer(int64_t seconds_elapsed)
@@ -189,12 +187,16 @@ void GraphN::subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityLis
     m_comfyui_validity_listeners[step].push_back(listener);
 }
 
-void GraphN::unsubscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener)
+void GraphN::unsubscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener* listener) noexcept
 {
-    for (auto& listeners : m_comfyui_validity_listeners)
+    try
     {
-        listeners.second.remove(listener);
+        for (auto& listeners : m_comfyui_validity_listeners)
+        {
+            listeners.second.remove(listener);
+        }
     }
+    catch (...) {}
 }
 
 void GraphN::invalidate_comfyui_objects()
@@ -265,7 +267,7 @@ bool GraphN::flow()
             result = false;
             break;
         default:
-            LogAndThrowInternalError(ExcepCategory::SwitchEnum, "Unhandler flow step " << cast::to_u64(m_flow_step));
+            LogRError("Unhandler flow step " << cast::to_u64(m_flow_step), false);
         }
 
         handle_new_frame(ImGui::GetFrameCount());
@@ -273,8 +275,7 @@ bool GraphN::flow()
     catch (const std::exception& ex)
     {
         result = false;
-        LogExcep(ExcepCategory::Flow, ex.what());
-        throw;
+        LogCritical("Main flow ex: " << ex.what());
     }
 
     return result;
@@ -282,18 +283,12 @@ bool GraphN::flow()
 
 bool GraphN::init()
 {
-    LogF;
-
     _tzset();
 
     Log("Creating Graph-N flow");
     m_graphn_flow = std::make_unique<ui::GraphN_Flow>();
     g::pFlow = m_graphn_flow.get();
-    if (!g::pFlow->init())
-    {
-        Log("Graph-N flow initialization failed");
-        return false;
-    }
+    LogCriticalIf(g::pFlow->init(), "Graph-N flow initialization failed");
 
     g::pTextures->init_ui_ready();
 
@@ -356,9 +351,8 @@ bool GraphN::start_server()
     return true;
 }
 
-bool GraphN::connect()
+bool GraphN::connect() noexcept
 {
-    LogF;
     //g::pFlow->reconnect();
     m_flow_step = Flow::GraphN;
     Log("Next step: GraphN");
@@ -375,5 +369,3 @@ bool GraphN::run_graphn()
     }
     return res;
 }
-
-

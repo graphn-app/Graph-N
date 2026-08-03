@@ -10,8 +10,8 @@ class SyncProjectsDlg final :
     public IsAlive
 {
 public:
-    SyncProjectsDlg();
-    ~SyncProjectsDlg() override;
+    SyncProjectsDlg() noexcept;
+    ~SyncProjectsDlg() noexcept override;
 
     void init() override;
 
@@ -24,7 +24,7 @@ private:
     enum class SyncStatus { None, InProgress, Success, Error, Skipped };
     enum class SyncAction { Skip, Upload, UploadReplace, UploadRename, Download, DownloadReplace, DownloadRename, DeleteLocal, Undelete };
 
-    struct SyncRow 
+    struct SyncRow final
     {
         wid local_id = 0;
         bool deleted = false;
@@ -48,7 +48,7 @@ private:
         SyncStatus status = SyncStatus::None;
     };
 
-    struct Project
+    struct Project final
     {
         bool local = true;
         std::string name;
@@ -56,9 +56,9 @@ private:
         tools::dt time;
     };
 
-    const char* get_action_name(SyncAction action);
+    const char* get_action_name(SyncAction action) noexcept;
     void apply_recommended_actions();
-    void reset();
+    void reset() noexcept;
     void load_projects();
     void show_status_page();
     void setup_actions();

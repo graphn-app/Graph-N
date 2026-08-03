@@ -29,23 +29,19 @@ PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std
     g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
 }
 
-PanelWorkflow::~PanelWorkflow()
+PanelWorkflow::~PanelWorkflow() noexcept
 {
-    LogF;
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_comfyui_validity_state(this);
 }
 
-void PanelWorkflow::stop_all_threads()
+void PanelWorkflow::stop_all_threads() noexcept
 {
-    LogF;
     dead();
 }
 
-void PanelWorkflow::free()
+void PanelWorkflow::free() noexcept
 {
-    LogF;
-
     dead();
 
     if (g::pGraphN != nullptr)
@@ -60,7 +56,6 @@ void PanelWorkflow::free()
 
 void PanelWorkflow::init()
 {
-    LogF;
     PanelBase::init();
 
     blob::Blob drawer_state;
@@ -73,7 +68,7 @@ void PanelWorkflow::init()
     alive();
 }
 
-void PanelWorkflow::invalidate_comfyui_objects()
+void PanelWorkflow::invalidate_comfyui_objects() noexcept
 {
     m_invalidation_state = true;
     dead();
@@ -95,18 +90,18 @@ DlgCode PanelWorkflow::show(bool& focused)
     const bool active = (g::pFlow->wf_get_active() == get_workflow()->get_id());
     if (active)
     {
-        ImGui::PushStyleColor(ImGuiCol_TabHovered, data()->clr_active_hov_wf);
-        ImGui::PushStyleColor(ImGuiCol_TabActive, data()->clr_active_wf);
-        ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, data()->clr_active_wf);
-        ImGui::PushStyleColor(ImGuiCol_TitleBgActive, data()->clr_active_wf);
-        ImGui::PushStyleColor(ImGuiCol_TitleBg, data()->clr_active_wf);
+        ImGui::PushStyleColor(ImGuiCol_TabHovered, dlg_data()->clr_active_hov_wf);
+        ImGui::PushStyleColor(ImGuiCol_TabActive, dlg_data()->clr_active_wf);
+        ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, dlg_data()->clr_active_wf);
+        ImGui::PushStyleColor(ImGuiCol_TitleBgActive, dlg_data()->clr_active_wf);
+        ImGui::PushStyleColor(ImGuiCol_TitleBg, dlg_data()->clr_active_wf);
     }
 
     if (begin_panel(opened, focused) && opened)
     {
         handle_panel_context_menu();
 
-        auto& data = m_wf->get_data();
+        const auto& data = m_wf->get_data();
         if (data.critical_failure)
         {
             draw_toolbar();
@@ -131,7 +126,7 @@ DlgCode PanelWorkflow::show(bool& focused)
     return code;
 }
 
-void PanelWorkflow::handle_panel_context_menu()
+void PanelWorkflow::handle_panel_context_menu() noexcept
 {
     //TODO
 
@@ -164,7 +159,7 @@ void PanelWorkflow::set_wf_view(std::optional<ImRect> wf_rc, std::optional<float
         m_drawer.set_zoom(wf_zoom.value());
 }
 
-bool PanelWorkflow::can_run() const
+bool PanelWorkflow::can_run() const noexcept
 {
     return !m_wf->get_data().critical_failure && m_wf->get_data().valid && !m_invalidation_state;
 }
@@ -174,13 +169,14 @@ void PanelWorkflow::run(bool add_front)
     g::pQueueManager->add_to_queue(m_wf, m_tasks_num, add_front);
 }
 
-void PanelWorkflow::set_num_of_runs(int32_t num)
+void PanelWorkflow::set_num_of_runs(int32_t num) noexcept
 {
     m_tasks_num = (0 == num ? -1 : num);
 }
 
-bool PanelWorkflow::get_node_selected(data::NodeInstance* node) const
+bool PanelWorkflow::get_node_selected(data::NodeInstance* node) const noexcept
 {
+    LogRAssert(node, "Zero ptr", false);
     return m_drawer.is_node_selected(node->ed());
 }
 
@@ -241,7 +237,7 @@ void PanelWorkflow::draw_wf()
         return;
 
     ImGuiIO& io = ImGui::GetIO();
-    ImGuiConfigFlags old_flags = io.ConfigFlags;
+    const ImGuiConfigFlags old_flags = io.ConfigFlags;
     io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
     auto& nodes = m_wf->get_nodes();
@@ -271,7 +267,7 @@ void PanelWorkflow::draw_wf()
         {
             node->reset_state();
             if (!node->m_group)
-                node->calc_node_width(false, false);
+                node->reset_width();
         }
 
         ImGui::PushID(node);
@@ -406,9 +402,9 @@ void PanelWorkflow::handle_dnd()
         if (payload != nullptr)
         {
             ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
-            const hid node_id = *(const hid*)payload->Data;
-            auto node = g::pNodesManager->find_node(node_id);
-            auto inst = m_action->add_node(node, "", ImRect(m_drawer.get_mouse_pos(), ImVec2(-1, -1)));
+            const hid node_hash = *(const hid*)payload->Data;
+            auto node = g::pNodesManager->find_node(node_hash);
+            const auto* inst = m_action->add_node(node, "", ImRect(m_drawer.get_mouse_pos(), ImVec2(-1, -1)));
             Log("Node '" << inst->get_name() << "' dropped");
             g::pFlow->wf_activate(m_wf->get_id());
         }
@@ -649,11 +645,11 @@ void PanelWorkflow::check_history()
     if (m_invalidation_state)
         return;
 
-    auto& data = m_wf->get_data();
+    const auto& data = m_wf->get_data();
     m_can_save = data.draft;
     m_can_revert = data.saved_exist && data.draft;
 
-    auto history = g::pHistoryManager->get_state(m_wf->get_id());
+    const auto history = g::pHistoryManager->get_state(m_wf->get_id());
 
     char* end_ptr = nullptr;
     const int32_t diff = history.pos - (history.saved_pos < -1 ? -1 : history.saved_pos);
@@ -726,7 +722,7 @@ void PanelWorkflow::check_history()
     }
 }
 
-void PanelWorkflow::on_pre_save(PanelToolbar::Element& el)
+void PanelWorkflow::on_pre_save(PanelToolbar::Element& el) noexcept
 {
     el.enabled = can_save();
 }
@@ -736,7 +732,7 @@ void PanelWorkflow::on_save(PanelToolbar::Element& /*el*/)
     save();    
 }
 
-void PanelWorkflow::on_pre_revert(PanelToolbar::Element& el)
+void PanelWorkflow::on_pre_revert(PanelToolbar::Element& el) noexcept
 {
     el.enabled = m_can_revert && !m_invalidation_state;
     el.tooltip = m_tt_revert;
@@ -751,7 +747,7 @@ void PanelWorkflow::on_revert(PanelToolbar::Element& /*el*/)
     m_wf->invalidate_current();
 }
 
-void PanelWorkflow::on_pre_undo(PanelToolbar::Element& el)
+void PanelWorkflow::on_pre_undo(PanelToolbar::Element& el) noexcept
 {
     el.enabled = can_undo();
     el.tooltip = m_undo_name;
@@ -762,7 +758,7 @@ void PanelWorkflow::on_undo(PanelToolbar::Element& /*el*/)
     undo();
 }
 
-void PanelWorkflow::on_pre_redo(PanelToolbar::Element& el)
+void PanelWorkflow::on_pre_redo(PanelToolbar::Element& el) noexcept
 {
     el.enabled = can_redo();
     el.tooltip = m_redo_name;
@@ -773,7 +769,7 @@ void PanelWorkflow::on_redo(PanelToolbar::Element& /*el*/)
     redo();
 }
 
-void PanelWorkflow::on_pre_project_status(PanelToolbar::Element& el)
+void PanelWorkflow::on_pre_project_status(PanelToolbar::Element& el) noexcept
 {
     el.text = m_history_status;
     el.tooltip = m_tt_history_status;
@@ -819,7 +815,7 @@ void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
     if (group != nullptr && group->src_wf == m_wf->get_id())
     {
         m_status_buffer.clear();
-        auto node = group->wf->get_node_by_instance(group->task.current_node);
+        const auto* node = group->wf->get_node_by_instance(group->task.current_node);
         if (node != nullptr)
             fmt::format_to(std::back_inserter(m_status_buffer), FMT_COMPILE("Progress: {:.0f}%: {}"), group->task.progress * 100, node->get_name());
         else
@@ -843,7 +839,7 @@ void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
     }
 }
 
-void PanelWorkflow::on_pre_queue(PanelToolbar::Element& el)
+void PanelWorkflow::on_pre_queue(PanelToolbar::Element& el) noexcept
 {
     el.enabled = !m_invalidation_state;
 }
@@ -853,7 +849,7 @@ void PanelWorkflow::on_queue(PanelToolbar::Element& /*el*/)
     run(ImGui::IsKeyDown(ImGuiMod_Shift));
 }
 
-void PanelWorkflow::on_pre_queue_interrupt(PanelToolbar::Element& el)
+void PanelWorkflow::on_pre_queue_interrupt(PanelToolbar::Element& el) noexcept
 {
     auto g = g::pQueueManager->get_current_group();
     el.enabled = g != nullptr && g->src_wf == m_wf->get_id();
@@ -883,7 +879,7 @@ void PanelWorkflow::on_tasks_num(PanelToolbar::Element& el)
         m_tasks_num = std::strtol(el.cb_items[el.cb_item_sel], nullptr, 10);
 }
 
-void PanelWorkflow::on_pre_tasks_num(PanelToolbar::Element& el)
+void PanelWorkflow::on_pre_tasks_num(PanelToolbar::Element& el) noexcept
 {
     if (-1 == m_tasks_num || 0 == m_tasks_num)
         el.cb_item_sel = 0;

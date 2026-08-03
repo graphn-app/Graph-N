@@ -91,7 +91,7 @@ int32_t main(int32_t, char**)
 {
     base::GlobalID::client_id();
     tools::dt::save_app_start_time();
-    glog::LogGuard logger;    
+    glog::LogGuard logger;
 
     try
     {
@@ -112,12 +112,12 @@ int32_t main(int32_t, char**)
     }
     catch (const std::exception& ex)
     {
-        LogExcepS(ExcepCategory::Main, "Main routine, err " << ex.what());
+        LogExcepS("Main routine ex " << ex.what());
         throw;
     }
     catch (...)
     {
-        LogExcepS(ExcepCategory::Main, "Main routine unknown exception");
+        LogExcepS("Main routine unknown exception");
         throw;
     }
 

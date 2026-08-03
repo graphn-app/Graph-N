@@ -3,46 +3,42 @@
 #include "ui/graph-n_flow.h"
 #include "core/managers/connect_manager.h"
 #include "core/managers/workflows_manager.h"
-#include "core/workflow/workflow_serializer_to_json.h"
+#include "core/workflow/serializer/wf_serializers.h"
+#include "core/base/comfyui_web_paths.h"
 
 namespace ui
 {
 
-SyncProjectsDlg::SyncProjectsDlg()
+SyncProjectsDlg::SyncProjectsDlg() noexcept
     : BaseDlgWithData(DlgObj::OptionsDlg)
 {
 }
 
-SyncProjectsDlg::~SyncProjectsDlg()
-{
-    LogF;
-}
+SyncProjectsDlg::~SyncProjectsDlg() noexcept = default;
 
 void SyncProjectsDlg::init()
 {
-    LogF;
-
     BaseDlgWithData::init();
 
     const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-    data()->x = main_viewport->WorkSize.x / 2 - 300;
-    data()->y = main_viewport->WorkSize.y / 2 - 400;
-    data()->width = 800;
-    data()->height = 750;
+    dlg_data()->x = main_viewport->WorkSize.x / 2 - 300;
+    dlg_data()->y = main_viewport->WorkSize.y / 2 - 400;
+    dlg_data()->width = 800;
+    dlg_data()->height = 750;
 
-    data()->clr_title = g::pOptsManager->color_load(AppColor::MiscDlgTitleBg);
-    data()->clr_bg = g::pOptsManager->color_load(AppColor::MiscDlgBg);
+    dlg_data()->clr_title = g::pOptsManager->color_load(AppColor::MiscDlgTitleBg);
+    dlg_data()->clr_bg = g::pOptsManager->color_load(AppColor::MiscDlgBg);
 
     m_step = Step::Disconnected;
 }
 
 DlgCode SyncProjectsDlg::show(bool& /*focused*/)
 {
-    ImGuiEx::PushDlgTitleStyles(data()->clr_title);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, data()->clr_bg);
+    ImGuiEx::PushDlgTitleStyles(dlg_data()->clr_title);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, dlg_data()->clr_bg);
 
-    ImGui::SetNextWindowPos(ImVec2(data()->x, data()->y), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(data()->width, data()->height), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(dlg_data()->x, dlg_data()->y), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(dlg_data()->width, dlg_data()->height), ImGuiCond_FirstUseEver);
 
     bool opened = true;
     if (ImGui::Begin(DlgObjID[cast::to_szt(DlgObj::SyncProjects)], &opened, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking))
@@ -282,7 +278,7 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
     return cleanup_and_exit(opened);
 }
 
-const char* SyncProjectsDlg::get_action_name(SyncAction action) 
+const char* SyncProjectsDlg::get_action_name(SyncAction action) noexcept
 {
     switch (action) 
     {
@@ -296,7 +292,7 @@ const char* SyncProjectsDlg::get_action_name(SyncAction action)
     case SyncAction::DeleteLocal:     return "Remove (local only)";
     case SyncAction::Undelete:        return "Restore (local only)";
     }
-    LogAndThrowInternalError(ExcepCategory::Logic, "Unknown action");
+    LogRError("Unknown action", "");
 }
 
 void SyncProjectsDlg::apply_recommended_actions()
@@ -380,7 +376,7 @@ void SyncProjectsDlg::load_projects()
         }
 
         std::list<std::pair<std::string, tools::dt>> projects;
-        if (!data::WorkflowSerializerToJson::deserialize_all_wf_names(payload, projects))
+        if (!data::WfDeserializerFromJson::deserialize_all_wf_names(payload, projects))
         {
             m_step = Step::LoadFailed;
             return;
@@ -388,7 +384,7 @@ void SyncProjectsDlg::load_projects()
 
         for (auto& [name, time] : projects)
         {
-            name = std::filesystem::path(name).stem().u8string();
+            name = tools::str::path_to_string(std::filesystem::path(name).stem());
 
             bool local_found = false;
             for (auto& row : m_rows)
@@ -456,7 +452,7 @@ void SyncProjectsDlg::setup_actions()
     apply_recommended_actions();
 }
 
-void SyncProjectsDlg::reset()
+void SyncProjectsDlg::reset() noexcept
 {
     for (auto& row : m_rows)
     {
@@ -609,7 +605,7 @@ void SyncProjectsDlg::sync()
         case SyncAction::DownloadReplace:
             {
                 row.status = SyncStatus::InProgress;
-                const auto url = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(row.name) + ".json");
+                const auto url = fmt::format(comfyui_http::wf_download_, tools::str::url_encode(row.name) + ".json");
                 g::pFlow->http_get("Sync/Action", get_alive_callback(), url.c_str(), download);
             }
             break;
@@ -629,9 +625,9 @@ void SyncProjectsDlg::sync()
                 {
                     row.cleanup_wf = !loaded;
                     if (0 == row.local_id) __debugbreak();
-                    auto j = data::WorkflowSerializerToJson::serialize(g::pWfsManager->access(row.local_id));
+                    auto j = data::WfSerializerToJson(g::pWfsManager->access(row.local_id)).serialize();
                     const auto project_name = (SyncAction::UploadRename == row.selected_action ? row.new_name : row.name);
-                    const auto url = fmt::format(comfyui_http::wf_upload_, tools::str::cleanup_url(project_name) + ".json");
+                    const auto url = fmt::format(comfyui_http::wf_upload_, tools::str::url_encode(project_name) + ".json");
                     g::pFlow->http_post("Sync/Action", get_alive_callback(), url.c_str(), j.dump(), upload);
                 }
             }

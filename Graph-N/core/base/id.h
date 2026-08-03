@@ -13,10 +13,12 @@ public:
     static std::string uuid();
     static std::string client_id();
     static uint64_t random();
+    static int64_t random(int64_t min, int64_t max);;
+    static uint64_t random_seed();
 
 private:
     GlobalID();
-    ~GlobalID() = default;
+    ~GlobalID() noexcept = default;
 
     NO_COPY_MOVE(GlobalID);
 
@@ -39,23 +41,20 @@ private:
 
 struct HashID
 {
-    HashID(const char* unique);
     HashID(const std::string& unique);
-    virtual ~HashID() = 0;
+    virtual ~HashID() noexcept = 0;
 
     NO_COPY_MOVE(HashID);
 
-    hid get_id() const { return m_id; }
-    const std::string& get_id_str() const { return m_id_str; }
+    hid get_hash() const noexcept { return m_hash; }
 
-    static hid make_hash(const std::string& unique);
-
-private:
-    void set_id(hid id);
+    static hid make_hash(const std::string& unique) noexcept;
 
 private:
-    hid m_id = 0;
-    std::string m_id_str;
+    void set_hash(hid hash);
+
+private:
+    hid m_hash = 0;
 };
 
 }

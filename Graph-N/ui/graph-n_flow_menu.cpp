@@ -12,16 +12,15 @@ namespace ui
 
 void GraphN_Flow::show_menu_bar()
 {
-    auto hk = g::pHotkeysManager;
+    const auto* hk = g::pHotkeysManager;
     const bool connecting_mode = (m_windows & ViewConnect);
     if (connecting_mode)
         ImGui::PushStyleColor(ImGuiCol_MenuBarBg, g::pOptsManager->color_load(AppColor::DisconnectedMenuBarBg));
 
     if (ImGui::BeginMainMenuBar())
     {
-        auto wfm = g::pWfsManager;
         const bool nodes_ready = get_nodes_ready();
-        const bool active_wf = wfm->get_active() != 0;
+        const bool active_wf = g::pWfsManager->get_active() != 0;
         const bool online = get_online();
 
         if (ImGui::BeginMenu("File##MainMenuBar"))
@@ -41,11 +40,11 @@ void GraphN_Flow::show_menu_bar()
                     on_menu_export_json(true);
                 }
                 ImGui::Separator();
-                if (ImGui::MenuItem("Export all Projects to json...##FileMenuBar", nullptr, nullptr, wfm->get_wfs_count() > 0))
+                if (ImGui::MenuItem("Export all Projects to json...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_wfs_count() > 0))
                 {
                     on_menu_export_json_all(false);
                 }
-                if (ImGui::MenuItem("Export all Projects to json (API)...##FileMenuBar", nullptr, nullptr, wfm->get_wfs_count() > 0))
+                if (ImGui::MenuItem("Export all Projects to json (API)...##FileMenuBar", nullptr, nullptr, g::pWfsManager->get_wfs_count() > 0))
                 {
                     on_menu_export_json_all(true);
                 }
@@ -146,10 +145,10 @@ void GraphN_Flow::show_menu_bar()
             //{
             //    on_menu_panel_window(ViewPanelNotes);
             //}
-            if (ImGui::MenuItem("Templates##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Templates), (m_windows & ViewPanelTemplates)))
-            {
-                on_menu_panel_window(ViewPanelTemplates);
-            }
+            //if (ImGui::MenuItem("Templates##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Templates), (m_windows & ViewPanelTemplates)))
+            //{
+            //    on_menu_panel_window(ViewPanelTemplates);
+            //}
             if (ImGui::MenuItem("Server Log##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Logs), (m_windows & ViewPanelOutput)))
             {
                 on_menu_panel_window(ViewPanelOutput);
@@ -295,20 +294,17 @@ void GraphN_Flow::show_menu_bar()
 
 void GraphN_Flow::on_menu_options()
 {
-    LogF;
     m_windows |= ViewOptions;
     g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
-void GraphN_Flow::on_menu_quit()
+void GraphN_Flow::on_menu_quit() noexcept
 {
-    LogF;
     g::pGraphN->handle_wnd_on_close();
 }
 
-void GraphN_Flow::on_menu_about()
+void GraphN_Flow::on_menu_about() noexcept
 {
-    LogF;
     //TODO
 }
 
@@ -328,9 +324,8 @@ void GraphN_Flow::on_menu_panel_window(ViewDialogs wnd, bool toggle /*= false*/)
         g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
-void GraphN_Flow::on_menu_panel_toggle_active()
+void GraphN_Flow::on_menu_panel_toggle_active() noexcept
 {
-    LogF;
     // isolate currently visible panels
     const auto current_panels = (m_windows & ViewAllPanels);
 
@@ -360,16 +355,15 @@ void GraphN_Flow::on_menu_panel_toggle_active()
 
 void GraphN_Flow::on_menu_fullscreen()
 {
-    LogF;
     g::pMain->wnd_toggle_fullscreen();
 }
 
-void GraphN_Flow::on_menu_command()
+void GraphN_Flow::on_menu_command() noexcept
 {
     // TODO
 }
 
-void GraphN_Flow::on_menu_activate_wf(PanelWorkflow* wf_panel)
+void GraphN_Flow::on_menu_activate_wf(const PanelWorkflow* wf_panel)
 {
     if (wf_panel != nullptr)
     {
@@ -378,20 +372,17 @@ void GraphN_Flow::on_menu_activate_wf(PanelWorkflow* wf_panel)
     }
     else
     {
-        LogF;
         wf_create();
     }
 }
 
-void GraphN_Flow::on_menu_wf_rename()
+void GraphN_Flow::on_menu_wf_rename() noexcept
 {
-    LogF;
     wf_rename();
 }
 
 void GraphN_Flow::on_menu_close_all_projects()
 {
-    LogF;
     for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); )
     {
         wf_panel_close(it->get());
@@ -401,25 +392,22 @@ void GraphN_Flow::on_menu_close_all_projects()
 
 void GraphN_Flow::on_menu_sync_projects()
 {
-    LogF;
     m_windows |= ViewSyncProjects;
     g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
 void GraphN_Flow::on_menu_next_project(bool next)
 {
-    LogF;
     wf_panel_activate_next(next);
 }
 
-void GraphN_Flow::on_menu_restart()
+void GraphN_Flow::on_menu_restart() noexcept
 {
-    LogF;
+    // TODO
 }
 
 void GraphN_Flow::on_menu_import()
 {
-    LogF;
     tools::path::FdSelectResultMt callback = [this](bool result, std::list<std::filesystem::path>&& paths)
     {
         if (result)
@@ -432,10 +420,9 @@ void GraphN_Flow::on_menu_import()
 
 void GraphN_Flow::on_menu_export_json(bool api)
 {
-    LogF(api);
     const auto id = g::pWfsManager->get_active();
-    if (0 == id)
-        return;
+    LogRAssert(id != 0, "No active workflows", );
+
     const auto& data = g::pWfsManager->access(id)->get_data();
     auto filename = data.name;
     filename = tools::path::clear_filename(filename) + (api ? " (API).json" : ".json");
@@ -453,7 +440,6 @@ void GraphN_Flow::on_menu_export_json(bool api)
 
 void GraphN_Flow::on_menu_export_json_all(bool api)
 {
-    LogF(api);
     tools::path::FdSelectResultSg callback = [api](bool result, std::filesystem::path&& path)
     {
         if (result)
@@ -475,15 +461,13 @@ void GraphN_Flow::on_menu_export_json_all(bool api)
     tools::path::select_dir(callback);
 }
 
-void GraphN_Flow::on_menu_queue_pause()
+void GraphN_Flow::on_menu_queue_pause() noexcept
 {
-    LogF;
     g::pQueueManager->toggle_pause();
 }
 
 void GraphN_Flow::on_menu_queue_interrupt()
 {
-    LogF;
     g::pQueueManager->interrupt_task();
 }
 

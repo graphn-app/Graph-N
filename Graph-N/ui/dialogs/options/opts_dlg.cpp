@@ -6,30 +6,25 @@
 namespace ui
 {
 
-OptionsDlgs::OptionsDlgs()
+OptionsDlgs::OptionsDlgs() noexcept
     : BaseDlgWithData(DlgObj::OptionsDlg)
 {
 }
 
-OptionsDlgs::~OptionsDlgs()
-{
-    LogF;
-}
+OptionsDlgs::~OptionsDlgs() noexcept = default;
 
 void OptionsDlgs::init()
 {
-    LogF;
-
     BaseDlgWithData::init();
 
     const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-    data()->x = main_viewport->WorkSize.x / 2 - 300;
-    data()->y = main_viewport->WorkSize.y / 2 - 400;
-    data()->width = 800;
-    data()->height = 750;
+    dlg_data()->x = main_viewport->WorkSize.x / 2 - 300;
+    dlg_data()->y = main_viewport->WorkSize.y / 2 - 400;
+    dlg_data()->width = 800;
+    dlg_data()->height = 750;
 
-    data()->clr_title = g::pOptsManager->color_load(AppColor::MiscDlgTitleBg);
-    data()->clr_bg = g::pOptsManager->color_load(AppColor::MiscDlgBg);
+    dlg_data()->clr_title = g::pOptsManager->color_load(AppColor::MiscDlgTitleBg);
+    dlg_data()->clr_bg = g::pOptsManager->color_load(AppColor::MiscDlgBg);
 
     m_opts_data.left_pane_w = 150.0f;
 
@@ -37,7 +32,7 @@ void OptionsDlgs::init()
     m_right_pane->init(m_opts_data);
 }
 
-void OptionsDlgs::select_right_pane(OptPane pane)
+void OptionsDlgs::select_right_pane(OptPane pane) noexcept
 {
     m_opts_data.left_selected_item = cast::to_szt(pane);
     m_opts_data.show_inner_child = true;
@@ -45,11 +40,11 @@ void OptionsDlgs::select_right_pane(OptPane pane)
 
 DlgCode OptionsDlgs::show(bool& /*focused*/)
 {
-    ImGuiEx::PushDlgTitleStyles(data()->clr_title);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, data()->clr_bg);
+    ImGuiEx::PushDlgTitleStyles(dlg_data()->clr_title);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, dlg_data()->clr_bg);
 
-    ImGui::SetNextWindowPos(ImVec2(data()->x, data()->y), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(data()->width, data()->height), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(dlg_data()->x, dlg_data()->y), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(dlg_data()->width, dlg_data()->height), ImGuiCond_Always);
 
     bool opened = true;
     if (ImGui::Begin(DlgObjID[cast::to_szt(DlgObj::OptionsDlg)], &opened,
@@ -119,7 +114,7 @@ void OptionsDlgs::show_right_pane()
                 }
                 catch (const std::exception& ex)
                 {
-                    LogExcep(ExcepCategory::UI, "Options: " << ex.what());
+                    LogRError("Options pane ex: " << ex.what(), );
                 }
             }
             ImGui::EndChild();

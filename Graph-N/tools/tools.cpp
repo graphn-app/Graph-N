@@ -17,6 +17,7 @@ std::string& trim_this(std::string& str, const std::string& chars /*= " \r\n\t"*
     if (first == std::string::npos)
     {
         str.clear();
+        str.shrink_to_fit();
         return str;
     }
 
@@ -99,7 +100,7 @@ std::vector<std::string> split(const std::string& str, char separator)
 }
 
 template<typename CONT>
-static std::string merge_cont(const CONT& items, char separator)
+std::string merge_cont(const CONT& items, char separator)
 {
     std::string out;
     out.reserve(items.size() * 10);
@@ -141,19 +142,19 @@ std::string to_lower_ascii(const std::string& str)
     return lower;
 }
 
-size_t hash_string(const std::string& str)
+size_t hash_string(const std::string& str) noexcept
 {
     return std::hash<std::string>{}(str);
 }
 
-uint64_t hash_fnv1a(const void* data, size_t size)
+uint64_t hash_fnv1a(const void* data, size_t size) noexcept
 {
     // FNV-1a constants for 64-bit
     constexpr uint64_t FNV_OFFSET_BASIS = 0xcbf29ce484222325;
     constexpr uint64_t FNV_PRIME = 0x100000001b3;
 
     uint64_t hash = FNV_OFFSET_BASIS;
-    const uint8_t* ptr = static_cast<const uint8_t*>(data);
+    const uint8_t* ptr = cast::ptrs<const uint8_t>(data);
     for (size_t i = 0; i < size; ++i)
     {
         hash ^= ptr[i];
@@ -162,31 +163,33 @@ uint64_t hash_fnv1a(const void* data, size_t size)
     return hash;
 }
 
-uint64_t hash_fnv1a(const char* data, size_t size)
+uint64_t hash_fnv1a(const char* data, size_t size) noexcept
 {
     return hash_fnv1a((const void*)data, size);
 }
 
-uint64_t hash_fnv1a(size_t data)
+uint64_t hash_fnv1a(size_t data) noexcept
 {
     return hash_fnv1a((const void*)&data, sizeof(data));
 }
 
-uint64_t hash_fnv1a(const std::string& data)
+uint64_t hash_fnv1a(const std::string& data) noexcept
 {
     return hash_fnv1a((const void*)data.c_str(), data.size());
 }
 
-uint32_t crc32(const std::string& data)
+uint32_t crc32(const std::string& data) noexcept
 {
-    const auto generate_table = []()
+    // Make the lambda constexpr for compile-time evaluation
+    constexpr auto generate_table = []() constexpr
     {
-        std::array<uint32_t, 256> table;
-        uint32_t polynomial = 0xEDB88320;
+        std::array<uint32_t, 256> table{}; // Zero-initialize the array
+        constexpr uint32_t polynomial = 0xEDB88320;
 
-        for (uint32_t i = 0; i < 256; ++i)
+        // Use size_t for the loop counter to avoid C28020 MSVC warning
+        for (size_t i = 0; i < 256; ++i)
         {
-            uint32_t crc = i;
+            uint32_t crc = cast::to_u32(i);
             for (int32_t j = 0; j < 8; ++j)
             {
                 if (crc & 1)
@@ -198,7 +201,9 @@ uint32_t crc32(const std::string& data)
         }
         return table;
     };
-    static std::array<uint32_t, 256> table = generate_table();
+
+    // Evaluate table at compile time
+    static constexpr std::array<uint32_t, 256> table = generate_table();
 
     const char* pdata = data.c_str();
     const size_t length = data.size();
@@ -206,7 +211,7 @@ uint32_t crc32(const std::string& data)
 
     for (size_t i = 0; i < length; ++i)
     {
-        const uint8_t byte = static_cast<uint8_t>(pdata[i]);
+        const uint8_t byte = cast::to_u8(pdata[i]);
         const uint32_t lookup_index = (crc ^ byte) & 0xFF;
         crc = (crc >> 8) ^ table[lookup_index];
     }
@@ -249,13 +254,13 @@ std::vector<byte> base64_decode(const std::string& base64)
     out.reserve(base64.size() * 3 / 4);
 
     std::vector<int32_t> T(256, -1);
-    for (int i = 0; i < 64; i++)
+    for (int32_t i = 0; i < 64; i++)
     {
         T[base64_chars[i]] = i;
     }
 
-    int val = 0, valb = -8;
-    for (byte c : base64)
+    int32_t val = 0, valb = -8;
+    for (const byte c : base64)
     {
         if (T[c] == -1)
             break;
@@ -272,18 +277,19 @@ std::vector<byte> base64_decode(const std::string& base64)
 
 std::vector<byte> base64_decode(const char* base64, size_t len)
 {
+    LogRAssertS(base64, "Zero ptr", std::vector<byte>{});
     constexpr const std::string_view base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     std::vector<byte> out;
     out.reserve(len * 3 / 4);
 
     std::vector<int32_t> T(256, -1);
-    for (int i = 0; i < 64; i++)
+    for (int32_t i = 0; i < 64; i++)
     {
         T[base64_chars[i]] = i;
     }
 
-    int val = 0, valb = -8;
+    int32_t val = 0, valb = -8;
     for (size_t idx = 0; idx < len; idx++)
     {
         const char c = base64[idx];
@@ -300,7 +306,13 @@ std::vector<byte> base64_decode(const char* base64, size_t len)
     return out;
 }
 
-static constexpr uint32_t rotr(uint32_t x, uint32_t n) { return (x >> n) | (x << (32 - n)); }
+namespace
+{
+constexpr uint32_t rotr(uint32_t x, uint32_t n) noexcept
+{
+    return (x >> n) | (x << (32 - n));
+}
+} // namespace
 
 std::string sha256(const std::vector<byte>& src)
 {
@@ -334,7 +346,7 @@ std::string sha256(const std::vector<byte>& src)
     }
 
     const size_t bit_len = src.size() * 8;
-    for (int i = 7; i >= 0; --i)
+    for (int32_t i = 7; i >= 0; --i)
     {
         buffer.push_back((bit_len >> (i * 8)) & 0xff);
     }
@@ -343,7 +355,7 @@ std::string sha256(const std::vector<byte>& src)
     {
         uint32_t w[64], a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], h_val = h[7];
 
-        for (int j = 0; j < 64; ++j)
+        for (int32_t j = 0; j < 64; ++j)
         {
             if (j < 16)
             {
@@ -351,16 +363,16 @@ std::string sha256(const std::vector<byte>& src)
             }
             else
             {
-                uint32_t s0 = rotr(w[j - 15], 7) ^ rotr(w[j - 15], 18) ^ (w[j - 15] >> 3);
-                uint32_t s1 = rotr(w[j - 2], 17) ^ rotr(w[j - 2], 19) ^ (w[j - 2] >> 10);
+                const uint32_t s0 = rotr(w[j - 15], 7) ^ rotr(w[j - 15], 18) ^ (w[j - 15] >> 3);
+                const uint32_t s1 = rotr(w[j - 2], 17) ^ rotr(w[j - 2], 19) ^ (w[j - 2] >> 10);
                 w[j] = w[j - 16] + s0 + w[j - 7] + s1;
             }
-            uint32_t S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
-            uint32_t ch = (e & f) ^ (~e & g);
-            uint32_t temp1 = h_val + S1 + ch + k[j] + w[j];
-            uint32_t S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
-            uint32_t maj = (a & b) ^ (a & c) ^ (b & c);
-            uint32_t temp2 = S0 + maj;
+            const uint32_t S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+            const uint32_t ch = (e & f) ^ (~e & g);
+            const uint32_t temp1 = h_val + S1 + ch + k[j] + w[j];
+            const uint32_t S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+            const uint32_t maj = (a & b) ^ (a & c) ^ (b & c);
+            const uint32_t temp2 = S0 + maj;
 
             h_val = g; g = f; f = e; e = d + temp1; d = c; c = b; b = a; a = temp1 + temp2;
         }
@@ -377,7 +389,7 @@ std::string sha256(const std::vector<byte>& src)
 
     std::stringstream ss;
     ss << std::hex << std::setfill('0');
-    for (int i = 0; i < 8; ++i)
+    for (int32_t i = 0; i < 8; ++i)
     {
         ss << std::setw(8) << h[i];
     }
@@ -397,20 +409,30 @@ std::wstring utf8_to_wide(const std::string& utf8_str)
 }
 #endif // #ifdef _WIN32
 
-std::string cleanup_url(const std::string& value) 
+std::string u8_to_string(const std::u8string& u8_str)
+{
+    return std::string(u8_str.begin(), u8_str.end());
+}
+
+std::string path_to_string(const std::filesystem::path& path)
+{
+    return u8_to_string(path.u8string());
+}
+
+std::string url_encode(const std::string& value) 
 {
     std::string escaped;
     escaped.reserve(value.length() * 3); 
 
     for (const char c : value) 
     {
-        if (std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~') 
+        if (std::isalnum(cast::to_uchar(c)) || c == '-' || c == '_' || c == '.' || c == '~') 
         {
             escaped.push_back(c);
         } 
         else 
         {
-            escaped += fmt::format("%{:02X}", static_cast<unsigned char>(c));
+            escaped += fmt::format("%{:02X}", cast::to_uchar(c));
         }
     }
 
@@ -422,24 +444,11 @@ std::string cleanup_url(const std::string& value)
 namespace path
 {
 
-// --- HELPERS FOR UTF-8 ---
-static inline std::filesystem::path from_utf8(const std::string& u8str)
-{
-    return std::filesystem::u8path(u8str);
-}
-
-static inline std::string to_utf8(const std::filesystem::path& p)
-{
-    return p.u8string();
-}
-
-// -------------------------
-
 std::filesystem::path find_next_name(const std::filesystem::path& path)
 {
-    const auto ext = path.extension().u8string();
+    const auto ext = tools::str::path_to_string(path.extension());
     const auto parent = path.parent_path();
-    const auto stem = path.stem().u8string();
+    const auto stem = tools::str::path_to_string(path.stem());
 
     size_t idx = 2;
     std::filesystem::path next_path;
@@ -447,14 +456,14 @@ std::filesystem::path find_next_name(const std::filesystem::path& path)
 
     do {
         const std::string new_name = stem + " (" + std::to_string(idx++) + ")" + ext;
-        next_path = parent / std::filesystem::u8path(new_name);
+        next_path = parent / new_name;
     }
     while (std::filesystem::exists(next_path, ec));
 
     return next_path;
 }
 
-bool exists(const std::filesystem::path& path)
+bool exists(const std::filesystem::path& path) noexcept
 {
     std::error_code ec;
     return !path.empty() && std::filesystem::exists(path, ec);
@@ -470,14 +479,14 @@ std::optional<std::filesystem::path> copy(const std::filesystem::path& from, con
     std::error_code ec;
     if (!std::filesystem::exists(from, ec))
     {
-        LogS("Can't copy file from '" << from << "' - source not exists, err " << ec.value() << ": " << ec.message());
+        LogWarnS("Can't copy file from '" << from << "' - source not exists, err " << ec.value() << ": " << ec.message());
         return std::nullopt;
     }
 
     const bool exists = std::filesystem::exists(to);
     if (exists && !overwrite && !rename)
     {
-        LogS("Can't copy file from '" << from << "' to '" << to << "' - dest file exists");
+        LogS("Can't copy file from '" << from << "' to '" << to << "' - dest file exists, overwrite & rename weren't set");
         return std::nullopt;
     }
 
@@ -496,7 +505,7 @@ std::optional<std::filesystem::path> copy(const std::filesystem::path& from, con
 
     if (!std::filesystem::copy_file(from, dest.value(), options, ec))
     {
-        LogErrorS(ExcepCategory::FileSystem, "Can't copy file '" << from << "' to '" << dest.value() << "' error " << ec.value() << ": " << ec.message());
+        LogWarnS("Can't copy file '" << from << "' to '" << dest.value() << "' error " << ec.value() << ": " << ec.message());
         return std::nullopt;
     }
 
@@ -514,14 +523,14 @@ std::optional<std::filesystem::path> move(const std::filesystem::path& from, con
     std::error_code ec;
     if (!std::filesystem::exists(from, ec))
     {
-        LogS("Can't move file from '" << from << "' - source not exists, err " << ec.value() << ": " << ec.message());
+        LogWarnS("Can't move file from '" << from << "' - source not exists, err " << ec.value() << ": " << ec.message());
         return std::nullopt;
     }
 
     const bool exists = std::filesystem::exists(to);
     if (exists && !overwrite && !rename)
     {
-        LogS("Can't move file from '" << from << "' to '" << to << "' - dest file exists");
+        LogS("Can't move file from '" << from << "' to '" << to << "' - dest file exists, overwrite & rename weren't set");
         return std::nullopt;
     }
 
@@ -540,7 +549,7 @@ std::optional<std::filesystem::path> move(const std::filesystem::path& from, con
     {
         if (!tools::path::copy(from, dest.value(), true, false))
         {
-            LogErrorS(ExcepCategory::FileSystem, "Can't move file '" << from << "' to '" << dest.value() << "' error " << ec.value() << ": " << ec.message());
+            LogWarnS("Can't move file '" << from << "' to '" << dest.value() << "' error " << ec.value() << ": " << ec.message());
             return std::nullopt;
         }
         tools::path::remove(from);
@@ -561,7 +570,7 @@ bool make_folder(const std::filesystem::path& dirpath)
     std::filesystem::create_directories(dirpath, ec);
     if (ec)
     {
-        LogErrorS(ExcepCategory::FileSystem, "Can't create dir '" << dirpath << "' error " << ec.value() << ": " << ec.message());
+        LogWarnS("Can't create dir '" << dirpath << "' error " << ec.value() << ": " << ec.message());
         return false;
     }
 
@@ -579,14 +588,14 @@ bool make_file(const std::filesystem::path& filepath, bool overwrite, const char
     std::error_code ec;
     if (!overwrite && std::filesystem::exists(filepath, ec))
     {
-        LogS("Can't create file '" << filepath << "' - file already exists");
+        LogS("Can't create file '" << filepath << "' - file already exists, overwrite wasn't set");
         return false;
     }
 
     std::ofstream file(filepath, std::ios::out | std::ios::trunc | std::ios::binary);
     if (!file.is_open())
     {
-        LogErrorS(ExcepCategory::FileSystem, "Can't create file " << filepath);
+        LogWarnS("Can't create file " << filepath);
         return false;
     }
 
@@ -595,7 +604,7 @@ bool make_file(const std::filesystem::path& filepath, bool overwrite, const char
         file.write(data_to_write, data_len);
         if (file.fail())
         {
-            LogErrorS(ExcepCategory::FileSystem, "Write failed " << filepath);
+            LogWarnS("Write failed to " << filepath);
             return false;
         }
     }
@@ -628,28 +637,28 @@ bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const
     return make_file(filepath, overwrite, data_to_write);
 }
 
-std::vector<char> read_file(const std::filesystem::path& filepath, bool add_tail)
+std::string read_file(const std::filesystem::path& filepath, bool add_tail) noexcept
 {
-    LogS(filepath);
-
-    std::error_code ec;
-    const auto fsize = std::filesystem::file_size(filepath, ec);
-    if (ec)
-    {
-        LogErrorS(ExcepCategory::FileSystem, "Can't read file " << filepath << ", error " << ec.value() << ": " << ec.message());
-        return {};
-    }
-
-    std::ifstream file(filepath, std::ios::binary);
-    if (!file.is_open())
-    {
-        LogErrorS(ExcepCategory::FileSystem, "Can't open file " << filepath);
-        return {};
-    }
-
     try
     {
-        std::vector<char> buffer;
+        LogS(filepath);
+
+        std::error_code ec;
+        const auto fsize = std::filesystem::file_size(filepath, ec);
+        if (ec)
+        {
+            LogWarnS("Can't read file " << filepath << ", error " << ec.value() << ": " << ec.message());
+            return {};
+        }
+
+        std::ifstream file(filepath, std::ios::binary);
+        if (!file.is_open())
+        {
+            LogWarnS("Can't open file " << filepath);
+            return {};
+        }
+
+        std::string buffer;
         buffer.resize(cast::to_szt(fsize) + (add_tail ? 1 : 0));
 
         file.read(buffer.data(), fsize);
@@ -661,35 +670,38 @@ std::vector<char> read_file(const std::filesystem::path& filepath, bool add_tail
     }
     catch (...)
     {
-        LogErrorS(ExcepCategory::FileSystem, "Can't read file " << filepath);
+        LogWarnS("Can't read file " << filepath);
         return {};
     }
 }
 
-bool remove(const std::filesystem::path& filepath)
+bool remove(const std::filesystem::path& filepath) noexcept
 {
-    LogS(filepath);
-
-    std::error_code ec;
-    std::filesystem::remove_all(filepath, ec);
-    if (ec)
+    try
     {
-        LogErrorS(ExcepCategory::FileSystem, "Can't remove file " << filepath << ", err " << ec.value() << ", " << ec.message());
-        return false;
-    }
+        LogS(filepath);
 
-    LogS("Removed " << filepath);
-    return true;
+        std::error_code ec;
+        std::filesystem::remove_all(filepath, ec);
+        if (ec)
+        {
+            LogWarnS("Can't remove path " << filepath << ", err " << ec.value() << ", " << ec.message());
+            return false;
+        }
+
+        LogS("Removed " << filepath);
+        return true;
+    }
+    catch (...) {}
+    return false;
 }
 
 bool rename(const std::filesystem::path& from, const std::filesystem::path& to)
 {
-    LogVS(from, to);
-
     return tools::path::move(from, to, false, false).has_value();
 }
 
-bool is_file(const std::filesystem::path& path)
+bool is_file(const std::filesystem::path& path) noexcept
 {
     std::error_code ec;
     if (!std::filesystem::exists(path, ec))
@@ -697,7 +709,7 @@ bool is_file(const std::filesystem::path& path)
     return std::filesystem::is_regular_file(path, ec);
 }
 
-bool is_dir(const std::filesystem::path& path)
+bool is_dir(const std::filesystem::path& path) noexcept
 {
     std::error_code ec;
     if (!std::filesystem::exists(path, ec))
@@ -705,7 +717,7 @@ bool is_dir(const std::filesystem::path& path)
     return std::filesystem::is_directory(path, ec);
 }
 
-bool is_empty(const std::filesystem::path& path)
+bool is_empty(const std::filesystem::path& path) noexcept
 {
     std::error_code ec;
     return std::filesystem::is_empty(path, ec);
@@ -715,41 +727,41 @@ std::string get_extension(const std::filesystem::path& path)
 {
     if (path.empty())
         return {};
-    return path.extension().u8string();
+    return tools::str::path_to_string(path.extension());
 }
 
 std::vector<std::filesystem::path> enumerate_directory(
     const std::filesystem::path& path,
-    bool recursively, bool include_dirs, bool include_files, bool relative_pathes)
+    bool recursively, bool include_dirs, bool include_files, bool relative_pathes) noexcept
 {
-    std::error_code ec;
-    if (!std::filesystem::exists(path, ec) || !std::filesystem::is_directory(path, ec))
-        return {};
-
-    std::vector<std::filesystem::path> out;
-    out.reserve(100);
-
-    const auto process_entry = [&](const std::filesystem::directory_entry& entry)
-    {
-        const bool is_dir = entry.is_directory();
-        if ((is_dir && !include_dirs) || (!is_dir && !include_files))
-            return;
-
-        // relative vs absolute
-        std::filesystem::path current_path;
-        if (relative_pathes)
-        {
-            current_path = entry.path().lexically_relative(path);
-        }
-        else
-        {
-            current_path = entry.path();
-        }
-        out.push_back(std::move(current_path));
-    };
-
     try
     {
+        std::error_code ec;
+        if (!std::filesystem::exists(path, ec) || !std::filesystem::is_directory(path, ec))
+            return {};
+
+        std::vector<std::filesystem::path> out;
+        out.reserve(100);
+
+        const auto process_entry = [&](const std::filesystem::directory_entry& entry)
+        {
+            const bool is_dir = entry.is_directory();
+            if ((is_dir && !include_dirs) || (!is_dir && !include_files))
+                return;
+
+            // relative vs absolute
+            std::filesystem::path current_path;
+            if (relative_pathes)
+            {
+                current_path = entry.path().lexically_relative(path);
+            }
+            else
+            {
+                current_path = entry.path();
+            }
+            out.push_back(std::move(current_path));
+        };
+
         const auto opts = std::filesystem::directory_options::skip_permission_denied;
         if (recursively)
         {
@@ -765,13 +777,13 @@ std::vector<std::filesystem::path> enumerate_directory(
                 process_entry(dir_entry);
             }
         }
+        return out;
     }
     catch (...)
     {
-        LogErrorS(ExcepCategory::FileSystem, "Error enumerating directory " << path);
+        LogWarnS("Failed enumerating directory " << path);
     }
-
-    return out;
+    return {};
 }
 
 std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::path& path,
@@ -783,7 +795,7 @@ std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::pa
 
     for (auto& p : paths)
     {
-        auto str = p.generic_u8string();
+        auto str = tools::str::u8_to_string(p.generic_u8string());
         if (slash != '/')
             std::replace(str.begin(), str.end(), '/', slash);
         out.push_back(std::move(str));
@@ -792,7 +804,7 @@ std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::pa
 }
 
 #ifdef _WIN32
-struct FdData
+struct FdData final
 {
     HWND hwnd = nullptr;
     bool read = false;
@@ -805,7 +817,9 @@ struct FdData
     std::list<std::filesystem::path> results;
 };
 
-static bool select_files(HWND hwnd, bool read, bool sel_directory, bool allow_multiselect, 
+namespace
+{
+bool select_files(HWND hwnd, bool read, bool sel_directory, bool allow_multiselect,
     const std::list<std::pair<std::wstring, std::wstring>>& filters, const std::filesystem::path& init_file,
     std::list<std::filesystem::path>& results)
 {
@@ -878,28 +892,28 @@ static bool select_files(HWND hwnd, bool read, bool sel_directory, bool allow_mu
                                     {
                                         results.push_back(pszFilePath);
                                         result = true;
-                                            
+
                                         CoTaskMemFree(pszFilePath);
                                     }
                                     else
                                     {
-                                        LogWarnS("GetDisplayName failed: " << LogHRES(hr));
+                                        LogWarnS("IShellItem::GetDisplayName failed: " << LogHRES(hr));
                                     }
                                 }
                                 else
                                 {
-                                    LogWarnS("pItemArray->GetItemAt failed: " << LogHRES(hr));
+                                    LogWarnS("IShellItemArray::GetItemAt failed: " << LogHRES(hr));
                                 }
                             }
                         }
                         else
                         {
-                            LogWarnS("pItemArray->GetCount failed: " << LogHRES(hr));
+                            LogWarnS("IShellItemArray::GetCount failed: " << LogHRES(hr));
                         }
                     }
                     else
                     {
-                        LogWarnS("GetResults failed: " << LogHRES(hr));
+                        LogWarnS("IFileOpenDialog::GetResults failed: " << LogHRES(hr));
                     }
                 }
                 else
@@ -918,32 +932,33 @@ static bool select_files(HWND hwnd, bool read, bool sel_directory, bool allow_mu
                     if (SUCCEEDED(hr))
                     {
                         result = true;
-                        results.push_back(pszFilePath);                        
+                        results.push_back(pszFilePath);
                         CoTaskMemFree(pszFilePath);
                     }
                     else
                     {
-                        LogWarnS("GetDisplayName failed: " << LogHRES(hr));
+                        LogWarnS("IShellItem::GetDisplayName failed: " << LogHRES(hr));
                     }
                 }
                 else
                 {
-                    LogWarnS("GetResult failed: " << LogHRES(hr));
+                    LogWarnS("IFileDialog::GetResult failed: " << LogHRES(hr));
                 }
             }
         }
         else
         {
-            LogWarnS("pFileOpen->Show filed: " << LogHRES(hr));
+            LogWarnS("IFileDialog::Show filed: " << LogHRES(hr));
         }
     }
     else
     {
-        LogWarnS("CoCreateInstance failed: " << LogHRES(hr));
+        LogWarnS("CoCreateInstance::FileOpen/SaveDialog failed: " << LogHRES(hr));
     }
 
     return result;
 }
+} // namespace
 
 void select_files_result_handler(WPARAM, LPARAM l)
 {
@@ -971,7 +986,7 @@ void select_files_th(std::unique_ptr<FdData> data)
 
 #endif // #ifdef _WIN32
 
-void select_file_open(std::list<std::pair<std::wstring, std::wstring>>&& filters, FdSelectResultSg& callback)
+void select_file_open(std::list<std::pair<std::wstring, std::wstring>>&& filters, const FdSelectResultSg& callback)
 {
     auto data = std::make_unique<FdData>();
     data->hwnd = ((platform::MainRoutine_Win32*)g::pMain)->get_hwnd();
@@ -983,7 +998,7 @@ void select_file_open(std::list<std::pair<std::wstring, std::wstring>>&& filters
     std::thread(select_files_th, std::move(data)).detach();
 }
 
-void select_files_open(std::list<std::pair<std::wstring, std::wstring>>&& filters, FdSelectResultMt& callback)
+void select_files_open(std::list<std::pair<std::wstring, std::wstring>>&& filters, const FdSelectResultMt& callback)
 {
     auto data = std::make_unique<FdData>();
     data->hwnd = ((platform::MainRoutine_Win32*)g::pMain)->get_hwnd();
@@ -995,7 +1010,7 @@ void select_files_open(std::list<std::pair<std::wstring, std::wstring>>&& filter
     std::thread(select_files_th, std::move(data)).detach();
 }
 
-void select_file_save(std::list<std::pair<std::wstring, std::wstring>>&& filters, std::filesystem::path init_file, FdSelectResultSg& callback)
+void select_file_save(std::list<std::pair<std::wstring, std::wstring>>&& filters, std::filesystem::path init_file, const FdSelectResultSg& callback)
 {
     auto data = std::make_unique<FdData>();
     data->hwnd = ((platform::MainRoutine_Win32*)g::pMain)->get_hwnd();
@@ -1008,7 +1023,7 @@ void select_file_save(std::list<std::pair<std::wstring, std::wstring>>&& filters
     std::thread(select_files_th, std::move(data)).detach();
 }
 
-void select_dir(FdSelectResultSg& callback)
+void select_dir(const FdSelectResultSg& callback)
 {
     auto data = std::make_unique<FdData>();
     data->hwnd = ((platform::MainRoutine_Win32*)g::pMain)->get_hwnd();
@@ -1019,7 +1034,7 @@ void select_dir(FdSelectResultSg& callback)
     std::thread(select_files_th, std::move(data)).detach();
 }
 
-void select_dirs(FdSelectResultMt& callback)
+void select_dirs(const FdSelectResultMt& callback)
 {
     auto data = std::make_unique<FdData>();
     data->hwnd = ((platform::MainRoutine_Win32*)g::pMain)->get_hwnd();
@@ -1116,7 +1131,7 @@ void open_file(const std::filesystem::path& path)
     const auto res = cast::from_ptr<int32_t>(ShellExecuteW(nullptr, L"open", path.wstring().c_str(), nullptr, nullptr, SW_SHOWNORMAL));
     if (res <= 32)
     {
-        LogWarnS("Can't run file '" << path << "', error " << LogERR);
+        LogWarnS("Can't run file '" << path << "', error " << LogApiERR);
     }
     else
     {
@@ -1169,7 +1184,7 @@ std::vector<std::string> scan_for_disks()
     const DWORD len = ::GetLogicalDriveStringsA(sizeof(buffer), buffer);
     if (0 == len)
     {
-        LogErrorS(ExcepCategory::API, "GetLogicalDriveStringsA failed, err " << LogERR);
+        LogWarnS("GetLogicalDriveStringsA failed, err " << LogApiERR);
         return ret;
     }
 
@@ -1196,12 +1211,14 @@ std::vector<std::string> scan_for_disks()
 
 namespace img
 {
-bool icomparer(char l, char r)
+bool icomparer(char l, char r) noexcept
 {
-    return std::tolower(static_cast<unsigned char>(l)) == std::tolower(static_cast<unsigned char>(r));
+    return std::tolower(cast::to_uchar(l)) == std::tolower(cast::to_uchar(r));
 }
 
-static std::string cleanup_json(const std::vector<char>& buffer, size_t offset)
+namespace
+{
+std::string cleanup_json(const std::string& buffer, size_t offset)
 {
     size_t start = offset;
     while (start < buffer.size() && buffer[start] != '{')
@@ -1211,40 +1228,40 @@ static std::string cleanup_json(const std::vector<char>& buffer, size_t offset)
     bool in_string = false;
     bool is_escape = false;
 
-    for (size_t i = start; i < buffer.size(); i++) 
+    for (size_t i = start; i < buffer.size(); i++)
     {
         const char c = buffer[i];
 
         // If the previous character was a backslash, skip current
-        if (is_escape) 
+        if (is_escape)
         {
             is_escape = false;
             continue;
         }
 
         // Check for escape character
-        if (c == '\\') 
+        if (c == '\\')
         {
             is_escape = true;
             continue;
         }
 
         // Toggle string state on unescaped quotes
-        if (c == '"') 
+        if (c == '"')
         {
             in_string = !in_string;
             continue;
         }
 
         // Count braces only if we are not inside a string literal
-        if (!in_string) 
+        if (!in_string)
         {
             if (c == '{') depth++;
             else if (c == '}') depth--;
             if (depth < 0) return {};
 
             // When depth reaches 0, we found the exact end of the JSON object
-            if (0 == depth) 
+            if (0 == depth)
             {
                 return std::string(buffer.begin() + start, buffer.begin() + i + 1);
             }
@@ -1254,32 +1271,32 @@ static std::string cleanup_json(const std::vector<char>& buffer, size_t offset)
     return {};
 }
 
-static uint32_t read_be32(const unsigned char* data) 
+uint32_t read_be32(const unsigned char* data) noexcept
 {
     return (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
 }
 
-static size_t extract_png_tEXt(const std::vector<char>& file_data, bool search_api) 
+size_t extract_png_tEXt(const std::string& file_data, bool search_api) noexcept
 {
     if (file_data.size() < 33)
         return std::string::npos;
 
-    // Check PNG magic signature
+    // check PNG magic signature
     const unsigned char png_sig[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
     if (memcmp(file_data.data(), png_sig, 8) != 0)
         return std::string::npos;
 
     size_t offset = 8;
-    while (offset + 8 <= file_data.size()) 
+    while (offset + 8 <= file_data.size())
     {
-        const uint32_t length = read_be32(reinterpret_cast<const unsigned char*>(file_data.data()) + offset);
-        const std::string chunk_type(reinterpret_cast<const char*>(file_data.data() + offset + 4), 4);
+        const uint32_t length = read_be32(cast::ptrs<const unsigned char>(file_data.data()) + offset);
+        const std::string_view chunk_type(cast::ptrs<const char>(file_data.data() + offset + 4), 4);
 
-        offset += 8; // Move to chunk data
+        offset += 8; // move to chunk data
         if (offset + length + 4 > file_data.size())
             break;
 
-        if (chunk_type == "tEXt" || chunk_type == "iTXt" || chunk_type == "comf") 
+        if (chunk_type == "tEXt" || chunk_type == "iTXt" || chunk_type == "comf")
         {
             const std::string_view json_id = (search_api ? "prompt" : "workflow");
             const auto from = file_data.data() + offset;
@@ -1290,12 +1307,13 @@ static size_t extract_png_tEXt(const std::vector<char>& file_data, bool search_a
                 return offset + std::distance(from, it);
         }
 
-        // Jump to next chunk (+4 to skip CRC)
-        offset += length + 4; 
+        // jump to next chunk (+4 to skip CRC)
+        offset += length + 4;
     }
 
     return std::string::npos;
 }
+} // namespace
 
 std::string extract_workflow_from_png(const std::filesystem::path& webp_path)
 {
@@ -1314,30 +1332,32 @@ std::string extract_workflow_from_png(const std::filesystem::path& webp_path)
     return cleanup_json(file_data, pos);
 }
 
-static uint32_t read_le32(const unsigned char* data) 
+namespace
+{
+uint32_t read_le32(const unsigned char* data) noexcept
 {
     return data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
 }
 
-static size_t extract_webp_exif(const std::vector<char>& file_data, bool search_api) 
+size_t extract_webp_exif(const std::string& file_data, bool search_api) noexcept
 {
     if (file_data.size() < 12)
         return std::string::npos;
 
-    // Check RIFF header and WEBP signature
-    if (memcmp(file_data.data(), "RIFF", 4) != 0 || memcmp(file_data.data() + 8, "WEBP", 4) != 0) 
+    // check RIFF header and WEBP signature
+    if (memcmp(file_data.data(), "RIFF", 4) != 0 || memcmp(file_data.data() + 8, "WEBP", 4) != 0)
         return std::string::npos;
 
     size_t offset = 12;
-    while (offset + 8 <= file_data.size()) 
+    while (offset + 8 <= file_data.size())
     {
-        const char* chunk_id = reinterpret_cast<const char*>(file_data.data() + offset);
-        const uint32_t chunk_size = read_le32(reinterpret_cast<const unsigned char*>(file_data.data()) + offset + 4);
+        const char* chunk_id = cast::ptrs<const char>(file_data.data() + offset);
+        const uint32_t chunk_size = read_le32(cast::ptrs<const unsigned char>(file_data.data()) + offset + 4);
 
         offset += 8;
-        if (strncmp(chunk_id, "EXIF", 4) == 0) 
+        if (strncmp(chunk_id, "EXIF", 4) == 0)
         {
-            if (offset + chunk_size <= file_data.size()) 
+            if (offset + chunk_size <= file_data.size())
             {
                 const std::string_view json_id = (search_api ? "prompt" : "workflow");
                 const auto from = file_data.data() + offset;
@@ -1354,6 +1374,7 @@ static size_t extract_webp_exif(const std::vector<char>& file_data, bool search_
 
     return std::string::npos;
 }
+} // namespace
 
 std::string extract_workflow_from_webp(const std::filesystem::path& webp_path)
 {
@@ -1372,28 +1393,110 @@ std::string extract_workflow_from_webp(const std::filesystem::path& webp_path)
     return cleanup_json(file_data, pos);
 }
 
-void scale(int32_t image_w, int32_t image_h, int32_t max_w, int32_t max_h, int32_t& res_w, int32_t& res_h)
+void scale(int32_t image_w, int32_t image_h, int32_t max_w, int32_t max_h, int32_t& res_w, int32_t& res_h) noexcept
 {
     res_w = res_h = 0;
-    if (0 == image_w || 0 == image_h || 0 == max_w || 0 == max_h)
+
+    if (image_w <= 0 || image_h <= 0 || (max_w <= 0 && max_h <= 0))
         return;
 
-    if (image_w <= max_w && image_h <= max_h)
+    if ((max_w <= 0 || image_w <= max_w) && (max_h <= 0 || image_h <= max_h))
     {
         res_w = image_w;
         res_h = image_h;
         return;
     }
 
-    const float scale_w = cast::to_float(max_w) / cast::to_float(image_w);
-    const float scale_h = cast::to_float(max_h) / cast::to_float(image_h);
-    const float scale_factor = (scale_w < scale_h) ? scale_w : scale_h;
+    float scale_factor = 1.0f;
 
-    const float res_wf = cast::to_float(image_w) * scale_factor;
-    const float res_hf = cast::to_float(image_h) * scale_factor;
+    if (max_w <= 0) 
+    {
+        scale_factor = cast::to_float(max_h) / cast::to_float(image_h);
+    } 
+    else if (max_h <= 0) 
+    {
+        scale_factor = cast::to_float(max_w) / cast::to_float(image_w);
+    } 
+    else 
+    {
+        const float scale_w = cast::to_float(max_w) / cast::to_float(image_w);
+        const float scale_h = cast::to_float(max_h) / cast::to_float(image_h);
+        scale_factor = std::min(scale_w, scale_h);
+    }
 
-    res_w = cast::to_i32(std::max(res_wf, 1.0f));
-    res_h = cast::to_i32(std::max(res_hf, 1.0f));
+    res_w = cast::to_i32(std::max(cast::to_float(image_w) * scale_factor, 1.0f));
+    res_h = cast::to_i32(std::max(cast::to_float(image_h) * scale_factor, 1.0f));
+}
+
+std::string get_mime_type(const std::filesystem::path& filepath)
+{
+    std::string ext = filepath.extension().string();
+    ext = tools::str::to_lower_ascii(ext);
+
+    if (".png" == ext)
+        return "image/png";
+    if (".webp" == ext)
+        return "image/webp";
+
+    // standard JPEG MIME type
+    if (".jpg" == ext || ".jpeg" == ext || ".pjp" == ext || 
+        ".jfif" == ext || ".jpe" == ext || ".pjpeg" == ext) 
+    {
+        return "image/jpeg";
+    }
+
+    // fallback
+    return "application/octet-stream";
+}
+
+std::string get_readable_aspect_ratio(int32_t w, int32_t h)
+{
+    if (w == 0 || h == 0)
+        return "0:0";
+    if (w == h)
+        return "1:1";
+
+    const float ratio = cast::to_float(w) / cast::to_float(h);
+
+    // tolerance for SD mod-8/64 rounding errors
+    constexpr float epsilon = 0.05f; 
+
+    // common aspect ratios mapped to their float equivalents
+    struct StandardAR final
+    {
+        float value;
+        const char* name;
+    };
+
+    static const StandardAR standards[] =
+    {
+        { 16.0f / 9.0f, "16:9" },
+        { 9.0f / 16.0f, "9:16" },
+        { 4.0f / 3.0f, "4:3" },
+        { 3.0f / 4.0f, "3:4" },
+        { 3.0f / 2.0f, "3:2" },
+        { 2.0f / 3.0f, "2:3" },
+        { 21.0f / 9.0f, "21:9" }
+    };
+
+    // try to find a match among common standards
+    for (const auto& std_ar : standards)
+    {
+        if (std::abs(ratio - std_ar.value) <= epsilon)
+        {
+            return std_ar.name;
+        }
+    }
+
+    // fallback to 1:X or X:1 formatting if it's a completely custom resolution
+    if (ratio > 1.0f)
+    {
+        return fmt::format(FMT_STRING("{:.2f}:1"), ratio);
+    }
+
+    // invert the ratio for portrait formatting
+    const float inv_ratio = cast::to_float(h) / cast::to_float(w);
+    return fmt::format(FMT_STRING("1:{:.2f}"), inv_ratio);
 }
 
 } // namespace img

@@ -7,32 +7,24 @@
 namespace mngr
 {
 
-ComfyUIManager_Win32::ComfyUIManager_Win32()
+ComfyUIManager_Win32::ComfyUIManager_Win32() noexcept
     : m_hjob(nullptr, ::CloseHandle)
     , m_hproc(nullptr, ::CloseHandle)
     , m_hpipe(nullptr, ::CloseHandle)
 {}
 
-ComfyUIManager_Win32::~ComfyUIManager_Win32() = default;
+ComfyUIManager_Win32::~ComfyUIManager_Win32() noexcept = default;
 
 bool ComfyUIManager_Win32::init()
 {
-    LogF;
     if (!ComfyUIManager::init())
         return false;
 
     return true;
 }
 
-void ComfyUIManager_Win32::free()
-{
-    LogF;
-    ComfyUIManager::free();
-}
-
 void ComfyUIManager_Win32::stop_all_threads()
 {
-    LogF;
     m_kill_server_flag = true;
 
     if (!g::pOptsManager->comfyui_kill_server_load() && !m_console_hidden) // ignore user option if console was hidden
@@ -75,8 +67,10 @@ void ComfyUIManager_Win32::run_server()
         if (capture_log)
             m_log_th = std::thread(&ComfyUIManager_Win32::read_logs_th, this);
 
-        ::ResumeThread(pi.hThread);
-        ::CloseHandle(pi.hThread);
+        if (pi.hThread != nullptr)
+            ::ResumeThread(pi.hThread);
+        if (pi.hThread != nullptr)
+            ::CloseHandle(pi.hThread);
 
         g::pFlow->show_logs_panel(true);
     }
@@ -87,7 +81,7 @@ bool ComfyUIManager_Win32::create_job(bool auto_kill)
     Handle hjob(::CreateJobObject(nullptr, nullptr), ::CloseHandle);
     if (!hjob)
     {
-        LogWarn("Failed to create job, err: " << LogERR << ". " << APP_COMFYUI << " will not be killed om app exit");
+        LogWarn("Failed to create job, err: " << LogApiERR << ". " << APP_COMFYUI << " will not be killed om app exit");
         g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed om app exit");
         return false;
     }
@@ -97,7 +91,7 @@ bool ComfyUIManager_Win32::create_job(bool auto_kill)
 
     if (!::SetInformationJobObject(hjob.get(), JobObjectExtendedLimitInformation, &jeli, sizeof(jeli))) 
     {
-        LogWarn("Failed to set information on job, err: " << LogERR << ". " << APP_COMFYUI << " will not be killed om app exit");
+        LogWarn("Failed to set information on job, err: " << LogApiERR << ". " << APP_COMFYUI << " will not be killed om app exit");
         g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed om app exit");
         return false;
     }
@@ -110,7 +104,7 @@ bool ComfyUIManager_Win32::apply_job(HANDLE hproc)
 {
     if (!::AssignProcessToJobObject(m_hjob.get(), hproc))
     {
-        LogWarn("Failed to assign process to job, err: " << LogERR << ". " << APP_COMFYUI " will not be killed om app exit");
+        LogWarn("Failed to assign process to job, err: " << LogApiERR << ". " << APP_COMFYUI " will not be killed om app exit");
         m_hjob.reset();
         g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed om app exit");
         return false;
@@ -119,7 +113,7 @@ bool ComfyUIManager_Win32::apply_job(HANDLE hproc)
     BOOL result;
     if (!::IsProcessInJob(hproc, m_hjob.get(), &result) || !result)
     {
-        LogWarn("Process assigned to job, but verification failed, err: " << LogERR << ". " << APP_COMFYUI " will not be killed om app exit");
+        LogWarn("Process assigned to job, but verification failed, err: " << LogApiERR << ". " << APP_COMFYUI " will not be killed om app exit");
         m_hjob.reset();
         g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed om app exit");
         return false;
@@ -135,7 +129,7 @@ void ComfyUIManager_Win32::prepare(STARTUPINFOW& si, bool& capture_log, bool hid
         SECURITY_ATTRIBUTES sa_attr = {};
         sa_attr.nLength = sizeof(SECURITY_ATTRIBUTES);
         sa_attr.bInheritHandle = TRUE;
-        sa_attr.lpSecurityDescriptor = NULL;
+        sa_attr.lpSecurityDescriptor = nullptr;
 
         HANDLE hrd = nullptr, hwr = nullptr;
         if (::CreatePipe(&hrd, &hwr, &sa_attr, 0))
@@ -147,7 +141,7 @@ void ComfyUIManager_Win32::prepare(STARTUPINFOW& si, bool& capture_log, bool hid
             }
             else
             {
-                LogWarn("Can't set pipe handle information, err: " << LogERR << ". Capture will be disabled");
+                LogWarn("Can't set pipe handle information, err: " << LogApiERR << ". Capture will be disabled");
                 ::CloseHandle(hrd);
                 ::CloseHandle(hwr);
                 capture_log = false;
@@ -156,7 +150,7 @@ void ComfyUIManager_Win32::prepare(STARTUPINFOW& si, bool& capture_log, bool hid
         }
         else
         {
-            LogWarn("Can't create pipe, err: " << LogERR << ". Capture will be disabled");
+            LogWarn("Can't create pipe, err: " << LogApiERR << ". Capture will be disabled");
             capture_log = false;
             g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, "Output capture will be disabled");
         }
@@ -175,7 +169,7 @@ bool ComfyUIManager_Win32::create_process(STARTUPINFOW& si, PROCESS_INFORMATION&
     const auto& python = g::pOptsManager->comfyui_python_load();
     const auto python_args = tools::str::utf8_to_wide(g::pOptsManager->comfyui_python_args_load());
     const auto& comfyui = g::pOptsManager->comfyui_main_py_load();
-    const auto comfyui_as_arg = tools::str::utf8_to_wide(tools::path::build_commandline_arg(comfyui.u8string()));
+    const auto comfyui_as_arg = tools::path::build_commandline_arg(comfyui.wstring());
     const auto comfyui_args = tools::str::utf8_to_wide(g::pOptsManager->comfyui_comfyui_args_load());
     const auto& workdir = g::pOptsManager->comfyui_workdir_load();
     
@@ -183,12 +177,15 @@ bool ComfyUIManager_Win32::create_process(STARTUPINFOW& si, PROCESS_INFORMATION&
     std::vector<wchar_t> cmd_vec(command.begin(), command.end());
     cmd_vec.push_back(0);
 
+    Log("Starting " << python);
+    Log("Process options: hide_console=" << hide_console << ", capture_logs=" << capture_logs << ", suspended=" << suspended);
+
     if (!::CreateProcessW(python.wstring().c_str(), cmd_vec.data(), nullptr, nullptr,
         (capture_logs ? TRUE : FALSE),
         (hide_console ? CREATE_NO_WINDOW : 0) | (suspended ? CREATE_SUSPENDED : 0) | CREATE_UNICODE_ENVIRONMENT,
         nullptr, workdir.wstring().c_str(), &si, &pi)) 
     {
-        LogWarn("Failed to create " APP_COMFYUI " process, err: " << LogERR);
+        LogWarn("Failed to create " APP_COMFYUI " process, err: " << LogApiERR);
         g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, "Failed to create process");
         return false;
     }
@@ -209,7 +206,7 @@ void ComfyUIManager_Win32::enable_autokill(bool enable)
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = {};
     if (!::QueryInformationJobObject(m_hjob.get(), JobObjectExtendedLimitInformation, &jeli, sizeof(jeli), nullptr))
     {
-        LogWarn("Failed to query job info, err: " << LogERR);
+        LogWarn("Failed to query job info, err: " << LogApiERR);
         return;
     }
 
@@ -220,7 +217,7 @@ void ComfyUIManager_Win32::enable_autokill(bool enable)
 
     if (!::SetInformationJobObject(m_hjob.get(), JobObjectExtendedLimitInformation, &jeli, sizeof(jeli)))
     {
-        LogWarn("Failed to change job flags, err: " << LogERR);
+        LogWarn("Failed to change job flags, err: " << LogApiERR);
     }
     else
     {
@@ -237,7 +234,7 @@ void ComfyUIManager_Win32::kill(bool force_kill)
         if (force_kill || m_console_hidden || g::pOptsManager->comfyui_kill_server_load())
         {
             const auto res = ::TerminateProcess(m_hproc.get(), 0);
-            Log(APP_COMFYUI " termination result: " << res << ", err: " << LogERR);
+            Log(APP_COMFYUI " termination result: " << res << ", err: " << LogApiERR);
             m_hproc.reset();            
         }
     }
@@ -255,7 +252,7 @@ void ComfyUIManager_Win32::kill(bool force_kill)
 uint32_t ComfyUIManager_Win32::check_existing_process() const
 {
     CComPtr<IWbemLocator> locator;
-    auto hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (void**)&locator);
+    auto hres = CoCreateInstance(CLSID_WbemLocator, nullptr, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (void**)&locator);
     if (FAILED(hres))
     {
         LogWarn("Failed to create IWbemLocator, err: " << LogHRES(hres));
@@ -263,14 +260,14 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
     }
 
     CComPtr<IWbemServices> service;
-    hres = locator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &service);
+    hres = locator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), nullptr, nullptr, nullptr, 0, nullptr, nullptr, &service);
     if (FAILED(hres))
     {
         LogWarn("Failed to connect ROOT\\CIMV2, err: " << LogHRES(hres));
         return 0;
     }
 
-    hres = CoSetProxyBlanket(service, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+    hres = CoSetProxyBlanket(service, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, nullptr, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE);
     if (FAILED(hres))
     {
         LogWarn("Failed to configure service, err: " << LogHRES(hres));
@@ -280,7 +277,7 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
     CComPtr<IEnumWbemClassObject> enumerator;
     hres = service->ExecQuery(_bstr_t(L"WQL"),
         _bstr_t(L"SELECT CommandLine, ProcessId FROM Win32_Process WHERE Name LIKE '%python%'"),
-        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
+        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, nullptr, &enumerator);
     if (FAILED(hres))
     {
         LogWarn("Failed to query python processes, err: " << LogHRES(hres));
@@ -337,13 +334,7 @@ void ComfyUIManager_Win32::append_log(std::deque<std::string>& logs)
 
 void ComfyUIManager_Win32::read_logs_th()
 {
-    LogFS;
-
-    if (!m_hpipe)
-    {
-        LogInternalLogicS("Can't capture logs, pipe is not ready");
-        return;
-    }
+    LogRAssert(m_hpipe, "Can't capture logs, pipe is not ready", );
 
     constexpr const uint32_t wait_interval = 100;
     DWORD read = 0;
@@ -412,7 +403,7 @@ void ComfyUIManager_Win32::read_logs_th()
 
         if (bytes_avail > 0)
         {
-            if (::ReadFile(m_hpipe.get(), buffer, sizeof(buffer), &read, NULL) && read > 0)
+            if (::ReadFile(m_hpipe.get(), buffer, sizeof(buffer), &read, nullptr) && read > 0)
             {
                 std::string chunk(buffer, read);
 

@@ -9,7 +9,7 @@ namespace ImGuiExNe
 
 namespace ed = ax::NodeEditor;
 
-void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, int64_t* current_item, const char* const items[], int64_t items_count)
+void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, int64_t* current_item, const char* const items[], int64_t items_count) noexcept
 {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -24,7 +24,7 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
     const ImGuiID id = window->GetID(label);
 
     const float arrow_size = ImGui::GetFrameHeight();
-    const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+    const ImVec2 label_size = ImGui::CalcTextSize(label, nullptr, true);
     const float w = ImGui::CalcItemWidth();
     const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(w, label_size.y + style.FramePadding.y * 2.0f));
     const ImRect total_bb(bb.Min, bb.Max + ImVec2(label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f, 0.0f));
@@ -33,7 +33,7 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
         return;
 
     // Open on click
-    bool hovered = false, held = false, popup_open = false;
+    bool hovered = false, held = false;
     if (ImGui::ButtonBehavior(bb, id, &hovered, &held))
     {
         act.active_node = node;
@@ -42,12 +42,12 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
         act.combo.is_active = true;
         act.combo.do_open = true;
 
-        ImVec2 min_screen = ed::CanvasToScreen(pos_before);
+        const ImVec2 min_screen = ed::CanvasToScreen(pos_before);
         act.combo.screen_pos = min_screen;
         act.combo.screen_pos.y += ImGui::GetItemRectSize().y;
         act.combo.width = w;
 
-        act.combo.draw_foo = [=, &popup_open, &act](bool do_open)
+        act.combo.draw_foo = [=, &act](bool do_open) noexcept
         {
             ImGui::SetNextWindowPos(act.combo.screen_pos);
             ImGui::SetNextWindowSizeConstraints(ImVec2(act.combo.width, 0), ImVec2(FLT_MAX, 300));
@@ -55,9 +55,9 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
             if (do_open)
             {
                 ImGui::OpenPopup("##{592DCC05-159B-44BC-B96C-49FE4643D127}");
-                act.combo.old_value = *data::Pin::get_int(act.active_pin->state().value);
+                act.combo.old_value = act.active_pin->state().value.get_int();
             }
-            popup_open = ImGui::BeginPopup("##{592DCC05-159B-44BC-B96C-49FE4643D127}");
+            const bool popup_open = ImGui::BeginPopup("##{592DCC05-159B-44BC-B96C-49FE4643D127}");
             if (popup_open)
             {
                 for (int32_t i = 0; i < items_count; i++)
@@ -84,8 +84,8 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
     ImGui::RenderNavHighlight(bb, id);
     window->DrawList->AddRectFilled(bb.Min, ImVec2(value_x2, bb.Max.y), frame_col, style.FrameRounding, ImDrawFlags_RoundCornersLeft);
 
-    ImU32 bg_col = ImGui::GetColorU32((popup_open || hovered) ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
-    ImU32 text_col = ImGui::GetColorU32(ImGuiCol_Text);
+    const ImU32 bg_col = ImGui::GetColorU32((act.combo.is_active || hovered) ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+    const ImU32 text_col = ImGui::GetColorU32(ImGuiCol_Text);
     window->DrawList->AddRectFilled(ImVec2(value_x2, bb.Min.y), bb.Max, bg_col, style.FrameRounding, (w <= arrow_size) ? ImDrawFlags_RoundCornersAll : ImDrawFlags_RoundCornersRight);
     if (value_x2 + arrow_size - style.FramePadding.x <= bb.Max.x)
         ImGui::RenderArrow(window->DrawList, ImVec2(value_x2 + style.FramePadding.y, bb.Min.y + style.FramePadding.y), text_col, ImGuiDir_Down, 1.0f);
@@ -94,7 +94,7 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
 
     // Render preview and label
     if (items != nullptr)
-        ImGui::RenderTextClipped(bb.Min + style.FramePadding, ImVec2(value_x2, bb.Max.y), items[*current_item], NULL, NULL);
+        ImGui::RenderTextClipped(bb.Min + style.FramePadding, ImVec2(value_x2, bb.Max.y), items[*current_item], nullptr, nullptr);
     if (label_size.x > 0)
         ImGui::RenderText(ImVec2(bb.Max.x + style.ItemInnerSpacing.x, bb.Min.y + style.FramePadding.y), label);
 }
@@ -113,9 +113,9 @@ void RenderDeferredCombo(DeferredAction& act)
     }
 }
 
-bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, const char* hint, std::string* str)
+bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, const char* hint, std::string* str) noexcept
 {
-    ImGuiContext& g = *GImGui;
+    const ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)

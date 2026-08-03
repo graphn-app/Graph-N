@@ -11,14 +11,12 @@ class Textures : public listener::Timer
 {
 public:
     Textures();
-    virtual ~Textures() override;
-
-    NO_COPY_MOVE(Textures);
+    virtual ~Textures() noexcept override;
 
     void init_ui_ready();
 
     int32_t load_image(const char* path, int32_t max_width, int32_t max_height, int32_t life_time);
-    int32_t load_image(std::vector<byte>&& buffer, int32_t max_width, int32_t max_height, int32_t life_time);
+    int32_t load_image(std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time);
 
     // must be called from main UI thread
     ImTextureID get_image(int32_t image_id, std::optional<bool>& image_valid, float* width = nullptr, float* height = nullptr);
@@ -29,7 +27,7 @@ public:
 
     // Lazy1sTimer
     void on_1s_lazy_timer(int64_t total_seconds_elapsed) override;
-    void on_frame(int64_t total_frames_elapsed) override { m_frames_passed = total_frames_elapsed; }
+    void on_frame(int64_t total_frames_elapsed) noexcept override { m_frames_passed = total_frames_elapsed; }
 
     void cleanup_all();
 
@@ -37,9 +35,9 @@ public:
     virtual bool update_gpu_texture(ImTextureIDPtr texture, const ImageData& image_data, uint32_t width, uint32_t height, bool generate_mips) = 0;
 
 private:
-    int32_t load_image(const char* path, std::vector<byte>&& buffer, int32_t max_width, int32_t max_height, int32_t life_time);
+    int32_t load_image(const char* path, std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time);
     void worker_thread();
-    bool check_image_lifecycle(ImageAsync* image);
+    bool check_image_lifecycle(const ImageAsync* image) noexcept;
 
 private:
     std::mutex m_mutex;

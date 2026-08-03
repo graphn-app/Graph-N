@@ -9,8 +9,8 @@ namespace mngr
 class ComfyUIManager_Linux final : public ComfyUIManager
 {
 public:
-    ComfyUIManager_Linux();
-    ~ComfyUIManager_Linux() override;
+    ComfyUIManager_Linux() noexcept;
+    ~ComfyUIManager_Linux() noexcept override;
 
     bool init() override;
     void free() override;

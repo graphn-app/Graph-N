@@ -13,18 +13,13 @@
 namespace data
 {
 
-WorkflowAction::WorkflowAction(data::Workflow* wf)
+WorkflowAction::WorkflowAction(data::Workflow* wf) noexcept
     : m_wf(wf)
-{
-    LogF;
-}
+{}
 
-WorkflowAction::~WorkflowAction()
-{
-    LogF;
-}
+WorkflowAction::~WorkflowAction() noexcept = default;
 
-const blob::Blob* WorkflowAction::get_drawer_state() const
+const blob::Blob* WorkflowAction::get_drawer_state() const noexcept
 {
     if (nullptr == m_drawer)
         return nullptr;
@@ -43,8 +38,12 @@ void WorkflowAction::multi_action_off() const
 
 data::NodeInstance* WorkflowAction::add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos)
 {
-    const auto node_inst = m_wf->add_node(node, (pos.has_value() ? pos.value() : ImRect(m_drawer->get_visible_pos(ImVec2(100, 100)), ImVec2(-1, -1))), select);
-    node_inst->calc_node_width(false, false);
+    ImRect visible_pos;
+    if (m_drawer != nullptr)
+        visible_pos = ImRect(m_drawer->get_visible_pos(ImVec2(100, 100)), ImVec2(-1, -1));
+
+    const auto node_inst = m_wf->add_node(node, (pos.has_value() ? pos.value() : visible_pos), select);
+    node_inst->reset_width();
     g::pHistoryManager->push_node_action(node_inst, mngr::HistoryActionType::NodeAdd);
     return node_inst;
 }
@@ -58,16 +57,20 @@ data::NodeInstance* WorkflowAction::add_group(std::optional<ImRect> size)
 
 void WorkflowAction::delete_node(data::NodeInstance* node)
 {
+    LogRAssert(node, "Zero ptr", );
     m_moving = false;
     m_moving_nodes.clear();
 
     g::pWfsManager->copy_del(node);
     g::pFlow->txt_panel_delete(m_wf->get_id(), node);
 
-    m_drawer->delete_node(node);
+    if (m_drawer != nullptr)
+        m_drawer->delete_node(node);
     node->ed().reset();
 
     multi_action_on(node->m_group ? "Remove group" : "Remove node");
+
+    m_wf->bypass_node(node);
 
     std::list<Link*> links;
     const auto get_links = [&links, this](const std::vector<PinInstance*>& pins)
@@ -96,7 +99,7 @@ void WorkflowAction::delete_group(data::NodeInstance* group)
     return delete_node(group);
 }
 
-void WorkflowAction::hard_reset()
+void WorkflowAction::hard_reset() noexcept
 {
     g::pFlow->txt_panel_clear(m_wf->get_id());
     if (m_drawer != nullptr)
@@ -111,33 +114,54 @@ void WorkflowAction::reinit(blob::Blob&& state)
 
 data::Link* WorkflowAction::link(data::PinInstance* p1, data::PinInstance* p2, iid instance_id /*= 0*/)
 {
+    LogRAssert(p1 && p2, "Zero ptr", nullptr);
     const auto link = data::Link::link(p1, p2, instance_id);
+    multi_action_on("Link");
     g::pHistoryManager->push_link_action(link, mngr::HistoryActionType::LinkAdd);
+    if (p1->state().type == p2->state().type)
+    {
+        if (p1->get_object()->input && data::Pin::is_primitive_type(p1->state().type))
+        {
+            auto old = p1->state().value;
+            p1->state().value = p2->state().value;
+            set_pin_val(p1, std::move(old));
+        }
+        else if (p2->get_object()->input && data::Pin::is_primitive_type(p2->state().type))
+        {
+            auto old = p2->state().value;
+            p2->state().value = p1->state().value;
+            set_pin_val(p2, std::move(old));
+        }
+    }
+    multi_action_off();
     return link;
 }
 
-void WorkflowAction::unlink(data::PinInstance* pin)
+void WorkflowAction::unlink(const data::PinInstance* pin)
 {
+    LogRAssert(pin, "Zero ptr", );
     multi_action_on("Unlink");
 
-    const auto& links = m_wf->get_links();
-    for (auto it = links.begin(); it != links.end(); )
+    const auto& links_ptr = m_wf->get_links();
+    std::vector<Link*> links;
+    links.reserve(links_ptr.size());
+    std::for_each(links_ptr.begin(), links_ptr.end(), [&links](const std::unique_ptr<Link>& link) { links.push_back(link.get()); });
+
+    for (auto it = links.begin(); it != links.end(); ++it)
     {
         auto& link = *it;
         if (link->is_linked_to(pin))
         {
-            unlink(link.get());
-            it = links.begin();
+            unlink(link);
         }
-        else
-            ++it;
     }
 
     multi_action_off();
 }
 
-void WorkflowAction::unlink(data::PinInstance* p1, data::PinInstance* p2)
+void WorkflowAction::unlink(const data::PinInstance* p1, const data::PinInstance* p2)
 {
+    LogRAssert(p1 && p2, "Zero ptr", );
     multi_action_on("Unlink");
 
     const auto& links = m_wf->get_links();
@@ -158,7 +182,9 @@ void WorkflowAction::unlink(data::PinInstance* p1, data::PinInstance* p2)
 
 void WorkflowAction::unlink(data::Link* link)
 {
-    m_drawer->delete_link(link);
+    LogRAssert(link, "Zero ptr", );
+    if (m_drawer != nullptr)
+        m_drawer->delete_link(link);
     link->ed().reset();
     g::pHistoryManager->push_link_action(link, mngr::HistoryActionType::LinkDel);
     m_wf->remove_link(link);
@@ -166,6 +192,7 @@ void WorkflowAction::unlink(data::Link* link)
 
 void WorkflowAction::set_node_color(data::NodeInstance* node, ImU32 color)
 {
+    LogRAssert(node, "Zero ptr", );
     ImU32 old_clr = 0, new_clr = 0;
     if (node->m_group)
     {
@@ -188,6 +215,7 @@ void WorkflowAction::set_node_color(data::NodeInstance* node, ImU32 color)
 
 void WorkflowAction::reset_node_color(data::NodeInstance* node)
 {
+    LogRAssert(node, "Zero ptr", );
     ImU32 old_clr = 0, new_clr = 0;
     if (node->m_group)
     {
@@ -210,7 +238,8 @@ void WorkflowAction::reset_node_color(data::NodeInstance* node)
 
 void WorkflowAction::set_node_name(data::NodeInstance* node, const std::string& name)
 {
-    const auto old_name = node->get_name();
+    LogRAssert(node, "Zero ptr", );
+    auto old_name = node->get_name();
     const auto new_name = tools::str::trim_their(name);
     if (old_name == new_name)
         return;
@@ -227,11 +256,13 @@ void WorkflowAction::set_node_name(data::NodeInstance* node, const std::string& 
 
 void WorkflowAction::reset_node_name(data::NodeInstance* node)
 {
+    LogRAssert(node, "Zero ptr", );
     set_node_name(node, node->get_name_original());
 }
 
 bool WorkflowAction::set_node_rect(data::NodeInstance* node, const ImRect& rect)
 {
+    LogRAssert(node, "Zero ptr", false);
     const auto old_rc = node->m_rc;
     if (old_rc == rect)
         return false;
@@ -247,6 +278,7 @@ bool WorkflowAction::set_node_rect(data::NodeInstance* node, const ImRect& rect)
 
 void WorkflowAction::reset_node_size(data::NodeInstance* node)
 {
+    LogRAssert(node, "Zero ptr", );
     const auto old_rc = node->m_rc;
     node->reset_width();
 
@@ -258,6 +290,7 @@ void WorkflowAction::reset_node_size(data::NodeInstance* node)
 
 void WorkflowAction::set_node_expanded(data::NodeInstance* node, bool expanded)
 {
+    LogRAssert(node, "Zero ptr", );
     if (node->get_expanded() == expanded)
         return;
     if (m_drawer != nullptr && !expanded)
@@ -268,15 +301,22 @@ void WorkflowAction::set_node_expanded(data::NodeInstance* node, bool expanded)
 
 void WorkflowAction::set_node_pinning(data::NodeInstance* node, bool pin)
 {
+    LogRAssert(node, "Zero ptr", );
     if (node->get_pinned() == pin)
         return;
     node->pin(pin);
-    m_drawer->pin_node(node->ed(), node->get_pinned());
+    if (m_drawer != nullptr)
+        m_drawer->pin_node(node->ed(), node->get_pinned());
     g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodePin, !pin);
 }
 
 void WorkflowAction::set_node_mode(data::NodeInstance* node, NodeMode mode)
 {
+    LogRAssert(node, "Zero ptr", );
+    if (NodeMode::Bypass == mode && !node->get_object()->can_bypass)
+        return;
+    if (NodeMode::Mute == mode && !node->get_object()->can_mute)
+        return;
     const auto old_mode = node->get_mode();
     if (old_mode == mode)
         return;
@@ -316,6 +356,7 @@ void WorkflowAction::end_nodes_move(bool cancel)
 
 void WorkflowAction::set_pin_name(data::PinInstance* pin, const std::string& name)
 {
+    LogRAssert(pin, "Zero ptr", );
     auto old_name = pin->state().name;
     pin->set_name(tools::str::trim_their(name));
     if (old_name == pin->state().name)
@@ -330,33 +371,47 @@ void WorkflowAction::set_pin_name(data::PinInstance* pin, const std::string& nam
 
 void WorkflowAction::reset_pin_name(data::PinInstance* pin)
 {
+    LogRAssert(pin, "Zero ptr", );
     return set_pin_name(pin, pin->get_object()->def_state.name);
 }
 
-void WorkflowAction::set_pin_val(data::PinInstance* pin, primitive&& old_val)
+void WorkflowAction::set_pin_val(data::PinInstance* pin, Primitive&& old_val)
 {
+    LogRAssert(pin, "Zero ptr", );
     if (old_val == pin->state().value)
         return;
+
+    multi_action_on("Set value");
     g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinVal, mngr::HActionT(std::move(old_val)));
+    multi_action_off();
 }
 
 void WorkflowAction::set_pin_val(data::PinInstance* pin, int64_t old_idx)
 {
-    const primitive old_val = old_idx;
+    LogRAssert(pin, "Zero ptr", );
+    const Primitive old_val = old_idx;
     if (old_val == pin->state().value)
         return;
+
+    multi_action_on("Set value");
     g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinVal, mngr::HActionT(old_val));
+    multi_action_off();
 }
 
 void WorkflowAction::set_pin_val(data::PinInstance* pin, const float* new_colors)
 {
+    LogRAssert(pin, "Zero ptr", );
     const auto old_colors = pin->state().value;
-    const primitive new_colors_v = data::Pin::colors_to_int(ImVec4(new_colors));
+    const Primitive new_colors_v = data::Pin::colors_to_int(ImVec4(new_colors));
     if (old_colors == new_colors_v)
         return;
     pin->state().value = new_colors_v;
 
+    multi_action_on("Set value");
     g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinVal, mngr::HActionT(old_colors));
+    multi_action_off();
+}
+
 }
 
 } // namespace data

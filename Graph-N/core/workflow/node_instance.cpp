@@ -6,6 +6,7 @@
 #include "core/managers/workflows_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
+#include "imgui_widget_limits.h"
 
 namespace data
 {
@@ -18,7 +19,7 @@ void NodeInstance::init(const std::string& select)
 
     reset_to_default_colors();
 
-    if (m_group)
+    if (m_group || nullptr == get_object())
         return;
 
     auto wf = g::pWfsManager->access(m_wid);
@@ -44,10 +45,12 @@ void NodeInstance::init(const std::string& select)
         }
     };
 
-    add_pins(m_object->required.pins, m_input);
-    add_pins(m_object->optional.pins, m_input);
-    add_pins(m_object->hidden.pins, m_input);
-    add_pins(m_object->output, m_output);
+    m_input.clear();
+    m_output.clear();
+    add_pins(get_object()->required.pins, m_input);
+    add_pins(get_object()->optional.pins, m_input);
+    add_pins(get_object()->hidden.pins, m_input);
+    add_pins(get_object()->output, m_output);
 
     link_cag_pins();
 }
@@ -72,7 +75,8 @@ void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
     if (m_group)
         return;
 
-    auto wf = g::pWfsManager->access(m_wid);
+
+    auto wf = g::pWfsManager->access(get_workflow_id());
 
     const auto add_pins = [this, wf, copy_pin_ids](const std::vector<PinInstance*>& source, std::vector<PinInstance*>& dest)
     {
@@ -80,9 +84,7 @@ void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
         {
             auto pin_instance = wf->add_pin(this, pin->get_object(), (copy_pin_ids ? pin->get_instance_id() : 0));
             auto& state = pin_instance->state();
-            state = pin->state();
-            state.links = 0;
-            state.converted = false;
+            pin->state().copy_to(state);
             state.type = pin->get_object()->def_state.type;
             state.type_str = pin->get_object()->def_state.type_str;
             dest.push_back(pin_instance);
@@ -95,14 +97,15 @@ void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
     link_cag_pins();
 }
 
-void NodeInstance::reset_state()
+void NodeInstance::reset_state() noexcept
 {
     NodeInstanceBase::reset_state();
     m_pos_set = m_size_set = m_pinned_set = false;
 }
 
-void NodeInstance::increment(NodeInstance* copy_to, WorkflowAction* wf_action)
+void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_action)
 {
+    LogRAssert(copy_to && wf_action, "Zero ptr", );
     if (m_group || nullptr == get_object() || get_object()->is_dummy)
         return;
 
@@ -120,77 +123,113 @@ void NodeInstance::increment(NodeInstance* copy_to, WorkflowAction* wf_action)
     {
         if (pin->get_object()->cag_require)
         {
+            PinInstance* pin_copy_to = nullptr;
+            if (copy_to != nullptr)
+                pin_copy_to = find_pin(copy_to->m_input, pin->get_instance_id());
+
+            auto cag_pin = find_pin(m_input, pin->state().cag);
+            LogCAssert(cag_pin != nullptr, "CAG pin not found. w:" << get_workflow_id() << ", n:" << get_instance_id() << ", p:" << pin->get_instance_id() << ", cag:" << pin->state().cag);
+            LogCAssert(cag_pin->get_object()->cag_pin, "Linked CAG pin is not CAG. w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str);
+            LogCAssert(cag_pin->get_object()->def_state.type == PinType::COMBO, "Linked CAG pin is not COMBO. w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str);
+            LogCAssert(cag_pin->get_object()->def_state.value.is_int(), "Linked CAG pin holds wrong type. w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str);
+
+            const auto cb_idx = cag_pin->state().value.get_int();
+            LogCAssert(cb_idx >= cast::to_i64(ControlAfterGenerate::_first) && cb_idx <= cast::to_i64(ControlAfterGenerate::_last), "Linked CAG pin holds wrong value w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str << ", v:" << cb_idx);
+
             auto& value = pin->state().value;
-            if (!std::holds_alternative<uint64_t>(value))
+            auto pin_obj = pin->get_object();
+
+            switch (cast::to_enum<ControlAfterGenerate>(cb_idx))
             {
-                LogInternalLogic("CAG required pin holds wrong type");
+            case ControlAfterGenerate::CAGFixed:
+                break;
+            case ControlAfterGenerate::CAGDecrement:
+                if (value.is_uint())
+                {
+                    uint64_t* val = value.get_uint_ref();
+                    if (0 == *val) *val = IM_U64_MAX_WIDGET;
+                    else (*val)--;
+                }
+                else if (value.is_int())
+                {
+                    int64_t* val = value.get_int_ref();
+                    const int64_t min = pin_obj->min.get_int();
+                    const int64_t max = pin_obj->max.get_int();
+                    if (min == *val) *val = max;
+                    else (*val)--;
+                }
+                else if (value.is_float())
+                {
+                    double* val = value.get_float_ref();
+                    const double min = pin_obj->min.get_float();
+                    const double max = pin_obj->max.get_float();
+                    if (min == *val) *val = max;
+                    else (*val)--;
+                }
+                break;
+            case ControlAfterGenerate::CAGIncrement:
+                if (value.is_uint())
+                {
+                    uint64_t* val = value.get_uint_ref();
+                    if (*val >= IM_U64_MAX_WIDGET) *val = 0;
+                    else (*val)++;
+                }
+                else if (value.is_int())
+                {
+                    int64_t* val = value.get_int_ref();
+                    const int64_t min = pin_obj->min.get_int();
+                    const int64_t max = pin_obj->max.get_int();
+                    if (*val >= max) *val = min;
+                    else (*val)++;
+                }
+                else if (value.is_float())
+                {
+                    double* val = value.get_float_ref();
+                    const double min = pin_obj->min.get_float();
+                    const double max = pin_obj->max.get_float();
+                    if (*val >= max) *val = min;
+                    else (*val)++;
+                }
+                break;
+            case ControlAfterGenerate::CAGRandomize:
+                if (value.is_uint())
+                {
+                    uint64_t* val = value.get_uint_ref();
+                    *val = base::GlobalID::random_seed();
+                }
+                else if (value.is_int())
+                {
+                    int64_t* val = value.get_int_ref();
+                    const int64_t min = pin_obj->min.get_int();
+                    const int64_t max = pin_obj->max.get_int();
+                    *val = base::GlobalID::random(min, max);
+                }
+                else if (value.is_float())
+                {
+                    double* val = value.get_float_ref();
+                    const int64_t min = cast::to_i64(pin_obj->min.get_float());
+                    const int64_t max = cast::to_i64(pin_obj->max.get_float());
+                    *val = cast::to_double(base::GlobalID::random(min, max));
+                }
+                break;
+            default:
+                LogError("Linked CAG pin holds wrong value w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str << ", v:" << cb_idx);
+                continue;
             }
-            else
+
+            if (pin_copy_to != nullptr && wf_action != nullptr)
             {
-                uint64_t* u64_val = Pin::get_uint(value);
+                auto old_val = pin_copy_to->state().value;
+                auto& value_to = pin_copy_to->state().value;
 
-                PinInstance* pin_copy_to = nullptr;
-                if (copy_to != nullptr)
-                    pin_copy_to = find_pin(copy_to->m_input, pin->get_instance_id());
+                if (value.is_uint())
+                    value_to = value.get_uint();
+                else if (value.is_int())
+                    value_to = value.get_int();
+                else if (value.is_float())
+                    value_to = value.get_float();
 
-                auto cag_pin = find_pin(m_input, pin->state().cag);
-                if (nullptr == cag_pin)
-                {
-                    LogInternalLogic("CAG pin not found");
-                }
-                else if (!cag_pin->get_object()->cag_pin)
-                {
-                    LogInternalLogic("Linked CAG pin is not CAG");
-                }
-                else if (cag_pin->get_object()->def_state.type != PinType::COMBO)
-                {
-                    LogInternalLogic("Linked CAG pin is not COMBO");
-                }
-                else if (!std::holds_alternative<int64_t>(cag_pin->get_object()->def_state.value))
-                {
-                    LogInternalLogic("Linked CAG pin holds wrong type");
-                }
-                else
-                {
-                    const auto cb_idx = *Pin::get_int(cag_pin->state().value);
-                    if (cb_idx < ControlAfterGenerate::_first || cb_idx > ControlAfterGenerate::_last)
-                    {
-                        LogInternalLogic("Linked CAG pin holds wrong value");
-                    }
-                    else
-                    {
-                        Log("Node " << get_name() << ", pin " << pin->state().name << " prev value: " << *u64_val);
-                        switch (cb_idx)
-                        {
-                        case ControlAfterGenerate::CAGFixed:
-                            break;
-                        case ControlAfterGenerate::CAGDecrement:
-                            (*u64_val)--;
-                            break;
-                        case ControlAfterGenerate::CAGIncrement:
-                            (*u64_val)++;
-                            break;
-                        case ControlAfterGenerate::CAGRandomize:
-                            (*u64_val) = base::GlobalID::random();
-                            break;
-                        default:
-                            {
-                                LogInternalLogic("Linked CAG pin holds wrong value");
-                            }
-                        }
-
-                        if (pin_copy_to != nullptr && wf_action != nullptr)
-                        {
-                            auto old_val = pin_copy_to->state().value;
-                            auto& value_to = pin_copy_to->state().value;
-                            auto u64_val_copy_to = Pin::get_uint(value_to);
-                            *u64_val_copy_to = *u64_val;
-                            wf_action->set_pin_val(pin_copy_to, std::move(old_val));
-                        }
-
-                        Log("Next value: " << *u64_val);
-                    }
-                }
+                wf_action->set_pin_val(pin_copy_to, std::move(old_val));
             }
         }
     }
@@ -203,10 +242,10 @@ void NodeInstance::collect_search_data(std::stringstream& data) const
 
     for (auto pin : m_input)
     {
-        if ((PinType::INT == pin->get_object()->def_state.type || PinType::NUMBER == pin->get_object()->def_state.type) &&
-            (tools::str::to_lower_ascii(pin->get_object()->def_state.name).find("seed") != std::string::npos))
+        if (PinType::INT == pin->get_object()->def_state.type &&
+            tools::str::to_lower_ascii(pin->get_object()->def_state.name).find("seed") != std::string::npos)
         {
-            data << *Pin::get_uint(pin->state().value) << " ";
+            data << pin->state().value.get_uint() << " ";
             break;
         }
     }
@@ -263,16 +302,16 @@ void NodeInstance::collect_search_data(std::stringstream& data) const
             {
                 if (PinType::STRING == pin_type)
                 {
-                    const std::string* str = Pin::get_string(pin->state().value);
-                    if (is_valid_search_string(*str))
-                        data << *str << " ";
+                    const std::string& str = pin->state().value.get_string();
+                    if (is_valid_search_string(str))
+                        data << str << " ";
                 }
                 if (PinType::COMBO == pin_type)
                 {
-                    const int64_t* index = data::Pin::get_int(pin->state().value);
-                    if (*index >= 0 && *index < cast::to_i64(pin->get_object()->combo_items_ptr.size()))
+                    const int64_t index = pin->state().value.get_int();
+                    if (index >= 0 && index < cast::to_i64(pin->get_object()->combo_items_ptr.size()))
                     {
-                        data << pin->get_object()->combo_items_ptr[*index] << " ";
+                        data << pin->get_object()->combo_items_ptr[index] << " ";
                     }
                 }
             }
@@ -280,14 +319,14 @@ void NodeInstance::collect_search_data(std::stringstream& data) const
     }
 }
 
-const std::string& NodeInstance::get_name() const
+const std::string& NodeInstance::get_name() const noexcept
 {
     if (m_group)
         return m_name;
     return NodeInstanceBase::get_name();
 }
 
-void NodeInstance::set_name(std::string name)
+void NodeInstance::set_name(std::string name) noexcept
 {
     if (m_group)
         m_name = std::move(name);
@@ -295,7 +334,7 @@ void NodeInstance::set_name(std::string name)
         NodeInstanceBase::set_name(std::move(name));
 }
 
-void NodeInstance::pin(bool pin)
+void NodeInstance::pin(bool pin) noexcept
 {
     w_name = -1.0f;
     m_saved_width = -1.0f;
@@ -303,14 +342,19 @@ void NodeInstance::pin(bool pin)
     m_pinned_set = false;
 }
 
-void NodeInstance::set_mode(NodeMode mode)
+void NodeInstance::set_mode(NodeMode mode) noexcept
 {
+    if (NodeMode::Bypass == mode && !get_object()->can_bypass)
+        return;
+    if (NodeMode::Mute == mode && !get_object()->can_mute)
+        return;
+
     w_name = -1.0f;
     m_saved_width = -1.0f;
     m_mode = mode;
 }
 
-void NodeInstance::expand(bool expand)
+void NodeInstance::expand(bool expand) noexcept
 {
     if (m_expanded == expand)
         return;
@@ -319,7 +363,7 @@ void NodeInstance::expand(bool expand)
     m_saved_width = -1.0f;
 }
 
-void NodeInstance::set_group_color(ImVec4 clr)
+void NodeInstance::set_group_color(ImVec4 clr) noexcept
 {
     clr.w = 0.3f;
     m_clr_group = ImGui::ColorConvertFloat4ToU32(clr);
@@ -332,35 +376,32 @@ void NodeInstance::set_group_color(ImVec4 clr)
     m_clr_group_capt = ImGuiEx::increase_brightness(m_clr_group_capt);
 }
 
-void NodeInstance::set_node_color(const ImVec4& clr)
+void NodeInstance::set_node_color(const ImVec4& clr) noexcept
 {
     m_clr_node = clr;
     m_clr_head = ImGuiEx::decrease_brightness(ImGui::ColorConvertFloat4ToU32(m_clr_node));
 }
 
-void NodeInstance::reset_to_default_colors()
+void NodeInstance::reset_to_default_colors() noexcept
 {
     if (m_group)
     {
         set_group_color(ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::GroupBg)));
     }
-    else
+    else if (get_object() != nullptr)
     {
-        set_node_color(ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBodyBg)));
+        set_node_color(ImGui::ColorConvertU32ToFloat4(color));
     }
 }
 
-void NodeInstance::reset_width()
+void NodeInstance::reset_width() noexcept
 {
-    calc_node_width(false, false);
+    NodeInstanceBase::reset_width();
     m_rc.Max.x = get_ideal_width();
     m_size_set = false;
-    w_name = -1.0f;
-    m_saved_width = -1.0f;
-    w_node = 0.0f;
 }
 
-float NodeInstance::get_additional_name_width() const
+float NodeInstance::get_additional_name_width() const noexcept
 {
     float add = 0.0f;
     if (m_pinned)
@@ -370,7 +411,7 @@ float NodeInstance::get_additional_name_width() const
     return add;
 }
 
-float NodeInstance::get_additional_node_width() const
+float NodeInstance::get_additional_node_width() const noexcept
 {
     if (!m_expanded)
     {
@@ -378,11 +419,6 @@ float NodeInstance::get_additional_node_width() const
             (m_output.empty() ? 0 : w::pin_l_offset_rw + w::ico_circle + w::pin_r_offset + ImGui::GetStyle().ItemSpacing.x);
     }
     return 0.0f;
-}
-
-bool NodeInstance::do_need_calc_node_widths() const
-{
-    return (m_expanded && !m_group);
 }
 
 } // namespace data

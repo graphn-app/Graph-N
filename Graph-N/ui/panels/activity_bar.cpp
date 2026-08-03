@@ -8,20 +8,11 @@
 namespace ui
 {
 
-ActivityBar::ActivityBar()
-{
-    LogF;
-}
-
-ActivityBar::~ActivityBar()
-{
-    LogF;
-}
+ActivityBar::ActivityBar() noexcept = default;
+ActivityBar::~ActivityBar() noexcept = default;
 
 void ActivityBar::register_panels(const std::vector<DlgObj>& panels)
 {
-    LogF;
-
     std::for_each(panels.begin(), panels.end(), [this](DlgObj id) { m_panels.push_back({ id, Direction::None }); });
 
     m_clr_bg = g::pOptsManager->color_load(AppColor::ActivityBarBg);
@@ -36,9 +27,9 @@ void ActivityBar::register_panels(const std::vector<DlgObj>& panels)
     m_clr_restart_pressed = ImGuiEx::increase_brightness(m_clr_restart_hover);
 }
 
-void ActivityBar::calc_window_sizes(bool left, bool right)
+void ActivityBar::calc_window_sizes(bool left, bool right) noexcept
 {
-    ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+    const auto* main_viewport = ImGui::GetMainViewport();
 
     ImGui::PushFont(g::pOptsManager->ui_activity_bar_big_icons_load() ? g::pMain->get_big_icons_font() : g::pMain->get_icons_font());
     const auto bar_width = ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
@@ -70,7 +61,7 @@ void ActivityBar::calc_window_sizes(bool left, bool right)
     }
 }
 
-void ActivityBar::recalc_viewport_size(bool left, bool right)
+void ActivityBar::recalc_viewport_size(bool left, bool right) noexcept
 {
     //if (left && right)
     //    return;
@@ -184,10 +175,10 @@ void ActivityBar::show(ActivityBarMode mode)
     recalc_viewport_size(l_shown, r_shown);
 }
 
-ActivityBar::Direction ActivityBar::get_panel_direction(DlgObj panel_obj, ImRect center_rc)
+ActivityBar::Direction ActivityBar::get_panel_direction(DlgObj panel_obj, ImRect center_rc) noexcept
 {
     const auto panel_id = DlgObjID[cast::to_szt(panel_obj)];
-    ImGuiWindow* win = ImGui::FindWindowByName(panel_id);
+    const ImGuiWindow* win = ImGui::FindWindowByName(panel_id);
     if (nullptr == win || nullptr == win->DockNode)
         return Direction::None;
 
@@ -205,7 +196,7 @@ ActivityBar::Direction ActivityBar::get_panel_direction(DlgObj panel_obj, ImRect
     return Direction::None;
 }
 
-void ActivityBar::show_tooltip(FontGuard* fg, const char* text)
+void ActivityBar::show_tooltip(FontGuard* fg, const char* text) noexcept
 {
     if (text != nullptr && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
     {
@@ -232,7 +223,7 @@ void ActivityBar::draw_panel_buttons(DlgObj panel_obj, bool active)
     ImGui::PopStyleColor();
     show_tooltip(&fg, g::pFlow->get_panel_name(panel_obj));
 
-    auto btn_pos = ImGui::GetItemRectMin();
+    const auto btn_pos = ImGui::GetItemRectMin();
 
     if (pressed)
         active = !active;

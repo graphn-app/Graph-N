@@ -18,29 +18,26 @@ class PanelTextEditor final :
 {
 public:
     PanelTextEditor(const char* panel_id, bool is_def = false);
-    ~PanelTextEditor() override;
+    ~PanelTextEditor() noexcept override;
 
-    void init() override;
-    void free() override;
-    void stop_all_threads() override;
+    void free() noexcept override;
 
-    inline bool is_pinned() const { return m_pinned; }
-    inline bool is_default() const { return m_default; }
-    inline bool is_active() const { return m_current != nullptr && m_current->wf != 0; }
+    bool is_pinned() const noexcept { return m_pinned; }
+    bool is_default() const noexcept { return m_default; }
+    bool is_active() const noexcept { return m_current != nullptr && m_current->wf != 0; }
 
-    inline bool is_current(wid wf) const { return m_current != nullptr && m_current->wf == wf; }
-    inline bool is_current(wid wf, data::NodeInstance* node) const { return m_current != nullptr && m_current->wf == wf && m_current->node == node; }
-    inline bool is_current(wid wf, data::NodeInstance* node, data::PinInstance* pin) const { return m_current != nullptr && m_current->wf == wf && m_current->node == node && m_current->pin == pin; }
+    bool is_current(wid wf) const noexcept { return m_current != nullptr && m_current->wf == wf; }
+    bool is_current(wid wf, const data::NodeInstance* node) const noexcept { return m_current != nullptr && m_current->wf == wf && m_current->node == node; }
+    bool is_current(wid wf, const data::NodeInstance* node, const data::PinInstance* pin) const noexcept { return m_current != nullptr && m_current->wf == wf && m_current->node == node && m_current->pin == pin; }
 
     void update(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint);
 
     bool activate(wid wf);
 
-    void reset();
-    void reset(wid wf);
-    void reset(wid wf, data::NodeInstance* node);
+    void reset() noexcept;
+    void reset(wid wf, const data::NodeInstance* node = nullptr, const data::PinInstance* pin = nullptr) noexcept;
 
-    //inline bool get_is_empty() const { return m_wf != 0; }
+    //bool get_is_empty() const { return m_wf != 0; }
 
 private:
     DlgCode show(bool& focused) override;
@@ -49,11 +46,11 @@ private:
     void show_toolbar();
 
     void pin();
-    void unpin();
+    void unpin() noexcept;
 
     void test_names_changed(bool force_update);
 
-    void on_pre_pin(PanelToolbar::Element& el);
+    void on_pre_pin(PanelToolbar::Element& el) noexcept;
     void on_pin(PanelToolbar::Element& el);
     void on_locate(PanelToolbar::Element& el);
 
@@ -68,7 +65,7 @@ private:
     bool m_default = false;
     bool m_need_focus = false;
 
-    struct Editor
+    struct Editor final
     {
         wid wf = 0;
         data::NodeInstance* node = nullptr;
@@ -81,7 +78,7 @@ private:
     Editor* m_current = nullptr;
     std::list<Editor> m_editors;
 
-    primitive m_old_pin_val;
+    Primitive m_old_pin_val;
     data::PinInstance* m_editing = nullptr;
     data::PinInstance* m_was_edited = nullptr;
 };

@@ -10,11 +10,7 @@ class PanelMarkdownPreview final :
 {
 public:
     PanelMarkdownPreview();
-    ~PanelMarkdownPreview() override;
-
-    void init() override;
-    void free() override;
-    void stop_all_threads() override;
+    ~PanelMarkdownPreview() noexcept override;
 
 private:
     DlgCode show(bool& focused) override;

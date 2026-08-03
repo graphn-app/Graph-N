@@ -1,3 +1,4 @@
+#include "imgui_widget_limits.h"
 
 namespace base
 {
@@ -39,9 +40,30 @@ uint64_t GlobalID::random()
         ret = dist(self.m_gen);
         if (all_generated.insert(ret).second)
             break;
+        LogWarnS("Duplicate random value");
     }
     while (true);
     return ret;
+}
+
+int64_t GlobalID::random(int64_t min, int64_t max)
+{
+    if (min > max) std::swap(min, max);
+    if (min < IM_S64_MIN_WIDGET) min = IM_S64_MIN_WIDGET;
+    if (max > IM_S64_MAX_WIDGET) min = IM_S64_MAX_WIDGET;
+
+    auto& self = instance();
+    std::lock_guard<std::mutex> lock(self.m_lock);
+    std::uniform_int_distribution<int64_t> dist(min, max);
+    return dist(self.m_gen);
+}
+
+uint64_t GlobalID::random_seed()
+{
+    auto& self = instance();
+    std::lock_guard<std::mutex> lock(self.m_lock);
+    std::uniform_int_distribution<uint64_t> dist(0, IM_U64_MAX_WIDGET);
+    return dist(self.m_gen);
 }
 
 std::string GlobalID::uuid()
@@ -71,29 +93,21 @@ std::string GlobalID::uuid()
 /////   HashID          /////////////////////
 /////////////////////////////////////////////
 
-hid HashID::make_hash(const std::string& unique)
+hid HashID::make_hash(const std::string& unique) noexcept
 {
     return tools::str::hash_fnv1a(unique);
 }
 
-HashID::HashID(const char* unique)
-{
-    set_id(make_hash(unique));
-//    Log("HashID: " << unique << "=" << m_id);
-}
-
 HashID::HashID(const std::string& unique)
 {
-    set_id(make_hash(unique));
-//    Log("HashID: " << unique << "=" << m_id);
+    set_hash(make_hash(unique));
 }
 
-HashID::~HashID() = default;
+HashID::~HashID() noexcept = default;
 
-void HashID::set_id(hid id)
+void HashID::set_hash(hid hash)
 {
-    m_id = id;
-    m_id_str = std::to_string(m_id);
+    m_hash = hash;
 }
 
 } // namespace base

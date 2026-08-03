@@ -59,12 +59,15 @@ AppInstance::AppInstance(WakeUpCallback on_wake_up)
 
 AppInstance::~AppInstance()
 {
-    LogF;
     if (m_server)
     {
-        m_server->stop();
-        if (m_server_thread.joinable())
-            m_server_thread.join();
+        try
+        {
+            m_server->stop();
+            if (m_server_thread.joinable())
+                m_server_thread.join();
+        }
+        catch (...) {}
     }
 }
 

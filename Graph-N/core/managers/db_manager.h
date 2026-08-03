@@ -6,9 +6,9 @@
 namespace mngr
 {
 
-struct DbMetadata
+struct DbMetadata final
 {
-    uint32_t db_ver;
+    uint32_t db_ver = 0;
     std::string app_ver;
     std::string last_run;
 };
@@ -16,7 +16,7 @@ struct DbMetadata
 class DbManager final : public Manager
 {
 public:
-    DbManager() = default;
+    DbManager();
     ~DbManager() override;
 
     static DbMetadata read_db_metadata();
@@ -24,18 +24,18 @@ public:
     bool init() override;
     void stop_all_threads() override;
 
-    inline bool get_is_first_run() const { return m_first_run; }
+    bool get_is_first_run() const noexcept { return m_first_run; }
     void begin_transaction();
     void end_transaction();
 
-    void exception_save(ExcepCategory category, std::string&& message, const char* file, int32_t line);
+    void exception_save(std::string &&message, const char *file, int32_t line) noexcept;
 
     void app_option_save(const std::string& key, DbValue&& value);
     std::vector<DbAppOptionData> app_option_load_all();
     void app_option_save_all(std::vector<DbAppOptionData>&& opts);
 
-    void item_option_save(hid id, DbItemOptionType type, DbValue&& value);
-    std::optional<DbValue> item_option_load(hid id, DbItemOptionType type);
+    void item_option_save(hid hash, DbItemOptionType type, DbValue&& value);
+    std::optional<DbValue> item_option_load(hid hash, DbItemOptionType type);
     std::vector<std::pair<hid, DbValue>> item_option_load_all(DbItemOptionType type);
 
     std::vector<WfData> wf_load_meta_and_purge();
@@ -51,11 +51,10 @@ public:
 private:
     enum class WriteType
     {
-        Exception, AppOption, Item, WfMeta, WfBlob, WfPurge, HistoryAdd, HistoryDel
+        AppOption, Item, WfMeta, WfBlob, WfPurge, HistoryAdd, HistoryDel
     };
     struct ExcepData final
     {
-        ExcepCategory category;
         std::string message;
         std::string file;
         int32_t line = 0;
@@ -83,22 +82,22 @@ private:
     struct WriteData final
     {
         WriteType type;
-        std::variant<ExcepData, DbAppOptionData, ItemData, WfData, WfBlob, HistoryData> data;
+        std::variant<DbAppOptionData, ItemData, WfData, WfBlob, HistoryData> data;
     };
 
 private:
     void backup_thread(std::filesystem::path db_path, std::unique_ptr<SQLite::Database> db);
     void write_thread(std::filesystem::path db_path);
-    void write_data(SQLite::Database& db, const ExcepData* data);
-    void write_data(SQLite::Database& db, const DbAppOptionData* data);
-    void write_data(SQLite::Database& db, const ItemData* data);
-    void delete_data(SQLite::Database& db, const ItemData* data);
-    void write_wf_meta(SQLite::Database& db, const WfData* data);
-    void write_wf_blob(SQLite::Database& db, const WfBlob* data);
-    void delete_wf_draft(SQLite::Database& db, const WfBlob* data);
-    void purge_wf(SQLite::Database& db);
-    void add_history(SQLite::Database& db, const HistoryData* data);
-    void del_history(SQLite::Database& db, const HistoryData* data);
+    void write_data(const SQLite::Database& db, const ExcepData& data);
+    void write_data(const SQLite::Database& db, const DbAppOptionData* data);
+    void write_data(const SQLite::Database& db, const ItemData* data);
+    void delete_data(const SQLite::Database& db, const ItemData* data);
+    void write_wf_meta(const SQLite::Database& db, const WfData* data);
+    void write_wf_blob(const SQLite::Database& db, const WfBlob* data);
+    void delete_wf_draft(const SQLite::Database& db, const WfBlob* data);
+    void purge_wf(const SQLite::Database& db);
+    void add_history(const SQLite::Database& db, const HistoryData* data);
+    void del_history(const SQLite::Database& db, const HistoryData* data);
 
 private:
     std::thread m_th;
@@ -106,6 +105,9 @@ private:
     std::mutex m_lock;
     std::condition_variable m_cv;
     std::queue<WriteData> m_write_queue;
+
+    ExcepData m_exception_write_data;
+    std::atomic_bool m_exception_write_data_flag = false;
 
     std::list<WriteData> m_transaction_queue;
     std::atomic_bool m_transaction_flag = false;

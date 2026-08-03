@@ -7,7 +7,6 @@ namespace mngr
 
 namespace
 {
-
 const char* action_type_str(HistoryActionType t)
 {
     switch (t)
@@ -24,11 +23,11 @@ const char* action_type_str(HistoryActionType t)
     case HistoryActionType::PinVal:  return "PinVal";
     case HistoryActionType::LinkAdd: return "LinkAdd";
     case HistoryActionType::LinkDel: return "LinkDel";
-    default: return "Unknown";
     }
+    LogRErrorS("Unknown action type", "Unknown");
 }
 
-std::string prim_to_str(const primitive& p)
+std::string prim_to_str(const Primitive& p)
 {
     return
         std::visit([](const auto& v) -> std::string
@@ -40,7 +39,7 @@ std::string prim_to_str(const primitive& p)
                 return fmt::format(FMT_COMPILE("str({} bytes)"), v.size());
             else
                 return fmt::format(FMT_STRING("{}"), v);
-        }, p);
+        }, p.value());
 }
 
 std::string action_val_to_str(const HActionT& val)
@@ -59,7 +58,7 @@ std::string action_val_to_str(const HActionT& val)
                 return fmt::format(FMT_STRING("{}"), v);
             else if constexpr (std::is_same_v<T, NodeMode>)
                 return fmt::format(FMT_COMPILE("Mode({})"), cast::to_i32(v));
-            else if constexpr (std::is_same_v<T, primitive>)
+            else if constexpr (std::is_same_v<T, Primitive>)
                 return prim_to_str(v);
             else if constexpr (std::is_same_v<T, ImRect>)
                 return fmt::format(FMT_COMPILE("[{:.0f},{:.0f} {:.0f}x{:.0f}]"), v.Min.x, v.Min.y, v.GetWidth(), v.GetHeight());
@@ -69,7 +68,6 @@ std::string action_val_to_str(const HActionT& val)
                 return "?";
         }, val);
 }
-
 } // namespace
 
 void HistoryManager::LogAction(const HistoryAction& action, const char* state, int32_t pos /*= 0*/, int32_t saved_pos /*= 0*/, size_t total /*= 0*/) const
@@ -96,17 +94,17 @@ void HistoryManager::LogStep(const HistoryStep* step, bool is_undo /*= false*/) 
     const char* prefix = is_undo ? "<- [UNDO]" : "-> [REDO]";
     std::string details;
 
-    if (auto act_oldnew = cast::dynamic<const ActOldNew*>(step))
+    if (auto act_oldnew = cast::dynamic<const ActOldNew>(step))
     {
         const auto& v1 = is_undo ? act_oldnew->new_val : act_oldnew->old_val;
         const auto& v2 = is_undo ? act_oldnew->old_val : act_oldnew->new_val;
         details = fmt::format(FMT_COMPILE("{} => {}"), action_val_to_str(v1), action_val_to_str(v2));
     }
-    else if (auto act_link = cast::dynamic<const ActLink*>(step))
+    else if (auto act_link = cast::dynamic<const ActLink>(step))
     {
-        details = fmt::format(FMT_COMPILE("in:{} <-> out:{}"), act_link->in, act_link->out);
+        details = fmt::format(FMT_COMPILE("in:{} <-> out:{}"), act_link->pin_in, act_link->pin_out);
     }
-    else if (auto act_blob = cast::dynamic<const ActNodeBlob*>(step))
+    else if (auto act_blob = cast::dynamic<const ActNodeBlob>(step))
     {
         details = fmt::format(FMT_COMPILE("type: '{}', blob size: {} bytes"), act_blob->debug_name, act_blob->node->size());
     }

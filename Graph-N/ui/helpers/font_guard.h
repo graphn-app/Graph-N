@@ -9,19 +9,19 @@ struct FontGuard final
     bool pushed = false;
     ImFont* font = nullptr;
 
-    FontGuard(ImFont* font_)
+    FontGuard(ImFont* font_) noexcept
         : font(font_)
     {
         push();
     }
-    ~FontGuard()
+    ~FontGuard() noexcept
     {
         pop();
     }
 
     NO_COPY_MOVE(FontGuard);
 
-    void push()
+    void push() noexcept
     {
         if (font != nullptr)
         {
@@ -30,7 +30,7 @@ struct FontGuard final
             pushed = true;
         }
     }
-    void pop()
+    void pop() noexcept
     {
         if (font != nullptr)
         {

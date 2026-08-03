@@ -16,6 +16,7 @@ void PanelEmptyWithDescr::show_empty_panel_descr(
     const std::vector<const char*>& subtitles,
     const char* url /*= nullptr*/, std::function<void()> url_handler /*= nullptr*/)
 {
+    LogRAssert(header_descr, "Zero ptr", );
     ImGui::Spacing();
 
     // --- Static Description (Top of the window) ---
@@ -43,7 +44,7 @@ void PanelEmptyWithDescr::show_empty_panel_descr(
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + start_y);
 
     // Helper lambda for centered text
-    const auto text_centered = [&](const char* text, bool disabled, bool as_url)
+    const auto text_centered = [&](const char *text, bool disabled, bool as_url) noexcept
     {
         bool click = false;
         const float w = ImGui::CalcTextSize(text).x;
@@ -441,13 +442,13 @@ void PanelToolbar::add_toolbar_element(Element&& el, bool left_aligned)
         m_elements_r.push_back(std::move(el));
 }
 
-void PanelToolbar::finalize_toolbar()
+void PanelToolbar::finalize_toolbar() noexcept
 {
     m_clr_hover = g::pOptsManager->color_load(AppColor::SelectedItem);
     m_clr_pressed = ImGuiEx::increase_brightness(m_clr_hover);
 }
 
-void PanelToolbar::clear_toolbar()
+void PanelToolbar::clear_toolbar() noexcept
 {
     m_elements_l.clear();
     m_elements_r.clear();
@@ -522,7 +523,7 @@ void PanelToolbar::draw_toolbar()
 
             if (!el.blinking || el.blinking && blinking_item_show)
             {
-                auto btn_pos = ImGui::GetItemRectMin();
+                const auto btn_pos = ImGui::GetItemRectMin();
                 //if (-FLT_MIN == regular_el_y)
                 //    regular_el_y = btn_pos.y;
 
@@ -584,7 +585,7 @@ void PanelToolbar::draw_toolbar()
             if (el.text_width > 0.0f)
             {
                 const ImVec2 scrn_pos = ImGui::GetCursorScreenPos();
-                ImVec2 clip_max = ImVec2(scrn_pos.x + el.text_width, scrn_pos.y + ImGui::GetTextLineHeightWithSpacing());
+                const ImVec2 clip_max = ImVec2(scrn_pos.x + el.text_width, scrn_pos.y + ImGui::GetTextLineHeightWithSpacing());
                 ImGui::PushClipRect(scrn_pos, clip_max, true);
             }
 
@@ -668,7 +669,7 @@ void PanelToolbar::draw_toolbar()
             if (0 == regular_btn_size.x)
                 regular_btn_size = ImGui::GetItemRect().GetSize();
 
-            auto btn_pos = ImGui::GetItemRectMin();
+            const auto btn_pos = ImGui::GetItemRectMin();
             //if (-FLT_MIN == regular_el_y)
             //    regular_el_y = btn_pos.y;
 
@@ -734,14 +735,14 @@ void PanelToolbar::draw_toolbar()
         else if (Element::Type::Text == el.type && el.text != nullptr)
         {
             fg.pop();
-            auto text_w = el.text_width > 0.0f ? el.text_width : ImGui::CalcTextSize(el.text).x;
+            const auto text_w = el.text_width > 0.0f ? el.text_width : ImGui::CalcTextSize(el.text).x;
             start_pos -= text_w - style.ItemSpacing.x;
             ImGui::SetCursorPosX(start_pos);
 
             if (el.text_width > 0.0f)
             {
                 const ImVec2 scrn_pos = ImGui::GetCursorScreenPos();
-                ImVec2 clip_max = ImVec2(scrn_pos.x + el.text_width, scrn_pos.y + ImGui::GetTextLineHeightWithSpacing());
+                const ImVec2 clip_max = ImVec2(scrn_pos.x + el.text_width, scrn_pos.y + ImGui::GetTextLineHeightWithSpacing());
                 ImGui::PushClipRect(scrn_pos, clip_max, true);
             }
 

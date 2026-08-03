@@ -5,7 +5,6 @@
 // TODO remove commented/unused
 // TODO: output_is_list ??
 // TODO: ANY
-// TODO: NUMBER
 // TODO: COLOR, color_to_val
 
 namespace data
@@ -13,123 +12,84 @@ namespace data
 
 struct Node;
 
-enum class PinType
-{
-    INT,
-    FLOAT,
-    BOOLEAN,
-    COMBO,
-    STRING,
-    NUMBER,	// TODO
-    COLOR,	// TODO
-
-    ANY,	// TODO
-    IMAGE,	// TODO
-
-    MODEL, MASK, LATENT, AUDIO, FLOATS, CONDITIONING, CLIP, VAE, VIDEO, CONTROL_NET, IPADAPTER, INSIGHTFACE, NOISE, SIGMAS, SAMPLER,
-    CLIP_VISION, SEGS, PIPE_LINE, BUS, LORA_STACK, LORA_LIST, CONTROL_NET_STACK, CLIP_VISION_OUTPUT, BBOX, SEED,
-
-    IMAGE_LIST, IMAGE_BOUNDS, UNIQUE_ID, IMAGE_LIST_SIMPLE, TEXT_LIST, PROMPT_LIST, PLAYLIST, LOAD_3D, LIST,
-    LOAD_3D_ANIMATION, SIMPLE_PROMPT_LIST, TEXT_LIST_SIMPLE, DICT, API_KEY_COMFY_ORG, AUTH_TOKEN_COMFY_ORG, BATCH_COORDINATES, SEG_ELT, 
-    FLOAT_CURVE, GEMINI_INPUT_FILES, OPENAI_INPUT_FILES, OPENAI_CHAT_CONFIG, IPADAPTER_PARAMS, EMBEDS, CROP_DATA, LOSS_MAP, GUIDER, SCHEDULE,
-    LOAD3D_CAMERA, POSE_KEYPOINT, SEG_ELT_CROP_REGION, SEG_ELT_CONTROL_NET_WRAPPER, SCHEDULER_FUNC, REGIONAL_PROMPTS, WEIGHTS_STRATEGY,
-    CAMERA_CONTROL, DETAILER_HOOK, PK_HOOK, HOOKS, HOOK_KEYFRAMES, DETAILER_PIPE, RGTHREE_CONTEXT, UPSCALER_HOOK, GLIGEN, UPSCALE_STACK,
-    PHOTOMAKER, LUMA_CONCEPTS, LUMA_REF, PIXVERSE_TEMPLATE, 
-
-    _count,
-
-    CUSTOM,
-
-    _first_widget = INT,
-    _last_widget = COLOR,
-
-    _none = _count + 100,
-    _first = INT,
-    _last = CUSTOM
-};
-
-enum ControlAfterGenerate
-{
-    _none,
-
-    CAGFixed = _none,
-    CAGIncrement,
-    CAGDecrement,
-    CAGRandomize,
-
-    _count,
-    _first = _none,
-    _last = _count - 1,
-    _zero = _none
-};
-
-inline constexpr const char* ControlAfterGenerateStr[ControlAfterGenerate::_count] =
-{
-    "fixed", "increment", "decrement", "randomize"
-};
-
-enum class PinShape
-{
-    Circle,
-    SemiCircle,
-    Square,
-    Triangle,
-    Diamond,
-    Hexagon
-};
-
 struct PinState final
 {
-    int32_t links = 0;          // number of pin links
-    bool converted = false;     // input pin converted to widget
-    
-    ImU32 pin_color = IM_COL32_WHITE;        // will change if ANY pin
+    int32_t links = 0;              // number of pin links
+    bool converted = false;         // input pin converted to widget
+
+    ImU32 pin_color = IM_COL32(255, 255, 255, 255); // will change if ANY pin
     PinType type = PinType::_none;  // will change if ANY pin
-    std::string type_str;       // will change if ANY pin
-    uint64_t type_hash = 0;
+    std::string type_str;           // will change if ANY pin
 
     std::string name;
     float w_name = 0.0f;
 
-    primitive value;            // current value, if widget
-    iid cag = 0;                // cag pin id if cag_require is true
+    Primitive value;                // current value, if widget
+    iid cag = 0;                    // cag pin id if cag_require is true
+
+    PinState() noexcept = default;
+    ~PinState() noexcept = default;
+
+    PinState(const PinState&) = delete;
+    PinState& operator=(const PinState&) = delete;
+
+    PinState(PinState&&) noexcept = default;
+    PinState& operator=(PinState&&) noexcept = default;
+
+    void copy_to(PinState& other) const
+    {
+        other.pin_color = pin_color;
+        other.type = type;
+        other.type_str = type_str;
+        other.name = name;
+        other.w_name = w_name;
+        other.value = value;
+        // links, converted, and cag are intentionally not copied
+    }
 };
 
 struct Pin : public base::HashID
 {
 public:
-    Pin(const Node* node, const std::string& pin_name);
-    Pin(const Node* node, int64_t pin_index);
-    ~Pin() override;
+    // ctor for input pin
+    Pin(Node* node, const std::string& pin_name, bool is_required, bool is_optional, bool is_hidden);
+    // ctor for ouput pin
+    Pin(Node* node, int32_t pin_index);
+    ~Pin() noexcept override;
 
-    static hid make_hash(const Node* node, const std::string& pin_name, int64_t pin_index);
+    static hid make_hash(const Node* node, const std::string& pin_name, int32_t pin_index);
+    static bool is_primitive_type(PinType type, bool incl_colors = false) noexcept;
 
-    bool is_widget() const;
+    void copy_int(Pin* dest) const;
+    void copy_float(Pin* dest) const;
+    void copy_string(Pin* dest) const;
+    void copy_bool(Pin* dest) const;
+    void copy_combo(Pin* dest) const;
 
-    static inline bool get_is_null(const primitive& value) { return std::holds_alternative<std::monostate>(value); }
-    static inline int64_t* get_int(primitive& value) { return std::get_if<int64_t>(&value); }
-    static inline uint64_t* get_uint(primitive& value) { return std::get_if<uint64_t>(&value); }
-    static inline double* get_float(primitive& value) { return std::get_if<double>(&value); }
-    static inline bool* get_bool(primitive& value) { return std::get_if<bool>(&value); }
-    static inline std::string* get_string(primitive& value) { return std::get_if<std::string>(&value); }
+    bool is_widget(const PinState& state) const noexcept;
 
-    static std::string any_to_string(const primitive& item);
+    static std::string any_to_string(const Primitive& item);
+    static PinType type_str_to_type(const std::string& type_str);
 
     void initialize(const std::string& type_as_string);
     void finalize();
+    void finalize_int();
+    void finalize_float();
+    void finalize_combo();
+    void finalize_bool();
+    void finalize_color() noexcept;
 
-    static uint64_t color_to_val(const std::string& clr, bool& alpha_in_string);
-    static uint64_t colors_to_int(const ImVec4& colors);
+    static uint64_t color_to_val(const std::string& clr, bool& alpha_in_string) noexcept;
+    static uint64_t colors_to_int(const ImVec4& colors) noexcept;
 
-    static PinShape get_shape(PinType type);
+    static PinShape get_shape(PinType type) noexcept;
 
-    static uint64_t get_hash(std::string str);
-
+public:
     const Node* parent_node = nullptr;
 
     bool input = false;
     bool output = false;
-    int64_t out_index = 0;
+    int32_t out_index = -1;
 
     bool required = false;
     bool optional = false;
@@ -140,6 +100,10 @@ public:
     bool def_input = false; // TODO
     bool lazy = false; // TODO
     bool advanced = false;      // is visible on node
+
+    bool can_link = true;
+    bool can_rename = true;
+    bool input_can_be_widget = true;
 
     bool image_upload = false;
     bool audio_upload = false;
@@ -154,7 +118,7 @@ public:
     PinState def_state;
 
     // all
-    primitive def;
+    Primitive def;
 
     // string
     bool multiline = false;
@@ -170,10 +134,12 @@ public:
     // int
     bool is_unsigned = false;
 
+    // int, double, combo
+    Primitive min;
+    Primitive max;
+
     // int, double
-    primitive min;
-    primitive max;
-    primitive step;
+    Primitive step;
     bool display_as_number = false;
     bool display_as_color = false;
     bool display_as_slider = false;
@@ -186,7 +152,7 @@ public:
 
     // combo
     bool multiselect = false;
-    std::vector<primitive> list;
+    std::vector<Primitive> combo_items;
     std::vector<const char*> combo_items_ptr;
     std::vector<std::string> combo_items_str;
 
@@ -201,10 +167,11 @@ private:
     static const std::unordered_map<std::string, PinType> pin_type_map;
 
 private:
-    void generate_pin_color();
+    void generate_pin_color() noexcept;
     void init_defaults();
     void precision_to_string();
-    void clamp_values();
+    void clamp_values() noexcept;
+    const char* prefix_from_visibility(bool is_required, bool is_optional, bool is_hidden) const noexcept;
 };
 
 } // namespace data

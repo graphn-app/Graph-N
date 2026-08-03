@@ -1,0 +1,348 @@
+#include "core/workflow/serializer/wf_serializer_to_json.h"
+#include "core/workflow/workflow.h"
+#include "core/workflow/workflow_action.h"
+#include "core/workflow/node_instance.h"
+#include "core/workflow/pin_instance.h"
+#include "core/workflow/link.h"
+#include "core/managers/nodes_manager.h"
+#include "core/managers/workflows_manager.h"
+
+namespace data
+{
+namespace
+{
+std::string color_to_string(const ImVec4& color)
+{
+    return fmt::format(FMT_STRING("#{:02X}{:02X}{:02X}"), cast::to_i32(color.x * 255.0f), cast::to_i32(color.y * 255.0f), cast::to_i32(color.z * 255.0f));
+}
+
+std::string color_to_string(ImU32 color)
+{
+    return color_to_string(ImGui::ColorConvertU32ToFloat4(color));
+}
+} // namespace
+
+WfSerializerToJson::WfSerializerToJson(const Workflow* wf)
+    : m_wf(wf)
+{}
+
+o_json WfSerializerToJson::serialize()
+{
+    LogRAssert(m_wf, "Zero ptr", o_json{});
+
+    std::shared_ptr<Workflow> virt_wf;
+    auto& test_nodes = m_wf->get_nodes();
+    bool has_reroutes = false;
+
+    for (auto& node : test_nodes)
+    {
+        if (node->is_cni_reroute())
+        {
+            has_reroutes = true;
+            break;
+        }
+    }
+
+    if (has_reroutes)
+    {
+        virt_wf = g::pWfsManager->create_copy_virtual(m_wf);
+        m_wf = virt_wf.get();
+
+        auto& virt_nodes = m_wf->get_nodes();
+
+        std::vector<NodeInstance*> nodes_copy;
+        std::for_each(virt_nodes.begin(), virt_nodes.end(), [&nodes_copy](const std::unique_ptr<NodeInstance>& node) { nodes_copy.push_back(node.get()); });
+
+        for (auto node : nodes_copy)
+        {
+            if (node->is_cni_reroute())
+            {
+                virt_wf->split_reroutes({ node });
+            }
+        }
+    }
+
+    m_json = o_json();
+    m_json["id"] = m_wf->get_uuid();
+    m_json["revision"] = 0;
+    m_json["version"] = 0.4;
+    m_json["last_node_id"] = serialize_nodes();
+    m_json["last_link_id"] = serialize_links();
+
+    m_json["extra"]["workflowRendererVersion"] = "LG";
+    m_json["extra"]["ds"]["scale"] = 1.0f;
+    m_json["extra"]["ds"]["offset"] = { 0.0f, 0.0f };
+
+    serialize_groups();
+
+    if (virt_wf)
+    {
+        m_wf = nullptr;
+        g::pWfsManager->remove_virtual_wf(virt_wf->get_id());
+    }
+
+    return std::move(m_json);
+}
+
+iid WfSerializerToJson::serialize_nodes()
+{
+    iid last_id = 0;
+    int32_t order = 0;
+
+    auto jarr = o_json::array();
+    const auto& nodes = m_wf->get_nodes();
+
+    for (auto& node_ptr : nodes)
+    {
+        if (node_ptr->m_group)
+            continue;
+
+        m_curr_node = node_ptr.get();
+        ImVec2 node_pos(m_curr_node->m_rc.Min.x, m_curr_node->m_rc.Min.y);
+
+        last_id = std::max(last_id, m_curr_node->get_instance_id());
+        o_json jn;
+        jn["id"] = m_curr_node->get_instance_id();
+        jn["type"] = m_curr_node->get_object()->node_class;
+        jn["pos"] = { node_pos.x, node_pos.y };
+        jn["order"] = order++;
+        if (m_curr_node->get_name() != m_curr_node->get_name_original())
+            jn["title"] = m_curr_node->get_name();
+
+        if (!m_curr_node->get_expanded())
+            jn["flags"]["collapsed"] = true;
+        if (m_curr_node->get_pinned())
+            jn["flags"]["pinned"] = true;
+
+        jn["color"] = color_to_string(m_curr_node->m_clr_head);
+        jn["bgcolor"] = color_to_string(m_curr_node->m_clr_node);
+
+        switch (m_curr_node->get_mode())
+        {
+        case NodeMode::OnEvent:
+            jn["mode"] = 1;
+            break;
+        case NodeMode::Mute:
+            jn["mode"] = 2;
+            break;
+        case NodeMode::OnTrigger:
+            jn["mode"] = 3;
+            break;
+        case NodeMode::Bypass:
+            jn["mode"] = 4;
+            break;
+        case NodeMode::Always:
+        default:
+            jn["mode"] = 0;
+            break;
+        }
+
+        if (m_curr_node->cni_json_need_custom_serialization())
+        {
+            serialize_cni_node(jn);
+        }
+        else
+        {
+            jn["properties"]["Node name for S&R"] = m_curr_node->get_object()->node_class;
+
+            serialize_pins(jn);
+            serialize_widgets(jn);
+        }
+
+        jarr.push_back(std::move(jn));
+
+        node_pos.x += 10;
+        node_pos.y += 10;
+    }
+
+    m_json["nodes"] = std::move(jarr);
+    return last_id;
+}
+
+void WfSerializerToJson::serialize_pins(o_json& j)
+{
+    const auto serialize_pin = [this](const PinInstance* pin)
+    {
+        o_json j;
+        j["localized_name"] = pin->get_object()->def_state.name;
+        j["name"] = pin->get_object()->def_state.name;
+        j["type"] = pin->get_object()->def_state.type_str;
+        if (pin->get_object()->def_state.name != pin->state().name)
+            j["label"] = pin->state().name;
+        if (pin->get_object()->is_widget(pin->state()))
+            j["widget"]["name"] = pin->get_object()->def_state.name;
+
+        if (pin->get_object()->input)
+        {
+            if (0 == pin->state().links)
+                j["link"] = nullptr;
+            else
+            {
+                for (auto& link : m_wf->get_links())
+                {
+                    if (link->get_input()->get_instance_id() == pin->get_instance_id())
+                    {
+                        j["link"] = link->get_instance_id();
+                        break;
+                    }
+                }
+            }
+        }
+        else if (pin->get_object()->output)
+        {
+            if (0 == pin->state().links)
+                j["links"] = nullptr;
+            else
+            {
+                j["links"] = o_json::array();
+                for (auto& link : m_wf->get_links())
+                {
+                    if (link->get_output()->get_instance_id() == pin->get_instance_id())
+                    {
+                        j["links"].push_back(link->get_instance_id());
+                    }
+                }
+            }
+        }
+
+        return j;
+    };
+
+    auto jarr = o_json::array();
+    for (auto& pin : m_curr_node->get_inputs())
+    {
+        if (pin->get_object()->cag_pin)
+            continue;
+
+        jarr.push_back(serialize_pin(pin));
+    }
+    j["inputs"] = std::move(jarr);
+
+    jarr = o_json::array();
+    for (auto& pin : m_curr_node->get_outputs())
+    {
+        jarr.push_back(serialize_pin(pin));
+    }
+    j["outputs"] = std::move(jarr);
+}
+
+void WfSerializerToJson::serialize_widgets(o_json& j)
+{
+    auto jarr = o_json::array();
+    for (auto pin : m_curr_node->get_inputs())
+    {
+        if (pin->get_object()->is_widget(pin->state()))
+        {
+            std::visit([&jarr, pin](const auto& v)
+            {
+                using T = std::decay_t<decltype(v)>;
+                if constexpr (std::is_same_v<T, double> ||
+                              std::is_same_v<T, bool> || std::is_same_v<T, std::string>)
+                {
+                    jarr.push_back(v);
+                }
+                else if constexpr (std::is_same_v<T, int64_t>)
+                {
+                    if (PinType::COMBO == pin->state().type)
+                    {
+                        if (uint64_t(v) < pin->get_object()->combo_items_ptr.size())
+                            jarr.push_back(pin->get_object()->combo_items_ptr[v]);
+                    }
+                    else
+                        jarr.push_back(v);
+                }
+                else if constexpr (std::is_same_v<T, uint64_t>)
+                {
+                    if (PinType::COLOR == pin->state().type)
+                    {
+                        jarr.push_back(color_to_string(ImU32(v)));
+                    }
+                    else
+                        jarr.push_back(v);
+                }
+            }, pin->state().value.value());
+        }
+    }
+
+    if (!jarr.empty())
+        j["widgets_values"] = std::move(jarr);
+}
+
+iid WfSerializerToJson::serialize_links()
+{
+    iid last_id = 0;
+    auto jarr = o_json::array();
+
+    const auto get_pin_index = [this](iid node_id, iid pin_id, bool in)
+    {
+        const auto* node = m_wf->get_node_by_instance(node_id);
+        if (nullptr == node)
+        {
+            LogWarnS("Node " << node_id << " not found in m_wf " << m_wf->get_id());
+            return -1;
+        }
+
+        int32_t index = 0;
+        const auto& pins = (in ? node->get_inputs() : node->get_outputs());
+        for (auto pin : pins)
+        {
+            if (pin->get_object()->cag_pin)
+                continue;
+            if (pin->get_instance_id() == pin_id)
+            {
+                return index;
+            }
+            index++;
+        }
+
+        LogWarnS("Pin " << pin_id << " not found in m_wf " << m_wf->get_id());
+        return -1;
+    };
+
+    for (auto& link : m_wf->get_links())
+    {
+        last_id = std::max(last_id, link->get_instance_id());
+
+        const auto in_idx = get_pin_index(link->get_input()->get_parent_node(), link->get_input()->get_instance_id(), true);
+        const auto out_idx = get_pin_index(link->get_output()->get_parent_node(), link->get_output()->get_instance_id(), false);
+        if (in_idx != -1 && out_idx != -1)
+        {
+            auto jl = o_json::array();
+            jl.push_back(link->get_instance_id());
+            jl.push_back(link->get_output()->get_parent_node());
+            jl.push_back(out_idx);
+            jl.push_back(link->get_input()->get_parent_node());
+            jl.push_back(in_idx);
+            jl.push_back(link->get_output()->state().type_str);
+            jarr.push_back(std::move(jl));
+        }
+    }
+
+    m_json["links"] = std::move(jarr);
+    return last_id;
+}
+
+void WfSerializerToJson::serialize_groups()
+{
+    auto jarr = o_json::array();
+    for (auto& node : m_wf->get_nodes())
+    {
+        if (!node->m_group)
+            continue;
+
+        o_json jg;
+        jg["id"] = node->get_instance_id();
+        jg["title"] = node->get_name();
+        jg["color"] = color_to_string(node->m_clr_group);
+        if (node->get_pinned())
+            jg["flags"]["pinned"] = node->get_pinned();
+        jg["bounding"] = { node->m_rc.Min.x, node->m_rc.Min.y, node->m_rc.Max.x, node->m_rc.Max.y };
+
+        jarr.push_back(std::move(jg));
+    }
+
+    if (!jarr.empty())
+        m_json["groups"] = std::move(jarr);
+}
+
+} // namespace data

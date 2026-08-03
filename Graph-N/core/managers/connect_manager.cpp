@@ -1,25 +1,22 @@
-
 #include "core/managers/connect_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/web_socket.h"
+#include "core/base/comfyui_web_paths.h"
 
 namespace mngr
 {
 
-ConnectManager::ConnectManager()
-{
-    LogF;
-}
+ConnectManager::ConnectManager() noexcept = default;
 
-ConnectManager::~ConnectManager()
+ConnectManager::~ConnectManager() noexcept
 {
-    LogF;
-    stop_all_threads();
+    try {
+        stop_all_threads();
+    } catch (...) {}
 }
 
 bool ConnectManager::init()
 {
-    LogF;
     if (!Manager::init())
         return false;
 
@@ -29,7 +26,7 @@ bool ConnectManager::init()
 
 void ConnectManager::stop_all_threads()
 {
-    LogF_In;
+    LogIn;
 
     {
         std::unique_lock<std::mutex> lock(m_http_inbox_mutex);  // cleanup queue coz its a app quit
@@ -43,14 +40,14 @@ void ConnectManager::stop_all_threads()
 
     drop_ws_connection();
 
-    LogF_Out;
+    LogOut;
 }
 
 void ConnectManager::reconnect()
 {
     drop_ws_connection();
 
-    auto opt = g::pOptsManager;
+    const auto* opt = g::pOptsManager;
     m_ws = WebSocket::create_and_connect(opt->comfyui_host_load(),  opt->comfyui_port_load(), opt->comfyui_connect_timeout_load(), opt->comfyui_ping_interval_load());
 }
 
@@ -61,7 +58,7 @@ void ConnectManager::drop_ws_connection()
     m_ws.reset();
 }
 
-ConnectState ConnectManager::get_status(int64_t* latency /*= nullptr*/)
+ConnectState ConnectManager::get_status(int64_t* latency /*= nullptr*/) noexcept
 {
     if (latency)
         *latency = -1;
@@ -80,13 +77,18 @@ ConnectState ConnectManager::get_status(int64_t* latency /*= nullptr*/)
     return ConnectState::Disconnected;
 }
 
-uint32_t ConnectManager::send_http_request(const char* who_is_asking, const char* request, bool post, const std::string&& post_payload /*= ""*/)
+uint32_t ConnectManager::send_http_request(
+    const char* who_is_asking, const char* request, bool post,
+    std::string&& post_payload, httplib::UploadFormDataItems&& post_payload_items, bool retry_on_timeout)
 {
     auto req = std::make_shared<RequestData>();
     req->request = request;
+    req->is_object_info = req->request.find(comfyui_http::object_info) != std::string::npos;
     req->post = post;
     req->post_payload = std::move(post_payload);
+    req->post_payload_items = std::move(post_payload_items);
     req->req_id = m_last_request_id.fetch_add(1, std::memory_order_relaxed) + 1;
+    req->retry_on_timeout = retry_on_timeout;
 
     Log("HTTP-Req#" << req->req_id << ". Registered: " << (post ? "POST" : "GET") << ". Who: " << who_is_asking << ". Url: " << req->request);
 
@@ -112,7 +114,7 @@ uint32_t ConnectManager::send_http_request(const char* who_is_asking, const char
 
 void ConnectManager::http_worker()
 {
-    LogFS_In;
+    LogIn;
 
     std::unique_ptr<httplib::Client> client;
 
@@ -144,7 +146,7 @@ void ConnectManager::http_worker()
 
         {
             std::unique_lock<std::mutex> lock(m_http_inbox_mutex);
-            m_inbox_cv.wait(lock, [this]() {
+            m_inbox_cv.wait(lock, [this]() noexcept {
                 return !m_http_inbox.empty() || g::app_global_stop_all_threads.load(std::memory_order_relaxed);
             });
 
@@ -161,11 +163,16 @@ void ConnectManager::http_worker()
             m_http_inbox.pop();
         }
 
-        LogS("HTTP-Req#" << req->req_id << ". Started");
+        Log("HTTP-Req#" << req->req_id << ". Started");
 
         httplib::Result res;
         if (req->post)
-            res = client->Post(req->request, req->post_payload, "application/json");
+        {
+            if (!req->post_payload_items.empty())
+                res = client->Post(req->request, req->post_payload_items);
+            else
+                res = client->Post(req->request, req->post_payload, "application/json");
+        }
         else
             res = client->Get(req->request);
 
@@ -174,7 +181,15 @@ void ConnectManager::http_worker()
             req->status = res->status;
             req->data = std::move(res->body);
 
-            LogS("HTTP-Req#" << req->req_id << ". Finished. Result: " << res->status << ". Body: " << req->data.size() << " bytes");
+            Log("HTTP-Req#" << req->req_id << ". Finished. Result: " << res->status << ". Body: " << req->data.size() << " bytes");
+            if (req->is_object_info && glog::Logger::get_log_object_info_enabled())
+            {
+                const auto obj_info_path = fs::get_log_directory_path() / "object_info.json";
+                tools::path::make_file(obj_info_path, true, req->data);
+                Log("/object_info dumped into " << obj_info_path);
+            }
+            else if (!req->is_object_info && glog::Logger::get_log_web_response_enabled())
+                LogClear(req->data);
 
             std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
             m_http_pickup.push(req);
@@ -183,7 +198,7 @@ void ConnectManager::http_worker()
             force_reconnect = true;
     }
 
-    LogFS_Out;
+    LogOut;
 }
 
 bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std::string& response)

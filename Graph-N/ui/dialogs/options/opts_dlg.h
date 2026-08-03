@@ -10,11 +10,11 @@ class OptRightPane;
 class OptionsDlgs final : public BaseDlgWithData<DlgData>
 {
 public:
-    OptionsDlgs();
-    ~OptionsDlgs() override;
+    OptionsDlgs() noexcept;
+    ~OptionsDlgs() noexcept override;
 
     void init() override;
-    void select_right_pane(OptPane pane);
+    void select_right_pane(OptPane pane) noexcept;
 
 private:
     DlgCode show(bool& focused) override;

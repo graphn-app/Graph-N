@@ -13,13 +13,13 @@ namespace mngr
 class HotkeysManager final : public Manager
 {
 public:
-    HotkeysManager();
-    ~HotkeysManager() override;
+    HotkeysManager() noexcept;
+    ~HotkeysManager() noexcept override;
 
     bool init() override;
     void save(std::vector<ui::KeyBinding>&& hotkeys);    
 
-    const std::vector<ui::KeyBinding>& get_key_bindings() const { return m_key_binding; }
+    const std::vector<ui::KeyBinding>& get_key_bindings() const noexcept { return m_key_binding; }
     std::vector<ui::KeyBinding> get_default_key_bindings() const;
 
     std::vector<std::pair<ImGuiKey, const char*>> get_key_names() const;
@@ -27,7 +27,7 @@ public:
     bool should_skip_target(KeyTarget target) const;
 
     bool process_hotkey() const;
-    bool process_node_hotkey(ui::PanelWorkflow* wf_panel) const;
+    bool process_node_hotkey(const ui::PanelWorkflow* wf_panel) const;
 
     bool test(const std::vector<ui::KeyBinding>& hotkeys, std::set<KeyTarget>& failed) const;
 

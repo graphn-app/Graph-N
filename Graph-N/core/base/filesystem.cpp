@@ -9,11 +9,8 @@ std::filesystem::path get_this_app_filepath()
 
     while (true)
     {
-        const DWORD length = ::GetModuleFileNameW(NULL, buff.data(), cast::to_u32(buff.size()));
-        if (0 == length)
-        {
-            LogAndThrowS(ExcepCategory::API, "Failed to call WinAPI");
-        }
+        const DWORD length = ::GetModuleFileNameW(nullptr, buff.data(), cast::to_u32(buff.size()));
+        LogCriticalIfS(length > 0, "GetModuleFileNameW returned 0. Err " << LogApiERR);
 
         if (length < buff.size())
             return std::filesystem::path(buff.data());
@@ -27,10 +24,7 @@ std::filesystem::path get_this_app_filepath()
 #include <limits.h>	
     std::error_code ec;
     std::filesystem::path p = std::filesystem::read_symlink("/proc/self/exe", ec);
-    if (ec)
-    {
-        LogAndThrow(ExcepCategory::API, "Failed to call Unix API");
-    }
+    LogCriticalIfS(!ec, "std::filesystem::read_symlink(/proc/self/exe) failed. Err " << ex.value() << ": " << err.message());    
     return p;
 #endif
 }

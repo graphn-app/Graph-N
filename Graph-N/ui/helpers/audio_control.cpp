@@ -3,19 +3,17 @@
 namespace global
 {
 
-AudioControl::~AudioControl()
+AudioControl::~AudioControl() noexcept
 {
-    cleanup_all();
+    try {
+        cleanup_all();
+    } catch (...) {}
 }
 
 void AudioControl::init()
 {
-    const auto res = ma_engine_init(NULL, &m_engine);
-    if (res != MA_SUCCESS)
-    {
-        LogWarn("Failed to initialize audio engine, err " << res);
-        return;
-    }
+    const auto res = ma_engine_init(nullptr, &m_engine);
+    LogRAssert(MA_SUCCESS == res, "Failed to initialize audio engine, err " << res, );
 
     m_initialized = true;
 }
@@ -51,7 +49,7 @@ mngr::AudioInfo AudioControl::get_info(const std::string& filepath, std::optiona
     ma_decoder decoder;
 
     // Initialize the decoder to read the file header
-    ma_result result = ma_decoder_init_file(filepath.c_str(), NULL, &decoder);
+    const ma_result result = ma_decoder_init_file(filepath.c_str(), nullptr, &decoder);
     if (result != MA_SUCCESS)
     {
         valid = false;
@@ -65,7 +63,7 @@ mngr::AudioInfo AudioControl::get_info(const std::string& filepath, std::optiona
     if (ma_decoder_get_length_in_pcm_frames(&decoder, &length_pcm) == MA_SUCCESS)
     {
         // Calculate duration in seconds
-        info.duration_sec = static_cast<float>(length_pcm) / decoder.outputSampleRate;
+        info.duration_sec = cast::to_float(length_pcm) / decoder.outputSampleRate;
     }
 
     // Extract format details directly from the decoder structure
@@ -79,7 +77,7 @@ mngr::AudioInfo AudioControl::get_info(const std::string& filepath, std::optiona
     return info;
 }
 
-void AudioControl::end_callback(void* user_data, ma_sound* /*sound*/)
+void AudioControl::end_callback(void* user_data, ma_sound* /*sound*/) noexcept
 {
     // this executes in miniaudio's background thread
 
@@ -99,37 +97,21 @@ int32_t AudioControl::load(const std::string& filepath)
 
     // initialize sound without starting it
     ma_result result = ma_sound_init_from_file(&m_engine, filepath.c_str(), 0, nullptr, nullptr, &m_sound);
-    if (result != MA_SUCCESS)
-    {
-        Log("Failed to init audio '" << filepath << "', err " << result);
-        return 0;
-    }
+    LogRAssert(MA_SUCCESS == result, "Failed to init audio '" << filepath << "', err " << result, 0);
 
     // EOF callback
     result = ma_sound_set_end_callback(&m_sound, end_callback, this);
-    if (result != MA_SUCCESS)
-    {
-        Log("Failed to init audio '" << filepath << "', err " << result);
-        return 0;
-    }
+    LogRAssert(MA_SUCCESS == result, "Failed to init audio '" << filepath << "', err " << result, 0);
 
     // get track length and sample rate for the timeline
     ma_uint64 length_pcm = 0;
     result = ma_sound_get_length_in_pcm_frames(&m_sound, &length_pcm);
-    if (result != MA_SUCCESS)
-    {
-        Log("Failed to init audio '" << filepath << "', err " << result);
-        return 0;
-    }
+    LogRAssert(MA_SUCCESS == result, "Failed to init audio '" << filepath << "', err " << result, 0);
 
     ma_format format;
     uint32_t channels;
     result = ma_sound_get_data_format(&m_sound, &format, &channels, &m_sample_rate, nullptr, 0);
-    if (result != MA_SUCCESS)
-    {
-        Log("Failed to init audio '" << filepath << "', err " << result);
-        return 0;
-    }
+    LogRAssert(MA_SUCCESS == result, "Failed to init audio '" << filepath << "', err " << result, 0);
 
     //ma_sound_seek_to_pcm_frame(&m_sound, 0);
 
@@ -143,11 +125,7 @@ int32_t AudioControl::load(const std::string& filepath)
 
 void AudioControl::play(int32_t audio_id)
 {
-    if (m_audio_id != audio_id)
-    {
-        LogInternalLogic("Audio must be loaded first");
-    }
-
+    LogRAssert(m_audio_id == audio_id, "Audio must be loaded first", );
     if (!m_initialized || !m_has_sound || m_is_playing.load(std::memory_order_relaxed))
         return;
 
@@ -161,11 +139,7 @@ void AudioControl::play(int32_t audio_id)
 
 void AudioControl::stop(int32_t audio_id)
 {
-    if (m_audio_id != audio_id)
-    {
-        LogInternalLogic("Audio must be loaded first");
-    }
-
+    LogRAssert(m_audio_id == audio_id, "Audio must be loaded first", );
     if (!m_initialized || !m_has_sound || !m_is_playing.load(std::memory_order_relaxed))
         return;
 
@@ -175,18 +149,14 @@ void AudioControl::stop(int32_t audio_id)
 
 void AudioControl::seek(int32_t audio_id, float pos)
 {
-    if (m_audio_id != audio_id)
-    {
-        LogInternalLogic("Audio must be loaded first");
-    }
-
+    LogRAssert(m_audio_id == audio_id, "Audio must be loaded first", );
     if (!m_initialized || !m_has_sound)
         return;
 
     // ignore m_is_playing flag and allow to seek for stopped audio
 
-    const ma_uint64 target_pcm = static_cast<ma_uint64>(pos * m_sample_rate);
-    const ma_uint64 total_pcm = static_cast<ma_uint64>(m_duration_sec * m_sample_rate);
+    const ma_uint64 target_pcm = cast::to<ma_uint64>(pos * m_sample_rate);
+    //const ma_uint64 total_pcm = cast::to<ma_uint64>(m_duration_sec * m_sample_rate);
     ma_sound_seek_to_pcm_frame(&m_sound, target_pcm);
 }
 

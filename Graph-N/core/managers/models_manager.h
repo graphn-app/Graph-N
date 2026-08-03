@@ -13,7 +13,7 @@ struct ModelInfo final
     std::filesystem::path image_path;
     int32_t textures_id = 0;
 
-    bool empty()
+    bool empty() noexcept
     {
         return info.empty() && descr.empty() && tags.empty() && trigger_phrase.empty() && image_path.empty();
     }
@@ -26,7 +26,7 @@ struct ModelItem final
     bool is_model = false;
     bool starred = false;
 
-    hid id = 0;
+    hid hash = 0;
     std::string name;
     std::string search;
     std::string file_name;
@@ -55,26 +55,25 @@ namespace mngr
 class ModelsManager final : public Manager
 {
 public:
-    ModelsManager() = default;
-    ~ModelsManager() override;
+    ModelsManager() noexcept = default;
+    ~ModelsManager() noexcept override;
 
-    bool init() override;
     void free() override;
 
     void stop_all_threads() override;
 
     void load_models();
-    inline void set_nodes_map(std::unordered_map<std::string, std::list<hid>>&& nodes_map) { m_model_to_nodes_map = std::move(nodes_map); }
+    void set_nodes_map(std::unordered_map<std::string, std::list<hid>>&& nodes_map) noexcept { m_model_to_nodes_map = std::move(nodes_map); }
 
-    const std::vector<std::unique_ptr<data::ModelItem>>& get_models() const;
-    inline bool has_service_components() const { return m_service_components_found; }
+    const std::vector<std::unique_ptr<data::ModelItem>>& get_models() const noexcept;
+    bool has_service_components() const noexcept { return m_service_components_found; }
 
     void calc_number_inside(const std::string& filter);
 
 private:
     void load_models_th();
     std::unique_ptr<data::ModelItem> add_file(std::string root_folder, std::filesystem::path file_path);
-    void parse_file_info(data::ModelItem* item, std::string info);
+    void parse_file_info(data::ModelItem* item, std::string&& info);
     void rebuild_models(const std::vector<std::unique_ptr<data::ModelItem>>& models);
     void sync_to_nodes();
     void sort_models();

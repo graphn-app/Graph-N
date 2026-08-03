@@ -7,29 +7,29 @@ namespace tools
 class dt final
 {
 public:
-    inline static void save_app_start_time() { m_start_time = from_current_date(); }
-    inline static const dt& get_app_start_time() { return m_start_time; }
+    static void save_app_start_time() noexcept { m_start_time = from_current_date(); }
+    static const dt& get_app_start_time() noexcept { return m_start_time; }
 
-	static dt from_current_date();
-    static dt from_time(time_t t);
+	static dt from_current_date() noexcept;
+    static dt from_time(time_t t) noexcept;
 
-    inline bool null() const { return time() == 0; }
+    bool null() const noexcept { return time() == 0; }
 
-    inline bool operator==(const dt& other) { return m_raw == other.m_raw; }
-    inline bool operator!=(const dt& other) { return m_raw != other.m_raw; }
+    bool operator==(const dt& other) noexcept { return m_raw == other.m_raw; }
+    bool operator!=(const dt& other) noexcept { return m_raw != other.m_raw; }
 
-    inline bool operator==(const time_t other) { return m_raw == other; }
-    inline bool operator!=(const time_t other) { return m_raw != other; }
+    bool operator==(const time_t other) noexcept { return m_raw == other; }
+    bool operator!=(const time_t other) noexcept { return m_raw != other; }
 
-    inline int32_t day() const { return m_day; }
-    inline int32_t month() const { return m_month; }
-    inline int32_t year() const { return m_year; }
-    inline int32_t hour() const { return m_hour; }
-    inline int32_t minute() const { return m_minute; }
-    inline int32_t second() const { return m_second; }
-    inline int32_t millisecond() const { return m_millisecond; }
+    int32_t day() const noexcept { return m_day; }
+    int32_t month() const noexcept { return m_month; }
+    int32_t year() const noexcept { return m_year; }
+    int32_t hour() const noexcept { return m_hour; }
+    int32_t minute() const noexcept { return m_minute; }
+    int32_t second() const noexcept { return m_second; }
+    int32_t millisecond() const noexcept { return m_millisecond; }
 
-    inline time_t time() const { return m_raw; }
+    time_t time() const noexcept { return m_raw; }
 
     std::string as_log_line() const;
 	std::string as_filename() const;
@@ -37,7 +37,7 @@ public:
     std::string as_full_date_readable(bool add_ms) const;
 
     /* length can be 1 (first char), 3 (first 3 chars) or more for full name */
-	const char* month_name(int32_t length = 5) const;
+	const char* month_name(int32_t length = 5) const noexcept;
 
 private:
 	int32_t m_day = 0;

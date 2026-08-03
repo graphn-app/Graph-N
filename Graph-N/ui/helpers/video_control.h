@@ -7,8 +7,8 @@ namespace global
 class VideoControl
 {
 public:
-    VideoControl() = default;
-    virtual ~VideoControl();
+    VideoControl() noexcept = default;
+    virtual ~VideoControl() noexcept;
 
     NO_COPY_MOVE(VideoControl);
 
@@ -17,7 +17,7 @@ public:
 
     virtual mngr::VideoInfo get_info(const std::string& filepath, std::optional<bool>& valid) = 0;
 
-    inline int32_t get_current() const { return m_video_id; }
+    int32_t get_current() const noexcept { return m_video_id; }
 
     virtual int32_t load(const std::string& filepath, uint32_t max_side_len) = 0;
     virtual void play(int32_t video_id) = 0;

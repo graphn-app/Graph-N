@@ -9,7 +9,6 @@ using hid = size_t;		// hash id for pin/node, based on node/pin name
 using iid = uint32_t;	// node/pin instance id, unique for each workflow
 using wid = uint32_t;   // workflow id - crc32 of uuid
 using byte_buff = std::vector<byte>;
-using primitive = std::variant<int64_t, uint64_t, double, std::string, bool, std::monostate>; // check serializer when adding new type
 
 using ImTextureIDPtr = std::shared_ptr<std::remove_pointer_t<ImTextureID>>;
 using ImageData = std::shared_ptr<byte>;
@@ -24,6 +23,7 @@ constexpr int32_t HTTP_RESP_OK           = 200;
 constexpr int32_t HTTP_RESP_TIMEOUT      = 408;
 constexpr int32_t HTTP_RESP_BAD_REQUEST  = 400;
 constexpr int32_t HTTP_RESP_NOT_FOUND    = 404;
+constexpr int32_t HTTP_RESP_NOT_ALLOWED  = 405;
 
 constexpr int32_t QUEUE_IMAGE_RECT = 512; // size
 constexpr int32_t QUEUE_AUDIO_RECT = 20; // size
@@ -33,6 +33,9 @@ constexpr int32_t QUEUE_TT_IMAGE_LIFETIME = 1; // seconds
 constexpr int32_t QUEUE_MAX_RUNS = 100; // count
 constexpr int32_t QUEUE_DEAD_TASK = 5 * 60; // seconds
 
+constexpr int32_t NODE_IMAGE_LIFETIME = 30; // seconds
+constexpr int32_t NODE_IMAGE_RECT = 512; // size
+
 constexpr const char* TEMP_LABEL_COMPLETED      = "Completed tasks";
 
 constexpr const char* DND_FROM_NODES_LIBRARY    = "F86C637FBBC3";
@@ -40,24 +43,6 @@ constexpr const char* DND_FROM_SYSTEM           = "770C64EA9B66";
 constexpr const char* DND_REORDER_QUEUE         = "79C13B4685DA";
 
 using HttpResponseCb = std::function<void(int32_t, std::string&&)>; // http code, data
-
-enum class ExcepCategory
-{
-    InconsistentMap,
-    InconsistentObjPtr,
-    Logic,
-
-    DirectX,
-    FileSystem,
-    SwitchEnum,
-    ComfyUI,
-    SQLite,
-    UI,
-    Main,
-    Logger,
-    Flow,
-    API
-};
 
 enum class DlgObj
 {
@@ -132,9 +117,75 @@ constexpr const char* DlgObjID[static_cast<size_t>(DlgObj::_count)] =
     "###84C3F1E0-4342-4A1B-9464-A011057E9FE1",                     // ModalMessage
 };
 
+enum class PinType
+{
+    INT,
+    FLOAT,
+    BOOLEAN,
+    COMBO,
+    STRING,
+    COLOR,	// TODO
+
+    ANY,	// TODO
+    IMAGE,	// TODO
+
+    MODEL, MASK, LATENT, AUDIO, FLOATS, CONDITIONING, CLIP, VAE, VIDEO, CONTROL_NET, IPADAPTER, INSIGHTFACE, NOISE, SIGMAS, SAMPLER,
+    CLIP_VISION, SEGS, PIPE_LINE, BUS, LORA_STACK, LORA_LIST, CONTROL_NET_STACK, CLIP_VISION_OUTPUT, BBOX, SEED,
+
+    IMAGE_LIST, IMAGE_BOUNDS, UNIQUE_ID, IMAGE_LIST_SIMPLE, TEXT_LIST, PROMPT_LIST, PLAYLIST, LOAD_3D, LIST,
+    LOAD_3D_ANIMATION, SIMPLE_PROMPT_LIST, TEXT_LIST_SIMPLE, DICT, API_KEY_COMFY_ORG, AUTH_TOKEN_COMFY_ORG, BATCH_COORDINATES, SEG_ELT, 
+    FLOAT_CURVE, GEMINI_INPUT_FILES, OPENAI_INPUT_FILES, OPENAI_CHAT_CONFIG, IPADAPTER_PARAMS, EMBEDS, CROP_DATA, LOSS_MAP, GUIDER, SCHEDULE,
+    LOAD3D_CAMERA, POSE_KEYPOINT, SEG_ELT_CROP_REGION, SEG_ELT_CONTROL_NET_WRAPPER, SCHEDULER_FUNC, REGIONAL_PROMPTS, WEIGHTS_STRATEGY,
+    CAMERA_CONTROL, DETAILER_HOOK, PK_HOOK, HOOKS, HOOK_KEYFRAMES, DETAILER_PIPE, RGTHREE_CONTEXT, UPSCALER_HOOK, GLIGEN, UPSCALE_STACK,
+    PHOTOMAKER, LUMA_CONCEPTS, LUMA_REF, PIXVERSE_TEMPLATE, 
+
+    _count,
+
+    CUSTOM,
+
+    _first_widget = INT,
+    _last_widget = COLOR,
+
+    _none = _count + 100,
+    _first = INT,
+    _last = CUSTOM
+};
+
+enum class PinShape
+{
+    Circle,
+    SemiCircle,
+    Square,
+    Triangle,
+    Diamond,
+    Hexagon
+};
+
+enum class ControlAfterGenerate
+{
+    _none,
+
+    CAGFixed = _none,
+    CAGIncrement,
+    CAGDecrement,
+    CAGRandomize,
+
+    _count,
+    _first = _none,
+    _last = _count - 1,
+    _zero = _none
+};
+
+constexpr const char* ControlAfterGenerateStr[size_t(ControlAfterGenerate::_count)] =
+{
+    "fixed", "increment", "decrement", "randomize"
+};
+
 enum class OptPane
 {
-    Application,
+    _none,
+
+    Application = _none,
     Connection,
     LocalServer,
     Interface,
@@ -148,7 +199,7 @@ enum class OptPane
 
 enum ModalDlgCtrl
 {
-    _none       = 0,
+    _btn_none   = 0,
 
     BtnOK       = 0x00001,
     BtnCancel   = 0x00002,
@@ -175,12 +226,14 @@ enum class DlgCode
 
 enum class WidgetInput
 {
-    Direct,     // int
-    Slider,     // int - def
-    Drag,       // int
-    Toggle,     // bool
-    Switcher,   // bool
-    Select,     // bool - def
+    _none,
+
+    Direct = _none,     // int
+    Slider,             // int - def
+    Drag,               // int
+    Toggle,             // bool
+    Switcher,           // bool
+    Select,             // bool - def
 
     _count,
     _first = Direct,
@@ -203,7 +256,9 @@ enum class MetricLimit
 
 enum class ActivityBarMode
 {
-    Disable,
+    _none,
+
+    Disable = _none,
     Smart,
     Left,
     Right,
@@ -268,6 +323,7 @@ enum class AppColor
     TabInactive,
     TabHovered,
     DummyNode,
+    NoteNode,
 
     Pin_Int,
     Pin_Float,
@@ -337,7 +393,9 @@ enum class ConnectState
 
 enum class NodeMode
 {
-    Always,
+    _none,
+
+    Always = _none,
     OnEvent,
     Mute,
     OnTrigger,
@@ -351,7 +409,7 @@ enum class NodeMode
 // check ui_hotkey_is_skipped
 enum class KeyTarget 
 {
-    None,
+    _none,
 
     App_First,
     App_Import,
@@ -385,7 +443,7 @@ enum class KeyTarget
     PanelOpen_Nodes,
     PanelOpen_Models,
     PanelOpen_Projects,
-    PanelOpen_Templates,
+    PanelOpen_Templates, //skip
     PanelOpen_Logs,
     PanelOpen_Stats,
     PanelOpen_Queue,
@@ -459,32 +517,6 @@ enum class KeyTarget
     _first = App_First,
     _last = Node_Last
 };
-
-namespace comfyui_http
-{
-constexpr const char* object_info       = "/object_info";           // get
-constexpr const char* embeddings        = "/embeddings";            // get
-constexpr const char* extensions        = "/extensions";            // get
-constexpr const char* system_stats      = "/system_stats";          // get
-constexpr const char* view_             = "/view?filename={}&subfolder={}&type={}";        // get
-constexpr const char* prompt            = "/prompt";                // get, post
-constexpr const char* queue             = "/queue";                 // get, post
-constexpr const char* interrupt         = "/interrupt";             // post
-constexpr const char* free              = "/free";                  // post
-constexpr const char* upload_image      = "/upload/image";          // post
-constexpr const char* upload_mask       = "/upload/mask";           // post
-constexpr const char* models            = "/api/experiment/models"; // get
-constexpr const char* model_meta        = "/api/view_metadata";     // get
-constexpr const char* wfs_all_names     = "/api/userdata?dir=workflows&recurse=true&split=false&full_info=true";         // get
-constexpr const char* wf_download_      = "/api/userdata/workflows%2F{}";                                                // get
-constexpr const char* wf_upload_        = "/api/userdata/workflows%2F{}?overwrite=true&full_info=true";                  // post
-constexpr const char* history_          = "/api/history?max_items={}";                                                   // get
-}
-
-namespace comfyui_ws
-{
-constexpr const char* root              = "/ws?clientId={}";
-}
 
 namespace w
 {

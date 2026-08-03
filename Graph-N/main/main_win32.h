@@ -17,13 +17,13 @@ class MainRoutine_Win32 final : public global::MainRoutine
     friend class VideoControl_Win32;
 
 public:
-    MainRoutine_Win32();
-    ~MainRoutine_Win32() override;
+    MainRoutine_Win32() noexcept;
+    ~MainRoutine_Win32() noexcept override;
 
-    inline double get_frame_render_time() const override { return m_frame_render_time; }
-    inline HWND get_hwnd() const { return m_hwnd; }
-    inline void set_user_msg_callback(UserMsgCallback callback) { m_user_msg_callback = callback; }
-    bool get_ini_config_exists() const override { return m_ini_config_exists; }
+    double get_frame_render_time() const noexcept override { return m_frame_render_time; }
+    HWND get_hwnd() const noexcept { return m_hwnd; }
+    void set_user_msg_callback(UserMsgCallback callback) { m_user_msg_callback = callback; }
+    bool get_ini_config_exists() const noexcept override { return m_ini_config_exists; }
 
 private:
     /*
@@ -33,26 +33,25 @@ private:
     int32_t run(flow_callback& callback, std::atomic_bool& request_focus) override;
     void free() override;
 
-    void wnd_restore() override;
-    void wnd_minimize() override;
-    void wnd_maximize() override;
-    void wnd_show() override;
-    void wnd_hide() override;
-    void wnd_toggle_fullscreen() override;
+    void wnd_restore() noexcept override;
+    void wnd_minimize() noexcept override;
+    void wnd_maximize() noexcept override;
+    void wnd_show() noexcept override;
+    void wnd_hide() noexcept override;
+    void wnd_toggle_fullscreen() noexcept override;
 
 private:
-    ID3D11Device* get_device() const { return m_d3d_device.get(); }
+    ID3D11Device* get_device() const noexcept { return m_d3d_device.get(); }
 
     bool render_frame(bool done);
     bool create_device_d3d(HWND hWnd);
-    void cleanup_device_d3d();
+    void cleanup_device_d3d() noexcept;
     bool create_render_target();
-    void cleanup_render_target();
-    void init_imgui_diloag_texture();
+    void cleanup_render_target() noexcept;
 
     static LRESULT WINAPI wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-    void wake_up();
+    void wake_up() noexcept;
 
 private:
     UserMsgCallback m_user_msg_callback = nullptr;
@@ -81,7 +80,7 @@ private:
 
     static int64_t m_seconds_elapsed;
 
-    WINDOWPLACEMENT m_fullscreen_pl;
+    WINDOWPLACEMENT m_fullscreen_pl = {};
     bool m_is_rendering = false;
     UINT m_pending_resize_w = 0;
     UINT m_pending_resize_h = 0;

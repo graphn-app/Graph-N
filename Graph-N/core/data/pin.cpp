@@ -2,6 +2,7 @@
 #include "core/data/pin.h"
 #include "core/data/node.h"
 #include "core/managers/settings_manager.h"
+#include "imgui_widget_limits.h"
 
 namespace data
 {
@@ -10,7 +11,7 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
 {
     { "INT", PinType::INT },				            { "FLOAT", PinType::FLOAT },				        { "BOOLEAN", PinType::BOOLEAN },
     { "COMBO", PinType::COMBO },			            { "STRING", PinType::STRING },				        { "*", PinType::ANY },
-    { "COLOR", PinType::COLOR },			            { "NUMBER", PinType::NUMBER },				        { "INSIGHTFACE", PinType::INSIGHTFACE },
+    { "COLOR", PinType::COLOR },			            { "NUMBER", PinType::FLOAT },				        { "INSIGHTFACE", PinType::INSIGHTFACE },
     { "IMAGE", PinType::IMAGE },			            { "MODEL", PinType::MODEL },				        { "MASK", PinType::MASK },
     { "LATENT", PinType::LATENT },			            { "VAE", PinType::VAE },					        { "CONDITIONING", PinType::CONDITIONING },
     { "CLIP", PinType::CLIP },				            { "NOISE", PinType::NOISE },				        { "CONTROL_NET", PinType::CONTROL_NET },
@@ -38,50 +39,137 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
     { "UPSCALE_STACK", PinType::UPSCALE_STACK },        { "GLIGEN", PinType::GLIGEN },		                { "OPENAI_CHAT_CONFIG", PinType::OPENAI_CHAT_CONFIG }
 };
 
-Pin::Pin(const Node* node, const std::string& pin_name)
-    : base::HashID(node->node_class + "_IN_" + pin_name)
+Pin::Pin(Node* node, const std::string& pin_name, bool is_required, bool is_optional, bool is_hidden)
+    : base::HashID(node->node_class + "_IN_" + pin_name + prefix_from_visibility(is_required, is_optional, is_hidden))
     , parent_node(node)
+    , input(true)
+    , output(false)
+    , required(is_required)
+    , optional(is_optional)
+    , hidden(is_hidden)
 {
+    node->has_input = true;
 }
 
-Pin::Pin(const Node* node, int64_t pin_index)
+Pin::Pin(Node* node, int32_t pin_index)
     : base::HashID(node->node_class + "_OUT_" + std::to_string(pin_index))
     , parent_node(node)
+    , input(false)
+    , output(true)
     , out_index(pin_index)
 {
+    node->has_output = true;
 }
 
-Pin::~Pin() = default;
+Pin::~Pin() noexcept = default;
 
-hid Pin::make_hash(const Node* node, const std::string& pin_name, int64_t pin_index)
+hid Pin::make_hash(const Node* node, const std::string& pin_name, int32_t pin_index)
 {
     if (-1 == pin_index)
         return base::HashID::make_hash(node->node_class + "_IN_" + pin_name);
     return base::HashID::make_hash(node->node_class + "_OUT_" + std::to_string(pin_index));
 }
 
-bool Pin::is_widget() const
+bool Pin::is_primitive_type(PinType type, bool incl_colors /*= false*/) noexcept
 {
-    return !output && !force_input &&
-        cast::to_i64(def_state.type) >= cast::to_i64(PinType::_first_widget) && cast::to_i64(def_state.type) <= cast::to_i64(PinType::_last_widget);
+    if (incl_colors && PinType::COLOR == type)
+        return true;
+    return
+        PinType::INT == type || PinType::FLOAT == type ||
+        PinType::COMBO == type || PinType::STRING == type || PinType::BOOLEAN == type
+    ;
+}
+
+void Pin::copy_int(Pin* dest) const
+{
+    LogRAssert(dest, "Zero ptr", );
+    dest->def = def;
+    dest->min = min;
+    dest->max = max;
+    dest->step = step;
+    dest->w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
+    dest->tooltip = tooltip;
+    dest->is_unsigned = is_unsigned;
+    def_state.copy_to(dest->def_state);
+    dest->finalize_int();
+}
+
+void Pin::copy_float(Pin* dest) const
+{
+    LogRAssert(dest, "Zero ptr", );
+    dest->def = def;
+    dest->min = min;
+    dest->max = max;
+    dest->step = step;
+    dest->w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
+    dest->tooltip = tooltip;
+    dest->round = round;
+    dest->do_round = do_round;
+    dest->precision = precision;
+    dest->precision_named = precision_named;
+    dest->finalize_float();
+}
+
+void Pin::copy_string(Pin* dest) const
+{
+    LogRAssert(dest, "Zero ptr", );
+    dest->def = def;
+    dest->w_value = 300.0f;
+    dest->tooltip = tooltip;
+    dest->multiline = multiline;
+    dest->placeholder = placeholder;
+    def_state.copy_to(dest->def_state);
+}
+
+void Pin::copy_bool(Pin* dest) const
+{
+    LogRAssert(dest, "Zero ptr", );
+    dest->def = def;
+    dest->min = min;
+    dest->max = max;
+    dest->step = step;
+    dest->w_value = 100.0f;
+    dest->tooltip = tooltip;
+    dest->label_on = label_on;
+    dest->label_on_named = label_on_named;
+    dest->label_off = label_off;
+    dest->label_off_named = label_off_named;
+    dest->finalize_bool();
+}
+
+void Pin::copy_combo(Pin* dest) const
+{
+    LogRAssert(dest, "Zero ptr", );
+    dest->def = def;
+    dest->min = min;
+    dest->max = max;
+    dest->step = step;
+    dest->w_value = 150.0f;
+    dest->tooltip = tooltip;
+    dest->multiselect = multiselect;
+    dest->combo_items = combo_items;
+    dest->finalize_combo();
+}
+
+bool Pin::is_widget(const PinState& state) const noexcept
+{
+    return input_can_be_widget && !output && !force_input &&
+        cast::to_i64(state.type) >= cast::to_i64(PinType::_first_widget) && cast::to_i64(state.type) <= cast::to_i64(PinType::_last_widget);
+}
+
+PinType Pin::type_str_to_type(const std::string& type_str)
+{
+    auto map_it = pin_type_map.find(type_str);
+    if (map_it != pin_type_map.end())
+        return map_it->second;
+    return PinType::CUSTOM;
 }
 
 void Pin::initialize(const std::string& type_as_string)
 {
     def_state.type_str = type_as_string;
-    def_state.type = PinType::_none;
-    auto map_it = pin_type_map.find(type_as_string);
-    if (map_it != pin_type_map.end())
-    {
-        def_state.type = map_it->second;
-        type_any = (PinType::ANY == def_state.type);
-    }
-    else
-    {
-        def_state.type = PinType::CUSTOM;
-    }
-
-    def_state.type_hash = get_hash(def_state.type_str);
+    def_state.type = type_str_to_type(type_as_string);
+    type_any = (PinType::ANY == def_state.type);
 
     init_defaults();
     generate_pin_color();
@@ -89,145 +177,51 @@ void Pin::initialize(const std::string& type_as_string)
 
 void Pin::finalize()
 {
-    if (input == output)
-    {
-        LogInternalLogic("Pin can't be input and output at the same time");
-    }
+    LogAssert(input != output, "Pin can't be input and output at the same time");
+    LogAssert(!(output && advanced), "Output pin can't be advanced");
 
-    if (output && advanced)
-    {
-        LogInvalidJson("Output pin can't be advanced");
-        LogInternalLogic("Output pin can't be advanced");
-    }
-
-    else if (input)
+    if (input)
     {
         if (display_as_color && display_as_slider)
         {
             display_as_color = display_as_slider = false;
             LogInvalidJson("Both display_as_color and display_as_slider can't be set");
-            LogInternalLogic("Both display_as_color and display_as_slider can't be set");
+            LogErrorS("Both display_as_color and display_as_slider can't be set");
         }
         display_as_number = !(display_as_color || display_as_slider);
 
         if (!required && !optional && !hidden)
         {
             LogInvalidJson("Unknown pin visibility");
-            LogInternalLogic("Unknown pin visibility");
+            LogErrorS("Unknown pin visibility");
         }
 
         if (PinType::FLOAT == def_state.type)
-        {
-            if (!std::holds_alternative<double>(step))
-            {
-                if (round.has_value())
-                    step = round.value();
-                else
-                    step = double(0.01);
-            }
-
-            if (!do_round.has_value())
-            {
-                do_round = true;
-            }
-
-            if (!round.has_value())
-            {
-                if (do_round.value())
-                    round = 1.0;
-                else
-                    round = 0.01;
-            }
-
-            precision_to_string();
-        }
-
-        else if (PinType::INT == def_state.type || PinType::NUMBER == def_state.type)
-        {
-            if (!std::holds_alternative<int64_t>(step) || 0 == get_int(step))
-                step = int64_t(1);
-
-            precision = fmt::format(FMT_STRING("%lld"));
-            precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
-
-            const bool seed = (tools::str::to_lower_ascii(def_state.name).find("seed") != std::string::npos);
-            cag_require = seed;
-
-            if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int
-            {
-                is_unsigned = true;
-                precision = fmt::format(FMT_STRING("%llu"));
-                precision_named = fmt::format(FMT_STRING("{}: %llu"), def_state.name);
-                step = uint64_t(get_int(step));
-                def = uint64_t(get_int(def));
-                min = uint64_t(get_int(min));
-                max = uint64_t(ULLONG_MAX);
-            }
-        }
-
+            finalize_float();
+        else if (PinType::INT == def_state.type)
+            finalize_int();
         else if (PinType::BOOLEAN == def_state.type)
-        {
-            label_on_named = fmt::format(FMT_STRING("{}: {}"), def_state.name, (label_on.empty() ? "on" : label_on));
-            label_off_named = fmt::format(FMT_STRING("{}: {}"), def_state.name, (label_off.empty() ? "off" : label_off));
-        }
-
-        else if (PinType::COLOR == def_state.type && std::holds_alternative<std::string>(def))
-        {
-            is_unsigned = true;
-            def = color_to_val(*std::get_if<std::string>(&def), alpha_enabled);
-        }
-
+            finalize_bool();
+        else if (PinType::COLOR == def_state.type && def.is_string())
+            finalize_color();
         else if (PinType::COMBO == def_state.type)
-        {
-            if (cag_pin)
-            {
-                for (size_t i = 0; i < sizeof(ControlAfterGenerateStr) / sizeof(ControlAfterGenerateStr[0]); i++)
-                {
-                    list.push_back(std::string(ControlAfterGenerateStr[i]));
-                }
-                def = cast::to_i64(CAGRandomize);
-            }
-
-            combo_items_ptr.resize(list.size());
-            combo_items_str.resize(list.size());
-            def_state.value = int64_t(0);
-
-            for (size_t idx = 0; idx < list.size(); idx++)
-            {
-                auto& item = list[idx];
-                if (item == def)
-                    def_state.value = cast::to_i64(idx);
-
-                if (std::holds_alternative<std::string>(item))
-                {
-                    std::string* val = get_string(item);
-                    combo_items_ptr[idx] = val->c_str();
-                }
-                else
-                {
-                    combo_items_str[idx] = any_to_string(item);
-                    combo_items_ptr[idx] = combo_items_str[idx].c_str();
-                }
-            }
-            def = def_state.value;
-        }
+            finalize_combo();
     }
 
-    if (!is_widget() && advanced)
-    {
-        LogInvalidJson("Non-widget pin can't be advanced");
-        //LogInternalLogic("Non-widget pin can't be advanced");
-    }
+    //if (!is_widget(def_state) && advanced)
+    //{
+    //    LogInvalidJson("Non-widget pin can't be advanced");
+    //    LogErrorS("Non-widget pin can't be advanced");
+    //}
 
     def_state.value = def;
     def_state.w_name = ImGui::CalcTextSize(def_state.name.c_str()).x;
 
-    if (input && is_widget())
+    if (input && is_widget(def_state))
     {
         switch (def_state.type)
         {
         case PinType::INT:
-        case PinType::NUMBER:
         case PinType::FLOAT:
             w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
             break;
@@ -240,7 +234,7 @@ void Pin::finalize()
             break;
         case PinType::COMBO:
             w_value = 150.0f;
-            //for (auto& item : list)
+            //for (auto& item : combo_items)
             //{
             //    const auto w = ImGui::CalcTextSize(any_to_string(item).c_str()).x;
             //    w_value = std::max(w_value, w + 30);
@@ -256,50 +250,166 @@ void Pin::finalize()
     }
 
     // load options
-    auto opt_adv = g::pOptsManager->pin_advanced_load(get_id());
+    auto opt_adv = g::pOptsManager->pin_advanced_load(get_hash());
     if (opt_adv.has_value())
         advanced = opt_adv.value();
 
     clamp_values();
 }
 
-template <typename T>
-struct Clamp
+void Pin::finalize_int()
 {
-    static void clamp(Pin& pin, primitive& p, T min, T max)
+    const bool seed = (tools::str::to_lower_ascii(def_state.name).find("seed") != std::string::npos);
+    cag_require = seed;
+
+    if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int
     {
-        const auto old_val = std::get_if<T>(&p);
-        const auto new_val = std::clamp(*old_val, min, max);
-        if (*old_val != new_val)
+        is_unsigned = true;
+        precision = fmt::format(FMT_STRING("%llu"));
+        precision_named = fmt::format(FMT_STRING("{}: %llu"), def_state.name);
+        step = uint64_t(step.get_int());
+        if (0 == step.get_uint()) step = uint64_t(1);
+        def = uint64_t(def.get_int());
+        min = uint64_t(0);
+        max = uint64_t(IM_U64_MAX_WIDGET);
+    }
+    else
+    {
+        is_unsigned = false;
+        precision = fmt::format(FMT_STRING("%lld"));
+        precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
+        if (0 == step.get_int()) step = int64_t(1);
+        if (min.get_int() < IM_S64_MIN_WIDGET) min = int64_t(IM_S64_MIN_WIDGET);
+        if (max.get_int() > IM_S64_MAX_WIDGET) max = int64_t(IM_S64_MAX_WIDGET);
+    }
+}
+
+void Pin::finalize_float()
+{
+    if (!step.is_float())
+    {
+        if (round.has_value())
+            step = round.value();
+        else
+            step = double(0.01);
+    }
+    if (step.get_float() == 0)
+        step = double(0.01);
+
+    if (!do_round.has_value())
+    {
+        do_round = true;
+    }
+
+    if (!round.has_value())
+    {
+        if (do_round.value())
+            round = 1.0;
+        else
+            round = 0.01;
+    }
+
+    precision_to_string();
+}
+
+void Pin::finalize_combo()
+{
+    if (cag_pin)
+    {
+        combo_items.clear();
+        for (size_t i = 0; i < sizeof(ControlAfterGenerateStr) / sizeof(ControlAfterGenerateStr[0]); i++)
         {
-            LogWarnS("Pin '" << pin.def_state.name << ", value clump (" << old_val << ") != (" << new_val << ")");
+            combo_items.push_back(std::string(ControlAfterGenerateStr[i]));
         }
-        p = new_val;
     }
 
-    static void clamp(Pin& p, T min, T max)
+    combo_items_ptr.clear();
+    combo_items_str.clear();
+
+    combo_items_ptr.resize(combo_items.size());
+    combo_items_str.resize(combo_items.size());
+    def_state.value = int64_t(0);
+
+    min = int64_t(0);
+    max = combo_items.empty() ? int64_t(0) : cast::to_i64(combo_items.size() - 1);
+
+    for (size_t idx = 0; idx < combo_items.size(); idx++)
     {
-        clamp(p, p.def_state.value, min, max);
-        clamp(p, p.min, min, max);
-        clamp(p, p.max, min, max);
-        clamp(p, p.def, min, max);
-        clamp(p, p.step, min, max);
-    }
-};
+        auto& item = combo_items[idx];
+        if (item == def)
+            def_state.value = cast::to_i64(idx);
 
-void Pin::clamp_values()
+        if (item.is_string())
+        {
+            const std::string& val = item.get_string();
+            combo_items_ptr[idx] = val.c_str();
+        }
+        else
+        {
+            combo_items_str[idx] = any_to_string(item);
+            combo_items_ptr[idx] = combo_items_str[idx].c_str();
+        }
+    }
+
+    if (cag_pin)
+        def = cast::to_i64(ControlAfterGenerate::CAGRandomize);
+    else
+        def = def_state.value;
+}
+
+void Pin::finalize_bool()
+{
+    label_on_named = fmt::format(FMT_STRING("{}: {}"), def_state.name, (label_on.empty() ? "on" : label_on));
+    label_off_named = fmt::format(FMT_STRING("{}: {}"), def_state.name, (label_off.empty() ? "off" : label_off));
+}
+
+void Pin::finalize_color() noexcept
+{
+    is_unsigned = true;
+    def = color_to_val(def.get_string(), alpha_enabled);
+}
+
+namespace {
+template <typename T>
+void clamp_primitive(const Pin& pin, Primitive& p, T min_val, T max_val) noexcept
+{
+    const T* current_ptr = std::get_if<T>(&p.value());
+    if (!current_ptr)
+        return;
+
+    const T old_val = *current_ptr;
+
+    if (p.clamp<T>(min_val, max_val))
+    {
+        // Calculate new_val directly instead of re-fetching from variant
+        const T new_val = std::clamp(old_val, min_val, max_val);
+        LogErrorS("Pin '" << pin.def_state.name << "', value clamped (" << old_val << ") != (" << new_val << ")");
+    }
+}
+
+template <typename T>
+void clamp_primitive(Pin& p, T min, T max) noexcept
+{
+    clamp_primitive<T>(p, p.def_state.value, min, max);
+    clamp_primitive<T>(p, p.min, min, max);
+    clamp_primitive<T>(p, p.max, min, max);
+    clamp_primitive<T>(p, p.def, min, max);
+    clamp_primitive<T>(p, p.step, min, max);
+}
+} // namespace
+
+void Pin::clamp_values() noexcept
 {
     switch (def_state.type)
     {
     case PinType::INT:
-    case PinType::NUMBER:
         if (is_unsigned)
-            Clamp<uint64_t>::clamp(*this, 0, ULLONG_MAX / 2);
+            clamp_primitive<uint64_t>(*this, 0, IM_U64_MAX_WIDGET);
         else
-            Clamp<int64_t>::clamp(*this, LLONG_MIN / 2, LLONG_MAX / 2);
+            clamp_primitive<int64_t>(*this, IM_S64_MIN_WIDGET, IM_S64_MAX_WIDGET);
         break;
     case PinType::FLOAT:
-        Clamp<double>::clamp(*this, -DBL_MAX / 2.0, DBL_MAX / 2.0);
+        clamp_primitive<double>(*this, IM_DBL_MIN_WIDGET, IM_DBL_MAX_WIDGET);
         break;
     }
 }
@@ -310,16 +420,16 @@ void Pin::init_defaults()
     {
         def_state.value = double(0.0f);
         def = double(0.0f);
-        min = double(FLT_MIN);
-        max = double(FLT_MAX);
+        min = double(IM_DBL_MIN_WIDGET);
+        max = double(IM_DBL_MAX_WIDGET);
         step = double(0.0);
     }
-    else if (PinType::INT == def_state.type || PinType::NUMBER == def_state.type)
+    else if (PinType::INT == def_state.type)
     {
         def_state.value = int64_t(0);
         def = int64_t(0);
-        min = int64_t(LLONG_MIN);
-        max = int64_t(LLONG_MAX);
+        min = int64_t(IM_S64_MIN_WIDGET);
+        max = int64_t(IM_S64_MAX_WIDGET);
         step = int64_t(0);
     }
     else if (PinType::COLOR == def_state.type)
@@ -358,7 +468,7 @@ void Pin::precision_to_string()
     int32_t decimals = 2;
     if (round.value() > 0.0 && round.value() < 1.0)
     {
-        decimals = static_cast<int32_t>(std::ceil(-std::log10(round.value())));
+        decimals = cast::to_i32(std::ceil(-std::log10(round.value())));
         if (decimals > 6)
             decimals = 6;
     }
@@ -367,12 +477,9 @@ void Pin::precision_to_string()
     precision_named = fmt::format(FMT_STRING("{}: %.{}f"), def_state.name, decimals);
 }
 
-void Pin::generate_pin_color()
+void Pin::generate_pin_color() noexcept
 {
-    if (0 == def_state.type_hash)
-    {
-        LogInternalLogic("Hash wasn't generated. id=" << get_id());
-    }
+    LogAssert(def_state.type != PinType::_none, "Pin type wasn't set. h:" << get_hash());
 
     switch (def_state.type)
     {
@@ -385,7 +492,6 @@ void Pin::generate_pin_color()
     case PinType::ANY:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Any);                 return;
     case PinType::COMBO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Combo);               return;
     case PinType::COLOR:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Color);               return;
-    case PinType::NUMBER:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Number);              return;
 
     case PinType::FLOATS:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Floats);              return;
     case PinType::SEED:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Seed);                return;
@@ -421,17 +527,17 @@ void Pin::generate_pin_color()
     }
 
     // golden ratio
-    double hue = (def_state.type_hash * 0.618033988749895);
+    double hue = cast::to_u64(tools::str::hash_string(def_state.type_str)) * 0.618033988749895;
     hue = std::fmod(hue, 1.0);
 
     // fix hue (S) и brightness (V)
-    const double s = 0.75f;
-    const double v = 0.95f;
+    constexpr double s = 0.75f;
+    constexpr double v = 0.95f;
 
     // HSV -> RGB
     const int32_t h_i = cast::to_i32(hue * 6);
     const double f = hue * 6 - h_i;
-    const double p = v * (1 - s);
+    constexpr double p = v * (1 - s);
     const double q = v * (1 - f * s);
     const double t = v * (1 - (1 - f) * s);
 
@@ -451,7 +557,7 @@ void Pin::generate_pin_color()
     def_state.pin_color = IM_COL32(cast::to_u32(r * 255), cast::to_u32(g * 255), cast::to_u32(b * 255), 255);
 }
 
-std::string Pin::any_to_string(const primitive& item)
+std::string Pin::any_to_string(const Primitive& item)
 {
     std::string ret;
     std::visit([&ret](const auto& v)
@@ -460,7 +566,7 @@ std::string Pin::any_to_string(const primitive& item)
 
         if constexpr (std::is_same_v<T, std::monostate>)
         {
-            // nothing
+            // do nothing
         }
         else if constexpr (std::is_same_v<T, int64_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, double>)
         {
@@ -478,18 +584,18 @@ std::string Pin::any_to_string(const primitive& item)
         {
             static_assert(sizeof(T) == 0, "Undefined primitive type in visitor");
         }
-    }, item);
+    }, item.value());
 
     return ret;
 }
 
-uint64_t Pin::colors_to_int(const ImVec4& colors)
+uint64_t Pin::colors_to_int(const ImVec4& colors) noexcept
 {
-    ImColor clr(colors);
+    const ImColor clr(colors);
     return ImU32(clr);
 }
 
-uint64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string)
+uint64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string) noexcept
 {
     if (clr.empty())
         return IM_COL32_WHITE;
@@ -510,32 +616,41 @@ uint64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string)
         return IM_COL32(r, g, b, a);
     }
 
-    static const std::unordered_map<std::string, uint32_t> named_colors =
+    struct ColorEntry final
     {
-        { "white",   IM_COL32(255, 255, 255, 255)},
-        { "black",   IM_COL32(0,   0,   0,   255)},
-        { "red",     IM_COL32(255, 0,   0,   255)},
-        { "green",   IM_COL32(0,   255, 0,   255)},
-        { "blue",    IM_COL32(0,   0,   255, 255)},
-        { "yellow",  IM_COL32(255, 255, 0,   255)},
-        { "cyan",    IM_COL32(0,   255, 255, 255)},
-        { "magenta", IM_COL32(255, 0,   255, 255)},
-        { "gray",    IM_COL32(128, 128, 128, 255)},
-        { "grey",    IM_COL32(128, 128, 128, 255)},
-        { "orange",  IM_COL32(255, 165, 0,   255)},
-        { "purple",  IM_COL32(128, 0,   128, 255)}
+        std::string_view name;
+        ImU32 value = 0;
+        constexpr bool operator<(std::string_view o) const { return name < o; }
     };
 
-    const auto it = named_colors.find(clr);
-    if (it != named_colors.end())
-        return it->second;
+    constexpr std::array<ColorEntry, 12> named_colors =
+    {{
+        { "white",   IM_COL32(255, 255, 255, 255) },
+        { "black",   IM_COL32(0,   0,   0,   255) },
+        { "red",     IM_COL32(255, 0,   0,   255) },
+        { "green",   IM_COL32(0,   255, 0,   255) },
+        { "blue",    IM_COL32(0,   0,   255, 255) },
+        { "yellow",  IM_COL32(255, 255, 0,   255) },
+        { "cyan",    IM_COL32(0,   255, 255, 255) },
+        { "magenta", IM_COL32(255, 0,   255, 255) },
+        { "gray",    IM_COL32(128, 128, 128, 255) },
+        { "grey",    IM_COL32(128, 128, 128, 255) },
+        { "orange",  IM_COL32(255, 165, 0,   255) },
+        { "purple",  IM_COL32(128, 0,   128, 255) }
+    }};
 
+    auto it = std::lower_bound(named_colors.begin(), named_colors.end(), clr);
+    if (it != named_colors.end() && it->name == clr)
+        return it->value;
+    
     // if we didn't get it - return bright magenta
     return IM_COL32(255, 0, 255, 255);
 }
 
-PinShape Pin::get_shape(PinType type)
+PinShape Pin::get_shape(PinType type) noexcept
 {
+    LogAssertS(type != PinType::_none, "Undefined pin type");
+
     switch (type)
     {
         // --- SPECIAL ---
@@ -548,7 +663,6 @@ PinShape Pin::get_shape(PinType type)
     case PinType::FLOATS:
     case PinType::BOOLEAN:
     case PinType::STRING:
-    case PinType::NUMBER:
     case PinType::SEED:
     case PinType::UNIQUE_ID:
     case PinType::COLOR:
@@ -631,9 +745,12 @@ PinShape Pin::get_shape(PinType type)
     return PinShape::Circle;
 }
 
-uint64_t Pin::get_hash(std::string str)
+const char* Pin::prefix_from_visibility(bool is_required, bool is_optional, bool is_hidden) const noexcept
 {
-    return cast::to_u64(tools::str::hash_string(str));
+    if (is_optional) return "_o_";
+    if (is_hidden) return "_h_";
+    LogAssert(is_required, "Undefined pin visibility");
+    return "";
 }
 
 } // namespace data

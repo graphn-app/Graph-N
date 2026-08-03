@@ -19,7 +19,7 @@ using Microsoft::WRL::ComPtr;
 
 int64_t MainRoutine_Win32::m_seconds_elapsed = 0;
 
-MainRoutine_Win32::MainRoutine_Win32()
+MainRoutine_Win32::MainRoutine_Win32() noexcept
     : m_d3d_device(nullptr, [](ID3D11Device* p) { if (p) p->Release(); })
     , m_d3d_device_context(nullptr, [](ID3D11DeviceContext* p) { if (p) p->Release(); })
     , m_swap_chain(nullptr, [](IDXGISwapChain* p) { if (p) p->Release(); })
@@ -28,49 +28,41 @@ MainRoutine_Win32::MainRoutine_Win32()
     , m_clear_color(0.45f, 0.55f, 0.60f, 1.00f)
 {}
 
-MainRoutine_Win32::~MainRoutine_Win32() = default;
+MainRoutine_Win32::~MainRoutine_Win32() noexcept = default;
 
 bool MainRoutine_Win32::init()
 {
     tools::set_exception_translator();
 
     HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE);
-    if (FAILED(hr))
-    {
-        LogError(ExcepCategory::API, "Failed to initialize COM, err: " << LogHRES(hr));
-        return false;
-    }
-    hr = CoInitializeSecurity(nullptr, -1, nullptr, nullptr, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE, nullptr);
-    if (FAILED(hr))
-    {
-        LogError(ExcepCategory::API, "Failed to initialize security, err: " << LogHRES(hr));
-        return false;
-    }
+    LogCriticalIf(SUCCEEDED(hr), "Failed to initialize COM, err: " << LogHRES(hr));
 
-    m_wc = { sizeof(WNDCLASSEXW), CS_CLASSDC, MainRoutine_Win32::wnd_proc, 0L, 0L,
-        ::GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, APP_CAPTION_W, nullptr };
-    m_wc.hbrBackground = NULL;
+    hr = CoInitializeSecurity(nullptr, -1, nullptr, nullptr, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE, nullptr);
+    LogCriticalIf(SUCCEEDED(hr), "Failed to initialize COM security, err: " << LogHRES(hr));
+
+    m_wc = { sizeof(WNDCLASSEXW), CS_CLASSDC, MainRoutine_Win32::wnd_proc, 0L, 0L, ::GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, APP_CAPTION_W, nullptr };
+    m_wc.hbrBackground = nullptr;
     ::RegisterClassExW(&m_wc);
 
     const int32_t screen_w = ::GetSystemMetrics(SM_CXSCREEN);
     const int32_t screen_y = ::GetSystemMetrics(SM_CYSCREEN);
 
-    const auto initial_width = 1024;
-    const auto initial_height = 768;
+    constexpr auto initial_width = 1024;
+    constexpr auto initial_height = 768;
     const auto initial_left = screen_w / 2 - initial_width / 2;
     const auto initial_top = screen_y / 2 - initial_height / 2;
 
     m_hwnd = ::CreateWindowW(m_wc.lpszClassName, APP_CAPTION_W, WS_OVERLAPPEDWINDOW | WS_MAXIMIZE,
         initial_left, initial_top, initial_width, initial_height, nullptr, nullptr,
         m_wc.hInstance, nullptr);
+    LogCriticalIf(m_hwnd, "Failed to create main window, err " << LogApiERR);
 
     // Initialize Direct3D
     if (!create_device_d3d(m_hwnd))
-    {
-        LogError(ExcepCategory::DirectX, "Create_device_d3d failed with err: " << LogERR);
+    {        
         cleanup_device_d3d();
         ::UnregisterClassW(m_wc.lpszClassName, m_wc.hInstance);
-        return false;
+        LogCritical("Create_device_d3d failed with err: " << LogApiERR);
     }
 
     m_hicon.reset((HICON)::LoadImage(m_wc.hInstance, MAKEINTRESOURCE(101), IMAGE_ICON, 32, 32, LR_LOADTRANSPARENT));
@@ -101,9 +93,6 @@ bool MainRoutine_Win32::init()
     ImGui_ImplWin32_Init(m_hwnd);
     ImGui_ImplDX11_Init(m_d3d_device.get(), m_d3d_device_context.get());
 
-    // imguid dialogs
-    init_imgui_diloag_texture();
-
     // font and icons
     prepare_fonts();
 
@@ -121,7 +110,7 @@ int32_t MainRoutine_Win32::run(flow_callback& callback, std::atomic_bool& reques
     while (!done)
     {
         // wait for evert or timer, but not longer than 20ms
-        ::MsgWaitForMultipleObjectsEx(0, NULL, 20, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+        ::MsgWaitForMultipleObjectsEx(0, nullptr, 20, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
 
         // Poll and handle messages (inputs, window resize, etc.)
         // See the wnd_proc() function below for our to dispatch events to the Win32 backend.
@@ -149,6 +138,7 @@ int32_t MainRoutine_Win32::run(flow_callback& callback, std::atomic_bool& reques
     m_callback = nullptr;
     return 0;
 }
+
 bool MainRoutine_Win32::render_frame(bool done)
 {
     // apply pending resize buffers before starting a new frame
@@ -162,10 +152,9 @@ bool MainRoutine_Win32::render_frame(bool done)
     }
 
     if (!m_main_render_target_view)
-    {
-        LogError(ExcepCategory::DirectX, "Render target is null");
+    {        
         ::PostQuitMessage(1);
-        return false;
+        LogCritical("Render target is null");
     }
 
     m_is_rendering = true; // lock re-entrancy
@@ -202,12 +191,11 @@ bool MainRoutine_Win32::render_frame(bool done)
     const HRESULT hr = m_swap_chain->Present(vsync, 0); 
     if (FAILED(hr))
     {
-        LogError(ExcepCategory::DirectX, "Device lost on Present: " << LogHRES(hr));
         ::PostQuitMessage(1);
+        LogCritical("Device lost on Present: " << LogHRES(hr));
     }
 
     m_is_rendering = false; // unlock
-
     return ret;
 }
 
@@ -246,45 +234,41 @@ bool MainRoutine_Win32::create_device_d3d(HWND hWnd)
     sd.Windowed = TRUE;
     sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
-    const UINT createDeviceFlags = 0; // D3D11_CREATE_DEVICE_VIDEO_SUPPORT | D3D11_CREATE_DEVICE_BGRA_SUPPORT; // | D3D11_CREATE_DEVICE_DEBUG
-    D3D_FEATURE_LEVEL featureLevel;
-    const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
+    constexpr UINT create_device_flags = 0; // D3D11_CREATE_DEVICE_VIDEO_SUPPORT | D3D11_CREATE_DEVICE_BGRA_SUPPORT; // | D3D11_CREATE_DEVICE_DEBUG
+    D3D_FEATURE_LEVEL feature_level;
+    constexpr D3D_FEATURE_LEVEL feature_level_arr[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
 
-    ComPtr<ID3D11Device> pd3dDevice;
-    ComPtr<ID3D11DeviceContext> pd3dDeviceContext;
-    ComPtr<IDXGISwapChain> pSwapChain;
+    ComPtr<ID3D11Device> d3d_device;
+    ComPtr<ID3D11DeviceContext> d3d_device_context;
+    ComPtr<IDXGISwapChain> swap_chain;
 
-    HRESULT res = ::D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, pSwapChain.GetAddressOf(), pd3dDevice.GetAddressOf(), &featureLevel, pd3dDeviceContext.GetAddressOf());
-    if (DXGI_ERROR_UNSUPPORTED == res) // Try high-performance WARP software driver if hardware is not available.
-        res = ::D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, pSwapChain.GetAddressOf(), pd3dDevice.GetAddressOf(), &featureLevel, pd3dDeviceContext.GetAddressOf());
-    if (res != S_OK)
-    {
-        LogError(ExcepCategory::DirectX, "Failed D3D11CreateDevice with error: " << LogERR);
-        return false;
-    }
+    HRESULT hr = ::D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, create_device_flags, feature_level_arr, 2, D3D11_SDK_VERSION, &sd, swap_chain.GetAddressOf(), d3d_device.GetAddressOf(), &feature_level, d3d_device_context.GetAddressOf());
+    if (DXGI_ERROR_UNSUPPORTED == hr) // Try high-performance WARP software driver if hardware is not available.
+        hr = ::D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, create_device_flags, feature_level_arr, 2, D3D11_SDK_VERSION, &sd, swap_chain.GetAddressOf(), d3d_device.GetAddressOf(), &feature_level, d3d_device_context.GetAddressOf());
+    LogCriticalIf(SUCCEEDED(hr), "Failed D3D11CreateDevice with error: " << LogHRES(hr));
 
     //ComPtr<ID3D11Multithread> multithread;
-    //if (SUCCEEDED(pd3dDevice->QueryInterface(IID_PPV_ARGS(multithread.GetAddressOf()))))
+    //if (SUCCEEDED(d3d_device->QueryInterface(IID_PPV_ARGS(multithread.GetAddressOf()))))
     //{
     //    multithread->SetMultithreadProtected(TRUE);
     //}
 
-    m_d3d_device.reset(pd3dDevice.Detach());
-    m_d3d_device_context.reset(pd3dDeviceContext.Detach());
-    m_swap_chain.reset(pSwapChain.Detach());
+    m_d3d_device.reset(d3d_device.Detach());
+    m_d3d_device_context.reset(d3d_device_context.Detach());
+    m_swap_chain.reset(swap_chain.Detach());
 
     // only 1 frame in buffer
-    ComPtr<IDXGIDevice1> dxgiDevice;
-    if (SUCCEEDED(m_d3d_device->QueryInterface(__uuidof(IDXGIDevice1), (void**)dxgiDevice.GetAddressOf())))
+    ComPtr<IDXGIDevice1> dxgi_device;
+    if (SUCCEEDED(m_d3d_device->QueryInterface(__uuidof(IDXGIDevice1), (void**)dxgi_device.GetAddressOf())))
     {
-        dxgiDevice->SetMaximumFrameLatency(1);
-        dxgiDevice.Reset();
+        dxgi_device->SetMaximumFrameLatency(1);
+        dxgi_device.Reset();
     }
 
     return create_render_target();
 }
 
-void MainRoutine_Win32::cleanup_device_d3d()
+void MainRoutine_Win32::cleanup_device_d3d() noexcept
 {
     cleanup_render_target();
 
@@ -293,95 +277,25 @@ void MainRoutine_Win32::cleanup_device_d3d()
     m_d3d_device.reset();
 }
 
-void MainRoutine_Win32::cleanup_render_target()
+void MainRoutine_Win32::cleanup_render_target() noexcept
 {
     m_main_render_target_view.reset();
 }
 
 bool MainRoutine_Win32::create_render_target()
 {
-    ComPtr<ID3D11Texture2D> backBuffer;
-    HRESULT hr = m_swap_chain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf()));
-    if (hr != S_OK || !backBuffer)
-    {
-        LogError(ExcepCategory::DirectX, "m_swap_chain->GetBuffer failed: " << LogHRES(hr));
-        return false;
-    }
-    std::unique_ptr<ID3D11Texture2D, std::function <void(ID3D11Texture2D*)>> pBackBuffer(backBuffer.Detach(), [](ID3D11Texture2D* p) { p->Release(); });
+    ComPtr<ID3D11Texture2D> back_buffer;
+    HRESULT hr = m_swap_chain->GetBuffer(0, IID_PPV_ARGS(back_buffer.GetAddressOf()));
+    LogCriticalIf(SUCCEEDED(hr) && back_buffer, "IDXGISwapChain::GetBuffer failed: " << LogHRES(hr));
 
-    ComPtr<ID3D11RenderTargetView> targetView;
-    hr = m_d3d_device->CreateRenderTargetView(pBackBuffer.get(), nullptr, targetView.GetAddressOf());
-    if (hr != S_OK || !targetView)
-    {
-        LogError(ExcepCategory::DirectX, "m_d3d_device->CreateRenderTargetView failed: " << LogHRES(hr));
-        return false;
-    }
-    m_main_render_target_view.reset(targetView.Detach());
+    std::unique_ptr<ID3D11Texture2D, std::function <void(ID3D11Texture2D*)>> back_buffer_ptr(back_buffer.Detach(), [](ID3D11Texture2D* p) { if (p) p->Release(); });
+
+    ComPtr<ID3D11RenderTargetView> target_view;
+    hr = m_d3d_device->CreateRenderTargetView(back_buffer_ptr.get(), nullptr, target_view.GetAddressOf());
+    LogCriticalIf(SUCCEEDED(hr) && target_view, "ID3D11Device::CreateRenderTargetView failed: " << LogHRES(hr));
+
+    m_main_render_target_view.reset(target_view.Detach());
     return true;
-}
-
-void MainRoutine_Win32::init_imgui_diloag_texture()
-{
-/*
-    ifd::FileDialog::Instance().CreateTexture =
-        [this, d3d_device = m_d3d_device.get()](uint8_t* data, int32_t w, int32_t h, char fmt) -> void*
-    {
-        D3D11_TEXTURE2D_DESC desc;
-        ::ZeroMemory(&desc, sizeof(desc));
-        desc.Width = w;
-        desc.Height = h;
-        desc.MipLevels = 1;
-        desc.ArraySize = 1;
-        desc.Format = (fmt == 0) ? DXGI_FORMAT_B8G8R8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UNORM;
-        desc.SampleDesc.Count = 1;
-        desc.Usage = D3D11_USAGE_DEFAULT;
-        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        desc.CPUAccessFlags = 0;
-
-        D3D11_SUBRESOURCE_DATA subResource;
-        subResource.pSysMem = data;
-        subResource.SysMemPitch = w * 4; 
-        subResource.SysMemSlicePitch = 0;
-
-        ID3D11Texture2D* pTexture = nullptr;
-        HRESULT hr = d3d_device->CreateTexture2D(&desc, &subResource, &pTexture);
-        if (FAILED(hr))
-        {
-            LogError(ExcepCategory::DirectX, "CreateTexture2D failed: " << LogHRES(hr));
-            ::PostQuitMessage(1);
-            return nullptr;
-        }
-
-        ID3D11ShaderResourceView* pSRV = nullptr;
-        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-        ZeroMemory(&srvDesc, sizeof(srvDesc));
-        srvDesc.Format = desc.Format;
-        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MipLevels = desc.MipLevels;
-        srvDesc.Texture2D.MostDetailedMip = 0;
-
-        hr = d3d_device->CreateShaderResourceView(pTexture, &srvDesc, &pSRV);
-        if (FAILED(hr))
-        {
-            LogError(ExcepCategory::DirectX, "CreateShaderResourceView failed: " << LogHRES(hr));
-            ::PostQuitMessage(1);
-            return nullptr;
-        }
-
-        pTexture->Release();
-        return (void*)pSRV;
-    };
-
-    ifd::FileDialog::Instance().DeleteTexture =
-        [](void* texture)
-    {
-        if (texture != nullptr)
-        {
-            ID3D11ShaderResourceView* pSRV = (ID3D11ShaderResourceView*)texture;
-            pSRV->Release();
-        }
-    };
-*/
 }
 
 // Win32 message handler
@@ -417,7 +331,6 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         {
             if (SIZE_MINIMIZED == wParam)
             {
-                LogS("Windows is minimized");
                 if (g::pGraphN)
                     g::pGraphN->handle_wnd_minimized();
                 return 0;
@@ -446,7 +359,6 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
 
             if (SIZE_RESTORED == wParam && g::pGraphN)
             {
-                LogS("Windows is restored");
                 g::pGraphN->handle_wnd_restored();
             }
         }
@@ -462,7 +374,6 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         }
         break;
     case WM_DESTROY:
-        LogS("WM_DESTROY");
         DragAcceptFiles(hWnd, FALSE);
         ::PostQuitMessage(0);
         return 0;
@@ -483,7 +394,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
     case WM_DROPFILES:
         {
             HDROP hdrop = (HDROP)wParam;
-            UINT file_count = DragQueryFileA(hdrop, 0xFFFFFFFF, NULL, 0);
+            const UINT file_count = DragQueryFileA(hdrop, 0xFFFFFFFF, nullptr, 0);
             std::list<std::filesystem::path> files;
 
             for (UINT i = 0; i < file_count; i++)
@@ -491,14 +402,13 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
                 char file_path[MAX_PATH];
                 if (DragQueryFileA(hdrop, i, file_path, MAX_PATH))
                 {
-                    LogS("Dropped file " << file_path);
                     files.push_back(file_path);
                 }
             }
 
             DragFinish(hdrop);
 
-            MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            const MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
             if (routine != nullptr && routine->m_dnd_callback != nullptr)
             {
                 routine->m_dnd_callback(std::move(files));
@@ -509,7 +419,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
     return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
-void MainRoutine_Win32::wake_up()
+void MainRoutine_Win32::wake_up() noexcept
 {
     Log("Wake up command");
     if (::IsIconic(m_hwnd))
@@ -523,43 +433,38 @@ void MainRoutine_Win32::wake_up()
     }
 }
 
-void MainRoutine_Win32::wnd_restore()
+void MainRoutine_Win32::wnd_restore() noexcept
 {
-    Log("Window restore cmd");
     ::ShowWindow(m_hwnd, SW_RESTORE);
     ::SetForegroundWindow(m_hwnd);
     ::RedrawWindow(m_hwnd, nullptr, nullptr, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_INTERNALPAINT);
 }
 
-void MainRoutine_Win32::wnd_minimize()
+void MainRoutine_Win32::wnd_minimize() noexcept
 {
-    Log("Window minimize cmd");
     ::ShowWindow(m_hwnd, SW_MINIMIZE);
 }
 
-void MainRoutine_Win32::wnd_maximize()
+void MainRoutine_Win32::wnd_maximize() noexcept
 {
-    Log("Window maximize cmd");
     WINDOWPLACEMENT pl = {};
     ::GetWindowPlacement(m_hwnd, &pl);
     pl.showCmd = SW_SHOWMAXIMIZED;
     ::SetWindowPlacement(m_hwnd, &pl);
 }
 
-void MainRoutine_Win32::wnd_show()
+void MainRoutine_Win32::wnd_show() noexcept
 {
-    Log("Window show cmd");
     ::ShowWindow(m_hwnd, SW_SHOW);
     ::RedrawWindow(m_hwnd, nullptr, nullptr, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_INTERNALPAINT);
 }
 
-void MainRoutine_Win32::wnd_hide()
+void MainRoutine_Win32::wnd_hide() noexcept
 {
-    Log("Window hide cmd");
     ::ShowWindow(m_hwnd, SW_HIDE);
 }
 
-void MainRoutine_Win32::wnd_toggle_fullscreen()
+void MainRoutine_Win32::wnd_toggle_fullscreen() noexcept
 {
     DWORD styles = ::GetWindowLong(m_hwnd, GWL_STYLE);
 

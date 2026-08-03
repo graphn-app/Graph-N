@@ -8,8 +8,8 @@ namespace platform
 class VideoControl_Linux final : public global::VideoControl
 {
 public:
-    VideoControl_Linux() = default;
-    ~VideoControl_Linux() override;
+    VideoControl_Linux() noexcept = default;
+    ~VideoControl_Linux() noexcept override;
 };
 
 } // namespace platform

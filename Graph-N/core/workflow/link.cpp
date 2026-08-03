@@ -7,29 +7,26 @@
 namespace data
 {
 
-Link::Link(wid workflow_id, iid link_id)
+Link::Link(wid workflow_id, iid link_id) noexcept
     : m_workflow_id(workflow_id)
     , m_iid(link_id)
 {}
 
-Link::~Link()
-{}
+Link::~Link() noexcept = default;
 
 bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
 {
-    if (nullptr == i1 || nullptr == i2 || i1->get_object() == nullptr || i2->get_object() == nullptr)
-    {
-        LogInternalLogicS("Null link");
-    }
-
-    if (i1->get_workflow_id() != i2->get_workflow_id())
-    {
-        LogInternalLogicS("Different workflows");
-    }
+    LogRAssertS(i1 && i2, "Zero ptr", false);
+    LogRAssertS(i1->get_workflow_id() && i2->get_workflow_id(),
+        "Different workflows. w1:" << i1->get_workflow_id() << ", p1:" << i1->get_instance_id() << ", w2:" << i2->get_workflow_id() << "p2:" << i2->get_instance_id(),
+        false);
 
     const auto p1 = i1->get_object();
     const auto p2 = i2->get_object();
+    LogRAssertS(p1 && p2, "Zero ptr", false);
 
+    if (!p1->can_link || !p2->can_link)
+        return false;
     if (i1 == i2 || i1->get_parent_node() == i2->get_parent_node())     // same pin, same node
         return false;
 
@@ -39,8 +36,8 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     if (p1->input == p2->input || p1->output == p2->output)     // input to input, output to output
         return false;
 
-    if (p1->type_any || p2->type_any)
-        return true;
+    if (PinType::ANY == i1->state().type && PinType::ANY == i2->state().type)
+        return false;
 
     if (PinType::COLOR == s1.type && PinType::STRING == s2.type ||    // special case
         PinType::COLOR == s2.type && PinType::STRING == s1.type)
@@ -48,23 +45,32 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
         return true;
     }
 
-    return (s1.type_hash == s2.type_hash); // same pin type
+    const auto* wf = g::pWfsManager->access(i1->get_workflow_id());
+    const auto* n1 = wf->get_node_by_instance(i1->get_parent_node());
+    const auto* n2 = wf->get_node_by_instance(i2->get_parent_node());
+    LogRAssertS(n1 && n2, "Node not found", false);
+
+
+    if (PinType::ANY == i1->state().type || PinType::ANY == i2->state().type)
+        return true;
+
+    return (s1.type == s2.type); // same pin type
 }
 
 Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
 {
-    if (!can_link(i1, i2))
-    {
-        LogInternalLogicS("Check can link before entablish connection");
-    }
-
-    auto wf = g::pWfsManager->access(i1->get_workflow_id());
+    LogRAssertS(i1 && i2, "Zero ptr", nullptr);
+    LogRAssertS(can_link(i1, i2),
+        "Check can link before entablish connection. w1:" << i1->get_workflow_id() << ", p1:" << i1->get_instance_id() << ", w2:" << i2->get_workflow_id() << ", p2:" << i2->get_instance_id(),
+        nullptr);
 
     if (i1->state().links > 0 && i1->get_object()->input || i2->state().links > 0 && i2->get_object()->input)
     {
-        LogInternalLogicS("Input pin can't has more than 1 links");
+        LogRErrorS("Input pin can't has more than 1 links. w1:" << i1->get_workflow_id() << ", p1:" << i1->get_instance_id() << ", w2:" << i2->get_workflow_id() << ", p2:" << i2->get_instance_id(),
+            nullptr);
     }
 
+    auto wf = g::pWfsManager->access(i1->get_workflow_id());
     auto link = wf->add_link(instance_id);
 
     auto p1 = i1->get_object();
@@ -73,29 +79,24 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
     auto& s1 = i1->state();
     auto& s2 = i2->state();
 
-    data::PinInstance* recalc = nullptr;
-    if (p1->type_any)
+    auto n1 = wf->get_node_by_instance(i1->get_parent_node());
+    auto n2 = wf->get_node_by_instance(i2->get_parent_node());
+
+    if (PinType::ANY == i1->state().type)
     {
-        s1.type = s2.type;
-        s1.type_str = s2.type_str;
-        s1.type_hash = s2.type_hash;
-        s1.pin_color = s2.pin_color;
-        s1.name = s2.name;
-        recalc = i1;
+        s2.copy_to(s1);
+        p1->max = p2->max;
+        p1->min = p2->min;
+        p1->step = p2->step;
+        p1->def = p2->def;
     }
-    else if (p2->type_any)
+    else if (PinType::ANY == i2->state().type)
     {
-        s2.type = s1.type;
-        s2.type_str = s1.type_str;
-        s2.type_hash = s1.type_hash;
-        s2.pin_color = s1.pin_color;
-        s2.name = s1.name;
-        recalc = i2;
-    }
-    if (recalc != nullptr)
-    {
-        auto node = wf->get_node_by_instance(recalc->get_parent_node());
-        node->calc_node_width(false, false);
+        s1.copy_to(s2);
+        p2->max = p1->max;
+        p2->min = p1->min;
+        p2->step = p1->step;
+        p2->def = p1->def;
     }
 
     s1.links++;
@@ -104,7 +105,8 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
     link->m_input = (p1->input ? i1 : i2);
     link->m_output = (p1->output ? i1 : i2);
 
-    LogS("Linked: wid=" << link->m_workflow_id << ", iid=" << link->m_iid << ", in=" << link->m_input << ", out=" << link->m_output);
+
+    LogS("Linked. w:" << link->get_workflow_id() << ", l:" << link->get_instance_id() << ", p1:" << link->m_input->get_instance_id() << ", p2:" << link->m_output->get_instance_id());
     return link;
 }
 
@@ -122,36 +124,30 @@ void Link::unlink()
     auto o1 = p1->get_object();
     auto o2 = p2->get_object();
 
-    const data::PinInstance* recalc = nullptr;
+    const auto* wf = g::pWfsManager->access(p1->get_workflow_id());
+    auto n1 = wf->get_node_by_instance(p1->get_parent_node());
+    auto n2 = wf->get_node_by_instance(p2->get_parent_node());
+    LogRAssertS(n1 && n2, "Node not found", );
+
+    data::NodeInstance* recalc = nullptr;
     if (o1->type_any && 0 == s1.links)
     {
-        s1.type = o1->def_state.type;
-        s1.type_str = o1->def_state.type_str;
-        s1.type_hash = o1->def_state.type_hash;
-        s1.pin_color = o1->def_state.pin_color;
-        s1.name = o1->def_state.name;
-        recalc = p1;
+        o1->def_state.copy_to(s1);
+        recalc = n1;
     }
     if (o2->type_any && 0 == s2.links)
     {
-        s2.type = o2->def_state.type;
-        s2.type_str = o2->def_state.type_str;
-        s2.type_hash = o2->def_state.type_hash;
-        s2.pin_color = o2->def_state.pin_color;
-        s2.name = o2->def_state.name;
-        recalc = p2;
+        o2->def_state.copy_to(s2);
+        recalc = n2;
     }
     if (recalc != nullptr)
-    {
-        auto wf = g::pWfsManager->access(recalc->get_workflow_id());
-        auto node = wf->get_node_by_instance(recalc->get_parent_node());
-        node->calc_node_width(false, false);
-    }
+        recalc->reset_width();
 
-    Log("Unlinked: wid=" << m_workflow_id << ", iid=" << m_iid << ", in=" << m_input << ", out=" << m_output);
+
+    Log("Unlinked. w:" << get_workflow_id() << ", l:" << get_instance_id() << ", p1:" << p1->get_instance_id() << ", p2" << p2->get_instance_id());
 }
 
-void Link::reset_state()
+void Link::reset_state() noexcept
 {
     ed().reset();
 }

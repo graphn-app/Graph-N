@@ -43,37 +43,36 @@ class QueueManager final
     , public listener::ServerRestartHandler
 {
 public:
-    QueueManager();
-    ~QueueManager() override;
+    QueueManager() noexcept;
+    ~QueueManager() noexcept override;
 
     bool init() override;
-    void free() override;
-    void stop_all_threads() override;
+    void stop_all_threads() noexcept override;
 
     void process();
 
     void add_to_queue(data::Workflow* wf, int32_t count, bool push_front);
 
     const ExecTask* get_is_failed(wid wf_id) const;
-    inline bool get_is_queued(wid wf_id) const { return m_queued_wfs.count(wf_id) > 0; }
+    bool get_is_queued(wid wf_id) const { return m_queued_wfs.count(wf_id) > 0; }
 
     void interrupt_task(wid wf_id = 0);
 
-    inline bool is_paused() const { return m_paused; }
-    inline void toggle_pause() { m_paused = !m_paused; }
+    bool is_paused() const noexcept { return m_paused; }
+    void toggle_pause() noexcept { m_paused = !m_paused; }
 
-    inline int32_t is_external_task() const { return m_external_tasks; }
+    int32_t is_external_task() const noexcept { return m_external_tasks; }
 
-    inline bool is_dead_task() const { return m_task_elapsed_time > 20; /*QUEUE_DEAD_TASK;*/ };
+    bool is_dead_task() const noexcept { return m_task_elapsed_time > 20; /*QUEUE_DEAD_TASK;*/ };
 
     void modify_group(uint64_t group_id, int32_t num_of_tasks);
     void drop_tasks(uint64_t group_id);
     void drop_wf_tasks(wid wf_id);
-    void drop_all();
+    void drop_all() noexcept;
 
-    inline const ExecGroup* get_current_group() const { return m_current; }
-    inline std::vector<ExecGroup>& get_past_tasks() { return m_queue_past; }
-    inline const std::list<ExecGroup>& get_next_tasks() { return m_queue_next; }
+    const ExecGroup* get_current_group() const noexcept { return m_current; }
+    std::vector<ExecGroup>& get_past_tasks() noexcept { return m_queue_past; }
+    const std::list<ExecGroup>& get_next_tasks() const noexcept { return m_queue_next; }
     void create_from_past_task(uint64_t group, uint64_t task);
 
     void swap_groups(uint64_t group_l, uint64_t group_r);
@@ -83,17 +82,18 @@ private:
     void check_ws_inbox();
     void go_next_task();
     void load_outputs(ExecTask& task);
-    void load_output_data(uint64_t task_id, uint64_t out_id, std::string&& binary);
+    void load_output_data(uint64_t task_id, uint64_t out_id, const std::string&& binary);
     void check_current_task_is_done();
 
     // ServerRestartHandler
-    void handle_server_killed();
+    void handle_server_killed() override;
 
 private:
     int32_t m_external_tasks = 0;
     double m_task_active_time = 0.0;
     double m_task_elapsed_time = 0.0;
 
+    bool m_can_check_ws = true;
     bool m_paused = false;
     bool m_lost = false;
     ExecGroup* m_current = nullptr;

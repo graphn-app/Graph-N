@@ -7,13 +7,13 @@ namespace ui
 class OptRightPane final
 {
 public:
-    OptRightPane() = default;
-    ~OptRightPane();
+    OptRightPane() noexcept = default;
+    ~OptRightPane() noexcept;
 
     NO_COPY_MOVE(OptRightPane);
 
     void init(OptsData& data);
-    void init_sizes();
+    void init_sizes() noexcept;
 
     void show(OptsData& data);
 
@@ -39,8 +39,8 @@ private:
     void browse_for_outputdir();
 
     void load_hotkeys(bool defaults);
-    int32_t hotkey_to_cb_index(ImGuiKey key) const;
-    ImGuiKey hotkey_to_imgui_key(int32_t cb_index) const;
+    int32_t hotkey_to_cb_index(ImGuiKey key) const noexcept;
+    ImGuiKey hotkey_to_imgui_key(int32_t cb_index) const noexcept;
 
 private:
     OptsData* m_data = nullptr;

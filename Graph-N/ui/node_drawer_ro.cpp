@@ -10,7 +10,7 @@
 namespace ui
 {
 
-RoNodeDrawer::RoNodeDrawer(data::Workflow* wf)
+RoNodeDrawer::RoNodeDrawer(data::Workflow* wf) noexcept
     : m_clr_node_header_bg(g::pOptsManager->color_load(AppColor::NodeHeaderBg))
     , m_clr_node_header_text(g::pOptsManager->color_load(AppColor::NodeHeaderText))
     , m_clr_node_body_bg(g::pOptsManager->color_load(AppColor::NodeBodyBg))
@@ -18,21 +18,17 @@ RoNodeDrawer::RoNodeDrawer(data::Workflow* wf)
     , m_clr_node_border(g::pOptsManager->color_load(AppColor::NodeBorder))
     , m_wf(wf)
 {
-    LogF;
 }
 
-RoNodeDrawer::~RoNodeDrawer()
-{
-    LogF;
-}
+RoNodeDrawer::~RoNodeDrawer() noexcept = default;
 
-RoNodeDrawer::RoNodeDrawer(RoNodeDrawer&& other)
+RoNodeDrawer::RoNodeDrawer(RoNodeDrawer&& other) noexcept
     : RoNodeDrawer(other.m_wf)
 {
     *this = std::move(other);
 }
 
-RoNodeDrawer& RoNodeDrawer::operator=(RoNodeDrawer&& other)
+RoNodeDrawer& RoNodeDrawer::operator=(RoNodeDrawer&& other) noexcept
 {
     if (this == &other)
         return *this;
@@ -79,7 +75,7 @@ float RoNodeDrawer::draw(data::NodeInstanceRo* node, bool tooltip_mode, float ma
     const auto& input = m_node->get_inputs();
     for (auto pin : input)
     {
-        if (!pin->get_object()->is_widget())
+        if (!pin->get_object()->is_widget(pin->get_object()->def_state))
         {
             ImGui::PushID(pin);
             draw_input_pin(pin);
@@ -97,7 +93,7 @@ float RoNodeDrawer::draw(data::NodeInstanceRo* node, bool tooltip_mode, float ma
     // --- PINS - OUTPUT ---
 
     ImGui::BeginGroup();            // 4 -> out pins
-    const auto out_pins_pos = ImGui::GetCursorPosX();
+    //const auto out_pins_pos = ImGui::GetCursorPosX();
 
     const auto& output = m_node->get_outputs();
     for (auto pin : output)
@@ -126,7 +122,7 @@ float RoNodeDrawer::draw(data::NodeInstanceRo* node, bool tooltip_mode, float ma
             auto obj = pin->get_object();
             if (obj->advanced)
                 advanced++;
-            else if (obj->is_widget())
+            else if (obj->is_widget(obj->def_state))
             {
                 ImGui::PushID(pin);
                 draw_input_widget(pin, m_node->w_widget_name, m_node->w_widget_value);
@@ -189,7 +185,7 @@ float RoNodeDrawer::draw(data::NodeInstanceRo* node, bool tooltip_mode, float ma
     return max_w;
 }
 
-void RoNodeDrawer::draw_node_header(data::NodeInstanceRo* node)
+void RoNodeDrawer::draw_node_header(const data::NodeInstanceRo* node) noexcept
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + node->w_node_name_off);
     ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_header_text);
@@ -197,7 +193,7 @@ void RoNodeDrawer::draw_node_header(data::NodeInstanceRo* node)
     ImGui::PopStyleColor();
 }
 
-void RoNodeDrawer::draw_input_pin(data::PinInstance* pin)
+void RoNodeDrawer::draw_input_pin(data::PinInstance* pin) noexcept
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro);
     draw_pin_icon(pin->state().pin_color);
@@ -205,14 +201,14 @@ void RoNodeDrawer::draw_input_pin(data::PinInstance* pin)
     ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
 }
 
-void RoNodeDrawer::draw_output_pin(data::PinInstance* pin)
+void RoNodeDrawer::draw_output_pin(data::PinInstance* pin) noexcept
 {
     ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
     ImGui::SameLine(0, w::pin_r_offset);
     draw_pin_icon(pin->state().pin_color);
 }
 
-void RoNodeDrawer::draw_pin_icon(ImU32 color)
+void RoNodeDrawer::draw_pin_icon(ImU32 color) noexcept
 {
     ImGui::PushStyleColor(ImGuiCol_Text, color);
     ImGui::TextUnformatted(ICON_LC_CIRCLE_SMALL);
@@ -244,13 +240,13 @@ void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_w
         if (ImGui::InvisibleButton("##pin", size))
         {
             obj->advanced = !obj->advanced;
-            g::pOptsManager->pin_advanced_save(obj->get_id(), obj->advanced);
+            g::pOptsManager->pin_advanced_save(obj->get_hash(), obj->advanced);
 
             if (obj->cag_require)
             {
-                auto cag = m_wf->get_pin_by_instance(pin->state().cag);
+                const auto* cag = m_wf->get_pin_by_instance(pin->state().cag);
                 cag->get_object()->advanced = obj->advanced;
-                g::pOptsManager->pin_advanced_save(cag->get_object()->get_id(), cag->get_object()->advanced);
+                g::pOptsManager->pin_advanced_save(cag->get_object()->get_hash(), cag->get_object()->advanced);
             }
         }
         ImGui::SameLine(0, w::pin_r_offset);
@@ -263,29 +259,28 @@ void RoNodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, 
 {
     switch (pin->state().type)
     {
-    case data::PinType::INT:
-    case data::PinType::NUMBER:
+    case PinType::INT:
         if (pin->get_object()->is_unsigned)
             draw_widget_uint(pin, widget_name_width, widget_value_width);
         else
             draw_widget_int(pin, widget_name_width, widget_value_width);
         break;
-    case data::PinType::FLOAT:
+    case PinType::FLOAT:
         draw_widget_float(pin, widget_name_width, widget_value_width);
         break;
-    case data::PinType::BOOLEAN:
+    case PinType::BOOLEAN:
         draw_widget_bool(pin, widget_name_width, widget_value_width);
         break;
-    case data::PinType::STRING:
+    case PinType::STRING:
         if (pin->get_object()->multiline)
             draw_widget_str_ml(pin, widget_name_width, widget_value_width);
         else
             draw_widget_str(pin, widget_name_width, widget_value_width);
         break;
-    case data::PinType::COMBO:
+    case PinType::COMBO:
         draw_widget_combo(pin, widget_name_width, widget_value_width);
         break;
-    case data::PinType::COLOR:
+    case PinType::COLOR:
         draw_widget_color(pin, widget_name_width, widget_value_width);
         break;
     }
@@ -296,10 +291,12 @@ void RoNodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_wid
     auto obj = pin->get_object();
     auto& state = pin->state();
 
-    int64_t* val = data::Pin::get_int(state.value);
-    const int64_t* step = data::Pin::get_int(obj->step);
-    const int64_t* min = data::Pin::get_int(obj->min);
-    const int64_t* max = data::Pin::get_int(obj->max);
+    int64_t* val = state.value.get_int_ref();
+    LogRAssert(val, "Zero ptr", );
+
+    const int64_t step = obj->step.get_int();
+    const int64_t min = obj->min.get_int();
+    const int64_t max = obj->max.get_int();
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -312,14 +309,14 @@ void RoNodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_wid
     switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::Direct:
-        ImGuiEx::InputIntSmart("", val, *step, *min, *max, obj->precision, obj->precision);
+        ImGuiEx::InputIntSmart("", val, step, min, max, obj->precision, obj->precision);
         break;
     case WidgetInput::Drag:
-        ImGuiEx::DragIntSmart("", val, *min, *max, obj->precision.c_str());
+        ImGuiEx::DragIntSmart("", val, min, max, obj->precision.c_str());
         break;
     case WidgetInput::Slider:
     default:
-        ImGuiEx::SliderIntSmart("", val, *min, *max, obj->precision.c_str());
+        ImGuiEx::SliderIntSmart("", val, min, max, obj->precision.c_str());
         break;
     }
 
@@ -331,10 +328,12 @@ void RoNodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_wi
     auto obj = pin->get_object();
     auto& state = pin->state();
 
-    uint64_t* val = data::Pin::get_uint(state.value);
-    const uint64_t* step = data::Pin::get_uint(obj->step);
-    const uint64_t* min = data::Pin::get_uint(obj->min);
-    const uint64_t* max = data::Pin::get_uint(obj->max);
+    uint64_t* val = state.value.get_uint_ref();
+    LogRAssert(val, "Zero ptr", );
+
+    const uint64_t step = obj->step.get_uint();
+    const uint64_t min = obj->min.get_uint();
+    const uint64_t max = obj->max.get_uint();
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -347,12 +346,12 @@ void RoNodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_wi
     switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::Direct:
-        ImGuiEx::InputUIntSmart("", val, *step, *min, *max, obj->precision, obj->precision);
+        ImGuiEx::InputUIntSmart("", val, step, min, max, obj->precision, obj->precision);
         break;
     case WidgetInput::Slider:
     case WidgetInput::Drag:
     default:
-        ImGuiEx::DragUIntSmart("", val, *min, *max, obj->precision.c_str());
+        ImGuiEx::DragUIntSmart("", val, min, max, obj->precision.c_str());
         break;
     }
 
@@ -364,10 +363,12 @@ void RoNodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_w
     auto obj = pin->get_object();
     auto& state = pin->state();
 
-    double* val = data::Pin::get_float(state.value);
-    const double* min = data::Pin::get_float(obj->min);
-    const double* max = data::Pin::get_float(obj->max);
-    const double* step = data::Pin::get_float(obj->step);
+    double* val = state.value.get_float_ref();
+    LogRAssert(val, "Zero ptr", );
+
+    const double min = obj->min.get_float();
+    const double max = obj->max.get_float();
+    const double step = obj->step.get_float();
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -380,14 +381,14 @@ void RoNodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_w
     switch (g::pOptsManager->wf_widget_input_numbers_load())
     {
     case WidgetInput::Direct:
-        ImGuiEx::InputDoubleSmart("", val, *step, *min, *max, obj->precision, obj->precision);
+        ImGuiEx::InputDoubleSmart("", val, step, min, max, obj->precision, obj->precision);
         break;
     case WidgetInput::Drag:
-        ImGuiEx::DragDoubleSmart("", val, *min, *max, obj->precision.c_str());
+        ImGuiEx::DragDoubleSmart("", val, min, max, obj->precision.c_str());
         break;
     case WidgetInput::Slider:
     default:
-        ImGuiEx::SliderDoubleSmart("", val, *min, *max, obj->precision.c_str());
+        ImGuiEx::SliderDoubleSmart("", val, min, max, obj->precision.c_str());
         break;
     }
 
@@ -398,7 +399,8 @@ void RoNodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_wi
 {
     auto obj = pin->get_object();
     auto& state = pin->state();
-    bool val = data::Pin::get_bool(state.value);
+    auto val = state.value.get_bool_ref();
+    LogRAssert(val, "Zero ptr", );
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -410,11 +412,11 @@ void RoNodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_wi
     {
     case WidgetInput::Toggle:
         ImGui::SetNextItemWidth(widget_value_width);
-        ImGuiEx::BooleanButtons2("", val ? obj->label_on.c_str() : obj->label_off.c_str(), &val);
+        ImGuiEx::BooleanButtons2("", *val ? obj->label_on.c_str() : obj->label_off.c_str(), val);
         break;
     case WidgetInput::Select:
     default:
-        ImGuiEx::BooleanToggleLED(val ? obj->label_on.c_str() : obj->label_off.c_str(), &val, false, false, widget_value_width);
+        ImGuiEx::BooleanToggleLED(*val ? obj->label_on.c_str() : obj->label_off.c_str(), val, false, false, widget_value_width);
         break;
     }
 
@@ -425,8 +427,9 @@ void RoNodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_wid
 {
     auto obj = pin->get_object();
 
-    auto& placeholder = (obj->placeholder.empty() ? pin->state().name : obj->placeholder);
-    std::string* val = data::Pin::get_string(pin->state().value);
+    const auto& placeholder = (obj->placeholder.empty() ? pin->state().name : obj->placeholder);
+    std::string* val = pin->state().value.get_string_ref();
+    LogRAssert(val, "Zero ptr", );
 
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
     ImGuiEx::InputTextWithHint("", placeholder.c_str(), val, ImGuiInputTextFlags_ReadOnly);
@@ -443,8 +446,9 @@ void RoNodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_
 {
     auto obj = pin->get_object();
 
-    auto& placeholder = (obj->placeholder.empty() ? pin->state().name : obj->placeholder);
-    std::string* val = data::Pin::get_string(pin->state().value);
+    const auto& placeholder = (obj->placeholder.empty() ? pin->state().name : obj->placeholder);
+    std::string* val = pin->state().value.get_string_ref();
+    LogRAssert(val, "Zero ptr", );
 
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
     ImGuiEx::InputTextMultilineWithHint("", placeholder.c_str(), val, ImVec2(0, 0), ImGuiInputTextFlags_ReadOnly);
@@ -468,7 +472,7 @@ void RoNodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_w
 
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::SetNextItemWidth(widget_value_width);
-    int32_t index = cast::to_i32(*data::Pin::get_int(pin->state().value));
+    int32_t index = cast::to_i32(pin->state().value.get_int());
     ImGui::Combo("", &index, obj->combo_items_ptr.data(), cast::to_i32(obj->combo_items_ptr.size()));
 
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
@@ -487,7 +491,7 @@ void RoNodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_w
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::SetNextItemWidth(widget_value_width);
 
-    const ImVec4 vec4 = ImGui::ColorConvertU32ToFloat4(cast::to_u32(*data::Pin::get_uint(state.value)));
+    const ImVec4 vec4 = ImGui::ColorConvertU32ToFloat4(cast::to_u32(state.value.get_uint()));
     float colors[4];
     vec4.to_arr(colors);
     if (ImGui::ColorEdit4("", colors,
@@ -500,7 +504,7 @@ void RoNodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_w
     ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
 }
 
-void RoNodeDrawer::draw_widget_separator(float offset, float width)
+void RoNodeDrawer::draw_widget_separator(float offset, float width) noexcept
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + offset);
     ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::NodeWidgetHiddenSep), width, w::hidden_widgets.c_str(), w::hidden_widgets.size(), w::hidden_widgets_len);

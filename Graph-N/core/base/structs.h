@@ -14,53 +14,53 @@ namespace blob
 class Blob final
 {
 public:
-    Blob() = default;
-    inline Blob(const void* buffer, size_t len)
+    Blob() noexcept = default;
+    Blob(const void* buffer, size_t len)
     {
         m_blob.resize(len);
         memcpy(m_blob.data(), buffer, len);
     }
-    ~Blob() = default;
+    ~Blob() noexcept = default;
 
     Blob(const Blob&) = delete;
     Blob& operator=(const Blob&) = delete;
 
-    inline Blob(Blob&& other) noexcept
+    Blob(Blob&& other) noexcept
         : m_blob(std::move(other.m_blob))
     { }
-    inline Blob& operator=(Blob&& other) noexcept
+    Blob& operator=(Blob&& other) noexcept
     {
         if (this != &other) m_blob = std::move(other.m_blob);
         return *this;
     }
 
-    inline Blob(byte_buff&& buffer) noexcept
+    Blob(byte_buff&& buffer) noexcept
         : m_blob(std::move(buffer))
     { }
-    inline Blob& operator=(byte_buff&& buffer) noexcept
+    Blob& operator=(byte_buff&& buffer) noexcept
     {
         m_blob = std::move(buffer);
         return *this;
     }
 
-    inline bool operator==(const Blob& other) const
+    bool operator==(const Blob& other) const noexcept
     {
         if (m_blob.size() != other.m_blob.size())
             return false;
         return memcmp(m_blob.data(), other.m_blob.data(), m_blob.size()) == 0;
     }
-    inline bool operator!=(const Blob& other) const
+    bool operator!=(const Blob& other) const noexcept
     {
         return !(*this == other);
     }
 
-    inline byte_buff* operator->() { return &m_blob; }
-    inline const byte_buff* operator->() const { return &m_blob; }
+    byte_buff* operator->() noexcept { return &m_blob; }
+    const byte_buff* operator->() const noexcept { return &m_blob; }
 
-    inline byte_buff& operator*() { return m_blob; }
-    inline const byte_buff& operator*() const { return m_blob; }
+    byte_buff& operator*() noexcept { return m_blob; }
+    const byte_buff& operator*() const noexcept { return m_blob; }
 
-    inline Blob copy() const
+    Blob copy() const
     {
         Blob out;
         out.m_blob.resize(m_blob.size());
@@ -88,23 +88,23 @@ struct DbValue final
     std::string sval;
     int64_t ival = 0;
 
-    DbValue() = default;
-    ~DbValue() = default;
+    DbValue() noexcept = default;
+    ~DbValue() noexcept = default;
 
-    inline DbValue(const std::string& s, int64_t i)
+    DbValue(const std::string& s, int64_t i)
         : sval(s), ival(i)
     {}
-    inline DbValue(int64_t i, const std::string& s)
+    DbValue(int64_t i, const std::string& s)
         : sval(s), ival(i)
     {}
-    inline DbValue(int64_t i)
+    DbValue(int64_t i) noexcept
         : ival(i)
     {}
-    inline DbValue(const std::string& s)
+    DbValue(const std::string& s)
         : sval(s)
     {}
 
-    inline bool empty() const { return 0 == ival && sval.empty(); }
+    bool empty() const noexcept { return 0 == ival && sval.empty(); }
 };
 
 ///////////////////////////////////////////////////////////////////
@@ -154,20 +154,20 @@ struct WfData final
 ///////      Media data                   /////////////////////////
 ///////////////////////////////////////////////////////////////////
 
-struct ImageInfo 
+struct ImageInfo final
 {
     int32_t width = 0;
     int32_t height = 0;
 };
 
-struct AudioInfo 
+struct AudioInfo final
 {
     float duration_sec = 0.0f;
     uint32_t sample_rate = 0;
     uint32_t channels = 0;
 };
 
-struct VideoInfo 
+struct VideoInfo final
 {
     float duration_sec = 0.0f;
     float fps = 0.0f;
@@ -209,10 +209,10 @@ struct ExecTask final
     std::map<iid, std::set<std::string>> err_nodes;        // list of failed nodes: <node_id/<input_name>>
 
     enum class OutputType { Unknown, Gif, Audio, Image, Text };
-    struct Output
+    struct Output final
     {
-        Output() = default;
-        inline ~Output()
+        Output() noexcept = default;
+        ~Output() noexcept
         {
             if (tools::path::exists(binary_path))
                 tools::path::remove(binary_path);
@@ -306,8 +306,11 @@ struct PanelListItem final
     {
         bool changed = false;
         void* ptr = nullptr;
+
+        State() noexcept = default;
+        virtual ~State() noexcept = default;
     };
-    std::unique_ptr<State> state;
+    std::unique_ptr<State> item_state;
 };
 
 ///////////////////////////////////////////////////////////////////
@@ -336,7 +339,7 @@ struct PanelItemState final
 struct KeyBinding
 {
     bool enabled = true;
-    KeyTarget target = KeyTarget::None;
+    KeyTarget target = KeyTarget::_none;
     bool ctrl = false;
     bool alt = false;
     bool shift = false;

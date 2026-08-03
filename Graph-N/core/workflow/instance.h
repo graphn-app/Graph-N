@@ -11,43 +11,34 @@ template <typename BaseObj>
 class Instance
 {
 public:
-    Instance(BaseObj* obj, wid workflow_id, iid instance_id)
+    Instance(BaseObj* obj, wid workflow_id, iid instance_id) noexcept
         : m_object(obj)
         , m_wid(workflow_id)
         , m_iid(instance_id)
-        , m_obj_hid(nullptr == obj ? 0 : obj->get_id())
-    {
-    }
-    virtual ~Instance()
-    {
-    }
+    {}
+    virtual ~Instance() noexcept = default;
 
-    virtual void init()
-    {
-        if (m_object != nullptr && 0 == m_obj_hid)
-            m_obj_hid = m_object->get_id();
-        Log("Obj init wid=" << m_wid << ", iid=" << m_iid << ", hid=" << m_obj_hid);
-    }
+    virtual void init() {}
 
-    inline iid get_instance_id() const { return m_iid; }
-    inline wid get_workflow_id() const { return m_wid; }
-    inline hid get_obj_id() const { return m_obj_hid; }
+    iid get_instance_id() const noexcept { return m_iid; }
+    wid get_workflow_id() const noexcept { return m_wid; }
 
-    inline BaseObj* get_object() const { return m_object; }
-    virtual void set_object(BaseObj* obj) { m_object = obj; m_obj_hid = obj->get_id(); }
+    void set_instance_id(iid id) noexcept { m_iid = id; }
+    void set_workflow_id(wid id) noexcept { m_wid = id; }
 
-    inline EdType& ed() { return m_ed; }
-    inline const EdType& ed() const { return m_ed; }
-    virtual void reset_state() { m_ed.reset(); }
+    virtual BaseObj* get_object() const noexcept { return m_object; }
+    virtual void set_object(BaseObj* obj) { m_object = obj; }
+
+    EdType& ed() noexcept { return m_ed; }
+    const EdType& ed() const noexcept { return m_ed; }
+    virtual void reset_state() noexcept { m_ed.reset(); }
 
 protected:
-    BaseObj* m_object = nullptr;     // base node/pin
-    std::string m_obj_class;
     wid m_wid = 0;
     iid m_iid = 0;
-    hid m_obj_hid = 0;
 
 private:
+    BaseObj* m_object = nullptr;     // base node/pin
     EdType m_ed;
 };
 

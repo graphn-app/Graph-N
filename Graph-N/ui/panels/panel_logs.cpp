@@ -13,14 +13,10 @@ PanelServerLogs::PanelServerLogs()
     : PanelBase(DlgObj::PanelServerLogs, "Server Logs")
 {}
 
-PanelServerLogs::~PanelServerLogs()
-{
-    LogF;
-}
+PanelServerLogs::~PanelServerLogs() noexcept = default;
 
 void PanelServerLogs::init()
 {
-    LogF;
     PanelBase::init();
 
     m_clr_hover = g::pOptsManager->color_load(AppColor::SelectedItem);
@@ -32,11 +28,6 @@ void PanelServerLogs::init()
     m_clr_pressed = ImGui::ColorConvertFloat4ToU32(c);
 
     create_toolbar();
-}
-
-void PanelServerLogs::stop_all_threads()
-{
-    LogF;
 }
 
 DlgCode PanelServerLogs::show(bool& focused)
@@ -132,7 +123,7 @@ void PanelServerLogs::create_toolbar()
     finalize_toolbar();
 }
 
-void PanelServerLogs::on_pre_search(PanelToolbar::Element& el)
+void PanelServerLogs::on_pre_search(PanelToolbar::Element& el) noexcept
 {
     el.enabled = !m_search.empty();
 }
@@ -183,14 +174,15 @@ void PanelServerLogs::on_search_down(PanelToolbar::Element& /*el*/)
     m_found_index = -1;
 }
 
-void PanelServerLogs::on_autoscroll(PanelToolbar::Element& /*el*/)
+void PanelServerLogs::on_autoscroll(PanelToolbar::Element& /*el*/) noexcept
 {
     m_autoscroll = !m_autoscroll;
 }
 
-void PanelServerLogs::on_clear(PanelToolbar::Element& /*el*/)
+void PanelServerLogs::on_clear(PanelToolbar::Element& /*el*/) noexcept
 {
-    m_logs.clear();
+    decltype(m_logs) empty;
+    empty.swap(m_logs);
     m_found_index = -1;
 }
 
@@ -261,7 +253,7 @@ void PanelServerLogs::show_logs()
                         ImGui::Selectable("##stub", false);
                     else
                     {
-                        if (ImGuiEx::UrlButton(path.u8string().c_str(), "Open log file"))
+                        if (ImGuiEx::UrlButton(tools::str::path_to_string(path).c_str(), "Open log file"))
                         {
                             tools::path::open_file(g::pComfyUIManager->get_log_filepath());
                         }

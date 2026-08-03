@@ -11,10 +11,7 @@ class PanelTemplates final
 {
 public:
     PanelTemplates();
-    ~PanelTemplates() override;
-
-    void init() override;
-    void stop_all_threads() override;
+    ~PanelTemplates() noexcept override;
 
 private:
     DlgCode show(bool& focused) override;

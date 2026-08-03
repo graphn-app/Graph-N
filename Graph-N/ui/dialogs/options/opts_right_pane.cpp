@@ -49,10 +49,7 @@ enum
     _i_count
 };
 
-OptRightPane::~OptRightPane()
-{
-    LogF;
-}
+OptRightPane::~OptRightPane() noexcept = default;
 
 void OptRightPane::init(OptsData& data)
 {
@@ -62,12 +59,12 @@ void OptRightPane::init(OptsData& data)
     m_data->buffer_i.resize(_i_count);
 
     m_data->buffer_s[BuffHost] = g::pOptsManager->comfyui_host_load();
-    m_data->buffer_s[BuffMainpy] = g::pOptsManager->comfyui_main_py_load().u8string();
-    m_data->buffer_s[BuffPython] = g::pOptsManager->comfyui_python_load().u8string();
+    m_data->buffer_s[BuffMainpy] = tools::str::path_to_string(g::pOptsManager->comfyui_main_py_load());
+    m_data->buffer_s[BuffPython] = tools::str::path_to_string(g::pOptsManager->comfyui_python_load());
     m_data->buffer_s[BuffPythonArgs] = g::pOptsManager->comfyui_python_args_load();
     m_data->buffer_s[BuffComfyUIArgs] = g::pOptsManager->comfyui_comfyui_args_load();
-    m_data->buffer_s[BuffWorkDir] = g::pOptsManager->comfyui_workdir_load().u8string();
-    m_data->buffer_s[BuffOutput] = g::pOptsManager->comfyui_output_load().u8string();
+    m_data->buffer_s[BuffWorkDir] = tools::str::path_to_string(g::pOptsManager->comfyui_workdir_load());
+    m_data->buffer_s[BuffOutput] = tools::str::path_to_string(g::pOptsManager->comfyui_output_load());
 
     m_data->buffer_i[BuffFpsLimit] = g::pOptsManager->app_fps_limit_val_load();
     m_data->buffer_i[BuffScale] = g::pOptsManager->app_scale_load();
@@ -99,7 +96,7 @@ void OptRightPane::init(OptsData& data)
     m_clr_subsep = ImGuiEx::decrease_brightness(g::pOptsManager->color_load(AppColor::OptSeparator));
 }
 
-void OptRightPane::init_sizes()
+void OptRightPane::init_sizes() noexcept
 {
     m_data->input_offset_x = 180.0f;
     m_data->input_small_offset_x = 300.0f;
@@ -285,7 +282,6 @@ void OptRightPane::show_local_server(const char*& help_text)
     // Detect
     ImGui::TextWrapped("These settings allow " APP_CAPTION " to launch and manage the " APP_COMFYUI " server automatically.\n"
         "You can configure the paths manually below, or launch " APP_COMFYUI " externally and click 'Import Config from Active Process' to auto-detect the settings.");
-    const auto y = ImGui::GetCursorPosY();
     if (show_full_row_button("Detect and import config from active process", true, false, false))
     {
         import_from_comfyui();
@@ -557,8 +553,8 @@ void OptRightPane::show_widget_input(const char*& help_text)
     ImGui::Spacing();
 
 
-    double d_min = 5.0;
-    double d_max = 142.0;
+    constexpr double d_min = 5.0;
+    constexpr double d_max = 142.0;
 
     if (draw_selected(WidgetInput::Direct == m_data->input.numbers, m_data->input.hovered_items[idx], idx + 1, "Input field:"))
     {
@@ -585,17 +581,17 @@ void OptRightPane::show_widget_input(const char*& help_text)
     ImGuiEx::SliderDoubleSmart("##WfNumbers1", &m_data->input.d_sample, d_min, d_max, "Value: %.4f");
 
 
-    if (draw_selected(WidgetInput::Drag == m_data->input.numbers, m_data->input.hovered_items[idx], idx + 1, "Scrubber:"))
-    {
-        m_data->input.numbers = WidgetInput::Drag;
-        g::pOptsManager->wf_widget_input_numbers_save(m_data->input.numbers);
-    }
-    idx++;
-    show_help_mark(help_text, "Ctrl+click or double click to type value.");
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(m_data->input_offset_x);
-    ImGui::SetNextItemWidth(m_data->input_w);
-    ImGuiEx::DragDoubleSmart("##WfNumbers2", &m_data->input.d_sample, d_min, d_max, "Value: %.4f");
+    //if (draw_selected(WidgetInput::Drag == m_data->input.numbers, m_data->input.hovered_items[idx], idx + 1, "Scrubber:"))
+    //{
+    //    m_data->input.numbers = WidgetInput::Drag;
+    //    g::pOptsManager->wf_widget_input_numbers_save(m_data->input.numbers);
+    //}
+    //idx++;
+    //show_help_mark(help_text, "Ctrl+click or double click to type value.");
+    //ImGui::SameLine();
+    //ImGui::SetCursorPosX(m_data->input_offset_x);
+    //ImGui::SetNextItemWidth(m_data->input_w);
+    //ImGuiEx::DragDoubleSmart("##WfNumbers2", &m_data->input.d_sample, d_min, d_max, "Value: %.4f");
 
 
     ImGui::Spacing();
@@ -692,7 +688,7 @@ void OptRightPane::show_activity_bar(const char*& help_text)
     ImGui::Spacing();
 
     // mode
-    auto style = g::pOptsManager->ui_activity_bar_mode_load();
+    const auto style = g::pOptsManager->ui_activity_bar_mode_load();
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Style");
 
@@ -733,7 +729,7 @@ void OptRightPane::show_activity_bar(const char*& help_text)
 
     // size
     ImGui::Spacing();
-    auto big_icons = g::pOptsManager->ui_activity_bar_big_icons_load();
+    const auto big_icons = g::pOptsManager->ui_activity_bar_big_icons_load();
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Icons size");
 
@@ -883,7 +879,6 @@ void OptRightPane::show_thresholds(const char*& help_text)
 
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Monitored drives:");
-    const float disk_w = m_data->input_w / 2;
 
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
@@ -978,7 +973,7 @@ void OptRightPane::load_hotkeys(bool defaults)
     }
 }
 
-int32_t OptRightPane::hotkey_to_cb_index(ImGuiKey key) const
+int32_t OptRightPane::hotkey_to_cb_index(ImGuiKey key) const noexcept
 {
     for (size_t idx = 0; idx < m_data->hotkeys_names_k.size(); idx++)
     {
@@ -988,7 +983,7 @@ int32_t OptRightPane::hotkey_to_cb_index(ImGuiKey key) const
     return 0;
 }
 
-ImGuiKey OptRightPane::hotkey_to_imgui_key(int32_t cb_index) const
+ImGuiKey OptRightPane::hotkey_to_imgui_key(int32_t cb_index) const noexcept
 {
     if (cb_index < 0 || cast::to_szt(cb_index) >= m_data->hotkeys_names_k.size())
         return ImGuiKey_None;
@@ -1339,7 +1334,7 @@ void OptRightPane::browse_for_python()
     {
         if (result)
         {
-            m_data->buffer_s[BuffPython] = path.u8string();
+            m_data->buffer_s[BuffPython] = tools::str::path_to_string(path);
             g::pOptsManager->comfyui_python_save(m_data->buffer_s[BuffPython]);
         }
     };
@@ -1352,7 +1347,7 @@ void OptRightPane::browse_for_mainpy()
     {
         if (result)
         {
-            m_data->buffer_s[BuffMainpy] = path.u8string();
+            m_data->buffer_s[BuffMainpy] = tools::str::path_to_string(path);
             g::pOptsManager->comfyui_main_py_save(m_data->buffer_s[BuffMainpy]);
         }
     };
@@ -1365,7 +1360,7 @@ void OptRightPane::browse_for_workdir()
     {
         if (result)
         {
-            m_data->buffer_s[BuffWorkDir] = std::move(path.u8string());
+            m_data->buffer_s[BuffWorkDir] = tools::str::path_to_string(path);
             g::pOptsManager->comfyui_workdir_save(m_data->buffer_s[BuffWorkDir]);
         }
     };
@@ -1378,7 +1373,7 @@ void OptRightPane::browse_for_outputdir()
     {
         if (result)
         {
-            m_data->buffer_s[BuffOutput] = std::move(path.u8string());
+            m_data->buffer_s[BuffOutput] = tools::str::path_to_string(path);
             g::pOptsManager->comfyui_output_save(m_data->buffer_s[BuffOutput]);
         }
     };
@@ -1397,37 +1392,21 @@ void OptRightPane::import_from_comfyui()
 
 #ifdef _WIN32
     CComPtr<IWbemLocator> locator;
-    auto hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (void**)&locator);
-    if (FAILED(hres))
-    {
-        LogWarn("Failed to create IWbemLocator, err: " << LogHRES(hres));
-        return;
-    }
+    auto hr = CoCreateInstance(CLSID_WbemLocator, nullptr, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (void**)&locator);
+    LogRAssert(SUCCEEDED(hr), "Failed CoCreateInstance::CLSID_WbemLocator, err " << LogHRES(hr), );
 
     CComPtr<IWbemServices> service;
-    hres = locator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &service);
-    if (FAILED(hres))
-    {
-        LogWarn("Failed to connect ROOT\\CIMV2, err: " << LogHRES(hres));
-        return;
-    }
+    hr = locator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), nullptr, nullptr, nullptr, 0, nullptr, nullptr, &service);
+    LogRAssert(SUCCEEDED(hr), "Failed CLSID_WbemLocator::ConnectServer, err " << LogHRES(hr), );
 
-    hres = CoSetProxyBlanket(service, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
-    if (FAILED(hres))
-    {
-        LogWarn("Failed to configure service, err: " << LogHRES(hres));
-        return;
-    }
+    hr = CoSetProxyBlanket(service, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, nullptr, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE);
+    LogRAssert(SUCCEEDED(hr), "Failed CoSetProxyBlanket, err " << LogHRES(hr), );
 
     CComPtr<IEnumWbemClassObject> enumerator;
-    hres = service->ExecQuery(_bstr_t(L"WQL"),
+    hr = service->ExecQuery(_bstr_t(L"WQL"),
         _bstr_t(L"SELECT CommandLine, ExecutablePath, ParentProcessId FROM Win32_Process WHERE Name LIKE '%python%'"),
-        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
-    if (FAILED(hres))
-    {
-        LogWarn("Failed to query python processes, err: " << LogHRES(hres));
-        return;
-    }
+        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, nullptr, &enumerator);
+    LogRAssert(SUCCEEDED(hr), "Failed IWbemServices::ExecQuery, err " << LogHRES(hr), );
 
     CComVariant var;
     DWORD parent_proc = 0;
@@ -1441,10 +1420,10 @@ void OptRightPane::import_from_comfyui()
         while (S_OK == enumerator->Next(WBEM_INFINITE, 1, &object, &ret))
         {
             var.Clear();
-            hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
-            if (FAILED(hres))
+            hr = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
+            if (FAILED(hr))
             {
-                LogWarn("Failed to get python CommandLine, err: " << LogHRES(hres));
+                LogWarn("Failed to get python CommandLine, err: " << LogHRES(hr));
                 object.Release();
                 continue;
             }
@@ -1454,10 +1433,10 @@ void OptRightPane::import_from_comfyui()
                 python_args = var.bstrVal;
 
                 var.Clear();
-                hres = object->Get(L"ExecutablePath", 0, &var, nullptr, nullptr);
-                if (FAILED(hres) || var.vt != VT_BSTR)
+                hr = object->Get(L"ExecutablePath", 0, &var, nullptr, nullptr);
+                if (FAILED(hr) || var.vt != VT_BSTR)
                 {
-                    LogWarn("Failed to get python ExecutablePath, err: " << LogHRES(hres));
+                    LogWarn("Failed to get python ExecutablePath, err: " << LogHRES(hr));
                     continue;
                 }
                 python_path = var.bstrVal;
@@ -1465,10 +1444,10 @@ void OptRightPane::import_from_comfyui()
                     continue;
 
                 var.Clear();
-                hres = object->Get(L"ParentProcessId", 0, &var, nullptr, nullptr);
-                if (FAILED(hres) || (var.vt != VT_UI4 && var.vt != VT_I4))
+                hr = object->Get(L"ParentProcessId", 0, &var, nullptr, nullptr);
+                if (FAILED(hr) || (var.vt != VT_UI4 && var.vt != VT_I4))
                 {
-                    LogWarn("Failed to get python ParentProcessId, err: " << LogHRES(hres));
+                    LogWarn("Failed to get python ParentProcessId, err: " << LogHRES(hr));
                     continue;
                 }
                 parent_proc = var.uintVal;
@@ -1490,10 +1469,10 @@ void OptRightPane::import_from_comfyui()
     {
         enumerator.Release();
         auto req = fmt::format(FMT_STRING("SELECT Name, CommandLine, ExecutablePath, ParentProcessId FROM Win32_Process WHERE ProcessId = {}"), parent_proc);
-        hres = service->ExecQuery(_bstr_t(L"WQL"), _bstr_t(req.c_str()), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
-        if (FAILED(hres) || nullptr == enumerator)
+        hr = service->ExecQuery(_bstr_t(L"WQL"), _bstr_t(req.c_str()), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, nullptr, &enumerator);
+        if (FAILED(hr) || nullptr == enumerator)
         {
-            LogWarn("Failed to query parent processes, err: " << LogHRES(hres));
+            LogWarn("Failed to query parent processes, err: " << LogHRES(hr));
             break;
         }
 
@@ -1502,19 +1481,19 @@ void OptRightPane::import_from_comfyui()
         if (S_OK == enumerator->Next(WBEM_INFINITE, 1, &object, &ret))
         {
             var.Clear();
-            hres = object->Get(L"ParentProcessId", 0, &var, nullptr, nullptr);
-            if (FAILED(hres) || (var.vt != VT_UI4 && var.vt != VT_I4))
+            hr = object->Get(L"ParentProcessId", 0, &var, nullptr, nullptr);
+            if (FAILED(hr) || (var.vt != VT_UI4 && var.vt != VT_I4))
             {
-                LogWarn("Failed to get python ParentProcessId, err: " << LogHRES(hres));
+                LogWarn("Failed to get python ParentProcessId, err: " << LogHRES(hr));
                 break;
             }
             parent_proc = var.uintVal;
 
             var.Clear();
-            hres = object->Get(L"Name", 0, &var, nullptr, nullptr);
-            if (FAILED(hres) || var.vt != VT_BSTR)
+            hr = object->Get(L"Name", 0, &var, nullptr, nullptr);
+            if (FAILED(hr) || var.vt != VT_BSTR)
             {
-                LogWarn("Failed to get process Name, err: " << LogHRES(hres));
+                LogWarn("Failed to get process Name, err: " << LogHRES(hr));
                 break;
             }
             if (_wcsicmp(var.bstrVal, L"comfyui.exe") == 0) // ComfyUI Electron installation
@@ -1525,10 +1504,10 @@ void OptRightPane::import_from_comfyui()
             if (_wcsicmp(var.bstrVal, L"cmd.exe") == 0) // probably portable ComfyUI
             {
                 var.Clear();
-                hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
-                if (FAILED(hres) || var.vt != VT_BSTR)
+                hr = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
+                if (FAILED(hr) || var.vt != VT_BSTR)
                 {
-                    LogWarn("Failed to get cmd.exe CommandLine, err: " << LogHRES(hres));
+                    LogWarn("Failed to get cmd.exe CommandLine, err: " << LogHRES(hr));
                     break;
                 }
                 if (wcsstr(var.bstrVal, L".bat") != nullptr) // parent cmd with .bat
@@ -1541,10 +1520,10 @@ void OptRightPane::import_from_comfyui()
             else if (wcsstr(var.bstrVal, L"python") != nullptr) // parent python, check args
             {
                 var.Clear();
-                hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
-                if (FAILED(hres) || var.vt != VT_BSTR)
+                hr = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
+                if (FAILED(hr) || var.vt != VT_BSTR)
                 {
-                    LogWarn("Failed to get python CommandLine, err: " << LogHRES(hres));
+                    LogWarn("Failed to get python CommandLine, err: " << LogHRES(hr));
                     break;
                 }
                 if (wcsstr(var.bstrVal, L"main.py") != nullptr) // parent python. replace with previously found 
@@ -1552,10 +1531,10 @@ void OptRightPane::import_from_comfyui()
                     python_args = var.bstrVal;
 
                     var.Clear();
-                    hres = object->Get(L"ExecutablePath", 0, &var, nullptr, nullptr);
-                    if (FAILED(hres) || var.vt != VT_BSTR)
+                    hr = object->Get(L"ExecutablePath", 0, &var, nullptr, nullptr);
+                    if (FAILED(hr) || var.vt != VT_BSTR)
                     {
-                        LogWarn("Failed to get python ExecutablePath, err: " << LogHRES(hres));
+                        LogWarn("Failed to get python ExecutablePath, err: " << LogHRES(hr));
                         break;
                     }
                     python_path = var.bstrVal;
@@ -1696,15 +1675,15 @@ void OptRightPane::import_from_comfyui()
         tools::path::exists(work_dir) && work_dir.is_absolute() &&
         !python_args_tmp.empty() && !comfyui_args.empty())
     {
-        m_data->buffer_s[BuffPython] = python_path.u8string();
+        m_data->buffer_s[BuffPython] = tools::str::path_to_string(python_path);
         g::pOptsManager->comfyui_python_save(m_data->buffer_s[BuffPython]);
-        m_data->buffer_s[BuffMainpy] = mainpy_path.u8string();
+        m_data->buffer_s[BuffMainpy] = tools::str::path_to_string(mainpy_path);
         g::pOptsManager->comfyui_main_py_save(m_data->buffer_s[BuffMainpy]);
-        m_data->buffer_s[BuffWorkDir] = work_dir.u8string();
+        m_data->buffer_s[BuffWorkDir] = tools::str::path_to_string(work_dir);
         g::pOptsManager->comfyui_workdir_save(m_data->buffer_s[BuffWorkDir]);
         if (tools::path::exists(output_dir))
         {
-            m_data->buffer_s[BuffOutput] = output_dir.u8string();
+            m_data->buffer_s[BuffOutput] = tools::str::path_to_string(output_dir);
             g::pOptsManager->comfyui_output_save(m_data->buffer_s[BuffOutput]);
         }
         m_data->buffer_s[BuffPythonArgs] = _bstr_t(python_args_tmp.c_str());

@@ -6,8 +6,8 @@
 namespace mngr
 {
 
-ComfyUIManager_Linux::ComfyUIManager_Linux() = default;
-ComfyUIManager_Linux::~ComfyUIManager_Linux() = default;
+ComfyUIManager_Linux::ComfyUIManager_Linux() noexcept = default;
+ComfyUIManager_Linux::~ComfyUIManager_Linux() noexcept = default;
 
 void ComfyUIManager_Linux::stop_all_threads()
 {

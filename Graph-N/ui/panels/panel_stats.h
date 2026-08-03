@@ -12,7 +12,7 @@ class PanelStats final
 {
 public:
     PanelStats();
-    ~PanelStats() override;
+    ~PanelStats() noexcept override;
 
     void init() override;
     void stop_all_threads() override;
@@ -29,17 +29,16 @@ private:
     void th_comfyui();
 
     void print_fps(float val_offset);
-    void print_ping(float val_offset);
+    void print_ping(float val_offset) noexcept;
     void print_text_stat(const char* stat_name, float val_offset, uint64_t value, int64_t lim_warn, int64_t lim_crit, bool is_lower_better, bool do_format_bytes);
     void print_bar_stat(const char* stat_name, float val_offset, uint64_t free, uint64_t total, int64_t lim_warn, int64_t lim_crit, const char* tooltip);
     void init_disks();
 
     void format_bytes(uint64_t bytes);
-    ImU32 get_color(int64_t value, bool& stay_default, int64_t lim_warn, int64_t lim_crit, bool is_lower_better);
+    ImU32 get_color(int64_t value, bool& stay_default, int64_t lim_warn, int64_t lim_crit, bool is_lower_better) noexcept;
 
     // Lazy1sTimer
-    void on_1s_lazy_timer(int64_t total_seconds_elapsed) override;
-    void on_frame(int64_t /*total_frames_elapsed*/) override {}
+    void on_1s_lazy_timer(int64_t total_seconds_elapsed) noexcept override;
 
 private:
     std::atomic_bool m_pause = false;

@@ -13,7 +13,7 @@ struct NodeItem final
     bool is_node = false;
 
     std::string name_or_category;
-    size_t name_or_category_len;
+    size_t name_or_category_len = 0;
     std::string search;
 
     std::vector<NodeItem*> children;
@@ -31,24 +31,30 @@ class NodesManager final : public Manager
     friend class NodesParser;
 
 public:
-    NodesManager() = default;
-    ~NodesManager() override = default;
+    NodesManager() noexcept = default;
+    ~NodesManager() noexcept override = default;
 
     void free() override;
 
-    const std::vector<data::NodeItem*>& get_nodes_tree() const { return m_nodes_tree; }
-    const std::vector<data::NodeItem*>& get_nodes_plain() const { return m_nodes_plain; }
-    size_t get_node_items_total() const { return m_node_items.size(); }
+    const std::vector<data::NodeItem*>& get_nodes_tree() const noexcept { return m_nodes_tree; }
+    const std::vector<data::NodeItem*>& get_nodes_plain() const noexcept { return m_nodes_plain; }
+    size_t get_node_items_total() const noexcept { return m_node_items.size(); }
 
-    void calc_number_inside(const std::string& filter, const std::string& in_pin, const std::string& out_pin);
+    void calc_number_inside(const std::string& filter, const std::list<PinType>& in_pins, const std::list<PinType>& out_pins);
 
-    data::Node* find_node(hid id) const;
-    data::Pin* find_pin(hid id) const;
+    data::Node* find_node(hid hash) const;
+   // data::Pin* find_pin(hid hash) const;
 
     data::Node* make_dummy_node(const std::string& node_class);
-    data::Pin* make_dummy_pin(data::Node* parent, const std::string& type, const std::string& name, int64_t out_index);
+    void remove_dummy_node(data::Node* node);
 
-    inline const std::list<std::pair<std::string, uint32_t>>& get_labels() const { return m_labels; }
+    std::unique_ptr<data::Pin> make_pin_ptr(data::Node* parent, const std::string& type, const std::string& name, int32_t out_index);
+    data::Pin* make_pin(data::Node* parent, const std::string& type, const std::string& name, int32_t out_index);
+    data::Pin* make_dummy_pin(data::Node* parent, const std::string& type, const std::string& name, int32_t out_index);
+
+    void remove_pin(data::Node* parent, const data::Pin* pin) noexcept;
+
+    const std::list<std::pair<std::string, uint32_t>>& get_labels() const noexcept { return m_labels; }
     const std::list<data::NodeItem*>& get_nodes_in_label(uint32_t label_id) const;
     bool get_is_node_in_label(data::NodeItem* node_item, uint32_t label_id) const;
 

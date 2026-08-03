@@ -23,7 +23,7 @@ struct Message final
     bool binary;
     std::string message;
 
-    Message(bool b, std::string&& m)
+    Message(bool b, std::string&& m) noexcept
     {
         binary = b;
         message = std::move(m);
@@ -33,23 +33,24 @@ struct Message final
 class WebSocket final : public std::enable_shared_from_this<WebSocket>
 {
     WebSocket();
-    NO_COPY_MOVE(WebSocket);
+    WebSocket(const WebSocket&) = delete;
 
 public:
-    ~WebSocket();
+    ~WebSocket() noexcept;
+
     static std::shared_ptr<WebSocket> create_and_connect(const std::string& host, int64_t port, int64_t timeout, int64_t ping_interval);
     void stop_and_forget();
 
-    inline ConnectState get_state() const { return m_state.load(std::memory_order_relaxed); }
+    ConnectState get_state() const noexcept { return m_state.load(std::memory_order_relaxed); }
 
     void send(std::string&& text);
 
     std::list<Message> get();
-    inline size_t peek() const { return m_inbox_size.load(std::memory_order_relaxed); }
+    size_t peek() const noexcept { return m_inbox_size.load(std::memory_order_relaxed); }
 
-    inline int64_t get_latency() const { return m_latency.load(std::memory_order_relaxed); }
+    int64_t get_latency() const noexcept { return m_latency.load(std::memory_order_relaxed); }
 
-    inline const std::string& get_last_error() const { return m_last_error; }
+    const std::string& get_last_error() const noexcept { return m_last_error; }
 
 private:
     void ping();
@@ -89,7 +90,7 @@ private:
     std::string m_last_error;
 
     std::thread m_th_ping;
-    int64_t m_ping_interval;
+    int64_t m_ping_interval = 0;
 
     std::atomic_bool m_stop_flag = false;
 };

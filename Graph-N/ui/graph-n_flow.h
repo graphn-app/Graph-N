@@ -56,7 +56,7 @@ enum ViewDialogs : uint64_t
     ViewPanelWf                 = 1ULL << 7,
     ViewPanelWfList             = 1ULL << 8,
     ViewPanelModels             = 1ULL << 9,
-    ViewPanelTemplates          = 1ULL << 10,
+    //ViewPanelTemplates          = 1ULL << 10,
     ViewPanelOutput             = 1ULL << 11,
     //ViewPanelNotes              = 1ULL << 12,
     ViewPanelTextEditor         = 1ULL << 13,
@@ -86,7 +86,7 @@ enum ViewDialogs : uint64_t
     _ViewLastAvailable          = 1ULL << 63,
 
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes,
-    ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWfList | ViewPanelModels | ViewPanelTemplates | ViewPanelOutput | ViewPanelQueue /*| ViewPanelNotes*/,
+    ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWfList | ViewPanelModels | /*ViewPanelTemplates | */ViewPanelOutput | ViewPanelQueue /*| ViewPanelNotes*/,
     ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector,
     ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewSyncProjects | ViewAllMenuBar | ViewPanelWf,
 };
@@ -94,8 +94,8 @@ enum ViewDialogs : uint64_t
 class GraphN_Flow final
 {
 public:
-    GraphN_Flow();
-    ~GraphN_Flow();
+    GraphN_Flow() noexcept;
+    ~GraphN_Flow() noexcept;
 
     NO_COPY_MOVE(GraphN_Flow);
 
@@ -103,40 +103,41 @@ public:
     bool run();
     void exit();
 
-    inline static bool get_is_quit() { return g::app_global_stop_all_threads.load(std::memory_order_relaxed); }
-    inline bool get_online() const { return g::pConnectManager->get_status() == ConnectState::Connected; }
+    static bool get_is_quit() noexcept { return g::app_global_stop_all_threads.load(std::memory_order_relaxed); }
+    bool get_online() const noexcept { return g::pConnectManager->get_status() == ConnectState::Connected; }
 
-    inline ImGuiID get_main_dockspace_id() { return m_main_dock_id; }
+    ImGuiID get_main_dockspace_id() noexcept { return m_main_dock_id; }
 
     void reconnect();
-    void handle_comfyui_runserver_error(int32_t error, const std::string& title, const std::string& description);
+    void handle_comfyui_runserver_error(int32_t error, const std::string& title, const std::string& description) noexcept;
 
     void open_settings_dlg(OptPane section = OptPane::_count);
-    void show_logs_panel(bool show);
+    void show_logs_panel(bool show) noexcept;
 
-    void load_activity_bar_mode();
+    void load_activity_bar_mode() noexcept;
     void load_hotkeys();
 
-    bool is_panel_active(DlgObj panel_obj) const;
-    const char* get_panel_icon(DlgObj panel_obj) const;
-    const char* get_panel_name(DlgObj panel_obj) const;
+    bool is_panel_active(DlgObj panel_obj) const noexcept;
+    const char* get_panel_icon(DlgObj panel_obj) const noexcept;
+    const char* get_panel_name(DlgObj panel_obj) const noexcept;
     void toggle_panel_visibility(DlgObj panel_obj);
 
     void reload_nodes();
-    inline void set_nodes_ready() { m_nodes_ready.store(true, std::memory_order_relaxed); }
-    inline bool get_nodes_ready() const { return m_nodes_ready.load(std::memory_order_relaxed); }
-    inline void set_models_ready() { m_models_ready.store(true, std::memory_order_relaxed); }
-    inline bool get_models_ready() const { return m_models_ready.load(std::memory_order_relaxed); }
-    inline bool get_projects_ready() const { return m_projects_ready.load(std::memory_order_relaxed); }
+    void set_nodes_ready() noexcept{ m_nodes_ready.store(true, std::memory_order_relaxed); }
+    bool get_nodes_ready() const noexcept { return m_nodes_ready.load(std::memory_order_relaxed); }
+    void set_models_ready() noexcept { m_models_ready.store(true, std::memory_order_relaxed); }
+    bool get_models_ready() const noexcept { return m_models_ready.load(std::memory_order_relaxed); }
+    bool get_projects_ready() const noexcept { return m_projects_ready.load(std::memory_order_relaxed); }
 
-    void http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback);
+    void http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout = false);
     void http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback);
+    void http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback);
 
     // WF
-    PanelWorkflow* wf_get_active_panel() const { return m_wf_focused; }
+    PanelWorkflow* wf_get_active_panel() const noexcept { return m_wf_focused; }
     void wf_create();
     void wf_create_copy_from(wid source, std::optional<ImRect> wf_rc, std::optional<float> wf_zoom);
-    void wf_reload_view(wid id);
+    void wf_reload_view(wid id) noexcept;
     void wf_activate(wid id);
     //void wf_locate(wid id);
     void wf_delete(wid id);
@@ -145,19 +146,19 @@ public:
     void wf_add_node_to_active_panel(data::Node* node, const std::string& select = "");
     void wf_locate_node(wid id, data::NodeInstance* node);
     void wf_reload();
-    void wf_rename();
-    wid wf_get_active() const;
-    bool wf_can_run() const;
+    void wf_rename() noexcept;
+    wid wf_get_active() const noexcept;
+    bool wf_can_run() const noexcept;
     void wf_run(bool add_front) const;
-    void wf_num_of_runs(int32_t num) const;
+    void wf_num_of_runs(int32_t num) const noexcept;
     void wf_panel_activate_sequential(size_t sequential_number);
     bool wf_save(bool check_only);
     bool wf_undo(bool check_only);
     bool wf_redo(bool check_only);
-    void wf_focus();
-    void wf_node_select_all();
+    void wf_focus() noexcept;
+    void wf_node_select_all() noexcept;
     void wf_panel_close(PanelWorkflow* wf_panel);
-    void wf_new_node();
+    void wf_new_node() noexcept;
     void wf_node_toggle_pin();
     void wf_node_toggle_collapse();
     void wf_node_group();
@@ -174,35 +175,35 @@ public:
 
     // menu
     void on_menu_import();
-    void on_menu_quit();
+    void on_menu_quit() noexcept;
     void on_menu_fullscreen();
-    void on_menu_command();
-    void on_menu_restart();
+    void on_menu_command() noexcept;
+    void on_menu_restart() noexcept;
     void on_menu_options();
-    void on_menu_panel_toggle_active();
+    void on_menu_panel_toggle_active() noexcept;
     void on_menu_next_project(bool next);
     void on_menu_panel_window(ViewDialogs wnd, bool toggle = false);   
-    void on_menu_activate_wf(PanelWorkflow* wf_panel);
-    void on_menu_wf_rename();
-    void on_menu_queue_pause();
+    void on_menu_activate_wf(const PanelWorkflow* wf_panel);
+    void on_menu_wf_rename() noexcept;
+    void on_menu_queue_pause() noexcept;
     void on_menu_queue_interrupt();
 
     // text editor panel public
     void txt_panel_create(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint);
-    void txt_panel_delete(wid wf, data::NodeInstance* node);
-    void txt_panel_clear(wid wf);
+    void txt_panel_delete(wid wf, const data::NodeInstance* node = nullptr, const data::PinInstance* pin = nullptr) noexcept;
+    void txt_panel_clear(wid wf) noexcept;
 
     // modal msg box
     void modal_begin(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def, const std::function<void(ModalDlgCtrl)>& callback);
     void modal_show();
     void modal_update(std::string&& message);
-    void modal_stop();
+    void modal_stop() noexcept;
 
     // web socket
     void check_ws_message(const std::function<void(bool, std::string&)>& callback);
 
 private:
-    void stop_all_threads();
+    void stop_all_threads() noexcept;
     void prepare_to_quit();
 
     void check_connection();
@@ -223,7 +224,7 @@ private:
     void show_options_dlg();
     void show_sync_projs_dlg();
     void show_activity_bar();
-    void show_debug_windows();
+    void show_debug_windows() noexcept;
     void show_modal();
 
     void test_hotkeys();
@@ -238,7 +239,7 @@ private:
     void show_panel_models();
     void show_panel_queue();
     void show_panel_output();
-    void show_panel_templates();
+    //void show_panel_templates();
     //void show_panel_notes();
 
     void on_dlg_closed(DlgObj dlg);
@@ -246,27 +247,27 @@ private:
     void on_menu_export_json(bool api);
     void on_menu_export_json_all(bool api);
     void on_menu_sync_projects();
-    void on_menu_about();  
+    void on_menu_about() noexcept;
     void on_menu_close_all_projects();
 
     // WF & WF panels
-    PanelWorkflow* wf_panel_find(wid id) const;
+    PanelWorkflow* wf_panel_find(wid id) const noexcept;
     PanelWorkflow* wf_panel_create(const mngr::WfData& wf);
     void wf_panel_activate(PanelWorkflow* wf_panel);
     void wf_panel_activate_next(bool next);
     void wf_panel_rename(PanelWorkflow* wf_panel, const std::string& new_name);
     void wf_assign_sequential_numbers();
-    void wf_node_get_any_selected(bool& sel_nodes, bool& sel_groups);
+    void wf_node_get_any_selected(bool& sel_nodes, bool& sel_groups) noexcept;
     void wf_node_action_on_selected(
         const std::function<const char*(bool)>& action_name_cb,
         const std::function<bool(data::NodeInstance*)>& first_cb,
         const std::function<void(data::NodeInstance*, data::WorkflowAction*, bool)>& action_cb);
 
     // text editor panel internal
-    ImGuiID find_def_txt_panel_dock();
+    ImGuiID find_def_txt_panel_dock() noexcept;
     void activate_txt_panels(wid wf);
-    void destroy_txt_panels();
-    void destroy_txt_panel(PanelTextEditor* panel);
+    void destroy_txt_panels() noexcept;
+    void destroy_txt_panel(PanelTextEditor* panel) noexcept;
 
 private:
     std::atomic_bool m_nodes_ready = false;
@@ -286,12 +287,12 @@ private:
     std::unique_ptr<OptionsDlgs> m_opts_dlg;
     std::unique_ptr<SyncProjectsDlg> m_sync_projs_dlg;
     std::unique_ptr<ActivityBar> m_activity_bar;
-    ActivityBarMode m_activity_bar_mode;
+    ActivityBarMode m_activity_bar_mode = ActivityBarMode::Smart;
 
     std::unique_ptr<PanelNodes> m_panel_nodes;
     std::unique_ptr<PanelNodeInspector> m_panel_node_inspector;
     std::unique_ptr<PanelStats> m_panel_stats;
-    std::unique_ptr<PanelTemplates> m_panel_templates;
+    //std::unique_ptr<PanelTemplates> m_panel_templates;
     std::unique_ptr<PanelServerLogs> m_panel_logs;
     //std::unique_ptr<PanelNotes> m_panel_notes;
     std::unique_ptr<PanelModels> m_panel_models;

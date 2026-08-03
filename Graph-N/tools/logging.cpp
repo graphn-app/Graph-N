@@ -6,11 +6,15 @@ namespace glog
 {
 
 const char* Logger::m_log_file_mark = "__log_enabled__";
+const char* Logger::m_log_web_dump_file_mark = "__dump_web_response__";
+const char* Logger::m_log_object_info_file_mark = "__dump_object_info__";
 std::atomic_bool Logger::m_enabled = false;
 
 /////////////////////////////////////////////////////////////////
 
-static void cleanup(const std::filesystem::path& dir, const std::string& prefix, size_t num)
+namespace
+{
+void cleanup(const std::filesystem::path& dir, const std::string& prefix, size_t num)
 {
     const auto sort_callback = [](const std::filesystem::path& lhs, const std::filesystem::path& rhs)
     {
@@ -23,7 +27,7 @@ static void cleanup(const std::filesystem::path& dir, const std::string& prefix,
     std::list<std::filesystem::path> filtered;
     for (auto& file : list)
     {
-        if (file.filename().u8string().find(prefix) == 0)
+        if (tools::str::path_to_string(file.filename()).find(prefix) == 0)
         {
             filtered.push_back(std::move(file));
         }
@@ -37,24 +41,47 @@ static void cleanup(const std::filesystem::path& dir, const std::string& prefix,
     {
         if (0 == to_delete)
             break;
-        
+
         tools::path::remove(*it);
         to_delete--;
     }
 }
+} // static 
 
-void Logger::cleanup()
+void Logger::cleanup() noexcept
 {
-    const auto path = fs::get_log_directory_path();
-    glog::cleanup(path, APP_CAPTION, 3);
-    glog::cleanup(path, APP_COMFYUI, 3);
+    try
+    {
+        const auto path = fs::get_log_directory_path();
+        glog::cleanup(path, APP_CAPTION, 3);
+        glog::cleanup(path, APP_COMFYUI, 3);
+    }
+    catch (...) {}
 }
+
+namespace
+{
+bool check_log_file_mark_exists(const char* file_mark)
+{
+    auto path = fs::get_log_directory_path();
+    path /= file_mark;
+    return tools::path::exists(path);
+}
+} //namespace
 
 bool Logger::check_log_file_mark()
 {
-    auto path = fs::get_log_directory_path();
-    path /= m_log_file_mark;
-    return tools::path::exists(path);
+    return check_log_file_mark_exists(m_log_file_mark);
+}
+
+bool Logger::check_web_dump_file_mark()
+{
+    return check_log_file_mark_exists(m_log_web_dump_file_mark);
+}
+
+bool Logger::check_object_info_file_mark()
+{
+    return check_log_file_mark_exists(m_log_object_info_file_mark);
 }
 
 void Logger::set_log_enabled(bool enable)
@@ -77,18 +104,18 @@ void Logger::set_log_enabled(bool enable)
     }
 }
 
-Logger& Logger::instance()
+Logger& Logger::instance() noexcept
 {
     static Logger logger;
     return logger;
 }
 
-void Logger::stop()
+void Logger::stop() noexcept
 {
     log_stop();
 }
 
-Logger::Logger()
+Logger::Logger() noexcept
 {
     log_start();
 }
@@ -98,110 +125,123 @@ Logger::~Logger()
     log_stop();
 }
 
-void Logger::force_flush()
+void Logger::force_flush() noexcept
 {
     m_do_flush.store(true, std::memory_order_relaxed);
     m_cv.notify_one();
 }
 
-void Logger::log_start()
+void Logger::log_start() noexcept
 {
     if (get_log_enabled())
         return;
 
-    m_enabled.store(false, std::memory_order_relaxed);
-    if (!check_log_file_mark())
-        return;
-
-    auto path = fs::get_log_directory_path();
-    path /= APP_CAPTION "_" + tools::dt::get_app_start_time().as_filename() + ".log";
-    m_log_path = path.string();
-
-    // _tzset();
-
-    if (!tools::path::exists(m_log_path))
+    try
     {
-        std::ofstream unilog;
-        unilog.open(m_log_path.c_str(), std::ios::out | std::ios::binary);
+        m_enabled.store(false, std::memory_order_relaxed);
+        if (!check_log_file_mark())
+            return;
 
-        unilog << (BYTE)0xEF << (BYTE)0xBB << (BYTE)0xBF;
-        unilog.flush();
-        unilog.close();
-    }
+        auto path = fs::get_log_directory_path();
+        path /= APP_CAPTION "_" + tools::dt::get_app_start_time().as_filename() + ".log";
+        m_log_path = path.string();
 
-    m_logfs.open(m_log_path.c_str(), std::ios::out | std::ios::app);
-    if (m_logfs.is_open() && !m_logfs.bad() && tools::path::exists(m_log_path))
-    {
-        m_enabled.store(true, std::memory_order_relaxed);
-        m_working_thread = std::thread(&Logger::working_thread, this);
+        // _tzset();
 
-        const auto db_meta = mngr::DbManager::read_db_metadata();
+        if (!tools::path::exists(m_log_path))
+        {
+            std::ofstream unilog;
+            unilog.open(m_log_path.c_str(), std::ios::out | std::ios::binary);
 
-        LogWriter writer;
-        writer
-            << "\n\n"
-            << "Log started: " << tools::dt::get_app_start_time().as_log_line() << "\n"
-            << "App version: " << ver::ver_as_string() << "\n"
-            << "Db meta: "
-        ;
-        if (db_meta.db_ver != 0)
-            writer << "db ver " << db_meta.db_ver << ", app ver " << db_meta.app_ver << ", last run " << db_meta.last_run << "\n";
-        else
-            writer << "\n";
-        writer
-            << "Generated client id: " << base::GlobalID::client_id() << "\n"
+            unilog << (BYTE)0xEF << (BYTE)0xBB << (BYTE)0xBF;
+            unilog.flush();
+            unilog.close();
+        }
+
+        m_logfs.open(m_log_path.c_str(), std::ios::out | std::ios::app);
+        if (m_logfs.is_open() && !m_logfs.bad() && tools::path::exists(m_log_path))
+        {
+            m_enabled.store(true, std::memory_order_relaxed);
+            m_working_thread = std::thread(&Logger::working_thread, this);
+
+            const auto db_meta = mngr::DbManager::read_db_metadata();
+
+            LogWriter writer;
+            writer
+                << "\n\n"
+                << "Log started: " << tools::dt::get_app_start_time().as_log_line() << "\n"
+                << "App version: " << ver::ver_as_string() << "\n"
+                << "Db meta: "
+                ;
+            if (db_meta.db_ver != 0)
+                writer << "db ver " << db_meta.db_ver << ", app ver " << db_meta.app_ver << ", last run " << db_meta.last_run << "\n";
+            else
+                writer << "\n";
+            writer
+                << "Generated client id: " << base::GlobalID::client_id() << "\n"
 #ifdef _WIN32
-            << "Process ID: " << cast::to_u32(::GetCurrentProcessId()) << "\n"
-            << "Main thread ID: " << cast::to_u32(::GetCurrentThreadId()) << "\n"
-            << "Command line: " << " " << ::GetCommandLineA() << "\n"
+                << "Process ID: " << cast::to_u32(::GetCurrentProcessId()) << "\n"
+                << "Main thread ID: " << cast::to_u32(::GetCurrentThreadId()) << "\n"
+                << "Command line: " << " " << ::GetCommandLineA() << "\n"
 #elif defined __APPLE__
 #error Not implemented
 #elif defined __linux__
 #error Not implemented
 #endif
-            << "\n"
-        ;
+                << "\n"
+                ;
 
-        write(writer);
-        force_flush();
+            write(writer);
+            force_flush();
+        }
     }
+    catch (...) {}
 }
 
-void Logger::log_stop()
+void Logger::log_stop() noexcept
 {
     if (!get_log_enabled())
         return;
 
-    LogWriter writer;
-    writer << "Log ended: " << tools::dt::from_current_date().as_log_line() << "\n\n";
-    write(writer);
+    try
+    {
+        LogWriter writer;
+        writer << "Log ended: " << tools::dt::from_current_date().as_log_line() << "\n\n";
+        write(writer);
 
-    m_do_close.store(true, std::memory_order_relaxed);
-    m_cv.notify_one();
+        m_do_close.store(true, std::memory_order_relaxed);
+        m_cv.notify_one();
 
-    if (m_working_thread.joinable())
-        m_working_thread.join();
+        if (m_working_thread.joinable())
+            m_working_thread.join();
 
-    m_enabled.store(false, std::memory_order_relaxed);
-    if (m_logfs.is_open() && !m_logfs.bad())
-        m_logfs.close();
+        m_enabled.store(false, std::memory_order_relaxed);
+        if (m_logfs.is_open() && !m_logfs.bad())
+            m_logfs.close();
+    }
+    catch (...)
+    {}
 }
 
-void Logger::write(LogWriter& writer)
+void Logger::write(LogWriter& writer) noexcept
 {
     if (!get_log_enabled())
         return;
 
-    auto buffer = writer.extract_buffer();
+    try
+    {
+        auto buffer = writer.extract_buffer();
 
 #if defined _WIN32 && defined _DEBUG
-    ::OutputDebugStringA((APP_CAPTION "__: " + buffer).c_str());
+        ::OutputDebugStringA((APP_CAPTION "__: " + buffer).c_str());
 #endif
 
-    std::lock_guard<std::mutex> lock(m_lock);
-    m_buffer.emplace(std::move(buffer));
-    if (m_buffer_size.fetch_add(1, std::memory_order_relaxed) + 1 >= m_overflow_limit)
-        m_cv.notify_one();
+        std::lock_guard<std::mutex> lock(m_lock);
+        m_buffer.emplace(std::move(buffer));
+        if (m_buffer_size.fetch_add(1, std::memory_order_relaxed) + 1 >= m_overflow_limit)
+            m_cv.notify_one();
+    }
+    catch (...) {}
 }
 
 void Logger::working_thread()
@@ -217,7 +257,7 @@ void Logger::working_thread()
         {
             {
                 std::unique_lock<std::mutex> lock(m_lock);
-                m_cv.wait_for(lock, std::chrono::milliseconds(m_flush_timeout), [this] {
+                m_cv.wait_for(lock, std::chrono::milliseconds(m_flush_timeout), [this]() noexcept {
                     return
                         m_do_flush.load(std::memory_order_relaxed) ||
                         m_do_close.load(std::memory_order_relaxed) ||
@@ -247,7 +287,7 @@ void Logger::working_thread()
         catch (const std::exception& e)
         {
             disable_logging();
-            SAVE_EXCEPTION(ExcepCategory::Logger, e.what());
+            SAVE_EXCEPTION(e.what());
             DEBUG_CATCH;
         }
     }
@@ -402,7 +442,8 @@ LogWriter& LogWriter::operator << (DlgCode code)
         fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("=cancel"));
         break;
     default:
-        LogError(ExcepCategory::SwitchEnum, "=unknown DlgCode " << cast::to_u64(code));
+        fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("=unknown"));
+        LogError("=unknown DlgCode " << cast::to_u64(code));
     }
     return *this;
 }

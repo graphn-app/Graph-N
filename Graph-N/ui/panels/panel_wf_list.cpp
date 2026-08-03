@@ -11,14 +11,10 @@ PanelWfList::PanelWfList()
     : PanelBase(DlgObj::PanelWfList, "Projects")
 {}
 
-PanelWfList::~PanelWfList()
-{
-    LogF;
-}
+PanelWfList::~PanelWfList() noexcept = default;
 
 void PanelWfList::init()
 {
-    LogF;
     PanelBase::init();
 
     m_tt_callbacks.on_show_tt = std::bind(&PanelWfList::on_show_tt, this, std::placeholders::_1);
@@ -27,12 +23,11 @@ void PanelWfList::init()
     rebuild_items();
 }
 
-void PanelWfList::free()
+void PanelWfList::free() noexcept
 {
-    LogF;
     m_active = 0;
-    m_wfs.clear();
-    m_panel_items.clear();
+    m_wfs.clear(); m_wfs.shrink_to_fit();
+    m_panel_items.clear(); m_panel_items.shrink_to_fit();
     m_new_label = 0;
 }
 
@@ -151,16 +146,14 @@ void PanelWfList::create_toolbar()
     finalize_toolbar();
 }
 
-void PanelWfList::stop_all_threads()
-{
-    LogF;
-}
-
 DlgCode PanelWfList::show(bool& focused)
 {
     bool opened = true;
     if (begin_panel(opened, focused) && opened)
     {
+        if (g::pFlow->get_nodes_ready())
+            draw_toolbar();
+
         if (!m_labels_mode && !m_deleted_mode && m_wfs.empty())
         {
             show_empty_panel_descr(
@@ -232,7 +225,6 @@ DlgCode PanelWfList::show(bool& focused)
         }
         else
         {
-            draw_toolbar();
             show_wfs();
         }
     }
@@ -273,12 +265,10 @@ void PanelWfList::rebuild_items()
         return;
     }
 
-    LogF;
-
     m_wfs = g::pWfsManager->get_undeleted();
     std::sort(m_wfs.begin(), m_wfs.end(), sort_callback);
 
-    struct WfLabelState : public PanelListItem::State
+    struct WfLabelState final : public PanelListItem::State
     {
         std::set<uint32_t> active_labels;
     };
@@ -298,9 +288,9 @@ void PanelWfList::rebuild_items()
             }
 
             handler_processed = true;
-            item.state = std::make_unique<WfLabelState>();
-            item.state->ptr = item.ptr;
-            WfLabelState* state = ((WfLabelState*)item.state.get());
+            item.item_state = std::make_unique<WfLabelState>();
+            item.item_state->ptr = item.ptr;
+            WfLabelState* state = ((WfLabelState*)item.item_state.get());
             for (auto& label : labels)
             {
                 if (g::pWfsManager->get_is_wf_in_label(cast::from_ptr<wid>(item.ptr), std::get<1>(label)))
@@ -323,13 +313,13 @@ void PanelWfList::rebuild_items()
 
             for (auto& label : labels)
             {
-                WfLabelState* state = ((WfLabelState*)item.state.get());
+                WfLabelState* state = ((WfLabelState*)item.item_state.get());
                 bool wf_in_label = (state->active_labels.count(std::get<1>(label)) > 0);
 
                 ImGui::PushID(std::get<1>(label));
                 if (ImGui::Checkbox(std::get<0>(label).c_str(), &wf_in_label))
                 {
-                    item.state->changed = true;
+                    item.item_state->changed = true;
                     if (wf_in_label)
                         state->active_labels.insert(std::get<1>(label));
                     else
@@ -339,20 +329,20 @@ void PanelWfList::rebuild_items()
             }
 
             ImGui::Separator();
-            if (!item.state->changed)
+            if (!item.item_state->changed)
                 ImGui::BeginDisabled();
             if (ImGui::Button("Apply", ImVec2(-FLT_MIN, 0)))
             {
                 item.continue_processing_ico_handler = false;
                 ImGui::CloseCurrentPopup();
 
-                if (item.state->changed && item.state->ptr == item.ptr)
+                if (item.item_state->changed && item.item_state->ptr == item.ptr)
                 {
                     dirty = true;
-                    g::pWfsManager->set_wf_labels(cast::from_ptr<wid>(item.ptr), ((WfLabelState*)item.state.get())->active_labels);            
+                    g::pWfsManager->set_wf_labels(cast::from_ptr<wid>(item.ptr), ((WfLabelState*)item.item_state.get())->active_labels);            
                 }
             }
-            if (!item.state->changed)
+            if (!item.item_state->changed)
                 ImGui::EndDisabled();
 
             ImGui::EndPopup();
@@ -361,7 +351,7 @@ void PanelWfList::rebuild_items()
             item.continue_processing_ico_handler = false;
 
         if (!item.continue_processing_ico_handler)
-            item.state.reset();
+            item.item_state.reset();
         return dirty;
     };
 
@@ -470,10 +460,7 @@ void PanelWfList::rebuild_items()
 
 void PanelWfList::handle_dirty(const PanelItemState& dirty_item)
 {
-    if (dirty_item.index >= m_panel_items.size())
-    {
-        LogError(ExcepCategory::Logic, "Index out of bounds");
-    }
+    LogRAssert(dirty_item.index < m_panel_items.size(), "Index out of bounds", );
 
     if (dirty_item.expanded)
     {
@@ -493,10 +480,12 @@ void PanelWfList::handle_dirty(const PanelItemState& dirty_item)
         return;
     }
 
+#ifdef _DEBUG
     Log("Dirty. idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
+#endif
 
     auto& item = m_panel_items[dirty_item.index];
-    wid id = cast::from_ptr<wid>(item.ptr);
+    const wid id = cast::from_ptr<wid>(item.ptr);
 
     if (dirty_item.lclicked)
     {
@@ -512,16 +501,13 @@ void PanelWfList::handle_dirty(const PanelItemState& dirty_item)
     }
     else if (!dirty_item.lreleased)
     {
-        LogError(ExcepCategory::Logic, "Unhandled dirty state");
+        LogError("Unhandled dirty state");
     }
 }
 
 void PanelWfList::rebuild_labels()
 {
-    LogF;
-
-    const auto on_hover_handler = []
-        (PanelListItem& item, bool& handler_processed)
+    const auto on_hover_handler = [](PanelListItem& item, bool& handler_processed)
     {
         bool dirty = false;
         if (ImGui::IsKeyPressed(ImGuiKey_Delete))
@@ -612,14 +598,13 @@ void PanelWfList::rebuild_labels()
 
 void PanelWfList::handle_dirty_labels(const PanelItemState& dirty_item)
 {
+#ifdef _DEBUG
     Log("Dirty label: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
+#endif
 
     if (dirty_item.dblclicked)
     {
-        if (dirty_item.index >= m_panel_items.size())
-        {
-            LogError(ExcepCategory::Logic, "Index out of bounds");
-        }
+        LogRAssert(dirty_item.index < m_panel_items.size(), "Index out of bounds", );
 
         auto& panel_item = m_panel_items[dirty_item.index];
         panel_item.renaming = true;
@@ -642,8 +627,6 @@ void PanelWfList::handle_dirty_labels(const PanelItemState& dirty_item)
 
 void PanelWfList::rebuild_trash()
 {
-    LogF;
-
     m_panel_items.clear();
     m_panel_items.reserve(m_wfs.size());
 
@@ -662,11 +645,13 @@ void PanelWfList::rebuild_trash()
 
 void PanelWfList::handle_dirty_trash(const PanelItemState& dirty_item)
 {
+#ifdef _DEBUG
     Log("Dirty trash: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
+#endif
 
     if ((dirty_item.icon_clicked || dirty_item.lclicked) && !dirty_item.lreleased)
     {
-        wid id = cast::from_ptr<wid>(m_panel_items[dirty_item.index].ptr);
+        const wid id = cast::from_ptr<wid>(m_panel_items[dirty_item.index].ptr);
         g::pFlow->wf_restore(id);
     }
 }
@@ -676,7 +661,7 @@ void PanelWfList::on_add_new_wf(PanelToolbar::Element& /*el*/)
     g::pFlow->wf_create();
 }
 
-void PanelWfList::rename_project()
+void PanelWfList::rename_project() noexcept
 {
     if (!g::pFlow->get_nodes_ready())
         return;
@@ -693,12 +678,12 @@ void PanelWfList::rename_project()
     }
 }
 
-void PanelWfList::on_rename_wf(PanelToolbar::Element& /*el*/)
+void PanelWfList::on_rename_wf(PanelToolbar::Element& /*el*/) noexcept
 {
     rename_project();
 }
 
-void PanelWfList::on_pre_rename_wf(PanelToolbar::Element& el)
+void PanelWfList::on_pre_rename_wf(PanelToolbar::Element& el) noexcept
 {
     el.enabled = (m_active != 0);
 }
@@ -708,7 +693,7 @@ void PanelWfList::on_copy_wf(PanelToolbar::Element& /*el*/)
     g::pFlow->wf_create_copy_from(m_active, std::nullopt, std::nullopt);
 }
 
-void PanelWfList::on_pre_copy_wf(PanelToolbar::Element& el)
+void PanelWfList::on_pre_copy_wf(PanelToolbar::Element& el) noexcept
 {
     el.enabled = (m_active != 0);
 }
@@ -718,7 +703,7 @@ void PanelWfList::on_delete_wf(PanelToolbar::Element& /*el*/)
     g::pFlow->wf_delete(m_active);
 }
 
-void PanelWfList::on_pre_delete_wf(PanelToolbar::Element& el)
+void PanelWfList::on_pre_delete_wf(PanelToolbar::Element& el) noexcept
 {
     el.enabled = (m_active != 0);
 }
@@ -745,7 +730,7 @@ void PanelWfList::on_add_label(PanelToolbar::Element& /*el*/)
     rebuild_items();
 }
 
-void PanelWfList::on_show_tt(int32_t /*idx*/)
+void PanelWfList::on_show_tt(int32_t /*idx*/) noexcept
 {
     if (m_deleted_mode)
     {

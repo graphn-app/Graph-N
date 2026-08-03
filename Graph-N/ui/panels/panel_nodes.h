@@ -37,12 +37,12 @@ class PanelNodes final :
 {
 public:
     PanelNodes(PanelNodeInspector* inspector);
-    ~PanelNodes() override;
+    ~PanelNodes() noexcept override;
 
     void init() override;
 
     //ComfyUiObjectValidityListener
-    void invalidate_comfyui_objects() override;
+    void invalidate_comfyui_objects() noexcept override;
     void resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step step) override;
 
 private:
@@ -59,13 +59,13 @@ private:
     void handle_dirty_labels(const PanelItemState& dirty_item);
 
     void on_alloc_tt_data(int32_t idx);
-    void on_release_tt_data(int32_t idx);
+    void on_release_tt_data(int32_t idx) noexcept;
     void on_show_tt(int32_t idx);
-    bool on_pre_tt(int32_t idx);
-    void on_post_tt(int32_t idx);
+    bool on_pre_tt(int32_t idx) noexcept;
+    void on_post_tt(int32_t idx) noexcept;
 
-    bool on_dnd_allow(int32_t idx);
-    void on_dnd_show(int32_t idx);
+    bool on_dnd_allow(int32_t idx) noexcept;
+    void on_dnd_show(int32_t idx) noexcept;
 
     void on_labels_mode(PanelToolbar::Element& el);
     void on_new_label(PanelToolbar::Element& el);
@@ -73,8 +73,8 @@ private:
     void on_collapse_all(PanelToolbar::Element& el);
     void on_view(PanelToolbar::Element& el);
     void on_sync(PanelToolbar::Element& el);
-    void on_pre_expand_collapse(PanelToolbar::Element& el);
-    void on_pre_sync(PanelToolbar::Element& el);
+    void on_pre_expand_collapse(PanelToolbar::Element& el) noexcept;
+    void on_pre_sync(PanelToolbar::Element& el) noexcept;
 
 private:
     PanelNodeInspector* m_inspector = nullptr;

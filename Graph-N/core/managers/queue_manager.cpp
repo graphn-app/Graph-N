@@ -3,26 +3,24 @@
 #include "core/managers/workflows_manager.h"
 #include "core/managers/connect_manager.h"
 #include "core/managers/db_manager.h"
-#include "core/workflow/workflow_serializer_to_blob.h"
-#include "core/workflow/workflow_serializer_to_json.h"
+#include "core/workflow/serializer/wf_serializers.h"
+#include "core/base/comfyui_web_paths.h"
 #include "ui/graph-n_flow.h"
 #include "ui/helpers/textures.h"
 
 namespace mngr
 {
 
-QueueManager::QueueManager() = default;
-QueueManager::~QueueManager() = default;
+QueueManager::QueueManager() noexcept = default;
+QueueManager::~QueueManager() noexcept = default;
 
-void QueueManager::stop_all_threads()
+void QueueManager::stop_all_threads() noexcept
 {
-    LogF;
     dead();
 }
 
 bool QueueManager::init()
 {
-    LogF;
     if (!Manager::init())
         return false;
 
@@ -30,10 +28,44 @@ bool QueueManager::init()
     return true;
 }
 
-void QueueManager::free()
+namespace
 {
-    LogF;
+std::string get_log_task_id(const ExecGroup& group)
+{
+    if (!group.task.prompt_id.empty())
+        return fmt::format(FMT_STRING("{}/{}/{}"), group.group_id, group.task.task_id, group.task.prompt_id);
+    if (group.task.task_id != 0)
+        return fmt::format(FMT_STRING("{}/{}"), group.group_id, group.task.task_id);
+    return fmt::format(FMT_STRING("{}"), group.group_id);
 }
+
+std::string get_log_task_id(const ExecTask& task)
+{
+    if (!task.prompt_id.empty())
+        return fmt::format(FMT_STRING("{}/{}"), task.task_id, task.prompt_id);
+    return fmt::format(FMT_STRING("{}"), task.task_id);
+}
+
+const char* get_result_name(TaskResult result) noexcept
+{
+    switch (result)
+    {
+    case TaskResult::Failed:
+        return "Failed";
+    case TaskResult::InProgress:
+        return "InProgress";
+    case TaskResult::Interrupted:
+        return "Interrupted";
+    case TaskResult::Lost:
+        return "Lost";
+    case TaskResult::Success:
+        return "Success";
+    case TaskResult::None:
+        return "None";
+    }
+    LogRErrorS("Unknown task result", "Unknown");
+}
+} // namespace
 
 void QueueManager::handle_server_killed()
 {
@@ -41,6 +73,7 @@ void QueueManager::handle_server_killed()
     if (nullptr == m_current)
         return;
 
+    Log("Server offline, stop task #" << get_log_task_id(*m_current));
     m_current->state = ExecGroup::State::Finished;
     m_current->task.result = TaskResult::Failed;
     go_next_task();
@@ -60,26 +93,30 @@ void QueueManager::interrupt_task(wid wf_id /*= 0*/)
     if (wf_id != 0 && m_current->src_wf != wf_id)
         return;
 
-    const auto callback = [this](int32_t result, std::string&& data)
+    const auto task_log_id = get_log_task_id(*m_current);
+    const auto callback = [this, task_log_id](int32_t result, std::string&& payload)
     {
-        LogS("Current task interrupt result: " << result << ", data=" << data.size());
+        LogS("Task #" << task_log_id << " http res " << result << ", payload sz " << payload.size());
     };
 
-    Log("Interrupt task " << m_current->task.prompt_id);
+    Log("Interrupt task #" << task_log_id);
     g::pFlow->http_post("Queue/Interrupt", get_alive_callback(), comfyui_http::interrupt, "", callback);
 }
 
-void QueueManager::drop_all()
+void QueueManager::drop_all() noexcept
 {
     m_queue_next.clear();
     m_queued_wfs.clear();
 
     if (m_current != nullptr)
         m_current->tasks_num = 0;
+
+    Log("All tasks are dropped");
 }
 
 void QueueManager::add_to_queue(data::Workflow* wf, int32_t count, bool push_front)
 {
+    LogRAssert(wf, "Zero ptr", );
     if (count <= 0)
         count = -1;
 
@@ -92,7 +129,7 @@ void QueueManager::add_to_queue(data::Workflow* wf, int32_t count, bool push_fro
     group.nodes_count = cast::to_i32(wf->get_nodes().size());
     group.state = ExecGroup::State::None;
 
-    Log("Task added to the " << (push_front ? "front" : "end") << ": " << count << ". Src: " << wf->get_id());
+    Log("Group #" << get_log_task_id(group) << " added to the " << (push_front ? "front" : "end") << ": " << count << ". Src: '" << wf->get_data().name << "', #" << wf->get_id());
 
     m_queued_wfs.insert(wf->get_id());
     if (push_front)
@@ -119,53 +156,58 @@ void QueueManager::process()
         return;
     }
 
-    if (ExecGroup::State::Executing == m_current->state)
+    switch (m_current->state)
     {
+    case ExecGroup::State::Executing:
         if (m_lost)
             check_current_task_is_done();
-        return;
-    }
+        break;
 
-    if (ExecGroup::State::Prompted == m_current->state)
-    {
+    case ExecGroup::State::Prompted:
         if (m_lost)
             check_current_task_is_done();
-        return;
-    }
+        break;
 
-    if (ExecGroup::State::Created == m_current->state)
-    {
-        auto& task = m_current->task;
-        task.run_no = ++m_run_no;
-        task.time_start = tools::dt::from_current_date().time();
-        task.time_start_s = tools::dt::from_time(task.time_start).as_full_date_readable(false);
-        task.result = TaskResult::InProgress;
-
-        o_json j;
-        j["client_id"] = base::GlobalID::client_id();
-        j["extra_data"]["extra_pnginfo"]["workflow"] = std::move(task.json);
-        j["prompt"] = std::move(task.api);
-
-        const auto callback = [this](int32_t result, std::string&& payload)
+    case ExecGroup::State::Created:
         {
-            parse_http_response(result, payload);
-        };
+            auto& task = m_current->task;
+            task.run_no = ++m_run_no;
+            task.time_start = tools::dt::from_current_date().time();
+            task.time_start_s = tools::dt::from_time(task.time_start).as_full_date_readable(false);
+            task.result = TaskResult::InProgress;
 
-        g::pFlow->http_post("Queue/Task", get_alive_callback(), comfyui_http::prompt, j.dump(), callback);
-        m_current->state = ExecGroup::State::Prompted;
-        return;
+            o_json j;
+            j["client_id"] = base::GlobalID::client_id();
+            j["extra_data"]["extra_pnginfo"]["workflow"] = std::move(task.json);
+            j["prompt"] = std::move(task.api);
+
+            const auto log_task_id = get_log_task_id(*m_current);
+            const auto callback = [this, log_task_id](int32_t result, std::string&& payload)
+            {
+                Log("Task #" << log_task_id << " responded, http res " << result << ", payload sz " << payload.size())
+                parse_http_response(result, payload);
+                m_can_check_ws = true;
+            };
+
+            Log("Task #" << log_task_id << " posted. Wf #" << m_current->src_wf);
+            m_can_check_ws = false;
+            g::pFlow->http_post("Queue/Task", get_alive_callback(), comfyui_http::prompt, j.dump(), callback);
+            m_current->state = ExecGroup::State::Prompted;
+        }
+        break;
+
+    default:
+        LogError("Unknown task state");
     }
-
-    LogInternalLogic("Unknown task state");
 }
 
 void QueueManager::go_next_task()
 {
     const auto make_wf = [](ExecTask& task, const std::shared_ptr<data::Workflow>& wf, wid src_id)
     {
-        task.json = data::WorkflowSerializerToJson::serialize(wf.get());
-        task.api = data::WorkflowSerializerToJson::serialize_to_api(wf.get());
-        task.flow = data::WorkflowSerializerToBlob::serialize(wf.get(), {}).release();
+        task.json = data::WfSerializerToJson(wf.get()).serialize();
+        task.api = data::WfSerializerToJsonApi(wf.get()).serialize();
+        task.flow = data::WfSerializerToBlob(wf.get()).serialize({}).release();
         task.search_data = wf->collect_search_data();
         wf->increment(0 == src_id ? nullptr : g::pWfsManager->access(src_id));
     };
@@ -186,14 +228,14 @@ void QueueManager::go_next_task()
         m_current_group.state = ExecGroup::State::Created;
         make_wf(m_current_group.task, m_current_group.wf, m_current_group.src_wf);
         m_failed_wfs[m_current_group.src_wf] = nullptr;
-        Log("Created new task, wf=" << m_current_group.src_wf);
+        Log("Started new task #" << get_log_task_id(m_current_group) << " from wf " << m_current_group.src_wf);
         return;
     }
 
     if (ExecGroup::State::Finished == m_current->state)
     {
         m_task_active_time = 0.0f;
-        Log("Task " << m_current->task.prompt_id << " is finished");
+        Log("Task " << get_log_task_id(*m_current) << " is finished for wf " << m_current->src_wf << ", result " << get_result_name(m_current->task.result));
 
         if (m_queue_past.empty())
             m_queue_past.push_back(m_current_group.copy());
@@ -212,10 +254,11 @@ void QueueManager::go_next_task()
 
         if (result != TaskResult::Success && result != TaskResult::Lost)
         {
-            Log("Dropped all tasks (due to error) for wf=" << m_current_group.src_wf);
+            Log("Dropped all tasks due to error");
             m_current->tasks_num = 0;
             g::pWfsManager->remove_virtual_wf(m_current->wf->get_id());
             t.search_data.clear();
+            t.search_data.shrink_to_fit();
 
             m_failed_wfs[m_current->src_wf] = &g.completed.front();
 
@@ -228,7 +271,7 @@ void QueueManager::go_next_task()
 
         if (0 == m_current->tasks_num || --m_current->tasks_num == 0)
         {
-            Log("Finished all tasks for wf=" << m_current_group.src_wf);
+            Log("Finished all tasks for wf " << m_current_group.src_wf);
             g::pWfsManager->remove_virtual_wf(m_current->wf->get_id());
             m_current = nullptr;            
             m_current_group = {};
@@ -247,11 +290,11 @@ void QueueManager::go_next_task()
         m_current_group.state = ExecGroup::State::Created;
         make_wf(m_current_group.task, m_current_group.wf, m_current_group.src_wf);
         m_failed_wfs[m_current_group.src_wf] = nullptr;
-        Log("Created new task, wf=" << m_current_group.src_wf);
+        Log("Created new task for wf " << m_current_group.src_wf << ": #" << get_log_task_id(m_current_group));
         return;
     }
 
-    LogInternalLogic("Current group in wrong state");
+    LogError("Current group in wrong state");
 }
 
 const ExecTask* QueueManager::get_is_failed(wid wf_id) const
@@ -268,14 +311,14 @@ void QueueManager::modify_group(uint64_t group_id, int32_t num_of_tasks)
     if (it != m_queue_next.end())
     {
         auto& g = *it;
+        Log("Group #" << group_id << " modified: " << g.tasks_num << " -> " << num_of_tasks);
         g.tasks_num = num_of_tasks;
-        Log("Group " << group_id << " modified: " << num_of_tasks);
     }
 
     if (m_current_group.group_id == group_id)
     {
+        Log("Group #" << group_id << " modified: " << m_current_group.tasks_num << " -> " << num_of_tasks);
         m_current_group.tasks_num = num_of_tasks;
-        Log("Group " << group_id << " modified: " << num_of_tasks);
     }
 }
 
@@ -292,6 +335,8 @@ void QueueManager::drop_tasks(uint64_t group_id)
 
     if (m_current_group.group_id == group_id)
         m_current_group.tasks_num = 0;
+
+    Log("Group #" << group_id << ": all tasks dropped");
 }
 
 void QueueManager::drop_wf_tasks(wid wf_id)
@@ -307,12 +352,14 @@ void QueueManager::drop_wf_tasks(wid wf_id)
 
     if (m_current_group.src_wf == wf_id)
         m_current_group.tasks_num = 0;
+
+    Log("Wf #" << wf_id << ": all tasks dropped" << (m_current_group.src_wf == wf_id ? " (this is current group)" : ""));
 }
 
 void QueueManager::swap_groups(uint64_t group_l, uint64_t group_r)
 {
-    auto it_l = std::find_if(m_queue_next.begin(), m_queue_next.end(), [group_l](const ExecGroup& g) { return g.group_id == group_l; });
-    auto it_r = std::find_if(m_queue_next.begin(), m_queue_next.end(), [group_r](const ExecGroup& g) { return g.group_id == group_r; });
+    auto it_l = std::find_if(m_queue_next.begin(), m_queue_next.end(), [group_l](const ExecGroup& g) noexcept { return g.group_id == group_l; });
+    auto it_r = std::find_if(m_queue_next.begin(), m_queue_next.end(), [group_r](const ExecGroup& g) noexcept { return g.group_id == group_r; });
     if (it_l != m_queue_next.end() && it_r != m_queue_next.end())
         std::iter_swap(it_l, it_r);
 }
@@ -327,20 +374,24 @@ void QueueManager::create_from_past_task(uint64_t group, uint64_t task)
     if (it_t == it_g->completed.end())
         return;
 
-    auto& blob = it_t->flow;
+    const auto& blob = it_t->flow;
     auto& data = g::pWfsManager->create_temp(blob, "Q:" + it_g->wf_name + ":" + std::to_string(it_t->run_no), TEMP_LABEL_COMPLETED);
     it_t->open_id = data.id;
+    Log("New wf '" << "Q:" + it_g->wf_name + ":" + std::to_string(it_t->run_no) << "' created from task");
     g::pFlow->wf_activate(data.id);
 }
 
-static void append_err(std::string& full, const std::string& err)
+namespace
+{
+void append_err(std::string& full, const std::string& err)
 {
     if (!err.empty())
     {
         if (full.empty()) full = err;
         else full += "\r\n" + err;
     }
-};
+}
+} // namespace
 
 void QueueManager::parse_http_response(int32_t result, const std::string& payload)
 {
@@ -348,6 +399,7 @@ void QueueManager::parse_http_response(int32_t result, const std::string& payloa
         return;
 
     auto& task = m_current->task;
+    auto task_log_id = get_log_task_id(*m_current);
 
     if (result != HTTP_RESP_OK)
     {
@@ -356,14 +408,14 @@ void QueueManager::parse_http_response(int32_t result, const std::string& payloa
 
         if (HTTP_RESP_TIMEOUT == result)
         {
-            LogS("Task for wf=" << m_current->src_wf << " failed: HTTP request timeout");
+            LogS("Task #" << task_log_id << " failed: HTTP request timeout");
             task.err_message = task.err_full = "HTTP request timeout";
             return;
         }
 
         if (result != HTTP_RESP_BAD_REQUEST)
         {
-            LogS("Task for wf=" << m_current->src_wf << " failed: Http post failed: " << result);
+            LogS("Task #" << task_log_id << " failed: Http post failed: " << result);
             task.err_message = task.err_full = "HTTP post failed, err " + std::to_string(result);
             return;
         }
@@ -375,19 +427,20 @@ void QueueManager::parse_http_response(int32_t result, const std::string& payloa
         if (j.contains("prompt_id") && j["prompt_id"].is_string())
         {
             task.prompt_id = j["prompt_id"];
-            LogS("New task for wf=" << m_current->src_wf << ". Assigned id=" << task.prompt_id);
+            task_log_id = get_log_task_id(*m_current);
+            LogS("Task #" << task_log_id << " prompt_id assigned");
         }
         else
         {
             task.result = TaskResult::Failed;
             task.err_message = task.err_full = "Unknown http format";
-            LogS("New task for wf=" << m_current->src_wf << " failed");
+            LogS("Task #" << task_log_id << " failed: Unknown http format");
         }
 
         if (j.contains("error") && j["error"].contains("message") && j["error"]["message"].is_string())
         {
             task.err_message = task.err_full = j["error"]["message"];
-            Log("Task for " << m_current->src_wf << " id=" << task.prompt_id << " error: " << task.err_message);
+            LogS("Task #" << task_log_id << " failed: " << task.err_message);
         }
 
         if (j.contains("node_errors") && j["node_errors"].is_object())
@@ -425,7 +478,7 @@ void QueueManager::parse_http_response(int32_t result, const std::string& payloa
         task.err_message = task.err_full = "HTTP reply parsing failed";
         m_current->state = ExecGroup::State::Finished;
 
-        LogExcep(ExcepCategory::API, "Prompt for wf=" << m_current->src_wf << " reply parsing err " << ex.what());
+        LogExcep("Response for #" << task_log_id << " parsing err " << ex.what());
         return;
     }    
 
@@ -437,6 +490,9 @@ void QueueManager::parse_http_response(int32_t result, const std::string& payloa
 
 void QueueManager::check_ws_inbox()
 {
+    if (!m_can_check_ws)
+        return;
+
     if (m_task_active_time > 0.0f)
         m_task_elapsed_time = ImGui::GetTime() - m_task_active_time;
 
@@ -473,6 +529,7 @@ void QueueManager::check_ws_inbox()
             if (nullptr == m_current || m_current->state != ExecGroup::State::Executing || m_current->task.prompt_id != prompt_id)
                 return;
             auto& task = m_current->task;
+            const auto task_log_id = get_log_task_id(*m_current);
 
             m_external_tasks = 0;
             m_task_active_time = ImGui::GetTime();
@@ -484,7 +541,7 @@ void QueueManager::check_ws_inbox()
                 if (j["data"].contains("timestamp") && j["data"]["timestamp"].is_number_integer())
                     task.time_start = j["data"]["timestamp"].get<uint64_t>();
                 task.time_start_s = tools::dt::from_time(task.time_start).as_full_date_readable(false);
-                Log("Task " << task.prompt_id << " started");
+                Log("Task #" << task_log_id << ": execution_start");
 
                 task.time_ms = 0;
                 task.nodes_done = 0;
@@ -503,7 +560,7 @@ void QueueManager::check_ws_inbox()
                 task.progress = 1.0f;
                 task.result = TaskResult::Success;
                 m_current->state = ExecGroup::State::Finished;
-                Log("Task " << task.prompt_id << " finished OK. Time: " << task.time_ms << "ms");
+                Log("Task #" << task_log_id << ": execution_success. Time: " << task.time_ms << "ms");
                 return;
             }
 
@@ -528,7 +585,7 @@ void QueueManager::check_ws_inbox()
                     append_err(task.err_full, "Node: " + j["data"]["node_type"].get<std::string>());
                 if (j["data"].contains("traceback") && j["data"]["traceback"].is_array())
                 {
-                    for (auto& jtrace : j["data"]["traceback"])
+                    for (const auto& jtrace : j["data"]["traceback"])
                     {
                         if (jtrace.is_string())
                             append_err(task.err_full, jtrace.get<std::string>());
@@ -547,7 +604,7 @@ void QueueManager::check_ws_inbox()
                         task.err_nodes[node] = {};
                 }
 
-                Log("Task " << task.prompt_id << " finished ERR. Time: " << task.time_ms << "ms. Err: " << task.err_message);
+                Log("Task #" << task_log_id << ": " << get_result_name(task.result) << ". Err: " << task.err_message);
                 return;
             }
 
@@ -565,15 +622,14 @@ void QueueManager::check_ws_inbox()
                 {
                     task.nodes_done = m_current->nodes_count;
                     task.progress = 1.0f;
-
-                    Log("Task " << task.prompt_id << " finished");
+                    Log("Task #" << task_log_id << ": executing. Progress 100%");
                     return;
                 }
 
                 const auto completed_nodes = std::max(0, task.nodes_done - 1);
                 const float total_progress = cast::to_float(completed_nodes) / cast::to_float(m_current->nodes_count);
                 task.progress = std::clamp(total_progress, 0.0f, 1.0f);
-                Log("Task " << task.prompt_id << " progress: " << task.progress << ", Curr node " << task.current_node);
+                Log("Task #" << task_log_id << ": executing. Progress " << task.progress << ", curr node " << task.current_node);
                 return;
             }
 
@@ -605,7 +661,7 @@ void QueueManager::check_ws_inbox()
                     const float task_weight = 1.0f / cast::to_float(m_current->nodes_count);
                     const float total_progress = base_progress + (node_progress * task_weight);
                     task.progress = std::clamp(total_progress, 0.0f, 1.0f);
-                    Log("Task " << task.prompt_id << " progress: " << task.progress << ", Curr node " << node << "(" << node_progress << ")");
+                    Log("Task #" << task_log_id << ": progress " << task.progress << ", curr node " << node << "(" << node_progress << ")");
                 }
                 return;
             }
@@ -613,7 +669,10 @@ void QueueManager::check_ws_inbox()
             if (type == "executed")
             {
                 if (!j["data"].contains("output") || !j["data"]["output"].is_object())
+                {
+                    Log("Task #" << task_log_id << ": executed. No output data");
                     return;
+                }
 
                 const auto& joutput = j["data"]["output"];
                 for (const auto&[jtype, jarr] : joutput.items())
@@ -667,6 +726,7 @@ void QueueManager::check_ws_inbox()
                         out.id = base::GlobalID::random();
                         task.outputs.push_back(std::move(out));
                     }
+                    Log("Task #" << task_log_id << ": executed. Output data type: " << jtype << ". Is format valid: " << jarr.is_array());
                 }
 
                 load_outputs(task);
@@ -674,7 +734,7 @@ void QueueManager::check_ws_inbox()
         }
         catch (const std::exception& ex)
         {
-            LogExcep(ExcepCategory::API, ex.what());
+            LogExcep("WS message parse ex: " << ex.what());
         }
     };
 
@@ -689,24 +749,19 @@ void QueueManager::load_outputs(ExecTask& task)
         {
             const auto callback = [this, task = task.task_id, id = out.id](int32_t result, std::string&& binary)
             {
+                LogS("Task #" << task << " load output http result: " << result << ", payload sz " << binary.size());
                 if (result != HTTP_RESP_OK)
-                {
-                    LogS("Task " << task << ": load output failed");
-                    load_output_data(task, id, "");
-                }
-                else
-                {
-                    load_output_data(task, id, std::move(binary));
-                }
+                    binary.clear();
+                load_output_data(task, id, std::move(binary));
             };
 
-            const auto request = fmt::format(comfyui_http::view_, out.filename, out.subfolder, out.filetype);
+            const auto request = fmt::format(comfyui_http::view_, tools::str::url_encode(out.filename), tools::str::url_encode(out.subfolder), tools::str::url_encode(out.filetype));
             g::pFlow->http_get("Queue/Output", get_alive_callback(), request.c_str(), callback);
         }
     }
 }
 
-void QueueManager::load_output_data(uint64_t task_id, uint64_t out_id, std::string&& binary)
+void QueueManager::load_output_data(uint64_t task_id, uint64_t out_id, const std::string&& binary)
 {
     ExecTask* task = nullptr;
     if (m_current != nullptr && m_current->task.task_id == task_id)
@@ -728,11 +783,7 @@ void QueueManager::load_output_data(uint64_t task_id, uint64_t out_id, std::stri
                 break;
         }
 
-        if (nullptr == task)
-        {
-            LogWarn("Output task " << task_id << " not found");
-            return;
-        }
+        LogRAssert(task, "Output task " << task_id << " not found", );
     }
 
     const auto temp = fs::get_temp_directory_path();
@@ -749,17 +800,18 @@ void QueueManager::load_output_data(uint64_t task_id, uint64_t out_id, std::stri
                 return;
             }
 
-            const auto filename = tools::str::generate_uuid_v4() + std::filesystem::path(out.filename).extension().u8string();
+            const auto filename = tools::str::generate_uuid_v4() + tools::str::path_to_string(std::filesystem::path(out.filename).extension());
             const auto path = temp / filename;
             if (!tools::path::make_file(path, false, binary))
                 return;
 
-            out.binary_path = path.u8string();
+            out.binary_path = tools::str::path_to_string(path);
             if (ExecTask::OutputType::Image == out.type)
                 out.media_id = g::pTextures->load_image(out.binary_path.c_str(), QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
 
             out.exists = true;
             out.ready = true;
+            Log("Task #" << get_log_task_id(*task) << ". Output saved to " << out.binary_path);
             break;
         }
     }
@@ -768,9 +820,9 @@ void QueueManager::load_output_data(uint64_t task_id, uint64_t out_id, std::stri
 void QueueManager::check_current_task_is_done()
 {
     m_lost = false;
-    const auto history_callback = [this, alive = get_alive_callback()](int32_t result, std::string&& binary)
+    const auto history_callback = [this](int32_t result, std::string&& binary)
     {
-        if (result != HTTP_RESP_OK || nullptr == m_current || !alive())
+        if (result != HTTP_RESP_OK || nullptr == m_current)
         {
             if (m_current != nullptr)
             {
@@ -805,7 +857,7 @@ void QueueManager::check_current_task_is_done()
         }
         catch (const std::exception& ex)
         {
-            LogExcepS(ExcepCategory::API, "History parsing err " << ex.what());
+            LogExcepS("History parsing err " << ex.what());
         }
     };
 

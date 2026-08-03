@@ -398,6 +398,7 @@ IMGUI_NODE_EDITOR_API void DeselectLink(const EdType& edLink);
 IMGUI_NODE_EDITOR_API void SetNodeDraggable(const EdType& edNode, bool canDrag);
 
 IMGUI_NODE_EDITOR_API bool DeleteNode(const EdType& edNode);
+IMGUI_NODE_EDITOR_API bool DeleteNode(const NodeId& pNode);
 IMGUI_NODE_EDITOR_API bool DeleteLink(const EdType& edLink);
 IMGUI_NODE_EDITOR_API bool DeleteLink(const LinkId pLink);
 

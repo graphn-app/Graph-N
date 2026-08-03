@@ -32,14 +32,13 @@ class PanelModels final :
 {
 public:
     PanelModels();
-    ~PanelModels() override;
+    ~PanelModels() noexcept override;
 
     void init() override;
     void rebuild_items(bool force_expand_all = false);
-    void stop_all_threads() override;
 
     //ComfyUiObjectValidityListener
-    void invalidate_comfyui_objects() override;
+    void invalidate_comfyui_objects() noexcept override;
     void resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step step) override;
 
 private:
@@ -49,13 +48,13 @@ private:
     void handle_dirty(const PanelItemState& dirty_item);
 
     void on_alloc_tt_data(int32_t idx);
+    bool on_pre_tt(int32_t idx) noexcept;
     void on_show_tt(int32_t idx);
-    bool on_pre_tt(int32_t idx);
 
     void on_expand_all(PanelToolbar::Element& el);
     void on_collapse_all(PanelToolbar::Element& el);
-    void on_sync(PanelToolbar::Element& el);
-    void on_pre_sync(PanelToolbar::Element& el);
+    void on_sync(PanelToolbar::Element& el) noexcept;
+    void on_pre_sync(PanelToolbar::Element& el) noexcept;
 
     void add_model_to_wf(data::Node* node, data::ModelItem* model);
 

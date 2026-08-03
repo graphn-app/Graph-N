@@ -20,8 +20,8 @@ template <typename DataType>
 class PanelBase : public BaseDlgWithData<DataType>
 {
 public:
-    inline PanelBase(DlgObj obj, const std::string& name, const std::string& id = "")
-        : BaseDlgWithData(obj)
+    PanelBase(DlgObj obj, const std::string& name, const std::string& id = "")
+        : BaseDlgWithData<DataType>(obj)
     {
         m_id = id.empty() ? DlgObjID[cast::to_szt(obj)] : id;
         if (m_id.find("###") == std::string::npos)
@@ -29,18 +29,22 @@ public:
         m_icon = g::pFlow->get_panel_icon(obj);
         m_name = name;
         build_names();
+        Log("Created panel: " << m_name_full << ", id: " << m_id);
     }
 
-    ~PanelBase() override = default;
+    ~PanelBase() noexcept override
+    {
+        Log("Destroyed panel: " << m_name_full << ", id: " << m_id);
+    }
 
-    inline const char* get_panel_name() const { return m_name.c_str(); }
-    inline const char* get_panel_name_full() const { return m_name_full.c_str(); }
-    inline const char* get_panel_id() const { return m_id.c_str(); }
+    const char* get_panel_name() const  noexcept{ return m_name.c_str(); }
+    const char* get_panel_name_full() const noexcept { return m_name_full.c_str(); }
+    const char* get_panel_id() const noexcept { return m_id.c_str(); }
 
-    inline void set_force_focused(bool focused) { m_grab_focus = focused; }
-    inline bool get_force_focused() const { return m_grab_focus; }
+    void set_force_focused(bool focused) noexcept { m_grab_focus = focused; }
+    bool get_force_focused() const noexcept { return m_grab_focus; }
 
-    inline void mark_dirty(bool dirty)
+    void mark_dirty(bool dirty)
     {
         if (dirty == m_dirty)
             return;
@@ -50,23 +54,40 @@ public:
             m_name.push_back('*');
         m_dirty = dirty;
         build_names();
+        Log("Panel: " << m_id << " changed status to: " << (dirty ? "dirty" : "clean"));
     }
 
-    inline void set_sequential_number(size_t number) { m_sequential_number = number; build_names(); }
+    void set_sequential_number(size_t number) { m_sequential_number = number; build_names(); }
+
+    void init() override
+    {
+        BaseDlgWithData<DataType>::init();
+        dlg_data()->clr_bg = g::pOptsManager->color_load(AppColor::PanelBg);
+        dlg_data()->clr_active_wf = g::pOptsManager->color_load(AppColor::PanelActiveWfTab);
+        dlg_data()->clr_active_hov_wf = g::pOptsManager->color_load(AppColor::PanelActiveHoveredWfTab);
+    }
 
 protected:
-    inline void set_name(const std::string& new_name) { m_name = new_name; build_names(); }
-    inline void set_id(const std::string& new_id)
+    using BaseDlgWithData<DataType>::dlg_data;
+
+    void set_name(const std::string& new_name)
+    {
+        m_name = new_name;
+        build_names();
+        Log("Panel id " << m_id << " renamed to " << m_name_full);
+    }
+    void set_id(const std::string& new_id)
     {
         m_id = new_id;
         if (m_id.find("###") == std::string::npos)
             m_id = "###" + m_id;
         build_names();
+        Log("Panel id " << m_id << " renamed to " << m_name_full);
     }
 
-    inline bool begin_panel(bool& opened, bool& focused, bool save_pos = true)
+    bool begin_panel(bool& opened, bool& focused, bool save_pos = true) noexcept
     {
-        // m_class.ClassId = cast::to_u32(data()->class_id);
+        // m_class.ClassId = cast::to_u32(dlg_data()->class_id);
         // ImGui::SetNextWindowClass(&m_class);
 
         const std::string* name = &m_name_full;
@@ -81,7 +102,7 @@ protected:
 
         opened = true;
         focused = false;
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, data()->clr_bg);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, dlg_data()->clr_bg);
         const bool expanded = ImGui::Begin(name->c_str(), &opened, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
             (save_pos ? ImGuiWindowFlags_None : ImGuiWindowFlags_NoSavedSettings));
         m_panel_w = ImGui::GetWindowWidth();
@@ -91,23 +112,15 @@ protected:
         return expanded;
     }
 
-    inline DlgCode end_panel(bool opened)
+    DlgCode end_panel(bool opened) noexcept
     {
         ImGui::End();
         ImGui::PopStyleColor();
         return opened ? DlgCode::Progress : DlgCode::Cancel;
     }
 
-    inline void init() override
-    {
-        BaseDlgWithData<DataType>::init();
-        data()->clr_bg = g::pOptsManager->color_load(AppColor::PanelBg);
-        data()->clr_active_wf = g::pOptsManager->color_load(AppColor::PanelActiveWfTab);
-        data()->clr_active_hov_wf = g::pOptsManager->color_load(AppColor::PanelActiveHoveredWfTab);
-    }
-
 private:
-    inline void build_names()
+    void build_names()
     {
         if (m_sequential_number > 0 && m_sequential_number < 10)
             m_name_full = fmt::format(FMT_COMPILE("{} [{}]: {}{}"), m_icon, m_sequential_number, m_name, m_id);
@@ -134,8 +147,8 @@ private:
 class PanelEmptyWithDescr
 {
 public:
-    PanelEmptyWithDescr() = default;
-    ~PanelEmptyWithDescr() = default;
+    PanelEmptyWithDescr() noexcept = default;
+    ~PanelEmptyWithDescr() noexcept = default;
 
     NO_COPY_MOVE(PanelEmptyWithDescr);
 
@@ -149,12 +162,12 @@ public:
 class PanelWithList
 {
 public:
-    PanelWithList() = default;
-    ~PanelWithList() = default;
+    PanelWithList() noexcept = default;
+    ~PanelWithList() noexcept = default;
 
     NO_COPY_MOVE(PanelWithList);
 
-    struct TtCallbacks
+    struct TtCallbacks final
     {
         std::function<void(int32_t)> on_alloc_tt_data = nullptr;
         std::function<void(int32_t)> on_release_tt_data = nullptr;
@@ -163,7 +176,7 @@ public:
         std::function<void(int32_t)> on_post_tt = nullptr;
     };
 
-    struct DndCallbacks
+    struct DndCallbacks final
     {
         std::function<bool(int32_t)> on_dnd_allow = nullptr;
         std::function<void(int32_t)> on_dnd_show = nullptr;
@@ -189,14 +202,14 @@ private:
 class PanelToolbar
 {
 public:
-    PanelToolbar() = default;
-    ~PanelToolbar() = default;
+    PanelToolbar() noexcept = default;
+    ~PanelToolbar() noexcept = default;
 
     NO_COPY_MOVE(PanelToolbar);
 
     void draw_toolbar();
 
-    struct Element
+    struct Element final
     {
         bool reset_state = false;   // immediately stop drawing
 
@@ -236,10 +249,10 @@ public:
         int32_t cb_item_sel = 0;
     };
 
-    void clear_toolbar();
+    void clear_toolbar() noexcept;
     void add_toolbar_element(Element&& el, bool left_aligned);
-    void finalize_toolbar();
-    inline void set_use_regular_size_icons() { m_use_big_icons = false; }
+    void finalize_toolbar() noexcept;
+    void set_use_regular_size_icons() noexcept { m_use_big_icons = false; }
 
 private:
     std::vector<Element> m_elements_l;

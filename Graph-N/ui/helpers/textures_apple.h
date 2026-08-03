@@ -10,8 +10,8 @@ namespace platform
 class Textures_Apple final : public global::Textures
 {
 public:
-    Textures_Apple() = default;
-    ~Textures_Apple() override = default;
+    Textures_Apple() noexcept = default;
+    ~Textures_Apple() noexcept override = default;
 };
 
 } // namespace platform

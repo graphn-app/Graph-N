@@ -29,7 +29,8 @@
 #include "core/managers/hotkeys_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
-#include "core/workflow/workflow_serializer_to_json.h"
+#include "core/workflow/serializer/wf_serializers.h"
+#include "core/base/comfyui_web_paths.h"
 
 namespace w
 {
@@ -47,20 +48,12 @@ float hidden_widgets_len;
 namespace ui
 {
 
-GraphN_Flow::GraphN_Flow()
-{
-    LogF;
-}
-
-GraphN_Flow::~GraphN_Flow()
-{
-    LogF;
-}
+GraphN_Flow::GraphN_Flow() noexcept = default;
+GraphN_Flow::~GraphN_Flow() noexcept = default;
 
 bool GraphN_Flow::init()
 {
-    LogF;
-
+    LogIn;
     w::pin_l_offset_ro = 4.0f;
     w::pin_l_offset_rw = 0.0f;
     w::pin_r_offset = 4.0f;
@@ -97,9 +90,9 @@ bool GraphN_Flow::init()
     m_panel_wf_list->init();
     m_all_dialogs.insert(m_panel_wf_list.get());
 
-    m_panel_templates = std::make_unique<ui::PanelTemplates>();
-    m_panel_templates->init();
-    m_all_dialogs.insert(m_panel_templates.get());
+    //m_panel_templates = std::make_unique<ui::PanelTemplates>();
+    //m_panel_templates->init();
+    //m_all_dialogs.insert(m_panel_templates.get());
 
     m_panel_logs = std::make_unique<ui::PanelServerLogs>();
     m_panel_logs->init();
@@ -128,7 +121,7 @@ bool GraphN_Flow::init()
         DlgObj::PanelQueue,
         DlgObj::PanelNodeInspector,
         DlgObj::PanelWfList,
-        DlgObj::PanelTemplates,
+        //DlgObj::PanelTemplates,
         DlgObj::PanelStats,
     });
 
@@ -154,18 +147,19 @@ bool GraphN_Flow::init()
 
     load_hotkeys();
     g::block_hotkeys_counter = 0;
+
+    LogOut;
     return true;
 }
 
 void GraphN_Flow::reconnect()
 {
-    LogF;
     m_windows |= ViewConnect;
     show_logs_panel(true);
     g::pConnectManager->reconnect();
 }
 
-void GraphN_Flow::load_activity_bar_mode()
+void GraphN_Flow::load_activity_bar_mode() noexcept
 {
     m_activity_bar_mode = g::pOptsManager->ui_activity_bar_mode_load();
     m_windows &= ~(ViewActivityBarL | ViewActivityBarR);
@@ -180,7 +174,7 @@ void GraphN_Flow::load_activity_bar_mode()
     }
 }
 
-bool GraphN_Flow::is_panel_active(DlgObj panel_obj) const
+bool GraphN_Flow::is_panel_active(DlgObj panel_obj) const noexcept
 {
     switch (panel_obj)
     {
@@ -194,8 +188,8 @@ bool GraphN_Flow::is_panel_active(DlgObj panel_obj) const
         return (m_windows & ViewPanelNodeInpector) != 0;
     case DlgObj::PanelWfList:
         return (m_windows & ViewPanelWfList) != 0;
-    case DlgObj::PanelTemplates:
-        return (m_windows & ViewPanelTemplates) != 0;
+    //case DlgObj::PanelTemplates:
+    //    return (m_windows & ViewPanelTemplates) != 0;
     case DlgObj::PanelStats:
         return (m_windows & ViewPanelStats) != 0;
     case DlgObj::PanelServerLogs:
@@ -209,11 +203,10 @@ bool GraphN_Flow::is_panel_active(DlgObj panel_obj) const
     //case DlgObj::PanelMarkdownPreview:
     //    return (m_windows & ViewPanelMarkdownPreview) != 0;
     }
-    LogInternalLogic("Unhandled panel id " << cast::to_i32(panel_obj));
-    return false;
+    LogRError("Unhandled panel id " << cast::to_i32(panel_obj), false);
 }
 
-const char* GraphN_Flow::get_panel_icon(DlgObj panel_obj) const
+const char* GraphN_Flow::get_panel_icon(DlgObj panel_obj) const noexcept
 {
     switch (panel_obj)
     {
@@ -229,24 +222,23 @@ const char* GraphN_Flow::get_panel_icon(DlgObj panel_obj) const
         return ICON_LC_LIBRARY;
     case DlgObj::PanelWf:
         return ICON_LC_WORKFLOW;
-    case DlgObj::PanelTemplates:
-        return ICON_LC_LAYOUT_TEMPLATE;
+    //case DlgObj::PanelTemplates:
+    //    return ICON_LC_LAYOUT_TEMPLATE;
     case DlgObj::PanelStats:
         return ICON_LC_CHART_LINE;
     case DlgObj::PanelServerLogs:
         return ICON_LC_TERMINAL;
     case DlgObj::PanelTextEditor:
         return ICON_LC_TEXT_INITIAL;
-    case DlgObj::PanelMarkdownPreview:
-        return ICON_LC_HEADING_1;
-    case DlgObj::PanelNotes:
-        return ICON_LC_SCROLL_TEXT;
+    //case DlgObj::PanelMarkdownPreview:
+    //    return ICON_LC_HEADING_1;
+    //case DlgObj::PanelNotes:
+    //    return ICON_LC_SCROLL_TEXT;
     }
-    LogInternalLogic("Unhandled panel id " << cast::to_i32(panel_obj));
-    return false;
+    LogRError("Unhandled panel id " << cast::to_i32(panel_obj), "");
 }
 
-const char* GraphN_Flow::get_panel_name(DlgObj panel_obj) const
+const char* GraphN_Flow::get_panel_name(DlgObj panel_obj) const noexcept
 {
     switch (panel_obj)
     {
@@ -260,8 +252,8 @@ const char* GraphN_Flow::get_panel_name(DlgObj panel_obj) const
         return m_panel_node_inspector->get_panel_name();
     case DlgObj::PanelWfList:
         return m_panel_wf_list->get_panel_name();
-    case DlgObj::PanelTemplates:
-        return m_panel_templates->get_panel_name();
+    //case DlgObj::PanelTemplates:
+    //    return m_panel_templates->get_panel_name();
     case DlgObj::PanelStats:
         return m_panel_stats->get_panel_name();
     case DlgObj::PanelServerLogs:
@@ -271,8 +263,7 @@ const char* GraphN_Flow::get_panel_name(DlgObj panel_obj) const
 //    case DlgObj::PanelNotes:
 //        return m_panel_notes->get_panel_name();
     }
-    LogInternalLogic("Unhandled panel id " << cast::to_i32(panel_obj));
-    return nullptr;
+    LogRError("Unhandled panel id " << cast::to_i32(panel_obj), nullptr);
 }
 
 void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
@@ -296,9 +287,9 @@ void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
     case DlgObj::PanelWfList:
         panel_view = ViewPanelWfList;
         break;
-    case DlgObj::PanelTemplates:
-        panel_view = ViewPanelTemplates;
-        break;
+    //case DlgObj::PanelTemplates:
+    //    panel_view = ViewPanelTemplates;
+    //    break;
     case DlgObj::PanelStats:
         panel_view = ViewPanelStats;
         break;
@@ -312,9 +303,7 @@ void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
     //    panel_view = ViewPanelNotes;
     //    break;
     default:
-        {
-            LogInternalLogic("Unhandled panel id " << cast::to_i32(panel_obj));
-        }
+        LogRError("Unhandled panel id " << cast::to_i32(panel_obj), );
     }
 
     if ((m_windows & panel_view) != 0)
@@ -326,15 +315,15 @@ void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
 
 void GraphN_Flow::exit()
 {
-    LogF;
+    Log("");
     g::app_global_stop_all_threads = true;
     g::block_hotkeys_counter = 0xffff;
     prepare_to_quit();
 }
 
-void GraphN_Flow::stop_all_threads()
+void GraphN_Flow::stop_all_threads() noexcept
 {
-    LogF;
+    Log("");
     g::app_global_stop_all_threads = true;
     g::block_hotkeys_counter = 0xffff;
 }
@@ -352,17 +341,19 @@ bool GraphN_Flow::run()
     show_modal();
 
     check_connection();
-    check_http_reply();
     check_wf_panels_initialized();
 
     g::pQueueManager->process();
+
+    check_http_reply();
 
     return true;
 }
 
 void GraphN_Flow::prepare_to_quit()
 {
-    LogF_In;
+    LogIn;
+
     g::app_global_stop_all_threads = true;
     g::block_hotkeys_counter = 0xffff;
 
@@ -387,10 +378,10 @@ void GraphN_Flow::prepare_to_quit()
         m_nodes_parser->stop();
     m_nodes_parser.reset();
 
-    LogF_Out;
+    LogOut;
 }
 
-void GraphN_Flow::show_logs_panel(bool show)
+void GraphN_Flow::show_logs_panel(bool show) noexcept
 {
     if (g::pOptsManager->comfyui_autohide_output_load() && g::pOptsManager->comfyui_capture_output_load() &&
         g::pOptsManager->comfyui_start_server_load() && g::pComfyUIManager->get_process_started())
@@ -419,6 +410,8 @@ void GraphN_Flow::check_connection()
 
 void GraphN_Flow::import_user_projects()
 {
+    m_wf_imported = true;
+
     if (m_wf_imported || !m_nodes_ready.load(std::memory_order_relaxed))
         return;
     m_wf_imported = true;
@@ -434,7 +427,7 @@ void GraphN_Flow::import_user_projects()
             return;
         }
 
-        if (!data::WorkflowSerializerToJson::deserialize_all_wf_names(payload, *projects))
+        if (!data::WfDeserializerFromJson::deserialize_all_wf_names(payload, *projects))
         {
             Log("All project names deserializarion failed");
             m_wf_imported = false;
@@ -472,7 +465,7 @@ void GraphN_Flow::import_user_projects()
                     }
                 };
 
-                const auto url = fmt::format(comfyui_http::wf_download_, tools::str::cleanup_url(project.first));
+                const auto url = fmt::format(comfyui_http::wf_download_, tools::str::url_encode(project.first));
                 http_get("Flow/Import_projects", []() { return true; }, url.c_str(), download_project);
             }
         }
@@ -492,7 +485,7 @@ void GraphN_Flow::import_files(std::list<std::filesystem::path>&& paths)
     wid activate = 0;
     for (auto& path : paths)
     {
-        auto id = g::pWfsManager->import_wf(path);
+        const auto id = g::pWfsManager->import_wf(path);
         if (id != 0)
             activate = id;
     }
@@ -530,6 +523,8 @@ void GraphN_Flow::reparse_nodes()
         if (result != HTTP_RESP_OK)
         {
             Log("Failed to load object_info");
+            if (HTTP_RESP_TIMEOUT == result)
+                reparse_nodes();
             return;
         }
 
@@ -586,10 +581,10 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
         m_windows &= ~ViewPanelWfList;
         Log("Wf list panel closed");
         break;
-    case DlgObj::PanelTemplates:
-        m_windows &= ~ViewPanelTemplates;
-        Log("Templates panel closed");
-        break;
+    //case DlgObj::PanelTemplates:
+    //    m_windows &= ~ViewPanelTemplates;
+    //    Log("Templates panel closed");
+    //    break;
     case DlgObj::PanelServerLogs:
         m_windows &= ~ViewPanelOutput;
         Log("Output panel closed");
@@ -615,7 +610,7 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
         Log("Right activity bar closed");
         break;
     default:
-        LogError(ExcepCategory::SwitchEnum, "Unregistered dialog is trying to be closed " << cast::to_u64(dlg));
+        LogRError("Unknown dialog is trying to be closed " << cast::to_u64(dlg), );
     }
 
     g::pOptsManager->ui_open_wnds_save(m_windows);
@@ -657,15 +652,15 @@ void GraphN_Flow::txt_panel_create(wid wf, data::NodeInstance* node, data::PinIn
     current_panel->update(wf, node, pin, buffer, hint);
 }
 
-void GraphN_Flow::txt_panel_delete(wid wf, data::NodeInstance* node)
+void GraphN_Flow::txt_panel_delete(wid wf, const data::NodeInstance* node /*= nullptr*/, const data::PinInstance* pin /*= nullptr*/) noexcept
 {
     for (auto& ptr : m_panels_text_editor)
     {
-        ptr->reset(wf, node);
+        ptr->reset(wf, node, pin);
     }
 }
 
-void GraphN_Flow::txt_panel_clear(wid wf)
+void GraphN_Flow::txt_panel_clear(wid wf) noexcept
 {
     for (auto& ptr : m_panels_text_editor)
     {
@@ -673,9 +668,9 @@ void GraphN_Flow::txt_panel_clear(wid wf)
     }
 }
 
-ImGuiID GraphN_Flow::find_def_txt_panel_dock()
+ImGuiID GraphN_Flow::find_def_txt_panel_dock() noexcept
 {
-    auto wnd = ImGui::FindWindowByName(DlgObjID[cast::to_szt(DlgObj::PanelTextEditor)]);
+    const auto* wnd = ImGui::FindWindowByName(DlgObjID[cast::to_szt(DlgObj::PanelTextEditor)]);
     if (wnd != nullptr)
         return wnd->DockId;
     return 0;
@@ -689,7 +684,7 @@ void GraphN_Flow::activate_txt_panels(wid wf)
     }
 }
 
-void GraphN_Flow::destroy_txt_panels()
+void GraphN_Flow::destroy_txt_panels() noexcept
 {
     for (auto& ptr : m_panels_text_editor)
     {
@@ -699,8 +694,9 @@ void GraphN_Flow::destroy_txt_panels()
     m_windows &= ~ViewPanelTextEditor;
 }
 
-void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel)
+void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel) noexcept
 {
+    LogRAssert(panel, "Zero ptr", );
     for (auto it = m_panels_text_editor.begin(); it != m_panels_text_editor.end(); ++it)
     {
         if (it->get() == panel)
@@ -773,7 +769,7 @@ void GraphN_Flow::show_activity_bar()
     }
 }
 
-void GraphN_Flow::show_debug_windows()
+void GraphN_Flow::show_debug_windows() noexcept
 {
 #ifdef _DEBUG
     if (m_windows & ViewDebugMetrics)
@@ -840,6 +836,7 @@ void GraphN_Flow::show_modal()
 
 void GraphN_Flow::show_panel(BaseDlg* panel, DlgObj obj)
 {
+    LogRAssert(panel, "Zero ptr", );
     bool focused = false;
     if (panel->show_dialog(focused) != DlgCode::Progress)
     {
@@ -877,10 +874,10 @@ void GraphN_Flow::show_panel_output()
     show_panel(m_panel_logs.get(), DlgObj::PanelServerLogs);
 }
 
-void GraphN_Flow::show_panel_templates()
-{
-    show_panel(m_panel_templates.get(), DlgObj::PanelTemplates);
-}
+//void GraphN_Flow::show_panel_templates()
+//{
+//    show_panel(m_panel_templates.get(), DlgObj::PanelTemplates);
+//}
 
 //void GraphN_Flow::show_panel_notes()
 //{
@@ -939,7 +936,7 @@ void GraphN_Flow::show_panel_wf()
     }
 }
 
-void GraphN_Flow::handle_comfyui_runserver_error(int32_t error, const std::string& title, const std::string& description)
+void GraphN_Flow::handle_comfyui_runserver_error(int32_t error, const std::string& title, const std::string& description) noexcept
 {
     (void)error;
     (void)title;
@@ -1016,7 +1013,7 @@ void GraphN_Flow::show_menu_bar_net_status()
 
 void GraphN_Flow::show_panels()
 {
-    auto viewport = ImGui::GetMainViewport();
+    const auto* viewport = ImGui::GetMainViewport();
     //m_main_dock_id = ImGui::DockSpaceOverViewport(viewport); // , ImGuiDockNodeFlags_PassthruCentralNode);
 
     static bool focus_fixed = false;
@@ -1034,14 +1031,14 @@ void GraphN_Flow::show_panels()
     ImGui::SetNextWindowSize(dock_size);
     ImGui::SetNextWindowViewport(viewport->ID);
 
-    ImGuiWindowFlags host_window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
+    constexpr ImGuiWindowFlags host_window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
     bool open = true;
-    bool opened = ImGui::Begin("MainWorkspaceHost", &open, host_window_flags);
+    const bool opened = ImGui::Begin("MainWorkspaceHost", &open, host_window_flags);
     ImGui::PopStyleVar(3);
     if (!opened)
         return;
@@ -1070,10 +1067,10 @@ void GraphN_Flow::show_panels()
         ImGui::DockBuilderSetNodeSize(m_main_dock_id, viewport->WorkSize);
 
         ImGuiID dock_id_left_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Left, 0.15f, nullptr, &m_main_dock_id);
-        ImGuiID dock_id_left_btm = ImGui::DockBuilderSplitNode(dock_id_left_top, ImGuiDir_Down, 0.3f, nullptr, &dock_id_left_top);
+        const ImGuiID dock_id_left_btm = ImGui::DockBuilderSplitNode(dock_id_left_top, ImGuiDir_Down, 0.3f, nullptr, &dock_id_left_top);
         ImGuiID dock_id_right_top = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Right, 0.2f, nullptr, &m_main_dock_id);
-        ImGuiID dock_id_right_bottom = ImGui::DockBuilderSplitNode(dock_id_right_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right_top);
-        ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.25f, nullptr, &m_main_dock_id);
+        const ImGuiID dock_id_right_bottom = ImGui::DockBuilderSplitNode(dock_id_right_top, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right_top);
+        const ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(m_main_dock_id, ImGuiDir_Down, 0.25f, nullptr, &m_main_dock_id);
 
         std::string id;
 
@@ -1083,7 +1080,7 @@ void GraphN_Flow::show_panels()
 
         // left bottom
         ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_wf_list->get_panel_id()), dock_id_left_btm);
-        ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_templates->get_panel_id()), dock_id_left_btm);
+        //ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_templates->get_panel_id()), dock_id_left_btm);
 
         // right top
         ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_stats->get_panel_id()), dock_id_right_top);
@@ -1135,8 +1132,8 @@ void GraphN_Flow::show_panels()
     //    show_panel_notes();
     if (m_windows & ViewPanelOutput)
         show_panel_output();
-    if (m_windows & ViewPanelTemplates)
-        show_panel_templates();
+    //if (m_windows & ViewPanelTemplates)
+    //    show_panel_templates();
 
     if (m_windows & ViewPanelWf)
         show_panel_wf();
@@ -1146,12 +1143,7 @@ void GraphN_Flow::show_panels()
 
 void GraphN_Flow::modal_begin(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def, const std::function<void(ModalDlgCtrl)>& callback)
 {
-    if (m_modal_message)
-    {
-        LogInternalLogic("Message dialog already open");
-        return;
-    }
-
+    LogRAssert(!m_modal_message, "Message dialog already open", );
     Log("Modal started: " << message);
     m_msg_callback = callback;
     m_modal_message = std::make_unique<ModalMessage>();
@@ -1161,13 +1153,9 @@ void GraphN_Flow::modal_begin(std::string&& caption, std::string&& message, int3
 
 void GraphN_Flow::GraphN_Flow::modal_show()
 {
-    if (!m_modal_message)
-    {
-        LogInternalLogic("Message dialog wasn't initialized");
-        return;
-    }
+    LogRAssert(m_modal_message, "Message dialog wasn't initialized", );
 
-    auto ret = m_modal_message->show();
+    const auto ret = m_modal_message->show();
     if (ret != ModalDlgCtrl::Continue)
     {
         Log("Modal replied: " << ret);
@@ -1179,16 +1167,12 @@ void GraphN_Flow::GraphN_Flow::modal_show()
 
 void GraphN_Flow::GraphN_Flow::modal_update(std::string&& message)
 {
-    if (!m_modal_message)
-    {
-        LogInternalLogic("Message dialog wasn't initialized");
-        return;
-    }
+    LogRAssert(m_modal_message, "Message dialog wasn't initialized", );
     Log("Modal updated: " << message);
     m_modal_message->update(std::move(message));
 }
 
-void GraphN_Flow::modal_stop()
+void GraphN_Flow::modal_stop() noexcept
 {
     m_msg_callback = nullptr;
     m_windows &= ~ViewModal;
@@ -1200,8 +1184,7 @@ void GraphN_Flow::modal_last_frame()
     if (!m_modal_message)
     {
         m_windows &= ~(ViewModal | ViewModalStop);
-        LogInternalLogic("Message dialog wasn't initialized");
-        return;
+        LogRError("Message dialog wasn't initialized", );
     }
 
     m_modal_message->stop();
@@ -1216,10 +1199,10 @@ void GraphN_Flow::load_hotkeys()
     wf_assign_sequential_numbers();
 }
 
-void GraphN_Flow::http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback)
+void GraphN_Flow::http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
-    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, false);
+    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, false, {}, {}, retry_on_timeout);
     if (callback != nullptr)
         m_http_requests[req_id] = { alive, callback, ImGui::GetTime() };
 }
@@ -1227,7 +1210,15 @@ void GraphN_Flow::http_get(const char* who_is_asking, const StillAliveCallback& 
 void GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
-    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, true, std::move(payload));
+    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, true, std::move(payload), {}, false);
+    if (callback != nullptr)
+        m_http_requests[req_id] = { alive, callback, ImGui::GetTime() };
+}
+
+void GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback)
+{
+    std::unique_lock<std::mutex> lock(m_http_req_mutex);
+    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, true, {}, std::move(payload), false);
     if (callback != nullptr)
         m_http_requests[req_id] = { alive, callback, ImGui::GetTime() };
 }
@@ -1237,10 +1228,10 @@ void GraphN_Flow::check_http_reply()
     if (get_is_quit())
         return;
 
-    const auto max_processing_time = 0.003; // max 3ms per frame
+    constexpr auto max_processing_time = 0.003; // max 3ms per frame
     const auto start_time = ImGui::GetTime();
 
-    uint32_t rid;
+    uint32_t rid = 0;
     int32_t result = 0;
     std::string response;
 
@@ -1273,6 +1264,7 @@ void GraphN_Flow::check_http_reply()
             const auto req_time = std::get<2>(it->second);
             if (now - req_time > HTTP_REQUEST_LIFETIME)
             {
+                Log("HTTP-Resp timeout");
                 const auto alive = std::get<0>(it->second);
                 if (alive())
                 {
@@ -1294,7 +1286,7 @@ void GraphN_Flow::check_ws_message(const std::function<void(bool, std::string&)>
     if (get_is_quit())
         return;
 
-    const auto max_processing_time = 0.003; // max 3ms per frame
+    constexpr auto max_processing_time = 0.003; // max 3ms per frame
     const auto start_time = ImGui::GetTime();
 
     bool is_binary;

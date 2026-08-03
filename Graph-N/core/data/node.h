@@ -10,11 +10,11 @@ namespace data
 
 struct Node : public base::HashID
 {
-    using base::HashID::HashID;
-    ~Node() override;
+    Node(const std::string& class_name);
+    ~Node() noexcept override;
 
-    void finalize(std::unordered_map<std::string, std::list<hid>>& models_map);
-    Pin* find_pin(hid pin_id, bool input);
+    void finalize(std::unordered_map<std::string, std::list<hid>>* models_map);
+    Pin* find_pin(hid pin_hash, bool input) noexcept;
 
     bool has_input = false;
     struct Input final
@@ -30,6 +30,9 @@ struct Node : public base::HashID
     bool has_output = false;
     bool output_node = false;
     std::vector<Pin*> output;
+
+    bool can_bypass = true;
+    bool can_mute = true;
 
     std::string name;
     std::string node_class;
