@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 #include "core/data/node.h"
 
@@ -9,7 +9,7 @@ struct NodeNote final : public Node
 {
 public:
     using Node::Node;
-    ~NodeNote() = default;
+    ~NodeNote() noexcept = default;
 };
 
 } // namespace data

@@ -75,6 +75,8 @@ void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
     if (m_group)
         return;
 
+    if (cni_copy_from(copy_from_node, copy_pin_ids))
+        return;
 
     auto wf = g::pWfsManager->access(get_workflow_id());
 
@@ -390,6 +392,12 @@ void NodeInstance::reset_to_default_colors() noexcept
     }
     else if (get_object() != nullptr)
     {
+        const auto& cl = get_object()->node_class;
+        ImU32 color = 0;
+        if (cl == CNI_CLASS_NOTE || cl == CNI_CLASS_MARKDOWN_NOTE)
+            color = g::pOptsManager->color_load(AppColor::NoteNode);
+        else
+            color = g::pOptsManager->color_load(AppColor::NodeBodyBg);
         set_node_color(ImGui::ColorConvertU32ToFloat4(color));
     }
 }

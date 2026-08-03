@@ -2,6 +2,7 @@
 #include "core/managers/nodes_parser.h"
 #include "core/managers/models_manager.h"
 #include "core/managers/settings_manager.h"
+#include "core/workflow/custom_nodes/all_impl.h"
 #include "core/data/pin.h"
 #include "ui/graph-n_flow.h"
 
@@ -100,6 +101,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
         g::pModelsManager->set_nodes_map(std::move(models_map));
 
         Log("Parsed: " << m_parsed_item.load(std::memory_order_relaxed) << " item. Adding internal nodes");
+        add_internal_nodes(*nodes_manager.get());
         sort_nodes(*nodes_manager.get());
         nodes_manager->init_labels();
         Log("Nodes loading and parsing done");
@@ -962,6 +964,27 @@ void NodesParser::sort_nodes(NodesManager& manager)
 
     sort_tree(manager.m_nodes_tree);
     NodesManager::sort_nodes(manager.m_nodes_plain);
+}
+
+template <typename T>
+data::Node* add_internal_node(NodesManager& manager, std::unordered_map<hid, std::unique_ptr<data::Node>>& all_nodes)
+{
+    data::Node* node = nullptr;
+    if (all_nodes.find(base::HashID::make_hash(T::cni_get_node_class())) == all_nodes.end())
+    {
+        auto node_ptr = T::cni_create_object(&manager);
+        node = node_ptr.get();
+        const auto hash = node_ptr->get_hash();
+        all_nodes.emplace(hash, std::move(node_ptr));
+        LogS("Custom node added: " << T::cni_get_node_class());
+    }
+    return node;
+}
+
+void NodesParser::add_internal_nodes(NodesManager& manager)
+{
+    put_in_tree(manager, add_internal_node<data::CNI_Note>(manager, manager.m_nodes));
+    put_in_tree(manager, add_internal_node<data::CNI_MarkdownNote>(manager, manager.m_nodes));
 }
 
 } // namespace mngr
