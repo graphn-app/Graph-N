@@ -51,7 +51,7 @@ struct HashID
     static hid make_hash(const std::string& unique) noexcept;
 
 private:
-    void set_hash(hid hash);
+    void set_hash(hid hash) noexcept;
 
 private:
     hid m_hash = 0;

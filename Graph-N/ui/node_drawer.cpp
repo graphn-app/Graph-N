@@ -1700,7 +1700,7 @@ ImRect NodeDrawer::fit_group_rect(const data::NodeInstance* group, const std::se
     return rect;
 }
 
-void NodeDrawer::delete_node(data::NodeInstance* node) noexcept
+void NodeDrawer::delete_node(data::NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
     if (nullptr == m_context) return;
@@ -1725,7 +1725,7 @@ void NodeDrawer::delete_node(data::NodeInstance* node) noexcept
         ed::SetCurrentEditor(nullptr);
 }
 
-void NodeDrawer::delete_link(data::Link* link) noexcept
+void NodeDrawer::delete_link(data::Link* link)
 {
     LogRAssert(link, "Zero ptr", );
     if (nullptr == m_context) return;

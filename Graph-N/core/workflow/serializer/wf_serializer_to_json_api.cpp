@@ -10,7 +10,7 @@
 namespace data
 {
 
-WfSerializerToJsonApi::WfSerializerToJsonApi(const Workflow* wf)
+WfSerializerToJsonApi::WfSerializerToJsonApi(const Workflow* wf) noexcept
     : m_wf(wf)
 {}
 
@@ -63,7 +63,7 @@ o_json WfSerializerToJsonApi::serialize()
             {
                 o_json& input = inputs[pin->get_object()->def_state.name];
 
-                std::visit([&input, pin](const auto& v)
+                std::visit([&input, pin](const auto& v) noexcept
                 {
                     using T = std::decay_t<decltype(v)>;
 

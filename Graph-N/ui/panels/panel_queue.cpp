@@ -1671,7 +1671,7 @@ void PanelQueue::pickup_parsed_history()
             wfid = g::pWfsManager->import_wf_from_json(task.flow_json_api, task.prompt_id, {}, true);
         if (wfid != 0)
         {
-            auto* wf = g::pWfsManager->access(wfid);
+            const auto* wf = g::pWfsManager->access(wfid);
             task.flow = data::WfSerializerToBlob(wf).serialize({}).release();
             task.search_data = wf->collect_search_data();
             g::pWfsManager->erase_wf(wfid);

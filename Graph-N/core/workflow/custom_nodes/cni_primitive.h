@@ -31,7 +31,7 @@ public:
 
     void cni_init() override;
 
-    bool cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids);
+    bool cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
 
     bool cni_can_link(const PinInstance* p1, const PinInstance* p2) const noexcept override;
     void cni_pin_linked(PinInstance* p1, PinInstance* p2) override;

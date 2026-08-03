@@ -88,8 +88,8 @@ public:
     void rename_pin(data::PinInstance* pin) noexcept;
     void handle_node_collapsing(const data::NodeInstance* node);
 
-    void delete_node(data::NodeInstance* node) noexcept;
-    void delete_link(data::Link* link) noexcept;
+    void delete_node(data::NodeInstance* node);
+    void delete_link(data::Link* link);
 
     ImU32 get_default_node_color() const noexcept { return m_defclr_node_bg; }
 

@@ -11,9 +11,9 @@ class Link;
 class WfDeserializerFromBlob final
 {
 public:
-    WfDeserializerFromBlob(Workflow* wf);
-    WfDeserializerFromBlob(Workflow* wf, const blob::Blob& blob);
-    ~WfDeserializerFromBlob() = default;
+    WfDeserializerFromBlob(Workflow* wf) noexcept;
+    WfDeserializerFromBlob(Workflow* wf, const blob::Blob& blob) noexcept;
+    ~WfDeserializerFromBlob() noexcept = default;
 
     NO_COPY_MOVE(WfDeserializerFromBlob);
 

@@ -70,9 +70,9 @@ public:
     void merge_reroutes(const std::set<data::NodeInstance*>& nodes);
     void split_reroutes(const std::set<data::NodeInstance*>& nodes);
     void insert_reroute(data::Link* link, const ImVec2& pos);
-    void collapse_reroute(data::NodeInstance* node);
+    void collapse_reroute(const data::NodeInstance* node);
 
-    void bypass_node(data::NodeInstance* node);
+    void bypass_node(const data::NodeInstance* node);
 
     void prepare_for_api();
 

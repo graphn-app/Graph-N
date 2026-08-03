@@ -435,7 +435,7 @@ void Workflow::split_reroutes(const std::set<data::NodeInstance*>& nodes)
                 break;
             }
 
-            auto new_node = m_action->add_node(node->get_object(), "", rect);
+            const auto* new_node = m_action->add_node(node->get_object(), "", rect);
             LogCAssert(new_node->is_cni_reroute(), "New node is not reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", t:" << typeid(new_node).name());
             LogCAssert(new_node->get_inputs().size() == new_node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz1:" << new_node->get_inputs().size() << ", sz2:" << new_node->get_outputs().size());
             LogCAssert(new_node->get_inputs().size() == 1, "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz:" << new_node->get_inputs().size());
@@ -560,7 +560,7 @@ void Workflow::merge_reroutes(const std::set<data::NodeInstance*>& nodes)
     m_action->multi_action_off();
 }
 
-void Workflow::collapse_reroute(data::NodeInstance* node)
+void Workflow::collapse_reroute(const data::NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
     LogRAssert(node->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name(), );
@@ -625,7 +625,7 @@ void Workflow::collapse_reroute(data::NodeInstance* node)
     m_action->multi_action_off();
 }
 
-void Workflow::bypass_node(data::NodeInstance* node)
+void Workflow::bypass_node(const data::NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
     
@@ -752,7 +752,7 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
     auto reroute_obj = g::pNodesManager->find_node(base::HashID::make_hash(CNI_CLASS_REROUTE));
     LogRAssert(reroute_obj != nullptr, "Reroute node obj not found", );
 
-    auto reroute = m_action->add_node(reroute_obj, "", ImRect(pos.x, pos.y, 0, 0));
+    const auto* reroute = m_action->add_node(reroute_obj, "", ImRect(pos.x, pos.y, 0, 0));
     LogRAssert(reroute != nullptr, "Reroute node not created", );
     LogRAssert(reroute->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", t:" << typeid(reroute).name(), );
     LogRAssert(reroute->get_inputs().size() == reroute->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", sz1:" << reroute->get_inputs().size() << ", sz2:" << reroute->get_outputs().size(), );
@@ -843,7 +843,7 @@ void Workflow::increment(const Workflow* copy_to)
 {
     for (auto& node : m_nodes)
     {
-        auto copy_to_node = (nullptr == copy_to ? nullptr : copy_to->get_node_by_instance(node->get_instance_id()));
+        const auto* copy_to_node = (nullptr == copy_to ? nullptr : copy_to->get_node_by_instance(node->get_instance_id()));
         auto copy_to_action = (nullptr == copy_to ? nullptr : copy_to->action());
         node->increment(copy_to_node, copy_to_action);
     }

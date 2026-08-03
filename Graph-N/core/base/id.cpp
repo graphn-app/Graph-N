@@ -105,7 +105,7 @@ HashID::HashID(const std::string& unique)
 
 HashID::~HashID() noexcept = default;
 
-void HashID::set_hash(hid hash)
+void HashID::set_hash(hid hash) noexcept
 {
     m_hash = hash;
 }

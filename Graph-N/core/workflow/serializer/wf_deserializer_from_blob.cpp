@@ -9,13 +9,13 @@
 namespace data
 {
 
-WfDeserializerFromBlob::WfDeserializerFromBlob(Workflow* wf)
+WfDeserializerFromBlob::WfDeserializerFromBlob(Workflow* wf) noexcept
     : m_wf(wf)
     , m_reader({})
 {
 }
 
-WfDeserializerFromBlob::WfDeserializerFromBlob(Workflow* wf, const blob::Blob& blob)
+WfDeserializerFromBlob::WfDeserializerFromBlob(Workflow* wf, const blob::Blob& blob) noexcept
     : m_wf(wf)
     , m_reader(blob)
 {

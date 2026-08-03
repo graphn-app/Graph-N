@@ -723,7 +723,7 @@ void PanelNodes::on_alloc_tt_data(int32_t idx)
     m_tt_width = m_tt_node->calc_node_width(true, false);
 }
 
-void PanelNodes::on_release_tt_data(int32_t /*idx*/) noexcept
+void PanelNodes::on_release_tt_data(int32_t /*idx*/)
 {
     if (m_tt_node != nullptr)
         m_wf->remove_node(m_tt_node);

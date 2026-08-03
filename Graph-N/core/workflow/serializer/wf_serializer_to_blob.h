@@ -11,8 +11,8 @@ class Link;
 class WfSerializerToBlob final
 {
 public:
-    WfSerializerToBlob(const Workflow* wf);
-    ~WfSerializerToBlob() = default;
+    WfSerializerToBlob(const Workflow* wf) noexcept;
+    ~WfSerializerToBlob() noexcept = default;
 
     NO_COPY_MOVE(WfSerializerToBlob);
 

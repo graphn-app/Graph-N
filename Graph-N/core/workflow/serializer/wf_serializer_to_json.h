@@ -10,8 +10,8 @@ class Link;
 class WfSerializerToJson final
 {
 public:
-    WfSerializerToJson(const Workflow* wf);
-    ~WfSerializerToJson() = default;
+    WfSerializerToJson(const Workflow* wf) noexcept;
+    ~WfSerializerToJson() noexcept = default;
 
     NO_COPY_MOVE(WfSerializerToJson);
 

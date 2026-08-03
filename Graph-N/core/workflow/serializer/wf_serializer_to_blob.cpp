@@ -9,7 +9,7 @@
 namespace data
 {
 
-WfSerializerToBlob::WfSerializerToBlob(const Workflow* wf)
+WfSerializerToBlob::WfSerializerToBlob(const Workflow* wf) noexcept
     : m_wf(wf)
 {}
 

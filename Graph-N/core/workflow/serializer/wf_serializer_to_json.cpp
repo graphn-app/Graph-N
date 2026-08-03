@@ -22,7 +22,7 @@ std::string color_to_string(ImU32 color)
 }
 } // namespace
 
-WfSerializerToJson::WfSerializerToJson(const Workflow* wf)
+WfSerializerToJson::WfSerializerToJson(const Workflow* wf) noexcept
     : m_wf(wf)
 {}
 
