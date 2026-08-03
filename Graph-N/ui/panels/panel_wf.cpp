@@ -193,6 +193,11 @@ void PanelWorkflow::delete_nodes(const std::set<data::NodeInstance*>& nodes)
     m_action->multi_action_on("Remove");
     for (auto node : nodes)
     {
+        if (node->is_cni_reroute())
+            m_wf->collapse_reroute(node);
+    }
+    for (auto node : nodes)
+    {
         m_action->delete_node(node);
     }
     m_action->multi_action_off();
@@ -229,6 +234,28 @@ void PanelWorkflow::redo() const
 {
     if (can_redo())
         g::pHistoryManager->redo(m_wf->get_id());
+}
+
+void PanelWorkflow::split_reroutes(const std::set<data::NodeInstance*>& nodes)
+{
+    if (nodes.empty())
+        return;
+
+    m_wf->split_reroutes(nodes);
+}
+
+void PanelWorkflow::merge_reroutes(const std::set<data::NodeInstance*>& nodes)
+{
+    if (nodes.size() <= 1)
+        return;
+
+    m_wf->merge_reroutes(nodes);
+}
+
+void PanelWorkflow::insert_reroute(data::Link* link, const ImVec2& pos)
+{
+    LogRAssert(link != nullptr, "Zero ptr", );
+    m_wf->insert_reroute(link, pos);
 }
 
 void PanelWorkflow::draw_wf()

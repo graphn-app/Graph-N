@@ -67,6 +67,10 @@ public:
     void remove_link(const Link* link);
     void remove_pin(const PinInstance* pin) noexcept;
 
+    void merge_reroutes(const std::set<data::NodeInstance*>& nodes);
+    void split_reroutes(const std::set<data::NodeInstance*>& nodes);
+    void insert_reroute(data::Link* link, const ImVec2& pos);
+    void collapse_reroute(data::NodeInstance* node);
 
     void bypass_node(data::NodeInstance* node);
 

@@ -54,6 +54,10 @@ std::unique_ptr<NodeInstance> Workflow::create_node(data::Node* node, iid node_i
     if (node != nullptr)
     {
         std::unique_ptr<NodeInstance> custom_node;
+        if (CNI_LoadImage::cni_is_same(node))              custom_node = std::make_unique<CNI_LoadImage>(node, get_id(), node_id);
+        else if (CNI_Primitive::cni_is_same(node))         custom_node = std::make_unique<CNI_Primitive>(node, get_id(), node_id);
+        else if (CNI_Reroute::cni_is_same(node))           custom_node = std::make_unique<CNI_Reroute>(node, get_id(), node_id);
+
         if (custom_node && custom_node->cni_is_applicable())
         {
             Log("Node created (CNI). w:" << get_id() << ", n:" << custom_node->get_instance_id() << ":" << node->node_class);
@@ -70,6 +74,10 @@ std::unique_ptr<NodeInstanceRo> Workflow::create_node_ro(data::Node* node, iid n
     if (node != nullptr)
     {
         std::unique_ptr<NodeInstanceRo> custom_node;
+        if (CNI_LoadImage::cni_is_same(node))              custom_node = std::make_unique<CNI_LoadImage>(node, get_id(), node_id);
+        else if (CNI_Primitive::cni_is_same(node))         custom_node = std::make_unique<CNI_Primitive>(node, get_id(), node_id);
+        else if (CNI_Reroute::cni_is_same(node))           custom_node = std::make_unique<CNI_Reroute>(node, get_id(), node_id);
+
         if (custom_node && custom_node->cni_is_applicable())
         {
             Log("Node(RO) created (CNI). w:" << get_id() << ", n:" << custom_node->get_instance_id() << ":" << node->node_class);
@@ -89,7 +97,6 @@ NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0
     auto ptr = instance.get();
     ptr->init(select);
     m_nodes.push_back(std::move(instance));
-    Log("Node added wid=" << m_wf_data.id << ", hid=" << node->get_id() << ", iid=" << id);
     return ptr;
 }
 
@@ -382,6 +389,241 @@ void Workflow::remove_link(const Link* link)
     m_links.erase(it);
 }
 
+void Workflow::split_reroutes(const std::set<data::NodeInstance*>& nodes)
+{
+    m_action->multi_action_on("Split");
+    for (auto node : nodes)
+    {
+        LogCAssert(node->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
+        LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
+
+        const size_t count = node->get_inputs().size() - 1;
+        ImRect rect = node->m_rc;
+
+        for (size_t i = 1; i < count; i++)
+        {
+            const auto in_pin = node->get_inputs()[i];
+            const auto out_pin = node->get_outputs()[i];
+            if (in_pin->get_object()->hidden || out_pin->get_object()->hidden)
+                continue;
+
+            data::PinInstance* left_pin = nullptr;
+            data::PinInstance* right_pin = nullptr;
+            data::Link* left_link = nullptr;
+            data::Link* right_link = nullptr;
+
+            const auto& links = get_links();
+            for (auto& link : links)
+            {
+                if (link->get_input()->get_instance_id() == in_pin->get_instance_id())
+                {
+                    left_pin = link->get_output();
+                    left_link = link.get();
+                }
+                else if (link->get_output()->get_instance_id() == out_pin->get_instance_id())
+                {
+                    right_pin = link->get_input();
+                    right_link = link.get();
+                }
+                if (left_pin != nullptr && right_pin != nullptr)
+                    break;
+            }
+
+            if (nullptr == left_pin && nullptr == right_pin)
+            {
+                LogError("Linked pins not found. w:" << get_id() << ", n1:" << in_pin->get_parent_node() << ", p1:" << in_pin->get_instance_id() << ", n2:" << out_pin->get_parent_node() << ", p2:" << out_pin->get_instance_id());
+                break;
+            }
+
+            auto new_node = m_action->add_node(node->get_object(), "", rect);
+            LogCAssert(new_node->is_cni_reroute(), "New node is not reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", t:" << typeid(new_node).name());
+            LogCAssert(new_node->get_inputs().size() == new_node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz1:" << new_node->get_inputs().size() << ", sz2:" << new_node->get_outputs().size());
+            LogCAssert(new_node->get_inputs().size() == 1, "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz:" << new_node->get_inputs().size());
+
+            if (left_pin != nullptr)
+            {
+                m_action->unlink(left_link);
+                auto new_in_pin = new_node->get_inputs()[0];
+                m_action->link(left_pin, new_in_pin);
+            }
+            if (right_pin != nullptr)
+            {
+                m_action->unlink(right_link);
+                auto new_out_pin = new_node->get_outputs()[0];
+                m_action->link(right_pin, new_out_pin);
+            }
+
+            rect.Min.x += 10;
+            rect.Min.y += 10;
+        }
+    }
+    m_action->multi_action_off();
+}
+
+void Workflow::merge_reroutes(const std::set<data::NodeInstance*>& nodes)
+{
+    if (nodes.size() <= 1)
+        return;
+
+    m_action->multi_action_on("Merge");
+
+    data::NodeInstance* dest_node = nullptr;
+    for (auto node : nodes)
+    {
+        LogCAssert(node->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
+        LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
+
+        if (nullptr == dest_node)
+        {
+            dest_node = node;
+            continue;
+        }
+
+        bool node_can_merge = true;
+        enum Step { Check, Relink, Finish };
+
+        for (int32_t step = Step::Check; node_can_merge && step < Step::Finish; step++)
+        {
+            const size_t count = node->get_inputs().size() - 1;
+            for (size_t i = 0; node_can_merge && i < count; i++)
+            {
+                const auto in_pin = node->get_inputs()[i];
+                const auto out_pin = node->get_outputs()[i];
+
+                if (in_pin->get_object()->hidden)
+                    continue;
+
+                data::PinInstance* left_pin = nullptr;
+                data::PinInstance* right_pin = nullptr;
+                data::Link* left_link = nullptr;
+                data::Link* right_link = nullptr;
+
+                const auto& links = get_links();
+                for (auto& link : links)
+                {
+                    if (link->get_input()->get_instance_id() == in_pin->get_instance_id())
+                    {
+                        left_pin = link->get_output();
+                        left_link = link.get();
+                    }
+                    else if (link->get_output()->get_instance_id() == out_pin->get_instance_id())
+                    {
+                        right_pin = link->get_input();
+                        right_link = link.get();
+                    }
+                    if (left_pin != nullptr && right_pin != nullptr)
+                        break;
+                }
+
+                if (nullptr == left_pin && nullptr == right_pin)
+                {
+                    node_can_merge = false;
+                    LogError("Linked pins not found. w:" << get_id() << ", n1:" << in_pin->get_parent_node() << ", p1:" << in_pin->get_instance_id() << ", n2:" << out_pin->get_parent_node() << ", p2:" << out_pin->get_instance_id());
+                    break;
+                }
+
+                const size_t dest_idx = dest_node->get_inputs().size() - 1;
+                if (left_pin != nullptr)
+                {
+                    auto new_in_pin = dest_node->get_inputs()[dest_idx];
+                    if (Step::Check == step && !Link::can_link(left_pin, new_in_pin))
+                    {
+                        node_can_merge = false;
+                        break;
+                    }
+                    else if (Step::Relink == step)
+                    {
+                        m_action->unlink(left_link);
+                        m_action->link(left_pin, new_in_pin);
+                    }
+                }
+                if (right_pin != nullptr)
+                {
+                    auto new_out_pin = dest_node->get_outputs()[dest_idx];
+                    if (Step::Check == step && !Link::can_link(right_pin, new_out_pin))
+                    {
+                        node_can_merge = false;
+                        break;
+                    }
+                    else if (Step::Relink == step)
+                    {
+                        m_action->unlink(right_link);
+                        m_action->link(right_pin, new_out_pin);
+                    }
+                }
+            }
+        }
+
+        if (node_can_merge)
+            m_action->delete_node(node);
+    }
+    m_action->multi_action_off();
+}
+
+void Workflow::collapse_reroute(data::NodeInstance* node)
+{
+    LogRAssert(node, "Zero ptr", );
+    LogRAssert(node->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name(), );
+    LogRAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size(), );
+
+    m_action->multi_action_on("Collapse");
+
+    const size_t count = node->get_inputs().size() - 1;
+
+    for (size_t i = 0; i < count; i++)
+    {
+        const auto in_pin = node->get_inputs()[i];
+        const auto out_pin = node->get_outputs()[i];
+        if (in_pin->get_object()->hidden || out_pin->get_object()->hidden)
+            continue;
+
+        PinInstance* left_pin = nullptr;
+        Link* left_link = nullptr;
+        std::list<std::pair<PinInstance*, Link*>> right_pin_link;
+
+        const auto& links = get_links();
+        for (auto& link : links)
+        {
+            if (link->get_input()->get_instance_id() == in_pin->get_instance_id())
+            {
+                left_pin = link->get_output();
+                left_link = link.get();
+            }
+            else if (link->get_output()->get_instance_id() == out_pin->get_instance_id())
+            {
+                right_pin_link.push_back({ link->get_input(), link.get() });
+            }
+        }
+
+        if (nullptr == left_pin && right_pin_link.empty())
+        {
+            LogError("Linked pins not found. w:" << get_id() << ", n1:" << in_pin->get_parent_node() << ", p1:" << in_pin->get_instance_id() << ", n2:" << out_pin->get_parent_node() << ", p2:" << out_pin->get_instance_id());
+            break;
+        }
+
+        if (left_link != nullptr)
+            m_action->unlink(left_link);
+        std::for_each(right_pin_link.begin(), right_pin_link.end(), [this](const std::pair<PinInstance*, Link*>& pair) { m_action->unlink(pair.second); });
+
+        if (left_pin != nullptr)
+        {
+            for (const auto& pair : right_pin_link)
+            {
+                auto right_pin = pair.first;
+                if (left_pin->get_parent_node() == right_pin->get_parent_node())
+                    continue;
+
+                LogCAssert(Link::can_link(left_pin, right_pin), "Reroute external link can't be linked. w:" << get_id()
+                    << ", p1:" << left_pin->get_instance_id() << ":" << left_pin->state().type_str
+                    << ", p2:" << right_pin->get_instance_id() << ":" << right_pin->state().type_str);
+
+                m_action->link(left_pin, right_pin);
+            }
+        }
+    }
+    
+    m_action->multi_action_off();
+}
 
 void Workflow::bypass_node(data::NodeInstance* node)
 {
@@ -479,6 +721,11 @@ void Workflow::prepare_for_api()
     {
         bool remove = (node->m_group || node->get_mode() == NodeMode::Mute);
 
+        if (!remove && node->is_cni_reroute())
+        {
+            collapse_reroute(node);
+            remove = true;
+        }
 
         if (!remove && node->get_mode() == NodeMode::Bypass)
         {
@@ -493,6 +740,40 @@ void Workflow::prepare_for_api()
     }
 }
 
+void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
+{
+    LogRAssert(link, "Zero ptr", );
+
+    m_action->multi_action_on("Reroute");
+
+    auto left = link->get_output();
+    auto right = link->get_input();
+
+    auto reroute_obj = g::pNodesManager->find_node(base::HashID::make_hash(CNI_CLASS_REROUTE));
+    LogRAssert(reroute_obj != nullptr, "Reroute node obj not found", );
+
+    auto reroute = m_action->add_node(reroute_obj, "", ImRect(pos.x, pos.y, 0, 0));
+    LogRAssert(reroute != nullptr, "Reroute node not created", );
+    LogRAssert(reroute->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", t:" << typeid(reroute).name(), );
+    LogRAssert(reroute->get_inputs().size() == reroute->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", sz1:" << reroute->get_inputs().size() << ", sz2:" << reroute->get_outputs().size(), );
+    LogRAssert(reroute->get_inputs().size() == 1, "Invalid reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", sz1:" << reroute->get_inputs().size() << ", sz2:" << reroute->get_outputs().size(), );
+
+    auto reroute_in = reroute->get_inputs()[0];
+    auto reroute_out = reroute->get_outputs()[0];
+
+    m_action->unlink(link);
+
+    LogRAssert(Link::can_link(left, reroute_in), "Rerouted pins (left) can't be linked. w:" << get_id() << ", l:" << link->get_instance_id()
+        << ", p1:" << left->get_instance_id() << ":" << left->state().type_str
+        << ", p2:" << reroute_in->get_instance_id() << ":" << reroute_in->state().type_str, );
+    LogRAssert(Link::can_link(right, reroute_out), "Rerouted pins (right) can't be linked. w:" << get_id() << ", l:" << link->get_instance_id()
+        << ", p1:" << right->get_instance_id() << ":" << right->state().type_str
+        << ", p2:" << reroute_out->get_instance_id() << ":" << reroute_out->state().type_str, );
+
+    m_action->link(left, reroute_in);
+    m_action->link(right, reroute_out);
+
+    m_action->multi_action_off();
 }
 
 void Workflow::reset() noexcept

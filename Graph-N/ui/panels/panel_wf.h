@@ -70,6 +70,10 @@ public:
     void copy_nodes(const std::set<data::NodeInstance*>& nodes, std::optional<ImVec2> src_point);
     void paste_copied(std::optional<ImVec2> paste_at);
 
+    void split_reroutes(const std::set<data::NodeInstance*>& nodes);
+    void merge_reroutes(const std::set<data::NodeInstance*>& nodes);
+    void insert_reroute(data::Link* link, const ImVec2& pos);
+
 private:
     DlgCode show(bool& focused) override;
     void draw_wf();

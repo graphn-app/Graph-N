@@ -983,6 +983,7 @@ data::Node* add_internal_node(NodesManager& manager, std::unordered_map<hid, std
 
 void NodesParser::add_internal_nodes(NodesManager& manager)
 {
+    put_in_tree(manager, add_internal_node<data::CNI_Reroute>(manager, manager.m_nodes));
     put_in_tree(manager, add_internal_node<data::CNI_Primitive>(manager, manager.m_nodes));
     put_in_tree(manager, add_internal_node<data::CNI_Note>(manager, manager.m_nodes));
     put_in_tree(manager, add_internal_node<data::CNI_MarkdownNote>(manager, manager.m_nodes));

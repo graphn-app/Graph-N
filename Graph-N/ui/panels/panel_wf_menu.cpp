@@ -394,6 +394,19 @@ bool PanelWorkflow::show_node_menu()
     }
     ImGui::Separator();
 
+    if (node->is_cni_reroute())
+    {
+        // Split Reroutes -> Merge Reroutes
+        // Split into Linked Pair -> Collapse to Left / Collapse to Right
+
+        if (ImGui::MenuItem("Split Reroutes", nullptr, nullptr, !node->get_object()->is_dummy && node->get_inputs().size() > 2))
+        {
+            split_reroutes(m_menu_objs.nodes);
+            close = true;
+        }
+        ImGui::Separator();
+    }
+
     //if (ImGui::MenuItem("Convert to subgraph")) // TODO
     //{
     //    close = true;
@@ -631,6 +644,34 @@ bool PanelWorkflow::show_multinode_menu()
         close = true;
     }
     ImGui::Separator();
+
+    bool all_reroutes = true;
+    for (auto node : m_menu_objs.nodes)
+    {
+        if (!node->is_cni_reroute())
+        {
+            all_reroutes = false;
+            break;
+        }
+    }
+    if (all_reroutes)
+    {
+        // Split Reroutes -> Merge Reroutes
+        // Split into Linked Pair -> Collapse to Left / Collapse to Right
+
+        if (ImGui::MenuItem("Split Reroutes", nullptr, nullptr, true))
+        {
+            split_reroutes(m_menu_objs.nodes);
+            close = true;
+        }
+        if (ImGui::MenuItem("Merge Reroutes", nullptr, nullptr, true))
+        {
+            merge_reroutes(m_menu_objs.nodes);
+            close = true;
+        }
+        ImGui::Separator();
+    }
+
     if (ImGui::BeginMenu("Color"))
     {
         bool reset = false;
@@ -895,6 +936,12 @@ bool PanelWorkflow::show_link_menu()
     {
         auto link = *m_menu_objs.links.begin();
         m_action->unlink(link);
+        close = true;
+    }
+    if (ImGui::MenuItem("Reroute"))
+    {
+        auto link = *m_menu_objs.links.begin();
+        insert_reroute(link, m_menu_objs.click_pos);
         close = true;
     }
     //if (ImGui::MenuItem("Insert angle")) // TODO. deny if dummy
