@@ -5,6 +5,7 @@
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
 #include "core/workflow/workflow_action.h"
+#include "core/workflow/custom_nodes/all_impl.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/workflows_manager.h"
 
@@ -50,6 +51,15 @@ void Workflow::init()
 
 std::unique_ptr<NodeInstance> Workflow::create_node(data::Node* node, iid node_id) const
 {
+    if (node != nullptr)
+    {
+        std::unique_ptr<NodeInstance> custom_node;
+        if (custom_node && custom_node->cni_is_applicable())
+        {
+            Log("Node created (CNI). w:" << get_id() << ", n:" << custom_node->get_instance_id() << ":" << node->node_class);
+            return custom_node;
+        }
+    }
     auto instance = std::make_unique<NodeInstance>(node, get_id(), node_id);
     Log("Node created. w:" << get_id() << ", n:" << instance->get_instance_id() << ":" << (node != nullptr ? node->node_class : "group"));
     return instance;
@@ -57,6 +67,15 @@ std::unique_ptr<NodeInstance> Workflow::create_node(data::Node* node, iid node_i
 
 std::unique_ptr<NodeInstanceRo> Workflow::create_node_ro(data::Node* node, iid node_id) const
 {
+    if (node != nullptr)
+    {
+        std::unique_ptr<NodeInstanceRo> custom_node;
+        if (custom_node && custom_node->cni_is_applicable())
+        {
+            Log("Node(RO) created (CNI). w:" << get_id() << ", n:" << custom_node->get_instance_id() << ":" << node->node_class);
+            return custom_node;
+        }
+    }
     auto instance = std::make_unique<NodeInstanceRo>(node, get_id(), node_id);
     Log("Node(RO) created. w:" << get_id() << ", n:" << instance->get_instance_id() << ":" << node->node_class);
     return instance;
@@ -276,6 +295,7 @@ void Workflow::remove_node(NodeInstance* node)
     if (node->get_object() != nullptr && node->get_object()->is_dummy)
         g::pNodesManager->remove_dummy_node(node->get_object());
 
+    node->cni_cleanup_base_object();
     remove_pins(node->get_inputs());
     remove_pins(node->get_outputs());
 
@@ -324,6 +344,7 @@ void Workflow::remove_node(NodeInstanceRo* node)
         }
     };
 
+    node->cni_cleanup_base_object();
     remove_pins(node->get_inputs());
     remove_pins(node->get_outputs());
 
@@ -553,6 +574,7 @@ std::string Workflow::collect_search_data() const
     for (auto& node : m_nodes)
     {
         node->collect_search_data(data);
+        node->cni_collect_search_data(data);
     }
     return data.str();
 }

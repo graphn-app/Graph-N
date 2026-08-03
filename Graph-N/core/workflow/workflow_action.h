@@ -66,6 +66,9 @@ public:
     void set_pin_val(data::PinInstance* pin, const float* new_colors);
 
 private:
+    void mirror_pin_value(data::PinInstance* pin);
+
+private:
     data::Workflow* m_wf = nullptr;
     ui::NodeDrawer* m_drawer = nullptr;
 

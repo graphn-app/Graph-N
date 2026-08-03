@@ -1,4 +1,3 @@
-
 #include "core/managers/workflows_manager.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
@@ -697,6 +696,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
     for (auto node : m_copied_nodes)
     {
         auto new_node = wf_dest->add_node(node, dest_wf_data.virt);
+        new_node->cni_deserialilzation_begins();
         new_node->m_rc.Min.x = node->m_rc.Min.x - src_pt.x;
         new_node->m_rc.Min.x = dest_pt.x + new_node->m_rc.Min.x;
         new_node->m_rc.Min.y = node->m_rc.Min.y - src_pt.y;
@@ -760,6 +760,12 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
     if (!dest_wf_data.virt)
         g::pHistoryManager->multi_action_end(wf_dest->get_id());
 
+    auto& dest_nodes = wf_dest->get_nodes();
+    for (auto& node : dest_nodes)
+    {
+        node->cni_deserialilzation_ends();
+    }
+
     if (!dest_wf_data.virt)
     {
         g::pFlow->wf_reload_view(wf_dest->get_id());
@@ -815,6 +821,7 @@ void WfsManager::close(wid wf_id)
     std::for_each(nodes_ptr.begin(), nodes_ptr.end(), [&nodes](const std::unique_ptr<data::NodeInstance>& node) { nodes.push_back(node.get()); });
     for (auto node : nodes)
     {
+        node->cni_cleanup_base_object();
         wf->remove_node(node);
     }
 

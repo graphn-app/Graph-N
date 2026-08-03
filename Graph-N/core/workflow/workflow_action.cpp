@@ -383,6 +383,7 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, Primitive&& old_val)
 
     multi_action_on("Set value");
     g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinVal, mngr::HActionT(std::move(old_val)));
+    mirror_pin_value(pin);
     multi_action_off();
 }
 
@@ -395,6 +396,7 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, int64_t old_idx)
 
     multi_action_on("Set value");
     g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinVal, mngr::HActionT(old_val));
+    mirror_pin_value(pin);
     multi_action_off();
 }
 
@@ -409,9 +411,32 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, const float* new_colors
 
     multi_action_on("Set value");
     g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinVal, mngr::HActionT(old_colors));
+    mirror_pin_value(pin);
     multi_action_off();
 }
 
+void WorkflowAction::mirror_pin_value(data::PinInstance* pin)
+{
+    LogRAssert(pin, "Zero ptr", );
+    const auto* wf = g::pWfsManager->access(pin->get_workflow_id());
+    const auto* node = wf->get_node_by_instance(pin->get_parent_node());
+    if (!node->is_cni())
+        return;
+
+    std::vector<PinInstance*> mirrored_pins;
+    node->cni_mirror_value_to(pin, mirrored_pins);
+    for (size_t i = 0; i < mirrored_pins.size(); i++)
+    {
+        auto dest_pin = mirrored_pins[i];
+
+        auto old = dest_pin->state().value;
+        dest_pin->state().value = pin->state().value;
+        set_pin_val(dest_pin, std::move(old));
+
+        node = wf->get_node_by_instance(dest_pin->get_parent_node()); 
+        if (node->is_cni())
+            node->cni_mirror_value_to(dest_pin, mirrored_pins);
+    }
 }
 
 } // namespace data

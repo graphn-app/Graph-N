@@ -50,6 +50,8 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     const auto* n2 = wf->get_node_by_instance(i2->get_parent_node());
     LogRAssertS(n1 && n2, "Node not found", false);
 
+    if (n1->is_cni() && !n1->cni_can_link(i1, i2)) return false;
+    if (n2->is_cni() && !n2->cni_can_link(i2, i1)) return false;
 
     if (PinType::ANY == i1->state().type || PinType::ANY == i2->state().type)
         return true;
@@ -105,6 +107,10 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
     link->m_input = (p1->input ? i1 : i2);
     link->m_output = (p1->output ? i1 : i2);
 
+    if (n1 != nullptr)
+        n1->cni_pin_linked(i1, i2);
+    if (n2 != nullptr)
+        n2->cni_pin_linked(i2, i1);
 
     LogS("Linked. w:" << link->get_workflow_id() << ", l:" << link->get_instance_id() << ", p1:" << link->m_input->get_instance_id() << ", p2:" << link->m_output->get_instance_id());
     return link;
@@ -143,6 +149,10 @@ void Link::unlink()
     if (recalc != nullptr)
         recalc->reset_width();
 
+    if (n1->is_cni())
+        n1->cni_pin_unlinked(p1, p2);
+    if (n2->is_cni())
+        n2->cni_pin_unlinked(p2, p1);
 
     Log("Unlinked. w:" << get_workflow_id() << ", l:" << get_instance_id() << ", p1:" << p1->get_instance_id() << ", p2" << p2->get_instance_id());
 }

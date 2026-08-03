@@ -42,6 +42,12 @@ constexpr const char* DND_FROM_NODES_LIBRARY    = "F86C637FBBC3";
 constexpr const char* DND_FROM_SYSTEM           = "770C64EA9B66";
 constexpr const char* DND_REORDER_QUEUE         = "79C13B4685DA";
 
+constexpr const char* CNI_CLASS_REROUTE         = "Reroute";
+constexpr const char* CNI_CLASS_PRIMITIVE       = "PrimitiveNode";
+constexpr const char* CNI_CLASS_NOTE            = "Note";
+constexpr const char* CNI_CLASS_MARKDOWN_NOTE   = "MarkdownNote";
+constexpr const char* CNI_CLASS_LOAD_IMAGE      = "LoadImage";
+
 using HttpResponseCb = std::function<void(int32_t, std::string&&)>; // http code, data
 
 enum class DlgObj
