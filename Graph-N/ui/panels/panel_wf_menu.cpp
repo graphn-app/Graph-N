@@ -57,13 +57,14 @@ bool PanelWorkflow::context_menu_handler()
         const auto pin = m_drawer.get_hovered_pin();
         if (pin != nullptr)
         {
-            const auto* parent = m_wf->get_node_by_instance(pin->get_parent_node());
+            const auto parent = m_wf->get_node_by_instance(pin->get_parent_node());
             if (parent->get_expanded() && !parent->get_object()->is_dummy)
             {
                 m_handle_context_menu = true;
                 m_menu_objs = {};
                 m_context_menu_type = MenuType::Pin;
                 m_menu_objs.pins.insert(pin);
+                m_menu_objs.nodes.insert(parent);
                 m_menu_objs.click_pos = m_drawer.get_mouse_pos();
                 Log("Pin menu initiated");
                 return true;
@@ -330,7 +331,7 @@ bool PanelWorkflow::show_node_menu()
     bool close = false;
     auto node = *m_menu_objs.nodes.begin();
 
-    if (ImGui::MenuItem("Rename", nullptr, nullptr, !node->get_object()->is_dummy))
+    if (ImGui::MenuItem("Rename", nullptr, nullptr, !node->get_object()->is_dummy && node->get_object()->can_rename))
     {
         m_drawer.rename_node(node);
         close = true;

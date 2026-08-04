@@ -16,6 +16,7 @@ std::unique_ptr<Node> CNI_Reroute::cni_create_object(mngr::NodesManager* manager
     node->category = "utils";
     node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
     node->can_bypass = false;
+    node->can_rename = false;
 
     node->finalize(nullptr);
     return node;

@@ -329,11 +329,11 @@ void PanelWorkflow::draw_wf()
         [this](data::PinInstance* pin) { m_action->unlink(pin); },
         [this](data::PinInstance* pin, const ImVec2& pt)
             {
-                auto node = m_wf->get_node_by_instance(pin->get_parent_node());
+                const auto parent = m_wf->get_node_by_instance(pin->get_parent_node());
                 m_menu_objs = {};
                 m_menu_objs.click_pos = pt;
                 m_menu_objs.pins.insert(pin);
-                m_menu_objs.nodes.insert(node);
+                m_menu_objs.nodes.insert(parent);
                 m_context_menu_type = MenuType::SpawnNode;
                 m_handle_context_menu = true;
             }

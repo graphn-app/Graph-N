@@ -33,6 +33,7 @@ struct Node : public base::HashID
 
     bool can_bypass = true;
     bool can_mute = true;
+    bool can_rename = true;
 
     std::string name;
     std::string node_class;

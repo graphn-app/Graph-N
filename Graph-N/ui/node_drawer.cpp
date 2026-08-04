@@ -714,9 +714,12 @@ void NodeDrawer::draw_node_header()
 
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         {
-            m_renaming_node = m_active_node;
-            m_renaming_buff = m_active_node->get_name();
-            m_need_renaming_focus = true;
+            if (m_active_node->get_object() != nullptr && m_active_node->get_object()->can_rename)
+            {
+                m_renaming_node = m_active_node;
+                m_renaming_buff = m_active_node->get_name();
+                m_need_renaming_focus = true;
+            }
         }
 
         if (m_active_node->get_pinned())
