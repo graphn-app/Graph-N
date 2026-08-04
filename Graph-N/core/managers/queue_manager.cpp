@@ -100,7 +100,7 @@ void QueueManager::interrupt_task(wid wf_id /*= 0*/)
     };
 
     Log("Interrupt task #" << task_log_id);
-    g::pFlow->http_post("Queue/Interrupt", get_alive_callback(), comfyui_http::interrupt, "", callback);
+    g::pFlow->http_post("Queue/Interrupt", get_alive_callback(), comfyui_http::interrupt, "", callback, true /*retry on timeout*/);
 }
 
 void QueueManager::drop_all() noexcept

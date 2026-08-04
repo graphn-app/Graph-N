@@ -26,10 +26,12 @@ constexpr double HTTP_REQUEST_LIFETIME = 30.0; // seconds
 constexpr int32_t HIDDEN_VIDEO_PLAYING = 5; // seconds
 
 constexpr int32_t HTTP_RESP_OK           = 200;
+constexpr int32_t HTTP_RESP_FAIL         = -1;
 constexpr int32_t HTTP_RESP_TIMEOUT      = 408;
 constexpr int32_t HTTP_RESP_BAD_REQUEST  = 400;
 constexpr int32_t HTTP_RESP_NOT_FOUND    = 404;
 constexpr int32_t HTTP_RESP_NOT_ALLOWED  = 405;
+constexpr uint32_t HTTP_RETRY_MAX_COUNT  = 5;
 
 constexpr int32_t QUEUE_IMAGE_RECT = 512; // size
 constexpr int32_t QUEUE_AUDIO_RECT = 20; // size

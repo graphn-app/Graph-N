@@ -130,8 +130,8 @@ public:
     bool get_projects_ready() const noexcept { return m_projects_ready.load(std::memory_order_relaxed); }
 
     void http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout = false);
-    void http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback);
-    void http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback);
+    void http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);
+    void http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);
 
     // WF
     PanelWorkflow* wf_get_active_panel() const noexcept { return m_wf_focused; }
@@ -306,6 +306,6 @@ private:
     bool m_wf_imported = false;
 
     std::mutex m_http_req_mutex;
-    std::unordered_map<uint32_t, std::tuple<StillAliveCallback, HttpResponseCb, double>> m_http_requests; // key - req id
+    std::unordered_map<uint32_t, std::tuple<StillAliveCallback, HttpResponseCb, double, bool>> m_http_requests; // key - req id, val - cb1, cb2, req time, retry
 };
 }

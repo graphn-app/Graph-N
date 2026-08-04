@@ -24,7 +24,7 @@ private:
     void reconnect();
 
     uint32_t send_http_request(const char* who_is_asking, const char* request, bool post,
-        std::string&& post_payload, httplib::UploadFormDataItems&& post_payload_items, bool retry_on_timeout );
+        std::string&& post_payload, httplib::UploadFormDataItems&& post_payload_items, bool retry_on_timeout);
 
     bool pickup_http_response(uint32_t& req_id, int32_t& result, std::string& response);
     bool pickup_ws_message(bool& is_binary, std::string& message);
@@ -33,6 +33,7 @@ private:
     {
         uint32_t req_id = 0;
 
+        const char* who_is_asking = nullptr;
         std::string request;
         bool post = true;
         std::string post_payload;
@@ -43,6 +44,7 @@ private:
         std::string data;
 
         bool retry_on_timeout = false;
+        uint32_t retry_counter = 0;
     };
 
     void http_worker();

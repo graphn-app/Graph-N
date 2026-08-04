@@ -1379,7 +1379,7 @@ void PanelQueue::load_history()
     }
 
     const auto history_request = fmt::format(comfyui_http::history_, g::pOptsManager->queue_history_num_load());
-    g::pFlow->http_get("QPanel/History", get_alive_callback(), history_request.c_str(), history_callback);
+    g::pFlow->http_get("QPanel/History", get_alive_callback(), history_request.c_str(), history_callback, true /*retry on timeout*/);
 
     int32_t current_status = 0;
     while ((current_status = http_status->load(std::memory_order_acquire)) == 0)

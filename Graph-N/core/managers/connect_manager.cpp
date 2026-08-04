@@ -83,6 +83,7 @@ uint32_t ConnectManager::send_http_request(
 {
     auto req = std::make_shared<RequestData>();
     req->request = request;
+    req->who_is_asking = who_is_asking;
     req->is_object_info = req->request.find(comfyui_http::object_info) != std::string::npos;
     req->post = post;
     req->post_payload = std::move(post_payload);
@@ -90,7 +91,7 @@ uint32_t ConnectManager::send_http_request(
     req->req_id = m_last_request_id.fetch_add(1, std::memory_order_relaxed) + 1;
     req->retry_on_timeout = retry_on_timeout;
 
-    Log("HTTP-Req#" << req->req_id << ". Registered: " << (post ? "POST" : "GET") << ". Who: " << who_is_asking << ". Url: " << req->request);
+    Log("HTTP-Req#" << req->req_id << ". Registered: " << (post ? "POST" : "GET") << ". Who: " << who_is_asking << ". Retry: " << retry_on_timeout << ". Url: " << req->request);
 
     {
         const auto host = g::pOptsManager->comfyui_host_load();
@@ -156,6 +157,7 @@ void ConnectManager::http_worker()
             if (m_reconnect || force_reconnect)
             {
                 force_reconnect = false;
+                m_reconnect = false;
                 connect();
             }
 
@@ -190,12 +192,23 @@ void ConnectManager::http_worker()
             }
             else if (!req->is_object_info && glog::Logger::get_log_web_response_enabled())
                 LogClear(req->data);
+        }
+        else
+        {
+            force_reconnect = true;
 
+            if (res.error() == httplib::Error::Connection || res.error() == httplib::Error::Read)
+                req->status = HTTP_RESP_TIMEOUT;
+            else
+                req->status = HTTP_RESP_FAIL;
+
+            Log("HTTP-Req#" << req->req_id << ". Failed. Error: " << httplib::to_string(res.error()));
+        }
+
+        {
             std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
             m_http_pickup.push(req);
         }
-        else
-            force_reconnect = true;
     }
 
     LogOut;
@@ -208,6 +221,41 @@ bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std
         return false;
 
     auto req = m_http_pickup.front();
+
+    if (HTTP_RESP_TIMEOUT == req->status)
+    {
+        Log("HTTP-Req#" << req->req_id << ". Timeout. Retry request: " << req->retry_on_timeout);
+        if (req->retry_on_timeout)
+        {
+            if (++req->retry_counter > HTTP_RETRY_MAX_COUNT)
+            {
+                Log("HTTP-Req#" << req->req_id << ". Retry max count reached: " << req->retry_counter);
+                req_id = req->req_id;
+                result = req->status;
+                response = std::move(req->data);
+                m_http_pickup.pop();
+                return true;
+            }
+
+            req->status = 0; 
+            req->data.clear();
+
+            {
+                std::unique_lock<std::mutex> inbox_lock(m_http_inbox_mutex);
+
+                m_reconnect = true;
+                m_host = g::pOptsManager->comfyui_host_load();
+                m_port = cast::to_i32(g::pOptsManager->comfyui_port_load());
+                m_timeout = g::pOptsManager->comfyui_connect_timeout_load();
+                m_http_inbox.push(req);
+            }
+            m_inbox_cv.notify_one();
+
+            m_http_pickup.pop();
+            return false;
+        }
+    }
+
     req_id = req->req_id;
     result = req->status;
     response = std::move(req->data);

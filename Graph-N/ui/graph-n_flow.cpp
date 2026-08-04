@@ -466,7 +466,7 @@ void GraphN_Flow::import_user_projects()
                 };
 
                 const auto url = fmt::format(comfyui_http::wf_download_, tools::str::url_encode(project.first));
-                http_get("Flow/Import_projects", []() { return true; }, url.c_str(), download_project);
+                http_get("Flow/Import_projects", []() { return true; }, url.c_str(), download_project, true /*retry on timeout*/);
             }
         }
 
@@ -477,7 +477,7 @@ void GraphN_Flow::import_user_projects()
         }
     };
 
-    http_get("Flow/Import_projects", []() { return true; }, comfyui_http::wfs_all_names, all_names);
+    http_get("Flow/Import_projects", []() { return true; }, comfyui_http::wfs_all_names, all_names, true /*retry on timeout*/);
 }
 
 void GraphN_Flow::import_files(std::list<std::filesystem::path>&& paths)
@@ -538,7 +538,7 @@ void GraphN_Flow::reparse_nodes()
         m_nodes_parser->parse(std::move(data));
     };
 
-    http_get("Flow/reparse_nodes", [](){ return true; }, comfyui_http::object_info, parser);
+    http_get("Flow/reparse_nodes", [](){ return true; }, comfyui_http::object_info, parser, true /*retry on timeout*/);
 }
 
 void GraphN_Flow::on_dlg_closed(DlgObj dlg)
@@ -1204,23 +1204,23 @@ void GraphN_Flow::http_get(const char* who_is_asking, const StillAliveCallback& 
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
     const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, false, {}, {}, retry_on_timeout);
     if (callback != nullptr)
-        m_http_requests[req_id] = { alive, callback, ImGui::GetTime() };
+        m_http_requests[req_id] = { alive, callback, ImGui::GetTime(), retry_on_timeout };
 }
 
-void GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback)
+void GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
-    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, true, std::move(payload), {}, false);
+    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, true, std::move(payload), {}, retry_on_timeout);
     if (callback != nullptr)
-        m_http_requests[req_id] = { alive, callback, ImGui::GetTime() };
+        m_http_requests[req_id] = { alive, callback, ImGui::GetTime(), retry_on_timeout };
 }
 
-void GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback)
+void GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
-    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, true, {}, std::move(payload), false);
+    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, true, {}, std::move(payload), retry_on_timeout);
     if (callback != nullptr)
-        m_http_requests[req_id] = { alive, callback, ImGui::GetTime() };
+        m_http_requests[req_id] = { alive, callback, ImGui::GetTime(), retry_on_timeout };
 }
 
 void GraphN_Flow::check_http_reply()
@@ -1261,6 +1261,13 @@ void GraphN_Flow::check_http_reply()
         std::unique_lock<std::mutex> lock(m_http_req_mutex);
         for (auto it = m_http_requests.begin(); it != m_http_requests.end(); )
         {
+            const bool retry = std::get<3>(it->second);
+            if (retry)
+            {
+                ++it;
+                continue;
+            }
+
             const auto req_time = std::get<2>(it->second);
             if (now - req_time > HTTP_REQUEST_LIFETIME)
             {
