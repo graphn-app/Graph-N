@@ -268,6 +268,9 @@ void RoNodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, 
     case PinType::FLOAT:
         draw_widget_float(pin, widget_name_width, widget_value_width);
         break;
+    case PinType::NUMBER:
+        draw_widget_number(pin, widget_name_width, widget_value_width);
+        break;
     case PinType::BOOLEAN:
         draw_widget_bool(pin, widget_name_width, widget_value_width);
         break;
@@ -369,6 +372,48 @@ void RoNodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_w
     const double min = obj->min.get_float();
     const double max = obj->max.get_float();
     const double step = obj->step.get_float();
+
+    ImGui::SetNextItemWidth(widget_name_width);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+    ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
+    ImGui::PopStyleColor();
+
+    ImGui::SameLine(0.0f, 0.0f);
+    ImGui::SetNextItemWidth(widget_value_width);
+
+    switch (g::pOptsManager->wf_widget_input_numbers_load())
+    {
+    case WidgetInput::Direct:
+        ImGuiEx::InputDoubleSmart("", val, step, min, max, obj->precision, obj->precision);
+        break;
+    case WidgetInput::Drag:
+        ImGuiEx::DragDoubleSmart("", val, min, max, obj->precision.c_str());
+        break;
+    case WidgetInput::Slider:
+    default:
+        ImGuiEx::SliderDoubleSmart("", val, min, max, obj->precision.c_str());
+        break;
+    }
+
+    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
+}
+
+void RoNodeDrawer::draw_widget_number(data::PinInstance* pin, float widget_name_width, float widget_value_width)
+{
+    auto obj = pin->get_object();
+    auto& state = pin->state();
+
+    static_assert(std::same_as<number_t, double>, "Update this function if number_t changes");
+
+    number* num_ptr = state.value.get_number_ref();
+    LogRAssert(num_ptr, "Zero ptr", );
+
+    double* val = num_ptr->underlying_type_ref();
+    LogRAssert(val, "Zero ptr", );
+
+    const double min = obj->min.get_number().underlying_type();
+    const double max = obj->max.get_number().underlying_type();
+    const double step = obj->step.get_number().underlying_type();
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);

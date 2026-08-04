@@ -62,6 +62,7 @@ public:
 
     void copy_int(Pin* dest) const;
     void copy_float(Pin* dest) const;
+    void copy_number(Pin* dest) const;
     void copy_string(Pin* dest) const;
     void copy_bool(Pin* dest) const;
     void copy_combo(Pin* dest) const;
@@ -75,6 +76,7 @@ public:
     void finalize();
     void finalize_int();
     void finalize_float();
+    void finalize_number();
     void finalize_combo();
     void finalize_bool();
     void finalize_color() noexcept;

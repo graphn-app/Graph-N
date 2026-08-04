@@ -168,6 +168,14 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
                     if (min == *val) *val = max;
                     else (*val)--;
                 }
+                else if (value.is_number())
+                {
+                    number* val = value.get_number_ref();
+                    const number min = pin_obj->min.get_number();
+                    const number max = pin_obj->max.get_number();
+                    if (min == *val) *val = max;
+                    else (*val)--;
+                }
                 break;
             case ControlAfterGenerate::CAGIncrement:
                 if (value.is_uint())
@@ -192,6 +200,14 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
                     if (*val >= max) *val = min;
                     else (*val)++;
                 }
+                else if (value.is_number())
+                {
+                    number* val = value.get_number_ref();
+                    const number min = pin_obj->min.get_number();
+                    const number max = pin_obj->max.get_number();
+                    if (*val >= max) *val = min;
+                    else (*val)++;
+                }
                 break;
             case ControlAfterGenerate::CAGRandomize:
                 if (value.is_uint())
@@ -213,6 +229,13 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
                     const int64_t max = cast::to_i64(pin_obj->max.get_float());
                     *val = cast::to_double(base::GlobalID::random(min, max));
                 }
+                else if (value.is_number())
+                {
+                    number* val = value.get_number_ref();
+                    const int64_t min = cast::to_i64(pin_obj->min.get_number().underlying_type());
+                    const int64_t max = cast::to_i64(pin_obj->max.get_number().underlying_type());
+                    *val = cast::to_number(base::GlobalID::random(min, max));
+                }
                 break;
             default:
                 LogError("Linked CAG pin holds wrong value w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str << ", v:" << cb_idx);
@@ -230,6 +253,8 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
                     value_to = value.get_int();
                 else if (value.is_float())
                     value_to = value.get_float();
+                else if (value.is_number())
+                    value_to = value.get_number();
 
                 wf_action->set_pin_val(pin_copy_to, std::move(old_val));
             }

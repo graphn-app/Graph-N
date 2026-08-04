@@ -32,6 +32,7 @@ public:
     Writer& push(uint64_t val);
     Writer& push(float val);
     Writer& push(double val);
+    Writer& push(number val);
     Writer& push(const byte* data, size_t len);
     Writer& push(const float* val, size_t len);
     Writer& push(const byte_buff& data);
@@ -74,6 +75,7 @@ public:
     uint64_t pop_u64() noexcept;
     float pop_float() noexcept;
     double pop_double() noexcept;
+    number pop_number() noexcept;
     void pop_buff(float* arr) noexcept;
     void pop_buff(byte* data) noexcept;
     byte_buff pop_buff();

@@ -418,6 +418,10 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                         {
                             pin->state().value = double(v);
                         }
+                        else if (PinType::NUMBER == pin->get_object()->def_state.type)
+                        {
+                            pin->state().value = number(number_t(v));
+                        }
                         else if (PinType::BOOLEAN == pin->get_object()->def_state.type)
                         {
                             pin->state().value = bool(v != 0);

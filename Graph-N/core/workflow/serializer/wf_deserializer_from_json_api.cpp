@@ -186,6 +186,10 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
                     {
                         pin_instance->state().value = double(v);
                     }
+                    else if (PinType::NUMBER == pin_instance->get_object()->def_state.type)
+                    {
+                        pin_instance->state().value = number(number_t(v));
+                    }
                     else if (PinType::BOOLEAN == pin_instance->get_object()->def_state.type)
                     {
                         pin_instance->state().value = bool(v != 0);
@@ -195,7 +199,11 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
                 {
                     if (PinType::FLOAT == pin_instance->get_object()->def_state.type)
                     {
-                        pin_instance->state().value = v;
+                        pin_instance->state().value = double(v);
+                    }
+                    else if (PinType::NUMBER == pin_instance->get_object()->def_state.type)
+                    {
+                        pin_instance->state().value = number(v);
                     }
                 }
                 else if constexpr (std::is_same_v<T, bool>)

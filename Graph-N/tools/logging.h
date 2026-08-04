@@ -1,5 +1,7 @@
 #pragma once
 
+class number;
+
 namespace glog
 {
 
@@ -119,6 +121,7 @@ public:
     LogWriter& operator << (uint64_t ui64);
     LogWriter& operator << (float f);
     LogWriter& operator << (double d);
+    LogWriter& operator << (const number& n);
     LogWriter& operator << (bool b);
 
     LogWriter& operator << (DlgCode code);

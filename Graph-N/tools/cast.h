@@ -134,6 +134,13 @@ constexpr char to_char(T param) noexcept
 }
 
 template <typename T>
+constexpr double to_number(T param) noexcept
+{
+    static_assert(std::same_as<number_t, double>, "Update this function if number_t changes");
+    return to<double>(param);
+}
+
+template <typename T>
 constexpr unsigned char to_uchar(T param) noexcept
 {
     if constexpr (std::same_as<std::decay_t<T>, char> || std::same_as<std::decay_t<T>, signed char>)

@@ -10,6 +10,13 @@ using iid = uint32_t;	// node/pin instance id, unique for each workflow
 using wid = uint32_t;   // workflow id - crc32 of uuid
 using byte_buff = std::vector<byte>;
 
+using number_t = double;
+constexpr const number_t IM_NUM_MIN_WIDGET = -DBL_MAX / 2.0;
+constexpr const number_t IM_NUM_MAX_WIDGET = DBL_MAX / 2.0;
+constexpr const number_t NUMBER_ZERO = 0.0;
+constexpr const number_t NUMBER_DEFAULT = NUMBER_ZERO;
+constexpr const number_t NUMBER_STEP = 0.1;
+
 using ImTextureIDPtr = std::shared_ptr<std::remove_pointer_t<ImTextureID>>;
 using ImageData = std::shared_ptr<byte>;
 
@@ -127,6 +134,7 @@ enum class PinType
 {
     INT,
     FLOAT,
+    NUMBER,
     BOOLEAN,
     COMBO,
     STRING,

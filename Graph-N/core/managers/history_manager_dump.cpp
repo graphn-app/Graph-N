@@ -37,6 +37,8 @@ std::string prim_to_str(const Primitive& p)
                 return "null";
             else if constexpr (std::is_same_v<T, std::string>)
                 return fmt::format(FMT_COMPILE("str({} bytes)"), v.size());
+            else if constexpr (std::is_same_v<T, number>)
+                return fmt::format(FMT_STRING("{}"), v.underlying_type());
             else
                 return fmt::format(FMT_STRING("{}"), v);
         }, p.value());

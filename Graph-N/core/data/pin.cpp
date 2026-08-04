@@ -9,9 +9,9 @@ namespace data
 
 const std::unordered_map<std::string, PinType> Pin::pin_type_map =
 {
-    { "INT", PinType::INT },				            { "FLOAT", PinType::FLOAT },				        { "BOOLEAN", PinType::BOOLEAN },
-    { "COMBO", PinType::COMBO },			            { "STRING", PinType::STRING },				        { "*", PinType::ANY },
-    { "COLOR", PinType::COLOR },			            { "NUMBER", PinType::FLOAT },				        { "INSIGHTFACE", PinType::INSIGHTFACE },
+    { "INT", PinType::INT },				            { "FLOAT", PinType::FLOAT },			            { "NUMBER", PinType::NUMBER },
+    { "BOOLEAN", PinType::BOOLEAN },                    { "COMBO", PinType::COMBO },			            { "STRING", PinType::STRING },
+    { "*", PinType::ANY },                              { "COLOR", PinType::COLOR },			            { "INSIGHTFACE", PinType::INSIGHTFACE },
     { "IMAGE", PinType::IMAGE },			            { "MODEL", PinType::MODEL },				        { "MASK", PinType::MASK },
     { "LATENT", PinType::LATENT },			            { "VAE", PinType::VAE },					        { "CONDITIONING", PinType::CONDITIONING },
     { "CLIP", PinType::CLIP },				            { "NOISE", PinType::NOISE },				        { "CONTROL_NET", PinType::CONTROL_NET },
@@ -75,7 +75,7 @@ bool Pin::is_primitive_type(PinType type, bool incl_colors /*= false*/) noexcept
     if (incl_colors && PinType::COLOR == type)
         return true;
     return
-        PinType::INT == type || PinType::FLOAT == type ||
+        PinType::INT == type || PinType::FLOAT == type || PinType::NUMBER == type ||
         PinType::COMBO == type || PinType::STRING == type || PinType::BOOLEAN == type
     ;
 }
@@ -108,6 +108,24 @@ void Pin::copy_float(Pin* dest) const
     dest->precision = precision;
     dest->precision_named = precision_named;
     dest->finalize_float();
+}
+
+void Pin::copy_number(Pin* dest) const
+{
+    static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
+
+    LogRAssert(dest, "Zero ptr", );
+    dest->def = def;
+    dest->min = min;
+    dest->max = max;
+    dest->step = step;
+    dest->w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
+    dest->tooltip = tooltip;
+    dest->round = round;
+    dest->do_round = do_round;
+    dest->precision = precision;
+    dest->precision_named = precision_named;
+    dest->finalize_number();
 }
 
 void Pin::copy_string(Pin* dest) const
@@ -198,6 +216,8 @@ void Pin::finalize()
 
         if (PinType::FLOAT == def_state.type)
             finalize_float();
+        else if (PinType::NUMBER == def_state.type)
+            finalize_number();
         else if (PinType::INT == def_state.type)
             finalize_int();
         else if (PinType::BOOLEAN == def_state.type)
@@ -223,6 +243,7 @@ void Pin::finalize()
         {
         case PinType::INT:
         case PinType::FLOAT:
+        case PinType::NUMBER:
             w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
             break;
         case PinType::COLOR:
@@ -282,6 +303,16 @@ void Pin::finalize_int()
         if (min.get_int() < IM_S64_MIN_WIDGET) min = int64_t(IM_S64_MIN_WIDGET);
         if (max.get_int() > IM_S64_MAX_WIDGET) max = int64_t(IM_S64_MAX_WIDGET);
     }
+
+    if (min.get_int() == max.get_int())
+    {
+        min = int64_t(IM_S64_MIN_WIDGET);
+        max = int64_t(IM_S64_MAX_WIDGET);
+    }
+    if (step.get_int() == 0)
+    {
+        step = int64_t(1);
+    }
 }
 
 void Pin::finalize_float()
@@ -295,6 +326,66 @@ void Pin::finalize_float()
     }
     if (step.get_float() == 0)
         step = double(0.01);
+
+    if (!def.is_float()) def = double(0.0);
+    if (!min.is_float()) min = IM_DBL_MIN_WIDGET;
+    if (!max.is_float()) max = IM_DBL_MAX_WIDGET;
+    min = std::max(min.get_float(), IM_DBL_MIN_WIDGET);
+    max = std::min(max.get_float(), IM_DBL_MAX_WIDGET);
+
+    if (min.get_float() == max.get_float())
+    {
+        min = double(IM_DBL_MIN_WIDGET);
+        max = double(IM_DBL_MAX_WIDGET);
+    }
+    if (step.get_float() == 0.0)
+    {
+        step = double(0.1);
+    }
+
+    if (!do_round.has_value())
+    {
+        do_round = true;
+    }
+
+    if (!round.has_value())
+    {
+        if (do_round.value())
+            round = 1.0;
+        else
+            round = 0.01;
+    }
+
+    precision_to_string();
+}
+
+void Pin::finalize_number()
+{
+    static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
+
+    if (!step.is_number())
+    {
+        if (round.has_value())
+            step = number(round.value());
+        else
+            step = number(NUMBER_STEP);
+    }
+
+    if (!def.is_number()) def = number(NUMBER_DEFAULT);
+    if (!min.is_number()) min = number(IM_NUM_MIN_WIDGET);
+    if (!max.is_number()) max = number(IM_NUM_MAX_WIDGET);
+    min = std::max(min.get_number(), number(IM_NUM_MIN_WIDGET));
+    max = std::min(max.get_number(), number(IM_NUM_MAX_WIDGET));
+
+    if (min.get_number() == max.get_number())
+    {
+        min = number(IM_NUM_MIN_WIDGET);
+        max = number(IM_NUM_MAX_WIDGET);
+    }
+    if (step.get_number() == number(NUMBER_ZERO))
+    {
+        step = number(NUMBER_STEP);
+    }
 
     if (!do_round.has_value())
     {
@@ -411,6 +502,9 @@ void Pin::clamp_values() noexcept
     case PinType::FLOAT:
         clamp_primitive<double>(*this, IM_DBL_MIN_WIDGET, IM_DBL_MAX_WIDGET);
         break;
+    case PinType::NUMBER:
+        clamp_primitive<number>(*this, IM_NUM_MIN_WIDGET, IM_NUM_MAX_WIDGET);
+        break;
     }
 }
 
@@ -422,7 +516,15 @@ void Pin::init_defaults()
         def = double(0.0f);
         min = double(IM_DBL_MIN_WIDGET);
         max = double(IM_DBL_MAX_WIDGET);
-        step = double(0.0);
+        step = double(0.1);
+    }
+    if (PinType::NUMBER == def_state.type)
+    {
+        def_state.value = number(NUMBER_DEFAULT);
+        def = number(NUMBER_DEFAULT);
+        min = number(IM_NUM_MIN_WIDGET);
+        max = number(IM_NUM_MAX_WIDGET);
+        step = number(NUMBER_STEP);
     }
     else if (PinType::INT == def_state.type)
     {
@@ -430,7 +532,7 @@ void Pin::init_defaults()
         def = int64_t(0);
         min = int64_t(IM_S64_MIN_WIDGET);
         max = int64_t(IM_S64_MAX_WIDGET);
-        step = int64_t(0);
+        step = int64_t(1);
     }
     else if (PinType::COLOR == def_state.type)
     {
@@ -438,7 +540,7 @@ void Pin::init_defaults()
         def = uint64_t(IM_COL32_WHITE);
         min = uint64_t(IM_COL32_BLACK);
         max = uint64_t(IM_COL32_WHITE);
-        step = uint64_t(0);
+        step = uint64_t(1);
     }
     else if (PinType::BOOLEAN == def_state.type)
     {
@@ -447,7 +549,6 @@ void Pin::init_defaults()
         min = bool(false);
         max = bool(true);
         step = bool(true);
-        step = bool(false);
     }
     else if (PinType::STRING == def_state.type)
     {
@@ -455,7 +556,6 @@ void Pin::init_defaults()
         def = std::string("");
         min = std::string("");
         max = std::string("");
-        step = std::string("");
         step = std::string("");
     }
 }
@@ -485,6 +585,7 @@ void Pin::generate_pin_color() noexcept
     {
     case PinType::INT:                  def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Int);                 return;
     case PinType::FLOAT:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Float);               return;
+    case PinType::NUMBER:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Float);               return;
     case PinType::TEXT_LIST:
     case PinType::TEXT_LIST_SIMPLE:
     case PinType::STRING:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_String);              return;
@@ -571,6 +672,11 @@ std::string Pin::any_to_string(const Primitive& item)
         else if constexpr (std::is_same_v<T, int64_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, double>)
         {
             ret = std::to_string(v);
+        }
+        else if constexpr (std::is_same_v<T, number>)
+        {
+            static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
+            ret = std::to_string(v.underlying_type());
         }
         else if constexpr (std::is_same_v<T, bool>)
         {
@@ -660,6 +766,7 @@ PinShape Pin::get_shape(PinType type) noexcept
         // --- PRIMITIVES & DATA ---
     case PinType::INT:
     case PinType::FLOAT:
+    case PinType::NUMBER:
     case PinType::FLOATS:
     case PinType::BOOLEAN:
     case PinType::STRING:

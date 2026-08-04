@@ -5,6 +5,7 @@
 #include <charconv>
 #include <chrono>
 #include <cmath>
+#include <compare>
 #include <concepts>
 #include <condition_variable>
 #include <cstdint>

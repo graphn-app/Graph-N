@@ -12,6 +12,7 @@ enum PrimitiveType
     pt_i64,
     pt_u64,
     pt_double,
+    pt_number,
     pt_bool,
     pt_string,
     pt_monostate
@@ -104,6 +105,13 @@ Writer& Writer::push(double val)
     return *this;
 }
 
+Writer& Writer::push(number val)
+{
+    static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
+    push_trivial(val.underlying_type(), m_buffer);
+    return *this;
+}
+
 Writer& Writer::push(const byte* data, size_t len)
 {
     push(cast::to_u32(len));
@@ -153,6 +161,10 @@ Writer& Writer::push(const Primitive& val)
         else if constexpr (std::is_same_v<T, double>)
         {
             push(uint8_t(pt_double)).push(v);
+        }
+        else if constexpr (std::is_same_v<T, number>)
+        {
+            push(uint8_t(pt_number)).push(v);
         }
         else if constexpr (std::is_same_v<T, bool>)
         {
@@ -311,6 +323,13 @@ double Reader::pop_double() noexcept
     return pop_trivial<double>(m_data, m_offset);
 }
 
+number Reader::pop_number() noexcept
+{
+    static_assert(std::same_as<number_t, double>, "Update this function if number_t changes");
+    if (!test_len(sizeof(double))) return 0.0f;
+    return pop_trivial<double>(m_data, m_offset);
+}
+
 void Reader::pop_buff(float* arr) noexcept
 {
     const size_t len = pop_u32();
@@ -366,6 +385,9 @@ Primitive Reader::pop_primitive()
         break;
     case pt_double:
         ret = pop_double();
+        break;
+    case pt_number:
+        ret = pop_number();
         break;
     case pt_bool:
         ret = pop_bool();

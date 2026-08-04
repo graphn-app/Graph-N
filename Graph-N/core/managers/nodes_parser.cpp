@@ -177,7 +177,12 @@ TYPE json_to_number(const o_json& j)
 {
     if (j.is_number())
     {
-        return j.get<TYPE>();
+        static_assert(std::same_as<number_t, double>, "Update this function if number_t changes");
+
+        if constexpr (std::is_same_v<TYPE, number>)
+            return j.get<double>();
+        else
+            return j.get<TYPE>();
     }
     if (j.is_boolean())
     {
@@ -273,6 +278,8 @@ Primitive get_from_pin_type(const data::Node& jnode, const data::Pin& pin, const
         return json_to_number<int64_t>(j);
     case PinType::FLOAT:
         return json_to_number<double>(j);
+    case PinType::NUMBER:
+        return json_to_number<number>(j);
     case PinType::BOOLEAN:
         return json_to_bool(j);
     case PinType::STRING:

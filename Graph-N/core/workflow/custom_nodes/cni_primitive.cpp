@@ -189,6 +189,12 @@ bool CNI_Primitive::cni_can_link(const PinInstance* p1, const PinInstance* p2) c
         return test_ranges(src_obj->min.get_float(), src_obj->max.get_float(), dest_obj->min.get_float(), dest_obj->max.get_float());
     }
 
+    if (PinType::NUMBER == dest_type && PinType::NUMBER == src_state.type)
+    {
+        LogRAssert(src_inputs.size() == 2, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
+        return test_ranges(src_obj->min.get_number(), src_obj->max.get_number(), dest_obj->min.get_number(), dest_obj->max.get_number());
+    }
+
     if (PinType::COMBO == dest_type && PinType::COMBO == src_state.type)
     {
         LogRAssert(src_inputs.size() == 2, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
@@ -297,6 +303,23 @@ void CNI_Primitive::update()
             cni_add_pin(std::move(this_pin_obj));
         }
 
+        else if (PinType::NUMBER == src_type)
+        {
+            auto this_pin_obj = g::pNodesManager->make_pin_ptr(this_node_obj, "NUMBER", pin_name, -1);
+            src_pin_obj->copy_number(this_pin_obj.get());
+            this_pin_obj->cag_require = true;
+            this_pin_obj->can_link = false;
+
+            auto instance = wf->add_pin(this, this_pin_obj.get());
+            src_pin_inst->state().copy_to(instance->state());
+
+            if (deserialized_values != nullptr && instance->state().value.is_number() && deserialized_values->widget_value.is_number())
+                instance->state().value = deserialized_values->widget_value;
+
+            add_input(instance);
+            cni_add_pin(std::move(this_pin_obj));
+        }
+
         else if (PinType::COMBO == src_type)
         {
             auto this_pin_obj = g::pNodesManager->make_pin_ptr(this_node_obj, "COMBO", pin_name, -1);
@@ -349,7 +372,7 @@ void CNI_Primitive::update()
             cni_add_pin(std::move(this_pin_obj));
         }
 
-        if (PinType::INT == src_type || PinType::FLOAT == src_type || PinType::COMBO == src_type)
+        if (PinType::INT == src_type || PinType::FLOAT == src_type|| PinType::NUMBER == src_type || PinType::COMBO == src_type)
         {
             auto this_pin_obj = g::pNodesManager->make_pin_ptr(this_node_obj, "COMBO", base::GlobalID::uuid(), -1);
             this_pin_obj->cag_pin = true;
@@ -450,6 +473,28 @@ void CNI_Primitive::update()
         val = std::clamp(val.get_float(), this_min, this_max);
     }
 
+    else if (src_val.is_number())
+    {
+        static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
+
+        number this_min = IM_NUM_MIN_WIDGET;
+        number this_max = IM_NUM_MAX_WIDGET;
+
+        for (auto link : m_links)
+        {
+            const number min = link->get_object()->min.get_number();
+            const number max = link->get_object()->max.get_number();
+            this_min = std::max(this_min, min);
+            this_max = std::min(this_max, max);
+        }
+
+        this_pin_obj->min = this_min;
+        this_pin_obj->max = this_max;
+
+        auto& val = inputs[0]->state().value;
+        val = std::clamp(val.get_number(), this_min, this_max);
+    }
+
     reset_width();
 }
 
@@ -496,7 +541,7 @@ std::list<PinType> CNI_Primitive::get_supported_pin_types(PinInstance* pin) cons
         return { PinType::_none };
 
     if (PinType::ANY == pin->state().type)
-        return { PinType::INT, PinType::FLOAT, PinType::BOOLEAN, PinType::STRING, PinType::COMBO };
+        return { PinType::INT, PinType::FLOAT, PinType::NUMBER, PinType::BOOLEAN, PinType::STRING, PinType::COMBO };
 
     return { pin->state().type };
 }

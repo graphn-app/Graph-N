@@ -424,6 +424,13 @@ LogWriter& LogWriter::operator << (double d)
     return *this;
 }
 
+LogWriter& LogWriter::operator << (const number& n)
+{
+    static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{:.8f}"), n.underlying_type());
+    return *this;
+}
+
 LogWriter& LogWriter::operator << (bool b)
 {
     fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), (b ? "yes" : "no"));
