@@ -752,16 +752,23 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
     auto reroute_obj = g::pNodesManager->find_node(base::HashID::make_hash(CNI_CLASS_REROUTE));
     LogRAssert(reroute_obj != nullptr, "Reroute node obj not found", );
 
-    const auto* reroute = m_action->add_node(reroute_obj, "", ImRect(pos.x, pos.y, 0, 0));
+    auto* reroute = m_action->add_node(reroute_obj, "", ImRect(pos.x, pos.y, 0, 0));
     LogRAssert(reroute != nullptr, "Reroute node not created", );
     LogRAssert(reroute->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", t:" << typeid(reroute).name(), );
+
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedReroute>();
+    RoutedPinPair pair;
+    pair.type = left->state().type_str;
+    ((CNI_DeserializedReroute*)data.get())->pairs.push_back(pair);
+
+    reroute->cni_save_deserialized_info(std::move(data));
+    ((CNI_Reroute*)reroute)->cni_init();
+
     LogRAssert(reroute->get_inputs().size() == reroute->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", sz1:" << reroute->get_inputs().size() << ", sz2:" << reroute->get_outputs().size(), );
     LogRAssert(reroute->get_inputs().size() == 1, "Invalid reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", sz1:" << reroute->get_inputs().size() << ", sz2:" << reroute->get_outputs().size(), );
 
     auto reroute_in = reroute->get_inputs()[0];
     auto reroute_out = reroute->get_outputs()[0];
-
-    m_action->unlink(link);
 
     LogRAssert(Link::can_link(left, reroute_in), "Rerouted pins (left) can't be linked. w:" << get_id() << ", l:" << link->get_instance_id()
         << ", p1:" << left->get_instance_id() << ":" << left->state().type_str
@@ -770,6 +777,7 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
         << ", p1:" << right->get_instance_id() << ":" << right->state().type_str
         << ", p2:" << reroute_out->get_instance_id() << ":" << reroute_out->state().type_str, );
 
+    m_action->unlink(link);
     m_action->link(left, reroute_in);
     m_action->link(right, reroute_out);
 
