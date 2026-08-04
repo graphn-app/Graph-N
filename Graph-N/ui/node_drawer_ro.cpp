@@ -260,10 +260,7 @@ void RoNodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, 
     switch (pin->state().type)
     {
     case PinType::INT:
-        if (pin->get_object()->is_unsigned)
-            draw_widget_uint(pin, widget_name_width, widget_value_width);
-        else
-            draw_widget_int(pin, widget_name_width, widget_value_width);
+        draw_widget_int(pin, widget_name_width, widget_value_width);
         break;
     case PinType::FLOAT:
         draw_widget_float(pin, widget_name_width, widget_value_width);
@@ -320,41 +317,6 @@ void RoNodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_wid
     case WidgetInput::Slider:
     default:
         ImGuiEx::SliderIntSmart("", val, min, max, obj->precision.c_str());
-        break;
-    }
-
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
-}
-
-void RoNodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width)
-{
-    auto obj = pin->get_object();
-    auto& state = pin->state();
-
-    uint64_t* val = state.value.get_uint_ref();
-    LogRAssert(val, "Zero ptr", );
-
-    const uint64_t step = obj->step.get_uint();
-    const uint64_t min = obj->min.get_uint();
-    const uint64_t max = obj->max.get_uint();
-
-    ImGui::SetNextItemWidth(widget_name_width);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
-    ImGui::PopStyleColor();
-
-    ImGui::SameLine(0.0f, 0.0f);
-    ImGui::SetNextItemWidth(widget_value_width);
-
-    switch (g::pOptsManager->wf_widget_input_numbers_load())
-    {
-    case WidgetInput::Direct:
-        ImGuiEx::InputUIntSmart("", val, step, min, max, obj->precision, obj->precision);
-        break;
-    case WidgetInput::Slider:
-    case WidgetInput::Drag:
-    default:
-        ImGuiEx::DragUIntSmart("", val, min, max, obj->precision.c_str());
         break;
     }
 
@@ -536,7 +498,7 @@ void RoNodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_w
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::SetNextItemWidth(widget_value_width);
 
-    const ImVec4 vec4 = ImGui::ColorConvertU32ToFloat4(cast::to_u32(state.value.get_uint()));
+    const ImVec4 vec4 = ImGui::ColorConvertU32ToFloat4(cast::to_u32(state.value.get_int()));
     float colors[4];
     vec4.to_arr(colors);
     if (ImGui::ColorEdit4("", colors,

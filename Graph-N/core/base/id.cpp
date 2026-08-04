@@ -46,7 +46,7 @@ uint64_t GlobalID::random()
     return ret;
 }
 
-int64_t GlobalID::random(int64_t min, int64_t max)
+int64_t GlobalID::random_widget(int64_t min, int64_t max)
 {
     if (min > max) std::swap(min, max);
     if (min < IM_S64_MIN_WIDGET) min = IM_S64_MIN_WIDGET;
@@ -58,12 +58,9 @@ int64_t GlobalID::random(int64_t min, int64_t max)
     return dist(self.m_gen);
 }
 
-uint64_t GlobalID::random_seed()
+int64_t GlobalID::random_seed()
 {
-    auto& self = instance();
-    std::lock_guard<std::mutex> lock(self.m_lock);
-    std::uniform_int_distribution<uint64_t> dist(0, IM_U64_MAX_WIDGET);
-    return dist(self.m_gen);
+    return random_widget(0, IM_S64_MAX_WIDGET);
 }
 
 std::string GlobalID::uuid()

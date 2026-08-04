@@ -234,6 +234,7 @@ CAST_HELPER(to_u64, uint64_t)
 CAST_HELPER(to_szt, size_t)
 CAST_HELPER(to_float, float)
 CAST_HELPER(to_double, double)
+CAST_HELPER(to_time, time_t)
 CAST_HELPER(to_imguikey, ImGuiKey)
 
 #undef CAST_HELPER

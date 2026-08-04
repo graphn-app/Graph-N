@@ -25,7 +25,7 @@ private:
     number_t n = NUMBER_DEFAULT;
 };
 
-using primitive_t = std::variant<std::monostate, int64_t, uint64_t, double, number, std::string, bool>;
+using primitive_t = std::variant<std::monostate, int64_t, double, number, std::string, bool>;
 
 class Primitive final
 {
@@ -49,28 +49,24 @@ public:
 
     [[nodiscard]] bool is_null() const noexcept { return std::holds_alternative<std::monostate>(m_value); }
     [[nodiscard]] bool is_int() const noexcept { return std::holds_alternative<int64_t>(m_value); }
-    [[nodiscard]] bool is_uint() const noexcept { return std::holds_alternative<uint64_t>(m_value); }
     [[nodiscard]] bool is_float() const noexcept { return std::holds_alternative<double>(m_value); }
     [[nodiscard]] bool is_number() const noexcept { return std::holds_alternative<number>(m_value); }
     [[nodiscard]] bool is_bool() const noexcept { return std::holds_alternative<bool>(m_value); }
     [[nodiscard]] bool is_string() const noexcept { return std::holds_alternative<std::string>(m_value); }
 
     [[nodiscard]] int64_t* get_int_ref() noexcept { return std::get_if<int64_t>(&m_value); }
-    [[nodiscard]] uint64_t* get_uint_ref() noexcept { return std::get_if<uint64_t>(&m_value); }
     [[nodiscard]] double* get_float_ref() noexcept { return std::get_if<double>(&m_value); }
     [[nodiscard]] number* get_number_ref() noexcept { return std::get_if<number>(&m_value); }
     [[nodiscard]] bool* get_bool_ref() noexcept { return std::get_if<bool>(&m_value); }
     [[nodiscard]] std::string* get_string_ref() noexcept { return std::get_if<std::string>(&m_value); }
 
     [[nodiscard]] const int64_t* get_int_ref() const noexcept { return std::get_if<int64_t>(&m_value); }
-    [[nodiscard]] const uint64_t* get_uint_ref() const noexcept { return std::get_if<uint64_t>(&m_value); }
     [[nodiscard]] const double* get_float_ref() const noexcept { return std::get_if<double>(&m_value); }
     [[nodiscard]] const number* get_number_ref() const noexcept { return std::get_if<number>(&m_value); }
     [[nodiscard]] const bool* get_bool_ref() const noexcept { return std::get_if<bool>(&m_value); }
     [[nodiscard]] const std::string* get_string_ref() const noexcept { return std::get_if<std::string>(&m_value); }
 
     [[nodiscard]] int64_t get_int() const noexcept { const int64_t* ref = get_int_ref(); return (nullptr == ref ? 0 : *ref); }
-    [[nodiscard]] uint64_t get_uint() const noexcept { const uint64_t* ref = get_uint_ref(); return (nullptr == ref ? 0 : *ref); }
     [[nodiscard]] double get_float() const noexcept { const double* ref = get_float_ref(); return (nullptr == ref ? 0.0 : *ref); }
     [[nodiscard]] number get_number() const noexcept { const number* ref = get_number_ref(); return (nullptr == ref ? number{} : *ref); }
     [[nodiscard]] bool get_bool() const noexcept { const bool* ref = get_bool_ref(); return (nullptr == ref ? false : *ref); }

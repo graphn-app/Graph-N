@@ -4,7 +4,6 @@ using namespace std::chrono_literals;
 
 using byte = uint8_t;
 using app_version_type = uint64_t;
-using time_type = uint64_t;
 using hid = size_t;		// hash id for pin/node, based on node/pin name
 using iid = uint32_t;	// node/pin instance id, unique for each workflow
 using wid = uint32_t;   // workflow id - crc32 of uuid

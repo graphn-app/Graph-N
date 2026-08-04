@@ -57,8 +57,6 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node_primitive(NodeInstanc
             value = jvalue0.get<double>();
         else if (jvalue0.is_string())
             value = jvalue0.get<std::string>();
-        else if (jvalue0.is_number_unsigned())
-            value = jvalue0.get<uint64_t>();
         else if (jvalue0.is_number_integer())
             value = jvalue0.get<int64_t>();
 

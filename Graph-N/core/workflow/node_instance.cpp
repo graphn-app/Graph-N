@@ -146,13 +146,7 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
             case ControlAfterGenerate::CAGFixed:
                 break;
             case ControlAfterGenerate::CAGDecrement:
-                if (value.is_uint())
-                {
-                    uint64_t* val = value.get_uint_ref();
-                    if (0 == *val) *val = IM_U64_MAX_WIDGET;
-                    else (*val)--;
-                }
-                else if (value.is_int())
+                if (value.is_int())
                 {
                     int64_t* val = value.get_int_ref();
                     const int64_t min = pin_obj->min.get_int();
@@ -178,13 +172,7 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
                 }
                 break;
             case ControlAfterGenerate::CAGIncrement:
-                if (value.is_uint())
-                {
-                    uint64_t* val = value.get_uint_ref();
-                    if (*val >= IM_U64_MAX_WIDGET) *val = 0;
-                    else (*val)++;
-                }
-                else if (value.is_int())
+                if (value.is_int())
                 {
                     int64_t* val = value.get_int_ref();
                     const int64_t min = pin_obj->min.get_int();
@@ -210,31 +198,26 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
                 }
                 break;
             case ControlAfterGenerate::CAGRandomize:
-                if (value.is_uint())
-                {
-                    uint64_t* val = value.get_uint_ref();
-                    *val = base::GlobalID::random_seed();
-                }
-                else if (value.is_int())
+                if (value.is_int())
                 {
                     int64_t* val = value.get_int_ref();
                     const int64_t min = pin_obj->min.get_int();
                     const int64_t max = pin_obj->max.get_int();
-                    *val = base::GlobalID::random(min, max);
+                    *val = base::GlobalID::random_widget(min, max);
                 }
                 else if (value.is_float())
                 {
                     double* val = value.get_float_ref();
                     const int64_t min = cast::to_i64(pin_obj->min.get_float());
                     const int64_t max = cast::to_i64(pin_obj->max.get_float());
-                    *val = cast::to_double(base::GlobalID::random(min, max));
+                    *val = cast::to_double(base::GlobalID::random_widget(min, max));
                 }
                 else if (value.is_number())
                 {
                     number* val = value.get_number_ref();
                     const int64_t min = cast::to_i64(pin_obj->min.get_number().underlying_type());
                     const int64_t max = cast::to_i64(pin_obj->max.get_number().underlying_type());
-                    *val = cast::to_number(base::GlobalID::random(min, max));
+                    *val = cast::to_number(base::GlobalID::random_widget(min, max));
                 }
                 break;
             default:
@@ -247,9 +230,7 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
                 auto old_val = pin_copy_to->state().value;
                 auto& value_to = pin_copy_to->state().value;
 
-                if (value.is_uint())
-                    value_to = value.get_uint();
-                else if (value.is_int())
+                if (value.is_int())
                     value_to = value.get_int();
                 else if (value.is_float())
                     value_to = value.get_float();
@@ -272,7 +253,7 @@ void NodeInstance::collect_search_data(std::stringstream& data) const
         if (PinType::INT == pin->get_object()->def_state.type &&
             tools::str::to_lower_ascii(pin->get_object()->def_state.name).find("seed") != std::string::npos)
         {
-            data << pin->state().value.get_uint() << " ";
+            data << pin->state().value.get_int() << " ";
             break;
         }
     }

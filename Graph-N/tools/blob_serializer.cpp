@@ -10,7 +10,6 @@ enum PrimitiveType
 {
     pt_none,
     pt_i64,
-    pt_u64,
     pt_double,
     pt_number,
     pt_bool,
@@ -153,10 +152,6 @@ Writer& Writer::push(const Primitive& val)
         if constexpr (std::is_same_v<T, int64_t>)
         {
             push(uint8_t(pt_i64)).push(v);
-        }
-        else if constexpr (std::is_same_v<T, uint64_t>)
-        {
-            push(uint8_t(pt_u64)).push(v);
         }
         else if constexpr (std::is_same_v<T, double>)
         {
@@ -379,9 +374,6 @@ Primitive Reader::pop_primitive()
     {
     case pt_i64:
         ret = pop_i64();
-        break;
-    case pt_u64:
-        ret = pop_u64();
         break;
     case pt_double:
         ret = pop_double();

@@ -67,14 +67,7 @@ bool WfDeserializerFromJsonApi::deserialize()
                         if (jinput_value.is_string())
                             input.raw_input = jinput_value.get<std::string>();
                         else if (jinput_value.is_number_integer())
-                        {
-                            auto i64 = jinput_value.get<int64_t>();
-                            auto u64 = jinput_value.get<uint64_t>();
-                            if (i64 == int64_t(u64))
-                                input.raw_input = i64;
-                            else
-                                input.raw_input = u64;
-                        }
+                            input.raw_input = jinput_value.get<int64_t>();
                         else if (jinput_value.is_number_float())
                             input.raw_input = jinput_value.get<double>();
                         else if (jinput_value.is_boolean())
@@ -169,18 +162,12 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
             {
                 using T = std::decay_t<decltype(v)>;
 
-                if constexpr (std::is_same_v<T, int64_t> || std::is_same_v<T, uint64_t>)
+                if constexpr (std::is_same_v<T, int64_t>)
                 {
                     if (PinType::INT == pin_instance->get_object()->def_state.type ||
                         PinType::COLOR == pin_instance->get_object()->def_state.type)
                     {
-                        if (pin_instance->get_object()->is_unsigned || std::is_same_v<T, uint64_t>)
-                        {
-                            pin_instance->state().value = uint64_t(v);
-                            pin_instance->get_object()->is_unsigned = true;
-                        }
-                        else
-                            pin_instance->state().value = int64_t(v);
+                        pin_instance->state().value = int64_t(v);
                     }
                     else if (PinType::FLOAT == pin_instance->get_object()->def_state.type)
                     {

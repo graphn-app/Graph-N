@@ -13,8 +13,8 @@ public:
     static std::string uuid();
     static std::string client_id();
     static uint64_t random();
-    static int64_t random(int64_t min, int64_t max);;
-    static uint64_t random_seed();
+    static int64_t random_widget(int64_t min, int64_t max);
+    static int64_t random_seed();
 
 private:
     GlobalID();

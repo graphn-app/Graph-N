@@ -871,10 +871,7 @@ void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, fl
     switch (pin->state().type)
     {
     case PinType::INT:
-        if (pin->get_object()->is_unsigned)
-            draw_widget_uint(pin, widget_name_width, widget_value_width);
-        else
-            draw_widget_int(pin, widget_name_width, widget_value_width);
+        draw_widget_int(pin, widget_name_width, widget_value_width);
         break;
     case PinType::FLOAT:
         draw_widget_float(pin, widget_name_width, widget_value_width);
@@ -971,49 +968,6 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
         //ImGuiEx::DragIntSmart("##value", val, min, max, obj->precision.c_str());
     case WidgetInput::Slider:
         ImGuiEx::SliderIntSmart("##value", val, min, max, obj->precision.c_str());                
-        break;
-    }
-    if (linked) ImGui::EndDisabled();
-    else handle_widget_active_state(pin, &backup);
-
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
-    ImGui::PopID();
-}
-
-void NodeDrawer::draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width)
-{
-    auto obj = pin->get_object();
-    auto& state = pin->state();
-
-    const Primitive backup = state.value;
-    uint64_t* val = state.value.get_uint_ref();
-    LogRAssert(val, "Zero val", );
-    const uint64_t step = obj->step.get_uint();
-    const uint64_t min = obj->min.get_uint();
-    const uint64_t max = obj->max.get_uint();
-
-    ImGui::PushID(&state.value);
-    ImGui::SetNextItemWidth(widget_name_width);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
-    handle_widget_active_state(nullptr);
-    ImGui::PopStyleColor();
-
-    ImGui::SameLine(0.0f, 0.0f);
-    ImGui::SetNextItemWidth(widget_value_width);
-
-    const auto linked = pin->state().links > 0;
-    if (linked) ImGui::BeginDisabled();
-    switch (g::pOptsManager->wf_widget_input_numbers_load())
-    {
-    case WidgetInput::Direct:
-    default:
-        ImGuiEx::InputUIntSmart("##value", val, step, min, max, obj->precision, obj->precision);
-        break;
-    case WidgetInput::Drag:
-        //ImGuiEx::DragUIntSmart("##value", val, min, max, obj->precision.c_str());
-    case WidgetInput::Slider:
-        ImGuiEx::SliderUIntSmart("##value", val, min, max, obj->precision.c_str());                
         break;
     }
     if (linked) ImGui::EndDisabled();
@@ -1253,7 +1207,7 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::SetNextItemWidth(widget_value_width);
 
-    const ImVec4 vec4 = ImGui::ColorConvertU32ToFloat4(cast::to_u32(state.value.get_uint()));
+    const ImVec4 vec4 = ImGui::ColorConvertU32ToFloat4(cast::to_u32(state.value.get_int()));
     float colors[4];
     vec4.to_arr(colors);
     const auto linked = pin->state().links > 0;

@@ -441,14 +441,14 @@ bool InputIntSmart(
 {
     return InputTypeSmart(label_id, value, step, min, max, ImGuiDataType_S64, format_named, format_unnamed);
 }
-
-bool InputUIntSmart(
-    const char* label_id,
-    uint64_t* value, uint64_t step, uint64_t min, uint64_t max,
-    const std::string& format_named, const std::string& format_unnamed) noexcept
-{
-    return InputTypeSmart(label_id, value, step, min, max, ImGuiDataType_U64, format_named, format_unnamed);
-}
+//
+//bool InputUIntSmart(
+//    const char* label_id,
+//    uint64_t* value, uint64_t step, uint64_t min, uint64_t max,
+//    const std::string& format_named, const std::string& format_unnamed) noexcept
+//{
+//    return InputTypeSmart(label_id, value, step, min, max, ImGuiDataType_U64, format_named, format_unnamed);
+//}
 
 bool InputDoubleSmart(
     const char* label_id, 
@@ -499,11 +499,11 @@ bool DragIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, c
 {
     return DragTypeSmart(label, value, min, max, ImGuiDataType_S64, format);
 }
-
-bool DragUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format) noexcept
-{
-    return DragTypeSmart(label, value, min, max, ImGuiDataType_U64, format);
-}
+//
+//bool DragUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format) noexcept
+//{
+//    return DragTypeSmart(label, value, min, max, ImGuiDataType_U64, format);
+//}
 
 template <typename TYPE>
 bool SliderTypeSmart(const char* label, TYPE* value, TYPE min, TYPE max, ImGuiDataType_ type, const char* format, TYPE step) noexcept
@@ -533,11 +533,11 @@ bool SliderIntSmart(const char* label, int64_t* value, int64_t min, int64_t max,
 {
     return SliderTypeSmart(label, value, min, max, ImGuiDataType_S64, format, step);
 }
-
-bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format, uint64_t step /*= 0*/) noexcept
-{
-    return SliderTypeSmart(label, value, min, max, ImGuiDataType_U64, format, step);
-}
+//
+//bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format, uint64_t step /*= 0*/) noexcept
+//{
+//    return SliderTypeSmart(label, value, min, max, ImGuiDataType_U64, format, step);
+//}
 
 bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* value, ImVec2 size_arg /*= ImVec2(0, 0)*/) noexcept
 {

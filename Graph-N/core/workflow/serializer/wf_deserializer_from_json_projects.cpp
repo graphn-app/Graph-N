@@ -22,12 +22,12 @@ bool WfDeserializerFromJson::deserialize_all_wf_names(const std::string& payload
             {
                 if (jitem["modified"].is_number_float())
                 {
-                    const uint64_t t = uint64_t(jitem["modified"].get<double>());
+                    const time_t t = cast::to_time(jitem["modified"].get<double>());
                     time = tools::dt::from_time(t);
                 }
                 else
                 {
-                    const uint64_t t = jitem["modified"].get<int64_t>();
+                    const time_t t = cast::to_time(jitem["modified"].get<int64_t>());
                     time = tools::dt::from_time(t);
                 }
             }

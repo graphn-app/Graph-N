@@ -58,16 +58,16 @@ std::pair<bool, bool> InputTextMultilineWithHintWithHScroll(
 void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button) noexcept;
 
 bool InputIntSmart(const char* label_id, int64_t* value, int64_t step, int64_t min, int64_t max, const std::string& format_named, const std::string& format_unnamed) noexcept;
-bool InputUIntSmart(const char* label_id, uint64_t* value, uint64_t step, uint64_t min, uint64_t max, const std::string& format_named, const std::string& format_unnamed) noexcept;
+//bool InputUIntSmart(const char* label_id, uint64_t* value, uint64_t step, uint64_t min, uint64_t max, const std::string& format_named, const std::string& format_unnamed) noexcept;
 bool InputDoubleSmart(const char* label_id,  double* value, double step, double min, double max, const std::string& format_named, const std::string& format_unnamed) noexcept;
 
 bool DragDoubleSmart(const char* label, double* value, double min, double max, const char* format) noexcept;
 bool DragIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format) noexcept;
-bool DragUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format) noexcept;
+//bool DragUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format) noexcept;
 
 bool SliderDoubleSmart(const char* label, double* value, double min, double max, const char* format, double step = 0) noexcept;
 bool SliderIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format, int64_t step = 0) noexcept;
-bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format, uint64_t step = 0) noexcept;
+//bool SliderUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format, uint64_t step = 0) noexcept;
 
 // two regular left/right buttons
 bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* value, ImVec2 size_arg = ImVec2(0, 0)) noexcept;

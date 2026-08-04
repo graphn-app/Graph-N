@@ -81,8 +81,8 @@ public:
     void finalize_bool();
     void finalize_color() noexcept;
 
-    static uint64_t color_to_val(const std::string& clr, bool& alpha_in_string) noexcept;
-    static uint64_t colors_to_int(const ImVec4& colors) noexcept;
+    static int64_t color_to_val(const std::string& clr, bool& alpha_in_string) noexcept;
+    static int64_t colors_to_int(const ImVec4& colors) noexcept;
 
     static PinShape get_shape(PinType type) noexcept;
 
@@ -132,9 +132,6 @@ public:
     std::string label_on_named;
     std::string label_off;
     std::string label_off_named;
-
-    // int
-    bool is_unsigned = false;
 
     // int, double, combo
     Primitive min;

@@ -245,15 +245,10 @@ void WfSerializerToJson::serialize_widgets(o_json& j)
                 {
                     if (PinType::COMBO == pin->state().type)
                     {
-                        if (uint64_t(v) < pin->get_object()->combo_items_ptr.size())
+                        if (cast::to_szt(v) < pin->get_object()->combo_items_ptr.size())
                             jarr.push_back(pin->get_object()->combo_items_ptr[v]);
                     }
-                    else
-                        jarr.push_back(v);
-                }
-                else if constexpr (std::is_same_v<T, uint64_t>)
-                {
-                    if (PinType::COLOR == pin->state().type)
+                    else if (PinType::COLOR == pin->state().type)
                     {
                         jarr.push_back(color_to_string(ImU32(v)));
                     }

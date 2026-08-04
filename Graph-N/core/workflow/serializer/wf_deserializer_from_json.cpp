@@ -388,8 +388,6 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                     pval = jvalue.get<double>();
                 else if (jvalue.is_string())
                     pval = jvalue.get<std::string>();
-                else if (jvalue.is_number_unsigned())
-                    pval = jvalue.get<uint64_t>();
                 else if (jvalue.is_number_integer())
                     pval = jvalue.get<int64_t>();
                 else
@@ -404,15 +402,12 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                 {
                     using T = std::decay_t<decltype(v)>;
 
-                    if constexpr (std::is_same_v<T, int64_t> || std::is_same_v<T, uint64_t>)
+                    if constexpr (std::is_same_v<T, int64_t>)
                     {
                         if (PinType::INT == pin->get_object()->def_state.type ||
                             PinType::COLOR == pin->get_object()->def_state.type)
                         {
-                            if (pin->get_object()->is_unsigned)
-                                pin->state().value = uint64_t(v);
-                            else
-                                pin->state().value = int64_t(v);
+                            pin->state().value = int64_t(v);
                         }
                         else if (PinType::FLOAT == pin->get_object()->def_state.type)
                         {

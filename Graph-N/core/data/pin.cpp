@@ -89,7 +89,6 @@ void Pin::copy_int(Pin* dest) const
     dest->step = step;
     dest->w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
     dest->tooltip = tooltip;
-    dest->is_unsigned = is_unsigned;
     def_state.copy_to(dest->def_state);
     dest->finalize_int();
 }
@@ -280,28 +279,25 @@ void Pin::finalize()
 
 void Pin::finalize_int()
 {
+    precision = fmt::format(FMT_STRING("%lld"));
+    precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
+
     const bool seed = (tools::str::to_lower_ascii(def_state.name).find("seed") != std::string::npos);
     cag_require = seed;
 
     if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int
     {
-        is_unsigned = true;
-        precision = fmt::format(FMT_STRING("%llu"));
-        precision_named = fmt::format(FMT_STRING("{}: %llu"), def_state.name);
-        step = uint64_t(step.get_int());
-        if (0 == step.get_uint()) step = uint64_t(1);
-        def = uint64_t(def.get_int());
-        min = uint64_t(0);
-        max = uint64_t(IM_U64_MAX_WIDGET);
+        step = int64_t(1);
+        def = int64_t(0);
+        min = int64_t(IM_S64_MIN_WIDGET);
+        max = int64_t(IM_S64_MAX_WIDGET);
     }
     else
     {
-        is_unsigned = false;
-        precision = fmt::format(FMT_STRING("%lld"));
-        precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
-        if (0 == step.get_int()) step = int64_t(1);
-        if (min.get_int() < IM_S64_MIN_WIDGET) min = int64_t(IM_S64_MIN_WIDGET);
-        if (max.get_int() > IM_S64_MAX_WIDGET) max = int64_t(IM_S64_MAX_WIDGET);
+        if (0 == step.get_int())
+            step = int64_t(1);
+        min = std::max(min.get_int(), IM_S64_MIN_WIDGET);
+        max = std::min(max.get_int(), IM_S64_MAX_WIDGET);
     }
 
     if (min.get_int() == max.get_int())
@@ -326,6 +322,9 @@ void Pin::finalize_float()
     }
     if (step.get_float() == 0)
         step = double(0.01);
+
+    if (max < min)
+        std::swap(min, max);
 
     if (!def.is_float()) def = double(0.0);
     if (!min.is_float()) min = IM_DBL_MIN_WIDGET;
@@ -370,6 +369,9 @@ void Pin::finalize_number()
         else
             step = number(NUMBER_STEP);
     }
+
+    if (max < min)
+        std::swap(min, max);
 
     if (!def.is_number()) def = number(NUMBER_DEFAULT);
     if (!min.is_number()) min = number(IM_NUM_MIN_WIDGET);
@@ -456,8 +458,11 @@ void Pin::finalize_bool()
 
 void Pin::finalize_color() noexcept
 {
-    is_unsigned = true;
-    def = color_to_val(def.get_string(), alpha_enabled);
+    precision = fmt::format(FMT_STRING("%lld"));
+    precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
+
+    if (max < min)
+        std::swap(min, max);
 }
 
 namespace {
@@ -494,10 +499,7 @@ void Pin::clamp_values() noexcept
     switch (def_state.type)
     {
     case PinType::INT:
-        if (is_unsigned)
-            clamp_primitive<uint64_t>(*this, 0, IM_U64_MAX_WIDGET);
-        else
-            clamp_primitive<int64_t>(*this, IM_S64_MIN_WIDGET, IM_S64_MAX_WIDGET);
+        clamp_primitive<int64_t>(*this, IM_S64_MIN_WIDGET, IM_S64_MAX_WIDGET);
         break;
     case PinType::FLOAT:
         clamp_primitive<double>(*this, IM_DBL_MIN_WIDGET, IM_DBL_MAX_WIDGET);
@@ -536,11 +538,11 @@ void Pin::init_defaults()
     }
     else if (PinType::COLOR == def_state.type)
     {
-        def_state.value = uint64_t(IM_COL32_WHITE);
-        def = uint64_t(IM_COL32_WHITE);
-        min = uint64_t(IM_COL32_BLACK);
-        max = uint64_t(IM_COL32_WHITE);
-        step = uint64_t(1);
+        def_state.value = int64_t(IM_COL32_WHITE);
+        def = int64_t(IM_COL32_WHITE);
+        min = int64_t(IM_COL32_BLACK);
+        max = int64_t(IM_COL32_WHITE);
+        step = int64_t(1);
     }
     else if (PinType::BOOLEAN == def_state.type)
     {
@@ -669,7 +671,7 @@ std::string Pin::any_to_string(const Primitive& item)
         {
             // do nothing
         }
-        else if constexpr (std::is_same_v<T, int64_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, double>)
+        else if constexpr (std::is_same_v<T, int64_t> || std::is_same_v<T, double>)
         {
             ret = std::to_string(v);
         }
@@ -695,16 +697,16 @@ std::string Pin::any_to_string(const Primitive& item)
     return ret;
 }
 
-uint64_t Pin::colors_to_int(const ImVec4& colors) noexcept
+int64_t Pin::colors_to_int(const ImVec4& colors) noexcept
 {
     const ImColor clr(colors);
-    return ImU32(clr);
+    return cast::to_i64(ImU32(clr));
 }
 
-uint64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string) noexcept
+int64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string) noexcept
 {
     if (clr.empty())
-        return IM_COL32_WHITE;
+        return cast::to_i64(IM_COL32_WHITE);
 
     if ((clr.size() == 7 || clr.size() == 9) && clr[0] == '#')
     {
@@ -719,7 +721,7 @@ uint64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string) noexce
             alpha_in_string = true;
             sscanf_s(clr.c_str(), "#%02x%02x%02x%02x", &r, &g, &b, &a);
         }
-        return IM_COL32(r, g, b, a);
+        return cast::to_i64(IM_COL32(r, g, b, a));
     }
 
     struct ColorEntry final
@@ -747,10 +749,10 @@ uint64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string) noexce
 
     auto it = std::lower_bound(named_colors.begin(), named_colors.end(), clr);
     if (it != named_colors.end() && it->name == clr)
-        return it->value;
+        return cast::to_i64(it->value);
     
     // if we didn't get it - return bright magenta
-    return IM_COL32(255, 0, 255, 255);
+    return cast::to_i64(IM_COL32(255, 0, 255, 255));
 }
 
 PinShape Pin::get_shape(PinType type) noexcept

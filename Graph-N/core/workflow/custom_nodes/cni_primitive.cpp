@@ -174,8 +174,8 @@ bool CNI_Primitive::cni_can_link(const PinInstance* p1, const PinInstance* p2) c
     {
         LogRAssert(src_inputs.size() == 2, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
 
-        const bool dest_u = dest_val.is_uint();
-        const bool src_u = src_value.is_uint();
+        const bool dest_u = dest_val.is_int();
+        const bool src_u = src_value.is_int();
         if (dest_u != src_u)
             return false;
         if (dest_u == src_u && src_u)
@@ -274,12 +274,9 @@ void CNI_Primitive::update()
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
 
-            if (deserialized_values != nullptr)
+            if (deserialized_values != nullptr && instance->state().value.is_int() && deserialized_values->widget_value.is_int())
             {
-                if (instance->state().value.is_int() && deserialized_values->widget_value.is_int())
-                    instance->state().value = deserialized_values->widget_value;
-                else if (instance->state().value.is_uint() && deserialized_values->widget_value.is_uint())
-                    instance->state().value = deserialized_values->widget_value;
+                instance->state().value = deserialized_values->widget_value;
             }
 
             add_input(instance);

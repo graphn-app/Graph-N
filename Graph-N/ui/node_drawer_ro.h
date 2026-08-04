@@ -33,7 +33,6 @@ private:
     void draw_pin_icon(ImU32 color) noexcept;
     void draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width);
-    void draw_widget_uint(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_float(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_number(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_bool(data::PinInstance* pin, float widget_name_width, float widget_value_width);

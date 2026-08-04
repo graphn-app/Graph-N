@@ -67,7 +67,7 @@ o_json WfSerializerToJsonApi::serialize()
                 {
                     using T = std::decay_t<decltype(v)>;
 
-                    if constexpr (std::is_same_v<T, uint64_t> || std::is_same_v<T, double> || std::is_same_v<T, bool>)
+                    if constexpr (std::is_same_v<T, double> || std::is_same_v<T, bool>)
                     {
                         input = v;
                     }
@@ -75,7 +75,7 @@ o_json WfSerializerToJsonApi::serialize()
                     {
                         if (PinType::COMBO == pin->get_object()->def_state.type)
                         {
-                            if (pin->get_object()->combo_items_ptr.size() <= uint64_t(v))
+                            if (pin->get_object()->combo_items_ptr.size() <= cast::to_szt(v))
                                 input = "";
                             else
                                 input = pin->get_object()->combo_items_ptr[v];

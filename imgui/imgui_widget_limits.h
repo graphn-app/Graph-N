@@ -31,6 +31,5 @@ constexpr const ImU64          IM_U64_MAX = ULLONG_MAX; // (0xFFFFFFFFFFFFFFFFul
 #else
 constexpr const ImU64          IM_U64_MAX = (2ULL * 9223372036854775807LL + 1);
 #endif
-constexpr const ImU64          IM_U64_MAX_WIDGET = IM_U64_MAX / 2;
 constexpr const double         IM_DBL_MIN_WIDGET = -DBL_MAX / 2.0;
 constexpr const double         IM_DBL_MAX_WIDGET = DBL_MAX / 2.0;
