@@ -127,7 +127,9 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::NodeDescription)] =                   { "color_node_description", int64_t(IM_COL32(0, 180, 180, 255)) };
     m_ui_colors[cast::to_szt(AppColor::NodeHeaderIcon)] =                    { "color_node_header_icon", int64_t(IM_COL32(0, 180, 180, 255)) };
     m_ui_colors[cast::to_szt(AppColor::NodeBorderMuted)] =                   { "color_node_border_muted", int64_t(IM_COL32(92, 92, 95, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::NodeBorderBypassed)] =                { "color_node_border_bypassed", int64_t(IM_COL32(255, 0, 0, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::NodeBgMuted)] =                       { "color_node_bg_muted", int64_t(IM_COL32(0, 0, 0, 100)) };
+    m_ui_colors[cast::to_szt(AppColor::NodeBorderBypassed)] =                { "color_node_border_bypassed", int64_t(IM_COL32(92, 92, 95, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::NodeBgBypassed)] =                    { "color_node_bg_bypassed", int64_t(IM_COL32(46, 13, 46, 255)) };
     m_ui_colors[cast::to_szt(AppColor::GroupBg)] =                           { "color_group_bg", int64_t(IM_COL32(38, 71, 93, 0)) };
     m_ui_colors[cast::to_szt(AppColor::StatNorm)] =                          { "color_stat_norm", int64_t(IM_COL32(255, 255, 255, 150)) };
     m_ui_colors[cast::to_szt(AppColor::StatWarn)] =                          { "color_stat_warn", int64_t(IM_COL32(255, 200, 50, 255)) };

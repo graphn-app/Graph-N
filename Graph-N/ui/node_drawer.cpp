@@ -368,11 +368,13 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
     if (node->get_mode() == NodeMode::Mute || node->get_mode() == NodeMode::OnEvent || node->get_mode() == NodeMode::OnTrigger)
     {
         ed::PushStyleColor(ed::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBorderMuted)));
+        ed::PushStyleColor(ed::StyleColor_NodeBg, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBgMuted)));
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * m_mode_alpha);
     }
     else if (node->get_mode() == NodeMode::Bypass)
     {
         ed::PushStyleColor(ed::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBorderBypassed)));
+        ed::PushStyleColor(ed::StyleColor_NodeBg, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBgBypassed)));
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * m_mode_alpha);
     }
 
@@ -431,7 +433,7 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed)
 
     if (node->get_mode() != NodeMode::Always)
     {
-        ed::PopStyleColor();
+        ed::PopStyleColor(2);
         ImGui::PopStyleVar();
     }
 
