@@ -38,6 +38,7 @@ private:
 
     NodeInstance* create_api_node(ApiNode& api_node, bool dummy);
     void link_api_nodes(const std::list<ApiNode>& api_nodes);
+    void arrange_nodes();
 
 private:
     Workflow* m_wf = nullptr;

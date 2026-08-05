@@ -410,7 +410,7 @@ void GraphN_Flow::check_connection()
 
 void GraphN_Flow::import_user_projects()
 {
-    m_wf_imported = true;
+    m_wf_imported = true; // TODO ENABLE IMPORT
 
     if (m_wf_imported || !m_nodes_ready.load(std::memory_order_relaxed))
         return;

@@ -93,6 +93,7 @@ bool WfDeserializerFromJsonApi::deserialize()
         }
 
         link_api_nodes(nodes);
+        arrange_nodes();
         return true;
     }
     catch (const std::exception& ex)
@@ -299,6 +300,167 @@ void WfDeserializerFromJsonApi::link_api_nodes(const std::list<ApiNode>& api_nod
             if (src_pin != nullptr && dest_pin != nullptr && nullptr == Link::link(src_pin, dest_pin, 0))
                 LogError("Can't link pins. w:" << m_wf->get_id() << ", n:" << api_node.node_iid << ", p1:" << src_pin->get_instance_id() << ", p2:" << dest_pin->get_instance_id());
         }
+    }
+}
+
+void WfDeserializerFromJsonApi::arrange_nodes()
+{
+    const auto& wf_nodes = m_wf->get_nodes();
+    if (wf_nodes.empty())
+        return;
+    const auto& wf_links = m_wf->get_links();
+
+    struct NodeWithParents
+    {
+        NodeInstance* node = nullptr;
+        std::vector<NodeInstance*> parents;
+    };
+
+    std::vector<NodeWithParents> nodes_with_parents;
+    nodes_with_parents.reserve(wf_nodes.size());
+
+    std::unordered_map<NodeInstance*, int32_t> depths;
+    int32_t max_depth = 0;
+
+    std::unordered_map<NodeInstance*, std::pair<float, float>> sizes;
+    const auto pin_h = ImGui::GetTextLineHeightWithSpacing();
+
+    std::unordered_map<void*, NodeInstance*> pin_to_parent_node; 
+    for (const auto& link : wf_links)
+    {
+        pin_to_parent_node[link->get_input()] = m_wf->get_node_by_instance(link->get_output()->get_parent_node());
+    }
+
+    for (auto& node : wf_nodes)
+    {
+        auto& inputs = node->get_inputs();
+        auto& outputs = node->get_outputs();
+
+        bool has_ins = false, has_outs = false;
+        float max_h_pin_in = 0.0f;
+        float max_h_widget_in = 0.0f;
+        float max_h_out = 0.0f;
+
+        for (auto in : inputs)
+        {
+            if (in->state().links > 0)
+                has_ins = true;
+
+            if (in->get_object()->is_widget(in->state()))
+            {
+                if (PinType::STRING == in->state().type && in->get_object()->multiline)
+                    max_h_widget_in += pin_h * 3;
+                else
+                    max_h_widget_in += pin_h;
+            }
+            else
+                max_h_pin_in += pin_h;
+        }
+        for (auto out : outputs)
+        {
+            if (out->state().links > 0)
+                has_outs = true;
+
+            max_h_out += pin_h;
+        }
+
+        const float max_w = node->calc_node_width(false, false) + 40.0f;
+        const float max_h = std::max(max_h_pin_in, max_h_out) + max_h_widget_in + 50.0f + 20.0f;
+        sizes[node.get()] = { max_w, max_h };
+
+        if (!has_ins && !has_outs)
+        {
+            depths[node.get()] = 0;
+            continue;
+        }
+
+        if (!has_ins)
+        {
+            depths[node.get()] = 1;
+            max_depth = std::max(max_depth, 1);
+            continue;
+        }
+
+        NodeWithParents np;
+        np.node = node.get();
+
+        for (auto in : inputs)
+        {
+            auto it = pin_to_parent_node.find(in);
+            if (it != pin_to_parent_node.end() && it->second != nullptr)
+            {
+                np.parents.push_back(it->second);
+            }
+        }
+        nodes_with_parents.push_back(std::move(np));
+    }
+
+    bool changed = true;
+    int32_t iteration_guard = 0;
+    const int32_t MAX_ITERATIONS = 1000; 
+
+    while (changed && iteration_guard++ < MAX_ITERATIONS) 
+    {
+        changed = false;
+
+        for (const auto& node : nodes_with_parents) 
+        {
+            bool all_parents_resolved = true;
+            int32_t max_parent_depth = -1;
+
+            for (auto parent : node.parents) 
+            {
+                auto it = depths.find(parent);
+                if (it == depths.end()) 
+                {
+                    all_parents_resolved = false;
+                    break;
+                }
+                max_parent_depth = std::max(max_parent_depth, it->second);
+            }
+
+            if (all_parents_resolved) 
+            {
+                int32_t new_depth = max_parent_depth + 1;
+
+                if (depths.find(node.node) == depths.end() || depths[node.node] != new_depth) 
+                {
+                    depths[node.node] = new_depth;
+                    max_depth = std::max(max_depth, new_depth);
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    if (iteration_guard >= MAX_ITERATIONS)
+    {
+        LogWarn("Graph contains cycles or is too deep. Layout calculation aborted early.");
+    }
+
+    std::vector<float> col_widths(max_depth + 1, 0.0f);
+    for (const auto& [node, depth] : depths)
+    {
+        const auto& size = sizes[node];
+        col_widths[depth] = std::max(col_widths[depth], size.first);
+    }
+
+    std::vector<float> w_off(max_depth + 1, 0.0f); 
+    w_off[0] = 20.0f;
+
+    for (size_t i = 1; i < col_widths.size(); i++)
+    {
+        w_off[i] = w_off[i - 1] + col_widths[i - 1] + 100.0f; 
+    }
+
+    std::vector<float> h_off(max_depth + 1, 0.0f);
+    for (const auto& [node, depth] : depths)
+    {
+        if (0.0f == h_off[depth])
+            h_off[depth] = 20.0f;
+
+        node->m_rc.Min = { w_off[depth], h_off[depth] };
+        h_off[depth] += sizes[node].second + 50.0f;
     }
 }
 
