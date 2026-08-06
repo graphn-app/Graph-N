@@ -38,7 +38,9 @@ private:
         bool post = true;
         std::string post_payload;
         httplib::UploadFormDataItems post_payload_items;
+
         bool is_object_info = false;
+        bool is_binary_resp = false;
 
         int32_t status = 0;
         std::string data;

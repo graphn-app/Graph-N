@@ -85,6 +85,7 @@ uint32_t ConnectManager::send_http_request(
     req->request = request;
     req->who_is_asking = who_is_asking;
     req->is_object_info = req->request.find(comfyui_http::object_info) != std::string::npos;
+    req->is_binary_resp = req->request.find(comfyui_http::view_input) != std::string::npos || req->request.find(comfyui_http::view) != std::string::npos;
     req->post = post;
     req->post_payload = std::move(post_payload);
     req->post_payload_items = std::move(post_payload_items);
@@ -190,7 +191,7 @@ void ConnectManager::http_worker()
                 tools::path::make_file(obj_info_path, true, req->data);
                 Log("/object_info dumped into " << obj_info_path);
             }
-            else if (!req->is_object_info && glog::Logger::get_log_web_response_enabled())
+            else if (!req->is_object_info && !req->is_binary_resp && glog::Logger::get_log_web_response_enabled())
                 LogClear(req->data);
         }
         else
