@@ -194,7 +194,8 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
             const auto i_id = block.pop_iid();
             const auto def_type = block.pop_string();
             const auto def_name = block.pop_string();
-            auto pin = m_curr_node->get_object()->find_pin(h_id, input_pin);
+            //auto pin = m_curr_node->get_object()->find_pin(h_id, input_pin);
+            auto pin = g::pNodesManager->find_pin(h_id);
             if (m_curr_node->get_object()->is_dummy || nullptr == pin || pin->def_state.type_str != def_type)
             {
                 if (!m_curr_node->get_object()->is_dummy)

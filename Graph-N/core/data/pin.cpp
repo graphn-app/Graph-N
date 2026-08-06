@@ -40,7 +40,7 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
 };
 
 Pin::Pin(Node* node, const std::string& pin_name, bool is_required, bool is_optional, bool is_hidden)
-    : base::HashID(node->node_class + "_IN_" + pin_name + prefix_from_visibility(is_required, is_optional, is_hidden))
+    : base::HashID(node->node_class + "_IN_" + pin_name)
     , parent_node(node)
     , input(true)
     , output(false)
@@ -852,14 +852,6 @@ PinShape Pin::get_shape(PinType type) noexcept
     }
 
     return PinShape::Circle;
-}
-
-const char* Pin::prefix_from_visibility(bool is_required, bool is_optional, bool is_hidden) const noexcept
-{
-    if (is_optional) return "_o_";
-    if (is_hidden) return "_h_";
-    LogAssert(is_required, "Undefined pin visibility");
-    return "";
 }
 
 } // namespace data

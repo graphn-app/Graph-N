@@ -43,7 +43,7 @@ public:
     void calc_number_inside(const std::string& filter, const std::list<PinType>& in_pins, const std::list<PinType>& out_pins);
 
     data::Node* find_node(hid hash) const;
-   // data::Pin* find_pin(hid hash) const;
+    data::Pin* find_pin(hid hash) const;
 
     data::Node* make_dummy_node(const std::string& node_class);
     void remove_dummy_node(data::Node* node);

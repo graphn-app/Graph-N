@@ -25,7 +25,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node_primitive(NodeInstanc
         return nullptr;
 
     const auto pin_hash = Pin::make_hash(node->get_object(), "*", 0);
-    data::Pin* pin = node->get_object()->find_pin(pin_hash, false);
+    auto pin = node->get_object()->find_pin(pin_hash, false); // do not use pNodesManager
     if (nullptr == pin)
     {
         m_wf->remove_node(node);
@@ -116,6 +116,9 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node_reroute(NodeInstance*
 
     if (0 == pair.in_id && 0 == pair.out_id)
         return node;
+
+    if (0 == pair.in_id) pair.in_id = m_wf->get_new_child_id();
+    if (0 == pair.out_id) pair.out_id = m_wf->get_new_child_id();
 
     ((CNI_DeserializedReroute*)data.get())->pairs.push_back(pair);
     

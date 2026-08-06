@@ -118,13 +118,13 @@ data::Node* NodesManager::find_node(hid hash) const
     return it->second.get();
 }
 
-//data::Pin* NodesManager::find_pin(hid hash) const
-//{
-//    const auto it = m_pins.find(hash);
-//    if (it == m_pins.end())
-//        return nullptr;
-//    return it->second.get();
-//}
+data::Pin* NodesManager::find_pin(hid hash) const
+{
+    const auto it = m_pins.find(hash);
+    if (it == m_pins.end())
+        return nullptr;
+    return it->second.get();
+}
 
 data::Node* NodesManager::make_dummy_node(const std::string& node_class)
 {

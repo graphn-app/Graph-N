@@ -237,7 +237,8 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                     const std::string type = jinput["type"];
 
                     const auto pin_hash = Pin::make_hash(node_instance->get_object(), name, -1);
-                    auto pin = node_instance->get_object()->find_pin(pin_hash, true);
+                    auto pin = g::pNodesManager->find_pin(pin_hash);
+                    //auto pin = node_instance->get_object()->find_pin(pin_hash, true);
 
                     if (node->is_dummy || nullptr == pin || pin->def_state.type_str != type)
                     {
@@ -318,7 +319,8 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                     {
                         pin_hash = Pin::make_hash(node_instance->get_object(), name, index);
                     }
-                    data::Pin* pin = node_instance->get_object()->find_pin(pin_hash, false);
+                    //data::Pin* pin = node_instance->get_object()->find_pin(pin_hash, false);
+                    auto pin = g::pNodesManager->find_pin(pin_hash);
 
                     if (node->is_dummy || nullptr == pin)
                     {

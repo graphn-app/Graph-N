@@ -582,8 +582,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
             auto ptr = pin.get();
             if (!manager.m_pins.try_emplace(ptr->get_hash(), std::move(pin)).second)
             {
-                LogError("Input pin name duplicate");
-                LogUnhandledJson("/input/. Pin name duplicate. Node=" << node.name << ", pin=" << ptr->def_state.name << ", type=" << jinfo.type_name());
+                LogInvalidJson("/input/. Pin name duplicate. Node=" << node.name << ", pin=" << ptr->def_state.name << ", type=" << jinfo.type_name());
             }
             else
             {

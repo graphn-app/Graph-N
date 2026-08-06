@@ -124,7 +124,8 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
     for (auto& input : api_node.inputs)
     {
         const auto pin_hash = Pin::make_hash(node_instance->get_object(), input.pin_name, -1);
-        auto pin = node_instance->get_object()->find_pin(pin_hash, true);
+        //auto pin = node_instance->get_object()->find_pin(pin_hash, true);
+        auto pin = g::pNodesManager->find_pin(pin_hash);
 
         if (node->is_dummy || nullptr == pin || pin->def_state.name != input.pin_name)
         {
