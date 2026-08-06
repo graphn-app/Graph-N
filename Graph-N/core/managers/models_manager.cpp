@@ -19,7 +19,7 @@ void ModelsManager::free()
 
 void ModelsManager::stop_all_threads()
 {
-    m_stop_flag = true;
+    m_stop_flag.request_stop();
 
     if (m_th.joinable())
         m_th.join();
@@ -30,7 +30,7 @@ void ModelsManager::load_models()
     stop_all_threads();
     free();
 
-    m_stop_flag.store(false, std::memory_order_relaxed);
+    m_stop_flag = std::stop_source();
     m_th = std::thread(&ModelsManager::load_models_th, this);
 }
 
@@ -40,30 +40,27 @@ void ModelsManager::load_models_th()
     {
         g::pOptsManager->model_starred_preload();
 
-        httplib::Client cli(g::pOptsManager->comfyui_host_load(), cast::to_i32(g::pOptsManager->comfyui_port_load()));
-        cli.set_keep_alive(true);
+        const std::string models_req = comfyui_http::models;
+        std::string data;
+        int32_t http_res = g::pFlow->http_get_and_wait("Models/All", models_req.c_str(), {}, {}, true,
+            [stop_flag = m_stop_flag.get_token()]() { return stop_flag.stop_requested(); }, data);
 
-        auto res = cli.Get(comfyui_http::models);
-        if (m_stop_flag.load(std::memory_order_relaxed))
+        if (http_res != HTTP_RESP_OK)
         {
-            Log("Models thread aborted");
-            return;
-        }
-        if (!res || res->status != 200 || res->body.empty())
-        {
-            Log("Models thread stopped, server reply: " << res->status << ", body: " << res->body.size());
+            if (m_stop_flag.stop_requested())
+                Log("Models thread aborted");
             return;
         }
 
         std::list<std::string> requests;
-        auto j = u_json::parse(res->body);
+        auto j = u_json::parse(data);
         for (const auto& jitem : j)
         {
             if (jitem.contains("name"))                
                 requests.push_back(jitem["name"]);
         }
 
-        if (m_stop_flag.load(std::memory_order_relaxed))
+        if (m_stop_flag.stop_requested())
         {
             Log("Models thread aborted");
             return;
@@ -74,16 +71,21 @@ void ModelsManager::load_models_th()
 
         for (auto& req : requests)
         {
-            std::string req_path = comfyui_http::models;
-            req_path += "/" + req;
-            res = cli.Get(req_path);
-            if (!res || res->status != 200 || res->body.empty())
+            std::string model_req = models_req + "/" + req;
+            http_res = g::pFlow->http_get_and_wait("Models/Model", model_req.c_str(), {}, {}, false,
+                [stop_flag = m_stop_flag.get_token()]() { return stop_flag.stop_requested(); }, data);
+
+            if (http_res != HTTP_RESP_OK)
             {
-                Log("Can't requests model " << req_path << ",  err " << res->status << ", body: " << res->body.size());
+                if (m_stop_flag.stop_requested())
+                {
+                    Log("Models thread aborted");
+                    return;
+                }
                 continue;
             }
 
-            j = u_json::parse(res->body);
+            j = u_json::parse(data);
             if (j.empty())
             {
                 auto root = std::make_unique<data::ModelItem>();
@@ -103,20 +105,28 @@ void ModelsManager::load_models_th()
                         if (item->name.empty())
                             continue;
 
-                        req_path = comfyui_http::model_meta;
-                        req_path += "/" + req;
+                        model_req = comfyui_http::model_meta;
+                        model_req += "/" + req;
+
                         httplib::Params params;
                         params.emplace("filename", tools::str::path_to_string(filename.filename()));
-                        res = cli.Get(req_path, params, httplib::Headers());
-                        if (res && res->status == 200 && !res->body.empty())
-                            parse_file_info(item.get(), std::move(res->body));
+                        http_res = g::pFlow->http_get_and_wait("Models/Model", model_req.c_str(), std::move(params), {}, false,
+                            [stop_flag = m_stop_flag.get_token()]() { return stop_flag.stop_requested(); }, data);
+
+                        if (m_stop_flag.stop_requested())
+                        {
+                            Log("Models thread aborted");
+                            return;
+                        }
+                        if (HTTP_RESP_OK == http_res)
+                            parse_file_info(item.get(), std::move(data));
 
                         models.push_back(std::move(item));
                     }
                 }
             }
 
-            if (m_stop_flag.load(std::memory_order_relaxed))
+            if (m_stop_flag.stop_requested())
             {
                 Log("Models thread aborted");
                 return;
@@ -125,12 +135,12 @@ void ModelsManager::load_models_th()
 
         rebuild_models(models);
 
-        while (!g::pFlow->get_nodes_ready() && !m_stop_flag.load(std::memory_order_relaxed))
+        while (!g::pFlow->get_nodes_ready() && !m_stop_flag.stop_requested())
         {
             std::this_thread::sleep_for(100ms);
         }
 
-        if (m_stop_flag.load(std::memory_order_relaxed))
+        if (m_stop_flag.stop_requested())
         {
             Log("Models thread aborted");
             return;

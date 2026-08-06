@@ -81,7 +81,7 @@ private:
 
 private:
     std::thread m_th;
-    std::atomic_bool m_stop_flag = false;
+    std::stop_source m_stop_flag;
 
     bool m_service_components_found = false;
     std::vector<std::unique_ptr<data::ModelItem>> m_model_items;

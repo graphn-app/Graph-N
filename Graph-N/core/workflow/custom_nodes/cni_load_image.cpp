@@ -49,7 +49,7 @@ void CNI_LoadImage::cni_draw_widget(PinInstance* pin, float pos, float width)
     if (index < 0 || cast::to_szt(index) >= obj->combo_items_ptr.size())
         return;
 
-    if (m_images[index].image_id > 0 && g::pTextures->get_image_alive(m_images[index].image_id))
+    if (g::pTextures->get_image_alive(m_images[index].image_id))
     {
         float w = 0.0f, h = 0.0f;
         std::optional<bool> valid;

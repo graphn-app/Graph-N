@@ -251,6 +251,9 @@ struct LogGuard final
 #define LogRError(message, ret)                  { LOG_AND_CATCH(this, "ASSERT", message, true); return ret; }
 #define LogRErrorS(message, ret)                 { LOG_AND_CATCH(nullptr, "ASSERT", message, true); return ret; }
 
+#define LogCError(message)                       { LOG_AND_CATCH(this, "ASSERT", message, true); continue; }
+#define LogCErrorS(message)                      { LOG_AND_CATCH(nullptr, "ASSERT", message, true); continue; }
+
 #define LogCritical(message)                     LOG_CRITICAL(this, "CRITICAL", message)
 #define LogCriticalS(message)                    LOG_CRITICAL(nullptr, "CRITICAL", message)
 

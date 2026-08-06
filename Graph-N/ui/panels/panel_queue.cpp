@@ -34,6 +34,8 @@ void PanelQueue::init()
 {
     PanelBase::init();
 
+    m_load_history_stop = std::make_shared<std::atomic_bool>();
+
     m_favorited = g::pOptsManager->queue_favorited_load();
     create_toolbar();
 
@@ -50,7 +52,7 @@ void PanelQueue::init_history()
     {
         m_force_reload_history = false;
         m_do_reload_history.store(true, std::memory_order_relaxed);
-        m_load_history_stop.store(true, std::memory_order_relaxed);
+        m_load_history_stop->store(true, std::memory_order_relaxed);
         m_final_history_pickup_done = m_ready_pickup_history = false;
     }
     else if (m_do_reload_history.load(std::memory_order_relaxed))
@@ -59,7 +61,7 @@ void PanelQueue::init_history()
             return;
 
         m_do_reload_history.store(false, std::memory_order_relaxed);
-        m_load_history_stop.store(false, std::memory_order_relaxed);
+        m_load_history_stop->store(false, std::memory_order_relaxed);
 
         m_history_tasks.erase(
             std::remove_if(m_history_tasks.begin(), m_history_tasks.end(), [this](const mngr::ExecTask& t)
@@ -84,7 +86,7 @@ void PanelQueue::init_history()
 void PanelQueue::stop_all_threads() noexcept
 {
     m_do_reload_history = false;
-    m_load_history_stop = true;
+    *m_load_history_stop = true;
 }
 
 DlgCode PanelQueue::show(bool& focused)
@@ -1356,43 +1358,13 @@ void PanelQueue::load_history()
     const auto temp = fs::get_temp_directory_path();
     const bool temp_ok = tools::path::make_folder(temp);
 
-    // 0 = pending, 1 = success, -1 = error
-    std::shared_ptr<std::atomic_int> http_status = std::make_shared<std::atomic_int>(0);
-    std::shared_ptr<std::string> http_data = std::make_shared<std::string>();
-
-    const auto history_callback = [http_status, http_data](int32_t result, std::string&& binary) noexcept
-    {
-        if (HTTP_RESP_OK == result)
-            *http_data = std::move(binary);
-
-        http_status->store(result ? 1 : -1, std::memory_order_release);
-    };
-
-    while (!g::pFlow->get_online())
-    {
-        if (m_load_history_stop.load(std::memory_order_relaxed))
-        {
-            m_history_loading_active.store(false, std::memory_order_relaxed);
-            return;
-        }
-        std::this_thread::sleep_for(100ms);
-    }
-
+    std::string data;
     const auto history_request = fmt::format(comfyui_http::history_, g::pOptsManager->queue_history_num_load());
-    g::pFlow->http_get("QPanel/History", get_alive_callback(), history_request.c_str(), history_callback, true /*retry on timeout*/);
 
-    int32_t current_status = 0;
-    while ((current_status = http_status->load(std::memory_order_acquire)) == 0)
-    {
-        if (m_load_history_stop.load(std::memory_order_relaxed))
-        {
-            m_history_loading_active.store(false, std::memory_order_relaxed);
-            return;
-        }
-        std::this_thread::sleep_for(50ms);
-    }
+    const int32_t res = g::pFlow->http_get_and_wait("QPanel/History", history_request.c_str(), {}, {}, true,
+        [stop_flag = m_load_history_stop]() { return stop_flag->load(std::memory_order_relaxed); }, data);
 
-    if (-1 == current_status)
+    if (res != HTTP_RESP_OK)
     {
         m_history_loading_active.store(false, std::memory_order_relaxed);
         return;
@@ -1400,12 +1372,12 @@ void PanelQueue::load_history()
 
     try
     {
-        const auto j = o_json::parse(*http_data);
+        const auto j = o_json::parse(data);
         if (j.is_object())
         {
             for (auto& [prompt_id, jdatas] : j.items())
             {
-                if (m_load_history_stop.load(std::memory_order_relaxed))
+                if (m_load_history_stop->load(std::memory_order_relaxed))
                 {
                     m_history_loading_active.store(false, std::memory_order_relaxed);
                     return;

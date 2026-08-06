@@ -146,13 +146,15 @@ void PanelStats::th_comfyui()
         accumulated_time += sleep_step;
         if (accumulated_time >= check_interval)
         {
-            httplib::Client cli(g::pOptsManager->comfyui_host_load(), cast::to_i32(g::pOptsManager->comfyui_port_load()));
-            auto res = cli.Get(comfyui_http::system_stats);
-            if (res && 200 == res->status)
+            std::string data;
+            int32_t http_res = g::pFlow->http_get_and_wait("SystemStats/Stats", comfyui_http::system_stats, {}, {}, false,
+                []() { return g::app_global_stop_all_threads.load(std::memory_order_relaxed); }, data);
+
+            if (HTTP_RESP_OK == http_res)
             {
                 try
                 {
-                    const auto j = u_json::parse(res->body);
+                    const auto j = u_json::parse(data);
                     if (j.contains("system") && j["system"].contains("ram_free") && j["system"]["ram_free"].is_number_integer())
                     {
                         auto& jsystem = j["system"];
@@ -218,12 +220,15 @@ void PanelStats::th_comfyui()
             }
 
             m_queue_remaining.store(0, std::memory_order_relaxed);
-            res = cli.Get(comfyui_http::prompt);
-            if (res && 200 == res->status)
+
+            http_res = g::pFlow->http_get_and_wait("Stats/Prompt", comfyui_http::prompt, {}, {}, false,
+                []() { return g::app_global_stop_all_threads.load(std::memory_order_relaxed); }, data);
+
+            if (HTTP_RESP_OK == http_res)
             {
                 try
                 {
-                    const auto j = u_json::parse(res->body);
+                    const auto j = u_json::parse(data);
                     if (j.contains("exec_info") && j["exec_info"].contains("queue_remaining") && j["exec_info"]["queue_remaining"].is_number_integer())
                     {
                         m_queue_remaining.store(j["exec_info"]["queue_remaining"].get<uint32_t>(), std::memory_order_relaxed);

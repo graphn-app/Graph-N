@@ -63,6 +63,8 @@ bool GraphN_Flow::init()
     w::v_spacing = 4.0f;
     w::hidden_widgets_len = ImGui::CalcTextSize(w::hidden_widgets.c_str()).x;
 
+    m_ui_thread_id = std::this_thread::get_id();
+
     // menu colors
     ImGuiStyle& style = ImGui::GetStyle();
 
@@ -316,6 +318,7 @@ void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
 void GraphN_Flow::exit()
 {
     Log("");
+    dead();
     g::app_global_stop_all_threads = true;
     g::block_hotkeys_counter = 0xffff;
     prepare_to_quit();
@@ -324,6 +327,7 @@ void GraphN_Flow::exit()
 void GraphN_Flow::stop_all_threads() noexcept
 {
     Log("");
+    dead();
     g::app_global_stop_all_threads = true;
     g::block_hotkeys_counter = 0xffff;
 }
@@ -354,6 +358,7 @@ void GraphN_Flow::prepare_to_quit()
 {
     LogIn;
 
+    dead();
     g::app_global_stop_all_threads = true;
     g::block_hotkeys_counter = 0xffff;
 
@@ -1199,28 +1204,132 @@ void GraphN_Flow::load_hotkeys()
     wf_assign_sequential_numbers();
 }
 
-void GraphN_Flow::http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
+uint32_t GraphN_Flow::http_get(
+    const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
-    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, false, {}, {}, retry_on_timeout);
-    if (callback != nullptr)
-        m_http_requests[req_id] = { alive, callback, ImGui::GetTime(), retry_on_timeout };
+    const auto req_id = g::pConnectManager->send_http_get_request(who_is_asking, request, retry_on_timeout);
+
+    HttpRequestInfo info;
+    info.alive = alive;
+    info.callback = callback;
+    info.retry = retry_on_timeout;
+    info.time = ImGui::GetTime();
+    m_http_requests[req_id] = info;
+    return req_id;
 }
 
-void GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
+uint32_t GraphN_Flow::http_get(
+    const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::Params&& params, httplib::Headers&& headers,
+    const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
-    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, true, std::move(payload), {}, retry_on_timeout);
-    if (callback != nullptr)
-        m_http_requests[req_id] = { alive, callback, ImGui::GetTime(), retry_on_timeout };
+    const auto req_id = g::pConnectManager->send_http_get_request(who_is_asking, request, std::move(params), std::move(headers), retry_on_timeout);
+
+    HttpRequestInfo info;
+    info.alive = alive;
+    info.callback = callback;
+    info.retry = retry_on_timeout;
+    info.time = ImGui::GetTime();
+    m_http_requests[req_id] = info;
+    return req_id;
 }
 
-void GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
+int32_t GraphN_Flow::http_get_and_wait(
+    const char* who_is_asking, const char* request, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout,
+    const std::function<bool()>& stop_callback, std::string& ret_data)
+{
+    LogRAssert(stop_callback != nullptr, "Stop callback is mandatory", HTTP_RESP_FAIL);
+
+    ret_data.clear();
+    if (std::this_thread::get_id() == m_ui_thread_id)
+    {
+        LogError("Function must not be called from UI thread");
+        return HTTP_RESP_FAIL;
+    }
+
+    const auto main_ui_alive = get_alive_callback();
+
+    std::shared_ptr<std::atomic_int> http_status = std::make_shared<std::atomic_int>(HTTP_RESP_UNDEFINED);
+    std::shared_ptr<std::string> http_data = std::make_shared<std::string>();
+
+    const auto http_callback = [http_status, http_data](int32_t result, std::string&& binary) noexcept
+    {
+        if (HTTP_RESP_OK == result)
+            *http_data = std::move(binary);
+
+        http_status->store(result, std::memory_order_release);
+    };
+
+    while (main_ui_alive() && !get_online())
+    {
+        if (stop_callback())
+            return HTTP_RESP_FAIL;
+        std::this_thread::sleep_for(100ms);
+    }
+
+    if (!main_ui_alive() || stop_callback())
+        return HTTP_RESP_FAIL;
+
+    uint32_t req_id = 0;
+    if (params.empty() && headers.empty())
+        req_id = http_get(who_is_asking, main_ui_alive, request, http_callback, retry_on_timeout);
+    else
+        req_id = http_get(who_is_asking, main_ui_alive, request, std::move(params), std::move(headers), http_callback, retry_on_timeout);
+
+    int32_t current_status = 0;
+    while ((current_status = http_status->load(std::memory_order_acquire)) == HTTP_RESP_UNDEFINED)
+    {
+        if (!main_ui_alive() || stop_callback())
+        {
+            if (main_ui_alive())
+            {
+                std::unique_lock<std::mutex> lock(m_http_req_mutex);
+                const auto it = m_http_requests.find(req_id);
+                if (it != m_http_requests.end())
+                    it->second.force_drop = true;
+            }
+            return HTTP_RESP_FAIL;
+        }
+
+        std::this_thread::sleep_for(100ms);
+    }
+
+    if (main_ui_alive())
+    {
+        ret_data = std::move(*http_data);
+        return current_status;
+    }
+
+    return HTTP_RESP_FAIL;
+}
+
+uint32_t GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
-    const auto req_id = g::pConnectManager->send_http_request(who_is_asking, request, true, {}, std::move(payload), retry_on_timeout);
-    if (callback != nullptr)
-        m_http_requests[req_id] = { alive, callback, ImGui::GetTime(), retry_on_timeout };
+    const auto req_id = g::pConnectManager->send_http_post_request(who_is_asking, request, std::move(payload), retry_on_timeout);
+
+    HttpRequestInfo info;
+    info.alive = alive;
+    info.callback = callback;
+    info.retry = retry_on_timeout;
+    info.time = ImGui::GetTime();
+    m_http_requests[req_id] = info;
+    return req_id;
+}
+
+uint32_t GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
+{
+    std::unique_lock<std::mutex> lock(m_http_req_mutex);
+    const auto req_id = g::pConnectManager->send_http_post_request(who_is_asking, request, std::move(payload), retry_on_timeout);
+
+    HttpRequestInfo info;
+    info.alive = alive;
+    info.callback = callback;
+    info.retry = retry_on_timeout;
+    info.time = ImGui::GetTime();
+    m_http_requests[req_id] = info;
+    return req_id;
 }
 
 void GraphN_Flow::check_http_reply()
@@ -1241,13 +1350,15 @@ void GraphN_Flow::check_http_reply()
         const auto it = m_http_requests.find(rid);
         if (it != m_http_requests.end())
         {
-            const auto alive = std::get<0>(it->second);
-            const auto callback = std::get<1>(it->second);
+            const auto alive = it->second.alive;
+            const auto callback = it->second.callback;
+            const bool drop = it->second.force_drop;
             m_http_requests.erase(it);
             lock.unlock();
 
-            if (alive())
+            if (!drop && alive && callback && alive())
                 callback(result, std::move(response));
+            response.clear();
         }
 
         if ((ImGui::GetTime() - start_time) > max_processing_time)
@@ -1261,23 +1372,24 @@ void GraphN_Flow::check_http_reply()
         std::unique_lock<std::mutex> lock(m_http_req_mutex);
         for (auto it = m_http_requests.begin(); it != m_http_requests.end(); )
         {
-            const bool retry = std::get<3>(it->second);
-            if (retry)
+            if (it->second.force_drop)
+            {
+                it = m_http_requests.erase(it);
+                continue;
+            }
+            if (it->second.retry)
             {
                 ++it;
                 continue;
             }
 
-            const auto req_time = std::get<2>(it->second);
-            if (now - req_time > HTTP_REQUEST_LIFETIME)
+            if (now - it->second.time > HTTP_REQUEST_LIFETIME)
             {
-                Log("HTTP-Resp timeout");
-                const auto alive = std::get<0>(it->second);
-                if (alive())
-                {
-                    const auto callback = std::get<1>(it->second);
+                Log("HTTP-Req#" << it->first << ". Force timeout after " << HTTP_REQUEST_LIFETIME << " seconds");
+                const auto alive = it->second.alive;
+                const auto callback = it->second.callback;
+                if (alive && callback && alive())
                     callback(HTTP_RESP_TIMEOUT, "");
-                }
 
                 it = m_http_requests.erase(it);
             }

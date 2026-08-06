@@ -264,7 +264,7 @@ ImTextureID Textures::get_image(int32_t image_id, std::optional<bool>& image_val
 
 bool Textures::get_image_alive(int32_t image_id)
 {
-    LogRAssert(image_id > 0, "Invalid image id", false);
+    if (0 == image_id) return false;
     std::unique_lock<std::mutex> lock(m_mutex);
     return (m_images.find(image_id) != m_images.end());
 }

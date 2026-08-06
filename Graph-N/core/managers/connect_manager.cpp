@@ -77,22 +77,58 @@ ConnectState ConnectManager::get_status(int64_t* latency /*= nullptr*/) noexcept
     return ConnectState::Disconnected;
 }
 
-uint32_t ConnectManager::send_http_request(
-    const char* who_is_asking, const char* request, bool post,
-    std::string&& post_payload, httplib::UploadFormDataItems&& post_payload_items, bool retry_on_timeout)
+uint32_t ConnectManager::send_http_get_request(const char* who_is_asking, const char* url, bool retry_on_timeout)
 {
     auto req = std::make_shared<RequestData>();
-    req->request = request;
+    req->type = RequestData::Type::GetByUrl;
+    req->url = url;
     req->who_is_asking = who_is_asking;
-    req->is_object_info = req->request.find(comfyui_http::object_info) != std::string::npos;
-    req->is_binary_resp = req->request.find(comfyui_http::view_input) != std::string::npos || req->request.find(comfyui_http::view) != std::string::npos;
-    req->post = post;
-    req->post_payload = std::move(post_payload);
-    req->post_payload_items = std::move(post_payload_items);
-    req->req_id = m_last_request_id.fetch_add(1, std::memory_order_relaxed) + 1;
+    req->is_object_info = req->url.find(comfyui_http::object_info) != std::string::npos;
+    req->is_binary_resp = req->url.find(comfyui_http::view_input) != std::string::npos || req->url.find(comfyui_http::view) != std::string::npos;
     req->retry_on_timeout = retry_on_timeout;
+    return register_http_request(req);
+}
 
-    Log("HTTP-Req#" << req->req_id << ". Registered: " << (post ? "POST" : "GET") << ". Who: " << who_is_asking << ". Retry: " << retry_on_timeout << ". Url: " << req->request);
+uint32_t ConnectManager::send_http_get_request(const char* who_is_asking, const char* url, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout)
+{
+    auto req = std::make_shared<RequestData>();
+    req->type = RequestData::Type::GetByUrlAndParams;
+    req->url = url;
+    req->params = std::move(params);
+    req->headers = std::move(headers);
+    req->who_is_asking = who_is_asking;
+    req->retry_on_timeout = retry_on_timeout;
+    return register_http_request(req);
+}
+
+uint32_t ConnectManager::send_http_post_request(const char* who_is_asking, const char* url, std::string&& payload, bool retry_on_timeout)
+{
+    auto req = std::make_shared<RequestData>();
+    req->type = RequestData::Type::PostRawPayload;
+    req->url = url;
+    req->post_payload = std::move(payload);
+    req->who_is_asking = who_is_asking;
+    req->retry_on_timeout = retry_on_timeout;
+    return register_http_request(req);
+}
+
+uint32_t ConnectManager::send_http_post_request(const char* who_is_asking, const char* url, httplib::UploadFormDataItems&& payload_items, bool retry_on_timeout)
+{
+    auto req = std::make_shared<RequestData>();
+    req->type = RequestData::Type::PostItems;
+    req->url = url;
+    req->post_payload_items = std::move(payload_items);
+    req->who_is_asking = who_is_asking;
+    req->retry_on_timeout = retry_on_timeout;
+    return register_http_request(req);
+}
+
+uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
+{
+    req->req_id = m_last_request_id.fetch_add(1, std::memory_order_relaxed) + 1;
+
+    const char* type = (RequestData::Type::GetByUrl == req->type || RequestData::Type::GetByUrlAndParams == req->type ? "GET" : "POST");
+    Log("HTTP-Req#" << req->req_id << ". Registered: " << type << ". Who: " << req->who_is_asking << ". Retry: " << req->retry_on_timeout << ". Url: " << req->url);
 
     {
         const auto host = g::pOptsManager->comfyui_host_load();
@@ -169,15 +205,28 @@ void ConnectManager::http_worker()
         Log("HTTP-Req#" << req->req_id << ". Started");
 
         httplib::Result res;
-        if (req->post)
+        switch (req->type)
         {
-            if (!req->post_payload_items.empty())
-                res = client->Post(req->request, req->post_payload_items);
-            else
-                res = client->Post(req->request, req->post_payload, "application/json");
+        case RequestData::Type::GetByUrl:
+            res = client->Get(req->url);
+            break;
+        case RequestData::Type::GetByUrlAndParams:
+            res = client->Get(req->url, req->params, req->headers);
+            break;
+        case RequestData::Type::PostRawPayload:
+            res = client->Post(req->url, req->post_payload, "application/json");
+            break;
+        case RequestData::Type::PostItems:
+            res = client->Post(req->url, req->post_payload_items);
+            break;
+        default:
+            {
+                std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
+                req->status = HTTP_RESP_FAIL;
+                m_http_pickup.push(req);
+                LogCError("HTTP-Req#" << req->req_id << ". Unknown request type");
+            }
         }
-        else
-            res = client->Get(req->request);
 
         if (res)
         {

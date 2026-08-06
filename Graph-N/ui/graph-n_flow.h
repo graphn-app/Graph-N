@@ -91,7 +91,7 @@ enum ViewDialogs : uint64_t
     ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewSyncProjects | ViewAllMenuBar | ViewPanelWf,
 };
 
-class GraphN_Flow final
+class GraphN_Flow final : public IsAlive
 {
 public:
     GraphN_Flow() noexcept;
@@ -129,9 +129,11 @@ public:
     bool get_models_ready() const noexcept { return m_models_ready.load(std::memory_order_relaxed); }
     bool get_projects_ready() const noexcept { return m_projects_ready.load(std::memory_order_relaxed); }
 
-    void http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout = false);
-    void http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);
-    void http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);
+    uint32_t http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout = false);
+    uint32_t http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::Params&& params, httplib::Headers&& headers, const HttpResponseCb& callback, bool retry_on_timeout = false);
+    int32_t http_get_and_wait(const char* who_is_asking, const char* request, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout, const std::function<bool()>& stop_callback, std::string& ret_data);
+    uint32_t http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);
+    uint32_t http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);    
 
     // WF
     PanelWorkflow* wf_get_active_panel() const noexcept { return m_wf_focused; }
@@ -270,6 +272,8 @@ private:
     void destroy_txt_panel(PanelTextEditor* panel) noexcept;
 
 private:
+    std::thread::id m_ui_thread_id;
+
     std::atomic_bool m_nodes_ready = false;
     std::atomic_bool m_models_ready = false;
     std::atomic_bool m_projects_ready = false;
@@ -306,6 +310,14 @@ private:
     bool m_wf_imported = false;
 
     std::mutex m_http_req_mutex;
-    std::unordered_map<uint32_t, std::tuple<StillAliveCallback, HttpResponseCb, double, bool>> m_http_requests; // key - req id, val - cb1, cb2, req time, retry
+    struct HttpRequestInfo final
+    {
+        StillAliveCallback alive = nullptr;
+        HttpResponseCb callback = nullptr;
+        double time = 0.0;
+        bool retry = false;
+        bool force_drop = false;
+    };
+    std::unordered_map<uint32_t, HttpRequestInfo> m_http_requests;
 };
 }

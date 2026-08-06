@@ -76,7 +76,7 @@ private:
     std::mutex m_history_parsed_mutex;
 
     std::atomic_bool m_history_loading_active = false;
-    std::atomic_bool m_load_history_stop = false;
+    std::shared_ptr<std::atomic_bool> m_load_history_stop;
     std::atomic_bool m_do_reload_history = true;
     bool m_ready_pickup_history = false;
     bool m_final_history_pickup_done = false;
