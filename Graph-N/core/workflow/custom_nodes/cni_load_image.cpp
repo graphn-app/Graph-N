@@ -43,11 +43,13 @@ void CNI_LoadImage::cni_draw_widget(PinInstance* pin, float pos, float width)
     if (m_images.size() < g_image_list.size())
         m_images.resize(g_image_list.size());
 
+    LogRAssert(obj->combo_items_ptr.size() == m_images.size(), "Images map doesn't match to combo items. w: " << get_workflow_id() << ", n:" << get_instance_id(), );
+
     const int64_t index = state.value.get_int();
     if (index < 0 || cast::to_szt(index) >= obj->combo_items_ptr.size())
         return;
 
-    if (g::pTextures->get_image_alive(m_images[index].image_id))
+    if (m_images[index].image_id > 0 && g::pTextures->get_image_alive(m_images[index].image_id))
     {
         float w = 0.0f, h = 0.0f;
         std::optional<bool> valid;
@@ -105,6 +107,12 @@ void CNI_LoadImage::cni_draw_widget(PinInstance* pin, float pos, float width)
         if (result != HTTP_RESP_OK || data.empty())
             return;
 
+        if (cast::to_szt(index) >= m_images.size())
+        {
+            LogWarn("Index out of bound. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", idx:" << index << ", lst:" << m_images.size());
+            return;
+        }
+
         auto temp = fs::get_temp_directory_path();
         if (tools::path::make_folder(temp))
         {
@@ -121,7 +129,7 @@ void CNI_LoadImage::cni_draw_widget(PinInstance* pin, float pos, float width)
     const std::string directory = tools::str::path_to_string(source_name.parent_path());
     const std::string filename = tools::str::path_to_string(source_name.filename());
     const auto request = fmt::format(comfyui_http::view_input_, tools::str::url_encode(filename), tools::str::url_encode(directory));
-    g::pFlow->http_get("CNI_LoadImage", get_alive_callback(), request.c_str(), download_image);
+    g::pFlow->http_get("CNI_LoadImage", get_alive_callback(), request.c_str(), download_image, true);
     m_images[index].requested = true;
 }
 
