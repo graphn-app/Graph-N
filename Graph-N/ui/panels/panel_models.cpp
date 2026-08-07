@@ -28,9 +28,9 @@ void PanelModels::init()
     PanelBase::init();
     dlg_data()->buffer.resize(PanelModelsData::_buf_count);
 
-    m_tt_callbacks.on_alloc_tt_data = std::bind(&PanelModels::on_alloc_tt_data, this, std::placeholders::_1);
-    m_tt_callbacks.on_show_tt = std::bind(&PanelModels::on_show_tt, this, std::placeholders::_1);
-    m_tt_callbacks.on_pre_tt = std::bind(&PanelModels::on_pre_tt, this, std::placeholders::_1);
+    m_tt_callbacks.on_alloc_tt_data = [this](int32_t idx) { on_alloc_tt_data(idx); };
+    m_tt_callbacks.on_show_tt = [this](int32_t idx) { on_show_tt(idx); };
+    m_tt_callbacks.on_pre_tt = [this](int32_t idx) noexcept { return on_pre_tt(idx); };
 
     create_toolbar();
     rebuild_items();
@@ -45,7 +45,7 @@ void PanelModels::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
         el.tooltip = "Expand All";
-        el.on_click = std::bind(&PanelModels::on_expand_all, this, std::placeholders::_1);
+        el.on_click = [this](PanelToolbar::Element& el) { on_expand_all(el); };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -53,7 +53,7 @@ void PanelModels::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
         el.tooltip = "Collapse All";
-        el.on_click = std::bind(&PanelModels::on_collapse_all, this, std::placeholders::_1);
+        el.on_click = [this](PanelToolbar::Element& el) { on_collapse_all(el); };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -66,8 +66,8 @@ void PanelModels::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_FOLDER_SYNC;
         el.tooltip = "Refresh Models List";
-        el.on_click = std::bind(&PanelModels::on_sync, this, std::placeholders::_1);
-        el.on_preview = std::bind(&PanelModels::on_pre_sync, this, std::placeholders::_1);
+        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_sync(el); };
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_sync(el); };
         add_toolbar_element(std::move(el), false);
     }    
     {
@@ -296,7 +296,7 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
                     item.name = model->name;
                     item.name_p2 = std::to_string(model->models_inside);
                     item.can_expand = true;
-                    item.expanded = force_expand_all || expanded_models.count(model.get()) > 0;
+                    item.expanded = (force_expand_all || expanded_models.contains(model.get()));
                     expanded = item.expanded;
                     item.icon = item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
                     item.ptr = model.get();

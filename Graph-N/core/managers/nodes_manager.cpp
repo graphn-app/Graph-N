@@ -40,7 +40,7 @@ void NodesManager::calc_number_inside(const std::string& filter, const std::list
                 continue;
             if (type_filter.front() == PinType::ANY)
                 return true;
-            const auto it = std::find_if(type_filter.begin(), type_filter.end(), [type = pin->def_state.type](PinType filter) { return filter == type; });
+            const auto it = std::ranges::find_if(type_filter, [type = pin->def_state.type](PinType filter) { return filter == type; });
             if (it != type_filter.end())
                 return true;
         }
@@ -409,14 +409,14 @@ void NodesManager::set_node_labels(data::NodeItem* node_item, std::set<uint32_t>
     bool changed = false;
     for (auto& [label_id, nodes] : m_nodes_in_label)
     {
-        const auto it = std::find(nodes.begin(), nodes.end(), node_item);
-        if (it == nodes.end() && labels.count(label_id) > 0)
+        const auto it = std::ranges::find(nodes, node_item);
+        if (it == nodes.end() && labels.contains(label_id))
         {
             nodes.push_back(node_item);
             sort_nodes(nodes);
             changed = true;
         }
-        else if (it != nodes.end() && labels.count(label_id) == 0)
+        else if (it != nodes.end() && !labels.contains(label_id))
         {
             nodes.erase(it);
             changed = true;
@@ -472,7 +472,7 @@ const std::list<data::NodeItem*>& NodesManager::get_nodes_in_label(uint32_t labe
 bool NodesManager::get_is_node_in_label(data::NodeItem* node_item, uint32_t label_id) const
 {
     auto& nodes = get_nodes_in_label(label_id);
-    return std::find(nodes.begin(), nodes.end(), node_item) != nodes.end();
+    return std::ranges::find(nodes, node_item) != nodes.end();
 }
 
 namespace
@@ -502,7 +502,7 @@ bool sort_callback(const data::NodeItem* lhs, const data::NodeItem* rhs)
 
 void NodesManager::sort_nodes(std::vector<data::NodeItem*>& nodes)
 {
-    std::sort(nodes.begin(), nodes.end(), sort_callback);
+    std::ranges::sort(nodes, sort_callback);
 }
 
 void NodesManager::sort_nodes(std::list<data::NodeItem*>& nodes)

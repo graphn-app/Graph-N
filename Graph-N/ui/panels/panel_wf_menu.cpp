@@ -1007,7 +1007,7 @@ bool PanelWorkflow::show_new_node_menu()
         {
             for (auto pin : oppo)
             {
-                if (std::find_if(filter.begin(), filter.end(), [type = pin->state().type](PinType filter) { return filter == type; }) != filter.end())
+                if (std::ranges::find_if(filter, [type = pin->state().type](PinType filter) { return filter == type; }) != filter.end())
                 {
                     if (pin_inst->state().links > 0 && pin_inst->get_object()->input)
                         m_action->unlink(pin_inst);

@@ -319,7 +319,7 @@ void GraphN_Flow::exit()
 {
     Log("");
     dead();
-    g::app_global_stop_all_threads = true;
+    g::app_global_stop_all_threads.request_stop();
     g::block_hotkeys_counter = 0xffff;
     prepare_to_quit();
 }
@@ -328,7 +328,7 @@ void GraphN_Flow::stop_all_threads() noexcept
 {
     Log("");
     dead();
-    g::app_global_stop_all_threads = true;
+    g::app_global_stop_all_threads.request_stop();
     g::block_hotkeys_counter = 0xffff;
 }
 
@@ -359,7 +359,7 @@ void GraphN_Flow::prepare_to_quit()
     LogIn;
 
     dead();
-    g::app_global_stop_all_threads = true;
+    g::app_global_stop_all_threads.request_stop();
     g::block_hotkeys_counter = 0xffff;
 
     g::pConnectManager->stop_all_threads();
@@ -1209,13 +1209,7 @@ uint32_t GraphN_Flow::http_get(
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
     const auto req_id = g::pConnectManager->send_http_get_request(who_is_asking, request, retry_on_timeout);
-
-    HttpRequestInfo info;
-    info.alive = alive;
-    info.callback = callback;
-    info.retry = retry_on_timeout;
-    info.time = ImGui::GetTime();
-    m_http_requests[req_id] = info;
+    m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }
 
@@ -1225,13 +1219,7 @@ uint32_t GraphN_Flow::http_get(
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
     const auto req_id = g::pConnectManager->send_http_get_request(who_is_asking, request, std::move(params), std::move(headers), retry_on_timeout);
-
-    HttpRequestInfo info;
-    info.alive = alive;
-    info.callback = callback;
-    info.retry = retry_on_timeout;
-    info.time = ImGui::GetTime();
-    m_http_requests[req_id] = info;
+    m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }
 
@@ -1308,13 +1296,7 @@ uint32_t GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallb
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
     const auto req_id = g::pConnectManager->send_http_post_request(who_is_asking, request, std::move(payload), retry_on_timeout);
-
-    HttpRequestInfo info;
-    info.alive = alive;
-    info.callback = callback;
-    info.retry = retry_on_timeout;
-    info.time = ImGui::GetTime();
-    m_http_requests[req_id] = info;
+    m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }
 
@@ -1322,13 +1304,7 @@ uint32_t GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallb
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
     const auto req_id = g::pConnectManager->send_http_post_request(who_is_asking, request, std::move(payload), retry_on_timeout);
-
-    HttpRequestInfo info;
-    info.alive = alive;
-    info.callback = callback;
-    info.retry = retry_on_timeout;
-    info.time = ImGui::GetTime();
-    m_http_requests[req_id] = info;
+    m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }
 

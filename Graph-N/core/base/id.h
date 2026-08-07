@@ -41,7 +41,7 @@ private:
 
 struct HashID
 {
-    HashID(const std::string& unique);
+    HashID(const std::string& unique) noexcept;
     virtual ~HashID() noexcept = 0;
 
     NO_COPY_MOVE(HashID);

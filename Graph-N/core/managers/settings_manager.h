@@ -63,12 +63,15 @@ public:
 
     // comfyui
     const std::string& comfyui_host_load() const noexcept { return *std::get_if<std::string>(&m_comfyui_host.value); }
+    std::string comfyui_host_load_safe();
     void comfyui_host_save(const std::string& host) { save_option(m_comfyui_host, host); }
 
     int64_t comfyui_port_load() const noexcept { return *std::get_if<int64_t>(&m_comfyui_port.value); }
+    int64_t comfyui_port_load_safe();
     void comfyui_port_save(int64_t port) { save_option(m_comfyui_port, int64_t(port)); }
 
     int64_t comfyui_connect_timeout_load() const noexcept { return *std::get_if<int64_t>(&m_comfyui_conn_time.value); }
+    int64_t comfyui_connect_timeout_load_safe();
     void comfyui_connect_timeout_save(int64_t timeout) { save_option(m_comfyui_conn_time, int64_t(timeout)); }
 
     bool comfyui_start_server_load() const noexcept { return *std::get_if<bool>(&m_comfyui_start_server.value); }
@@ -200,6 +203,7 @@ private:
     {
         const char* db_name = nullptr;
         std::variant<std::string, int64_t, std::filesystem::path, bool> value;
+        bool guard_required = false;
     };
 
     void init_options(std::vector<OptionValue*>& values);
@@ -218,6 +222,7 @@ private:
 
 private:
     std::string m_empty;
+    std::mutex m_guard;
 
     // app
     OptionValue m_app_autoupdate; // int

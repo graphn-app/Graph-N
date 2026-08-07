@@ -37,14 +37,14 @@ void PanelNodes::init()
     const auto wf_id = g::pWfsManager->create(false /*generate_name*/, false /*dump_to_db*/, true /*ro*/).id;
     m_wf = g::pWfsManager->access(wf_id);
 
-    m_tt_callbacks.on_alloc_tt_data = std::bind(&PanelNodes::on_alloc_tt_data, this, std::placeholders::_1);
-    m_tt_callbacks.on_release_tt_data = std::bind(&PanelNodes::on_release_tt_data, this, std::placeholders::_1);
-    m_tt_callbacks.on_show_tt = std::bind(&PanelNodes::on_show_tt, this, std::placeholders::_1);
-    m_tt_callbacks.on_pre_tt = std::bind(&PanelNodes::on_pre_tt, this, std::placeholders::_1);
-    m_tt_callbacks.on_post_tt = std::bind(&PanelNodes::on_post_tt, this, std::placeholders::_1);
+    m_tt_callbacks.on_alloc_tt_data = [this](int32_t idx) { on_alloc_tt_data(idx); };
+    m_tt_callbacks.on_release_tt_data = [this](int32_t idx) { on_release_tt_data(idx); };
+    m_tt_callbacks.on_show_tt = [this](int32_t idx) { on_show_tt(idx); };
+    m_tt_callbacks.on_pre_tt = [this](int32_t idx) noexcept { return on_pre_tt(idx); };
+    m_tt_callbacks.on_post_tt = [this](int32_t idx) noexcept { on_post_tt(idx); };
 
-    m_dnd_callbacks.on_dnd_allow = std::bind(&PanelNodes::on_dnd_allow, this, std::placeholders::_1);
-    m_dnd_callbacks.on_dnd_show = std::bind(&PanelNodes::on_dnd_show, this, std::placeholders::_1);
+    m_dnd_callbacks.on_dnd_allow = [this](int32_t idx) noexcept { return on_dnd_allow(idx); };
+    m_dnd_callbacks.on_dnd_show = [this](int32_t idx) noexcept { on_dnd_show(idx); };
     m_dnd_callbacks.dnd_id = DND_FROM_NODES_LIBRARY;
 
     create_toolbar();
@@ -62,7 +62,7 @@ void PanelNodes::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_MOVE_LEFT;
             el.tooltip = "Back to Nodes library";
-            el.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_labels_mode(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -75,7 +75,7 @@ void PanelNodes::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_PLUS;
             el.tooltip = "Add new label";
-            el.on_click = std::bind(&PanelNodes::on_new_label, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_new_label(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -91,7 +91,7 @@ void PanelNodes::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_TAGS;
             el.tooltip = "Manage labels";
-            el.on_click = std::bind(&PanelNodes::on_labels_mode, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_labels_mode(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -104,8 +104,8 @@ void PanelNodes::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
             el.tooltip = "Expand all";
-            el.on_click = std::bind(&PanelNodes::on_expand_all, this, std::placeholders::_1);
-            el.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_expand_all(el); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_expand_collapse(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -113,8 +113,8 @@ void PanelNodes::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
             el.tooltip = "Collapse all";
-            el.on_click = std::bind(&PanelNodes::on_collapse_all, this, std::placeholders::_1);
-            el.on_preview = std::bind(&PanelNodes::on_pre_expand_collapse, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_collapse_all(el); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_expand_collapse(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -122,7 +122,7 @@ void PanelNodes::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE;
             el.tooltip = "Toggle flat/Category view";
-            el.on_click = std::bind(&PanelNodes::on_view, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_view(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -135,8 +135,8 @@ void PanelNodes::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_FOLDER_SYNC;
             el.tooltip = "Refresh node list";
-            el.on_click = std::bind(&PanelNodes::on_sync, this, std::placeholders::_1);
-            el.on_preview = std::bind(&PanelNodes::on_pre_sync, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_sync(el); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_sync(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -293,7 +293,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             for (auto& label : labels)
             {
                 NodeLabelState* state = ((NodeLabelState*)item.item_state.get());
-                bool node_in_label = (state->active_labels.count(label.second) > 0);
+                bool node_in_label = state->active_labels.contains(label.second);
                     
                 ImGui::PushID(label.second);
                 if (ImGui::Checkbox(label.first.c_str(), &node_in_label))
@@ -379,7 +379,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         label_item.name = label.first;
         label_item.name_p2 = std::to_string(nodes_count);
         label_item.can_expand = true;
-        label_item.expanded = (force_expand_all || expanded_labels.count(label.second) > 0);
+        label_item.expanded = (force_expand_all || expanded_labels.contains(label.second));
         const bool label_expanded = label_item.expanded;
         label_item.icon = label_item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
         label_item.label = label.second;
@@ -433,7 +433,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     item.name = node->name_or_category;
                     item.name_p2 = std::to_string(node->nodes_inside);
                     item.can_expand = true;
-                    item.expanded = force_expand_all || expanded_nodes.count(node) > 0;
+                    item.expanded = (force_expand_all || expanded_nodes.contains(node));
                     item.icon = item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
                     const bool item_expanded = item.expanded;
                     item.ptr = node;

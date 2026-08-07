@@ -145,7 +145,7 @@ void WorkflowAction::unlink(const data::PinInstance* pin)
     const auto& links_ptr = m_wf->get_links();
     std::vector<Link*> links;
     links.reserve(links_ptr.size());
-    std::for_each(links_ptr.begin(), links_ptr.end(), [&links](const std::unique_ptr<Link>& link) { links.push_back(link.get()); });
+    std::ranges::for_each(links_ptr, [&links](const std::unique_ptr<Link>& link) { links.push_back(link.get()); });
 
     for (auto it = links.begin(); it != links.end(); ++it)
     {

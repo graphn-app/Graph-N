@@ -19,6 +19,7 @@
 #include <optional>
 #include <queue>
 #include <deque>
+#include <ranges>
 #include <stack>
 #include <string>
 #include <type_traits>

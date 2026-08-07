@@ -39,13 +39,15 @@ private:
 
     std::future<std::shared_ptr<NodesManager>> m_future;
     std::thread m_thread;
-    std::atomic_bool m_stop_thread_flag = false;
+    std::stop_source m_stop_thread_flag;
 
     std::atomic_size_t m_parsed_item = 0;
     std::atomic_size_t m_parsed_items_total = 0;
 
     std::atomic_bool m_parse_failed = false;
     std::atomic_bool m_parse_finished = false;
+
+    std::unordered_set<std::string_view> m_known_attributes;
 
     using setter = std::function<void(const data::Node&, data::Pin&, const o_json&)>;
     std::unordered_map<std::string, setter> m_parsers;

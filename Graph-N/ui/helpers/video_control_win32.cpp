@@ -49,7 +49,7 @@ void VideoControl_Win32::cleanup()
 
     if (m_has_video)
     {
-        m_stop_thread.store(true, std::memory_order_relaxed);
+        m_stop_thread.request_stop();
         m_cv.notify_all();
 
         if (m_decode_thread.joinable())
@@ -246,7 +246,6 @@ int32_t VideoControl_Win32::load(const std::string& filepath, uint32_t max_side_
     m_current_time.store(0.0f, std::memory_order_relaxed);
     m_seek_requested.store(false, std::memory_order_relaxed);
     m_frame_ready.store(false, std::memory_order_relaxed);
-    m_stop_thread.store(false, std::memory_order_relaxed);
     m_last_frame_request.store(std::chrono::steady_clock::now(), std::memory_order_relaxed);
 
     Log("Loaded video id=" << m_video_id << " from " << filepath);
@@ -341,7 +340,7 @@ void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
 {
     const int32_t frame_ms = info.fps > 0.0f ? cast::to_i32(1000.0f / info.fps) : 33;
 
-    while (!m_stop_thread.load(std::memory_order_relaxed))
+    while (!m_stop_thread.stop_requested())
     {
         const bool seek_req = m_seek_requested.load(std::memory_order_relaxed);
         const bool is_playing = m_is_playing.load(std::memory_order_relaxed);
@@ -366,9 +365,9 @@ void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
                     return
                         m_is_playing.load(std::memory_order_relaxed) || 
                         m_seek_requested.load(std::memory_order_relaxed) || 
-                        m_stop_thread.load(std::memory_order_relaxed);
+                        m_stop_thread.stop_requested();
                 });
-            if (m_stop_thread.load(std::memory_order_relaxed))
+            if (m_stop_thread.stop_requested())
                 break;
             continue;
         }
@@ -457,7 +456,7 @@ void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
                         return
                             m_seek_requested.load(std::memory_order_relaxed) || 
                             !m_is_playing.load(std::memory_order_relaxed) ||
-                            m_stop_thread.load(std::memory_order_relaxed);
+                            m_stop_thread.stop_requested();
                     });
             }
         }

@@ -51,7 +51,7 @@ o_json WfSerializerToJson::serialize()
         auto& virt_nodes = m_wf->get_nodes();
 
         std::vector<NodeInstance*> nodes_copy;
-        std::for_each(virt_nodes.begin(), virt_nodes.end(), [&nodes_copy](const std::unique_ptr<NodeInstance>& node) { nodes_copy.push_back(node.get()); });
+        std::ranges::for_each(virt_nodes, [&nodes_copy](const std::unique_ptr<NodeInstance>& node) { nodes_copy.push_back(node.get()); });
 
         for (auto node : nodes_copy)
         {

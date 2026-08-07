@@ -191,7 +191,7 @@ Link* Workflow::add_link(iid instance_id /*= 0*/)
 NodeInstance* Workflow::get_node_by_instance(iid id) const noexcept
 {
     LogRAssert(id != 0, "Zero node id", nullptr);
-    const auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
+    const auto it = std::ranges::find_if(m_nodes,
         [id](const std::unique_ptr<NodeInstance>& node) noexcept
         {
             if (!node)
@@ -207,7 +207,7 @@ NodeInstance* Workflow::get_node_by_instance(iid id) const noexcept
 PinInstance* Workflow::get_pin_by_instance(iid id) const noexcept
 {
     LogRAssert(id != 0, "Zero pin id", nullptr);
-    const auto it = std::find_if(m_pins.begin(), m_pins.end(),
+    const auto it = std::ranges::find_if(m_pins,
         [id](const std::unique_ptr<PinInstance>& pin) noexcept
         {
             if (!pin || !pin->get_object())
@@ -223,7 +223,7 @@ PinInstance* Workflow::get_pin_by_instance(iid id) const noexcept
 NodeInstance* Workflow::get_node_by_hash(hid hash) const noexcept
 {
     LogRAssert(hash != 0, "Zero node hash", nullptr);
-    const auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
+    const auto it = std::ranges::find_if(m_nodes,
         [hash](const std::unique_ptr<NodeInstance>& node) noexcept
         {
             if (!node || !node->get_object())
@@ -239,7 +239,7 @@ NodeInstance* Workflow::get_node_by_hash(hid hash) const noexcept
 PinInstance* Workflow::get_pin_by_hash(iid node_iid, hid pin_hash) const noexcept
 {
     LogRAssert(node_iid != 0 && pin_hash != 0, "Zero node/pin id", nullptr);
-    const auto it = std::find_if(m_pins.begin(), m_pins.end(),
+    const auto it = std::ranges::find_if(m_pins,
         [node_iid, pin_hash](const std::unique_ptr<PinInstance>& pin) noexcept
         {
             if (!pin || !pin->get_object())
@@ -280,7 +280,7 @@ std::list<Link*> Workflow::get_links_by_pin(const PinInstance* pin) const
 void Workflow::remove_node(NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
-    const auto n_it = std::find_if(m_nodes.begin(), m_nodes.end(),
+    const auto n_it = std::ranges::find_if(m_nodes,
         [id = node->get_instance_id()](const std::unique_ptr<NodeInstance>& node) noexcept
         {
             if (!node)
@@ -332,7 +332,7 @@ void Workflow::invalidate_current() noexcept
 void Workflow::remove_node(NodeInstanceRo* node)
 {
     LogRAssert(node, "Zero ptr", );
-    const auto n_it = std::find_if(m_nodes_ro.begin(), m_nodes_ro.end(),
+    const auto n_it = std::ranges::find_if(m_nodes_ro,
         [id = node->get_instance_id()](const std::unique_ptr<NodeInstanceRo>& node) noexcept
         {
             if (!node || !node->get_object())
@@ -364,7 +364,7 @@ void Workflow::remove_pin(const PinInstance* pin) noexcept
     LogRAssert(pin, "Zero ptr", );
     LogRAssert(pin->state().links == 0, "Links must be removed before pin removal. w:" << get_id() << ", p:" << pin->get_instance_id() << ", ls:" << pin->state().links, );
 
-    const auto it = std::find_if(m_pins.begin(), m_pins.end(), [pin](const std::unique_ptr<PinInstance>& ptr) noexcept { return ptr.get() == pin; });
+    const auto it = std::ranges::find_if(m_pins, [pin](const std::unique_ptr<PinInstance>& ptr) noexcept { return ptr.get() == pin; });
     LogRAssert(it != m_pins.end(), "Pin not found. w:" << get_id() << ", p:" << pin->get_instance_id(), );
 
     Log("Pin removed. w:" << get_id() << ", n:" << pin->get_parent_node() << ", p:" << pin->get_instance_id() << ", t:" << pin->state().type_str);
@@ -374,7 +374,7 @@ void Workflow::remove_pin(const PinInstance* pin) noexcept
 void Workflow::remove_link(const Link* link)
 {
     LogRAssert(link, "Zero ptr", );
-    const auto it = std::find_if(m_links.begin(), m_links.end(),
+    const auto it = std::ranges::find_if(m_links,
         [id = link->get_instance_id()](const std::unique_ptr<Link>& link) noexcept
         {
             if (!link)
@@ -603,7 +603,7 @@ void Workflow::collapse_reroute(const data::NodeInstance* node)
 
         if (left_link != nullptr)
             m_action->unlink(left_link);
-        std::for_each(right_pin_link.begin(), right_pin_link.end(), [this](const std::pair<PinInstance*, Link*>& pair) { m_action->unlink(pair.second); });
+        std::ranges::for_each(right_pin_link, [this](const std::pair<PinInstance*, Link*>& pair) { m_action->unlink(pair.second); });
 
         if (left_pin != nullptr)
         {
@@ -715,7 +715,7 @@ void Workflow::prepare_for_api()
 {
     auto& nodes_ptr = get_nodes();
     std::vector<NodeInstance*> nodes;
-    std::for_each(nodes_ptr.begin(), nodes_ptr.end(), [&nodes](const std::unique_ptr<NodeInstance>& node) { nodes.push_back(node.get()); });
+    std::ranges::for_each(nodes_ptr, [&nodes](const std::unique_ptr<NodeInstance>& node) { nodes.push_back(node.get()); });
 
     for (auto node : nodes)
     {

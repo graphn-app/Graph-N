@@ -113,7 +113,7 @@ void HotkeysManager::fix_with_defaults()
 
     for (const auto& k : m_key_binding)
     {
-        const auto it = std::find_if(defs.begin(), defs.end(),
+        const auto it = std::ranges::find_if(defs,
             [&k](const auto& d)
             {
                 return d.target == k.target;
@@ -131,7 +131,7 @@ void HotkeysManager::fix_with_defaults()
 
     for (const auto& d : defs)
     {
-        const auto it = std::find_if(m_key_binding.begin(), m_key_binding.end(),
+        const auto it = std::ranges::find_if(m_key_binding,
             [&d](const auto& k)
             {
                 return k.target == d.target;
@@ -318,7 +318,7 @@ bool HotkeysManager::should_skip_target(KeyTarget target) const
         skip_range(KeyTarget::Workspace_ReservedFirst, KeyTarget::Workspace_ReservedLast);
         skip_range(KeyTarget::Node_ReservedFirst, KeyTarget::Node_ReservedLast);
     }
-    return skip.count(target) > 0;
+    return skip.contains(target);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

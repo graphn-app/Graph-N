@@ -77,7 +77,7 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
                     if (sorts_specs->SpecsDirty)
                     {
                         const ImGuiTableColumnSortSpecs* sort_spec = &sorts_specs->Specs[0];
-                        std::sort(m_rows.begin(), m_rows.end(), [sort_spec](const SyncRow& l, const SyncRow& r) -> bool 
+                        std::ranges::sort(m_rows, [sort_spec](const SyncRow& l, const SyncRow& r) -> bool 
                         {
                             int32_t delta = 0;
                             switch (sort_spec->ColumnIndex)
@@ -265,7 +265,7 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
             if (ImGui::Button("Apply", ImVec2(btn_width, 0)))
             {
                 m_current_row = 0;
-                std::for_each(m_rows.begin(), m_rows.end(), [](SyncRow& row) { row.status = SyncStatus::None; });
+                std::ranges::for_each(m_rows, [](SyncRow& row) { row.status = SyncStatus::None; });
                 m_step = Step::Sync;
             }
             if (!allow_apply) ImGui::EndDisabled();

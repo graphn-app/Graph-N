@@ -17,7 +17,7 @@ void PanelWfList::init()
 {
     PanelBase::init();
 
-    m_tt_callbacks.on_show_tt = std::bind(&PanelWfList::on_show_tt, this, std::placeholders::_1);
+    m_tt_callbacks.on_show_tt = [this](int32_t idx) noexcept { on_show_tt(idx); };
 
     create_toolbar();
     rebuild_items();
@@ -41,7 +41,7 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_PLUS;
             el.tooltip = "New Project";
-            el.on_click = std::bind(&PanelWfList::on_add_new_wf, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_add_new_wf(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -49,8 +49,8 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_PEN_LINE;
             el.tooltip = "Rename Project";
-            el.on_click = std::bind(&PanelWfList::on_rename_wf, this, std::placeholders::_1);
-            el.on_preview = std::bind(&PanelWfList::on_pre_rename_wf, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) noexcept { on_rename_wf(el); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_rename_wf(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -58,8 +58,8 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_COPY;
             el.tooltip = "Duplicate Project";
-            el.on_click = std::bind(&PanelWfList::on_copy_wf, this, std::placeholders::_1);
-            el.on_preview = std::bind(&PanelWfList::on_pre_copy_wf, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_copy_wf(el); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_copy_wf(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -67,8 +67,8 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_TRASH;
             el.tooltip = "Remove to Trash";
-            el.on_click = std::bind(&PanelWfList::on_delete_wf, this, std::placeholders::_1);
-            el.on_preview = std::bind(&PanelWfList::on_pre_delete_wf, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_delete_wf(el); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_delete_wf(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -81,7 +81,7 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_TAGS;
             el.tooltip = "Manage labels";
-            el.on_click = std::bind(&PanelWfList::on_labels_mode, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_labels_mode(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -89,7 +89,7 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_TRASH_2;
             el.tooltip = "Trash (Auto-purge on exit)\nView deleted Projects";
-            el.on_click = std::bind(&PanelWfList::on_deleted_mode, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_deleted_mode(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -105,7 +105,7 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_MOVE_LEFT;
             el.tooltip = "Back to Projects";
-            el.on_click = std::bind(&PanelWfList::on_deleted_mode, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_deleted_mode(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -121,7 +121,7 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_MOVE_LEFT;
             el.tooltip = "Back to Projects";
-            el.on_click = std::bind(&PanelWfList::on_labels_mode, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_labels_mode(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -134,7 +134,7 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_PLUS;
             el.tooltip = "Add new label";
-            el.on_click = std::bind(&PanelWfList::on_add_label, this, std::placeholders::_1);
+            el.on_click = [this](PanelToolbar::Element& el) { on_add_label(el); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -259,14 +259,14 @@ void PanelWfList::rebuild_items()
     if (m_deleted_mode)
     {
         m_wfs = g::pWfsManager->get_deleted();
-        std::sort(m_wfs.begin(), m_wfs.end(), sort_callback);
+        std::ranges::sort(m_wfs, sort_callback);
 
         rebuild_trash();
         return;
     }
 
     m_wfs = g::pWfsManager->get_undeleted();
-    std::sort(m_wfs.begin(), m_wfs.end(), sort_callback);
+    std::ranges::sort(m_wfs, sort_callback);
 
     struct WfLabelState final : public PanelListItem::State
     {
@@ -314,7 +314,7 @@ void PanelWfList::rebuild_items()
             for (auto& label : labels)
             {
                 WfLabelState* state = ((WfLabelState*)item.item_state.get());
-                bool wf_in_label = (state->active_labels.count(std::get<1>(label)) > 0);
+                bool wf_in_label = state->active_labels.contains(std::get<1>(label));
 
                 ImGui::PushID(std::get<1>(label));
                 if (ImGui::Checkbox(std::get<0>(label).c_str(), &wf_in_label))
@@ -383,7 +383,7 @@ void PanelWfList::rebuild_items()
         label_all.name = "All";
         label_all.name_p2 = std::to_string(m_wfs.size());
         label_all.can_expand = true;
-        label_all.expanded = (expanded.count(0) > 0);
+        label_all.expanded = expanded.contains(0);
         bool label_expanded = label_all.expanded;
         label_all.icon = label_expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
         label_all.label = 0;
@@ -415,7 +415,7 @@ void PanelWfList::rebuild_items()
             label_item.name = std::get<0>(label);
             label_item.name_p2 = std::to_string(wfs_in_label.size());
             label_item.can_expand = true;
-            label_item.expanded = (expanded.count(std::get<1>(label)) > 0);
+            label_item.expanded = expanded.contains(std::get<1>(label));
             label_expanded = label_item.expanded;
             label_item.icon = label_item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
             label_item.label = std::get<1>(label);

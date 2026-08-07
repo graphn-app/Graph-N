@@ -13,7 +13,7 @@ public:
     ~PanelMarkdownPreview() noexcept override;
 
 private:
-    DlgCode show(bool& focused) override;
+    DlgCode show(bool& focused) noexcept override;
 
 private:
 };

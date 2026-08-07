@@ -235,7 +235,7 @@ void ComfyUIManager_Win32::kill(bool force_kill)
         {
             const auto res = ::TerminateProcess(m_hproc.get(), 0);
             Log(APP_COMFYUI " termination result: " << res << ", err: " << LogApiERR);
-            m_hproc.reset();            
+            m_hproc.reset();
         }
     }
 
@@ -364,7 +364,7 @@ void ComfyUIManager_Win32::read_logs_th()
         }
     };
 
-    const auto flush_lines = [&line_accumulator, &return_lines = m_logs, &mutex = m_mutex](const std::string& new_data)
+    const auto flush_lines = [&line_accumulator, this](const std::string& new_data)
     {
         line_accumulator.append(new_data);
 
@@ -385,11 +385,10 @@ void ComfyUIManager_Win32::read_logs_th()
 
         if (!new_lines.empty())
         {
-            std::unique_lock<std::mutex> lock(mutex);
-            return_lines.splice(return_lines.end(), new_lines);
-            return true;
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_logs.splice(m_logs.end(), new_lines);
+            m_new_data_ready.store(true, std::memory_order_relaxed);
         }
-        return false;
     };
 
     while (!m_kill_server_flag.load(std::memory_order_relaxed))
@@ -406,9 +405,7 @@ void ComfyUIManager_Win32::read_logs_th()
             if (::ReadFile(m_hpipe.get(), buffer, sizeof(buffer), &read, nullptr) && read > 0)
             {
                 std::string chunk(buffer, read);
-
-                if (flush_lines(chunk))
-                    m_new_data_ready.store(true, std::memory_order_relaxed);
+                flush_lines(chunk);
 
                 if (logfs.is_open() && !logfs.bad())
                     file_logs.push_back(std::move(chunk));

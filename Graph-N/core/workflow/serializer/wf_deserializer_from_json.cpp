@@ -138,7 +138,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
         rc.Min.y = j["pos"][1];
     }
 
-    if (m_subgraphs.count(node_class) > 0)
+    if (m_subgraphs.contains(node_class))
     {
         m_subgraphs[node_class] = { node_id_from_json, rc };
         return nullptr;
@@ -789,7 +789,7 @@ bool WfDeserializerFromJson::deserialize_links()
                 continue;
 
             const auto link = std::make_tuple(src.first, dest.first, src.second, dest.second);
-            if (built_links.count(link) > 0)
+            if (built_links.contains(link))
                 continue;
 
             build_link(src.first, dest.first, src.second, dest.second);

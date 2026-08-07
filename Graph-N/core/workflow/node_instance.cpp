@@ -277,7 +277,7 @@ void NodeInstance::collect_search_data(std::stringstream& data) const
         constexpr size_t max_word_len = 257;
 
         if (str.empty() || str.size() > max_text_len) return false;
-        if (str.find("data:image") == 0) return false;
+        if (str.starts_with("data:image")) return false;
 
         if (str.size() > max_word_len)
         {

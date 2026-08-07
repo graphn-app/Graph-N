@@ -38,7 +38,7 @@ void PanelNodeInspector::init()
 void PanelNodeInspector::add_inspecting_node(data::Node* node)
 {    
     LogRAssert(node, "Zero ptr", );
-    if (std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) noexcept
+    if (std::ranges::find_if(m_inspecting, [node](const Data& d) noexcept
         { return d.node->get_object()->get_hash() == node->get_hash(); }) != m_inspecting.end())
     {
         return;
@@ -64,7 +64,7 @@ void PanelNodeInspector::remove_inspecting_node(data::Node* node)
     LogRAssert(node, "Zero ptr", );
     Log("Remove node. n:" << node->name << ", cl:" << node->node_class);
 
-    const auto it = std::find_if(m_inspecting.begin(), m_inspecting.end(), [node](const Data& d) noexcept { return d.node->get_object()->get_hash() == node->get_hash(); });
+    const auto it = std::ranges::find_if(m_inspecting, [node](const Data& d) noexcept { return d.node->get_object()->get_hash() == node->get_hash(); });
     LogRAssert(it != m_inspecting.end(), "Node not found", );
 
     m_wf->remove_node(it->node);

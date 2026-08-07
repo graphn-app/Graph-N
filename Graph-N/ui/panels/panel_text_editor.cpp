@@ -176,8 +176,8 @@ void PanelTextEditor::create_toolbar()
         el.icon = ICON_LC_PIN;
         el.tooltip = "Pin this editor to keep it open";
         el.toggler = true;
-        el.on_click = std::bind(&PanelTextEditor::on_pin, this, std::placeholders::_1);
-        el.on_preview = std::bind(&PanelTextEditor::on_pre_pin, this, std::placeholders::_1);
+        el.on_click = [this](PanelToolbar::Element& el) { on_pin(el); };
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_pin(el); };
         add_toolbar_element(std::move(el), true);
     }
     {
@@ -185,7 +185,7 @@ void PanelTextEditor::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_SEARCH;
         el.tooltip = "Locate node on graph";
-        el.on_click = std::bind(&PanelTextEditor::on_locate, this, std::placeholders::_1);
+        el.on_click = [this](PanelToolbar::Element& el) { on_locate(el); };
         add_toolbar_element(std::move(el), true);
     }
     {

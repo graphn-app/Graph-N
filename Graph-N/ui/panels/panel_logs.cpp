@@ -81,8 +81,8 @@ void PanelServerLogs::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_CHEVRON_UP;
         el.tooltip = "Search up";
-        el.on_click = std::bind(&PanelServerLogs::on_search_up, this, std::placeholders::_1);
-        el.on_preview = std::bind(&PanelServerLogs::on_pre_search, this, std::placeholders::_1);
+        el.on_click = [this](PanelToolbar::Element& el) { on_search_up(el); };
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_search(el); };
         add_toolbar_element(std::move(el), true);
     }
     {
@@ -90,8 +90,8 @@ void PanelServerLogs::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_CHEVRON_DOWN;
         el.tooltip = "Search down";
-        el.on_click = std::bind(&PanelServerLogs::on_search_down, this, std::placeholders::_1);
-        el.on_preview = std::bind(&PanelServerLogs::on_pre_search, this, std::placeholders::_1);
+        el.on_click = [this](PanelToolbar::Element& el) { on_search_down(el); };
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_search(el); };
         add_toolbar_element(std::move(el), true);
     }
 
@@ -103,7 +103,7 @@ void PanelServerLogs::create_toolbar()
         el.tooltip = "Toggle autoscroll";
         el.toggler = true;
         el.toggled = m_autoscroll;
-        el.on_click = std::bind(&PanelServerLogs::on_autoscroll, this, std::placeholders::_1);
+        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_autoscroll(el); };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -111,7 +111,7 @@ void PanelServerLogs::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_X;
         el.tooltip = "Clear logs";
-        el.on_click = std::bind(&PanelServerLogs::on_clear, this, std::placeholders::_1);
+        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_clear(el); };
         add_toolbar_element(std::move(el), false);
     }
     {

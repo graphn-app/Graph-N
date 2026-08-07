@@ -54,7 +54,7 @@ public:
     void add_to_queue(data::Workflow* wf, int32_t count, bool push_front);
 
     const ExecTask* get_is_failed(wid wf_id) const;
-    bool get_is_queued(wid wf_id) const { return m_queued_wfs.count(wf_id) > 0; }
+    bool get_is_queued(wid wf_id) const { return m_queued_wfs.contains(wf_id); }
 
     void interrupt_task(wid wf_id = 0);
 

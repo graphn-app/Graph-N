@@ -87,7 +87,7 @@ void CNI_Primitive::cni_init()
     //cni_add_pin(std::move(obj));
 }
 
-void CNI_Primitive::cni_deserialilzation_begins()
+void CNI_Primitive::cni_deserialilzation_begins() noexcept
 {
     m_deserialization_mode = true;
 }
@@ -528,7 +528,7 @@ void CNI_Primitive::cni_mirror_value_to(const PinInstance* src, std::vector<PinI
     if (!outputs.empty() && outputs[0]->state().type == src->state().type)
         outputs[0]->state().value = src->state().value;
 
-    std::for_each(m_links.begin(), m_links.end(), [&append_pins](PinInstance* pin) { append_pins.push_back(pin); });
+    std::ranges::for_each(m_links, [&append_pins](PinInstance* pin) { append_pins.push_back(pin); });
 }
 
 std::list<PinType> CNI_Primitive::get_supported_pin_types(PinInstance* pin) const
@@ -581,7 +581,7 @@ void CNI_Primitive::cni_pin_unlinked(const PinInstance* p1, const PinInstance* p
 
     auto out_pin = outs[0];
     const PinInstance* external_pin = (out_pin == p1) ? p2 : p1;
-    m_links.erase(std::remove_if(m_links.begin(), m_links.end(), [external_pin](const PinInstance* pin) { return pin == external_pin; }), m_links.end());
+    std::erase_if(m_links, [external_pin](const PinInstance* pin) { return pin == external_pin; });
 
     Log("Primitive unlinked. w:" << get_workflow_id() << ", n:" << get_instance_id() << ", p1:" << p1->get_instance_id() << ", p2:" << p2->get_instance_id());
 

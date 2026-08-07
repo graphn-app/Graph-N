@@ -516,8 +516,8 @@ void PanelWorkflow::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_SAVE;
             el.tooltip = "Save Project";
-            el.on_preview = std::bind(&PanelWorkflow::on_pre_save, this, std::placeholders::_1);
-            el.on_click = std::bind(&PanelWorkflow::on_save, this, std::placeholders::_1);
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_save(el); };
+            el.on_click = [this](PanelToolbar::Element& el) { on_save(el); };
             add_toolbar_element(std::move(el), true);
         }
         {
@@ -525,8 +525,8 @@ void PanelWorkflow::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_HISTORY;
             el.tooltip = "Revert to saved";
-            el.on_preview = std::bind(&PanelWorkflow::on_pre_revert, this, std::placeholders::_1);
-            el.on_click = std::bind(&PanelWorkflow::on_revert, this, std::placeholders::_1);
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_revert(el); };
+            el.on_click = [this](PanelToolbar::Element& el) { on_revert(el); };
             add_toolbar_element(std::move(el), true);
         }
         {
@@ -539,8 +539,8 @@ void PanelWorkflow::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_UNDO_2;
             el.tooltip = "Undo";
-            el.on_preview = std::bind(&PanelWorkflow::on_pre_undo, this, std::placeholders::_1);
-            el.on_click = std::bind(&PanelWorkflow::on_undo, this, std::placeholders::_1);
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_undo(el); };
+            el.on_click = [this](PanelToolbar::Element& el) { on_undo(el); };
             add_toolbar_element(std::move(el), true);
         }
         {
@@ -548,8 +548,8 @@ void PanelWorkflow::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_REDO_2;
             el.tooltip = "Redo";
-            el.on_preview = std::bind(&PanelWorkflow::on_pre_redo, this, std::placeholders::_1);
-            el.on_click = std::bind(&PanelWorkflow::on_redo, this, std::placeholders::_1);
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_redo(el); };
+            el.on_click = [this](PanelToolbar::Element& el) { on_redo(el); };
             add_toolbar_element(std::move(el), true);
         }
         {
@@ -562,7 +562,7 @@ void PanelWorkflow::create_toolbar()
             el.type = PanelToolbar::Element::Type::Text;
             el.text = "Saved";
             el.text_clr = g::pOptsManager->color_load(AppColor::ActivityBarInactive);
-            el.on_preview = std::bind(&PanelWorkflow::on_pre_project_status, this, std::placeholders::_1);
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_project_status(el); };
             add_toolbar_element(std::move(el), true);
         }
         {
@@ -584,7 +584,7 @@ void PanelWorkflow::create_toolbar()
                 PanelToolbar::Element el;
                 el.type = PanelToolbar::Element::Type::Text;
                 el.text_width = ImGui::CalcTextSize("Prompt outputs failed validation").x;
-                el.on_preview = std::bind(&PanelWorkflow::on_pre_queue_status, this, std::placeholders::_1);
+                el.on_preview = [this](PanelToolbar::Element& el) { on_pre_queue_status(el); };
                 add_toolbar_element(std::move(el), false);
             }
             {
@@ -597,8 +597,8 @@ void PanelWorkflow::create_toolbar()
                 el.type = PanelToolbar::Element::Type::Button;
                 el.icon = ICON_LC_PLAY;
                 el.tooltip = "Run workflow (Shift to queue at front)";
-                el.on_preview = std::bind(&PanelWorkflow::on_pre_queue, this, std::placeholders::_1);
-                el.on_click = std::bind(&PanelWorkflow::on_queue, this, std::placeholders::_1);
+                el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_queue(el); };
+                el.on_click = [this](PanelToolbar::Element& el) { on_queue(el); };
                 add_toolbar_element(std::move(el), false);
             }
             {
@@ -606,8 +606,8 @@ void PanelWorkflow::create_toolbar()
                 el.type = PanelToolbar::Element::Type::Button;
                 el.icon = ICON_LC_X;
                 el.tooltip = "Terminate current task";
-                el.on_preview = std::bind(&PanelWorkflow::on_pre_queue_interrupt, this, std::placeholders::_1);
-                el.on_click = std::bind(&PanelWorkflow::on_queue_interrupt, this, std::placeholders::_1);
+                el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_queue_interrupt(el); };
+                el.on_click = [this](PanelToolbar::Element& el) { on_queue_interrupt(el); };
                 add_toolbar_element(std::move(el), false);
             }
             {
@@ -615,8 +615,8 @@ void PanelWorkflow::create_toolbar()
                 el.type = PanelToolbar::Element::Type::Button;
                 el.icon = ICON_LC_SQUARE;
                 el.tooltip = "Cancel all tasks for this workflow";
-                el.on_preview = std::bind(&PanelWorkflow::on_pre_queue_drop_all, this, std::placeholders::_1);
-                el.on_click = std::bind(&PanelWorkflow::on_queue_drop_all, this, std::placeholders::_1);
+                el.on_preview = [this](PanelToolbar::Element& el) { on_pre_queue_drop_all(el); };
+                el.on_click = [this](PanelToolbar::Element& el) { on_queue_drop_all(el); };
                 add_toolbar_element(std::move(el), false);
             }
             {
@@ -628,8 +628,8 @@ void PanelWorkflow::create_toolbar()
                 el.input_w = 150.0f;
                 el.cb_items = { "Infinite", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "15", "20" };
                 el.cb_item_sel = 1;
-                el.on_preview = std::bind(&PanelWorkflow::on_pre_tasks_num, this, std::placeholders::_1);
-                el.on_click = std::bind(&PanelWorkflow::on_tasks_num, this, std::placeholders::_1);
+                el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_tasks_num(el); };
+                el.on_click = [this](PanelToolbar::Element& el) { on_tasks_num(el); };
                 add_toolbar_element(std::move(el), false);
             }
         }
@@ -646,7 +646,7 @@ void PanelWorkflow::create_toolbar()
                 el.type = PanelToolbar::Element::Type::Button;
                 el.icon = ICON_LC_LOCATE;
                 el.tooltip = "Show next unrecognized node";
-                el.on_click = std::bind(&PanelWorkflow::on_show_dummy_node, this, std::placeholders::_1);
+                el.on_click = [this](PanelToolbar::Element& el) { on_show_dummy_node(el); };
                 add_toolbar_element(std::move(el), false);
             }
         }

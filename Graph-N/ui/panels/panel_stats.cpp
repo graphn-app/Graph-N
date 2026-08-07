@@ -63,10 +63,10 @@ void PanelStats::th_api()
     auto accumulated_time_disk = 0ms;
     auto accumulated_time_ram = 0ms;
 
-    while (!g::app_global_stop_all_threads.load(std::memory_order_relaxed))
+    while (!g::app_global_stop_all_threads.stop_requested())
     {
         std::this_thread::sleep_for(sleep_step);
-        if (g::app_global_stop_all_threads.load(std::memory_order_relaxed))
+        if (g::app_global_stop_all_threads.stop_requested())
             break;
         if (m_pause.load(std::memory_order_relaxed))
         {
@@ -132,10 +132,10 @@ void PanelStats::th_comfyui()
     bool system_stats_err = false;
     bool prompt_err = false;
 
-    while (!g::app_global_stop_all_threads.load(std::memory_order_relaxed))
+    while (!g::app_global_stop_all_threads.stop_requested())
     {
         std::this_thread::sleep_for(sleep_step);
-        if (g::app_global_stop_all_threads.load(std::memory_order_relaxed))
+        if (g::app_global_stop_all_threads.stop_requested())
             break;
         if (m_pause.load(std::memory_order_relaxed) || !g::pFlow->get_online())
         {
@@ -148,7 +148,7 @@ void PanelStats::th_comfyui()
         {
             std::string data;
             int32_t http_res = g::pFlow->http_get_and_wait("SystemStats/Stats", comfyui_http::system_stats, {}, {}, false,
-                []() { return g::app_global_stop_all_threads.load(std::memory_order_relaxed); }, data);
+                []() noexcept { return g::app_global_stop_all_threads.stop_requested(); }, data);
 
             if (HTTP_RESP_OK == http_res)
             {
@@ -222,7 +222,7 @@ void PanelStats::th_comfyui()
             m_queue_remaining.store(0, std::memory_order_relaxed);
 
             http_res = g::pFlow->http_get_and_wait("Stats/Prompt", comfyui_http::prompt, {}, {}, false,
-                []() { return g::app_global_stop_all_threads.load(std::memory_order_relaxed); }, data);
+                []() noexcept { return g::app_global_stop_all_threads.stop_requested(); }, data);
 
             if (HTTP_RESP_OK == http_res)
             {

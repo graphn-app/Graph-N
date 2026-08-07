@@ -160,7 +160,7 @@ bool HistoryManager::should_ignore_action(wid wf_id)
 {
     if (m_rollback)
         return true;
-    return m_ignore_actions.count(wf_id) > 0;
+    return m_ignore_actions.contains(wf_id);
 }
 
 void HistoryManager::set_ignore_actions_on(wid wf_id)

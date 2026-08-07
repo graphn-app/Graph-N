@@ -97,13 +97,11 @@ public:
     GraphN_Flow() noexcept;
     ~GraphN_Flow() noexcept;
 
-    NO_COPY_MOVE(GraphN_Flow);
-
     bool init();
     bool run();
     void exit();
 
-    static bool get_is_quit() noexcept { return g::app_global_stop_all_threads.load(std::memory_order_relaxed); }
+    static bool get_is_quit() noexcept { return g::app_global_stop_all_threads.stop_requested(); }
     bool get_online() const noexcept { return g::pConnectManager->get_status() == ConnectState::Connected; }
 
     ImGuiID get_main_dockspace_id() noexcept { return m_main_dock_id; }

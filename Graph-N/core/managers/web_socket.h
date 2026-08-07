@@ -92,7 +92,7 @@ private:
     std::thread m_th_ping;
     int64_t m_ping_interval = 0;
 
-    std::atomic_bool m_stop_flag = false;
+    std::stop_source m_stop_flag;
 };
 
 } // namespace mngr

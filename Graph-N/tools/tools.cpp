@@ -133,12 +133,11 @@ std::string merge(const std::set<std::string>& items, char separator)
 std::string to_lower_ascii(const std::string& str)
 {
     std::string lower;
-    lower.reserve(str.size());
-    std::transform(str.begin(), str.end(), std::back_inserter(lower),
-        [](unsigned char c)
-        {
-            return static_cast<char>(std::tolower(c));
-        });
+    lower.resize(str.size()); 
+    std::ranges::transform(str, lower.begin(), [](unsigned char c)
+    {
+        return static_cast<char>(std::tolower(c));
+    });
     return lower;
 }
 
@@ -180,8 +179,7 @@ uint64_t hash_fnv1a(const std::string& data) noexcept
 
 uint32_t crc32(const std::string& data) noexcept
 {
-    // Make the lambda constexpr for compile-time evaluation
-    constexpr auto generate_table = []() constexpr
+    constexpr auto generate_crc32_table = []() consteval noexcept
     {
         std::array<uint32_t, 256> table{}; // Zero-initialize the array
         constexpr uint32_t polynomial = 0xEDB88320;
@@ -195,15 +193,14 @@ uint32_t crc32(const std::string& data) noexcept
                 if (crc & 1)
                     crc = (crc >> 1) ^ polynomial;
                 else
-                    crc >>= 1;                
+                    crc >>= 1;
             }
             table[i] = crc;
         }
         return table;
     };
-
     // Evaluate table at compile time
-    static constexpr std::array<uint32_t, 256> table = generate_table();
+    static constexpr std::array<uint32_t, 256> table = generate_crc32_table();
 
     const char* pdata = data.c_str();
     const size_t length = data.size();
@@ -797,7 +794,7 @@ std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::pa
     {
         auto str = tools::str::u8_to_string(p.generic_u8string());
         if (slash != '/')
-            std::replace(str.begin(), str.end(), '/', slash);
+            std::ranges::replace(str, '/', slash);
         out.push_back(std::move(str));
     }
     return out;

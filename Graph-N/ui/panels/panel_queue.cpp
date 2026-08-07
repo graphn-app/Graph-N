@@ -63,14 +63,13 @@ void PanelQueue::init_history()
         m_do_reload_history.store(false, std::memory_order_relaxed);
         m_load_history_stop->store(false, std::memory_order_relaxed);
 
-        m_history_tasks.erase(
-            std::remove_if(m_history_tasks.begin(), m_history_tasks.end(), [this](const mngr::ExecTask& t)
+        std::erase_if(m_history_tasks,
+            [this](const mngr::ExecTask& t)
         {
             if (!t.loaded_from_db)
                 m_hidden.erase(t.task_id);
             return !t.loaded_from_db;
-        }),
-            m_history_tasks.end());
+        });
 
         m_history_tasks.reserve(m_history_tasks.size() + g::pOptsManager->queue_history_num_load());
 
@@ -167,8 +166,8 @@ void PanelQueue::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_PAUSE;
         el.tooltip = "Pause";
-        el.on_preview = std::bind(&PanelQueue::on_pre_pause, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelQueue::on_pause, this, std::placeholders::_1);
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_pause(el); };
+        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_pause(el); };
         add_toolbar_element(std::move(el), true);
     }
     {
@@ -176,8 +175,8 @@ void PanelQueue::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_X;
         el.tooltip = "Terminate current task";
-        el.on_preview = std::bind(&PanelQueue::on_pre_terminate_current, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelQueue::on_terminate_current, this, std::placeholders::_1);
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_terminate_current(el); };
+        el.on_click = [this](PanelToolbar::Element& el) { on_terminate_current(el); };
         add_toolbar_element(std::move(el), true);
     }
     {
@@ -185,8 +184,8 @@ void PanelQueue::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_SQUARE;
         el.tooltip = "Drop all tasks";
-        el.on_preview = std::bind(&PanelQueue::on_pre_remove_all, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelQueue::on_remove_all, this, std::placeholders::_1);
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_remove_all(el); };
+        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_remove_all(el); };
         add_toolbar_element(std::move(el), true);
     }
 
@@ -196,8 +195,8 @@ void PanelQueue::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_STAR;
         el.tooltip = "Hide favorited";
-        el.on_preview = std::bind(&PanelQueue::on_pre_toggle_favorited, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelQueue::on_toggle_favorited, this, std::placeholders::_1);
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_toggle_favorited(el); };
+        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_toggle_favorited(el); };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -205,8 +204,8 @@ void PanelQueue::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_HISTORY;
         el.tooltip = "Hide completed";
-        el.on_preview = std::bind(&PanelQueue::on_pre_toggle_past, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelQueue::on_toggle_past, this, std::placeholders::_1);
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_toggle_past(el); };
+        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_toggle_past(el); };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -219,8 +218,8 @@ void PanelQueue::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
         el.tooltip = "Expand all history";
-        el.on_preview = std::bind(&PanelQueue::on_pre_toggle_history, this, std::placeholders::_1);
-        el.on_click = std::bind(&PanelQueue::on_toggle_history, this, std::placeholders::_1);
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_toggle_history(el); };
+        el.on_click = [this](PanelToolbar::Element& el) { on_toggle_history(el); };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -228,7 +227,7 @@ void PanelQueue::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_CLOUD_DOWNLOAD;
         el.tooltip = "Reload history";
-        el.on_click = std::bind(&PanelQueue::on_reload_history, this, std::placeholders::_1);
+        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_reload_history(el); };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -534,7 +533,7 @@ void PanelQueue::show_past_tasks()
         ImGui::TextUnformatted(g::pFlow->get_panel_icon(DlgObj::PanelWf));
         ImGui::SameLine();
 
-        bool hidden = m_hidden.count(g.group_id) > 0;
+        bool hidden = m_hidden.contains(g.group_id);
         if (ImGuiEx::UrlButton(g.wf_name.c_str(), hidden ? "Show details" : "Hide details", IM_COL32_WHITE, g::pOptsManager->color_load(AppColor::SelectedItem), false))
         {
             if (hidden) m_hidden.erase(g.group_id);
@@ -603,7 +602,7 @@ void PanelQueue::show_history_tasks()
         ImGui::TextUnformatted(g::pFlow->get_panel_icon(DlgObj::PanelWf));
         ImGui::SameLine();
 
-        bool hidden = m_hidden.count(task.group_id) > 0;
+        bool hidden = m_hidden.contains(task.group_id);
         if (ImGuiEx::UrlButton(task.time_start_s.c_str(), hidden ? "Show details" : "Hide details", IM_COL32_WHITE, g::pOptsManager->color_load(AppColor::SelectedItem), false))
         {
             if (hidden) m_hidden.erase(task.group_id);
@@ -646,7 +645,7 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
         if (task->favorited.has_value())
             return task->favorited.value();
 
-        task->favorited = m_favorited.count(task->prompt_id) > 0;
+        task->favorited = m_favorited.contains(task->prompt_id);
         return task->favorited.value();
     };
 
@@ -718,7 +717,7 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
     else
         ImGui::TextUnformatted("Failed");
 
-    bool hidden = m_hidden.count(task->task_id) > 0;
+    bool hidden = m_hidden.contains(task->task_id);
 
     const float window_width = ImGui::GetWindowWidth();
     const float padding_x = ImGui::GetStyle().WindowPadding.x;
@@ -1362,7 +1361,7 @@ void PanelQueue::load_history()
     const auto history_request = fmt::format(comfyui_http::history_, g::pOptsManager->queue_history_num_load());
 
     const int32_t res = g::pFlow->http_get_and_wait("QPanel/History", history_request.c_str(), {}, {}, true,
-        [stop_flag = m_load_history_stop]() { return stop_flag->load(std::memory_order_relaxed); }, data);
+        [stop_flag = m_load_history_stop]() noexcept { return stop_flag->load(std::memory_order_relaxed); }, data);
 
     if (res != HTTP_RESP_OK)
     {
@@ -1621,7 +1620,7 @@ void PanelQueue::pickup_parsed_history()
     {
         auto& task = *it;
 
-        if (std::find_if(m_history_tasks.begin(), m_history_tasks.end(),
+        if (std::ranges::find_if(m_history_tasks,
             [&prompt_id = task.prompt_id](const mngr::ExecTask& t)
             { return t.loaded_from_db && t.prompt_id == prompt_id; }
         ) != m_history_tasks.end())
@@ -1636,7 +1635,7 @@ void PanelQueue::pickup_parsed_history()
             task.time_start_s = tools::dt::from_time(task.time_start).as_full_date_readable(false);
 
         m_hidden.insert(task.group_id); // history task is hidden by default
-        task.favorited = m_favorited.count(task.prompt_id) > 0;
+        task.favorited = m_favorited.contains(task.prompt_id);
 
         auto wfid = g::pWfsManager->import_wf_from_json(task.flow_json, task.prompt_id, {}, true);
         if (0 == wfid)
@@ -1676,7 +1675,7 @@ void PanelQueue::pickup_parsed_history()
         return left.time_start > right.time_start;
     };
     if (m_history_parsed_temp.empty())
-        std::sort(m_history_tasks.begin(), m_history_tasks.end(), sort_comp);
+        std::ranges::sort(m_history_tasks, sort_comp);
 }
 
 void PanelQueue::load_output_data(uint64_t task_id, uint64_t out_id, const std::string&& data)

@@ -30,7 +30,7 @@ std::shared_ptr<WebSocket> WebSocket::create_and_connect(const std::string& host
     obj->m_th_ping = std::thread([self = obj->shared_from_this(), ping_interval]
         {
             constexpr const uint32_t sleep_time = 100;
-            for (uint32_t elapsed = 0; !self->m_stop_flag.load(std::memory_order_relaxed); elapsed += sleep_time)
+            for (uint32_t elapsed = 0; !self->m_stop_flag.stop_requested(); elapsed += sleep_time)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time));
                 if (elapsed >= ping_interval * 1000)
@@ -52,7 +52,7 @@ void WebSocket::stop_and_forget()
 {
     if (m_th_ping.joinable())
     {
-        m_stop_flag.store(true, std::memory_order_relaxed);
+        m_stop_flag.request_stop();
         m_th_ping.detach();
     }
     if (m_th_working.joinable())

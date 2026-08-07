@@ -18,7 +18,7 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
         if (m_thread.joinable())
             m_thread.join();
 
-        if (!m_stop_thread_flag.load(std::memory_order_relaxed))    // ignore if parse thread was stopped by user
+        if (!m_stop_thread_flag.stop_requested())    // ignore if parse thread was stopped by user
         {
             auto copy = m_future.get();
             if (m_parse_failed.load(std::memory_order_relaxed))
@@ -39,7 +39,6 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
                 g::pFlow->set_nodes_ready();
             }
         }
-        m_stop_thread_flag.store(false, std::memory_order_relaxed);
         m_parse_finished.store(true, std::memory_order_relaxed);
     }
 
@@ -53,20 +52,20 @@ void NodesParser::parse(std::string&& data)
     stop();
     m_parse_finished.store(false, std::memory_order_relaxed);
     m_parse_failed.store(false, std::memory_order_relaxed);
-    m_stop_thread_flag.store(false, std::memory_order_relaxed);
+    m_stop_thread_flag = std::stop_source();
     m_json_data = std::move(data);
 
     m_parsed_item.store(0, std::memory_order_relaxed);
     m_parsed_items_total.store(0, std::memory_order_relaxed);
 
-    std::packaged_task<std::shared_ptr<NodesManager>()> task(std::bind(&NodesParser::parse_thread, this));
+    std::packaged_task<std::shared_ptr<NodesManager>()> task([this] { return parse_thread(); });
     m_future = task.get_future();
     m_thread = std::thread(std::move(task));
 }
 
 void NodesParser::stop()
 {
-    m_stop_thread_flag.store(true, std::memory_order_relaxed);
+    m_stop_thread_flag.request_stop();
 
     if (m_thread.joinable())
         m_thread.join();
@@ -91,7 +90,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
             m_parsed_item.fetch_add(1, std::memory_order_relaxed);
             parse_node(*nodes_manager.get(), jclass, jinfo, models_map);
 
-            if (m_stop_thread_flag.load(std::memory_order_relaxed))
+            if (m_stop_thread_flag.stop_requested())
             {
                 Log("Parsing thread aborted");
                 return {};
@@ -543,8 +542,8 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
                         parse_by_key(node, *pin, jvalue, jkey);
                     }
                 }
-                else if (jinfo.size() == 2 && jinfo[0].is_array() && jinfo[1].is_object() ||
-                    jinfo.size() == 1 && jinfo[0].is_array())
+                else if ((jinfo.size() == 2 && jinfo[0].is_array() && jinfo[1].is_object()) ||
+                    (jinfo.size() == 1 && jinfo[0].is_array()))
                 {
                     pin->initialize("COMBO");
                     for (const auto& jitem : jinfo[0])
@@ -874,27 +873,19 @@ void NodesParser::parse_others(data::Node& node, const o_json& jnode)
     get_bool("api_node", node.api_node);
     get_string("python_module", node.python_module);
 
+    if (m_known_attributes.empty())
+    {
+        m_known_attributes = {
+            "input", "input_order", "output", "output_is_list", "output_name",
+            "name", "display_name", "description", "python_module", "category",
+            "output_node", "output_tooltips", "experimental", "deprecated", "api_node"
+        };
+    }
+
     for (const auto&[name, value] : jnode.items())
     {
-        if (name == "input" ||
-            name == "input_order" ||
-            name == "output" ||
-            name == "output_is_list" ||
-            name == "output_name" ||
-            name == "name" ||
-            name == "display_name" ||
-            name == "description" ||
-            name == "python_module" ||
-            name == "category" ||
-            name == "output_node" ||
-            name == "output_tooltips" ||
-            name == "experimental" ||
-            name == "deprecated" ||
-            name == "api_node"
-            )
-        {
+        if (m_known_attributes.contains(name))
             continue;
-        }
 
         LogUnhandledJson("/unhandled node's attr. Node=" << node.name << ", attr=" << name);
     }

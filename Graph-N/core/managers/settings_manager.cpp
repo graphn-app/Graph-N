@@ -31,9 +31,9 @@ bool SettingsManager::init()
     m_ui_hotkeys =                                    { "key_bindings",             format_hotkeys_to_json(g::pHotkeysManager->get_default_key_bindings()) };
 
     // comfyui
-    m_comfyui_host =                                  { "comfyui_host",             std::string("127.0.0.1") };
-    m_comfyui_port =                                  { "comfyui_port",             int64_t(8188) };
-    m_comfyui_conn_time =                             { "comfyui_conn_time",        int64_t(1) };
+    m_comfyui_host =                    /* safe */    { "comfyui_host",             std::string("127.0.0.1"),           true };
+    m_comfyui_port =                    /* safe */    { "comfyui_port",             int64_t(8188),                      true };
+    m_comfyui_conn_time =               /* safe */    { "comfyui_conn_time",        int64_t(1),                         true };
     m_comfyui_start_server =                          { "comfyui_start_server",     bool(false) };
     m_comfyui_python =                                { "comfyui_python",           std::filesystem::path("") };
     m_comfyui_python_args =                           { "comfyui_python_args",      std::string("") };
@@ -254,7 +254,7 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
 
     for (auto& val : values)
     {
-        auto it = std::find_if(db_values.begin(), db_values.end(), [&val](DbAppOptionData& db_opt) { return db_opt.name == val->db_name; });
+        auto it = std::ranges::find_if(db_values, [&val](DbAppOptionData& db_opt) { return db_opt.name == val->db_name; });
         if (it != db_values.end())
         {
             if (std::holds_alternative<int64_t>(val->value))
@@ -310,7 +310,7 @@ void SettingsManager::init_disks()
     for (auto& installed_name : installed)
     {
         auto pair = std::make_pair(installed_name, true);
-        auto it = std::find_if(loaded.begin(), loaded.end(), [&installed_name](const std::string& loaded_name) { return loaded_name == installed_name; });
+        auto it = std::ranges::find_if(loaded, [&installed_name](const std::string& loaded_name) { return loaded_name == installed_name; });
         if (it != loaded.end())
         {
             ++it;
@@ -340,22 +340,88 @@ void save_option_impl(std::variant<std::string, int64_t, std::filesystem::path, 
 
 void SettingsManager::save_option(OptionValue& option, const std::string& new_str)
 {
-    save_option_impl(option.value, option.db_name, new_str, { new_str }, "string");
+    if (option.guard_required)
+    {
+        std::unique_lock<std::mutex> lock(m_guard);
+        save_option_impl(option.value, option.db_name, new_str, { new_str }, "string");
+    }
+    else
+    {
+        save_option_impl(option.value, option.db_name, new_str, { new_str }, "string");
+    }
 }
 
 void SettingsManager::save_option(OptionValue& option, int64_t new_int)
 {
-    save_option_impl(option.value, option.db_name, new_int, { new_int }, "int");
+    if (option.guard_required)
+    {
+        std::unique_lock<std::mutex> lock(m_guard);
+        save_option_impl(option.value, option.db_name, new_int, { new_int }, "int");
+    }
+    else
+    {
+        save_option_impl(option.value, option.db_name, new_int, { new_int }, "int");
+    }
 }
 
 void SettingsManager::save_option(OptionValue& option, bool new_bool)
 {
-    save_option_impl(option.value, option.db_name, new_bool, { new_bool ? 1 : 0 }, "bool");
+    if (option.guard_required)
+    {
+        std::unique_lock<std::mutex> lock(m_guard);
+        save_option_impl(option.value, option.db_name, new_bool, { new_bool ? 1 : 0 }, "bool");
+    }
+    else
+    {
+        save_option_impl(option.value, option.db_name, new_bool, { new_bool ? 1 : 0 }, "bool");
+    }
 }
 
 void SettingsManager::save_option(OptionValue& option, const std::filesystem::path& new_path)
 {
-    save_option_impl(option.value, option.db_name, new_path, { tools::str::path_to_string(new_path) }, "path");
+    if (option.guard_required)
+    {
+        std::unique_lock<std::mutex> lock(m_guard);
+        save_option_impl(option.value, option.db_name, new_path, { tools::str::path_to_string(new_path) }, "path");
+    }
+    else
+    {
+        save_option_impl(option.value, option.db_name, new_path, { tools::str::path_to_string(new_path) }, "path");
+    }
+}
+
+//////////////////////////////////////////////////////////////////////
+////////       SAFE LOAD                 /////////////////////////////
+//////////////////////////////////////////////////////////////////////
+
+std::string SettingsManager::comfyui_host_load_safe()
+{
+    std::string ret;
+    {
+        std::unique_lock<std::mutex> lock(m_guard);
+        ret = comfyui_host_load();
+    }
+    return ret;
+}
+
+int64_t SettingsManager::comfyui_port_load_safe()
+{
+    int64_t ret = 0;
+    {
+        std::unique_lock<std::mutex> lock(m_guard);
+        ret = comfyui_port_load();
+    }
+    return ret;
+}
+
+int64_t SettingsManager::comfyui_connect_timeout_load_safe()
+{
+    int64_t ret = 0;
+    {
+        std::unique_lock<std::mutex> lock(m_guard);
+        ret = comfyui_connect_timeout_load();
+    }
+    return ret;
 }
 
 //////////////////////////////////////////////////////////////////////

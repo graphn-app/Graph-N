@@ -1242,7 +1242,7 @@ void OptRightPane::show_keys(const char*& help_text)
             m_data->hotkeys_valid = g::pHotkeysManager->test(to_hotkeys(m_data->hotkeys), failed);
             for (auto& hk : m_data->hotkeys)
             {
-                hk.valid = (failed.count(hk.target) == 0);
+                hk.valid = !failed.contains(hk.target);
             }
             m_data->hotkeys_changed = m_data->hotkeys_valid;
         }

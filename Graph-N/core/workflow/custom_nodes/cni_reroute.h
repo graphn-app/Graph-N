@@ -48,7 +48,7 @@ public:
 
     void cni_mirror_value_to(const PinInstance* src, std::vector<PinInstance*>& append_pins) const override;
 
-    void cni_deserialilzation_begins() override;
+    void cni_deserialilzation_begins() noexcept override;
     void cni_deserialilzation_ends() override;
 
     bool cni_json_need_custom_serialization() const noexcept override { return true; }

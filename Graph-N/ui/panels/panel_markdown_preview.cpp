@@ -10,7 +10,7 @@ PanelMarkdownPreview::PanelMarkdownPreview()
 
 PanelMarkdownPreview::~PanelMarkdownPreview() noexcept = default;
 
-DlgCode PanelMarkdownPreview::show(bool& focused)
+DlgCode PanelMarkdownPreview::show(bool& focused) noexcept
 {
     bool opened = true;
     if (begin_panel(opened, focused) && opened)

@@ -95,7 +95,7 @@ hid HashID::make_hash(const std::string& unique) noexcept
     return tools::str::hash_fnv1a(unique);
 }
 
-HashID::HashID(const std::string& unique)
+HashID::HashID(const std::string& unique) noexcept
 {
     set_hash(make_hash(unique));
 }

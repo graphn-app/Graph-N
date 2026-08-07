@@ -22,12 +22,12 @@ void cleanup(const std::filesystem::path& dir, const std::string& prefix, size_t
     };
 
     auto list = tools::path::enumerate_directory(dir, false, false, true, false);
-    std::sort(list.begin(), list.end(), sort_callback);
+    std::ranges::sort(list, sort_callback);
 
     std::list<std::filesystem::path> filtered;
     for (auto& file : list)
     {
-        if (tools::str::path_to_string(file.filename()).find(prefix) == 0)
+        if (tools::str::path_to_string(file.filename()).starts_with(prefix))
         {
             filtered.push_back(std::move(file));
         }

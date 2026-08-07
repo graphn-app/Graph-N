@@ -131,9 +131,9 @@ uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
     Log("HTTP-Req#" << req->req_id << ". Registered: " << type << ". Who: " << req->who_is_asking << ". Retry: " << req->retry_on_timeout << ". Url: " << req->url);
 
     {
-        const auto host = g::pOptsManager->comfyui_host_load();
-        const auto port = cast::to_i32(g::pOptsManager->comfyui_port_load());
-        const auto tm_out = g::pOptsManager->comfyui_connect_timeout_load();
+        const auto host = g::pOptsManager->comfyui_host_load_safe();
+        const auto port = cast::to_i32(g::pOptsManager->comfyui_port_load_safe());
+        const auto tm_out = g::pOptsManager->comfyui_connect_timeout_load_safe();
 
         std::unique_lock<std::mutex> lock(m_http_inbox_mutex);
         m_http_inbox.push(req);
@@ -158,7 +158,7 @@ void ConnectManager::http_worker()
 
     while (get_status() != ConnectState::Connected)
     {
-        if (g::app_global_stop_all_threads.load(std::memory_order_relaxed))
+        if (g::app_global_stop_all_threads.stop_requested())
             return;
         std::this_thread::sleep_for(100ms);
     }
@@ -178,17 +178,17 @@ void ConnectManager::http_worker()
 
     bool force_reconnect = false;
 
-    while (!g::app_global_stop_all_threads.load(std::memory_order_relaxed))
+    while (!g::app_global_stop_all_threads.stop_requested())
     {
         std::shared_ptr<RequestData> req;
 
         {
             std::unique_lock<std::mutex> lock(m_http_inbox_mutex);
             m_inbox_cv.wait(lock, [this]() noexcept {
-                return !m_http_inbox.empty() || g::app_global_stop_all_threads.load(std::memory_order_relaxed);
+                return !m_http_inbox.empty() || g::app_global_stop_all_threads.stop_requested();
             });
 
-            if (g::app_global_stop_all_threads.load(std::memory_order_relaxed) && m_http_inbox.empty())
+            if (g::app_global_stop_all_threads.stop_requested() && m_http_inbox.empty())
                 break;
 
             if (m_reconnect || force_reconnect)

@@ -42,7 +42,7 @@ mngr::HistoryManager* pHistoryManager = nullptr;
 mngr::QueueManager* pQueueManager = nullptr;
 mngr::HotkeysManager* pHotkeysManager = nullptr;
 
-std::atomic_bool app_global_stop_all_threads = false;
+std::stop_source app_global_stop_all_threads;
 int32_t block_hotkeys_counter = 0;
 
 void save_exception(std::string message, const char* file, int32_t line) noexcept
@@ -124,7 +124,7 @@ void GraphN::exit_graphn()
 {
     LogIn;
 
-    g::app_global_stop_all_threads = true;
+    g::app_global_stop_all_threads.request_stop();
     g::pTextures->cleanup_all();
 
     std::for_each(m_managers.rbegin(), m_managers.rend(), [](std::unique_ptr<mngr::Manager>& manager)

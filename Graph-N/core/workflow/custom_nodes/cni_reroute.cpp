@@ -74,7 +74,7 @@ void CNI_Reroute::cni_mirror_value_to(const PinInstance* src, std::vector<PinIns
 
         if (pair.input.internal == src)
         {
-            std::for_each(pair.output.external.begin(), pair.output.external.end(), [&append_pins](const PinInstance* pin) { append_pins.push_back(cast::remove_const(pin)); });
+            std::ranges::for_each(pair.output.external, [&append_pins](const PinInstance* pin) { append_pins.push_back(cast::remove_const(pin)); });
             break;
         }
     }
@@ -160,7 +160,7 @@ void CNI_Reroute::cni_init()
         add_pair();
 }
 
-void CNI_Reroute::cni_deserialilzation_begins()
+void CNI_Reroute::cni_deserialilzation_begins() noexcept
 {
     m_deserialization_mode = true;
 }

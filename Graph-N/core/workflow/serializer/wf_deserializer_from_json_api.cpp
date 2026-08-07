@@ -398,7 +398,7 @@ void WfDeserializerFromJsonApi::arrange_nodes()
 
     bool changed = true;
     int32_t iteration_guard = 0;
-    const int32_t MAX_ITERATIONS = 1000; 
+    constexpr int32_t MAX_ITERATIONS = 1000; 
 
     while (changed && iteration_guard++ < MAX_ITERATIONS) 
     {

@@ -74,7 +74,7 @@ private:
     void load_models_th();
     std::unique_ptr<data::ModelItem> add_file(std::string root_folder, std::filesystem::path file_path);
     void parse_file_info(data::ModelItem* item, std::string&& info);
-    void rebuild_models(const std::vector<std::unique_ptr<data::ModelItem>>& models);
+    void rebuild_models(std::vector<std::unique_ptr<data::ModelItem>>& models);
     void sync_to_nodes();
     void sort_models();
     void setup_model_behaviour();

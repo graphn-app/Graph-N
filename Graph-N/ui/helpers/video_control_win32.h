@@ -43,7 +43,7 @@ private:
     std::atomic<std::chrono::steady_clock::time_point> m_last_frame_request;
 
     std::thread m_decode_thread;
-    std::atomic_bool m_stop_thread = false;
+    std::stop_source m_stop_thread;
     std::mutex m_mutex;
     std::condition_variable m_cv;
 

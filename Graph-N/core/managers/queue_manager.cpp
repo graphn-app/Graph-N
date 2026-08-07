@@ -307,7 +307,7 @@ const ExecTask* QueueManager::get_is_failed(wid wf_id) const
 
 void QueueManager::modify_group(uint64_t group_id, int32_t num_of_tasks)
 {
-    auto it = std::find_if(m_queue_next.begin(), m_queue_next.end(), [group_id](const ExecGroup& g) { return g.group_id == group_id; });
+    auto it = std::ranges::find_if(m_queue_next, [group_id](const ExecGroup& g) { return g.group_id == group_id; });
     if (it != m_queue_next.end())
     {
         auto& g = *it;
@@ -358,19 +358,19 @@ void QueueManager::drop_wf_tasks(wid wf_id)
 
 void QueueManager::swap_groups(uint64_t group_l, uint64_t group_r)
 {
-    auto it_l = std::find_if(m_queue_next.begin(), m_queue_next.end(), [group_l](const ExecGroup& g) noexcept { return g.group_id == group_l; });
-    auto it_r = std::find_if(m_queue_next.begin(), m_queue_next.end(), [group_r](const ExecGroup& g) noexcept { return g.group_id == group_r; });
+    auto it_l = std::ranges::find_if(m_queue_next, [group_l](const ExecGroup& g) noexcept { return g.group_id == group_l; });
+    auto it_r = std::ranges::find_if(m_queue_next, [group_r](const ExecGroup& g) noexcept { return g.group_id == group_r; });
     if (it_l != m_queue_next.end() && it_r != m_queue_next.end())
         std::iter_swap(it_l, it_r);
 }
 
 void QueueManager::create_from_past_task(uint64_t group, uint64_t task)
 {
-    const auto it_g = std::find_if(m_queue_past.begin(), m_queue_past.end(), [group](const ExecGroup& g) { return g.group_id == group; });
+    const auto it_g = std::ranges::find_if(m_queue_past, [group](const ExecGroup& g) { return g.group_id == group; });
     if (it_g == m_queue_past.end())
         return;
 
-    const auto it_t = std::find_if(it_g->completed.begin(), it_g->completed.end(), [task](const ExecTask& t) { return t.task_id == task; });
+    const auto it_t = std::ranges::find_if(it_g->completed, [task](const ExecTask& t) { return t.task_id == task; });
     if (it_t == it_g->completed.end())
         return;
 

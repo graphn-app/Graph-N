@@ -29,7 +29,7 @@ bool WfsManager::init()
     auto wf_datas = g::pDbManager->wf_load_meta_and_purge();
     for (auto& data : wf_datas)
     {
-        if (data.name.find("Workflow ") == 0)
+        if (data.name.starts_with("Workflow "))
         {
             const auto num = cast::to_u32(std::strtoul(data.name.c_str() + strlen("Workflow "), nullptr, 10));
             m_wf_name_counter = std::max(m_wf_name_counter, num);
@@ -205,7 +205,7 @@ data::Workflow* WfsManager::access(wid wf_id) const
 
     const auto search_virt = [this, wf_id]() -> data::Workflow*
     {
-        const auto it = std::find_if(m_wfs_virt.begin(), m_wfs_virt.end(), [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
+        const auto it = std::ranges::find_if(m_wfs_virt, [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
         if (it == m_wfs_virt.end())
             return nullptr;
         return (*it).get();
@@ -213,7 +213,7 @@ data::Workflow* WfsManager::access(wid wf_id) const
 
     const auto search_ro = [this, wf_id]() -> data::Workflow*
     {
-        const auto it = std::find_if(m_wfs_ro.begin(), m_wfs_ro.end(), [wf_id](const std::unique_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
+        const auto it = std::ranges::find_if(m_wfs_ro, [wf_id](const std::unique_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
         if (it == m_wfs_ro.end())
             return nullptr;
         return (*it).get();
@@ -332,7 +332,7 @@ void WfsManager::erase_wf(wid wf_id)
 
     const auto delete_virt = [this, wf_id]()
     {
-        const auto it = std::find_if(m_wfs_virt.begin(), m_wfs_virt.end(), [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
+        const auto it = std::ranges::find_if(m_wfs_virt, [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
         if (it == m_wfs_virt.end())
             return false;
         m_wfs_virt.erase(it);
@@ -341,7 +341,7 @@ void WfsManager::erase_wf(wid wf_id)
 
     const auto delete_ro = [this, wf_id]()
     {
-        const auto it = std::find_if(m_wfs_ro.begin(), m_wfs_ro.end(), [wf_id](const std::unique_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
+        const auto it = std::ranges::find_if(m_wfs_ro, [wf_id](const std::unique_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
         if (it == m_wfs_ro.end())
             return false;
         m_wfs_ro.erase(it);
@@ -355,7 +355,7 @@ void WfsManager::erase_wf(wid wf_id)
 void WfsManager::remove_virtual_wf(wid wf_id)
 {
     LogRAssert(wf_id != 0, "Zero wf id", );
-    const auto it = std::find_if(m_wfs_virt.begin(), m_wfs_virt.end(), [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
+    const auto it = std::ranges::find_if(m_wfs_virt, [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
     if (it == m_wfs_virt.end())
         return;
     m_wfs_virt.erase(it);
@@ -512,14 +512,14 @@ void WfsManager::set_wf_labels(wid wf_id, std::set<uint32_t> labels)
     bool changed = false;
     for (auto& [label_id, wf_ids] : m_wfs_in_label)
     {
-        const auto it = std::find(wf_ids.begin(), wf_ids.end(), wf_id);
-        if (it == wf_ids.end() && labels.count(label_id) > 0)
+        const auto it = std::ranges::find(wf_ids, wf_id);
+        if (it == wf_ids.end() && labels.contains(label_id))
         {
             wf_ids.push_back(wf_id);
             sort_wfs(wf_ids);
             changed = true;
         }
-        else if (it != wf_ids.end() && labels.count(label_id) == 0)
+        else if (it != wf_ids.end() && !labels.contains(label_id))
         {
             wf_ids.erase(it);
             changed = true;
@@ -533,7 +533,7 @@ void WfsManager::set_wf_labels(wid wf_id, std::set<uint32_t> labels)
 bool WfsManager::is_auto_label(uint32_t label_id) const
 {
     LogRAssert(label_id != 0, "Zero label id", false);
-    const auto it = std::find_if(m_labels.begin(), m_labels.end(), [label_id](const std::tuple<std::string, uint32_t, bool>& t) { return std::get<1>(t) == label_id; });
+    const auto it = std::ranges::find_if(m_labels, [label_id](const std::tuple<std::string, uint32_t, bool>& t) { return std::get<1>(t) == label_id; });
     if (it != m_labels.end())
         return std::get<2>(*it);
     return false;
@@ -589,7 +589,7 @@ bool WfsManager::get_is_wf_in_label(wid wf_id, uint32_t label_id) const
     LogRAssert(wf_id != 0, "Zero wf id", false);
     LogRAssert(label_id != 0, "Zero label id", false);
     auto& ids = get_wfs_in_label(label_id);
-    return std::find(ids.begin(), ids.end(), wf_id) != ids.end();
+    return std::ranges::find(ids, wf_id) != ids.end();
 }
 
 void WfsManager::sort_wfs(std::list<wid>& wfs)
@@ -711,7 +711,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
 
     const auto& link_ptrs = m_copy_src->get_links();
     std::vector<data::Link*> links;
-    std::for_each(link_ptrs.begin(), link_ptrs.end(), [&links](const std::unique_ptr<data::Link>& ptr) { links.push_back(ptr.get()); });
+    std::ranges::for_each(link_ptrs, [&links](const std::unique_ptr<data::Link>& ptr) { links.push_back(ptr.get()); });
     for (auto link : links)
     {
         const auto* src_in_pin = link->get_input();
@@ -810,7 +810,7 @@ void WfsManager::close(wid wf_id)
 
     std::list<data::Link*> links;
     auto& links_ptr = wf->get_links();
-    std::for_each(links_ptr.begin(), links_ptr.end(), [&links](const std::unique_ptr<data::Link>& link) { links.push_back(link.get()); });
+    std::ranges::for_each(links_ptr, [&links](const std::unique_ptr<data::Link>& link) { links.push_back(link.get()); });
     for (auto link : links)
     {        
         wf->remove_link(link);
@@ -818,7 +818,7 @@ void WfsManager::close(wid wf_id)
 
     std::list<data::NodeInstance*> nodes;
     auto& nodes_ptr = wf->get_nodes();
-    std::for_each(nodes_ptr.begin(), nodes_ptr.end(), [&nodes](const std::unique_ptr<data::NodeInstance>& node) { nodes.push_back(node.get()); });
+    std::ranges::for_each(nodes_ptr, [&nodes](const std::unique_ptr<data::NodeInstance>& node) { nodes.push_back(node.get()); });
     for (auto node : nodes)
     {
         node->cni_cleanup_base_object();

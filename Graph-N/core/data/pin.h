@@ -79,7 +79,7 @@ public:
     void finalize_number();
     void finalize_combo();
     void finalize_bool();
-    void finalize_color() noexcept;
+    void finalize_color();
 
     static int64_t color_to_val(const std::string& clr, bool& alpha_in_string) noexcept;
     static int64_t colors_to_int(const ImVec4& colors) noexcept;

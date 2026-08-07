@@ -362,7 +362,7 @@ void GraphN_Flow::wf_assign_sequential_numbers()
     for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
     {
         auto& panel = *it;
-        panel->set_sequential_number(numbers.count(sequential_number) > 0 ? sequential_number : 0);
+        panel->set_sequential_number(numbers.contains(sequential_number) ? sequential_number : 0);
         sequential_number++;
     }
 }

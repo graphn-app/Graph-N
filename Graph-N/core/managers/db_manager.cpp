@@ -115,8 +115,8 @@ DbManager::~DbManager() = default;
 void DbManager::stop_all_threads()
 {
     m_cv.notify_all();
-    if (m_th.joinable())
-        m_th.join();
+    if (m_th_write.joinable())
+        m_th_write.join();
     if (m_th_backup.joinable())
         m_th_backup.join();
 }
@@ -296,7 +296,7 @@ bool DbManager::init()
 
         transaction.commit();
 
-        m_th = std::thread(&DbManager::write_thread, this, path);
+        m_th_write = std::thread(&DbManager::write_thread, this, path);
         m_th_backup = std::thread(&DbManager::backup_thread, this, path, std::move(backup_db));
     }
     catch (const SQLite::Exception& ex)
@@ -830,7 +830,7 @@ std::vector<ExecTask> DbManager::history_load_all()
             if (0 == right.time_start) return true;
             return left.time_start > right.time_start;
         };
-        std::sort(ret.begin(), ret.end(), sort_comp);
+        std::ranges::sort(ret, sort_comp);
         return ret;
     }
     catch (const SQLite::Exception& ex)
@@ -916,7 +916,7 @@ void DbManager::backup_thread(std::filesystem::path db_path, std::unique_ptr<SQL
             {
                 return lhs.wstring() < rhs.wstring();
             };
-            std::sort(list.begin(), list.end(), sort_callback);
+            std::ranges::sort(list, sort_callback);
 
             for (const auto& file : list)
             {
@@ -1256,9 +1256,9 @@ void DbManager::write_thread(std::filesystem::path db_path)
         std::queue<WriteData> q;
         {
             std::unique_lock<std::mutex> lock(m_lock);
-            m_cv.wait_for(lock, wait_period, [this]() noexcept { return g::app_global_stop_all_threads.load(std::memory_order_relaxed) || !m_write_queue.empty(); });
+            m_cv.wait_for(lock, wait_period, [this]() noexcept { return g::app_global_stop_all_threads.stop_requested() || !m_write_queue.empty(); });
 
-            if (g::app_global_stop_all_threads.load(std::memory_order_relaxed) && m_write_queue.empty() && !m_exception_write_data_flag.load(std::memory_order_relaxed))
+            if (g::app_global_stop_all_threads.stop_requested() && m_write_queue.empty() && !m_exception_write_data_flag.load(std::memory_order_relaxed))
                 break;
 
             if (m_write_queue.empty() && !m_exception_write_data_flag.load(std::memory_order_relaxed))

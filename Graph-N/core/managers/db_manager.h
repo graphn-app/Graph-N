@@ -100,7 +100,7 @@ private:
     void del_history(const SQLite::Database& db, const HistoryData* data);
 
 private:
-    std::thread m_th;
+    std::thread m_th_write;
     std::thread m_th_backup;
     std::mutex m_lock;
     std::condition_variable m_cv;

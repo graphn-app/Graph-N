@@ -39,11 +39,10 @@ void ModelsManager::load_models_th()
     try
     {
         g::pOptsManager->model_starred_preload();
-
         const std::string models_req = comfyui_http::models;
         std::string data;
         int32_t http_res = g::pFlow->http_get_and_wait("Models/All", models_req.c_str(), {}, {}, true,
-            [stop_flag = m_stop_flag.get_token()]() { return stop_flag.stop_requested(); }, data);
+            [stop_flag = m_stop_flag.get_token()]() noexcept { return stop_flag.stop_requested(); }, data);
 
         if (http_res != HTTP_RESP_OK)
         {
@@ -73,7 +72,7 @@ void ModelsManager::load_models_th()
         {
             std::string model_req = models_req + "/" + req;
             http_res = g::pFlow->http_get_and_wait("Models/Model", model_req.c_str(), {}, {}, false,
-                [stop_flag = m_stop_flag.get_token()]() { return stop_flag.stop_requested(); }, data);
+                [stop_flag = m_stop_flag.get_token()]() noexcept { return stop_flag.stop_requested(); }, data);
 
             if (http_res != HTTP_RESP_OK)
             {
@@ -111,7 +110,7 @@ void ModelsManager::load_models_th()
                         httplib::Params params;
                         params.emplace("filename", tools::str::path_to_string(filename.filename()));
                         http_res = g::pFlow->http_get_and_wait("Models/Model", model_req.c_str(), std::move(params), {}, false,
-                            [stop_flag = m_stop_flag.get_token()]() { return stop_flag.stop_requested(); }, data);
+                            [stop_flag = m_stop_flag.get_token()]() noexcept { return stop_flag.stop_requested(); }, data);
 
                         if (m_stop_flag.stop_requested())
                         {
@@ -265,58 +264,53 @@ void ModelsManager::parse_file_info(data::ModelItem* item, std::string&& info)
     }
 }
 
-void ModelsManager::rebuild_models(const std::vector<std::unique_ptr<data::ModelItem>>& models)
+void ModelsManager::rebuild_models(std::vector<std::unique_ptr<data::ModelItem>>& models)
 {
-    std::function<data::ModelItem*(const std::vector<std::unique_ptr<data::ModelItem>>&, const std::string&, int32_t, int32_t)> find_item;
-    find_item = [&find_item]
-        (const std::vector<std::unique_ptr<data::ModelItem>>& models, const std::string& name, int32_t search_depth, int32_t curr_depth) -> data::ModelItem*
-    {
-        if (search_depth < curr_depth)
-            return nullptr;
-
-        for (auto& model : models)
-        {
-            if (search_depth == curr_depth && model->name == name)
-                return model.get();
-            auto item = find_item(model->children, name, search_depth, curr_depth + 1);
-            if (item != nullptr)
-                return item;
-        }
-
-        return nullptr;
-    };
-
     m_model_items.clear();
     m_model_items.reserve(models.size());
 
-    std::function<void(const std::vector<std::unique_ptr<data::ModelItem>>&, std::vector<std::unique_ptr<data::ModelItem>>&, int32_t)> add_items;
-    add_items = [this, &add_items, &find_item]
-        (const std::vector<std::unique_ptr<data::ModelItem>>& models, std::vector<std::unique_ptr<data::ModelItem>>& dest, int32_t depth)
+    std::function<void(std::vector<std::unique_ptr<data::ModelItem>>&, std::vector<std::unique_ptr<data::ModelItem>>&)> merge_trees;
+    merge_trees = [&merge_trees](std::vector<std::unique_ptr<data::ModelItem>>& src, std::vector<std::unique_ptr<data::ModelItem>>& dst)
     {
-        for (auto it = models.begin(); it != models.end(); ++it)
+        std::unordered_map<std::string, data::ModelItem*> dst_map;
+        for (const auto& item : dst)
         {
-            auto& model = *it;
-            auto item = find_item(m_model_items, model->name, depth, 0);
-            if (nullptr == item)
+            dst_map[item->name] = item.get();
+        }
+
+        for (auto& src_item : src)
+        {
+            auto it = dst_map.find(src_item->name);
+            data::ModelItem* target_item = nullptr;
+
+            if (it == dst_map.end())
             {
                 auto new_item = std::make_unique<data::ModelItem>();
-                new_item->is_model = model->is_model;
-                new_item->starred = model->starred;
-                new_item->hash = model->hash;
-                new_item->name = std::move(model->name);
-                new_item->search = std::move(model->search);
-                new_item->file_name = std::move(model->file_name);
-                new_item->info = std::move(model->info);
+                new_item->is_model = src_item->is_model;
+                new_item->starred = src_item->starred;
+                new_item->hash = src_item->hash;
+                new_item->name = std::move(src_item->name);
+                new_item->search = std::move(src_item->search);
+                new_item->file_name = std::move(src_item->file_name);
+                new_item->info = std::move(src_item->info);
 
-                item = new_item.get();
-                dest.push_back(std::move(new_item));
+                target_item = new_item.get();
+                dst_map[target_item->name] = target_item;
+                dst.push_back(std::move(new_item));
+            }
+            else
+            {
+                target_item = it->second;
             }
 
-            add_items(model->children, item->children, depth + 1);
+            if (!src_item->children.empty())
+            {
+                merge_trees(src_item->children, target_item->children);
+            }
         }
     };
 
-    add_items(models, m_model_items, 0);
+    merge_trees(models, m_model_items);
     m_model_items.shrink_to_fit();
 }
 
@@ -353,20 +347,20 @@ void ModelsManager::sync_to_nodes()
 
 void ModelsManager::sort_models()
 {
-    const auto sort_callback = [](const std::unique_ptr<data::ModelItem>& lhs, const std::unique_ptr<data::ModelItem>& rhs)
+    const auto sort_callback = [](const std::unique_ptr<data::ModelItem>& lhs, const std::unique_ptr<data::ModelItem>& rhs) noexcept
     {
         if (!lhs->is_model && rhs->is_model)
             return true;
         if (lhs->is_model && !rhs->is_model)
             return false;
 
-        return tools::str::to_lower_ascii(lhs->name) < tools::str::to_lower_ascii(rhs->name);
+        return lhs->search < rhs->search;
     };
 
     std::function<void(std::vector<std::unique_ptr<data::ModelItem>>&)> go_sort;
     go_sort = [&go_sort, &sort_callback](std::vector<std::unique_ptr<data::ModelItem>>& models)
     {
-        std::sort(models.begin(), models.end(), sort_callback);
+        std::ranges::sort(models, sort_callback);
         for (auto& model : models)
         {
             go_sort(model->children);

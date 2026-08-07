@@ -456,7 +456,7 @@ void Pin::finalize_bool()
     label_off_named = fmt::format(FMT_STRING("{}: {}"), def_state.name, (label_off.empty() ? "off" : label_off));
 }
 
-void Pin::finalize_color() noexcept
+void Pin::finalize_color()
 {
     precision = fmt::format(FMT_STRING("%lld"));
     precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
@@ -728,26 +728,25 @@ int64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string) noexcep
     {
         std::string_view name;
         ImU32 value = 0;
-        constexpr bool operator<(std::string_view o) const { return name < o; }
     };
 
-    constexpr std::array<ColorEntry, 12> named_colors =
+    constexpr std::array<ColorEntry, 12> named_colors = // must be sorted A-Z
     {{
-        { "white",   IM_COL32(255, 255, 255, 255) },
         { "black",   IM_COL32(0,   0,   0,   255) },
-        { "red",     IM_COL32(255, 0,   0,   255) },
-        { "green",   IM_COL32(0,   255, 0,   255) },
         { "blue",    IM_COL32(0,   0,   255, 255) },
-        { "yellow",  IM_COL32(255, 255, 0,   255) },
         { "cyan",    IM_COL32(0,   255, 255, 255) },
-        { "magenta", IM_COL32(255, 0,   255, 255) },
         { "gray",    IM_COL32(128, 128, 128, 255) },
+        { "green",   IM_COL32(0,   255, 0,   255) },
         { "grey",    IM_COL32(128, 128, 128, 255) },
+        { "magenta", IM_COL32(255, 0,   255, 255) },
         { "orange",  IM_COL32(255, 165, 0,   255) },
-        { "purple",  IM_COL32(128, 0,   128, 255) }
+        { "purple",  IM_COL32(128, 0,   128, 255) },
+        { "red",     IM_COL32(255, 0,   0,   255) },
+        { "white",   IM_COL32(255, 255, 255, 255) },
+        { "yellow",  IM_COL32(255, 255, 0,   255) }
     }};
-
-    auto it = std::lower_bound(named_colors.begin(), named_colors.end(), clr);
+    
+    const auto it = std::ranges::lower_bound(named_colors, clr, std::ranges::less{}, &ColorEntry::name);
     if (it != named_colors.end() && it->name == clr)
         return cast::to_i64(it->value);
     

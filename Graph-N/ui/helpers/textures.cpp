@@ -34,7 +34,7 @@ struct ImageAsync final
 
 Textures::Textures()
 {
-    // Determine optimal thread count based on hardware, minimum 4
+    // determine optimal thread count based on hardware, minimum 4
     const uint32_t num_threads = std::max(4u, std::thread::hardware_concurrency());
 
     for (uint32_t i = 0; i < num_threads; ++i)
@@ -62,7 +62,7 @@ void Textures::init_ui_ready()
 
 int32_t Textures::load_image(const char* path, std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time)
 {
-    if (g::app_global_stop_all_threads.load(std::memory_order_relaxed))
+    if (g::app_global_stop_all_threads.stop_requested())
         return -1;
 
     if (buffer.empty() && (nullptr == path || !tools::path::exists(path)))
@@ -105,17 +105,17 @@ int32_t Textures::load_image(std::string&& buffer, int32_t max_width, int32_t ma
 
 void Textures::worker_thread()
 {
-    while (!g::app_global_stop_all_threads.load(std::memory_order_relaxed))
+    while (!g::app_global_stop_all_threads.stop_requested())
     {
         std::shared_ptr<ImageAsync> image;
 
         {
             std::unique_lock<std::mutex> lock(m_mutex);
             m_cv.wait(lock, [this]() noexcept {
-                return !m_waiting.empty() || g::app_global_stop_all_threads.load(std::memory_order_relaxed);
+                return !m_waiting.empty() || g::app_global_stop_all_threads.stop_requested();
             });
 
-            if (g::app_global_stop_all_threads.load(std::memory_order_relaxed) && m_waiting.empty())
+            if (g::app_global_stop_all_threads.stop_requested() && m_waiting.empty())
                 break;
 
             image = m_waiting.front();
