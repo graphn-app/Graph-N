@@ -415,8 +415,6 @@ void GraphN_Flow::check_connection()
 
 void GraphN_Flow::import_user_projects()
 {
-    m_wf_imported = true; // TODO ENABLE IMPORT
-
     if (m_wf_imported || !m_nodes_ready.load(std::memory_order_relaxed))
         return;
     m_wf_imported = true;
@@ -655,6 +653,14 @@ void GraphN_Flow::txt_panel_create(wid wf, data::NodeInstance* node, data::PinIn
     m_windows |= ViewPanelTextEditor;
     current_panel->set_force_focused(true);
     current_panel->update(wf, node, pin, buffer, hint);
+}
+
+void GraphN_Flow::txt_panel_update(wid wf, data::NodeInstance* node)
+{
+    for (auto& ptr : m_panels_text_editor)
+    {
+        ptr->update_node_name(wf, node);
+    }
 }
 
 void GraphN_Flow::txt_panel_delete(wid wf, const data::NodeInstance* node /*= nullptr*/, const data::PinInstance* pin /*= nullptr*/) noexcept

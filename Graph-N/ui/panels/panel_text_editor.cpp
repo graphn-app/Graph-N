@@ -55,21 +55,22 @@ void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance
         m_current = &m_editors.back();
     }
 
-    test_names_changed(true);
     set_name(node->get_name() + " | Editor");
     m_need_focus = true;
+    create_toolbar();
 }
 
-void PanelTextEditor::test_names_changed(bool force_update)
+void PanelTextEditor::update_node_name(wid wf, data::NodeInstance* node)
 {
-    if (nullptr == m_current)
-        return;
-
-    if (force_update || m_current->node_name != m_current->node->get_name())
+    for (auto& ed : m_editors)
     {
-        m_current->node_name = m_current->node->get_name();
-        create_toolbar();
+        if (ed.wf == wf && ed.node == node)
+        {
+            set_name(node->get_name() + " | Editor");
+        }
     }
+
+    create_toolbar();
 }
 
 bool PanelTextEditor::activate(wid wf)
@@ -84,7 +85,7 @@ bool PanelTextEditor::activate(wid wf)
         if (ed.wf == wf)
         {
             m_current = &ed;
-            test_names_changed(true);
+            update_node_name(m_current->wf, m_current->node);
             return true;
         }
     }
@@ -106,7 +107,7 @@ void PanelTextEditor::reset() noexcept
 
 void PanelTextEditor::reset(wid wf, const data::NodeInstance* node /*= nullptr*/, const data::PinInstance* pin /*= nullptr*/) noexcept
 {
-    for (auto it = m_editors.begin(); it != m_editors.end(); ++it)
+    for (auto it = m_editors.begin(); it != m_editors.end(); )
     {
         if (it->wf == wf &&
             (it->node == node || nullptr == node) &&
@@ -121,9 +122,10 @@ void PanelTextEditor::reset(wid wf, const data::NodeInstance* node /*= nullptr*/
                 m_was_edited = nullptr;
                 m_old_pin_val = {};
             }
-            m_editors.erase(it);
-            return;
+            it = m_editors.erase(it);
         }
+        else
+            ++it;
     }
 }
 
@@ -238,12 +240,6 @@ void PanelTextEditor::on_locate(PanelToolbar::Element& /*el*/)
         g::pFlow->wf_locate_node(m_current->wf, m_current->node);
 }
 
-void PanelTextEditor::show_toolbar()
-{
-    test_names_changed(false);
-    draw_toolbar();
-}
-
 DlgCode PanelTextEditor::show(bool& focused)
 {
     if (m_change_pos)
@@ -263,7 +259,7 @@ DlgCode PanelTextEditor::show(bool& focused)
     {
         if (m_current != nullptr && m_current->buffer != nullptr)
         {
-            show_toolbar();
+            draw_toolbar();
 
             ImGui::PushID(m_current->pin);
             if (ImGui::BeginChild("TextEditorChild", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))

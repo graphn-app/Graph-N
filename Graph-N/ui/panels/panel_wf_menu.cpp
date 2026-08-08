@@ -341,6 +341,7 @@ bool PanelWorkflow::show_node_menu()
         if (ImGui::MenuItem("Reset node name"))
         {
             m_action->reset_node_name(node);
+            g::pFlow->txt_panel_update(m_wf->get_id(), node);
             close = true;
         }
     }

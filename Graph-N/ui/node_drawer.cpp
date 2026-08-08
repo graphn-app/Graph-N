@@ -664,6 +664,7 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
             ImGui::IsItemDeactivatedAfterEdit())
         {
             m_wf->action()->set_node_name(m_renaming_node, m_renaming_buff);
+            g::pFlow->txt_panel_update(m_wf->get_id(), m_active_node);
             m_renaming_buff.clear();
             m_renaming_buff.shrink_to_fit();
             m_renaming_node = nullptr;
@@ -771,6 +772,7 @@ void NodeDrawer::draw_node_header()
             ImGui::IsItemDeactivatedAfterEdit())
         {
             m_wf->action()->set_node_name(m_renaming_node, m_renaming_buff);
+            g::pFlow->txt_panel_update(m_wf->get_id(), m_active_node);
             m_renaming_buff.clear();
             m_renaming_buff.shrink_to_fit();
             m_renaming_node = nullptr;
@@ -1839,6 +1841,7 @@ void NodeDrawer::handle_node_collapsing(const data::NodeInstance* node)
     if (m_renaming_node == node)
     {
         m_wf->action()->set_node_name(m_renaming_node, m_renaming_buff);
+        g::pFlow->txt_panel_update(m_wf->get_id(), m_active_node);
         m_renaming_buff.clear();
         m_renaming_buff.shrink_to_fit();
         m_renaming_node = nullptr;

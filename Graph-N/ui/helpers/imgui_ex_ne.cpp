@@ -123,7 +123,7 @@ bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinI
 
     const float height = (ImGui::GetTextLineHeight() * 4) + (style.FramePadding.y * 2.0f);
     const float width = ImGui::CalcItemWidth();
-    const ImVec2 size(width, height);
+    const ImVec2 size(0 == width ? 1.0f : width, height);
 
     ImGui::PushID(label); 
     const bool pressed = ImGui::InvisibleButton(label, size);

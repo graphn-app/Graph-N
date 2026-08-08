@@ -31,6 +31,7 @@ public:
     bool is_current(wid wf, const data::NodeInstance* node, const data::PinInstance* pin) const noexcept { return m_current != nullptr && m_current->wf == wf && m_current->node == node && m_current->pin == pin; }
 
     void update(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint);
+    void update_node_name(wid wf, data::NodeInstance* node);
 
     bool activate(wid wf);
 
@@ -43,12 +44,9 @@ private:
     DlgCode show(bool& focused) override;
 
     void create_toolbar();
-    void show_toolbar();
 
     void pin();
     void unpin() noexcept;
-
-    void test_names_changed(bool force_update);
 
     void on_pre_pin(PanelToolbar::Element& el) noexcept;
     void on_pin(PanelToolbar::Element& el);
@@ -69,7 +67,6 @@ private:
     {
         wid wf = 0;
         data::NodeInstance* node = nullptr;
-        std::string node_name;
         data::PinInstance* pin = nullptr;
         const char* hint = nullptr;
         std::string* buffer = nullptr;

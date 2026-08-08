@@ -190,6 +190,7 @@ public:
 
     // text editor panel public
     void txt_panel_create(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint);
+    void txt_panel_update(wid wf, data::NodeInstance* node);
     void txt_panel_delete(wid wf, const data::NodeInstance* node = nullptr, const data::PinInstance* pin = nullptr) noexcept;
     void txt_panel_clear(wid wf) noexcept;
 
