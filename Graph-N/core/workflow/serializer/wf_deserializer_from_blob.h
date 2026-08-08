@@ -21,9 +21,12 @@ public:
     NodeInstance* deserialize_node(blob::Reader& block);
 
 private:
-    NodeInstance* deserialize_node(blob::Reader& block, bool dummy);
-    void deserialize_pin(blob::Reader& block, bool dummy);
+    NodeInstance* deserialize_node(blob::Reader& block, bool dummy);    
+    bool deserialize_pin(blob::Reader& block, bool dummy);
     void deserialize_link(blob::Reader& block);
+
+    bool check_node_definition(blob::Reader& block) const;
+    bool check_cni_node_definition(blob::Reader& block, const std::string& node_class) const;
 
     NodeInstance* deserialize_cni_node(blob::Reader& reader);
     NodeInstance* deserialize_cni_node_primitive(blob::Reader& reader);

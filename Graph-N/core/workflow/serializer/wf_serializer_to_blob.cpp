@@ -62,6 +62,8 @@ blob::Blob WfSerializerToBlob::serialize_node(const NodeInstance* node)
 
 void WfSerializerToBlob::serialize_node()
 {
+    serialize_node_definition();
+
     blob::Block root(m_writer);
 
     blob::Block block(m_writer);
@@ -147,6 +149,37 @@ void WfSerializerToBlob::serialize_link()
         .push(m_curr_link->get_input()->get_instance_id())
         .push(m_curr_link->get_output()->get_instance_id())
     ;
+}
+
+void WfSerializerToBlob::serialize_node_definition()
+{
+    blob::Block block(m_writer);
+
+    m_writer.push(m_curr_node->m_group);
+    if (m_curr_node->m_group)
+        return;
+
+    m_writer.push(m_curr_node->is_cni());
+    m_writer.push(m_curr_node->get_object()->node_class);
+
+    if (m_curr_node->is_cni())
+    {
+        serialize_cni_node_definition();
+        return;
+    }
+
+    auto obj = m_curr_node->get_object();
+    m_writer.push(cast::to_u32(obj->input.size()));
+    m_writer.push(cast::to_u32(obj->output.size()));
+
+    for (auto pin : obj->input)
+    {
+        m_writer.push(cast::to_u32(pin->def_state.type));
+    }
+    for (auto pin : obj->output)
+    {
+        m_writer.push(cast::to_u32(pin->def_state.type));
+    }
 }
 
 } // namespace data

@@ -65,9 +65,14 @@ Pin::~Pin() noexcept = default;
 
 hid Pin::make_hash(const Node* node, const std::string& pin_name, int32_t pin_index)
 {
+    return make_hash(node->node_class, pin_name, pin_index);
+}
+
+hid Pin::make_hash(const std::string& node_class, const std::string& pin_name, int32_t pin_index)
+{
     if (-1 == pin_index)
-        return base::HashID::make_hash(node->node_class + "_IN_" + pin_name);
-    return base::HashID::make_hash(node->node_class + "_OUT_" + std::to_string(pin_index));
+        return base::HashID::make_hash(node_class + "_IN_" + pin_name);
+    return base::HashID::make_hash(node_class + "_OUT_" + std::to_string(pin_index));
 }
 
 bool Pin::is_primitive_type(PinType type, bool incl_colors /*= false*/) noexcept

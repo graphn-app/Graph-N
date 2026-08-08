@@ -1,9 +1,16 @@
 #include "core/workflow/serializer/wf_deserializer_from_blob.h"
 #include "core/workflow/custom_nodes/all_impl.h"
 #include "core/workflow/pin_instance.h"
+#include "core/managers/nodes_manager.h"
 
 namespace data
 {
+
+bool WfDeserializerFromBlob::check_cni_node_definition(blob::Reader& /*block*/, const std::string& /*node_class*/) const
+{
+    // do nothing
+    return true;
+}
 
 NodeInstance* WfDeserializerFromBlob::deserialize_cni_node(blob::Reader& block)
 {

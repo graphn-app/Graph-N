@@ -45,11 +45,14 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
 
         block = root.pop_block();
         const uint32_t nodes_count = block.pop_u32();
+
+        auto nodes_block = block.clone();
         for (uint32_t i = 0; i < nodes_count; i++)
         {
-            const auto* node = deserialize_node(block, false);
-            if (!node->m_group && node->get_object()->is_dummy)
-                data.valid = false;
+            const bool dummy = !check_node_definition(nodes_block);
+            if (dummy) data.valid = false;
+            const auto* node = deserialize_node(nodes_block, dummy);
+            LogAssert(node != nullptr, "Checked node is dummy");
         }
 
         block = root.pop_block();
@@ -115,7 +118,8 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
 NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& block)
 {
     LogRAssert(m_wf, "Zero ptr", nullptr);
-    auto node = deserialize_node(block, false);
+    const bool dummy = !check_node_definition(block);
+    auto node = deserialize_node(block, dummy);
     if (node != nullptr)
         node->cni_deserialilzation_ends();
     return node;
@@ -123,32 +127,34 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& block)
 
 NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block, bool dummy)
 {
-    blob::Reader reader_copy = root_block.clone();
     blob::Reader root = root_block.pop_block();
-
     blob::Reader block = root.pop_block();
+
     const auto obj_hid = block.pop_hid();
     const auto obj_iid = block.pop_iid();
     const auto node_class = block.pop_string();
     const auto node_name = block.pop_string();
 
+    //BREAK_IF(node_class == "KSampler");
+
     m_curr_node = nullptr;
     if (0 == obj_hid)
-        m_curr_node = m_wf->add_group_node();
-    else
     {
-        m_curr_node = m_wf->add_node(g::pNodesManager->find_node(obj_hid), {}, {}, obj_iid);
-        m_curr_node->cni_deserialilzation_begins();
-
-        if (m_curr_node->get_object() != nullptr)
+        m_curr_node = m_wf->add_group_node();
+    }
+    else if (obj_hid != 0)
+    {
+        if (dummy)
         {
-            LogRAssert(!m_curr_node->get_object()->is_dummy, "Dummy node " << node_class << " in base map", nullptr);
-        }
-        if (nullptr == m_curr_node->get_object() || dummy)
-        {
-            LogWarn("Node " << node_class << " not found");
-            m_curr_node->set_object(g::pNodesManager->make_dummy_node(std::string(node_class)));
+            m_curr_node = m_wf->add_node(g::pNodesManager->make_dummy_node(std::string(node_class)), {}, {}, obj_iid, true);
             m_curr_node->reset_pins();
+        }
+        else
+        {
+            auto obj = g::pNodesManager->find_node(obj_hid);
+            LogRAssert(obj != nullptr, "Dummy node " << node_class << " in base map", nullptr);
+            m_curr_node = m_wf->add_node(obj, {}, {}, obj_iid);
+            m_curr_node->cni_deserialilzation_begins();
         }
     }
 
@@ -163,8 +169,6 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
     m_curr_node->expand(block.pop_bool());
     m_curr_node->pin(block.pop_bool());
     m_curr_node->set_mode(cast::to_enum<NodeMode>(block.pop_u32()));
-
-    //BREAK_IF(node_name == "Negative");
 
     m_curr_node->cni_cleanup_base_object();
     for (auto pin : m_curr_node->get_inputs())
@@ -182,13 +186,13 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
         if (nullptr == deserialize_cni_node(root))
         {
             m_wf->remove_node(m_curr_node);
-            return deserialize_node(reader_copy, true);
+            LogRError("Dummy CNI node " << node_class, nullptr);
         }
         m_curr_node->link_cag_pins();
         return m_curr_node;
     }
 
-    const auto unpack_pins = [this](blob::Reader block, bool input_pin)
+    const auto unpack_pins = [this, dummy](blob::Reader block, bool input_pin)
     {
         const auto pin_count = cast::to_i32(block.pop_u32());
         for (int32_t idx = 0; idx < pin_count; idx++)
@@ -197,26 +201,26 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
             const auto i_id = block.pop_iid();
             const auto def_type = block.pop_string();
             const auto def_name = block.pop_string();
-            //auto pin = m_curr_node->get_object()->find_pin(h_id, input_pin);
-            auto pin = g::pNodesManager->find_pin(h_id);
-            if (m_curr_node->get_object()->is_dummy || nullptr == pin || pin->def_state.type_str != def_type)
+
+            Pin* pin = nullptr;
+            if (dummy)
             {
-                if (!m_curr_node->get_object()->is_dummy)
-                    return false;
                 pin = g::pNodesManager->make_dummy_pin(m_curr_node->get_object(), std::string(def_type), std::string(def_name), input_pin ? -1 : idx);
             }
-            if (!m_curr_node->get_object()->is_dummy)
+            else
             {
-                LogRAssertS(pin->get_hash() == h_id, "Pin ids don't match. w:" << m_curr_node->get_workflow_id() << ", n:" << m_curr_node->get_instance_id() << ", t:" << pin->def_state.type_str << ", ph1:" << pin->get_hash() << ", ph2:" << h_id, false);
+                pin = g::pNodesManager->find_pin(h_id);
+                LogRAssertS(pin != nullptr, "Dummy pin " << def_name << "/" << def_type, false);
             }
 
             m_curr_pin = m_wf->add_pin(m_curr_node, pin, i_id);
-            deserialize_pin(block, m_curr_node->get_object()->is_dummy);
+            if (!deserialize_pin(block, dummy))
+                return false;
+
             if (input_pin)
                 m_curr_node->add_input(m_curr_pin);
             else
                 m_curr_node->add_output(m_curr_pin);
-            //m_curr_pin = nullptr;
         }
         return true;
     };
@@ -224,14 +228,14 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
     if (!unpack_pins(root.pop_block(), true) || !unpack_pins(root.pop_block(), false))
     {
         m_wf->remove_node(m_curr_node);
-        return deserialize_node(reader_copy, true);
+        return nullptr;
     }
 
     m_curr_node->link_cag_pins();
     return m_curr_node;
 }
 
-void WfDeserializerFromBlob::deserialize_pin(blob::Reader& root_block, bool dummy)
+bool WfDeserializerFromBlob::deserialize_pin(blob::Reader& root_block, bool dummy)
 {
     blob::Reader root = root_block.pop_block();
     blob::Reader block = root.pop_block();
@@ -246,7 +250,7 @@ void WfDeserializerFromBlob::deserialize_pin(blob::Reader& root_block, bool dumm
     else if (m_curr_pin->get_object()->def_state.type_str != def_type_str)
     {
         LogRAssert(m_curr_pin->get_object()->def_state.type_str == def_type_str,
-            "Pin must be dummy. w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id() << ", p:" << m_curr_pin->get_instance_id() << ", t:" << def_type_str, );
+            "Pin must be dummy. w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id() << ", p:" << m_curr_pin->get_instance_id() << ", t:" << def_type_str, false);
     }
 
     m_curr_pin->set_name(std::string(block.pop_string()));
@@ -255,6 +259,46 @@ void WfDeserializerFromBlob::deserialize_pin(blob::Reader& root_block, bool dumm
     m_curr_pin->state().value = block.pop_primitive();
     m_curr_pin->state().cag = block.pop_iid();
     m_curr_pin->get_object()->cag_require = block.pop_bool();
+    return true;
+}
+
+bool WfDeserializerFromBlob::check_node_definition(blob::Reader& block) const
+{
+    auto def_block = block.pop_block();
+
+    const bool is_group = def_block.pop_bool();
+    if (is_group)
+        return true;
+
+    const bool is_cni = def_block.pop_bool();
+    const std::string node_class = std::string(def_block.pop_string());
+
+    if (is_cni)
+        return check_cni_node_definition(block, node_class);
+
+    const auto node = g::pNodesManager->find_node(base::HashID::make_hash(node_class));
+    if (nullptr == node)
+        return false;
+
+    const size_t ins = def_block.pop_u32();
+    const size_t outs = def_block.pop_u32();
+    if (ins != node->input.size() || outs != node->output.size())
+        return false;
+
+    for (size_t i = 0; i < ins; i++)
+    {
+        const auto type = cast::to_enum<PinType>(def_block.pop_u32());
+        if (node->input[i]->def_state.type != type)
+            return false;
+    }
+    for (size_t i = 0; i < outs; i++)
+    {
+        const auto type = cast::to_enum<PinType>(def_block.pop_u32());
+        if (node->output[i]->def_state.type != type)
+            return false;
+    }
+
+    return true;
 }
 
 void WfDeserializerFromBlob::deserialize_link(blob::Reader& root_block)

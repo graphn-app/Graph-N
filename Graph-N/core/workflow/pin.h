@@ -58,6 +58,7 @@ public:
     ~Pin() noexcept override;
 
     static hid make_hash(const Node* node, const std::string& pin_name, int32_t pin_index);
+    static hid make_hash(const std::string& node_class, const std::string& pin_name, int32_t pin_index);
     static bool is_primitive_type(PinType type, bool incl_colors = false) noexcept;
 
     void copy_int(Pin* dest) const;

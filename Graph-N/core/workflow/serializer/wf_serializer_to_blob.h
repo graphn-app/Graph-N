@@ -24,6 +24,9 @@ private:
     void serialize_pin();
     void serialize_link();
 
+    void serialize_node_definition();
+    void serialize_cni_node_definition();
+
     void serialize_cni_node();
     void serialize_cni_node_primitive();
     void serialize_cni_node_reroute();

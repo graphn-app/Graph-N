@@ -5,6 +5,11 @@
 namespace data
 {
 
+void WfSerializerToBlob::serialize_cni_node_definition()
+{
+    // do nothing
+}
+
 void WfSerializerToBlob::serialize_cni_node()
 {
     if (CNI_Primitive::cni_is_same(m_curr_node))

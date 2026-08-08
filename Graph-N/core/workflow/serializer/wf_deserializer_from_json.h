@@ -24,6 +24,13 @@ private:
     bool deserialize_links();
     NodeInstance* deserialize_group(const o_json& j);
 
+    bool check_node_definition(const o_json& j, bool& is_valid) const;
+    bool check_cni_node_definition(const o_json& j, const std::string& node_class, bool& is_valid, bool& is_cni) const;
+    bool check_cni_node_definition_primitive(const o_json& j, bool& is_valid) const;
+    bool check_cni_node_definition_reroute(const o_json& j, bool& is_valid) const;
+    bool check_cni_node_definition_note(const o_json& j, bool& is_valid) const;
+    bool check_cni_node_definition_markdownnote(const o_json& j, bool& is_valid) const;
+
     NodeInstance* deserialize_cni_node(NodeInstance* node, const o_json& j);
     NodeInstance* deserialize_cni_node_primitive(NodeInstance* node, const o_json& j);
     NodeInstance* deserialize_cni_node_reroute(NodeInstance* node, const o_json& j);

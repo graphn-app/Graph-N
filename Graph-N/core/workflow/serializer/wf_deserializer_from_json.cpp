@@ -80,13 +80,19 @@ bool WfDeserializerFromJson::deserialize()
 
         for (auto& jnode : m_json["nodes"])
         {
-            std::string jid;
-            const auto* node = deserialize_node(jnode, jid, false);
-            if (nullptr == node)
+            bool is_valid = true;
+            const bool dummy = !check_node_definition(jnode, is_valid);
+            if (!is_valid)
                 continue;
-            m_node_ids[jid] = node->get_instance_id();
-            if (node->get_object()->is_dummy)
+
+            if (dummy)
                 m_wf->get_data().valid = false;
+
+            std::string jid;
+            const auto* node = deserialize_node(jnode, jid, dummy);
+            LogCAssert(node != nullptr, "Checked node is dummy");
+
+            m_node_ids[jid] = node->get_instance_id();
         }
 
         if (m_json.contains("definitions") && m_json["definitions"].contains("subgraphs") && m_json["definitions"]["subgraphs"].is_array())
@@ -118,15 +124,91 @@ bool WfDeserializerFromJson::deserialize()
     return false;
 }
 
+bool WfDeserializerFromJson::check_node_definition(const o_json& j, bool& is_valid) const
+{
+    is_valid = true;
+    if (!j.contains("type") || !j["type"].is_string() || !j.contains("id"))
+    {
+        is_valid = false;
+        return false;
+    }
+
+    if (!j["id"].is_string() && !j["id"].is_number_integer())
+    {
+        is_valid = false;
+        return false;
+    }
+
+    const std::string node_class = j["type"];
+    const auto node_hash = base::HashID::make_hash(node_class);
+    const auto* node = g::pNodesManager->find_node(node_hash);
+    if (nullptr == node)
+        return false;
+
+    bool is_cni = true;
+    if (!check_cni_node_definition(j, node_class, is_valid, is_cni))
+        return false;
+    if (is_cni)
+        return true;
+
+    // input
+    if (j.contains("inputs") && j["inputs"].is_array())
+    {
+        for (const auto& jinput : j["inputs"])
+        {
+            if (jinput.is_object())
+            {
+                if (!jinput.contains("name") || !jinput["name"].is_string() || !jinput.contains("type") || !jinput["type"].is_string())
+                {
+                    is_valid = false;
+                    return false;
+                }
+
+                const std::string name = jinput["name"];
+                const std::string type = jinput["type"];
+
+                const auto pin_hash = Pin::make_hash(node_class, name, -1);
+                auto pin = g::pNodesManager->find_pin(pin_hash);
+                if (nullptr == pin || pin->def_state.type_str != type)
+                    return false;
+            }
+        }
+    }
+
+    // output
+    if (j.contains("outputs") && j["outputs"].is_array())
+    {
+        int32_t index = 0;
+        for (const auto& joutput : j["outputs"])
+        {
+            if (joutput.is_object())
+            {
+                if (!joutput.contains("name") || !joutput["name"].is_string() || !joutput.contains("type") || !joutput["type"].is_string())
+                {
+                    is_valid = false;
+                    return false;
+                }
+
+                const std::string name = joutput["name"];
+                const std::string type = joutput["type"];
+
+                const auto pin_hash = Pin::make_hash(node_class, name, index);
+                auto pin = g::pNodesManager->find_pin(pin_hash);
+                if (nullptr == pin || pin->def_state.type_str != type)
+                    return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::string& node_id_from_json, bool dummy)
 {
-    // node definition
-    if (!j.contains("type") || !j["type"].is_string() || !j.contains("id"))
-        return nullptr;
-
-    if (j["id"].is_string())                node_id_from_json = j["id"];
-    else if (j["id"].is_number_integer())   node_id_from_json = std::to_string(j["id"].get<int32_t>());
-    else                                    return nullptr;
+    if (j["id"].is_string())
+        node_id_from_json = j["id"];
+    else if (j["id"].is_number_integer())
+        node_id_from_json = std::to_string(j["id"].get<int32_t>());
 
     const std::string node_class = j["type"];
 
@@ -146,19 +228,19 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
 
     //BREAK_IF(node_class == "Note" || node_class == "MarkdownNote");
 
-    const auto node_hash = base::HashID::make_hash(node_class);
-    auto node = g::pNodesManager->find_node(node_hash);
-    if (node != nullptr)
+    NodeInstance* node_instance = nullptr;
+    if (dummy)
     {
-        LogRAssert(!node->is_dummy, "Dummy node " << node_class << " in base map", nullptr);
+        node_instance = m_wf->add_node(g::pNodesManager->make_dummy_node(std::string(node_class)), rc, "", 0, true);
+        node_instance->reset_pins();
     }
-    if (nullptr == node || dummy)
+    else
     {
-        node = g::pNodesManager->make_dummy_node(std::string(node_class));
+        const auto node_hash = base::HashID::make_hash(node_class);
+        auto obj = g::pNodesManager->find_node(node_hash);
+        LogRAssert(obj != nullptr, "Dummy node " << node_class << " in base map", nullptr);
+        node_instance = m_wf->add_node(obj, rc);
     }
-
-    auto node_instance = m_wf->add_node(node, rc);
-    LogRAssert(node_instance->get_object()->get_hash() == node_hash, "Node ids don't match. w:" << m_wf->get_id() << ", n:" << node_instance->get_instance_id() << ", nh1:" << node_instance->get_object()->get_hash() << ", nh2: " << node_hash, nullptr);
 
     // name
     if (j.contains("title") && j["title"].is_string())
@@ -213,7 +295,10 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
     if (!dummy && node_instance->is_cni())
     {
         if (nullptr == deserialize_cni_node(node_instance, j))
-            return deserialize_node(j, node_id_from_json, true);
+        {
+            m_wf->remove_node(node_instance);
+            LogRError("Dummy CNI node " << node_class, nullptr);
+        }
     }
     else
     {
@@ -227,44 +312,26 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
             {
                 if (jinput.is_object())
                 {
-                    if (!jinput.contains("name") || !jinput["name"].is_string() || !jinput.contains("type") || !jinput["type"].is_string()) // TODO: type=-1 onTrigger
-                    {
-                        index++;
-                        continue;
-                    }
-
                     const std::string name = jinput["name"];
                     const std::string type = jinput["type"];
 
+                    Pin* pin = nullptr;
                     const auto pin_hash = Pin::make_hash(node_instance->get_object(), name, -1);
-                    auto pin = g::pNodesManager->find_pin(pin_hash);
-                    //auto pin = node_instance->get_object()->find_pin(pin_hash, true);
 
-                    if (node->is_dummy || nullptr == pin || pin->def_state.type_str != type)
+                    if (dummy)
                     {
-                        if (!node_instance->get_object()->is_dummy)
-                        {
-                            m_wf->remove_node(node_instance);
-                            return deserialize_node(j, node_id_from_json, true);
-                        }
-
                         pin = g::pNodesManager->make_dummy_pin(node_instance->get_object(), type, name, -1);
                     }
                     else
                     {
+                        pin = g::pNodesManager->find_pin(pin_hash);
+                        LogRAssertS(pin != nullptr, "Dummy pin " << name << "/" << type, node_instance);
                         pin->def_state.name = name;
                         pin->finalize();
                     }
 
-                    if (pin->get_hash() != pin_hash)
-                    {
-                        LogError("Pin ids don't match. w:" << m_wf->get_id() << ", n:" << node_instance->get_instance_id() << ", ph1:" << pin->get_hash() << ", ph2:" << pin_hash);
-                        m_wf->remove_node(node_instance);
-                        return deserialize_node(j, node_id_from_json, true);
-                    }
-
                     PinInstance* pin_instance = nullptr;
-                    if (node->is_dummy)
+                    if (dummy)
                     {
                         pin_instance = m_wf->add_pin(node_instance, pin, m_wf->get_new_child_id());
                         pin->def_state.copy_to(pin_instance->state());
@@ -273,13 +340,9 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                     else
                     {
                         pin_instance = m_wf->get_pin_by_hash(node_instance->get_instance_id(), pin_hash);
-                        if (nullptr == pin_instance)
-                        {
-                            LogError("Pin not found in wf. w:" << m_wf->get_id() << ", n:" << node_instance->get_instance_id() << ", ph:" << pin_hash);
-                            m_wf->remove_node(node_instance);
-                            return deserialize_node(j, node_id_from_json, true);
-                        }
+                        LogRAssert(pin_instance != nullptr, "Pin not found in wf. w:" << m_wf->get_id() << ", n:" << node_instance->get_instance_id() << ", ph:" << pin_hash, node_instance);
                     }
+
                     if (jinput.contains("label") && jinput["label"].is_string())
                         pin_instance->set_name(jinput["label"]);
 
@@ -296,14 +359,9 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
             {
                 if (joutput.is_object())
                 {
-                    if (!joutput.contains("name") || !joutput["name"].is_string() || !joutput.contains("type") || !joutput["type"].is_string()) // TODO: type=-1 onExecuted
-                    {
-                        index++;
-                        continue;
-                    }
-
                     const std::string name = joutput["name"];
                     const std::string type = joutput["type"];
+
                     std::string widget_name;
                     if (joutput.contains("widget") && joutput["widget"].is_object() && joutput["widget"].contains("name") && joutput["widget"]["name"].is_string())
                         widget_name = joutput["widget"]["name"];
@@ -319,28 +377,22 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                     {
                         pin_hash = Pin::make_hash(node_instance->get_object(), name, index);
                     }
-                    //data::Pin* pin = node_instance->get_object()->find_pin(pin_hash, false);
-                    auto pin = g::pNodesManager->find_pin(pin_hash);
 
-                    if (node->is_dummy || nullptr == pin)
+                    Pin* pin = nullptr;
+                    if (dummy)
                     {
-                        if (!node_instance->get_object()->is_dummy)
-                        {
-                            m_wf->remove_node(node_instance);
-                            return deserialize_node(j, node_id_from_json, true);
-                        }
-
                         pin = g::pNodesManager->make_dummy_pin(node_instance->get_object(), type, name, index);
-                        node_instance->get_object()->is_dummy = true;
                     }
                     else
                     {
+                        pin = g::pNodesManager->find_pin(pin_hash);
+                        LogRAssertS(pin != nullptr, "Dummy pin " << name << "/" << type, node_instance);
                         pin->def_state.name = name;
                         pin->finalize();
                     }
 
                     PinInstance* pin_instance = nullptr;
-                    if (node->is_dummy)
+                    if (dummy)
                     {
                         pin_instance = m_wf->add_pin(node_instance, pin, m_wf->get_new_child_id());
                         pin->def_state.copy_to(pin_instance->state());
@@ -349,12 +401,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                     else
                     {
                         pin_instance = m_wf->get_pin_by_hash(node_instance->get_instance_id(), pin_hash);
-                        if (nullptr == pin_instance)
-                        {
-                            LogError("Pin not found in wf. w:" << m_wf->get_id() << ", n:" << node_instance->get_instance_id() << ", ph:" << pin_hash);
-                            m_wf->remove_node(node_instance);
-                            return deserialize_node(j, node_id_from_json, true);
-                        }
+                        LogRAssert(pin_instance != nullptr, "Pin not found in wf. w:" << m_wf->get_id() << ", n:" << node_instance->get_instance_id() << ", ph:" << pin_hash, node_instance);
                     }
 
                     if (joutput.contains("label") && joutput["label"].is_string())
@@ -502,10 +549,17 @@ bool WfDeserializerFromJson::deserialize_subgraph(const o_json& j)
 
     for (auto& jnode : j["nodes"])
     {
-        std::string jid;
-        auto node = deserialize_node(jnode, jid, false);
-        if (nullptr == node)
+        bool is_valid = true;
+        const bool dummy = !check_node_definition(jnode, is_valid);
+        if (!is_valid)
             continue;
+
+        if (dummy)
+            m_wf->get_data().valid = false;
+
+        std::string jid;
+        const auto node = deserialize_node(jnode, jid, dummy);
+        LogCAssert(node != nullptr, "Checked node is dummy");
 
         node->m_rc.Min.x = sg_rc.Min.x + node->m_rc.Min.x;
         node->m_rc.Min.y = sg_rc.Min.y + node->m_rc.Min.y;
