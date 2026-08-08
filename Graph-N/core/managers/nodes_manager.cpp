@@ -54,18 +54,13 @@ void NodesManager::calc_number_inside(const std::string& filter, const std::list
 
         if (!in_types.empty())
         {
-            if (pin_filter(node_item->node->required.pins, in_types) ||
-                pin_filter(node_item->node->optional.pins, in_types))
-            {
+            if (pin_filter(node_item->node->input, in_types))
                 return true;
-            }
         }
         if (!out_types.empty())
         {
             if (pin_filter(node_item->node->output, out_types))
-            {
                 return true;
-            }
         }
 
         return false;
@@ -155,7 +150,7 @@ void NodesManager::remove_dummy_node(data::Node* node)
         }
     };
 
-    for (auto pin : node->required.pins)
+    for (auto pin : node->input)
     {
         remove_pin(pin);
     }
@@ -187,7 +182,7 @@ data::Pin* NodesManager::make_dummy_pin(data::Node* parent, const std::string& t
     else
     {
         pin = std::make_unique<data::Pin>(parent, name, true, false, false);
-        parent->required.pins.push_back(pin.get());
+        parent->input.push_back(pin.get());
     }
     pin->initialize(type);
     pin->finalize();
@@ -212,8 +207,7 @@ std::unique_ptr<data::Pin> NodesManager::make_pin_ptr(data::Node* parent, const 
     else
     {
         pin = std::make_unique<data::Pin>(parent, name, true, false, false);
-        parent->required.pins.push_back(pin.get());
-        parent->required.order.push_back(type);
+        parent->input.push_back(pin.get());
     }
     pin->parent_node = parent;
     pin->initialize(type);
@@ -243,20 +237,17 @@ void NodesManager::remove_pin(data::Node* parent, const data::Pin* pin) noexcept
     const auto name = pin->def_state.name;
 
     bool found = false;
-    auto input_it = parent->required.pins.begin();
-    auto order_it = parent->required.order.begin();
-    while (input_it != parent->required.pins.end())
+    auto input_it = parent->input.begin();
+    while (input_it != parent->input.end())
     {
         auto input = *input_it;
         if (input == pin)
         {
-            parent->required.pins.erase(input_it);
-            parent->required.order.erase(order_it);
+            parent->input.erase(input_it);
             found = true;
             break;
         }
         ++input_it;
-        ++order_it;
     }
 
     if (!found)

@@ -17,59 +17,40 @@ void Node::finalize(std::unordered_map<std::string, std::list<hid>>* models_map)
 {
     w_name = ImGui::CalcTextSize(display_name.empty() ? name.c_str() : display_name.c_str()).x;
 
-    if (required.pins.empty() && optional.pins.empty() || output.empty())
+    if (input.empty() || output.empty())
         can_bypass = false;
 
     if (nullptr == models_map)
         return;
 
-    const auto scan_pins_for_models = [this](const Input& input, std::unordered_map<std::string, std::list<hid>>& models_map)
+    for (auto pin : input)
     {
-        for (auto pin : input.pins)
-        {
-            if (pin->def_state.type != PinType::COMBO)
-                continue;
+        if (pin->def_state.type != PinType::COMBO)
+            continue;
 
-            for (auto& item : pin->combo_items)
+        for (auto& item : pin->combo_items)
+        {
+            if (item.is_string())
             {
-                if (item.is_string())
-                {
-                    models_map[item.get_string()].push_back(get_hash());
-                }
+                (*models_map)[item.get_string()].push_back(get_hash());
             }
         }
-    };
-    scan_pins_for_models(required, *models_map);
-    scan_pins_for_models(optional, *models_map);
+    }
 }
 
-Pin* Node::find_pin(hid pin_hash, bool input) noexcept
+Pin* Node::find_pin(hid pin_hash, bool search_input) noexcept
 {
-    const auto find_pin_in = [](hid pin_hash, const std::vector<Pin*>& pins) -> Pin*
+    const auto find_pin = [](hid pin_hash, const std::vector<Pin*>& pins) -> Pin*
     {
-        for (auto pin : pins)
-        {
-            LogRAssertS(pin, "Zero ptr", nullptr);
-            if (pin->get_hash() == pin_hash)
-                return pin;
-        }
+        const auto it = std::ranges::find_if(pins, [pin_hash](Pin* pin) { return pin->get_hash() == pin_hash; });
+        if (it != pins.end())
+            return *it;
         return nullptr;
     };
 
-    if (input)
-    {
-        auto pin = find_pin_in(pin_hash, required.pins);
-        if (nullptr == pin)
-        {
-            pin = find_pin_in(pin_hash, optional.pins);
-            if (nullptr == pin)
-            {
-                pin = find_pin_in(pin_hash, hidden.pins);
-            }
-        }
-        return pin;
-    }
-    return find_pin_in(pin_hash, output);
+    if (search_input)
+        return find_pin(pin_hash, input);
+    return find_pin(pin_hash, output);
 }
 
 } // namespace data

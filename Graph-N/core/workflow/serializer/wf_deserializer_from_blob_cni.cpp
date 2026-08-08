@@ -89,7 +89,7 @@ NodeInstance* deserialize_cni_node_note_impl(blob::Reader& root_block, Workflow*
 {
     auto note = cast::dynamic<N>(curr_node);
     LogRAssertS(note, "Node is not CNI. w:" << wf->get_id() << ", n: " << curr_node->get_instance_id() << ", t:" << typeid(curr_node).name(), curr_node);
-    LogRAssertS(note->get_object()->required.pins.size() == 1, "Invalid " << N::cni_get_node_class()  << " node definition. w:" << wf->get_id() << ", n: " << curr_node->get_instance_id() << ", t:" << typeid(curr_node).name(), curr_node);
+    LogRAssertS(note->get_object()->input.size() == 1, "Invalid " << N::cni_get_node_class()  << " node definition. w:" << wf->get_id() << ", n: " << curr_node->get_instance_id() << ", t:" << typeid(curr_node).name(), curr_node);
 
     auto block = root_block.pop_block();
 

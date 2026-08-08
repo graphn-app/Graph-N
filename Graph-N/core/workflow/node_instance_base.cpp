@@ -16,7 +16,7 @@ void NodeInstanceBase::init()
 
     if (get_object() != nullptr)
     {
-        m_input.reserve(get_object()->required.pins.size() + get_object()->optional.pins.size());
+        m_input.reserve(get_object()->input.size());
         m_output.reserve(get_object()->output.size());
     }
 }

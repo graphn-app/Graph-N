@@ -17,19 +17,13 @@ struct Node : public base::HashID
     Pin* find_pin(hid pin_hash, bool input) noexcept;
 
     bool has_input = false;
-    struct Input final
-    {
-        std::vector<Pin*> pins;
-        std::vector<std::string> order;
-    };
-    Input required;
-    Input optional;
-    Input hidden;
+    bool has_output = false;
+
+    std::vector<Pin*> input;
+    std::vector<Pin*> output;
 
     bool is_dummy = false;
-    bool has_output = false;
     bool output_node = false;
-    std::vector<Pin*> output;
 
     bool can_bypass = true;
     bool can_mute = true;

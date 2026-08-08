@@ -17,7 +17,7 @@ int32_t CNI_LoadImage::g_image_list_version = -1;
 bool CNI_LoadImage::cni_is_applicable() const noexcept
 {
     auto base = get_object();
-    for (auto pin : base->required.pins)
+    for (auto pin : base->input)
     {
         if (pin->def_state.type == PinType::COMBO)
         {

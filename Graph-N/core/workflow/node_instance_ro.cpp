@@ -24,9 +24,7 @@ void NodeInstanceRo::init()
         }
     };
 
-    add_pins(get_object()->required.pins, m_input);
-    add_pins(get_object()->optional.pins, m_input);
-    add_pins(get_object()->hidden.pins, m_input);
+    add_pins(get_object()->input, m_input);
     add_pins(get_object()->output, m_output);
 
     link_cag_pins();
