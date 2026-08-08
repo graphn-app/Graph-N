@@ -29,21 +29,22 @@ void CNI_Primitive::cni_init()
 {
     auto wf = g::pWfsManager->access(get_workflow_id());
 
-    for (auto input : m_input)
+    auto& inputs = get_inputs();
+    for (auto input : inputs)
     {
         cni_remove_pin(input->get_object());
-        g::pNodesManager->remove_pin(get_object(), input->get_object());
+        remove_pin(input);
         wf->remove_pin(input);
     }
-    m_input.clear();
 
-    for (auto output : m_output)
+    auto& outputs = get_outputs();
+    for (auto output : outputs)
     {
         cni_remove_pin(output->get_object());
-        g::pNodesManager->remove_pin(get_object(), output->get_object());
+        remove_pin(output);
         wf->remove_pin(output);
     }
-    m_output.clear();
+    reset_pins();
 
     iid out_id = 0;
 
@@ -100,9 +101,8 @@ void CNI_Primitive::cni_deserialilzation_ends()
 
 bool CNI_Primitive::cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids)
 {
-    auto& outs = copy_from_node->get_outputs();
     auto& src_outs = copy_from_node->get_outputs();
-    LogRAssert(!outs.empty() && !src_outs.empty(), "Source node pins empty out", true);
+    LogRAssert(!src_outs.empty(), "Source node pins empty out", true);
 
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedPrimitive>();
     if (copy_pin_ids)

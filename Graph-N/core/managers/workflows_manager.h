@@ -3,7 +3,7 @@
 #include "core/base/structs.h"
 #include "core/managers/manager.h"
 #include "core/workflow/workflow.h"
-#include "core/data/node.h"
+#include "core/workflow/node.h"
 #include "core/listeners.h"
 
 namespace data

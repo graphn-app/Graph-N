@@ -1,6 +1,6 @@
 
-#include "core/data/pin.h"
-#include "core/data/node.h"
+#include "core/workflow/pin.h"
+#include "core/workflow/node.h"
 #include "core/managers/settings_manager.h"
 #include "imgui_widget_limits.h"
 

@@ -14,7 +14,7 @@ struct CNI_DeserializedPrimitive final : public CNI_DeserializedData
     iid out_id = 0;
 };
 
-struct CNI_Primitive final
+class CNI_Primitive final
     : public CNI_BaseObj_T<CNI_Primitive>
 {
 public:
@@ -41,16 +41,11 @@ public:
 
     std::list<PinType> get_supported_pin_types(PinInstance* pin) const override;
 
-    bool cni_json_api_should_export() const noexcept override { return false; }
-
     void cni_deserialilzation_begins() noexcept override;
     void cni_deserialilzation_ends() override;
 
+    bool cni_json_api_should_export() const noexcept override { return false; }
     bool cni_json_need_custom_serialization() const noexcept override { return true; }
-    bool cni_json_need_custom_deserialization() const noexcept override { return true; }
-
-    bool cni_blob_need_custom_serialization() const noexcept override { return true; }
-    bool cni_blob_need_custom_deserialization() const noexcept override { return true; }
 
 private:
     void update();

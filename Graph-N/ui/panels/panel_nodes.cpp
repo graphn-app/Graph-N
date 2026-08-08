@@ -5,7 +5,7 @@
 #include "main.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/workflows_manager.h"
-#include "core/data/node.h"
+#include "core/workflow/node.h"
 #include "core/workflow/node_instance_ro.h"
 #include "core/workflow/workflow.h"
 

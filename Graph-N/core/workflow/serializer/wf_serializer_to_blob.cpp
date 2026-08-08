@@ -83,7 +83,7 @@ void WfSerializerToBlob::serialize_node()
     ;
     block.end();
 
-    if (m_curr_node->cni_blob_need_custom_serialization())
+    if (m_curr_node->is_cni())
     {
         serialize_cni_node();
         return;

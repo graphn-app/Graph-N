@@ -28,6 +28,8 @@ private:
     NodeInstance* deserialize_cni_node(blob::Reader& reader);
     NodeInstance* deserialize_cni_node_primitive(blob::Reader& reader);
     NodeInstance* deserialize_cni_node_reroute(blob::Reader& reader);
+    NodeInstance* deserialize_cni_node_note(blob::Reader& reader);
+    NodeInstance* deserialize_cni_node_markdownnote(blob::Reader& reader);
 
 private:
     Workflow* m_wf = nullptr;

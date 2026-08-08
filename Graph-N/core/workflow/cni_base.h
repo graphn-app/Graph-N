@@ -59,13 +59,8 @@ public:
     // should export node to API json
     virtual bool cni_json_api_should_export() const noexcept { return true; }
 
-    // JSON import/export
+    // JSON export
     virtual bool cni_json_need_custom_serialization() const noexcept { return false; }
-    virtual bool cni_json_need_custom_deserialization() const noexcept { return false; }
-
-    // BLOB import/export
-    virtual bool cni_blob_need_custom_serialization() const noexcept { return false; }
-    virtual bool cni_blob_need_custom_deserialization() const noexcept { return false; }
 
     // some deserialized data that should be saved for later use
     void cni_save_deserialized_info(std::unique_ptr<CNI_DeserializedData>&& data) noexcept

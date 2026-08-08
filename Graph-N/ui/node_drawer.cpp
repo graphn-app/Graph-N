@@ -5,8 +5,8 @@
 #include "main.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/history_manager.h"
-#include "core/data/node.h"
-#include "core/data/pin.h"
+#include "core/workflow/node.h"
+#include "core/workflow/pin.h"
 #include "core/workflow/link.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
@@ -707,11 +707,11 @@ void NodeDrawer::draw_node_header()
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_name_off);
         ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->get_object()->is_dummy ? g::pOptsManager->color_load(AppColor::DummyNode) : m_clr_node_header_text);
-#ifdef _DEBUG
-        ImGui::TextUnformatted((m_active_node->get_name() + "[" + std::to_string(m_active_node->get_instance_id()) + "]").c_str());
-#else
+//#ifdef _DEBUG
+//        ImGui::TextUnformatted((m_active_node->get_name() + "[" + std::to_string(m_active_node->get_instance_id()) + "]").c_str());
+//#else
         ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
-#endif
+//#endif
         ImGui::PopStyleColor();
 
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))

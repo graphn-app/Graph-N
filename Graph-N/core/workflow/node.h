@@ -1,7 +1,7 @@
 
 #pragma once
 #include "core/base/id.h"
-#include "core/data/pin.h"
+#include "core/workflow/pin.h"
 
 // todo: check utils
 

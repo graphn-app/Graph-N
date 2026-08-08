@@ -102,7 +102,7 @@
 #define DEBUG_CATCH \
     { \
         switch (::MessageBoxA(nullptr, \
-            "Some error happened\nTo exit app - press 'Abort'\nAttach debugger and press 'Retry' to debug app\nTo continue execution press 'Ignore')", \
+            "Some error happened\nTo exit app - press 'Abort'\nTo attach debugger - press 'Retry'\nTo continue execution - press 'Ignore')", \
             APP_CAPTION, MB_ABORTRETRYIGNORE | MB_ICONWARNING | MB_TASKMODAL | MB_TOPMOST)) \
         { \
         case IDABORT: \

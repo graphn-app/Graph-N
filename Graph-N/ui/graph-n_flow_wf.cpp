@@ -13,7 +13,7 @@
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
 #include "core/workflow/workflow_action.h"
-#include "core/data/pin.h"
+#include "core/workflow/pin.h"
 
 namespace ui
 {
@@ -246,10 +246,10 @@ void GraphN_Flow::wf_panel_activate(PanelWorkflow* wf_panel)
     }
 }
 
-void GraphN_Flow::wf_panel_activate_next(bool next)
+bool GraphN_Flow::wf_panel_activate_next(bool next)
 {
     if (nullptr == m_wf_focused || m_panels_wf.size() <= 1)
-        return;
+        return false;
 
     for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
     {
@@ -271,6 +271,7 @@ void GraphN_Flow::wf_panel_activate_next(bool next)
             break;
         }
     }
+    return true;
 }
 
 void GraphN_Flow::wf_panel_activate_sequential(size_t sequential_number)
@@ -292,7 +293,10 @@ void GraphN_Flow::wf_panel_close(PanelWorkflow* wf_panel)
         wf_panel = m_wf_focused;
 
     if (m_wf_focused == wf_panel)
-        wf_panel_activate_next(false);
+    {
+        if (!wf_panel_activate_next(false))
+            m_wf_focused = nullptr;
+    }
 
     wf_panel->stop_all_threads();
     m_all_dialogs.erase(wf_panel);

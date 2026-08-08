@@ -21,7 +21,7 @@ struct CNI_DeserializedReroute final : public CNI_DeserializedData
     int32_t next_out_index = 0;
 };
 
-struct CNI_Reroute final
+class CNI_Reroute final
     : public CNI_BaseObj_T<CNI_Reroute>
 {
 public:
@@ -51,13 +51,8 @@ public:
     void cni_deserialilzation_begins() noexcept override;
     void cni_deserialilzation_ends() override;
 
-    bool cni_json_need_custom_serialization() const noexcept override { return true; }
-    bool cni_json_need_custom_deserialization() const noexcept override { return true; }
-
     bool cni_json_api_should_export() const noexcept override { return false; }
-
-    bool cni_blob_need_custom_serialization() const noexcept override { return true; }
-    bool cni_blob_need_custom_deserialization() const noexcept override { return true; }
+    bool cni_json_need_custom_serialization() const noexcept override { return true; }    
 
 private:
     struct LinkedPair;

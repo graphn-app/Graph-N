@@ -254,7 +254,7 @@ private:
     PanelWorkflow* wf_panel_find(wid id) const noexcept;
     PanelWorkflow* wf_panel_create(const mngr::WfData& wf);
     void wf_panel_activate(PanelWorkflow* wf_panel);
-    void wf_panel_activate_next(bool next);
+    bool wf_panel_activate_next(bool next);
     void wf_panel_rename(PanelWorkflow* wf_panel, const std::string& new_name);
     void wf_assign_sequential_numbers();
     void wf_node_get_any_selected(bool& sel_nodes, bool& sel_groups) noexcept;

@@ -1,7 +1,7 @@
 
 #pragma once
 #include "core/workflow/workflow.h"
-#include "core/data/node.h"
+#include "core/workflow/node.h"
 #include "imgui_node_editor_edtype.h"
 
 namespace data

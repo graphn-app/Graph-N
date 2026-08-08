@@ -33,7 +33,7 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
     try
     {
         m_wf->action()->hard_reset();
-        m_wf->clear();
+        m_wf->clear(); 
 
         blob::Reader root = m_reader.pop_block();
 
@@ -71,6 +71,9 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
 
         for (auto& node : nodes)
         {
+            if (node->m_group)
+                continue;
+
             if (!ids.insert(node->get_instance_id()).second)
             {
                 if (0 == dup_errs)
@@ -174,7 +177,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
     }
     m_curr_node->reset_pins();
 
-    if (!dummy && m_curr_node->cni_blob_need_custom_deserialization())
+    if (!dummy && m_curr_node->is_cni())
     {
         if (nullptr == deserialize_cni_node(root))
         {
@@ -202,7 +205,10 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
                     return false;
                 pin = g::pNodesManager->make_dummy_pin(m_curr_node->get_object(), std::string(def_type), std::string(def_name), input_pin ? -1 : idx);
             }
-            LogRAssertS(pin->get_hash() == h_id, "Pin ids don't match. w:" << m_curr_node->get_workflow_id() << ", n:" << m_curr_node->get_instance_id() << ", t:" << pin->def_state.type_str << ", ph1:" << pin->get_hash() << ", ph2:" << h_id, false);
+            if (!m_curr_node->get_object()->is_dummy)
+            {
+                LogRAssertS(pin->get_hash() == h_id, "Pin ids don't match. w:" << m_curr_node->get_workflow_id() << ", n:" << m_curr_node->get_instance_id() << ", t:" << pin->def_state.type_str << ", ph1:" << pin->get_hash() << ", ph2:" << h_id, false);
+            }
 
             m_curr_pin = m_wf->add_pin(m_curr_node, pin, i_id);
             deserialize_pin(block, m_curr_node->get_object()->is_dummy);

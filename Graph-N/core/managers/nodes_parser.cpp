@@ -3,7 +3,7 @@
 #include "core/managers/models_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/workflow/custom_nodes/all_impl.h"
-#include "core/data/pin.h"
+#include "core/workflow/pin.h"
 #include "ui/graph-n_flow.h"
 
 namespace mngr
@@ -588,7 +588,18 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
                 input.pins.push_back(ptr);
                 if (ptr->cag_require)
                 {
-                    auto cag = std::make_unique<data::Pin>(&node, base::GlobalID::uuid(), is_required, is_optional, is_hidden);
+                    //BREAK_IF(node.node_class == "KSampler");
+
+                    std::string name;
+                    for (int32_t hash_idx = 0; ; hash_idx++)
+                    {
+                        name = fmt::format(FMT_STRING("{}_{}"), CAG_PIN_NAME, hash_idx);
+                        const auto hash = data::Pin::make_hash(&node, name, -1);
+                        if (!manager.m_pins.contains(hash))
+                            break;
+                    }
+
+                    auto cag = std::make_unique<data::Pin>(&node, name, is_required, is_optional, is_hidden);
                     input.pins.push_back(cag.get());
 
                     cag->cag_pin = true;

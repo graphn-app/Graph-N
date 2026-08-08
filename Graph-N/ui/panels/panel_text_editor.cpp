@@ -1,7 +1,7 @@
 
 #include "ui/panels/panel_text_editor.h"
-#include "core/data/node.h"
-#include "core/data/pin.h"
+#include "core/workflow/node.h"
+#include "core/workflow/pin.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/workflow_action.h"

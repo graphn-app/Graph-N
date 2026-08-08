@@ -1,7 +1,7 @@
 
 #pragma once
 #include "core/managers/manager.h"
-#include "core/data/node.h"
+#include "core/workflow/node.h"
 
 namespace data
 {

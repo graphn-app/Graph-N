@@ -1,8 +1,8 @@
 
 #include "ui/node_drawer_ro.h"
 #include "core/managers/settings_manager.h"
-#include "core/data/node.h"
-#include "core/data/pin.h"
+#include "core/workflow/node.h"
+#include "core/workflow/pin.h"
 #include "core/workflow/node_instance_ro.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/workflow.h"

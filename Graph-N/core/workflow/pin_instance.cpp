@@ -2,7 +2,7 @@
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/node_instance.h"
 #include "core/managers/nodes_manager.h"
-#include "core/data/pin.h"
+#include "core/workflow/pin.h"
 
 namespace data
 {

@@ -11,6 +11,10 @@ void WfSerializerToBlob::serialize_cni_node()
         return serialize_cni_node_primitive();
     if (CNI_Reroute::cni_is_same(m_curr_node))
         return serialize_cni_node_reroute();
+    if (CNI_Note::cni_is_same(m_curr_node))
+        return serialize_cni_node_note();
+    if (CNI_MarkdownNote::cni_is_same(m_curr_node))
+        return serialize_cni_node_markdownnote();
     LogError("Unhandled cni node");
 }
 
@@ -22,7 +26,7 @@ void WfSerializerToBlob::serialize_cni_node_primitive()
 {
     blob::Block block(m_writer);
 
-    auto& intputs = m_curr_node->get_inputs();
+    auto& inputs = m_curr_node->get_inputs();
     auto& outputs = m_curr_node->get_outputs();
     if (outputs.size() != 1)
     {
@@ -32,13 +36,13 @@ void WfSerializerToBlob::serialize_cni_node_primitive()
         return;
     }
 
-    m_writer.push(cast::to_u32(intputs.size()));
+    m_writer.push(cast::to_u32(inputs.size()));
     m_writer.push(cast::to_u32(outputs.size()));
 
     Primitive val;
-    if (intputs.size() >= 1) val = intputs[0]->state().value;   // widget value
+    if (inputs.size() >= 1) val = inputs[0]->state().value;   // widget value
     m_writer.push(val);
-    if (intputs.size() >= 2) val = intputs[1]->state().value;   // cag value
+    if (inputs.size() >= 2) val = inputs[1]->state().value;   // cag value
     else val.reset();
     m_writer.push(val);
 
@@ -73,6 +77,31 @@ void WfSerializerToBlob::serialize_cni_node_reroute()
         m_writer.push(out->get_object()->out_index);
         m_writer.push(in->get_object()->hidden);
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    Note, MarkdownNote             //////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToBlob::serialize_cni_node_note()
+{
+    blob::Block block(m_writer);
+
+    auto& inputs = m_curr_node->get_inputs();
+    if (inputs.size() != 1 || inputs[0]->state().type != PinType::STRING)
+    {
+        LogWarn("Invalid node definition");
+        m_writer.push(uint32_t(0));
+        return;
+    }
+
+    m_writer.push(cast::to_u32(inputs.size()));
+    m_writer.push(inputs[0]->get_instance_id());
+    m_writer.push(inputs[0]->state().value);
+}
+void WfSerializerToBlob::serialize_cni_node_markdownnote()
+{
+    return serialize_cni_node_note();
 }
 
 } // namespace data

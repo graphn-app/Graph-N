@@ -18,11 +18,14 @@ std::string merge(const std::set<std::string>& items, char separator);
 
 std::string to_lower_ascii(const std::string& str);
 
+// single-session hash
 size_t hash_string(const std::string& str)  noexcept;
+// stable platform-independent hash
 uint64_t hash_fnv1a(const void* data, size_t size) noexcept;
 uint64_t hash_fnv1a(const char* data, size_t size) noexcept;
 uint64_t hash_fnv1a(size_t data) noexcept;
 uint64_t hash_fnv1a(const std::string& data) noexcept;
+
 uint32_t crc32(const std::string& data) noexcept;
 
 std::string generate_uuid_v4();

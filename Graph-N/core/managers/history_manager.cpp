@@ -7,8 +7,8 @@
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/serializer/wf_serializers.h"
-#include "core/data/node.h"
-#include "core/data/pin.h"
+#include "core/workflow/node.h"
+#include "core/workflow/pin.h"
 
 namespace mngr
 {

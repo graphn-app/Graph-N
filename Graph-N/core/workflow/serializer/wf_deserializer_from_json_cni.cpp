@@ -1,6 +1,7 @@
 #include "core/workflow/serializer/wf_deserializer_from_json.h"
 #include "core/workflow/custom_nodes/all_impl.h"
 #include "core/workflow/pin_instance.h"
+#include "core/managers/nodes_manager.h"
 
 namespace data
 {
@@ -11,6 +12,10 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node(NodeInstance* node, c
         return deserialize_cni_node_primitive(node, j);
     if (CNI_Reroute::cni_is_same(node))
         return deserialize_cni_node_reroute(node, j);
+    if (CNI_Note::cni_is_same(node))
+        return deserialize_cni_node_note(node, j);
+    if (CNI_MarkdownNote::cni_is_same(node))
+        return deserialize_cni_node_markdownnote(node, j);
 
     LogRError("Unhandled cni node", nullptr);
 }
@@ -38,7 +43,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node_primitive(NodeInstanc
     if (nullptr == pin_instance)
     {        
         m_wf->remove_node(node);
-        LogError("PinInstance " << pin_hash << " not found in m_wf");
+        LogError("PinInstance " << pin_hash << " not found in wf");
         return nullptr;
     }
 
@@ -129,6 +134,55 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node_reroute(NodeInstance*
     m_node_out_pins[node->get_instance_id()][0] = pair.out_id;
 
     return node;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    Note, MarkdownNote             //////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename N>
+NodeInstance* deserialize_cni_node_note_impl(Workflow* wf, NodeInstance* node, const o_json& j)
+{
+    auto note = cast::dynamic<N>(node);
+    LogRAssertS(note, "Node is not CNI. w:" << wf->get_id() << ", n: " << node->get_instance_id() << ", t:" << typeid(node).name(), node);
+    LogRAssertS(note->get_inputs().size() == 1, "Invalid " << N::cni_get_node_class() << " node definition. w:" << wf->get_id() << ", n: " << node->get_instance_id() << ", t:" << typeid(node).name(), node);
+
+    const auto pin_hash = Pin::make_hash(node->get_object(), "", -1);
+    auto pin = node->get_object()->find_pin(pin_hash, true); // do not use pNodesManager
+    if (nullptr == pin)
+    {
+        wf->remove_node(node);
+        return nullptr;
+    }
+
+    pin->finalize();
+
+    const auto pin_instance = wf->get_pin_by_hash(node->get_instance_id(), pin_hash);    
+    if (nullptr == pin_instance)
+    {        
+        wf->remove_node(node);
+        LogErrorS("PinInstance " << pin_hash << " not found in wf");
+        return nullptr;
+    }
+
+    if (j.contains("widgets_values") && j["widgets_values"].is_array() && j["widgets_values"].size() == 1 && j["widgets_values"][0].is_string())
+    {
+        std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedNote>();
+        ((CNI_DeserializedNote*)data.get())->widget_value = j["widgets_values"][0].get<std::string>();
+        node->cni_save_deserialized_info(std::move(data));
+    }
+
+    return node;
+}
+
+NodeInstance* WfDeserializerFromJson::deserialize_cni_node_note(NodeInstance* node, const o_json& j)
+{
+    return deserialize_cni_node_note_impl<CNI_Note>(m_wf, node, j);
+}
+
+NodeInstance* WfDeserializerFromJson::deserialize_cni_node_markdownnote(NodeInstance* node, const o_json& j)
+{
+    return deserialize_cni_node_note_impl<CNI_MarkdownNote>(m_wf, node, j);
 }
 
 } // namespace data

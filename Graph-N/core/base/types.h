@@ -57,6 +57,8 @@ constexpr const char* CNI_CLASS_NOTE            = "Note";
 constexpr const char* CNI_CLASS_MARKDOWN_NOTE   = "MarkdownNote";
 constexpr const char* CNI_CLASS_LOAD_IMAGE      = "LoadImage";
 
+constexpr const char* CAG_PIN_NAME              = "E742ADEF-156C-45DF-90EC-AA36CA21A9B2";
+
 using HttpResponseCb = std::function<void(int32_t, std::string&&)>; // http code, data
 
 enum class DlgObj

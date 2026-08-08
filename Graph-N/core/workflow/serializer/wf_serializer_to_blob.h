@@ -27,6 +27,8 @@ private:
     void serialize_cni_node();
     void serialize_cni_node_primitive();
     void serialize_cni_node_reroute();
+    void serialize_cni_node_note();
+    void serialize_cni_node_markdownnote();
 
 private:
     const Workflow* m_wf = nullptr;

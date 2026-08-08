@@ -144,7 +144,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
         return nullptr;
     }
 
-    //BREAK_IF(node_class == "ImpactCompare");
+    //BREAK_IF(node_class == "Note" || node_class == "MarkdownNote");
 
     const auto node_hash = base::HashID::make_hash(node_class);
     auto node = g::pNodesManager->find_node(node_hash);
@@ -210,7 +210,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
         }
     }
 
-    if (node_instance->cni_json_need_custom_deserialization())
+    if (!dummy && node_instance->is_cni())
     {
         if (nullptr == deserialize_cni_node(node_instance, j))
             return deserialize_node(j, node_id_from_json, true);

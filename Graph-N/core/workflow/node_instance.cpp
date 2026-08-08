@@ -410,8 +410,11 @@ void NodeInstance::reset_to_default_colors() noexcept
 
 void NodeInstance::reset_width() noexcept
 {
-    NodeInstanceBase::reset_width();
-    m_rc.Max.x = get_ideal_width();
+    if (!m_group)
+    {
+        NodeInstanceBase::reset_width();
+        m_rc.Max.x = get_ideal_width();
+    }
     m_size_set = false;
 }
 

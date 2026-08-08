@@ -27,6 +27,8 @@ private:
     NodeInstance* deserialize_cni_node(NodeInstance* node, const o_json& j);
     NodeInstance* deserialize_cni_node_primitive(NodeInstance* node, const o_json& j);
     NodeInstance* deserialize_cni_node_reroute(NodeInstance* node, const o_json& j);
+    NodeInstance* deserialize_cni_node_note(NodeInstance* node, const o_json& j);
+    NodeInstance* deserialize_cni_node_markdownnote(NodeInstance* node, const o_json& j);
 
 private:
     Workflow* m_wf = nullptr;

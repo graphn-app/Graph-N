@@ -1,6 +1,6 @@
 #pragma once
 #include "core/workflow/node_instance.h"
-#include "core/data/node.h"
+#include "core/workflow/node.h"
 
 namespace mngr
 {

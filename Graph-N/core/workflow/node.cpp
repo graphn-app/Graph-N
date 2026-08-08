@@ -1,5 +1,5 @@
 
-#include "core/data/node.h"
+#include "core/workflow/node.h"
 #include "core/managers/settings_manager.h"
 
 namespace data
