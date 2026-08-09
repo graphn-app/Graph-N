@@ -37,13 +37,13 @@ private:
     };
 
     NodeInstance* create_api_node(ApiNode& api_node, bool dummy);
+    bool check_api_node_definition(const ApiNode& api_node);
     void link_api_nodes(const std::list<ApiNode>& api_nodes);
     void arrange_nodes();
 
 private:
     Workflow* m_wf = nullptr;
     const o_json& m_json;
-    ImRect m_node_pos;
 };
 
 } // namespace data

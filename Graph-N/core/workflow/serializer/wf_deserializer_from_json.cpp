@@ -172,6 +172,11 @@ bool WfDeserializerFromJson::check_node_definition(const o_json& j, bool& is_val
                 if (nullptr == pin || pin->def_state.type_str != type)
                     return false;
             }
+            else
+            {
+                is_valid = false;
+                return false;
+            }
         }
     }
 
@@ -196,6 +201,12 @@ bool WfDeserializerFromJson::check_node_definition(const o_json& j, bool& is_val
                 auto pin = g::pNodesManager->find_pin(pin_hash);
                 if (nullptr == pin || pin->def_state.type_str != type)
                     return false;
+                index++;
+            }
+            else
+            {
+                is_valid = false;
+                return false;
             }
         }
     }
@@ -231,7 +242,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
     NodeInstance* node_instance = nullptr;
     if (dummy)
     {
-        node_instance = m_wf->add_node(g::pNodesManager->make_dummy_node(std::string(node_class)), rc, "", 0, true);
+        node_instance = m_wf->add_node(g::pNodesManager->make_dummy_node(std::string(node_class)), rc);
         node_instance->reset_pins();
     }
     else

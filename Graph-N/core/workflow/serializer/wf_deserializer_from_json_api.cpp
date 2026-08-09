@@ -87,9 +87,11 @@ bool WfDeserializerFromJsonApi::deserialize()
 
         for (auto& api_node : nodes)
         {
-            create_api_node(api_node, false);
-            m_node_pos.Min.x += 20;
-            m_node_pos.Min.y += 20;
+            const bool dummy = !check_api_node_definition(api_node);
+            if (!dummy)
+                m_wf->get_data().valid = false;
+            auto node = create_api_node(api_node, dummy);
+            LogAssert(node != nullptr, "Checked node is dummy");
         }
 
         link_api_nodes(nodes);
@@ -103,50 +105,66 @@ bool WfDeserializerFromJsonApi::deserialize()
     return false;
 }
 
-NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonApi::ApiNode& api_node, bool dummy)
+bool WfDeserializerFromJsonApi::check_api_node_definition(const ApiNode& api_node)
 {
     const auto node_hash = base::HashID::make_hash(api_node.class_type);
-    auto node = g::pNodesManager->find_node(node_hash);
-    if (node != nullptr && node->is_dummy)
+    const auto* node = g::pNodesManager->find_node(node_hash);
+    if (nullptr == node)
+        return false;
+
+    for (auto& input : api_node.inputs)
     {
-        LogRAssert(!node->is_dummy, "Dummy node " << api_node.class_type << " in base map", nullptr);
+        const auto pin_hash = Pin::make_hash(api_node.class_type, input.pin_name, -1);
+        const auto* pin = g::pNodesManager->find_pin(pin_hash);
+        if (nullptr == pin)
+            return false;
     }
-    if (nullptr == node || dummy)
+
+    return true;
+}
+
+NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonApi::ApiNode& api_node, bool dummy)
+{
+    Node* node = nullptr;
+    if (dummy)
     {
         node = g::pNodesManager->make_dummy_node(api_node.class_type);
     }
-    auto node_instance = m_wf->add_node(node, m_node_pos);
-    LogRAssert(node_instance->get_object()->get_hash() == node_hash, "Node ids don't match. w:" << m_wf->get_id() << ", n:" << node_instance->get_instance_id() << ", nh1:" << node_instance->get_object()->get_hash() << ", nh2: " << node_hash, nullptr);
+    else
+    {
+        const auto node_hash = base::HashID::make_hash(api_node.class_type);
+        node = g::pNodesManager->find_node(node_hash);
+        if (nullptr == node)
+            return nullptr;        
+    }
+    auto node_instance = m_wf->add_node(node, {});
 
     if (!api_node.title.empty())
         node_instance->set_name(api_node.title);
 
     for (auto& input : api_node.inputs)
     {
+        Pin* pin = nullptr;
         const auto pin_hash = Pin::make_hash(node_instance->get_object(), input.pin_name, -1);
-        //auto pin = node_instance->get_object()->find_pin(pin_hash, true);
-        auto pin = g::pNodesManager->find_pin(pin_hash);
 
-        if (node->is_dummy || nullptr == pin || pin->def_state.name != input.pin_name)
+        if (dummy)
         {
-            if (!node_instance->get_object()->is_dummy)
-            {
-                m_wf->remove_node(node_instance);
-                return create_api_node(api_node, true);
-            }
-
             pin = g::pNodesManager->make_dummy_pin(node_instance->get_object(), "*", input.pin_name, -1);
         }
         else
         {
+            pin = g::pNodesManager->find_pin(pin_hash);
+            if (nullptr == pin)
+            {
+                m_wf->remove_node(node_instance);
+                return nullptr;
+            }
             pin->def_state.name = input.pin_name;
             pin->finalize();
         }
 
-        LogRAssert(pin->get_hash() == pin_hash, "Pin ids don't match. w:" << m_wf->get_id() << ", n:" << node_instance->get_instance_id() << ", ph1:" << pin->get_hash() << ", ph2: " << pin_hash, nullptr);
-
         PinInstance* pin_instance = nullptr;
-        if (node->is_dummy)
+        if (dummy)
         {
             pin_instance = m_wf->add_pin(node_instance, pin, m_wf->get_new_child_id());
             pin->def_state.copy_to(pin_instance->state());

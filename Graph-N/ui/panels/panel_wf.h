@@ -131,6 +131,7 @@ private:
 private:
     const ImGuiID m_dock;
     data::Workflow* m_wf = nullptr;
+    bool m_wf_valid = true;
     data::WorkflowAction* m_action = nullptr;
     NodeDrawer m_drawer;
 

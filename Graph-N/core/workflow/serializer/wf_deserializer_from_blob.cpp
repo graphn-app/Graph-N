@@ -146,7 +146,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
     {
         if (dummy)
         {
-            m_curr_node = m_wf->add_node(g::pNodesManager->make_dummy_node(node_class), {}, {}, obj_iid, true);
+            m_curr_node = m_wf->add_node(g::pNodesManager->make_dummy_node(node_class), {}, {}, obj_iid);
             m_curr_node->reset_pins();
         }
         else

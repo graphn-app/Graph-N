@@ -24,6 +24,7 @@ PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std
     , m_context_menuid(panel_id + "_ContextMenu")
 {
     m_action->set_drawer(&m_drawer);
+    m_wf_valid = m_wf->get_data().valid;
 
     g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::Invalidate, this);
     g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
@@ -64,6 +65,7 @@ void PanelWorkflow::init()
 
     m_wf->reset();
     m_wf->get_data().activated = true;
+    m_wf_valid = m_wf->get_data().valid;
     create_toolbar();
     alive();
 }
@@ -102,6 +104,12 @@ DlgCode PanelWorkflow::show(bool& focused)
         handle_panel_context_menu();
 
         const auto& data = m_wf->get_data();
+        if (m_wf_valid != m_wf->get_data().valid)
+        {
+            m_wf_valid = m_wf->get_data().valid;
+            create_toolbar();
+        }
+
         if (data.critical_failure)
         {
             draw_toolbar();

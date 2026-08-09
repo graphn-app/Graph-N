@@ -93,17 +93,19 @@ std::unique_ptr<NodeInstanceRo> Workflow::create_node_ro(data::Node* node, iid n
     return instance;
 }
 
-NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0, 0, 0, 0)*/, const std::string& select /*= ""*/, iid node_id /*= 0*/, bool dummy /*= false*/)
+NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0, 0, 0, 0)*/, const std::string& select /*= ""*/, iid node_id /*= 0*/)
 {
     const auto id = (0 == node_id ? get_new_child_id() : node_id);
     std::unique_ptr<NodeInstance> instance;
-    if (dummy)
+    if (node->is_dummy)
     {
         instance = std::make_unique<NodeInstance>(node, get_id(), id);
+        get_data().valid = false;
         Log("Dummy node created. w:" << get_id() << ", n:" << instance->get_instance_id() << ":" << node->node_class);
     }
     else
         instance = create_node(node, id);
+
     instance->m_rc = rc;
     auto ptr = instance.get();
     ptr->init(select);

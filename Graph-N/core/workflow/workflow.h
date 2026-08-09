@@ -38,7 +38,7 @@ public:
     WorkflowAction* action() const noexcept { return m_action.get(); }
 
     NodeInstance* add_group(const ImRect& rc, const std::string& name = "");
-    NodeInstance* add_node(Node* node, const ImRect& rc = ImRect(0, 0, 0, 0), const std::string& select = "", iid node_id = 0, bool dummy = false);
+    NodeInstance* add_node(Node* node, const ImRect& rc = ImRect(0, 0, 0, 0), const std::string& select = "", iid node_id = 0);
     NodeInstance* add_node(const NodeInstance* copy_from_source, bool copy_id);
     NodeInstance* add_group_node();
     NodeInstanceRo* add_node_ro(Node* node);
