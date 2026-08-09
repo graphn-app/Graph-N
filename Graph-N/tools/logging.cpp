@@ -348,7 +348,7 @@ LogWriter& LogWriter::operator << (const std::string& str)
 
 LogWriter& LogWriter::operator << (std::string_view str)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), str.data());
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), str);
     return *this;
 }
 

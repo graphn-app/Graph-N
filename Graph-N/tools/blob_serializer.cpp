@@ -352,18 +352,23 @@ byte_buff Reader::pop_buff()
     return buff;
 }
 
-
-std::string_view Reader::pop_string() noexcept
+std::string_view Reader::pop_string_ptr() noexcept
 {
     const uint32_t len = pop_u32();
     if (0 == len || !test_len(len))
     {
         static const char* empty = "";
         return std::string_view(empty);
-    };
+    }
     std::string_view view(cast::ptrs<char>(m_data + m_offset), len);
     m_offset += len;
     return view;
+}
+
+std::string Reader::pop_string()
+{
+    std::string str(pop_string_ptr());
+    return str;
 }
 
 Primitive Reader::pop_primitive()
@@ -385,7 +390,7 @@ Primitive Reader::pop_primitive()
         ret = pop_bool();
         break;
     case pt_string:
-        ret = std::string(pop_string());
+        ret = pop_string();
         break;
     case pt_monostate:
         // do nothing

@@ -943,23 +943,23 @@ wid WfsManager::import_wf(const std::filesystem::path& from)
 
     if (ext == ".json")
     {
-        auto jdata = tools::path::read_file(from, true);
-        if (!jdata.empty())
-            return import_wf_from_json(jdata.data(), tools::str::path_to_string(from.stem()));
+        const auto data = tools::path::read_file(from, true);
+        if (!data.empty())
+            return import_wf_from_json(data, tools::str::path_to_string(from.stem()));
         return 0;
     }
     if (ext == ".png")
     {
-        auto jdata = tools::img::extract_workflow_from_png(from);
-        if (!jdata.empty())
-            return import_wf_from_json(jdata.data(), tools::str::path_to_string(from.stem()));
+        const auto data = tools::img::extract_workflow_from_png(from);
+        if (!data.empty())
+            return import_wf_from_json(data, tools::str::path_to_string(from.stem()));
         return 0;
     }
     if (ext == ".webp")
     {
-        auto jdata = tools::img::extract_workflow_from_webp(from);
-        if (!jdata.empty())
-            return import_wf_from_json(jdata.data(), tools::str::path_to_string(from.stem()));
+        const auto data = tools::img::extract_workflow_from_webp(from);
+        if (!data.empty())
+            return import_wf_from_json(data, tools::str::path_to_string(from.stem()));
         return 0;
     }
 

@@ -47,8 +47,8 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_primitive(blob::Reade
 
     /*const auto h_id = */block.pop_hid();
     ((CNI_DeserializedPrimitive*)data.get())->out_id = block.pop_iid();
-    ((CNI_DeserializedPrimitive*)data.get())->out_pin_type = block.pop_string();
-    ((CNI_DeserializedPrimitive*)data.get())->out_pin_name = block.pop_string();
+    ((CNI_DeserializedPrimitive*)data.get())->out_pin_type = block.pop_string_ptr();
+    ((CNI_DeserializedPrimitive*)data.get())->out_pin_name = block.pop_string_ptr();
 
     primitive->cni_save_deserialized_info(std::move(data));
     primitive->cni_init();
@@ -73,9 +73,9 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_reroute(blob::Reader&
     for (uint32_t i = 0; i < count; i++)
     {
         RoutedPinPair pair;
-        pair.type = block.pop_string();
+        pair.type = block.pop_string_ptr();
         pair.in_id = block.pop_iid();
-        pair.in_pin_name = block.pop_string();
+        pair.in_pin_name = block.pop_string_ptr();
         pair.out_id = block.pop_iid();
         pair.out_index = block.pop_i32();
         pair.hidden = block.pop_bool();

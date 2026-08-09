@@ -79,7 +79,8 @@ public:
     void pop_buff(float* arr) noexcept;
     void pop_buff(byte* data) noexcept;
     byte_buff pop_buff();
-    std::string_view pop_string() noexcept;
+    std::string pop_string();
+    std::string_view pop_string_ptr() noexcept;
     Primitive pop_primitive();
     ImVec2 pop_vec2() noexcept;
     ImVec4 pop_vec4() noexcept;

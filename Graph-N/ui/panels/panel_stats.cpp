@@ -317,16 +317,16 @@ DlgCode PanelStats::show(bool& focused)
         m_pause.store(false, std::memory_order_relaxed);
 
         static constexpr const std::string_view this_pc = "This PC";
-        static const float this_pc_wid = ImGui::CalcTextSize(this_pc.data()).x;
+        static const float this_pc_wid = ImGui::CalcTextSize(this_pc.data(), this_pc.data() + this_pc.size()).x;
 
         static constexpr const std::string_view server = "Server";
-        static const float server_wid = ImGui::CalcTextSize(server.data()).x;
+        static const float server_wid = ImGui::CalcTextSize(server.data(), server.data() + server.size()).x;
 
         static constexpr const std::string_view queue = "Queue";
-        static const float queue_wid = ImGui::CalcTextSize(queue.data()).x;
+        static const float queue_wid = ImGui::CalcTextSize(queue.data(), queue.data() + queue.size()).x;
 
         static constexpr const std::string_view performance = APP_CAPTION;
-        static const float performance_wid = ImGui::CalcTextSize(performance.data()).x;
+        static const float performance_wid = ImGui::CalcTextSize(performance.data(), performance.data() + performance.size()).x;
 
         static const float val_text_offset = ImGui::CalcTextSize("PyTorch total").x + ImGui::GetStyle().ItemSpacing.x * 3;
 
