@@ -21,8 +21,6 @@ public:
     void init(const std::string& select) override;
     void init(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
 
-    virtual void cni_init() {}
-
     void cni_recreate_base_object();
 
     static void cni_add_pin(std::unique_ptr<Pin>&& pin) { m_pins.push_back(std::move(pin)); }

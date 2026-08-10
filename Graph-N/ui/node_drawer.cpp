@@ -9,6 +9,7 @@
 #include "core/workflow/pin.h"
 #include "core/workflow/link.h"
 #include "core/workflow/node_instance.h"
+#include "core/workflow/custom_nodes/cni_reroute.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
@@ -95,7 +96,8 @@ namespace ui
 
 namespace ed = ax::NodeEditor;
 
-namespace {
+namespace
+{
 ed::NodeId obj_to_ed(std::map<uint64_t, void*>& ed_objects, const data::NodeInstance* node)
 {
     LogRAssertS(node, "Zero ptr", ed::NodeId{});
@@ -345,6 +347,8 @@ void NodeDrawer::post_draw_all(
 void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
 {
     LogRAssert(node, "Zero ptr", );
+    LogRAssert(nullptr == m_active_node, "Active node must be zero ptr", );
+
     if (node->m_group)
     {
         ed::PushStyleColor(ed::StyleColor_GroupBg, ImVec4(0, 0, 0, 0));
@@ -380,10 +384,16 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
 
     if (!node->m_pos_set)
     {
-        if (OBJ_ID(node))
-            ed::SetNodePosition(OBJ_ID(node), node->m_rc.Min);
+        ImVec2 pos;
+        if (node->is_cni_reroute_splitted())
+            pos = node->reroute_splitted_get_current_node_pos();
         else
-            OBJ_ID(node) = ed::SetNodePosition(OBJ_CREATE(node), node->m_rc.Min);
+            pos = node->m_rc.Min;
+
+        if (OBJ_ID(node))
+            ed::SetNodePosition(OBJ_ID(node), pos);
+        else
+            OBJ_ID(node) = ed::SetNodePosition(OBJ_CREATE(node), pos);
         node->m_pos_set = true;
     }
     if (!node->m_size_set && node->m_group)
@@ -417,9 +427,14 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
 void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed) noexcept
 {
     LogRAssert(node, "Zero ptr", );
+    LogRAssert(nullptr == m_active_node, "Active node must be zero ptr", );
     ed::EndNode();
-    
-    node->m_rc.Min = ed::GetNodePosition(OBJ_ID(node));
+
+    if (node->is_cni_reroute_splitted())
+        node->reroute_splitted_set_current_node_pos(ed::GetNodePosition(OBJ_ID(node)));
+    else
+        node->m_rc.Min = ed::GetNodePosition(OBJ_ID(node));
+
     if (!node->m_ignore_size_on_frame_end)
         node->m_rc.Max = ed::GetNodeSize(OBJ_ID(node));
     node->m_ignore_size_on_frame_end = false;
@@ -436,8 +451,6 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed)
         ed::PopStyleColor(2);
         ImGui::PopStyleVar();
     }
-
-    m_active_node = nullptr;
 }
 
 void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node_idx*/, const std::set<std::string>* failed_pins)
@@ -503,15 +516,24 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_pin_text);
 
-    const auto& input = m_active_node->get_inputs();
-    for (auto pin : input)
+    if (auto reroute_splitting_pin = m_active_node->reroute_splitted_get_input())
     {
-        if (!pin->get_object()->hidden && !pin->get_object()->is_widget(pin->state()))
+        ImGui::PushID(reroute_splitting_pin);
+        draw_input_pin(reroute_splitting_pin, false);
+        ImGui::PopID();
+    }
+    else
+    {
+        const auto& inputs = m_active_node->get_inputs();
+        for (auto pin : inputs)
         {
-            ImGui::PushID(pin);
-            const bool failed = (failed_pins != nullptr && failed_pins->count(pin->get_object()->def_state.name));
-            draw_input_pin(pin, failed);
-            ImGui::PopID();
+            if (!pin->get_object()->hidden && !pin->get_object()->is_widget(pin->state()))
+            {
+                ImGui::PushID(pin);
+                const bool failed = (failed_pins != nullptr && failed_pins->count(pin->get_object()->def_state.name));
+                draw_input_pin(pin, failed);
+                ImGui::PopID();
+            }
         }
     }
 
@@ -530,22 +552,34 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     //const auto out_pins_pos = ImGui::GetCursorPosX();
 
-    const auto& output = m_active_node->get_outputs();
-    for (auto pin : output)
+    if (auto reroute_splitting_pin = m_active_node->reroute_splitted_get_output())
     {
-        if (pin->get_object()->hidden)
-            continue;
-
-        ImGui::PushID(pin);
-        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + m_active_node->w_pin_in + m_active_node->w_center +
-            m_active_node->w_pin_out - pin->state().w_name);
-
-        draw_output_pin(pin);
+        ImGui::PushID(reroute_splitting_pin);
+        ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + m_active_node->w_pin_in + m_active_node->w_center + m_active_node->w_pin_out);
+        draw_output_pin(reroute_splitting_pin);
         ImGui::PopID();
+    }
+    else
+    {
+        const auto& output = m_active_node->get_outputs();
+        for (auto pin : output)
+        {
+            if (pin->get_object()->hidden)
+                continue;
+
+            ImGui::PushID(pin);
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + m_active_node->w_pin_in + m_active_node->w_center +
+                m_active_node->w_pin_out - pin->state().w_name);
+
+            draw_output_pin(pin);
+            ImGui::PopID();
+        }
     }
 
     ImGui::PopStyleColor();
 
+    if (!m_active_node->m_has_widgets)
+        ImGui::SetCursorPosY(std::max(last_in_off_y, ImGui::GetCursorPosY()));
     ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing * 2));
 
     // TODO:FIX resizing
@@ -558,7 +592,8 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         ImGui::SetCursorPosY(std::max(last_in_off_y, ImGui::GetCursorPosY()));
 
         size_t advanced = 0;
-        for (auto pin : input)
+        const auto& inputs = m_active_node->get_inputs();
+        for (auto pin : inputs)
         {
             auto obj = pin->get_object();
             if (obj->advanced)
@@ -576,7 +611,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
             draw_widget_separator(w::pin_l_offset_rw + w::ico_max + w::pin_r_offset, m_active_node->m_show_hidden, temp_open);
             if (m_active_node->m_show_hidden || temp_open)
             {
-                for (auto pin : input)
+                for (auto pin : inputs)
                 {
                     auto obj = pin->get_object();
                     if (obj->advanced)
@@ -806,24 +841,39 @@ void NodeDrawer::draw_node_header()
 
 void NodeDrawer::draw_collapsed_pins(bool input)
 {
-    const std::vector<data::PinInstance*>* pins = nullptr;
     float pos_x = 0.0f;
     if (input)
-    {
-        pins = &m_active_node->get_inputs();
         pos_x = m_curr_node_left_offset + w::pin_l_offset_rw;        
+    else
+        pos_x = m_curr_node_left_offset + m_active_node->w_node - w::pin_l_offset_rw - w::ico_circle;
+    ImGui::SetCursorPosX(pos_x);
+
+    data::PinInstance* reroute_splitted_pin = nullptr;
+    if (input)
+        reroute_splitted_pin = m_active_node->reroute_splitted_get_input();
+    else
+        reroute_splitted_pin = m_active_node->reroute_splitted_get_output();
+
+    if (reroute_splitted_pin != nullptr)
+    {
+        ImGui::SetCursorPosX(pos_x);
+        draw_pin(reroute_splitted_pin, true, true, false);
+        ImGui::SameLine();
     }
     else
     {
-        pins = &m_active_node->get_outputs();
-        pos_x = m_curr_node_left_offset + m_active_node->w_node - w::pin_l_offset_rw - w::ico_circle;
-    }
+        const std::vector<data::PinInstance*>* pins = nullptr;
+        if (input)
+            pins = &m_active_node->get_inputs();
+        else
+            pins = &m_active_node->get_outputs();
 
-    for (auto pin : *pins)
-    {
-        ImGui::SetCursorPosX(pos_x);
-        draw_pin(pin, true, true, false);
-        ImGui::SameLine();
+        for (auto pin : *pins)
+        {
+            ImGui::SetCursorPosX(pos_x);
+            draw_pin(pin, true, true, false);
+            ImGui::SameLine();
+        }
     }
 }
 
@@ -1269,9 +1319,9 @@ void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& link
         auto in = link->get_input();
         auto out = link->get_output();
         if (OBJ_ID(link))
-            ed::Link(OBJ_ID(link), OBJ_ID(in), OBJ_ID(out), in->state().pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load()));
+            ed::Link(OBJ_ID(link), OBJ_ID(in), OBJ_ID(out), in->state().pin_color, link->get_link_thickness());
         else
-            OBJ_ID(link) = ed::Link(OBJ_CREATE(link.get()), OBJ_ID(in), OBJ_ID(out), in->state().pin_color, cast::to_float(g::pOptsManager->wf_link_thickness_load()));
+            OBJ_ID(link) = ed::Link(OBJ_CREATE(link.get()), OBJ_ID(in), OBJ_ID(out), in->state().pin_color, link->get_link_thickness());
     }
 }
 
@@ -1287,7 +1337,7 @@ void NodeDrawer::query_new_item(
         {
             data::PinInstance* p1 = OBJ_LOAD(start);
             data::PinInstance* p2 = OBJ_LOAD(end);
-            bool allow = (p1 != p2 && p1 != nullptr && p2 != nullptr);
+            bool allow = (p1 != p2 && p1 != nullptr && p2 != nullptr && !p1->get_is_reroute_splitting_pin() && !p2->get_is_reroute_splitting_pin());
 
             if (allow)
             {
@@ -1334,7 +1384,7 @@ void NodeDrawer::query_new_item(
             m_querying_pin = OBJ_LOAD(pin);
             if (ed::AcceptNewItem())
             {
-                if (m_querying_pin != nullptr && !m_querying_pin->get_object()->parent_node->is_dummy)
+                if (m_querying_pin != nullptr && !m_querying_pin->get_object()->parent_node->is_dummy && !m_querying_pin->get_is_reroute_splitting_pin())
                     new_node_handler(m_querying_pin, ed::ScreenToCanvas(ImGui::GetMousePos()));
                 m_querying_pin = nullptr;
             }
@@ -1377,7 +1427,7 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
     const bool compatible = (m_querying_pin == pin || (querying && data::Link::can_link(pin, m_querying_pin)));
 #endif
     const bool connected = (m_querying_pin == pin || pin->state().links > 0);
-    const auto type = (collapsed_mode ? PinShape::Circle : data::Pin::get_shape(pin->state().type));
+    const auto type = (collapsed_mode && !pin->get_is_reroute_splitting_pin() ? PinShape::Circle : data::Pin::get_shape(pin->state().type));
     const float thickness = failed_pin ? 2.5f : 2.0f;
     constexpr const int32_t segments = 12;
     const auto draw_list = ImGui::GetWindowDrawList();
@@ -1452,7 +1502,9 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
         break;
     case PinShape::SemiCircle:
         {
-            const bool in = pin->get_object()->input;
+            bool in = pin->get_object()->input;
+            if (pin->get_is_reroute_splitting_pin())
+                in = !in;
             if (in)
                 draw_list->PathArcTo(pin_center, radius, IM_PI * 1.5f, IM_PI * 2.5f, segments / 2);
             else
@@ -1729,6 +1781,15 @@ void NodeDrawer::delete_node(data::NodeInstance* node)
             ed::DeleteNode(OBJ_ID(node));
         else
             ed::DeleteNode(OBJ_CREATE(node));
+
+        if (node->is_cni_reroute_splitted())
+        {
+            node->reroute_splitted_end_draw_parts();
+            if (OBJ_ID(node))
+                ed::DeleteNode(OBJ_ID(node));
+            else
+                ed::DeleteNode(OBJ_CREATE(node));
+        }
 
         OBJ_DEL(node);
         for (auto pin : node->get_inputs())  { OBJ_DEL(pin); }

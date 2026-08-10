@@ -105,6 +105,7 @@ public:
     bool advanced = false;      // is visible on node
 
     bool can_link = true;
+    bool can_unlink = true;
     bool can_rename = true;
     bool input_can_be_widget = true;
 

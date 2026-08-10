@@ -77,6 +77,7 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::Pin_Any)] =                           { "color_pin_any", int64_t(IM_COL32_WHITE) };
     m_ui_colors[cast::to_szt(AppColor::Pin_Combo)] =                         { "color_pin_combo", int64_t(IM_COL32(200, 200, 200, 255)) };
     m_ui_colors[cast::to_szt(AppColor::Pin_Color)] =                         { "color_pin_color", int64_t(IM_COL32(255, 235, 59, 255)) };
+    m_ui_colors[cast::to_szt(AppColor::Pin_RerouteSplitted)] =               { "color_pin_reroute_splitted", int64_t(IM_COL32(255, 255, 255, 255)) };
     m_ui_colors[cast::to_szt(AppColor::Pin_Number)] =                        { "color_pin_number", int64_t(IM_COL32(46, 204, 113, 255)) };
     m_ui_colors[cast::to_szt(AppColor::Pin_Floats)] =                        { "color_pin_floats", int64_t(IM_COL32(26, 188, 156, 255)) };
     m_ui_colors[cast::to_szt(AppColor::Pin_Seed)] =                          { "color_pin_seed", int64_t(IM_COL32(52, 152, 219, 255)) };

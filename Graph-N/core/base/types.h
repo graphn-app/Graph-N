@@ -58,6 +58,7 @@ constexpr const char* CNI_CLASS_MARKDOWN_NOTE   = "MarkdownNote";
 constexpr const char* CNI_CLASS_LOAD_IMAGE      = "LoadImage";
 
 constexpr const char* CAG_PIN_NAME              = "E742ADEF-156C-45DF-90EC-AA36CA21A9B2";
+constexpr const char* REROUTE_SPLITTED_PIN      = "32DB533B-64D6-4F95-A90A-A50B17B59CDB";
 
 using HttpResponseCb = std::function<void(int32_t, std::string&&)>; // http code, data
 
@@ -160,6 +161,7 @@ enum class PinType
     _count,
 
     CUSTOM,
+    REROUTE_SPLITTED,
 
     _first_widget = INT,
     _last_widget = COLOR,
@@ -352,6 +354,7 @@ enum class AppColor
     Pin_Any,
     Pin_Combo,
     Pin_Color,
+    Pin_RerouteSplitted,
     Pin_Number,
     Pin_Floats,
     Pin_Seed,

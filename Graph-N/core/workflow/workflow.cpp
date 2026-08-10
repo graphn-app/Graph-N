@@ -402,13 +402,16 @@ void Workflow::remove_link(const Link* link)
     m_links.erase(it);
 }
 
-void Workflow::split_reroutes(const std::set<data::NodeInstance*>& nodes)
+void Workflow::split_reroutes_to_pin_pairs(const std::set<data::NodeInstance*>& nodes)
 {
     m_action->multi_action_on("Split");
     for (auto node : nodes)
     {
         LogCAssert(node->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
         LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
+
+        if (node->is_cni_reroute_splitted())
+            m_action->merge_reroute(node, true);
 
         const size_t count = node->get_inputs().size() - 1;
         ImRect rect = node->m_rc;
@@ -500,6 +503,9 @@ void Workflow::merge_reroutes(const std::set<data::NodeInstance*>& nodes)
             const size_t count = node->get_inputs().size() - 1;
             for (size_t i = 0; node_can_merge && i < count; i++)
             {
+                if (Step::Relink == step && node->is_cni_reroute_splitted())
+                    m_action->merge_reroute(node, true);
+
                 const auto in_pin = node->get_inputs()[i];
                 const auto out_pin = node->get_outputs()[i];
 
@@ -573,13 +579,16 @@ void Workflow::merge_reroutes(const std::set<data::NodeInstance*>& nodes)
     m_action->multi_action_off();
 }
 
-void Workflow::collapse_reroute(const data::NodeInstance* node)
+void Workflow::collapse_reroute(data::NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
     LogRAssert(node->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name(), );
     LogRAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size(), );
 
     m_action->multi_action_on("Collapse");
+
+    if (node->is_cni_reroute_splitted())
+        m_action->merge_reroute(node, true);
 
     const size_t count = node->get_inputs().size() - 1;
 
@@ -638,11 +647,24 @@ void Workflow::collapse_reroute(const data::NodeInstance* node)
     m_action->multi_action_off();
 }
 
-void Workflow::bypass_node(const data::NodeInstance* node)
+void Workflow::split_reroute_to_parts(data::NodeInstance* node)
+{
+    m_action->split_reroute(node);
+}
+
+void Workflow::collapse_reroute_parts(data::NodeInstance* node, bool to_left)
+{
+    m_action->merge_reroute(node, to_left);
+}
+
+void Workflow::bypass_node(data::NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
     
     m_action->multi_action_on("Bypass");
+
+    if (node->is_cni_reroute_splitted())
+        m_action->merge_reroute(node, true);
 
     std::list<std::pair<PinInstance*, PinInstance*>> reroutes;
     auto& links = get_links();

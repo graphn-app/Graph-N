@@ -29,20 +29,27 @@ blob::Writer WfSerializerToBlob::serialize(const blob::Blob& drawer_state)
     m_writer.push(drawer_state);
     block.end();
 
+    uint32_t splitted_reroutes = 0;
+
     block.begin();
     m_writer.push(cast::to_u32(m_wf->get_nodes().size()));
     for (auto& node : m_wf->get_nodes())
     {
         m_curr_node = node.get();
         serialize_node();
+
+        splitted_reroutes += m_curr_node->is_cni_reroute_splitted() ? 1 : 0;
     }
     block.end();
 
     block.begin();
-    m_writer.push(cast::to_u32(m_wf->get_links().size()));
+    m_writer.push(cast::to_u32(m_wf->get_links().size()) - splitted_reroutes);
     for (auto& link : m_wf->get_links())
     {
         m_curr_link = link.get();
+        if (m_curr_link->is_reroute_splitting_link())
+            continue;
+
         serialize_link();
     }
     block.end();

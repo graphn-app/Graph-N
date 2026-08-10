@@ -56,8 +56,8 @@ o_json WfSerializerToJson::serialize()
         for (auto node : nodes_copy)
         {
             if (node->is_cni_reroute())
-            {
-                virt_wf->split_reroutes({ node });
+            {                
+                virt_wf->split_reroutes_to_pin_pairs({ node });
             }
         }
     }

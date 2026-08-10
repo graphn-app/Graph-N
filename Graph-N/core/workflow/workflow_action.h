@@ -30,6 +30,9 @@ public:
     data::NodeInstance* add_node(data::Node* node, const std::string& select, std::optional<ImRect> pos);
     data::NodeInstance* add_group(std::optional<ImRect> size);
 
+    void split_reroute(data::NodeInstance* reroute_node);
+    void merge_reroute(data::NodeInstance* reroute_node, bool to_left);
+
     void delete_node(data::NodeInstance* node);
     void delete_group(data::NodeInstance* group);
 

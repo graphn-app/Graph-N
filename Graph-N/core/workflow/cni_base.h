@@ -10,17 +10,39 @@ struct CNI_DeserializedData
     virtual ~CNI_DeserializedData() noexcept = default;
 };
 
-class CNI_Base : public Instance<Node>
+class IRerouteSplitted : public Instance<Node>
 {
 public:
     using Instance<data::Node>::Instance;
+    ~IRerouteSplitted() noexcept override = default;
+
+    virtual void reroute_split_to_parts() {}
+    virtual void reroute_merge_parts(bool /*to_left*/) {}
+
+    virtual void reroute_splitted_begin_draw_parts() noexcept { }
+    virtual bool reroute_splitted_end_draw_parts() noexcept { return false; }
+
+    virtual ImVec2 reroute_splitted_get_current_node_pos() const noexcept { return {}; }
+    virtual void reroute_splitted_set_current_node_pos(const ImVec2& /*pos*/) noexcept { }
+
+    virtual PinInstance* reroute_splitted_get_input() const noexcept { return nullptr; }
+    virtual PinInstance* reroute_splitted_get_output() const noexcept { return nullptr; }
+};
+
+class CNI_Base : public IRerouteSplitted
+{
+public:
+    using IRerouteSplitted::IRerouteSplitted;
     ~CNI_Base() noexcept override = default;
+
+    virtual void cni_init() {}
 
     // is this is CNI node
     virtual bool is_cni() const noexcept { return false; }
 
-    // is reroute
+    //is reroute
     virtual bool is_cni_reroute() const noexcept { return false; }
+    virtual bool is_cni_reroute_splitted() const noexcept { return false; }
 
     // cni node custom class
     virtual const char* cni_get_node_class() const noexcept { return ""; };
@@ -73,4 +95,3 @@ protected:
 };
 
 } // namespace data
-

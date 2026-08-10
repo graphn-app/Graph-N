@@ -23,7 +23,7 @@ using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, NodeMode 
 enum class HistoryActionType
 {
     _none,
-    NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeExpand, 
+    NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeExpand, NodeRerouteSplit, NodeRerouteMerge,
     PinRen, PinVal,
     LinkAdd, LinkDel,
 
@@ -80,6 +80,16 @@ struct ActOldNew : public HistoryStep
 
     HActionT old_val;
     HActionT new_val;
+};
+
+struct ActNodeRerouteSplitting final : public HistoryStep
+{
+    ActNodeRerouteSplitting(HistoryActionType t) noexcept
+        : HistoryStep(t)
+    {}
+
+    bool merged_left = true;
+    ImVec2 splitted_pos;
 };
 
 struct ActLink : public HistoryStep
@@ -148,6 +158,7 @@ public:
 
     void push_node_action(const data::NodeInstance* node, HistoryActionType act); // add/delete only
     void push_node_action(const data::NodeInstance* node, HistoryActionType act, HActionT&& old_val);
+    void push_node_action(data::NodeInstance* node, HistoryActionType act, bool merge_left); // reroute split/merge only
     void push_pin_action(const data::PinInstance* pin, HistoryActionType act, HActionT&& old_val);
     void push_link_action(const data::Link* link, HistoryActionType act); // add/delete only
 
@@ -180,6 +191,8 @@ private:
     void pop_node_mode(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_pin(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_rect(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_node_reroute_split(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_node_reroute_merge(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_pin_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_pin_val(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_link_add(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);

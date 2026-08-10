@@ -1,5 +1,6 @@
 #include "core/workflow/custom_nodes/cni_reroute.h"
 #include "core/workflow/pin_instance.h"
+#include "core/workflow/link.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/nodes_manager.h"
 
@@ -117,7 +118,6 @@ std::string CNI_Reroute::create_pin_name(const std::string& type_str)
     const auto type = Pin::type_str_to_type(type_str);
     if (PinType::ANY == type)
         return type_str;
-
 
     int32_t real_count = 0;
     for (const auto& pair : m_pairs)
@@ -447,6 +447,97 @@ void CNI_Reroute::cni_pin_unlinked(const PinInstance* p1, const PinInstance* p2)
     cleanup_pairs(true);
     add_pair();
     reset_width();
+}
+
+void CNI_Reroute::reroute_split_to_parts()
+{
+    LogRAssert(!is_cni_reroute_splitted(), "Reroute already splitted. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
+
+    m_splitted = true;
+    m_ed_splitted.reset();
+    m_splitted_pos = m_rc.Min;
+    m_splitted_pos.x += m_rc.Max.x + 100.0f;
+    m_splitted_pos_set = false;
+
+    const std::string pin_type = REROUTE_SPLITTED_PIN;
+
+    auto wf = g::pWfsManager->access(get_workflow_id());
+    auto obj = g::pNodesManager->make_pin_ptr(get_object(), pin_type, pin_type + "_in", -1);
+    obj->can_rename = false;
+    obj->can_link = false;
+    obj->can_unlink = false;
+    obj->input_can_be_widget = false;
+    auto instance = wf->add_pin(this, obj.get());
+    cni_add_pin(std::move(obj));
+    m_splitted_in = instance;
+    m_splitted_in->state().name.clear();
+    m_splitted_in->state().w_name = 0;
+
+    obj = g::pNodesManager->make_pin_ptr(get_object(), pin_type, pin_type + "_out", 0);
+    obj->can_rename = false;
+    obj->can_link = false;
+    obj->can_unlink = false;
+    obj->input_can_be_widget = false;
+    instance = wf->add_pin(this, obj.get());
+    cni_add_pin(std::move(obj));
+    m_splitted_out = instance;
+    m_splitted_out->state().name.clear();
+    m_splitted_out->state().w_name = 0;
+
+    m_splitted_in->set_is_reroute_splitting_pin();
+    m_splitted_out->set_is_reroute_splitting_pin();
+
+    LogRAssert(Link::can_link(m_splitted_in, m_splitted_out), "Can't link splitted reroutes. w:" << get_workflow_id() << ", n:" << get_instance_id() << ", pi:" << m_splitted_in->get_instance_id() << ", po:" << m_splitted_out->get_instance_id(), );
+    auto link = Link::link(m_splitted_in, m_splitted_out);
+    link->set_link_thickness(link->get_link_thickness() * 2);
+
+    reset_width();
+    m_pos_set = false;
+    m_size_set = false;
+    m_drawing_splitted_part = DrawingPart::Left;
+}
+
+void CNI_Reroute::reroute_merge_parts(bool to_left)
+{
+    LogRAssert(is_cni_reroute_splitted(), "Reroute wasn't splitted. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
+
+    m_splitted = false;
+    m_ed_splitted.reset();
+
+    auto wf = g::pWfsManager->access(get_workflow_id());
+    auto links = wf->get_links_by_pin(m_splitted_in);
+
+    LogRAssert(links.size() == 1, "Empty splitted links", );
+    LogRAssert(m_splitted_in, "Zero splitted in pin", );
+    LogRAssert(m_splitted_in->get_object(), "Zero splitted in pin obj", );
+    LogRAssert(m_splitted_out, "Zero splitted in pin", );
+    LogRAssert(m_splitted_out->get_object(), "Zero splitted in pin obj", );
+
+    m_splitted_in->get_object()->can_unlink = true;
+    m_splitted_out->get_object()->can_unlink = true;
+
+    wf->remove_link(links.front());
+
+    cni_remove_pin(m_splitted_in->get_object());
+    wf->remove_pin(m_splitted_in);
+    m_splitted_in = nullptr;
+
+    cni_remove_pin(m_splitted_out->get_object());
+    wf->remove_pin(m_splitted_out);
+    m_splitted_out = nullptr;
+
+    reset_width();
+    m_pos_set = false;
+    m_size_set = false;
+
+    if (!to_left)
+        m_rc.Min = m_splitted_pos;
+}
+
+void CNI_Reroute::reset_state() noexcept
+{
+    CNI_BaseObj_T<CNI_Reroute>::reset_state();
+    m_ed_splitted.reset();
 }
 
 } // namespace data

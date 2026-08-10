@@ -244,12 +244,12 @@ void PanelWorkflow::redo() const
         g::pHistoryManager->redo(m_wf->get_id());
 }
 
-void PanelWorkflow::split_reroutes(const std::set<data::NodeInstance*>& nodes)
+void PanelWorkflow::split_reroutes_to_pin_pairs(const std::set<data::NodeInstance*>& nodes)
 {
     if (nodes.empty())
         return;
 
-    m_wf->split_reroutes(nodes);
+    m_wf->split_reroutes_to_pin_pairs(nodes);
 }
 
 void PanelWorkflow::merge_reroutes(const std::set<data::NodeInstance*>& nodes)
@@ -264,6 +264,18 @@ void PanelWorkflow::insert_reroute(data::Link* link, const ImVec2& pos)
 {
     LogRAssert(link != nullptr, "Zero ptr", );
     m_wf->insert_reroute(link, pos);
+}
+
+void PanelWorkflow::split_reroute_to_parts(data::NodeInstance* reroute)
+{
+    LogRAssert(reroute != nullptr, "Zero ptr", );
+    m_wf->split_reroute_to_parts(reroute);
+}
+
+void PanelWorkflow::collapse_reroute_parts(data::NodeInstance* reroute, bool to_left)
+{
+    LogRAssert(reroute != nullptr, "Zero ptr", );
+    m_wf->collapse_reroute_parts(reroute, to_left);
 }
 
 void PanelWorkflow::draw_wf()
@@ -306,12 +318,23 @@ void PanelWorkflow::draw_wf()
         }
 
         ImGui::PushID(node);
+
+        node->reroute_splitted_begin_draw_parts();
+
         m_drawer.pre_draw_node(node, failed_node);
         if (node->m_group)
             m_drawer.draw_group(node, node_idx);
         else
             m_drawer.draw_node(node, node->get_object()->w_fit, node_idx, failed_pins);
         m_drawer.post_draw_node(node, failed_node);
+
+        if (node->reroute_splitted_end_draw_parts())
+        {
+            m_drawer.pre_draw_node(node, failed_node);
+            m_drawer.draw_node(node, node->get_object()->w_fit, node_idx, failed_pins);
+            m_drawer.post_draw_node(node, failed_node);
+        }
+
         ImGui::PopID();
 
         if (is_new && m_select_new_nodes || m_select_all_nodes)

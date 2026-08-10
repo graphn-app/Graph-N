@@ -398,13 +398,31 @@ bool PanelWorkflow::show_node_menu()
 
     if (node->is_cni_reroute())
     {
-        // Split Reroutes -> Merge Reroutes
-        // Split into Linked Pair -> Collapse to Left / Collapse to Right
-
         if (ImGui::MenuItem("Split Reroutes", nullptr, nullptr, !node->get_object()->is_dummy && node->get_inputs().size() > 2))
         {
-            split_reroutes(m_menu_objs.nodes);
+            split_reroutes_to_pin_pairs(m_menu_objs.nodes);
             close = true;
+        }
+        if (node->is_cni_reroute_splitted())
+        {
+            if (ImGui::MenuItem("Collapse to Left"))
+            {
+                collapse_reroute_parts(*m_menu_objs.nodes.begin(), true);
+                close = true;
+            }
+            if (ImGui::MenuItem("Collapse to Right"))
+            {
+                collapse_reroute_parts(*m_menu_objs.nodes.begin(), false);
+                close = true;
+            }
+        }
+        else
+        {
+            if (ImGui::MenuItem("Split into Linked Pair"))
+            {
+                split_reroute_to_parts(*m_menu_objs.nodes.begin());
+                close = true;
+            }
         }
         ImGui::Separator();
     }
@@ -658,12 +676,9 @@ bool PanelWorkflow::show_multinode_menu()
     }
     if (all_reroutes)
     {
-        // Split Reroutes -> Merge Reroutes
-        // Split into Linked Pair -> Collapse to Left / Collapse to Right
-
         if (ImGui::MenuItem("Split Reroutes", nullptr, nullptr, true))
         {
-            split_reroutes(m_menu_objs.nodes);
+            split_reroutes_to_pin_pairs(m_menu_objs.nodes);
             close = true;
         }
         if (ImGui::MenuItem("Merge Reroutes", nullptr, nullptr, true))
@@ -910,7 +925,7 @@ bool PanelWorkflow::show_pin_menu()
     const bool name_eq = (pin->state().name == pin->get_object()->def_state.name);
     const bool can_rename = pin->get_object()->can_rename;
 
-    if (ImGui::MenuItem("Unlink", nullptr, nullptr, linked))
+    if (ImGui::MenuItem("Unlink", nullptr, nullptr, linked && pin->get_object()->can_unlink))
     {
         m_action->unlink(pin); // pin might be destroyed here
         close = true;
@@ -933,16 +948,16 @@ bool PanelWorkflow::show_pin_menu()
 bool PanelWorkflow::show_link_menu()
 {
     bool close = false;
+    const auto link = *m_menu_objs.links.begin();
+    const bool can_unlink = (link->get_input()->get_object()->can_unlink && link->get_output()->get_object()->can_unlink);
 
-    if (ImGui::MenuItem("Unlink"))
+    if (ImGui::MenuItem("Unlink", nullptr, nullptr, can_unlink))
     {
-        auto link = *m_menu_objs.links.begin();
         m_action->unlink(link);
         close = true;
     }
-    if (ImGui::MenuItem("Reroute"))
+    if (ImGui::MenuItem("Reroute", nullptr, nullptr, can_unlink))
     {
-        auto link = *m_menu_objs.links.begin();
         insert_reroute(link, m_menu_objs.click_pos);
         close = true;
     }

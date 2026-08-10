@@ -102,7 +102,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node_primitive(NodeInstanc
 
 bool WfDeserializerFromJson::check_cni_node_definition_reroute(const o_json& j, bool& /*is_valid*/) const
 {
-    if (j.contains("inputs") && /*!j["inputs"].empty() && */j["inputs"].size() != 1)
+    if (j.contains("inputs") && !j["inputs"].empty() && j["inputs"].size() != 1)
         return false;
     if (j.contains("outputs") && j["outputs"].size() != 1)
         return false;

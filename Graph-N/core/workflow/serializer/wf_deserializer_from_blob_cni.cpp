@@ -61,8 +61,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_primitive(blob::Reade
 
 NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_reroute(blob::Reader& root_block)
 {
-    auto reroute = cast::dynamic<CNI_Reroute>(m_curr_node);
-    LogRAssert(reroute, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
+    LogRAssert(m_curr_node->is_cni_reroute(), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
 
     auto block = root_block.pop_block();
     const auto count = block.pop_u32();
@@ -83,7 +82,15 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_reroute(blob::Reader&
     }
 
     m_curr_node->cni_save_deserialized_info(std::move(data));
-    reroute->cni_init();
+    m_curr_node->cni_init();
+
+    if (block.pop_bool()) // splitted
+    {
+        m_curr_node->reroute_split_to_parts();
+        m_curr_node->reroute_splitted_end_draw_parts();
+        m_curr_node->reroute_splitted_set_current_node_pos(block.pop_vec2());
+    }
+
     return m_curr_node;
 }
 

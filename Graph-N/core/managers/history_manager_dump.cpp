@@ -23,6 +23,8 @@ const char* action_type_str(HistoryActionType t)
     case HistoryActionType::PinVal:  return "PinVal";
     case HistoryActionType::LinkAdd: return "LinkAdd";
     case HistoryActionType::LinkDel: return "LinkDel";
+    case HistoryActionType::NodeRerouteSplit: return "RerouteSplit";
+    case HistoryActionType::NodeRerouteMerge: return "RerouteMerge";
     }
     LogRErrorS("Unknown action type", "Unknown");
 }

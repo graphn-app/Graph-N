@@ -36,7 +36,9 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
     { "CAMERA_CONTROL", PinType::CAMERA_CONTROL },		{ "LOAD3D_CAMERA", PinType::LOAD3D_CAMERA },		{ "DETAILER_HOOK", PinType::DETAILER_HOOK },
     { "HOOK_KEYFRAMES", PinType::HOOK_KEYFRAMES },      { "PHOTOMAKER", PinType::PHOTOMAKER },              { "SEG_ELT_control_net_wrapper", PinType::SEG_ELT_CONTROL_NET_WRAPPER },
     { "UPSCALER_HOOK", PinType::UPSCALER_HOOK },		{ "DETAILER_PIPE", PinType::DETAILER_PIPE },		{ "RGTHREE_CONTEXT", PinType::RGTHREE_CONTEXT },
-    { "UPSCALE_STACK", PinType::UPSCALE_STACK },        { "GLIGEN", PinType::GLIGEN },		                { "OPENAI_CHAT_CONFIG", PinType::OPENAI_CHAT_CONFIG }
+    { "UPSCALE_STACK", PinType::UPSCALE_STACK },        { "GLIGEN", PinType::GLIGEN },		                { "OPENAI_CHAT_CONFIG", PinType::OPENAI_CHAT_CONFIG },
+
+    { REROUTE_SPLITTED_PIN, PinType::REROUTE_SPLITTED }
 };
 
 Pin::Pin(Node* node, const std::string& pin_name, bool is_required, bool is_optional, bool is_hidden)
@@ -601,6 +603,8 @@ void Pin::generate_pin_color() noexcept
     case PinType::COMBO:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Combo);               return;
     case PinType::COLOR:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Color);               return;
 
+    case PinType::REROUTE_SPLITTED:     def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_RerouteSplitted);     return;
+
     case PinType::FLOATS:               def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Floats);              return;
     case PinType::SEED:                 def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Seed);                return;
     case PinType::MODEL:                def_state.pin_color = g::pOptsManager->color_load(AppColor::Pin_Model);               return;
@@ -767,6 +771,7 @@ PinShape Pin::get_shape(PinType type) noexcept
     {
         // --- SPECIAL ---
     case PinType::ANY:
+    case PinType::REROUTE_SPLITTED:
         return PinShape::SemiCircle;
 
         // --- PRIMITIVES & DATA ---

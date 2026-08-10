@@ -55,6 +55,26 @@ data::NodeInstance* WorkflowAction::add_group(std::optional<ImRect> size)
     return group_inst;
 }
 
+void WorkflowAction::split_reroute(data::NodeInstance* reroute_node)
+{
+    LogRAssert(reroute_node, "Zero ptr", );
+    LogRAssert(reroute_node->is_cni_reroute(), "Node is not reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
+    LogRAssert(!reroute_node->is_cni_reroute_splitted(), "Reroute already splitted. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id(), );
+
+    reroute_node->reroute_split_to_parts();
+    g::pHistoryManager->push_node_action(reroute_node, mngr::HistoryActionType::NodeRerouteSplit, true);
+}
+
+void WorkflowAction::merge_reroute(data::NodeInstance* reroute_node, bool to_left)
+{
+    LogRAssert(reroute_node, "Zero ptr", );
+    LogRAssert(reroute_node->is_cni_reroute(), "Node is not reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
+    LogRAssert(reroute_node->is_cni_reroute_splitted(), "Reroute wasn't splitted. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id(), );
+
+    reroute_node->reroute_merge_parts(to_left);
+    g::pHistoryManager->push_node_action(reroute_node, mngr::HistoryActionType::NodeRerouteMerge, to_left);
+}
+
 void WorkflowAction::delete_node(data::NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
@@ -69,6 +89,9 @@ void WorkflowAction::delete_node(data::NodeInstance* node)
     node->ed().reset();
 
     multi_action_on(node->m_group ? "Remove group" : "Remove node");
+
+    if (node->is_cni_reroute_splitted())
+        merge_reroute(node, true);
 
     m_wf->bypass_node(node);
 

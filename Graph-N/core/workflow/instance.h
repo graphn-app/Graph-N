@@ -29,8 +29,8 @@ public:
     virtual BaseObj* get_object() const noexcept { return m_object; }
     virtual void set_object(BaseObj* obj) { m_object = obj; }
 
-    EdType& ed() noexcept { return m_ed; }
-    const EdType& ed() const noexcept { return m_ed; }
+    virtual EdType& ed() noexcept { return m_ed; }
+    virtual const EdType& ed() const noexcept { return m_ed; }
     virtual void reset_state() noexcept { m_ed.reset(); }
 
 protected:

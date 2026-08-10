@@ -703,6 +703,11 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
         new_node->m_rc.Min.y = dest_pt.y + new_node->m_rc.Min.y;
         new_node->m_rc.Max = node->m_rc.Max;
 
+        if (node->is_cni_reroute_splitted())
+        {
+            //cast::dynamic<CNI_Reroute>(new_node)->
+        }
+
         if (!dest_wf_data.virt)
             g::pHistoryManager->push_node_action(new_node, HistoryActionType::NodeAdd);
 
@@ -714,6 +719,9 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
     std::ranges::for_each(link_ptrs, [&links](const std::unique_ptr<data::Link>& ptr) { links.push_back(ptr.get()); });
     for (auto link : links)
     {
+        if (link->is_reroute_splitting_link())
+            continue;
+
         const auto* src_in_pin = link->get_input();
         const auto* src_out_pin = link->get_output();
 

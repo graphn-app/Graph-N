@@ -19,10 +19,15 @@ public:
     PinInstance* get_input() const noexcept { return m_input; }
     PinInstance* get_output() const noexcept { return m_output; }
 
+    float get_link_thickness() const noexcept { return m_link_thickness; }
+    void set_link_thickness(float thickness) noexcept { m_link_thickness = thickness; }
+
     iid get_instance_id() const noexcept { return m_iid; }
     wid get_workflow_id() const noexcept { return m_workflow_id; }
 
     bool is_linked_to(const PinInstance* pin) const noexcept { return pin == m_input || pin == m_output; }
+
+    bool is_reroute_splitting_link() const noexcept;
 
     void reset_state() noexcept;
 
@@ -36,6 +41,7 @@ private:
     iid m_iid = 0;
     PinInstance* m_input = nullptr;
     PinInstance* m_output = nullptr;
+    float m_link_thickness = 0.0f;
 
     EdType m_ed;
 };

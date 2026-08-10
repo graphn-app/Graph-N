@@ -35,6 +35,7 @@ public:
 
     bool is_cni() const noexcept override { return true; }
     bool is_cni_reroute() const noexcept override { return true; }
+    bool is_cni_reroute_splitted() const noexcept override { return m_splitted; }
 
     bool cni_is_applicable() const noexcept override { return true; }
 
@@ -52,7 +53,59 @@ public:
     void cni_deserialilzation_ends() override;
 
     bool cni_json_api_should_export() const noexcept override { return false; }
-    bool cni_json_need_custom_serialization() const noexcept override { return true; }    
+    bool cni_json_need_custom_serialization() const noexcept override { return true; }
+
+private:
+    enum class DrawingPart
+    {
+        Left,
+        Right,
+    };
+
+public:
+    EdType& ed() noexcept override { return !m_splitted || DrawingPart::Left == m_drawing_splitted_part ?  CNI_BaseObj_T<CNI_Reroute>::ed() : m_ed_splitted; }
+    const EdType& ed() const noexcept override { return !m_splitted || DrawingPart::Left == m_drawing_splitted_part ?  CNI_BaseObj_T<CNI_Reroute>::ed() : m_ed_splitted; }
+    void reset_state() noexcept override;
+
+    void reroute_split_to_parts() override;
+    void reroute_merge_parts(bool to_left) override;
+
+    void reroute_splitted_begin_draw_parts() noexcept override { m_drawing_splitted_part = DrawingPart::Left; }
+    bool reroute_splitted_end_draw_parts() noexcept override
+    {
+        if (!m_splitted)
+            return false;
+        m_drawing_splitted_part = DrawingPart::Right;
+        if (!m_splitted_pos_set)
+        {
+            m_pos_set = false;
+            m_splitted_pos_set = true;
+        }
+        return true;
+    }
+
+    ImVec2 reroute_splitted_get_current_node_pos() const noexcept override
+    {
+        return (!m_splitted || DrawingPart::Left == m_drawing_splitted_part ? m_rc.Min : m_splitted_pos);
+    }
+    void reroute_splitted_set_current_node_pos(const ImVec2& pos) noexcept override
+    {
+        if (!m_splitted || DrawingPart::Left == m_drawing_splitted_part) m_rc.Min = pos;
+        else m_splitted_pos = pos;
+    }
+
+    PinInstance* reroute_splitted_get_input() const noexcept override
+    {
+        if (m_splitted && DrawingPart::Right == m_drawing_splitted_part)
+            return m_splitted_in;
+        return nullptr;
+    }
+    PinInstance* reroute_splitted_get_output() const noexcept override
+    {
+        if (m_splitted && DrawingPart::Left == m_drawing_splitted_part)
+            return m_splitted_out;
+        return nullptr;
+    }
 
 private:
     struct LinkedPair;
@@ -87,6 +140,14 @@ private:
     std::list<LinkedPair> m_pairs;
     std::map<PinType, int32_t> m_in_pin_types;
     int32_t m_next_out_index = 1;
+
+    bool m_splitted = false;
+    DrawingPart m_drawing_splitted_part = DrawingPart::Left;
+    EdType m_ed_splitted;
+    ImVec2 m_splitted_pos;
+    bool m_splitted_pos_set = false;
+    PinInstance* m_splitted_in = nullptr;
+    PinInstance* m_splitted_out = nullptr;
 };
 
 } // namespace data

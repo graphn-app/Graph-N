@@ -415,6 +415,38 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
     close_action(node->get_workflow_id());
 }
 
+void HistoryManager::push_node_action(data::NodeInstance* node, HistoryActionType act, bool merge_left)
+{
+    LogRAssert(node, "Zero ptr", );
+    if (should_ignore_action(node->get_workflow_id())) return;
+
+    HistoryAction* history = nullptr;
+
+    switch (act)
+    {
+    case HistoryActionType::NodeRerouteSplit:
+        history = open_action(node->get_workflow_id(), "Split into Linked Pair");
+        break;
+    case HistoryActionType::NodeRerouteMerge:
+        history = open_action(node->get_workflow_id(), "Collapse Reroute");
+        break;
+    default:
+        LogRError("Invalid action pushed", );
+    }
+
+    LogRAssert(history->wf == node->get_workflow_id(), "Wfs don't match. hw:" << history->wf << " != nw:" << node->get_workflow_id() << ", n:" << node->get_instance_id(), );
+
+    std::unique_ptr<HistoryStep> step = std::make_unique<ActNodeRerouteSplitting>(act);
+    ActNodeRerouteSplitting* real_step = cast::dynamic<ActNodeRerouteSplitting>(step.get());
+    node->reroute_splitted_end_draw_parts();
+    real_step->splitted_pos = node->reroute_splitted_get_current_node_pos();
+    real_step->merged_left = merge_left;
+    step->id = node->get_instance_id();
+    history->steps.push_back(std::move(step));
+
+    close_action(node->get_workflow_id());
+}
+
 void HistoryManager::push_pin_action(const data::PinInstance* pin, HistoryActionType act, HActionT&& old_val)
 {
     LogRAssert(pin, "Zero ptr", );
@@ -546,6 +578,12 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
     case HistoryActionType::NodeRen:
         pop_node_ren(wf, step, do_undo);
         break;
+    case HistoryActionType::NodeRerouteSplit:
+        pop_node_reroute_split(wf, step, do_undo);
+        break;
+    case HistoryActionType::NodeRerouteMerge:
+        pop_node_reroute_merge(wf, step, do_undo);
+        break;
     case HistoryActionType::PinRen:
         pop_pin_ren(wf, step, do_undo);
         break;
@@ -653,6 +691,38 @@ void HistoryManager::pop_node_rect(const data::Workflow* dest_wf, const HistoryS
     LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     dest_wf->action()->set_node_rect(node, *std::get_if<ImRect>(do_undo ? &real_step->old_val : &real_step->new_val));
+}
+
+void HistoryManager::pop_node_reroute_split(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+{
+    if (!do_undo)
+    {
+        pop_node_reroute_merge(dest_wf, step, true);
+        return;
+    }
+    auto node = dest_wf->get_node_by_instance(step->id);
+    const ActNodeRerouteSplitting* real_step = cast::dynamic<const ActNodeRerouteSplitting>(step);
+    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
+    LogRAssert(node->is_cni_reroute(), "Node is not CNI Reroute. w:" << dest_wf->get_id() << ", n:" << step->id, );
+    dest_wf->action()->merge_reroute(node, real_step->merged_left);
+    node->reroute_splitted_end_draw_parts();
+    node->reroute_splitted_set_current_node_pos(real_step->splitted_pos);
+}
+
+void HistoryManager::pop_node_reroute_merge(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+{
+    if (!do_undo)
+    {
+        pop_node_reroute_split(dest_wf, step, true);
+        return;
+    }
+    const ActNodeRerouteSplitting* real_step = cast::dynamic<const ActNodeRerouteSplitting>(step);
+    auto node = dest_wf->get_node_by_instance(step->id);
+    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
+    LogRAssert(node->is_cni_reroute(), "Node is not CNI Reroute. w:" << dest_wf->get_id() << ", n:" << step->id, );
+    dest_wf->action()->split_reroute(node);
+    node->reroute_splitted_end_draw_parts();
+    node->reroute_splitted_set_current_node_pos(real_step->splitted_pos);
 }
 
 void HistoryManager::pop_pin_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
