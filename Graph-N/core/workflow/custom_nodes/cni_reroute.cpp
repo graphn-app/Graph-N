@@ -100,6 +100,8 @@ PinInstance* CNI_Reroute::add_pin_internal(Workflow* wf, const std::string& type
 
 void CNI_Reroute::remove_pin_internal(Workflow* wf, PinInstance* pin, bool force_cleanup) noexcept
 {
+    m_removed.insert(pin->reset_state());
+
     if (force_cleanup)
     {
         cni_remove_pin(pin->get_object());
@@ -534,10 +536,34 @@ void CNI_Reroute::reroute_merge_parts(bool to_left)
         m_rc.Min = m_splitted_pos;
 }
 
-void CNI_Reroute::reset_state() noexcept
+uint64_t CNI_Reroute::reset_state() noexcept
 {
-    CNI_BaseObj_T<CNI_Reroute>::reset_state();
+    auto ret = CNI_BaseObj_T<CNI_Reroute>::reset_state();
     m_ed_splitted.reset();
+    return ret;
+}
+
+std::unordered_set<uint64_t> CNI_Reroute::cni_get_all_eds()
+{
+    std::unordered_set<uint64_t> eds = m_removed;
+
+    eds.insert(m_ed_splitted.id());
+    m_ed_splitted.reset();
+
+    for (auto& pair : m_pairs)
+    {
+        if (pair.input.internal != nullptr)
+            eds.insert(pair.input.internal->reset_state());
+        if (pair.output.internal != nullptr)
+            eds.insert(pair.output.internal->reset_state());
+    }
+    
+    if (m_splitted_in != nullptr)
+        eds.insert(m_splitted_in->reset_state());
+    if (m_splitted_out != nullptr)
+        eds.insert(m_splitted_out->reset_state());
+
+    return eds;
 }
 
 } // namespace data

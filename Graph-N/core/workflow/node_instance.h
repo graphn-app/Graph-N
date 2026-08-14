@@ -36,7 +36,7 @@ public:
     void reset_to_default_colors() noexcept;
 
     void reset_width() noexcept override;
-    void reset_state() noexcept override;
+    uint64_t reset_state() noexcept override;
 
     void increment(const NodeInstance* copy_to, WorkflowAction* wf_action);
     void collect_search_data(std::stringstream& data) const;

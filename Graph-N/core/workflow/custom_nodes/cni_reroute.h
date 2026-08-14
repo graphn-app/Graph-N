@@ -49,6 +49,8 @@ public:
 
     void cni_mirror_value_to(const PinInstance* src, std::vector<PinInstance*>& append_pins) const override;
 
+    std::unordered_set<uint64_t> cni_get_all_eds() override;
+
     void cni_deserialilzation_begins() noexcept override;
     void cni_deserialilzation_ends() override;
 
@@ -65,7 +67,7 @@ private:
 public:
     EdType& ed() noexcept override { return !m_splitted || DrawingPart::Left == m_drawing_splitted_part ?  CNI_BaseObj_T<CNI_Reroute>::ed() : m_ed_splitted; }
     const EdType& ed() const noexcept override { return !m_splitted || DrawingPart::Left == m_drawing_splitted_part ?  CNI_BaseObj_T<CNI_Reroute>::ed() : m_ed_splitted; }
-    void reset_state() noexcept override;
+    uint64_t reset_state() noexcept override;
 
     void reroute_split_to_parts() override;
     void reroute_merge_parts(bool to_left) override;
@@ -148,6 +150,8 @@ private:
     bool m_splitted_pos_set = false;
     PinInstance* m_splitted_in = nullptr;
     PinInstance* m_splitted_out = nullptr;
+
+    std::unordered_set<uint64_t> m_removed;
 };
 
 } // namespace data

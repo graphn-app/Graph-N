@@ -98,74 +98,84 @@ namespace ed = ax::NodeEditor;
 
 namespace
 {
-ed::NodeId obj_to_ed(std::map<uint64_t, void*>& ed_objects, const data::NodeInstance* node)
+ed::NodeId obj_to_ed(std::vector<std::pair<uint64_t, data::NodeInstance*>>& ed_objects, data::NodeInstance* node)
 {
     LogRAssertS(node, "Zero ptr", ed::NodeId{});
-    ed_objects[node->ed().id()] = cast::to_void(node);
-    //LogS("Node obj ed. w:" << node->get_workflow_id() << ", n:" << node->get_instance_id());
+    ed_objects.push_back({ node->ed().id(), node });
+    std::ranges::sort(ed_objects, {}, &std::pair<uint64_t, data::NodeInstance*>::first);
     return ed::NodeId(node->ed().id());
 }
-ed::PinId obj_to_ed(std::map<uint64_t, void*>& ed_objects, const data::PinInstance* pin)
+ed::PinId obj_to_ed(std::vector<std::pair<uint64_t, data::PinInstance*>>& ed_objects, data::PinInstance* pin)
 {
     LogRAssertS(pin, "Zero ptr", ed::PinId{});
-    ed_objects[pin->ed().id()] = cast::to_void(pin);
-    //LogS("Pin obj ed. w:" << pin->get_workflow_id() << ", p:" << pin->get_instance_id());
+    ed_objects.push_back({ pin->ed().id(), pin });
+    std::ranges::sort(ed_objects, {}, &std::pair<uint64_t, data::PinInstance*>::first);
     return ed::PinId(pin->ed().id());
 }
-ed::LinkId obj_to_ed(std::map<uint64_t, void*>& ed_objects, const data::Link* link)
+ed::LinkId obj_to_ed(std::vector<std::pair<uint64_t, data::Link*>>& ed_objects, data::Link* link)
 {
     LogRAssertS(link, "Zero ptr", ed::LinkId{});
-    ed_objects[link->ed().id()] = cast::to_void(link);
-    //LogS("Link obj ed. w:" << link->get_workflow_id() << ", l:" << link->get_instance_id());
+    ed_objects.push_back({ link->ed().id(), link });
+    std::ranges::sort(ed_objects, {}, &std::pair<uint64_t, data::Link*>::first);
     return ed::LinkId(link->ed().id());
 }
 
-void ed_del(std::map<uint64_t, void*>& ed_objects, data::NodeInstance* node) noexcept
-{
-    ed_objects.erase(node->ed().id());
-    node->ed().reset();
-}
-void ed_del(std::map<uint64_t, void*>& ed_objects, data::PinInstance* pin) noexcept
-{
-    ed_objects.erase(pin->ed().id());
-    pin->ed().reset();
-}
-void ed_del(std::map<uint64_t, void*>& ed_objects, data::Link* link) noexcept
-{
-    ed_objects.erase(link->ed().id());
-    link->ed().reset();
-}
-
-data::NodeInstance* ed_to_obj(const std::map<uint64_t, void*>& ed_objects, const ed::NodeId& edid)
+data::NodeInstance* ed_to_obj(const std::vector<std::pair<uint64_t, data::NodeInstance*>>& ed_objects, const ed::NodeId& edid)
 {
     if (!edid) return nullptr;
     const uint64_t id = uint64_t(edid.Get());
-    const auto it = ed_objects.find(id);
+    auto it = std::ranges::lower_bound(ed_objects, id, {}, &std::pair<uint64_t, data::NodeInstance*>::first);
     LogRAssertS(it != ed_objects.end(), "Node not found from id " << id, nullptr);
     return cast::ptrs<data::NodeInstance>(it->second);
 }
-data::PinInstance* ed_to_obj(const std::map<uint64_t, void*>& ed_objects, const ed::PinId& edid)
+data::PinInstance* ed_to_obj(const std::vector<std::pair<uint64_t, data::PinInstance*>>& ed_objects, const ed::PinId& edid)
 {
     if (!edid) return nullptr;
     const uint64_t id = uint64_t(edid.Get());
-    const auto it = ed_objects.find(id);
+    auto it = std::ranges::lower_bound(ed_objects, id, {}, &std::pair<uint64_t, data::PinInstance*>::first);
     LogRAssertS(it != ed_objects.end(), "Pin not found from id " << id, nullptr);
     return cast::ptrs<data::PinInstance>(it->second);
 }
-data::Link* ed_to_obj(const std::map<uint64_t, void*>& ed_objects, const ed::LinkId& edid)
+data::Link* ed_to_obj(const std::vector<std::pair<uint64_t, data::Link*>>& ed_objects, const ed::LinkId& edid)
 {
     if (!edid) return nullptr;
     const uint64_t id = uint64_t(edid.Get());
-    const auto it = ed_objects.find(id);
+    auto it = std::ranges::lower_bound(ed_objects, id, {}, &std::pair<uint64_t, data::Link*>::first);
     LogRAssertS(it != ed_objects.end(), "Link not found from id " << id, nullptr);
     return cast::ptrs<data::Link>(it->second);
 }
+
+void ed_del_link(std::vector<std::pair<uint64_t, data::Link*>>& ed_objects, data::Link* link) noexcept
+{
+    std::erase_if(ed_objects, [id = link->ed().id()](const std::pair<uint64_t, data::Link*>& pair) { return pair.first == id; });
+    link->ed().reset();
+}
+void ed_del_batch(
+    std::vector<std::pair<uint64_t, data::NodeInstance*>>& ed_nodes,
+    std::vector<std::pair<uint64_t, data::PinInstance*>>& ed_pins,
+    std::vector<std::pair<uint64_t, data::Link*>>& ed_links,
+    const std::unordered_set<uint64_t>& ids
+) noexcept
+{
+    std::erase_if(ed_nodes, [&ids](const std::pair<uint64_t, data::NodeInstance*>& pair) { return ids.contains(pair.first); });
+    std::erase_if(ed_pins, [&ids](const std::pair<uint64_t, data::PinInstance*>& pair) { return ids.contains(pair.first); });
+    std::erase_if(ed_links, [&ids](const std::pair<uint64_t, data::Link*>& pair) { return ids.contains(pair.first); });
+}
+
 } // namespace
 
-#define OBJ_CREATE(obj) obj_to_ed(m_ed_objects, obj)
-#define OBJ_LOAD(obj) ed_to_obj(m_ed_objects, obj)
+#define OBJ_CREATE_NODE(node) obj_to_ed(m_ed_objects_nodes, node)
+#define OBJ_CREATE_PIN(pin) obj_to_ed(m_ed_objects_pins, pin)
+#define OBJ_CREATE_LINK(link) obj_to_ed(m_ed_objects_links, link)
+
+#define OBJ_LOAD_NODE(node) ed_to_obj(m_ed_objects_nodes, node)
+#define OBJ_LOAD_PIN(pin) ed_to_obj(m_ed_objects_pins, pin)
+#define OBJ_LOAD_LINK(link) ed_to_obj(m_ed_objects_links, link)
+
 #define OBJ_ID(obj) obj->ed()
-#define OBJ_DEL(obj) ed_del(m_ed_objects, obj)
+
+#define OBJ_DEL_LINK(link) ed_del_link(m_ed_objects_links, link)
+#define OBJ_DEL_BATCH(ids) ed_del_batch(m_ed_objects_nodes, m_ed_objects_pins, m_ed_objects_links, ids)
 
 NodeDrawer::NodeDrawer(data::Workflow* wf) noexcept
     : m_wf(wf)
@@ -393,7 +403,7 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
         if (OBJ_ID(node))
             ed::SetNodePosition(OBJ_ID(node), pos);
         else
-            OBJ_ID(node) = ed::SetNodePosition(OBJ_CREATE(node), pos);
+            OBJ_ID(node) = ed::SetNodePosition(OBJ_CREATE_NODE(node), pos);
         node->m_pos_set = true;
     }
     if (!node->m_size_set && node->m_group)
@@ -401,14 +411,14 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
         if (OBJ_ID(node))
             ed::SetGroupSize(OBJ_ID(node), node->m_rc.Max);
         else
-            OBJ_ID(node) = ed::SetGroupSize(OBJ_CREATE(node), node->m_rc.Max);
+            OBJ_ID(node) = ed::SetGroupSize(OBJ_CREATE_NODE(node), node->m_rc.Max);
         node->m_size_set = true;
     }
 
     if (OBJ_ID(node))
         ed::BeginNode(OBJ_ID(node));
     else
-        OBJ_ID(node) = ed::BeginNode(OBJ_CREATE(node));
+        OBJ_ID(node) = ed::BeginNode(OBJ_CREATE_NODE(node));
 
     if (!node->m_pinned_set)
     {
@@ -900,7 +910,7 @@ void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool alig
     if (OBJ_ID(pin))
         ed::BeginPin(OBJ_ID(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
     else
-        OBJ_ID(pin) = ed::BeginPin(OBJ_CREATE(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
+        OBJ_ID(pin) = ed::BeginPin(OBJ_CREATE_PIN(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
     draw_pin_shape(pin, collapsed_mode, align_to_widget, failed_pin);
     ed::EndPin();
     ImGui::PopID();
@@ -1321,7 +1331,7 @@ void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& link
         if (OBJ_ID(link))
             ed::Link(OBJ_ID(link), OBJ_ID(in), OBJ_ID(out), in->state().pin_color, link->get_link_thickness());
         else
-            OBJ_ID(link) = ed::Link(OBJ_CREATE(link.get()), OBJ_ID(in), OBJ_ID(out), in->state().pin_color, link->get_link_thickness());
+            OBJ_ID(link) = ed::Link(OBJ_CREATE_LINK(link.get()), OBJ_ID(in), OBJ_ID(out), in->state().pin_color, link->get_link_thickness());
     }
 }
 
@@ -1335,8 +1345,8 @@ void NodeDrawer::query_new_item(
         ed::PinId pin = 0;
         if (ed::QueryNewLink(&start, &end))
         {
-            data::PinInstance* p1 = OBJ_LOAD(start);
-            data::PinInstance* p2 = OBJ_LOAD(end);
+            data::PinInstance* p1 = OBJ_LOAD_PIN(start);
+            data::PinInstance* p2 = OBJ_LOAD_PIN(end);
             bool allow = (p1 != p2 && p1 != nullptr && p2 != nullptr && !p1->get_is_reroute_splitting_pin() && !p2->get_is_reroute_splitting_pin());
 
             if (allow)
@@ -1381,7 +1391,7 @@ void NodeDrawer::query_new_item(
         }
         else if (ed::QueryNewNode(&pin))
         {
-            m_querying_pin = OBJ_LOAD(pin);
+            m_querying_pin = OBJ_LOAD_PIN(pin);
             if (ed::AcceptNewItem())
             {
                 if (m_querying_pin != nullptr && !m_querying_pin->get_object()->parent_node->is_dummy && !m_querying_pin->get_is_reroute_splitting_pin())
@@ -1619,17 +1629,17 @@ ImVec2 NodeDrawer::get_mouse_pos(const ImVec2* convert_pos /*= nullptr*/) const 
 
 data::PinInstance* NodeDrawer::get_hovered_pin() const
 {
-    return OBJ_LOAD(ed::GetHoveredPin());
+    return OBJ_LOAD_PIN(ed::GetHoveredPin());
 }
 
 data::NodeInstance* NodeDrawer::get_hovered_node() const
 {
-    return OBJ_LOAD(ed::GetHoveredNode());
+    return OBJ_LOAD_NODE(ed::GetHoveredNode());
 }
 
 data::Link* NodeDrawer::get_hovered_link() const
 {
-    return OBJ_LOAD(ed::GetHoveredLink());
+    return OBJ_LOAD_LINK(ed::GetHoveredLink());
 }
 
 std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes() const
@@ -1645,7 +1655,7 @@ std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes() const
     std::set<data::NodeInstance*> ret;
     for (auto id : nodes)
     {
-        ret.insert(OBJ_LOAD(id));
+        ret.insert(OBJ_LOAD_NODE(id));
     }
     return ret;
 }
@@ -1673,7 +1683,7 @@ std::set<data::Link*> NodeDrawer::get_selected_links() const
     std::set<data::Link*> ret;
     for (auto id : links)
     {
-        ret.insert(OBJ_LOAD(id));
+        ret.insert(OBJ_LOAD_LINK(id));
     }
     return ret;
 }
@@ -1780,7 +1790,7 @@ void NodeDrawer::delete_node(data::NodeInstance* node)
         if (OBJ_ID(node))
             ed::DeleteNode(OBJ_ID(node));
         else
-            ed::DeleteNode(OBJ_CREATE(node));
+            ed::DeleteNode(OBJ_CREATE_NODE(node));
 
         if (node->is_cni_reroute_splitted())
         {
@@ -1788,16 +1798,22 @@ void NodeDrawer::delete_node(data::NodeInstance* node)
             if (OBJ_ID(node))
                 ed::DeleteNode(OBJ_ID(node));
             else
-                ed::DeleteNode(OBJ_CREATE(node));
+                ed::DeleteNode(OBJ_CREATE_NODE(node));
         }
-
-        OBJ_DEL(node);
-        for (auto pin : node->get_inputs())  { OBJ_DEL(pin); }
-        for (auto pin : node->get_outputs()) { OBJ_DEL(pin); }
     }
 
     if (nullptr == editor)
         ed::SetCurrentEditor(nullptr);
+
+    std::unordered_set<uint64_t> ids_to_del;
+
+    ids_to_del.insert(node->reset_state());
+
+    for (auto pin : node->get_inputs()) { ids_to_del.insert(pin->reset_state()); }
+    for (auto pin : node->get_outputs()) { ids_to_del.insert(pin->reset_state()); }
+
+    ids_to_del.merge(node->cni_get_all_eds());
+    OBJ_DEL_BATCH(ids_to_del);
 }
 
 void NodeDrawer::delete_link(data::Link* link)
@@ -1814,8 +1830,8 @@ void NodeDrawer::delete_link(data::Link* link)
         if (OBJ_ID(link))
             ed::DeleteLink(OBJ_ID(link));
         else
-            ed::DeleteLink(OBJ_CREATE(link));
-        OBJ_DEL(link);
+            ed::DeleteLink(OBJ_CREATE_LINK(link));
+        OBJ_DEL_LINK(link);
     }
 
     if (nullptr == editor)
@@ -1937,6 +1953,16 @@ void NodeDrawer::handle_node_collapsing(const data::NodeInstance* node)
             break;
         }
     }
+}
+
+data::NodeInstance* NodeDrawer::get_node_from_ed(const EdType& ed) const
+{
+    if (ed.empty())
+        return nullptr;
+
+    auto it = std::ranges::lower_bound(m_ed_objects_nodes, ed.id(), {}, &std::pair<uint64_t, data::NodeInstance*>::first);
+    LogRAssertS(it != m_ed_objects_nodes.end(), "Node not found from id " << ed.id(), nullptr);
+    return cast::ptrs<data::NodeInstance>(it->second);
 }
 
 } // namespace ui

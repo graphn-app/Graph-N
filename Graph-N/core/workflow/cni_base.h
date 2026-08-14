@@ -72,6 +72,9 @@ public:
     // pin value changed, CNI node to return list of pins to mirror value
     virtual void cni_mirror_value_to(const PinInstance* /*src*/, std::vector<PinInstance*>& /*append_pins*/) const { }
 
+    // all internal objects to be cleaned up
+    virtual std::unordered_set<uint64_t> cni_get_all_eds() { return {}; }
+
     // serialization
 
     // notify node

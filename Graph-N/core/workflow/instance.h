@@ -31,7 +31,7 @@ public:
 
     virtual EdType& ed() noexcept { return m_ed; }
     virtual const EdType& ed() const noexcept { return m_ed; }
-    virtual void reset_state() noexcept { m_ed.reset(); }
+    virtual uint64_t reset_state() noexcept { const uint64_t id = m_ed.id(); m_ed.reset(); return id; }
 
 protected:
     wid m_wid = 0;

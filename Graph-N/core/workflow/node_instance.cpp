@@ -97,10 +97,11 @@ void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
     link_cag_pins();
 }
 
-void NodeInstance::reset_state() noexcept
+uint64_t NodeInstance::reset_state() noexcept
 {
-    NodeInstanceBase::reset_state();
+    const auto id = NodeInstanceBase::reset_state();
     m_pos_set = m_size_set = m_pinned_set = false;
+    return id;
 }
 
 void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_action)

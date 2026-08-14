@@ -29,7 +29,7 @@ public:
 
     bool is_reroute_splitting_link() const noexcept;
 
-    void reset_state() noexcept;
+    uint64_t reset_state() noexcept;
 
     void unlink();
 

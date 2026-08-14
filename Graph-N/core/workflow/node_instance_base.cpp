@@ -43,10 +43,11 @@ void NodeInstanceBase::reset_width() noexcept
     w_name = -1.0f;
 }
 
-void NodeInstanceBase::reset_state() noexcept
+uint64_t NodeInstanceBase::reset_state() noexcept
 {
-   Instance<data::Node>::reset_state();
+   const auto id = Instance<data::Node>::reset_state();
    reset_width();
+   return id;
 }
 
 const std::string& NodeInstanceBase::get_name() const noexcept

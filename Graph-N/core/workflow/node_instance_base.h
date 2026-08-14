@@ -44,7 +44,7 @@ protected:
     virtual float get_additional_node_width() const noexcept { return 0.0f; }
     virtual bool do_need_calc_node_widths() const noexcept { return true; }
 
-    void reset_state() noexcept override;
+    uint64_t reset_state() noexcept override;
 
 public:
     float w_node = 0.0f;

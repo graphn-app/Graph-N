@@ -181,9 +181,11 @@ bool Link::is_reroute_splitting_link() const noexcept
     return m_input->get_is_reroute_splitting_pin() || m_output->get_is_reroute_splitting_pin();
 }
 
-void Link::reset_state() noexcept
+uint64_t Link::reset_state() noexcept
 {
+    const uint64_t id = ed().id();
     ed().reset();
+    return id;
 }
 
 } // namespace data
