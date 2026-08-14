@@ -198,7 +198,7 @@ bool WebSocket::is_useful(const std::string& message) const
     try
     {
         auto j = u_json::parse(message);
-        if (!j.contains("type") || !j["type"].is_string())
+        if (!j.contains("type") || !j["type"].is_string()) [[unlikely]]
             return false;
 
         const std::string& type = j["type"].get_ref<std::string&>();

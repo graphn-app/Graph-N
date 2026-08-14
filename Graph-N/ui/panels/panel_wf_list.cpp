@@ -151,7 +151,7 @@ DlgCode PanelWfList::show(bool& focused)
     bool opened = true;
     if (begin_panel(opened, focused) && opened)
     {
-        if (g::pFlow->get_nodes_ready())
+        if (g::pFlow->get_nodes_ready()) [[likely]]
             draw_toolbar();
 
         if (!m_labels_mode && !m_deleted_mode && m_wfs.empty())
@@ -223,7 +223,7 @@ DlgCode PanelWfList::show(bool& focused)
                 {}
             );
         }
-        else
+        else [[likely]]
         {
             show_wfs();
         }

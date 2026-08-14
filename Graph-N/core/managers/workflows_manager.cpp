@@ -198,31 +198,31 @@ data::Workflow* WfsManager::access(wid wf_id) const
     const auto search_rw = [this, wf_id]() -> data::Workflow*
     {
         const auto it = m_wfs.find(wf_id);
-        if (it == m_wfs.end())
-            return nullptr;
-        return it->second.get();
+        if (it != m_wfs.end())
+            return it->second.get();
+        return nullptr;
     };
 
     const auto search_virt = [this, wf_id]() -> data::Workflow*
     {
         const auto it = std::ranges::find_if(m_wfs_virt, [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
-        if (it == m_wfs_virt.end())
-            return nullptr;
-        return (*it).get();
+        if (it != m_wfs_virt.end())
+            return (*it).get();
+        return nullptr;
     };
 
     const auto search_ro = [this, wf_id]() -> data::Workflow*
     {
         const auto it = std::ranges::find_if(m_wfs_ro, [wf_id](const std::unique_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
-        if (it == m_wfs_ro.end())
-            return nullptr;
-        return (*it).get();
+        if (it != m_wfs_ro.end())
+            return (*it).get();
+        return nullptr;
     };
 
     auto wf = search_rw();
-    if (nullptr == wf)
+    if (nullptr == wf) [[unlikely]]
         wf = search_virt();
-    if (nullptr == wf)
+    if (nullptr == wf) [[unlikely]]
         wf = search_ro();
 
     LogRAssert(wf, "No access. Wf not found. w:" << wf_id, nullptr);
@@ -576,12 +576,11 @@ void WfsManager::save_labels()
 const std::list<wid>& WfsManager::get_wfs_in_label(uint32_t label_id) const
 {
     auto it = m_wfs_in_label.find(label_id);
-    if (it == m_wfs_in_label.end())
-    {
-        static std::list<wid> empty;
-        return empty;
-    }
-    return it->second;
+    if (it != m_wfs_in_label.end())
+        return it->second;
+    
+    static std::list<wid> empty;
+    return empty;
 }
 
 bool WfsManager::get_is_wf_in_label(wid wf_id, uint32_t label_id) const
@@ -652,7 +651,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
     LogRAssert(m_copy_src, "Copy wasn't initiated", );
     LogRAssert(wf_dest, "Zero ptr", );
 
-    if (m_copied_nodes.empty())
+    if (m_copied_nodes.empty()) [[unlikely]]
     {
         Log("No nodes to copy");
         return;
@@ -703,10 +702,10 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
         new_node->m_rc.Min.y = dest_pt.y + new_node->m_rc.Min.y;
         new_node->m_rc.Max = node->m_rc.Max;
 
-        if (node->is_cni_reroute_splitted())
-        {
+        //if (node->is_cni_reroute_splitted())
+        //{
             //cast::dynamic<CNI_Reroute>(new_node)->
-        }
+        //}
 
         if (!dest_wf_data.virt)
             g::pHistoryManager->push_node_action(new_node, HistoryActionType::NodeAdd);
@@ -719,7 +718,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
     std::ranges::for_each(link_ptrs, [&links](const std::unique_ptr<data::Link>& ptr) { links.push_back(ptr.get()); });
     for (auto link : links)
     {
-        if (link->is_reroute_splitting_link())
+        if (link->is_reroute_splitting_link()) [[unlikely]]
             continue;
 
         const auto* src_in_pin = link->get_input();
@@ -751,7 +750,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
                 break;
             }
         }
-        if (nullptr == dest_in_pin || nullptr == dest_out_pin)
+        if (nullptr == dest_in_pin || nullptr == dest_out_pin) [[unlikely]]
         {
             LogError("Dest pin(s) not found. wsrc:" << m_copy_src->get_id() << ", wdst:" << wf_dest->get_id()
                 << ", din:" << dest_in_node->get_instance_id() << ", sip:" << src_in_pin->get_instance_id() << ":" << (dest_in_pin != nullptr)
@@ -1045,7 +1044,7 @@ void WfsManager::on_1s_lazy_timer(int64_t /*total_seconds_elapsed*/)
     m_dump_counter++;
     if (m_dump_counter >= 60)
     {
-        if (ImGui::IsAnyMouseDown())
+        if (ImGui::IsAnyMouseDown()) [[unlikely]]
         {
             Log("Canvas is busy, save later");
             return;

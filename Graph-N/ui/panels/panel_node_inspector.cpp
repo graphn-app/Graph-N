@@ -114,7 +114,7 @@ DlgCode PanelNodeInspector::show(bool& focused)
                 }
             );
         }
-        else
+        else [[likely]]
         {
             show_nodes();
         }

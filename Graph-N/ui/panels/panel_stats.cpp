@@ -341,7 +341,7 @@ DlgCode PanelStats::show(bool& focused)
             ImGui::SameLine(val_text_offset);
             ImGui::TextUnformatted("offline");
         }
-        else
+        else [[likely]]
         {
             ImGui::TextUnformatted("Status");
             ImGui::SameLine(val_text_offset);
@@ -513,7 +513,7 @@ void PanelStats::print_ping(float val_offset) noexcept
         ImGui::PushStyleColor(ImGuiCol_Text, color);
     ImGui::TextUnformatted("Ping");
     ImGui::SameLine(val_offset);
-    if (m_ping_mk > 0)
+    if (m_ping_mk > 0) [[likely]]
     {
         if (m_ping_mk < 1000)
             ImGui::Text("%.3f ms", cast::to_float(m_ping_mk) / 1000.0f);

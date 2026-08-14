@@ -115,7 +115,7 @@ DlgCode PanelQueue::show(bool& focused)
                 }
             );
         }
-        else
+        else [[likely]]
         {
             draw_toolbar();
             init_history();
@@ -246,7 +246,7 @@ int32_t PanelQueue::show_tasks_num(int32_t curr) noexcept
     if (ImGui::Combo("", &imgui_idx,
         [](void* /*data*/, int idx, const char** out_text) noexcept
         {
-            if (0 == idx)
+            if (0 == idx) [[unlikely]]
             {
                 *out_text = "Infinite";
                 return true;
@@ -402,7 +402,7 @@ void PanelQueue::show_next_tasks()
         ImGui::AlignTextToFramePadding();
         ImGui::Selectable("##DND_REORDER_QUEUE", false, int32_t(ImGuiSelectableFlags_SpanAvailWidth) | int32_t(ImGuiSelectableFlags_AllowItemOverlap));
 
-        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) [[unlikely]]
         {
             ImGui::SetDragDropPayload(DND_REORDER_QUEUE, &g.group_id, sizeof(uint64_t));
             ImGui::TextUnformatted(g::pFlow->get_panel_icon(DlgObj::PanelWf));
@@ -411,7 +411,7 @@ void PanelQueue::show_next_tasks()
             ImGui::EndDragDropSource();
         }
 
-        if (ImGui::BeginDragDropTarget())
+        if (ImGui::BeginDragDropTarget()) [[unlikely]]
         {
             const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DND_REORDER_QUEUE);
             if (payload != nullptr && payload->DataSize == sizeof(uint64_t))
@@ -655,7 +655,7 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
     const char* icon = (favorited ? ICON_LC_STAR : ICON_LC_PLAY);
     const char* tt = (favorited ? "Unfavorite run" : "Favorite run");
     const AppColor clr = (favorited ? AppColor::Starred : AppColor::OptSeparator);
-    if (ImGuiEx::UrlButton(icon, tt, g::pOptsManager->color_load(clr), g::pOptsManager->color_load(AppColor::SelectedItem), false))
+    if (ImGuiEx::UrlButton(icon, tt, g::pOptsManager->color_load(clr), g::pOptsManager->color_load(AppColor::SelectedItem), false)) [[unlikely]]
     {
         m_favorited = g::pOptsManager->queue_favorited_save(task->prompt_id, !favorited);
         task->favorited = !task->favorited.value();
@@ -674,7 +674,7 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
     const auto disable = !g::pFlow->get_nodes_ready() || task->flow->empty();
     if (disable) ImGui::BeginDisabled();
     const char* wf_text = (wf_name.empty() ? "Open workflow" : wf_name.c_str());
-    if (ImGuiEx::UrlButton(wf_text, "Create and open workflow for this run", IM_COL32_WHITE, g::pOptsManager->color_load(AppColor::SelectedItem), false))
+    if (ImGuiEx::UrlButton(wf_text, "Create and open workflow for this run", IM_COL32_WHITE, g::pOptsManager->color_load(AppColor::SelectedItem), false)) [[unlikely]]
     {
         if (!task->loaded_from_server && !task->loaded_from_db)
             g::pQueueManager->create_from_past_task(group_id, task->task_id);
@@ -723,7 +723,7 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
     const float padding_x = ImGui::GetStyle().WindowPadding.x;
     float avail = window_width - (padding_x * 2.0f) - ImGui::GetStyle().ScrollbarSize; // fix feedback loop
 
-    if (task->result != TaskResult::Success)
+    if (task->result != TaskResult::Success) [[unlikely]]
     {
         ImGui::SetCursorPosX(off1);
         if (ImGuiEx::UrlButton("Error:", hidden ? "Show error details" : "Hide error details", IM_COL32_WHITE, g::pOptsManager->color_load(AppColor::SelectedItem), false))
@@ -917,13 +917,13 @@ void PanelQueue::show_asset_info(const mngr::ExecTask::Output& output, size_t ou
             ImGui::PopStyleColor();
         }
     }
-    else
+    else [[likely]]
     {
         const bool is_audio = (mngr::ExecTask::OutputType::Audio == output.type);
         const bool is_video = (mngr::ExecTask::OutputType::Gif == output.type);
         const bool is_image = (mngr::ExecTask::OutputType::Image == output.type);        
 
-        if (!output.binary_path.empty())
+        if (!output.binary_path.empty()) [[likely]]
         {
             if (ImGuiEx::UrlButton(ICON_LC_COPY, "Copy file...",
                     g::pOptsManager->color_load(AppColor::ActivityBarInactive),
@@ -991,7 +991,7 @@ void PanelQueue::show_image(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
         if (tools::path::exists(output.binary_path))
             output.media_id = g::pTextures->load_image(output.binary_path.c_str(), QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
     }
-    else
+    else [[likely]]
     {
         const auto textures = g::pTextures->get_image(output.media_id, output.media_valid);        
         if (textures != nullptr)
@@ -1101,7 +1101,7 @@ void PanelQueue::show_audio(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
     };
 
     const auto asset_pos = ImGui::GetCursorPosX();
-    if (ImGui::Button(is_playing ? ICON_LC_SQUARE : ICON_LC_PLAY, ImVec2(30, 0)))
+    if (ImGui::Button(is_playing ? ICON_LC_SQUARE : ICON_LC_PLAY, ImVec2(30, 0))) [[unlikely]]
     {
         if (is_playing)
             g::pAudioControl->stop(output.media_id);
@@ -1141,7 +1141,7 @@ void PanelQueue::show_video(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
     bool is_playing = false;
     float video_pos = 0.0f;
     const bool first_appear = (0 == output.media_id);
-    if (first_appear)
+    if (first_appear) [[unlikely]]
     {
         output.video_info = g::pVideoControl->get_info(output.binary_path, output.media_valid);
         output.media_info_valid = output.media_valid;
@@ -1189,7 +1189,7 @@ void PanelQueue::show_video(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
             }
         }
     }
-    else
+    else [[likely]]
     {
         auto frame = g::pVideoControl->get_frame(output.media_id);
         if (frame)
@@ -1222,7 +1222,7 @@ void PanelQueue::show_video(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
     };
 
     ImGui::SetCursorPosX(asset_pos);
-    if (ImGui::Button(is_playing ? ICON_LC_SQUARE : ICON_LC_PLAY, ImVec2(30, 0)))
+    if (ImGui::Button(is_playing ? ICON_LC_SQUARE : ICON_LC_PLAY, ImVec2(30, 0))) [[unlikely]]
     {
         if (is_playing)
             g::pVideoControl->stop(output.media_id);
@@ -1363,7 +1363,7 @@ void PanelQueue::load_history()
     const int32_t res = g::pFlow->http_get_and_wait("QPanel/History", history_request.c_str(), {}, {}, true,
         [stop_flag = m_load_history_stop]() noexcept { return stop_flag->load(std::memory_order_relaxed); }, data);
 
-    if (res != HTTP_RESP_OK)
+    if (res != HTTP_RESP_OK) [[unlikely]]
     {
         m_history_loading_active.store(false, std::memory_order_relaxed);
         return;

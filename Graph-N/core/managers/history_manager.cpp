@@ -32,7 +32,7 @@ HistoryAction::HistoryAction(HistoryAction&& other) noexcept
 }
 HistoryAction& HistoryAction::operator=(HistoryAction&& other) noexcept
 {
-    if (this == &other)
+    if (this == &other) [[unlikely]]
         return *this;
     id = other.id;
     wf = other.wf;
@@ -66,11 +66,12 @@ std::pair<bool, bool> HistoryManager::get_undo_redo(
     const Meta** meta) const
 {
     auto meta_it = m_meta.find(wf_id);
-    if (meta_it == m_meta.end())
+    if (meta_it == m_meta.end()) [[unlikely]]
         return { false, false };
 
     auto h = m_history.find(wf_id);
-    if (h == m_history.end()) return { false, false };
+    if (h == m_history.end()) [[unlikely]]
+        return { false, false };
 
     bool undo_exists = false, redo_exists = false;
 
@@ -99,7 +100,7 @@ const HistoryAction* HistoryManager::get_undo(wid wf_id, const Meta** meta) cons
 {
     const HistoryAction* h = nullptr;
     const auto res = get_undo_redo(wf_id, &h, nullptr, meta);
-    if (res.first)
+    if (res.first) [[likely]]
         return h;
     return nullptr;
 }
@@ -108,7 +109,7 @@ const HistoryAction* HistoryManager::get_redo(wid wf_id, const Meta** meta) cons
 {
     const HistoryAction* h = nullptr;
     const auto res = get_undo_redo(wf_id, nullptr, &h, meta);
-    if (res.second)
+    if (res.second) [[likely]]
         return h;
     return nullptr;
 }
@@ -223,7 +224,7 @@ HistoryState HistoryManager::get_state(wid wf_id) const
     const HistoryAction* redo_h = nullptr;
     const Meta* meta = nullptr;
     const auto res = get_undo_redo(wf_id, &undo_h, &redo_h, &meta);
-    if (!res.first && !res.second)
+    if (!res.first && !res.second) [[unlikely]]
         return {};
 
     HistoryState state;
@@ -274,7 +275,7 @@ void HistoryManager::close_action(wid wf_id)
         return;
     }
 
-    if (act.steps.empty())
+    if (act.steps.empty()) [[unlikely]]
     {
         LogAction(act, "Dropped (Empty)");
         h.pop_back();
@@ -393,7 +394,7 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
         step = std::make_unique<ActNodePin>();
         step->new_val = node->get_pinned();
         break;
-    case HistoryActionType::NodeRect:
+    case HistoryActionType::NodeRect: [[likely]]
         history = open_action(node->get_workflow_id(), "Move");
         step = std::make_unique<ActNodeRect>();
         step->new_val = node->m_rc;
@@ -426,7 +427,7 @@ void HistoryManager::push_node_action(data::NodeInstance* node, HistoryActionTyp
 
     switch (act)
     {
-    case HistoryActionType::NodeRerouteSplit:
+    case HistoryActionType::NodeRerouteSplit: [[likely]]
         history = open_action(node->get_workflow_id(), "Split into Linked Pair");
         break;
     case HistoryActionType::NodeRerouteMerge:
@@ -463,7 +464,7 @@ void HistoryManager::push_pin_action(const data::PinInstance* pin, HistoryAction
         step = std::make_unique<ActPinRen>();
         step->new_val = pin->state().name;
     }
-    else if (HistoryActionType::PinVal == act)
+    else if (HistoryActionType::PinVal == act) [[likely]]
     { 
         history = open_action(pin->get_workflow_id(), "Set value");
         step = std::make_unique<ActPinVal>();
@@ -491,7 +492,7 @@ void HistoryManager::push_link_action(const data::Link* link, HistoryActionType 
     HistoryAction* history = nullptr;
     std::unique_ptr<ActLink> step;
 
-    if (HistoryActionType::LinkAdd == act)
+    if (HistoryActionType::LinkAdd == act) [[likely]]
     { 
         history = open_action(link->get_workflow_id(), "Link");
         step = std::make_unique<ActLinkAdd>();
@@ -559,7 +560,7 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
     case HistoryActionType::NodeAdd:
         pop_node_add(wf, step, do_undo);
         break;
-    case HistoryActionType::NodeDel:
+    case HistoryActionType::NodeDel: [[likely]]
         pop_node_del(wf, step, do_undo);
         break;
     case HistoryActionType::NodeClr:
@@ -574,7 +575,7 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
     case HistoryActionType::NodePin:
         pop_node_pin(wf, step, do_undo);
         break;
-    case HistoryActionType::NodeRect:
+    case HistoryActionType::NodeRect: [[likely]]
         pop_node_rect(wf, step, do_undo);
         break;
     case HistoryActionType::NodeRen:
@@ -589,7 +590,7 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
     case HistoryActionType::PinRen:
         pop_pin_ren(wf, step, do_undo);
         break;
-    case HistoryActionType::PinVal:
+    case HistoryActionType::PinVal: [[likely]]
         pop_pin_val(wf, step, do_undo);
         break;
     case HistoryActionType::LinkAdd:
@@ -605,7 +606,7 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
 
 void HistoryManager::pop_node_add(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    if (!do_undo)
+    if (!do_undo) [[unlikely]]
     {
         pop_node_del(dest_wf, step, true);
         return;
@@ -623,7 +624,7 @@ void HistoryManager::pop_node_add(data::Workflow* dest_wf, const HistoryStep* st
 
 void HistoryManager::pop_node_del(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    if (!do_undo)
+    if (!do_undo) [[unlikely]]
     {
         pop_node_add(dest_wf, step, true);
         return;
@@ -762,7 +763,7 @@ void HistoryManager::pop_link_add(const data::Workflow* dest_wf, const HistorySt
 
 void HistoryManager::pop_link_del(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    if (!do_undo)
+    if (!do_undo) [[unlikely]]
     {
         pop_link_add(dest_wf, step, true);
         return;

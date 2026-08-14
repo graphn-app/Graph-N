@@ -44,7 +44,7 @@ void ModelsManager::load_models_th()
         int32_t http_res = g::pFlow->http_get_and_wait("Models/All", models_req.c_str(), {}, {}, true,
             [stop_flag = m_stop_flag.get_token()]() noexcept { return stop_flag.stop_requested(); }, data);
 
-        if (http_res != HTTP_RESP_OK)
+        if (http_res != HTTP_RESP_OK) [[unlikely]]
         {
             if (m_stop_flag.stop_requested())
                 Log("Models thread aborted");
@@ -59,7 +59,7 @@ void ModelsManager::load_models_th()
                 requests.push_back(jitem["name"]);
         }
 
-        if (m_stop_flag.stop_requested())
+        if (m_stop_flag.stop_requested()) [[unlikely]]
         {
             Log("Models thread aborted");
             return;
@@ -74,7 +74,7 @@ void ModelsManager::load_models_th()
             http_res = g::pFlow->http_get_and_wait("Models/Model", model_req.c_str(), {}, {}, false,
                 [stop_flag = m_stop_flag.get_token()]() noexcept { return stop_flag.stop_requested(); }, data);
 
-            if (http_res != HTTP_RESP_OK)
+            if (http_res != HTTP_RESP_OK) [[unlikely]]
             {
                 if (m_stop_flag.stop_requested())
                 {
@@ -112,7 +112,7 @@ void ModelsManager::load_models_th()
                         http_res = g::pFlow->http_get_and_wait("Models/Model", model_req.c_str(), std::move(params), {}, false,
                             [stop_flag = m_stop_flag.get_token()]() noexcept { return stop_flag.stop_requested(); }, data);
 
-                        if (m_stop_flag.stop_requested())
+                        if (m_stop_flag.stop_requested()) [[unlikely]]
                         {
                             Log("Models thread aborted");
                             return;
@@ -139,7 +139,7 @@ void ModelsManager::load_models_th()
             std::this_thread::sleep_for(100ms);
         }
 
-        if (m_stop_flag.stop_requested())
+        if (m_stop_flag.stop_requested()) [[unlikely]]
         {
             Log("Models thread aborted");
             return;
@@ -468,7 +468,7 @@ void ModelsManager::setup_model_behaviour()
 
 const std::vector<std::unique_ptr<data::ModelItem>>& ModelsManager::get_models() const noexcept
 {
-    if (!g::pFlow->get_models_ready())
+    if (!g::pFlow->get_models_ready()) [[unlikely]]
     {
         static std::vector<std::unique_ptr<data::ModelItem>> models;
         return models;

@@ -53,7 +53,7 @@ DlgCode PanelServerLogs::show(bool& focused)
                 }
             );
         }
-        else
+        else [[likely]]
         {
             draw_toolbar();
             show_logs();

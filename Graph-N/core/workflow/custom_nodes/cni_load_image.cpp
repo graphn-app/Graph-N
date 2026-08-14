@@ -39,7 +39,7 @@ void CNI_LoadImage::cni_draw_widget(PinInstance* pin, float pos, float width)
     const auto& state = pin->state();
     auto obj = pin->get_object();
 
-    if (state.type != PinType::COMBO || !obj->image_upload || state.links > 0)
+    if (state.type != PinType::COMBO || !obj->image_upload || state.links > 0) [[unlikely]]
         return;
 
     draw_upload_button(pos, width);
@@ -52,7 +52,7 @@ void CNI_LoadImage::cni_draw_widget(PinInstance* pin, float pos, float width)
     LogRAssert(obj->combo_items_ptr.size() == m_images.size(), "Images map doesn't match to combo items. w: " << get_workflow_id() << ", n:" << get_instance_id(), );
 
     const int64_t index = state.value.get_int();
-    if (index < 0 || cast::to_szt(index) >= obj->combo_items_ptr.size())
+    if (index < 0 || cast::to_szt(index) >= obj->combo_items_ptr.size()) [[unlikely]]
         return;
 
     if (g::pTextures->get_image_alive(m_images[index].image_id))
@@ -110,10 +110,10 @@ void CNI_LoadImage::cni_draw_widget(PinInstance* pin, float pos, float width)
     std::filesystem::path source_name = obj->combo_items_ptr[index];
     const auto download_image = [this, index, ext = tools::str::path_to_string(source_name.extension())](int32_t result, std::string&& data)
     {
-        if (result != HTTP_RESP_OK || data.empty())
+        if (result != HTTP_RESP_OK || data.empty()) [[unlikely]]
             return;
 
-        if (cast::to_szt(index) >= m_images.size())
+        if (cast::to_szt(index) >= m_images.size()) [[unlikely]]
         {
             LogWarn("Index out of bound. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", idx:" << index << ", lst:" << m_images.size());
             return;
@@ -143,7 +143,7 @@ void CNI_LoadImage::draw_upload_button(float pos, float width)
 {
     const auto post_callback = [this](int32_t result, std::string&& data)
     {
-        if (result != HTTP_RESP_OK || data.empty())
+        if (result != HTTP_RESP_OK || data.empty()) [[unlikely]]
             return;
 
         try
@@ -256,7 +256,7 @@ void CNI_LoadImage::refresh_inputs() noexcept
 void CNI_LoadImage::check_image_list_version(PinInstance* pin)
 {
     LogRAssert(pin, "Zero ptr", );
-    if (-1 == g_image_list_version) // init global list
+    if (-1 == g_image_list_version) [[unlikely]] // init global list
     {
         g_image_list = pin->get_object()->combo_items;
         g_image_list_version = 0;
@@ -265,7 +265,7 @@ void CNI_LoadImage::check_image_list_version(PinInstance* pin)
 
     LogRAssert(m_image_list_version_local <= g_image_list_version, "Local list version > global list version", );
     
-    if (m_image_list_version_local == g_image_list_version)
+    if (m_image_list_version_local == g_image_list_version) [[likely]]
         return;
     m_image_list_version_local = g_image_list_version;
 

@@ -231,14 +231,14 @@ bool CNI_Reroute::cni_can_link(const PinInstance* p1, const PinInstance* p2) con
     const PinInstance* external_pin = nullptr;
     const LinkedPair* pair = nullptr;
     get_pins_from_link(p1, p2, external_pin, pair);
-    if (nullptr == external_pin || nullptr == pair)
+    if (nullptr == external_pin || nullptr == pair) [[unlikely]]
         return false;
 
     const auto ext_type = external_pin->state().type;
     const auto pair_type = pair->type;
 
     // prevent linking two completely empty Reroutes (ANY to ANY)
-    if (PinType::ANY == ext_type && PinType::ANY == pair_type)
+    if (PinType::ANY == ext_type && PinType::ANY == pair_type) [[unlikely]]
         return false;
 
     // if one is ANY and the other has a concrete type, allow the link

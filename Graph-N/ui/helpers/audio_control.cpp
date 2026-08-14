@@ -50,7 +50,7 @@ mngr::AudioInfo AudioControl::get_info(const std::string& filepath, std::optiona
 
     // Initialize the decoder to read the file header
     const ma_result result = ma_decoder_init_file(filepath.c_str(), nullptr, &decoder);
-    if (result != MA_SUCCESS)
+    if (result != MA_SUCCESS) [[unlikely]]
     {
         valid = false;
         return {};

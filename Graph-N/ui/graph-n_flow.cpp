@@ -337,15 +337,29 @@ bool GraphN_Flow::run()
     show_menu_bar();
     test_hotkeys();
 
-    show_activity_bar();
-    show_options_dlg();
-    show_sync_projs_dlg();
+    if ((m_windows & ViewActivityBarL) || (m_windows & ViewActivityBarR))
+        show_activity_bar();
+
+    if ((m_windows & ViewOptions) > 0)
+        show_options_dlg();
+
+    if ((m_windows & ViewSyncProjects) > 0)
+        show_sync_projs_dlg();
+
+#ifdef _DEBUG
     show_debug_windows();
+#endif
+
     show_panels();
-    show_modal();
+
+    if ((m_windows & ViewModal) > 0 || (m_windows & ViewModalStop) > 0)
+        show_modal();
 
     check_connection();
-    check_wf_panels_initialized();
+
+    static bool wf_panels_initialized = false;
+    if (!wf_panels_initialized && check_wf_panels_initialized())
+        wf_panels_initialized = true;
 
     g::pQueueManager->process();
 
@@ -409,7 +423,8 @@ void GraphN_Flow::check_connection()
     }
     else if (ConnectState::Connected == status)
     {
-        import_user_projects();
+        if (!m_wf_imported)
+            import_user_projects();
     }
 }
 
@@ -423,14 +438,14 @@ void GraphN_Flow::import_user_projects()
 
     const auto all_names = [this, projects](int32_t result, std::string&& payload)
     {
-        if (result != HTTP_RESP_OK)
+        if (result != HTTP_RESP_OK) [[unlikely]]
         {
             m_wf_imported = false;
             m_projects_ready.store(true, std::memory_order_relaxed);
             return;
         }
 
-        if (!data::WfDeserializerFromJson::deserialize_all_wf_names(payload, *projects))
+        if (!data::WfDeserializerFromJson::deserialize_all_wf_names(payload, *projects)) [[unlikely]]
         {
             Log("All project names deserializarion failed");
             m_wf_imported = false;
@@ -733,7 +748,7 @@ void GraphN_Flow::show_options_dlg()
     if ((m_windows & ViewOptions) == 0)
         return;
 
-    if (!m_opts_dlg)
+    if (!m_opts_dlg) [[unlikely]]
     {
         m_opts_dlg = std::make_unique<ui::OptionsDlgs>();
         m_opts_dlg->init();
@@ -755,7 +770,7 @@ void GraphN_Flow::show_sync_projs_dlg()
     if ((m_windows & ViewSyncProjects) == 0)
         return;
 
-    if (!m_sync_projs_dlg)
+    if (!m_sync_projs_dlg) [[unlikely]]
     {
         g::block_hotkeys_counter++;
         m_sync_projs_dlg = std::make_unique<ui::SyncProjectsDlg>();
@@ -1002,7 +1017,7 @@ void GraphN_Flow::show_menu_bar_net_status()
             }
         }
     }
-    else if (get_online())
+    else if (get_online()) [[likely]]
     {
         text.clear();
         fmt::format_to(std::back_inserter(text), FMT_STRING("Connected to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
@@ -1065,7 +1080,7 @@ void GraphN_Flow::show_panels()
         return id_ret.c_str();
     };
 
-    if (m_windows & ViewPanelsResetAll)
+    if (m_windows & ViewPanelsResetAll) [[unlikely]]
     {
         focus_fixed = false;
 
@@ -1117,7 +1132,7 @@ void GraphN_Flow::show_panels()
         ImGui::DockBuilderFinish(m_main_dock_id);
     }
 
-    if (ImGui::GetFrameCount() > 10 && !focus_fixed)
+    if (ImGui::GetFrameCount() > 10 && !focus_fixed) [[unlikely]]
     {
         focus_fixed = true;
         std::string id;
@@ -1236,7 +1251,7 @@ int32_t GraphN_Flow::http_get_and_wait(
     LogRAssert(stop_callback != nullptr, "Stop callback is mandatory", HTTP_RESP_FAIL);
 
     ret_data.clear();
-    if (std::this_thread::get_id() == m_ui_thread_id)
+    if (std::this_thread::get_id() == m_ui_thread_id) [[unlikely]]
     {
         LogError("Function must not be called from UI thread");
         return HTTP_RESP_FAIL;
@@ -1255,14 +1270,14 @@ int32_t GraphN_Flow::http_get_and_wait(
         http_status->store(result, std::memory_order_release);
     };
 
-    while (main_ui_alive() && !get_online())
+    while (main_ui_alive() && !get_online()) [[unlikely]]
     {
         if (stop_callback())
             return HTTP_RESP_FAIL;
         std::this_thread::sleep_for(100ms);
     }
 
-    if (!main_ui_alive() || stop_callback())
+    if (!main_ui_alive() || stop_callback()) [[unlikely]]
         return HTTP_RESP_FAIL;
 
     uint32_t req_id = 0;
@@ -1274,7 +1289,7 @@ int32_t GraphN_Flow::http_get_and_wait(
     int32_t current_status = 0;
     while ((current_status = http_status->load(std::memory_order_acquire)) == HTTP_RESP_UNDEFINED)
     {
-        if (!main_ui_alive() || stop_callback())
+        if (!main_ui_alive() || stop_callback()) [[unlikely]]
         {
             if (main_ui_alive())
             {
@@ -1289,7 +1304,7 @@ int32_t GraphN_Flow::http_get_and_wait(
         std::this_thread::sleep_for(100ms);
     }
 
-    if (main_ui_alive())
+    if (main_ui_alive()) [[likely]]
     {
         ret_data = std::move(*http_data);
         return current_status;
@@ -1349,7 +1364,7 @@ void GraphN_Flow::check_http_reply()
 
     static double last_dead_http_check = ImGui::GetTime();
     const double now = ImGui::GetTime();
-    if (now - last_dead_http_check > HTTP_REQUEST_LIFETIME / 2.0)
+    if (now - last_dead_http_check > HTTP_REQUEST_LIFETIME / 2.0) [[unlikely]]
     {
         std::unique_lock<std::mutex> lock(m_http_req_mutex);
         for (auto it = m_http_requests.begin(); it != m_http_requests.end(); )

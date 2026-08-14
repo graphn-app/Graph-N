@@ -140,7 +140,7 @@ void QueueManager::add_to_queue(data::Workflow* wf, int32_t count, bool push_fro
 
 void QueueManager::process()
 {
-    if (!g::pFlow->get_online())
+    if (!g::pFlow->get_online()) [[unlikely]]
     {
         m_external_tasks = 0;
         if (m_current != nullptr)
@@ -252,7 +252,7 @@ void QueueManager::go_next_task()
 
         auto& t = g.completed.front();
 
-        if (result != TaskResult::Success && result != TaskResult::Lost)
+        if (result != TaskResult::Success && result != TaskResult::Lost) [[unlikely]]
         {
             Log("Dropped all tasks due to error");
             m_current->tasks_num = 0;
@@ -278,7 +278,7 @@ void QueueManager::go_next_task()
             return;
         }
 
-        if (is_paused())
+        if (is_paused()) [[unlikely]]
         {
             m_queue_next.push_front(std::move(m_current_group));
             m_current = nullptr;
@@ -401,7 +401,7 @@ void QueueManager::parse_http_response(int32_t result, const std::string& payloa
     auto& task = m_current->task;
     auto task_log_id = get_log_task_id(*m_current);
 
-    if (result != HTTP_RESP_OK)
+    if (result != HTTP_RESP_OK) [[unlikely]]
     {
         task.result = TaskResult::Failed;        
         m_current->state = ExecGroup::State::Finished;
@@ -430,7 +430,7 @@ void QueueManager::parse_http_response(int32_t result, const std::string& payloa
             task_log_id = get_log_task_id(*m_current);
             LogS("Task #" << task_log_id << " prompt_id assigned");
         }
-        else
+        else [[unlikely]]
         {
             task.result = TaskResult::Failed;
             task.err_message = task.err_full = "Unknown http format";
@@ -498,7 +498,7 @@ void QueueManager::check_ws_inbox()
 
     const auto callback = [this](bool is_binary, std::string& message)
     {
-        if (is_binary)
+        if (is_binary) [[unlikely]]
         {
             Log("Binary message of " << message.size() << " bytes. Ignore in MVP"); // TODO: handle binary data
             return;
@@ -822,7 +822,7 @@ void QueueManager::check_current_task_is_done()
     m_lost = false;
     const auto history_callback = [this](int32_t result, std::string&& binary)
     {
-        if (result != HTTP_RESP_OK || nullptr == m_current)
+        if (result != HTTP_RESP_OK || nullptr == m_current) [[unlikely]]
         {
             if (m_current != nullptr)
             {

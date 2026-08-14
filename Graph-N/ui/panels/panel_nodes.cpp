@@ -164,7 +164,7 @@ DlgCode PanelNodes::show(bool& focused)
     bool opened = true;
     if (begin_panel(opened, focused) && opened)
     {
-        if (!m_labels_mode && g::pNodesManager->get_nodes_tree().empty())
+        if (!m_labels_mode && g::pNodesManager->get_nodes_tree().empty()) [[unlikely]]
         {
             show_empty_panel_descr(
                 ICON_LC_INFO " Node Library: Browse, search, and add nodes to your workflow.",
@@ -186,7 +186,7 @@ DlgCode PanelNodes::show(bool& focused)
             );
             return end_panel(true);
         }
-        if (m_labels_mode && g::pNodesManager->get_labels().empty())
+        if (m_labels_mode && g::pNodesManager->get_labels().empty()) [[unlikely]]
         {
             draw_toolbar();
             show_empty_panel_descr(
@@ -500,7 +500,7 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
         return;
     }
 
-    if (m_labels_mode)
+    if (m_labels_mode) [[unlikely]]
     {
         handle_dirty_labels(dirty_item);
         return;

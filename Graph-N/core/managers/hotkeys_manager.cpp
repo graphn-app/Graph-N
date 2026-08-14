@@ -376,7 +376,7 @@ const ui::KeyBinding* HotkeysManager::get_active_key_binding() const
 bool HotkeysManager::process_hotkey() const
 {
     const ui::KeyBinding* active_bind = get_active_key_binding();
-    if (nullptr == active_bind || active_bind->node_related)
+    if (nullptr == active_bind || active_bind->node_related) [[likely]]
         return false;
 
     switch (active_bind->target)
@@ -400,7 +400,7 @@ bool HotkeysManager::process_hotkey() const
     case KeyTarget::App_Options:
         g::pFlow->on_menu_options();
         return true;
-    case KeyTarget::App_TogglePanels:
+    case KeyTarget::App_TogglePanels: [[likely]]
         g::pFlow->on_menu_panel_toggle_active();
         return true;
     case KeyTarget::Wf_1:
@@ -462,16 +462,16 @@ bool HotkeysManager::process_hotkey() const
     case KeyTarget::Queue_Interrupt:
         g::pFlow->on_menu_queue_interrupt();
         return true;
-    case KeyTarget::Workspace_Save:
+    case KeyTarget::Workspace_Save: [[likely]]
         g::pFlow->wf_save(false);
         return true;
-    case KeyTarget::Workspace_Undo:
+    case KeyTarget::Workspace_Undo: [[likely]]
         g::pFlow->wf_undo(false);
         return true;
-    case KeyTarget::Workspace_Redo:
+    case KeyTarget::Workspace_Redo: [[likely]]
         g::pFlow->wf_redo(false);
         return true;
-    case KeyTarget::Workspace_SelAll:
+    case KeyTarget::Workspace_SelAll: [[likely]]
         g::pFlow->wf_node_select_all();
         return true;
     case KeyTarget::Workspace_RunsInf:
@@ -517,7 +517,7 @@ bool HotkeysManager::process_node_hotkey(const ui::PanelWorkflow* wf_panel) cons
         return false;
 
     const ui::KeyBinding* active_bind = get_active_key_binding();
-    if (nullptr == active_bind || !active_bind->node_related)
+    if (nullptr == active_bind || !active_bind->node_related) [[likely]]
         return false;
 
     switch (active_bind->target)
@@ -543,10 +543,10 @@ bool HotkeysManager::process_node_hotkey(const ui::PanelWorkflow* wf_panel) cons
     case KeyTarget::Node_Remove:
         g::pFlow->wf_node_remove();
         return true;
-    case KeyTarget::Node_Copy:
+    case KeyTarget::Node_Copy: [[likely]]
         g::pFlow->wf_node_copy();
         return true;
-    case KeyTarget::Node_Paste:
+    case KeyTarget::Node_Paste: [[likely]]
         g::pFlow->wf_node_paste({});
         return true;
     case KeyTarget::Node_Dup:

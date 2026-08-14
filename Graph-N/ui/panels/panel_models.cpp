@@ -95,7 +95,7 @@ DlgCode PanelModels::show(bool& focused)
     bool opened = true;
     if (begin_panel(opened, focused) && opened)
     {
-        if (g::pModelsManager->get_models().empty())
+        if (g::pModelsManager->get_models().empty()) [[unlikely]]
         {
             show_empty_panel_descr(
                 ICON_LC_INFO " Model Library",

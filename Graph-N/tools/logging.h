@@ -257,17 +257,17 @@ struct LogGuard final
 #define LogCritical(message)                     LOG_CRITICAL(this, "CRITICAL", message)
 #define LogCriticalS(message)                    LOG_CRITICAL(nullptr, "CRITICAL", message)
 
-#define LogCriticalIf(true_cond, message)        if (!(true_cond)) { LOG_CRITICAL(this, "CRITICAL", message); }
-#define LogCriticalIfS(true_cond, message)       if (!(true_cond)) { LOG_CRITICAL(nullptr, "CRITICAL", message); }
+#define LogCriticalIf(true_cond, message)        if (!(true_cond)) [[unlikely]] { LOG_CRITICAL(this, "CRITICAL", message); }
+#define LogCriticalIfS(true_cond, message)       if (!(true_cond)) [[unlikely]] { LOG_CRITICAL(nullptr, "CRITICAL", message); }
 
-#define LogAssert(true_cond, message)            if (!(true_cond)) { LOG_AND_CATCH(this, "ASSERT", message, true); }
-#define LogAssertS(true_cond, message)           if (!(true_cond)) { LOG_AND_CATCH(nullptr, "ASSERT", message, true); }
+#define LogAssert(true_cond, message)            if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(this, "ASSERT", message, true); }
+#define LogAssertS(true_cond, message)           if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(nullptr, "ASSERT", message, true); }
 
-#define LogRAssert(true_cond, message, ret)      if (!(true_cond)) { LOG_AND_CATCH(this, "ASSERT", message, true); return ret; }
-#define LogRAssertS(true_cond, message, ret)     if (!(true_cond)) { LOG_AND_CATCH(nullptr, "ASSERT", message, true); return ret; }
+#define LogRAssert(true_cond, message, ret)      if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(this, "ASSERT", message, true); return ret; }
+#define LogRAssertS(true_cond, message, ret)     if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(nullptr, "ASSERT", message, true); return ret; }
 
-#define LogCAssert(true_cond, message)           if (!(true_cond)) { LOG_AND_CATCH(this, "ASSERT", message, true); continue; }
-#define LogCAssertS(true_cond, message)          if (!(true_cond)) { LOG_AND_CATCH(nullptr, "ASSERT", message, true); continue; }
+#define LogCAssert(true_cond, message)           if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(this, "ASSERT", message, true); continue; }
+#define LogCAssertS(true_cond, message)          if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(nullptr, "ASSERT", message, true); continue; }
 
 #define LogSqlDbErr(message)                     LOG_AND_CATCH(this, "SQL_ERROR", message, false)
 

@@ -18,13 +18,11 @@
 namespace ui
 {
 
-void GraphN_Flow::check_wf_panels_initialized()
+bool GraphN_Flow::check_wf_panels_initialized()
 {
-    static bool wf_panels_initialized = false;
-    if (wf_panels_initialized || !get_nodes_ready())
-        return;
+    if (!get_nodes_ready())
+        return false;
 
-    wf_panels_initialized = true;
     auto wf_panels = g::pOptsManager->wf_active_load();
     auto wfs = g::pWfsManager->get_wfs();
     PanelWorkflow* activate = nullptr;
@@ -48,6 +46,8 @@ void GraphN_Flow::check_wf_panels_initialized()
 
     else if (g::pDbManager->get_is_first_run())
         wf_create();
+
+    return true;
 }
 
 // WF public ->

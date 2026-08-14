@@ -125,7 +125,7 @@ int32_t MainRoutine_Win32::run(flow_callback& callback, std::atomic_bool& reques
             }
         }
 
-        if (!render_frame(done))
+        if (!render_frame(done)) [[unlikely]]
             done = true;
 
         if (request_focus.load(std::memory_order_relaxed))
@@ -151,7 +151,7 @@ bool MainRoutine_Win32::render_frame(bool done)
         m_pending_resize_h = 0;
     }
 
-    if (!m_main_render_target_view)
+    if (!m_main_render_target_view) [[unlikely]]
     {        
         ::PostQuitMessage(1);
         LogCritical("Render target is null");
@@ -167,7 +167,7 @@ bool MainRoutine_Win32::render_frame(bool done)
     ImGui::NewFrame();
 
     bool ret = true;
-    if (m_callback)
+    if (m_callback) [[likely]]
     {
         ret = (*m_callback)(done);  // main Graph-N flow
     }
@@ -415,7 +415,11 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
             }
         }
         return 0;
+
+    default: [[likely]]
+        break;
     }
+
     return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 

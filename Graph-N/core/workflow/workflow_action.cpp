@@ -402,7 +402,7 @@ void WorkflowAction::reset_pin_name(data::PinInstance* pin)
 void WorkflowAction::set_pin_val(data::PinInstance* pin, Primitive&& old_val)
 {
     LogRAssert(pin, "Zero ptr", );
-    if (old_val == pin->state().value)
+    if (old_val == pin->state().value) [[unlikely]]
         return;
 
     multi_action_on("Set value");
@@ -415,7 +415,7 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, int64_t old_idx)
 {
     LogRAssert(pin, "Zero ptr", );
     const Primitive old_val = old_idx;
-    if (old_val == pin->state().value)
+    if (old_val == pin->state().value) [[unlikely]]
         return;
 
     multi_action_on("Set value");
@@ -429,7 +429,7 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, const float* new_colors
     LogRAssert(pin, "Zero ptr", );
     const auto old_colors = pin->state().value;
     const Primitive new_colors_v = data::Pin::colors_to_int(ImVec4(new_colors));
-    if (old_colors == new_colors_v)
+    if (old_colors == new_colors_v) [[unlikely]]
         return;
     pin->state().value = new_colors_v;
 
@@ -444,7 +444,7 @@ void WorkflowAction::mirror_pin_value(data::PinInstance* pin)
     LogRAssert(pin, "Zero ptr", );
     const auto* wf = g::pWfsManager->access(pin->get_workflow_id());
     const auto* node = wf->get_node_by_instance(pin->get_parent_node());
-    if (!node->is_cni())
+    if (!node->is_cni()) [[likely]]
         return;
 
     std::vector<PinInstance*> mirrored_pins;

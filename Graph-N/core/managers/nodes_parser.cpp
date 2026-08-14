@@ -25,7 +25,7 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
             {
                 Log("Parsed: fail");
             }
-            else
+            else [[likely]]
             {
                 Log("Parsed: ok");
                 // this is UI thread, so it is safe to recreate on the fly
@@ -90,7 +90,7 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
             m_parsed_item.fetch_add(1, std::memory_order_relaxed);
             parse_node(*nodes_manager.get(), jclass, jinfo, models_map);
 
-            if (m_stop_thread_flag.stop_requested())
+            if (m_stop_thread_flag.stop_requested()) [[unlikely]]
             {
                 Log("Parsing thread aborted");
                 return {};
@@ -495,13 +495,13 @@ void NodesParser::prepare_parsers_map()
 void NodesParser::parse_by_key(const data::Node& node, data::Pin& pin, const o_json& j, const std::string& key)
 {
     const auto it = m_parsers.find(key);
-    if (it == m_parsers.end())
+    if (it != m_parsers.end())
     {
-        LogUnhandledJson("Unknown key node=" << node.name << ", pin=" << pin.def_state.name << ", key=" << key);
+        it->second(node, pin, j);
     }
     else
     {
-        it->second(node, pin, j);
+        LogUnhandledJson("Unknown key node=" << node.name << ", pin=" << pin.def_state.name << ", key=" << key);
     }
 }
 
@@ -524,7 +524,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
                 if (jinfo.size() == 1 && jinfo[0].is_string())
                 {
                     pin->initialize(jinfo[0]);
-                    if (PinType::CUSTOM == pin->def_state.type)
+                    if (PinType::CUSTOM == pin->def_state.type) [[unlikely]]
                     {
                         LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->def_state.name);
                     }
@@ -532,7 +532,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
                 else if (jinfo.size() == 2 && jinfo[0].is_string() && jinfo[1].is_object())
                 {
                     pin->initialize(jinfo[0]);
-                    if (PinType::CUSTOM == pin->def_state.type)
+                    if (PinType::CUSTOM == pin->def_state.type) [[unlikely]]
                     {
                         LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->def_state.name);
                     }
@@ -551,7 +551,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
                         auto value = get_combo_item(jitem);
                         if (value.has_value())
                             pin->combo_items.push_back(std::move(value.value()));
-                        else
+                        else [[unlikely]]
                         {
                             LogUnhandledJson("/input/<>/COMBO/item. Unknown item type. Node=" << node.name << ", pin="
                                 << pin->def_state.name << ", type=" << jitem.type_name());
@@ -565,13 +565,13 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
                         }
                     }
                 }
-                else
+                else [[unlikely]]
                 {
                     LogUnhandledJson("/input/<>/pin_info. Unknown arr. Node=" << node.name << ", pin="
                         << pin->def_state.name << ", arr_sz=" << jinfo.size());
                 }
             }
-            else
+            else [[unlikely]]
             {
                 LogUnhandledJson("/input/<>/pin_info. Not array. Node=" << node.name << ", pin="
                     << pin->def_state.name << ", type=" << jinfo.type_name());
@@ -583,7 +583,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
             {
                 LogInvalidJson("/input/. Pin name duplicate. Node=" << node.name << ", pin=" << ptr->def_state.name << ", type=" << jinfo.type_name());
             }
-            else
+            else [[likely]]
             {
                 input.push_back(ptr);
                 if (ptr->cag_require)
@@ -711,7 +711,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
                 if (jitem.is_string())
                 {
                     pin->initialize(jitem);
-                    if (PinType::CUSTOM == pin->def_state.type)
+                    if (PinType::CUSTOM == pin->def_state.type) [[unlikely]]
                     {
                         LogUnhandledJson("/input/CUSTOM=" << pin->def_state.type_str << ". Node=" << node.name << ", pin=" << pin->def_state.name);
                     }
@@ -723,13 +723,13 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
                     {
                         if (out_item.is_string())
                             pin->combo_items.push_back(std::string(out_item));
-                        else
+                        else [[unlikely]]
                         {
                             LogUnhandledJson("/output. Combo item not a string. Node=" << node.name << ", type=" << out_item.type_name());
                         }
                     }
                 }
-                else
+                else [[unlikely]]
                 {
                     LogUnhandledJson("/output. Not a string. Node=" << node.name << ", type=" << jitem.type_name());
                     continue;
@@ -737,7 +737,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
 
                 auto ptr = pin.get();
                 node.output.push_back(pin.get());
-                if (!manager.m_pins.emplace(pin->get_hash(), std::move(pin)).second)
+                if (!manager.m_pins.emplace(pin->get_hash(), std::move(pin)).second) [[unlikely]]
                 {
                     LogUnhandledJson("/output/. Pin name duplicate. Node=" << node.name << ", pin=" << ptr->def_state.name << ", idx=" << index);
                 }
@@ -758,7 +758,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
                 auto out_pins = node.output.begin();
                 for (const auto& jitem : jattr)
                 {
-                    if (out_pins == node.output.end())
+                    if (out_pins == node.output.end()) [[unlikely]]
                     {
                         LogInvalidJson("number of " << attr_name << " is greater than pins count. Node=" << node.name);
                         break;
@@ -766,13 +766,13 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
 
                     auto pin = *out_pins;
                     ++out_pins;
-                    if (!new_cb(jitem, pin))
+                    if (!new_cb(jitem, pin)) [[unlikely]]
                     {
                         LogInvalidJson(attr_name << " unknown type. Node=" << node.name);
                     }
                 }
 
-                if (out_pins != node.output.end())
+                if (out_pins != node.output.end()) [[unlikely]]
                 {
                     LogInvalidJson("number of " << attr_name << " is less than pins count. Node=" << node.name);
                     for (; out_pins != node.output.end(); ++out_pins)
@@ -781,7 +781,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
                     }
                 }
             }
-            else
+            else [[unlikely]]
             {
                 LogUnhandledJson("/" << attr_name << ". Not array. Node=" << node.name << ", type=" << jattr.type_name());
             }
@@ -860,7 +860,7 @@ void NodesParser::parse_others(data::Node& node, const o_json& jnode)
         const auto& jvalue = jnode[json_name];
         if (jvalue.is_boolean())
             value = jvalue;
-        else
+        else [[unlikely]]
         {
             LogInvalidJson(json_name << " not a bool. Node=" << node.name);
         }
@@ -873,7 +873,7 @@ void NodesParser::parse_others(data::Node& node, const o_json& jnode)
         const auto& jvalue = jnode[json_name];
         if (jvalue.is_string())
             value = jvalue;
-        else
+        else [[unlikely]]
         {
             LogInvalidJson(json_name << " not a string. Node=" << node.name);
         }
@@ -895,16 +895,16 @@ void NodesParser::parse_others(data::Node& node, const o_json& jnode)
 
     for (const auto&[name, value] : jnode.items())
     {
-        if (m_known_attributes.contains(name))
-            continue;
-
-        LogUnhandledJson("/unhandled node's attr. Node=" << node.name << ", attr=" << name);
+        if (!m_known_attributes.contains(name)) [[unlikely]]
+        {
+            LogUnhandledJson("/unhandled node's attr. Node=" << node.name << ", attr=" << name);
+        }
     }
 }
 
 void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 {
-    if (nullptr == node)
+    if (nullptr == node) [[unlikely]]
         return;
 
     const auto search_branch = [](std::vector<data::NodeItem*>* items, const std::string& category) noexcept

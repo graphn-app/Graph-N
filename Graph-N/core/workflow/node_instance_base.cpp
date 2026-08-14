@@ -180,7 +180,7 @@ float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon) noexcept
     }
 
     // empty
-    if (!m_has_in_pins && !m_has_out_pins && !m_has_widgets)
+    if (!m_has_in_pins && !m_has_out_pins && !m_has_widgets) [[unlikely]]
     {
         obj->w_fit = m_min_possible_w = 100.0f;
         m_ideal_w = obj->w_fit;
@@ -216,10 +216,10 @@ float NodeInstanceBase::recalc_node_width(float new_width, bool ro, bool use_big
         w_name += get_additional_name_width();
     }
 
-    if (m_saved_width == new_width)
+    if (m_saved_width == new_width) [[likely]]
         return w_node;
 
-    if (!do_need_calc_node_widths())
+    if (!do_need_calc_node_widths()) [[unlikely]]
     {
         w_node = w_name + ImGui::GetStyle().ItemSpacing.x * 2 + get_additional_node_width();
         w_node_name_off = std::max(0.0f, (w_node / 2) - (w_name / 2));

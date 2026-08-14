@@ -111,7 +111,7 @@ DlgCode PanelWorkflow::show(bool& focused)
             create_toolbar();
         }
 
-        if (data.critical_failure)
+        if (data.critical_failure) [[unlikely]]
         {
             draw_toolbar();
         }
@@ -300,7 +300,7 @@ void PanelWorkflow::draw_wf()
 
         bool failed_node = false;
         const std::set<std::string>* failed_pins = nullptr;
-        if (m_failed_nodes != nullptr)
+        if (m_failed_nodes != nullptr) [[unlikely]]
         {
             const auto it = m_failed_nodes->find(node->get_instance_id());
             if (it != m_failed_nodes->end())
@@ -311,7 +311,7 @@ void PanelWorkflow::draw_wf()
         }
 
         const bool is_new = !node->ed();
-        if (is_new)
+        if (is_new) [[unlikely]]
         {
             node->reset_state();
             if (!node->m_group)
@@ -339,19 +339,19 @@ void PanelWorkflow::draw_wf()
 
         ImGui::PopID();
 
-        if (is_new && m_select_new_nodes || m_select_all_nodes)
+        if (is_new && m_select_new_nodes || m_select_all_nodes) [[unlikely]]
             m_drawer.select_node(node->ed(), true);
     }
 
     m_select_new_nodes = false;
     m_select_all_nodes = false;
 
-    if (m_locate != nullptr)
+    if (m_locate != nullptr) [[unlikely]]
     {
         m_drawer.locate_node(m_locate);
         m_locate = nullptr;
     }
-    else if (m_locate_selected)
+    else if (m_locate_selected) [[unlikely]]
     {
         m_drawer.locate_selected();
         m_locate_selected = false;
@@ -372,7 +372,7 @@ void PanelWorkflow::draw_wf()
             }
     );
 
-    if (m_first_show)
+    if (m_first_show) [[unlikely]]
     {
         g::pHistoryManager->set_ignore_actions_on(m_wf->get_id());
         std::map<data::NodeInstance*, std::set<data::NodeInstance*>> items;
@@ -844,7 +844,7 @@ void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
     el.text_clr = 0;
 
     auto failed = g::pQueueManager->get_is_failed(m_wf->get_id());
-    if (failed != nullptr)
+    if (failed != nullptr) [[unlikely]]
     {
         if (TaskResult::Interrupted == failed->result)
         {
@@ -861,7 +861,7 @@ void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
     }
 
     const auto external = g::pQueueManager->is_external_task();
-    if (external > 0)
+    if (external > 0) [[unlikely]]
     {
         el.text = "External task is running";
         m_status_buffer.clear();
@@ -885,7 +885,7 @@ void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
         return;
     }
 
-    if (g::pQueueManager->is_paused())
+    if (g::pQueueManager->is_paused()) [[unlikely]]
     { 
         el.text = "All tasks are paused";
         el.tooltip = "Click 'Unpause' on the Queue panel to resume";

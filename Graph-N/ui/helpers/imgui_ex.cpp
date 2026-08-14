@@ -248,7 +248,7 @@ int32_t InputTextCallback(ImGuiInputTextCallbackData* data)
         str->resize(data->BufTextLen);
         data->Buf = (char*)str->c_str();
     }
-    else if (user_data->ChainCallback)
+    else if (user_data->ChainCallback) [[likely]]
     {
         // Forward to user callback, if any
         data->UserData = user_data->ChainCallbackUserData;
@@ -729,13 +729,13 @@ bool BooleanToggleLED(const char* id_label, bool* value, bool draw_frame, bool l
     const ImRect total_bb(cursor, ImVec2(cursor.x + total_width, cursor.y + height));
 
     ImGui::ItemSize(total_bb, style.FramePadding.y);
-    if (!ImGui::ItemAdd(total_bb, id))
+    if (!ImGui::ItemAdd(total_bb, id)) [[unlikely]]
         return false;
 
     // Interaction
     bool hovered = false, held = false;
     const bool pressed = ImGui::ButtonBehavior(total_bb, id, &hovered, &held);
-    if (pressed)
+    if (pressed) [[unlikely]]
     {
         *value = !*value;
         // trigger ImGui::IsItemDeactivatedAfterEdit()

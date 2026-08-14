@@ -253,7 +253,7 @@ bool GraphN::flow()
         case Flow::Connect:
             result = connect();
             break;
-        case Flow::GraphN:
+        case Flow::GraphN: [[likely]]
             result = run_graphn();
             break;
         case Flow::PrepareToExit:
@@ -362,7 +362,7 @@ bool GraphN::connect() noexcept
 bool GraphN::run_graphn()
 {
     const bool res = m_graphn_flow->run();
-    if (!res)
+    if (!res) [[unlikely]]
     {
         m_flow_step = Flow::DoExit;
         Log("Next step: DoExit");

@@ -65,7 +65,7 @@ int32_t Textures::load_image(const char* path, std::string&& buffer, int32_t max
     if (g::app_global_stop_all_threads.stop_requested())
         return -1;
 
-    if (buffer.empty() && (nullptr == path || !tools::path::exists(path)))
+    if (buffer.empty() && (nullptr == path || !tools::path::exists(path))) [[unlikely]]
     {
         LogRError("Can't load image: no input data", -1);
     }
@@ -146,7 +146,7 @@ void Textures::worker_thread()
                 Log("Image load failed. ID: " << image->image_id << ". w=" << image->width_or << ", h=" << image->height_or);
                 image->load_failed.store(true, std::memory_order_release);
             }
-            else
+            else [[likely]]
             {
                 int32_t final_w, final_h;
                 tools::img::scale(image->width_or, image->height_or, image->width, image->height, final_w, final_h);
@@ -156,7 +156,7 @@ void Textures::worker_thread()
                     ImageData image_data_resized(nullptr, [](unsigned char* p) { STBIR_FREE(p, nullptr); });
                     image_data_resized.reset(stbir_resize_uint8_linear(image_data.get(), image->width_or, image->height_or, 0, nullptr, final_w, final_h, 0, STBIR_RGBA));
 
-                    if (!image_data_resized)
+                    if (!image_data_resized) [[unlikely]]
                     {
                         Log("Image resize failed. ID: " << image->image_id);
                         image->load_failed.store(true, std::memory_order_release);
@@ -212,14 +212,14 @@ ImTextureID Textures::get_image(int32_t image_id, std::optional<bool>& image_val
     image->ever_requested = true;
     if (image->image_data_ready.load(std::memory_order_acquire))
     {
-        if (image->load_failed.load(std::memory_order_acquire))
+        if (image->load_failed.load(std::memory_order_acquire)) [[unlikely]]
         {
             m_images.erase(it);
             image_valid = false;
             return nullptr;
         }
 
-        if (image->force_release_image.load(std::memory_order_acquire))
+        if (image->force_release_image.load(std::memory_order_acquire)) [[unlikely]]
         {
             m_images.erase(it);
             return nullptr;
@@ -231,7 +231,7 @@ ImTextureID Textures::get_image(int32_t image_id, std::optional<bool>& image_val
         image_valid = true;
         image->last_access_time = m_seconds_passed;
 
-        if (image->textures)
+        if (image->textures) [[likely]]
             return image->textures.get();
 
         try
@@ -312,7 +312,7 @@ bool Textures::check_image_lifecycle(const ImageAsync* image) noexcept
 
     if (image->image_data_ready.load(std::memory_order_acquire) && image->life_time > 0)
     {
-        if (m_seconds_passed - image->last_access_time > image->life_time)
+        if (m_seconds_passed - image->last_access_time > image->life_time) [[unlikely]]
         {
             Log("Image dead. ID: " << image->image_id);
             return false;
@@ -336,7 +336,7 @@ void Textures::on_1s_lazy_timer(int64_t total_seconds_elapsed)
                 continue;
             }
 
-            if (!image->ever_requested && m_frames_passed - image->frame_requested > 60)
+            if (!image->ever_requested && m_frames_passed - image->frame_requested > 60) [[unlikely]]
             {
                 Log("Image early exit. ID: " << image->image_id);
                 it = m_images.erase(it);
@@ -351,7 +351,7 @@ void Textures::on_1s_lazy_timer(int64_t total_seconds_elapsed)
                 {
                     it = m_images.erase(it);
                 }
-                else
+                else [[likely]]
                 {
                     ++it;
                 }

@@ -265,7 +265,7 @@ void Logger::working_thread()
                 });
 
                 m_do_flush.store(false, std::memory_order_relaxed);
-                if (0 == m_buffer_size.load(std::memory_order_relaxed) && !m_do_close.load(std::memory_order_relaxed))    // spurious wakeup or flush on empty buffer
+                if (0 == m_buffer_size.load(std::memory_order_relaxed) && !m_do_close.load(std::memory_order_relaxed)) [[unlikely]]    // spurious wakeup or flush on empty buffer
                     continue;
             
                 temp_buffer.swap(m_buffer);
@@ -317,7 +317,7 @@ void LogWriter::log_line_start(const void* this_, const char* foo, int32_t line)
 #error Not implemented
 #endif
     }
-    else
+    else [[likely]]
     {
 #ifdef _WIN32
         fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{:0>5} {:0>12X} {} {}:{}] "),
@@ -442,7 +442,7 @@ LogWriter& LogWriter::operator << (DlgCode code)
     fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), cast::to_u64(code));
     switch (code)
     {
-    case DlgCode::Progress:
+    case DlgCode::Progress: [[likely]]
         fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("=progress"));
         break;
     case DlgCode::Cancel:

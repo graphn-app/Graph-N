@@ -224,6 +224,7 @@ void ConnectManager::http_worker()
                 std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
                 req->status = HTTP_RESP_FAIL;
                 m_http_pickup.push(req);
+                m_http_pickup_empty.store(false, std::memory_order_release);
                 LogCError("HTTP-Req#" << req->req_id << ". Unknown request type");
             }
         }
@@ -258,6 +259,7 @@ void ConnectManager::http_worker()
         {
             std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
             m_http_pickup.push(req);
+            m_http_pickup_empty.store(false, std::memory_order_release);
         }
     }
 
@@ -266,13 +268,16 @@ void ConnectManager::http_worker()
 
 bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std::string& response)
 {
+    if (m_http_pickup_empty.load(std::memory_order_acquire)) [[likely]]
+        return false;
+
     std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
-    if (m_http_pickup.empty())
+    if (m_http_pickup.empty()) [[unlikely]] // double check
         return false;
 
     auto req = m_http_pickup.front();
 
-    if (HTTP_RESP_TIMEOUT == req->status)
+    if (HTTP_RESP_TIMEOUT == req->status) [[unlikely]]
     {
         Log("HTTP-Req#" << req->req_id << ". Timeout. Retry request: " << req->retry_on_timeout);
         if (req->retry_on_timeout)
@@ -283,7 +288,9 @@ bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std
                 req_id = req->req_id;
                 result = req->status;
                 response = std::move(req->data);
+
                 m_http_pickup.pop();
+                if (m_http_pickup.empty()) m_http_pickup_empty.store(true, std::memory_order_relaxed);
                 return true;
             }
 
@@ -302,6 +309,7 @@ bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std
             m_inbox_cv.notify_one();
 
             m_http_pickup.pop();
+            if (m_http_pickup.empty()) m_http_pickup_empty.store(true, std::memory_order_relaxed);
             return false;
         }
     }
@@ -309,7 +317,9 @@ bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std
     req_id = req->req_id;
     result = req->status;
     response = std::move(req->data);
+
     m_http_pickup.pop();
+    if (m_http_pickup.empty()) m_http_pickup_empty.store(true, std::memory_order_relaxed);
     return true;
 }
 

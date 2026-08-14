@@ -23,7 +23,7 @@ void GraphN_Flow::show_menu_bar()
         const bool active_wf = g::pWfsManager->get_active() != 0;
         const bool online = get_online();
 
-        if (ImGui::BeginMenu("File##MainMenuBar"))
+        if (ImGui::BeginMenu("File##MainMenuBar")) [[unlikely]]
         {
             if (ImGui::MenuItem("Import Project from file...##FileMenuBar", hk->get_key_binding_name(KeyTarget::App_Import), nullptr, nodes_ready))
             {
@@ -72,7 +72,7 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Projects##MainMenuBar"))
+        if (ImGui::BeginMenu("Projects##MainMenuBar")) [[unlikely]]
         {
             if (ImGui::MenuItem("Add new Project##WfMenuBar", hk->get_key_binding_name(KeyTarget::Project_CreateNew), nullptr, nodes_ready))
             {
@@ -115,7 +115,7 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Panels##MainMenuBar"))
+        if (ImGui::BeginMenu("Panels##MainMenuBar")) [[unlikely]]
         {
             if (ImGui::MenuItem("Nodes Library##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Nodes), (m_windows & ViewPanelNodes)))
             {
@@ -164,7 +164,7 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Workspace##Workspace"))
+        if (ImGui::BeginMenu("Workspace##Workspace")) [[unlikely]]
         {
             if (ImGui::MenuItem("Save workflow##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Save), nullptr, wf_save(true)))
             {
@@ -201,7 +201,7 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Queue##Queue"))
+        if (ImGui::BeginMenu("Queue##Queue")) [[unlikely]]
         {
             if (ImGui::MenuItem("Queue prompt##PanelsQueue", hk->get_key_binding_name(KeyTarget::Workspace_RunBack), nullptr, wf_can_run()))
             {
@@ -222,7 +222,7 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Help##MainMenuBar"))
+        if (ImGui::BeginMenu("Help##MainMenuBar")) [[unlikely]]
         {
 #ifdef _DEBUG
             if (ImGui::MenuItem("Debug metrics##HelpMenuBar", nullptr, (m_windows & ViewDebugMetrics)))

@@ -76,7 +76,7 @@ mngr::VideoInfo VideoControl_Win32::get_info(const std::string& filepath, std::o
 
     ComPtr<IMFSourceReader> reader;
     HRESULT hr = MFCreateSourceReaderFromURL(wfilepath.c_str(), nullptr, &reader);
-    if (FAILED(hr))
+    if (FAILED(hr)) [[unlikely]]
         return {};
 
     mngr::VideoInfo info;
@@ -157,13 +157,13 @@ int32_t VideoControl_Win32::load(const std::string& filepath, uint32_t max_side_
 
     ComPtr<IMFAttributes> attributes;
     hr = MFCreateAttributes(&attributes, /*3*/2);
-    if (FAILED(hr)) return log_and_reset_err("Failed to create attributes for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to create attributes for");
 
     hr = attributes->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
-    if (FAILED(hr)) return log_and_reset_err("Failed to set attr hardware transforms for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set attr hardware transforms for");
 
     hr = attributes->SetUINT32(MF_SOURCE_READER_ENABLE_ADVANCED_VIDEO_PROCESSING, TRUE);
-    if (FAILED(hr)) return log_and_reset_err("Failed to set attr video processing for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set attr video processing for");
 /*
     ComPtr<IMFDXGIDeviceManager> dxgi_manager;
     UINT reset_token = 0;
@@ -179,35 +179,35 @@ int32_t VideoControl_Win32::load(const std::string& filepath, uint32_t max_side_
     std::filesystem::path wfilepath(filepath);
     IMFSourceReader* reader = nullptr;
     hr = MFCreateSourceReaderFromURL(wfilepath.c_str(), attributes.Get(), &reader);
-    if (FAILED(hr)) return log_and_reset_err("Failed to create reader from");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to create reader from");
 
     m_reader.reset(reader);
 
     ComPtr<IMFMediaType> native_type;
     hr = m_reader->GetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), &native_type);
-    if (FAILED(hr)) return log_and_reset_err("Failed to set first stream reader for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set first stream reader for");
 
     UINT32 w = 0, h = 0;
     hr = MFGetAttributeSize(native_type.Get(), MF_MT_FRAME_SIZE, &w, &h);
-    if (FAILED(hr)) return log_and_reset_err("Failed to get attr size for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to get attr size for");
 
     scale(w, h, max_side_len);
 
     ComPtr<IMFMediaType> target_type;
     hr = MFCreateMediaType(&target_type);
-    if (FAILED(hr)) return log_and_reset_err("Failed to create media type for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to create media type for");
 
     hr = native_type->CopyAllItems(target_type.Get());
-    if (FAILED(hr)) return log_and_reset_err("failed to copy items to target type for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("failed to copy items to target type for");
 
     //hr = target_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
     //if (FAILED(hr)) return log_and_reset_err("Failed to set guid: major type for");
 
     hr = target_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
-    if (FAILED(hr)) return log_and_reset_err("failed to set rgb32 for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("failed to set rgb32 for");
 
     hr = MFSetAttributeSize(target_type.Get(), MF_MT_FRAME_SIZE, w, h);
-    if (FAILED(hr)) return log_and_reset_err("failed to set new frame size for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("failed to set new frame size for");
 
     target_type->DeleteItem(MF_MT_DEFAULT_STRIDE);
     target_type->DeleteItem(MF_MT_SAMPLE_SIZE);
@@ -223,17 +223,17 @@ int32_t VideoControl_Win32::load(const std::string& filepath, uint32_t max_side_
     //if (FAILED(hr)) return log_and_reset_err("Failed to set attr ratio for");
 
     hr = m_reader->SetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), nullptr, target_type.Get());
-    if (FAILED(hr)) return log_and_reset_err("Failed to set curr media type for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set curr media type for");
 
     hr = m_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_ALL_STREAMS), FALSE);
-    if (FAILED(hr)) return log_and_reset_err("Failed to set stream selection: reader all for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set stream selection: reader all for");
 
     hr = m_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), TRUE);
-    if (FAILED(hr)) return log_and_reset_err("Failed to set stream selection: first stream for");
+    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set stream selection: first stream for");
 
     std::optional<bool> valid;
     m_info = get_info(filepath, valid);
-    if (!valid.value_or(false))
+    if (!valid.value_or(false)) [[unlikely]]
         return log_and_reset_err("Failed to get video info for ");
 
     m_info.width = w;
@@ -468,11 +468,11 @@ std::string VideoControl_Win32::get_thumbnail(const std::string& filename, uint3
     if (!m_initialized)
         return {};
 
-    if (!tools::path::exists(filename))
+    if (!tools::path::exists(filename)) [[unlikely]]
         return {};
 
     const auto temp = fs::get_temp_directory_path();
-    if (!tools::path::make_folder(temp))
+    if (!tools::path::make_folder(temp)) [[unlikely]]
         return {};
 
     HRESULT hr = S_OK;
@@ -484,13 +484,13 @@ std::string VideoControl_Win32::get_thumbnail(const std::string& filename, uint3
 
     ComPtr<IMFAttributes> attributes;
     hr = MFCreateAttributes(&attributes, 2);
-    if (FAILED(hr)) return log_err("Failed to create attributes for");
+    if (FAILED(hr)) [[unlikely]] return log_err("Failed to create attributes for");
 
     hr = attributes->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
-    if (FAILED(hr)) return log_err("Failed to set attr hardware transforms for");
+    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set attr hardware transforms for");
 
     hr = attributes->SetUINT32(MF_SOURCE_READER_ENABLE_ADVANCED_VIDEO_PROCESSING, TRUE);
-    if (FAILED(hr)) return log_err("Failed to set attr video processing for");
+    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set attr video processing for");
 
     auto dest = tools::str::generate_uuid_v4() + ".png";
     dest = tools::str::path_to_string(temp / dest);
@@ -498,36 +498,36 @@ std::string VideoControl_Win32::get_thumbnail(const std::string& filename, uint3
 
     IMFSourceReader* reader = nullptr;
     hr = MFCreateSourceReaderFromURL(wfilepath.c_str(), attributes.Get(), &reader);
-    if (FAILED(hr)) return log_err("Failed to create reader from");
+    if (FAILED(hr)) [[unlikely]] return log_err("Failed to create reader from");
 
     std::unique_ptr<IMFSourceReader, void(*)(IMFSourceReader*)> temp_reader(reader, [](IMFSourceReader* p) { if (p) p->Release(); });
 
     ComPtr<IMFMediaType> native_type;
     hr = temp_reader->GetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), &native_type);
-    if (FAILED(hr)) return log_err("Failed to set first stream reader for");
+    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set first stream reader for");
 
     UINT32 w = 0, h = 0;
     hr = MFGetAttributeSize(native_type.Get(), MF_MT_FRAME_SIZE, &w, &h);
-    if (FAILED(hr)) return log_err("Failed to get attr size for");
+    if (FAILED(hr)) [[unlikely]] return log_err("Failed to get attr size for");
 
     scale(w, h, max_side_len);
 
     // configure reader output to uncompressed rgb32 with target dimensions
     ComPtr<IMFMediaType> target_type;
     hr = MFCreateMediaType(&target_type);
-    if (FAILED(hr)) return log_err("Failed to create media type for");
+    if (FAILED(hr)) [[unlikely]] return log_err("Failed to create media type for");
 
     hr = native_type->CopyAllItems(target_type.Get());
-    if (FAILED(hr)) return log_err("failed to copy items to target type for");
+    if (FAILED(hr)) [[unlikely]] return log_err("failed to copy items to target type for");
 
     //hr = target_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
     //if (FAILED(hr)) return log_err("Failed to set guid: major type for");
 
     hr = target_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
-    if (FAILED(hr)) return log_err("failed to set rgb32 for");
+    if (FAILED(hr)) [[unlikely]] return log_err("failed to set rgb32 for");
 
     hr = MFSetAttributeSize(target_type.Get(), MF_MT_FRAME_SIZE, w, h);
-    if (FAILED(hr)) return log_err("failed to set new frame size for");
+    if (FAILED(hr)) [[unlikely]] return log_err("failed to set new frame size for");
 
     target_type->DeleteItem(MF_MT_DEFAULT_STRIDE);
     target_type->DeleteItem(MF_MT_SAMPLE_SIZE);
@@ -543,13 +543,13 @@ std::string VideoControl_Win32::get_thumbnail(const std::string& filename, uint3
     //if (FAILED(hr)) return log_err("Failed to set attr ratio for");
 
     hr = temp_reader->SetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), nullptr, target_type.Get());
-    if (FAILED(hr)) return log_err("Failed to set curr media type for");
+    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set curr media type for");
 
     hr = temp_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_ALL_STREAMS), FALSE);
-    if (FAILED(hr)) return log_err("Failed to set stream selection: reader all for");
+    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set stream selection: reader all for");
 
     hr = temp_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), TRUE);
-    if (FAILED(hr)) return log_err("Failed to set stream selection: first stream for");
+    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set stream selection: first stream for");
 
     // synchronous loop to extract the first non-empty visual frame
     ComPtr<IMFSample> sample;
@@ -561,7 +561,7 @@ std::string VideoControl_Win32::get_thumbnail(const std::string& filename, uint3
     while (!frame_extracted)
     {
         hr = temp_reader->ReadSample(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), 0, nullptr, &flags, &timestamp, &sample);
-        if (FAILED(hr) || (flags & MF_SOURCE_READERF_ENDOFSTREAM))
+        if (FAILED(hr) || (flags & MF_SOURCE_READERF_ENDOFSTREAM)) [[unlikely]]
             return log_err("Failed to read first stream sample for");
 
         if (sample)

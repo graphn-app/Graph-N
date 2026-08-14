@@ -135,7 +135,7 @@ bool PanelWithList::draw_list(
             bool r_released = false;
             bool dnd = false;
 
-            if (!item.renaming)
+            if (!item.renaming) [[likely]]
             {
                 ImGui::SetCursorPosX(0);
                 ImGui::InvisibleButton("btn", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetTextLineHeightWithSpacing()));
@@ -218,7 +218,7 @@ bool PanelWithList::draw_list(
 
             ImGui::SameLine();
 
-            if (item.renaming)
+            if (item.renaming) [[unlikely]]
             {
                 allow_tt = false;
 

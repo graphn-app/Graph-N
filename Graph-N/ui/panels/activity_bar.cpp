@@ -98,7 +98,7 @@ void ActivityBar::show(ActivityBarMode mode)
     size_t l_panels = 0, r_panels = 0;
     for (auto& [id, direction] : m_panels)
     {
-        if (nullptr == central_node || !g::pFlow->is_panel_active(id))
+        if (nullptr == central_node || !g::pFlow->is_panel_active(id)) [[unlikely]]
             direction = Direction::None;
         else
         {

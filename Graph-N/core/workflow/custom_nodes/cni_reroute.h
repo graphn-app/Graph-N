@@ -71,7 +71,7 @@ public:
     void begin_draw_parts() noexcept { m_drawing_splitted_part = DrawingPart::Left; }
     bool end_draw_parts() noexcept
     {
-        if (!m_splitted)
+        if (!m_splitted) [[unlikely]]
             return false;
         m_drawing_splitted_part = DrawingPart::Right;
         if (!m_splitted_pos_set)

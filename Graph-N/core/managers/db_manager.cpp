@@ -388,7 +388,7 @@ std::vector<DbAppOptionData> DbManager::app_option_load_all()
         ret.reserve(200);
         while (query.executeStep())
         {
-            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull())
+            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull()) [[unlikely]]
                 continue;
 
             DbAppOptionData db_opt;
@@ -465,9 +465,9 @@ std::optional<DbValue> DbManager::item_option_load(hid hash, DbItemOptionType ty
         query.bind(1, std::to_string(hash));
         query.bind(2, cast::to_i32(type));
 
-        if (!query.executeStep())
+        if (!query.executeStep()) [[unlikely]]
             return std::nullopt;
-        if (query.getColumn(0).isNull() && query.getColumn(1).isNull())
+        if (query.getColumn(0).isNull() && query.getColumn(1).isNull()) [[unlikely]]
             return std::nullopt;
 
         std::optional<DbValue> v;
@@ -500,7 +500,7 @@ std::vector<std::pair<hid, DbValue>> DbManager::item_option_load_all(DbItemOptio
         ret.reserve(100);
         while(query.executeStep())
         {
-            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull())
+            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull()) [[unlikely]]
                 continue;
 
             const std::string hash = query.getColumn(0).getString();
@@ -534,7 +534,7 @@ std::vector<WfData> DbManager::wf_load_meta_and_purge()
 
         while (query.executeStep())
         {
-            if (query.getColumn(0).isNull())
+            if (query.getColumn(0).isNull()) [[unlikely]]
                 continue;
 
             WfData wfd;
@@ -587,7 +587,7 @@ void DbManager::wf_load_blob(const std::string& uuid, blob::Blob& blob, bool& lo
                 gdb_val_uuid));
 
         query.bindNoCopy(1, uuid);
-        if (!query.executeStep())
+        if (!query.executeStep()) [[unlikely]]
             return;
         if (query.getColumn(0).isNull() && query.getColumn(1).isNull())
         {
@@ -600,7 +600,7 @@ void DbManager::wf_load_blob(const std::string& uuid, blob::Blob& blob, bool& lo
 
         if (!load_saved && 0 == draft_len)
             load_saved = true;
-        if (load_saved && 0 == saved_len)
+        if (load_saved && 0 == saved_len) [[unlikely]]
             return;
 
         const void* ptr = query.getColumn(load_saved ? 0 : 1).getBlob();
@@ -753,7 +753,7 @@ std::vector<ExecTask> DbManager::history_load_all()
         ret.reserve(500);
         while (query.executeStep())
         {
-            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() || query.getColumn(2).isNull())
+            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() || query.getColumn(2).isNull()) [[unlikely]]
                 continue;
 
             ExecTask task;
@@ -877,7 +877,7 @@ void DbManager::history_search(const std::string& prompt, std::list<std::string>
 
         while (query.executeStep())
         {
-            if (query.getColumn(0).isNull() || query.getColumn(1).isNull())
+            if (query.getColumn(0).isNull() || query.getColumn(1).isNull()) [[unlikely]]
                 continue;
 
             auto prompt_id = query.getColumn(1).getString();

@@ -1562,6 +1562,7 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
         break;
     default: // fallthrough to default Circle
         LogError("Unhandled pin shape, pin type " << cast::to_i32(type));
+        [[fallthrough]];
     case PinShape::Circle:
         {
             if (connected)

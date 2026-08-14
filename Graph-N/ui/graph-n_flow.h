@@ -213,7 +213,7 @@ private:
     void reparse_nodes();
     void import_user_projects();
     void import_files(std::list<std::filesystem::path>&& paths);
-    void check_wf_panels_initialized();
+    bool check_wf_panels_initialized();
 
     void modal_last_frame();
 

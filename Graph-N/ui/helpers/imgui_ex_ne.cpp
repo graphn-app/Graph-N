@@ -15,7 +15,7 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
     ImGuiWindow* window = ImGui::GetCurrentWindow();
 
     g.NextWindowData.ClearFlags(); // We behave like Begin() and need to consume those values
-    if (window->SkipItems)
+    if (window->SkipItems) [[unlikely]]
         return;
 
     const ImVec2 pos_before = ImGui::GetCursorScreenPos();
@@ -29,7 +29,7 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
     const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(w, label_size.y + style.FramePadding.y * 2.0f));
     const ImRect total_bb(bb.Min, bb.Max + ImVec2(label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f, 0.0f));
     ImGui::ItemSize(total_bb, style.FramePadding.y);
-    if (!ImGui::ItemAdd(total_bb, id, &bb))
+    if (!ImGui::ItemAdd(total_bb, id, &bb)) [[unlikely]]
         return;
 
     // Open on click
@@ -118,7 +118,7 @@ bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinI
     const ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;
     ImGuiWindow* window = ImGui::GetCurrentWindow();
-    if (window->SkipItems)
+    if (window->SkipItems) [[unlikely]]
         return false;
 
     const float height = (ImGui::GetTextLineHeight() * 4) + (style.FramePadding.y * 2.0f);

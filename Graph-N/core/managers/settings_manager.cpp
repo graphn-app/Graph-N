@@ -341,7 +341,7 @@ void save_option_impl(std::variant<std::string, int64_t, std::filesystem::path, 
 
 void SettingsManager::save_option(OptionValue& option, const std::string& new_str)
 {
-    if (option.guard_required)
+    if (option.guard_required) [[unlikely]]
     {
         std::unique_lock<std::mutex> lock(m_guard);
         save_option_impl(option.value, option.db_name, new_str, { new_str }, "string");
@@ -354,7 +354,7 @@ void SettingsManager::save_option(OptionValue& option, const std::string& new_st
 
 void SettingsManager::save_option(OptionValue& option, int64_t new_int)
 {
-    if (option.guard_required)
+    if (option.guard_required) [[unlikely]]
     {
         std::unique_lock<std::mutex> lock(m_guard);
         save_option_impl(option.value, option.db_name, new_int, { new_int }, "int");
@@ -367,7 +367,7 @@ void SettingsManager::save_option(OptionValue& option, int64_t new_int)
 
 void SettingsManager::save_option(OptionValue& option, bool new_bool)
 {
-    if (option.guard_required)
+    if (option.guard_required) [[unlikely]]
     {
         std::unique_lock<std::mutex> lock(m_guard);
         save_option_impl(option.value, option.db_name, new_bool, { new_bool ? 1 : 0 }, "bool");
@@ -380,7 +380,7 @@ void SettingsManager::save_option(OptionValue& option, bool new_bool)
 
 void SettingsManager::save_option(OptionValue& option, const std::filesystem::path& new_path)
 {
-    if (option.guard_required)
+    if (option.guard_required) [[unlikely]]
     {
         std::unique_lock<std::mutex> lock(m_guard);
         save_option_impl(option.value, option.db_name, new_path, { tools::str::path_to_string(new_path) }, "path");
