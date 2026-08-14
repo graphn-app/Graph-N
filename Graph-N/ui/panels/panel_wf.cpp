@@ -11,6 +11,7 @@
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
+#include "core/workflow/custom_nodes/cni_reroute.h"
 
 namespace ui
 {
@@ -319,7 +320,8 @@ void PanelWorkflow::draw_wf()
 
         ImGui::PushID(node);
 
-        node->reroute_splitted_begin_draw_parts();
+        if (node->is_cni_reroute_splitted()) [[unlikely]]
+            static_cast<data::CNI_Reroute*>(node)->begin_draw_parts();
 
         m_drawer.pre_draw_node(node, failed_node);
         if (node->m_group)
@@ -328,7 +330,7 @@ void PanelWorkflow::draw_wf()
             m_drawer.draw_node(node, node->get_object()->w_fit, node_idx, failed_pins);
         m_drawer.post_draw_node(node, failed_node);
 
-        if (node->reroute_splitted_end_draw_parts())
+        if (node->is_cni_reroute_splitted() && static_cast<data::CNI_Reroute*>(node)->end_draw_parts()) [[unlikely]]
         {
             m_drawer.pre_draw_node(node, failed_node);
             m_drawer.draw_node(node, node->get_object()->w_fit, node_idx, failed_pins);

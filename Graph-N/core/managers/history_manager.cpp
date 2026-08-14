@@ -9,6 +9,7 @@
 #include "core/workflow/serializer/wf_serializers.h"
 #include "core/workflow/node.h"
 #include "core/workflow/pin.h"
+#include "core/workflow/custom_nodes/cni_reroute.h"
 
 namespace mngr
 {
@@ -418,6 +419,7 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
 void HistoryManager::push_node_action(data::NodeInstance* node, HistoryActionType act, bool merge_left)
 {
     LogRAssert(node, "Zero ptr", );
+    LogRAssert(node->is_cni_reroute_splitted(), "Node is not CNI Reroute", );
     if (should_ignore_action(node->get_workflow_id())) return;
 
     HistoryAction* history = nullptr;
@@ -438,8 +440,8 @@ void HistoryManager::push_node_action(data::NodeInstance* node, HistoryActionTyp
 
     std::unique_ptr<HistoryStep> step = std::make_unique<ActNodeRerouteSplitting>(act);
     ActNodeRerouteSplitting* real_step = cast::dynamic<ActNodeRerouteSplitting>(step.get());
-    node->reroute_splitted_end_draw_parts();
-    real_step->splitted_pos = node->reroute_splitted_get_current_node_pos();
+    static_cast<data::CNI_Reroute*>(node)->end_draw_parts();
+    real_step->splitted_pos = static_cast<data::CNI_Reroute*>(node)->get_splitted_node_pos();
     real_step->merged_left = merge_left;
     step->id = node->get_instance_id();
     history->steps.push_back(std::move(step));
@@ -705,8 +707,8 @@ void HistoryManager::pop_node_reroute_split(const data::Workflow* dest_wf, const
     LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
     LogRAssert(node->is_cni_reroute(), "Node is not CNI Reroute. w:" << dest_wf->get_id() << ", n:" << step->id, );
     dest_wf->action()->merge_reroute(node, real_step->merged_left);
-    node->reroute_splitted_end_draw_parts();
-    node->reroute_splitted_set_current_node_pos(real_step->splitted_pos);
+    static_cast<data::CNI_Reroute*>(node)->end_draw_parts();
+    static_cast<data::CNI_Reroute*>(node)->set_splitted_node_pos(real_step->splitted_pos);
 }
 
 void HistoryManager::pop_node_reroute_merge(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
@@ -721,8 +723,8 @@ void HistoryManager::pop_node_reroute_merge(const data::Workflow* dest_wf, const
     LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
     LogRAssert(node->is_cni_reroute(), "Node is not CNI Reroute. w:" << dest_wf->get_id() << ", n:" << step->id, );
     dest_wf->action()->split_reroute(node);
-    node->reroute_splitted_end_draw_parts();
-    node->reroute_splitted_set_current_node_pos(real_step->splitted_pos);
+    static_cast<data::CNI_Reroute*>(node)->end_draw_parts();
+    static_cast<data::CNI_Reroute*>(node)->set_splitted_node_pos(real_step->splitted_pos);
 }
 
 void HistoryManager::pop_pin_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)

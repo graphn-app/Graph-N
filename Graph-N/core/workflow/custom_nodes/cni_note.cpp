@@ -7,6 +7,13 @@ namespace data
 {
 
 template <typename T>
+CNI_NoteBase<T>::CNI_NoteBase(Node* obj, wid workflow_id, iid instance_id) noexcept
+    : CNI_BaseObj_T<T>(obj, workflow_id, instance_id)
+{
+    this->set_cni_flags(CNI_Base::CNI_Flag_Cni);
+}
+
+template <typename T>
 void CNI_NoteBase<T>::cni_cleanup_base_object() noexcept
 {
     auto& ins = this->get_inputs();

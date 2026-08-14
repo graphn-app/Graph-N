@@ -7,6 +7,7 @@
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
+#include "core/workflow/custom_nodes/cni_reroute.h"
 #include "ui/node_drawer.h"
 #include "ui/graph-n_flow.h"
 
@@ -61,7 +62,7 @@ void WorkflowAction::split_reroute(data::NodeInstance* reroute_node)
     LogRAssert(reroute_node->is_cni_reroute(), "Node is not reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
     LogRAssert(!reroute_node->is_cni_reroute_splitted(), "Reroute already splitted. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id(), );
 
-    reroute_node->reroute_split_to_parts();
+    static_cast<data::CNI_Reroute*>(reroute_node)->split_to_parts();
     g::pHistoryManager->push_node_action(reroute_node, mngr::HistoryActionType::NodeRerouteSplit, true);
 }
 
@@ -71,7 +72,7 @@ void WorkflowAction::merge_reroute(data::NodeInstance* reroute_node, bool to_lef
     LogRAssert(reroute_node->is_cni_reroute(), "Node is not reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
     LogRAssert(reroute_node->is_cni_reroute_splitted(), "Reroute wasn't splitted. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id(), );
 
-    reroute_node->reroute_merge_parts(to_left);
+    static_cast<data::CNI_Reroute*>(reroute_node)->merge_parts(to_left);
     g::pHistoryManager->push_node_action(reroute_node, mngr::HistoryActionType::NodeRerouteMerge, to_left);
 }
 

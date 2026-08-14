@@ -16,18 +16,13 @@ class CNI_NoteBase
     : public CNI_BaseObj_T<T>
 {
 public:
-    using CNI_BaseObj_T<T>::CNI_BaseObj_T;
+    CNI_NoteBase(Node* obj, wid workflow_id, iid instance_id) noexcept;
     ~CNI_NoteBase() noexcept = default;
 
     void cni_cleanup_base_object() noexcept override;
-
-    bool is_cni() const noexcept override { return true; }
     bool cni_is_applicable() const noexcept override { return true; }
-
     void cni_init() override;
-
     bool cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
-
     bool cni_json_api_should_export() const noexcept override { return false; }
 };
 

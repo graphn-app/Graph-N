@@ -25,6 +25,12 @@ std::unique_ptr<Node> CNI_Primitive::cni_create_object(mngr::NodesManager* manag
     return node;
 }
 
+CNI_Primitive::CNI_Primitive(Node* obj, wid workflow_id, iid instance_id) noexcept
+    : CNI_BaseObj_T<CNI_Primitive>(obj, workflow_id, instance_id)
+{
+    set_cni_flags(CNI_Base::CNI_Flag_Cni);
+}
+
 void CNI_Primitive::cni_init()
 {
     auto wf = g::pWfsManager->access(get_workflow_id());

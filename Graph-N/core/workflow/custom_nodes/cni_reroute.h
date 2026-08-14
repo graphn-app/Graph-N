@@ -25,17 +25,13 @@ class CNI_Reroute final
     : public CNI_BaseObj_T<CNI_Reroute>
 {
 public:
-    using CNI_BaseObj_T<CNI_Reroute>::CNI_BaseObj_T;
+    CNI_Reroute(Node* obj, wid workflow_id, iid instance_id) noexcept;
     ~CNI_Reroute() noexcept = default;
 
     static std::unique_ptr<Node> cni_create_object(mngr::NodesManager* manager);
     static const char* cni_get_node_class() noexcept { return CNI_CLASS_REROUTE; }
 
     void cni_init() override;
-
-    bool is_cni() const noexcept override { return true; }
-    bool is_cni_reroute() const noexcept override { return true; }
-    bool is_cni_reroute_splitted() const noexcept override { return m_splitted; }
 
     bool cni_is_applicable() const noexcept override { return true; }
 
@@ -69,11 +65,11 @@ public:
     const EdType& ed() const noexcept override { return !m_splitted || DrawingPart::Left == m_drawing_splitted_part ?  CNI_BaseObj_T<CNI_Reroute>::ed() : m_ed_splitted; }
     uint64_t reset_state() noexcept override;
 
-    void reroute_split_to_parts() override;
-    void reroute_merge_parts(bool to_left) override;
+    void split_to_parts();
+    void merge_parts(bool to_left);
 
-    void reroute_splitted_begin_draw_parts() noexcept override { m_drawing_splitted_part = DrawingPart::Left; }
-    bool reroute_splitted_end_draw_parts() noexcept override
+    void begin_draw_parts() noexcept { m_drawing_splitted_part = DrawingPart::Left; }
+    bool end_draw_parts() noexcept
     {
         if (!m_splitted)
             return false;
@@ -86,23 +82,23 @@ public:
         return true;
     }
 
-    ImVec2 reroute_splitted_get_current_node_pos() const noexcept override
+    ImVec2 get_splitted_node_pos() const
     {
         return (!m_splitted || DrawingPart::Left == m_drawing_splitted_part ? m_rc.Min : m_splitted_pos);
     }
-    void reroute_splitted_set_current_node_pos(const ImVec2& pos) noexcept override
+    void set_splitted_node_pos(const ImVec2& pos) noexcept
     {
         if (!m_splitted || DrawingPart::Left == m_drawing_splitted_part) m_rc.Min = pos;
         else m_splitted_pos = pos;
     }
 
-    PinInstance* reroute_splitted_get_input() const noexcept override
+    PinInstance* get_splitted_input() const noexcept
     {
         if (m_splitted && DrawingPart::Right == m_drawing_splitted_part)
             return m_splitted_in;
         return nullptr;
     }
-    PinInstance* reroute_splitted_get_output() const noexcept override
+    PinInstance* get_splitted_output() const noexcept
     {
         if (m_splitted && DrawingPart::Left == m_drawing_splitted_part)
             return m_splitted_out;

@@ -86,8 +86,8 @@ void WfSerializerToBlob::serialize_cni_node_reroute()
     m_writer.push(m_curr_node->is_cni_reroute_splitted());
     if (m_curr_node->is_cni_reroute_splitted())
     {
-        cast::remove_const<NodeInstance>(m_curr_node)->reroute_splitted_end_draw_parts();
-        m_writer.push(m_curr_node->reroute_splitted_get_current_node_pos());
+        cast::remove_const<CNI_Reroute>(static_cast<const data::CNI_Reroute*>(m_curr_node))->end_draw_parts();
+        m_writer.push(static_cast<const data::CNI_Reroute*>(m_curr_node)->get_splitted_node_pos());
     }
 }
 

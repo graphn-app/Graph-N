@@ -23,6 +23,12 @@ std::unique_ptr<Node> CNI_Reroute::cni_create_object(mngr::NodesManager* manager
     return node;
 }
 
+CNI_Reroute::CNI_Reroute(Node* obj, wid workflow_id, iid instance_id) noexcept
+    : CNI_BaseObj_T<CNI_Reroute>(obj, workflow_id, instance_id)
+{
+    set_cni_flags(CNI_Base::CNI_Flag_Cni | CNI_Base::CNI_Flag_Reroute);
+}
+
 void CNI_Reroute::cni_cleanup_base_object()
 {
     cleanup_pairs(false);
@@ -451,11 +457,13 @@ void CNI_Reroute::cni_pin_unlinked(const PinInstance* p1, const PinInstance* p2)
     reset_width();
 }
 
-void CNI_Reroute::reroute_split_to_parts()
+void CNI_Reroute::split_to_parts()
 {
-    LogRAssert(!is_cni_reroute_splitted(), "Reroute already splitted. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
+    LogRAssert(!m_splitted, "Reroute already splitted. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
 
+    set_cni_flags(CNI_Base::CNI_Flag_Cni | CNI_Base::CNI_Flag_Reroute | CNI_Base::CNI_Flag_RerouteSplitted);
     m_splitted = true;
+
     m_ed_splitted.reset();
     m_splitted_pos = m_rc.Min;
     m_splitted_pos.x += m_rc.Max.x + 100.0f;
@@ -499,10 +507,11 @@ void CNI_Reroute::reroute_split_to_parts()
     m_drawing_splitted_part = DrawingPart::Left;
 }
 
-void CNI_Reroute::reroute_merge_parts(bool to_left)
+void CNI_Reroute::merge_parts(bool to_left)
 {
-    LogRAssert(is_cni_reroute_splitted(), "Reroute wasn't splitted. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
+    LogRAssert(m_splitted, "Reroute wasn't splitted. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
 
+    set_cni_flags(CNI_Base::CNI_Flag_Cni | CNI_Base::CNI_Flag_Reroute);
     m_splitted = false;
     m_ed_splitted.reset();
 

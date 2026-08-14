@@ -18,19 +18,15 @@ class CNI_Primitive final
     : public CNI_BaseObj_T<CNI_Primitive>
 {
 public:
-    using CNI_BaseObj_T<CNI_Primitive>::CNI_BaseObj_T;
+    CNI_Primitive(Node* obj, wid workflow_id, iid instance_id) noexcept;
     ~CNI_Primitive() noexcept = default;
 
     static std::unique_ptr<Node> cni_create_object(mngr::NodesManager* manager);
     static const char* cni_get_node_class() noexcept { return CNI_CLASS_PRIMITIVE; }
 
     void cni_cleanup_base_object() noexcept override;
-
-    bool is_cni() const noexcept override { return true; }
     bool cni_is_applicable() const noexcept override { return true; }
-
     void cni_init() override;
-
     bool cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
 
     bool cni_can_link(const PinInstance* p1, const PinInstance* p2) const noexcept override;

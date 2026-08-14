@@ -125,8 +125,8 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
     link->m_input = (p1->input ? i1 : i2);
     link->m_output = (p1->output ? i1 : i2);
 
-    if (n1 != nullptr)  n1->cni_pin_linked(i1, i2);
-    if (n2 != nullptr)  n2->cni_pin_linked(i2, i1);
+    if (n1 != nullptr && n1->is_cni())  n1->cni_pin_linked(i1, i2);
+    if (n2 != nullptr && n2->is_cni())  n2->cni_pin_linked(i2, i1);
 
     LogS("Linked. w:" << link->get_workflow_id() << ", l:" << link->get_instance_id() << ", p1:" << link->m_input->get_instance_id() << ", p2:" << link->m_output->get_instance_id());
     return link;
@@ -167,10 +167,8 @@ void Link::unlink()
         if (recalc != nullptr)
             recalc->reset_width();
 
-        if (n1->is_cni())
-            n1->cni_pin_unlinked(p1, p2);
-        if (n2->is_cni())
-            n2->cni_pin_unlinked(p2, p1);
+        if (n1->is_cni()) n1->cni_pin_unlinked(p1, p2);
+        if (n2->is_cni()) n2->cni_pin_unlinked(p2, p1);
     }
 
     Log("Unlinked. w:" << get_workflow_id() << ", l:" << get_instance_id() << ", p1:" << p1->get_instance_id() << ", p2" << p2->get_instance_id());
