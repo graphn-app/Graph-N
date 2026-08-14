@@ -469,24 +469,15 @@ Block::Block(Writer& writer, bool begin_block /*= true*/)
         begin();
 }
 
-Block::~Block()
+Block::~Block() noexcept
 {
     if (m_opened)
-    {
-        try
-        {
-            end();
-        }
-        catch(const std::exception& ex)
-        {
-            LogWarn("Dtor: " << ex.what())
-        }
-    }
+        end();
 }
 
 void Block::begin()
 {
-    if (m_opened) { LogError("Block already open"); }
+    LogRAssert(!m_opened, "Block already opened", );
     m_opened = true;
 
     m_size_offset = m_writer.get()->size();
@@ -494,9 +485,9 @@ void Block::begin()
     m_start_offset = m_writer.get()->size();
 }
 
-void Block::end()
+void Block::end() noexcept
 {
-    if (!m_opened) { LogError("Block wasn't open"); }
+    LogRAssert(m_opened, "Block wasn't open", );
     m_opened = false;
 
     const uint32_t payload_size = uint32_t(m_writer.get()->size() - m_start_offset);

@@ -110,12 +110,12 @@ class Block final
 {
 public:
     Block(Writer& writer, bool begin_block = true);
-    ~Block();
+    ~Block() noexcept;
 
     NO_COPY_MOVE(Block);
 
     void begin();
-    void end();
+    void end() noexcept;
 
 private:
     Writer& m_writer;
