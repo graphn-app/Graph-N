@@ -65,7 +65,7 @@ public:
     void remove_node(NodeInstance* node);
     void remove_node(NodeInstanceRo* node);
     void remove_link(const Link* link);
-    void remove_pin(const PinInstance* pin) noexcept;
+    void remove_pin(const PinInstance* pin, bool cleanup_ed = true) noexcept;
 
     void merge_reroutes(const std::set<data::NodeInstance*>& nodes);
     void split_reroutes_to_pin_pairs(const std::set<data::NodeInstance*>& nodes);
@@ -89,6 +89,10 @@ public:
     iid get_last_child_id() const noexcept { return m_last_child_id; }
     void set_last_child_id(iid id) noexcept { m_last_child_id = id; }
 
+    data::NodeInstance* ed_get_node(uint64_t id) const { return ed_get(id, m_ed_objects_nodes); }
+    data::PinInstance* ed_get_pin(uint64_t id) const { return ed_get(id, m_ed_objects_pins); }
+    data::Link* ed_get_link(uint64_t id) const { return ed_get(id, m_ed_objects_links); }
+
 private:
     // ComfyUiObjectValidityListener
     void subscribe_comfyui_validity_state();
@@ -98,6 +102,21 @@ private:
     std::unique_ptr<NodeInstance> create_node(data::Node* node, iid node_id) const;
     std::unique_ptr<NodeInstanceRo> create_node_ro(data::Node* node, iid node_id) const;
 
+    void ed_create(data::NodeInstance* node);
+    void ed_create(data::PinInstance* pin);
+    void ed_create(data::Link* link);
+
+    void ed_delete(const std::unordered_set<uint64_t>& ids);
+
+    template <typename T>
+    T* ed_get(uint64_t id, const std::vector<std::pair<uint64_t, T*>>& map) const
+    {
+        if (0 == id) return nullptr;
+        const auto it = std::ranges::lower_bound(map, id, {}, &std::pair<uint64_t, T*>::first);
+        if (it != map.end()) return it->second;
+        return nullptr;
+    }
+
 private:
     mngr::WfData m_wf_data;
     iid m_last_child_id = 0;
@@ -106,6 +125,12 @@ private:
     std::vector<std::unique_ptr<NodeInstanceRo>> m_nodes_ro;
     std::vector<std::unique_ptr<PinInstance>> m_pins;
     std::vector<std::unique_ptr<Link>> m_links;
+
+    // maps EdType.id to object
+    // sorted vector is still faster than a map; 1000 objects will fit into the L1/L2 cache
+    std::vector<std::pair<uint64_t, data::NodeInstance*>> m_ed_objects_nodes;
+    std::vector<std::pair<uint64_t, data::PinInstance*>> m_ed_objects_pins;
+    std::vector<std::pair<uint64_t, data::Link*>> m_ed_objects_links;
 
     bool m_invalidation_state = false;
 };

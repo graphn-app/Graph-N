@@ -292,7 +292,7 @@ void PanelWorkflow::draw_wf()
     m_drawer.pre_draw_all(get_panel_id(), nodes.size());
 
     if (m_select_new_nodes)
-        m_drawer.select_node({}, false);
+        m_drawer.select_node(EdType(false), false);
 
     for (size_t node_idx = 0; node_idx < nodes.size(); node_idx++)
     {
@@ -310,7 +310,7 @@ void PanelWorkflow::draw_wf()
             }
         }
 
-        const bool is_new = !node->ed();
+        const bool is_new = !node->ed().has_object();
         if (is_new) [[unlikely]]
         {
             node->reset_state();
@@ -330,8 +330,9 @@ void PanelWorkflow::draw_wf()
             m_drawer.draw_node(node, node->get_object()->w_fit, node_idx, failed_pins);
         m_drawer.post_draw_node(node, failed_node);
 
-        if (node->is_cni_reroute_splitted() && static_cast<data::CNI_Reroute*>(node)->end_draw_parts()) [[unlikely]]
+        if (node->is_cni_reroute_splitted()) [[unlikely]]
         {
+            static_cast<data::CNI_Reroute*>(node)->end_draw_parts();
             m_drawer.pre_draw_node(node, failed_node);
             m_drawer.draw_node(node, node->get_object()->w_fit, node_idx, failed_pins);
             m_drawer.post_draw_node(node, failed_node);
@@ -418,7 +419,7 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
             m_action->reset_node_size(it->first);
             it = items.erase(it);
         }
-        else if (it->second.empty())
+        else if (it->second.empty()) // empty group
         {
             it = items.erase(it);
         }

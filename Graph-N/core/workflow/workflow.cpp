@@ -44,6 +44,10 @@ Workflow::~Workflow() noexcept
 
 void Workflow::init()
 {
+    m_ed_objects_nodes.reserve(200);
+    m_ed_objects_pins.reserve(1000);
+    m_ed_objects_links.reserve(100);
+
     m_nodes.reserve(30);
     m_links.reserve(150);
     m_action = std::make_unique<WorkflowAction>(this);
@@ -110,6 +114,7 @@ NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0
     auto ptr = instance.get();
     ptr->init(select);
     m_nodes.push_back(std::move(instance));
+    ed_create(ptr);
     return ptr;
 }
 
@@ -122,6 +127,7 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source, bool copy
     auto ptr = instance.get();
     ptr->init(copy_from_source, copy_id);
     m_nodes.push_back(std::move(instance));
+    ed_create(ptr);
     return ptr;
 }
 
@@ -132,6 +138,7 @@ NodeInstance* Workflow::add_group_node()
     instance->m_group = true;
     auto ptr = instance.get();
     m_nodes.push_back(std::move(instance));
+    ed_create(ptr);
     return ptr;
 }
 
@@ -156,6 +163,7 @@ NodeInstance* Workflow::add_group(const ImRect& rc, const std::string& name /*= 
     auto ptr = instance.get();
     ptr->init("");
     m_nodes.push_back(std::move(instance));
+    ed_create(ptr);
     return ptr;
 }
 
@@ -172,6 +180,7 @@ PinInstance* Workflow::add_pin(NodeInstance* node, data::Pin* pin, iid instance_
 
     ptr->init();
     m_pins.push_back(std::move(instance));
+    ed_create(ptr);
     return ptr;
 }
 
@@ -198,6 +207,7 @@ Link* Workflow::add_link(iid instance_id /*= 0*/)
     auto ptr = link.get();
     Log("Link created. w:" << get_id() << ", l:" << link->get_instance_id());
     m_links.push_back(std::move(link));
+    ed_create(ptr);
     return ptr;
 }
 
@@ -293,6 +303,10 @@ std::list<Link*> Workflow::get_links_by_pin(const PinInstance* pin) const
 void Workflow::remove_node(NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
+
+    std::unordered_set<uint64_t> ids;
+    ids.insert(node->ed().id());
+
     const auto n_it = std::ranges::find_if(m_nodes,
         [id = node->get_instance_id()](const std::unique_ptr<NodeInstance>& node) noexcept
         {
@@ -304,11 +318,12 @@ void Workflow::remove_node(NodeInstance* node)
 
     LogRAssert(n_it != m_nodes.end(), "Node not found. w:" << get_id() << ", n:" << node->get_instance_id(), );
 
-    const auto remove_pins = [this](const std::vector<PinInstance*>& pins)
+    const auto remove_pins = [this, &ids](const std::vector<PinInstance*>& pins)
     {
         for (auto pin : pins)
         {
-            remove_pin(pin);
+            ids.insert(pin->ed().id());
+            remove_pin(pin, false);
         }
     };
 
@@ -322,6 +337,7 @@ void Workflow::remove_node(NodeInstance* node)
     if (node->get_object() == nullptr) { Log("Group removed. w:" << get_id() << ", n:" << node->get_instance_id()); }
     else { Log("Node removed. w:" << get_id() << ", n:" << node->get_instance_id()); }
 
+    ed_delete(ids);
     m_nodes.erase(n_it);
     invalidate_current();
 }
@@ -360,7 +376,7 @@ void Workflow::remove_node(NodeInstanceRo* node)
     {
         for (auto pin : pins)
         {
-            remove_pin(pin);
+            remove_pin(pin, true);
         }
     };
 
@@ -372,13 +388,16 @@ void Workflow::remove_node(NodeInstanceRo* node)
     m_nodes_ro.erase(n_it);
 }
 
-void Workflow::remove_pin(const PinInstance* pin) noexcept
+void Workflow::remove_pin(const PinInstance* pin, bool cleanup_ed /*= true*/) noexcept
 {
     LogRAssert(pin, "Zero ptr", );
     LogRAssert(pin->state().links == 0, "Links must be removed before pin removal. w:" << get_id() << ", p:" << pin->get_instance_id() << ", ls:" << pin->state().links, );
 
     const auto it = std::ranges::find_if(m_pins, [pin](const std::unique_ptr<PinInstance>& ptr) noexcept { return ptr.get() == pin; });
     LogRAssert(it != m_pins.end(), "Pin not found. w:" << get_id() << ", p:" << pin->get_instance_id(), );
+
+    if (cleanup_ed)
+        ed_delete({ pin->ed().id() });
 
     Log("Pin removed. w:" << get_id() << ", n:" << pin->get_parent_node() << ", p:" << pin->get_instance_id() << ", t:" << pin->state().type_str);
     m_pins.erase(it);    
@@ -398,6 +417,7 @@ void Workflow::remove_link(const Link* link)
     LogRAssert(it != m_links.end(), "Link not found. w:" << get_id() << ", l:" << link->get_instance_id(), );
 
     it->get()->unlink();
+    ed_delete({ link->ed().id() });
     Log("Link removed. w:" << get_id() << ", l:" << link->get_instance_id());
     m_links.erase(it);
 }
@@ -842,6 +862,10 @@ void Workflow::reset() noexcept
 
 void Workflow::clear() noexcept
 {
+    m_ed_objects_nodes.clear(); m_ed_objects_nodes.shrink_to_fit();
+    m_ed_objects_pins.clear(); m_ed_objects_pins.shrink_to_fit();
+    m_ed_objects_links.clear(); m_ed_objects_links.shrink_to_fit();
+
     m_nodes.clear(); m_nodes.shrink_to_fit();
     m_nodes_ro.clear(); m_nodes_ro.shrink_to_fit();
     m_pins.clear(); m_pins.shrink_to_fit();
@@ -902,5 +926,31 @@ std::string Workflow::collect_search_data() const
     }
     return data.str();
 }
+
+void Workflow::ed_create(data::NodeInstance* node)
+{
+    m_ed_objects_nodes.push_back({ node->ed().id(), node });
+    std::ranges::sort(m_ed_objects_nodes, {}, &std::pair<uint64_t, data::NodeInstance*>::first);
+}
+
+void Workflow::ed_create(data::PinInstance* pin)
+{
+    m_ed_objects_pins.push_back({ pin->ed().id(), pin });
+    std::ranges::sort(m_ed_objects_pins, {}, &std::pair<uint64_t, data::PinInstance*>::first);
+}
+
+void Workflow::ed_create(data::Link* link)
+{
+    m_ed_objects_links.push_back({ link->ed().id(), link });
+    std::ranges::sort(m_ed_objects_links, {}, &std::pair<uint64_t, data::Link*>::first);
+}
+
+void Workflow::ed_delete(const std::unordered_set<uint64_t>& ids)
+{
+    std::erase_if(m_ed_objects_nodes, [&ids](const std::pair<uint64_t, data::NodeInstance*>& pair) { return ids.contains(pair.first); });
+    std::erase_if(m_ed_objects_pins, [&ids](const std::pair<uint64_t, data::PinInstance*>& pair) { return ids.contains(pair.first); });
+    std::erase_if(m_ed_objects_links, [&ids](const std::pair<uint64_t, data::Link*>& pair) { return ids.contains(pair.first); });
+}
+
 
 } // namespace data

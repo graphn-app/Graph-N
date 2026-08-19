@@ -257,7 +257,7 @@ void WorkflowAction::reset_node_color(data::NodeInstance* node)
     if (old_clr == new_clr)
         return;
 
-    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeClr, old_clr);
+    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeClr, mngr::HActionT(old_clr));
 }
 
 void WorkflowAction::set_node_name(data::NodeInstance* node, const std::string& name)
@@ -320,7 +320,7 @@ void WorkflowAction::set_node_expanded(data::NodeInstance* node, bool expanded)
     if (m_drawer != nullptr && !expanded)
         m_drawer->handle_node_collapsing(node);
     node->expand(expanded);
-    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeExpand, !expanded);
+    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeExpand, mngr::HActionT(!expanded));
 }
 
 void WorkflowAction::set_node_pinning(data::NodeInstance* node, bool pin)
@@ -331,7 +331,7 @@ void WorkflowAction::set_node_pinning(data::NodeInstance* node, bool pin)
     node->pin(pin);
     if (m_drawer != nullptr)
         m_drawer->pin_node(node->ed(), node->get_pinned());
-    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodePin, !pin);
+    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodePin, mngr::HActionT(!pin));
 }
 
 void WorkflowAction::set_node_mode(data::NodeInstance* node, NodeMode mode)

@@ -96,87 +96,6 @@ namespace ui
 
 namespace ed = ax::NodeEditor;
 
-namespace
-{
-ed::NodeId obj_to_ed(std::vector<std::pair<uint64_t, data::NodeInstance*>>& ed_objects, data::NodeInstance* node)
-{
-    LogRAssertS(node, "Zero ptr", ed::NodeId{});
-    ed_objects.push_back({ node->ed().id(), node });
-    std::ranges::sort(ed_objects, {}, &std::pair<uint64_t, data::NodeInstance*>::first);
-    return ed::NodeId(node->ed().id());
-}
-ed::PinId obj_to_ed(std::vector<std::pair<uint64_t, data::PinInstance*>>& ed_objects, data::PinInstance* pin)
-{
-    LogRAssertS(pin, "Zero ptr", ed::PinId{});
-    ed_objects.push_back({ pin->ed().id(), pin });
-    std::ranges::sort(ed_objects, {}, &std::pair<uint64_t, data::PinInstance*>::first);
-    return ed::PinId(pin->ed().id());
-}
-ed::LinkId obj_to_ed(std::vector<std::pair<uint64_t, data::Link*>>& ed_objects, data::Link* link)
-{
-    LogRAssertS(link, "Zero ptr", ed::LinkId{});
-    ed_objects.push_back({ link->ed().id(), link });
-    std::ranges::sort(ed_objects, {}, &std::pair<uint64_t, data::Link*>::first);
-    return ed::LinkId(link->ed().id());
-}
-
-data::NodeInstance* ed_to_obj(const std::vector<std::pair<uint64_t, data::NodeInstance*>>& ed_objects, const ed::NodeId& edid)
-{
-    if (!edid) return nullptr;
-    const uint64_t id = uint64_t(edid.Get());
-    auto it = std::ranges::lower_bound(ed_objects, id, {}, &std::pair<uint64_t, data::NodeInstance*>::first);
-    LogRAssertS(it != ed_objects.end(), "Node not found from id " << id, nullptr);
-    return cast::ptrs<data::NodeInstance>(it->second);
-}
-data::PinInstance* ed_to_obj(const std::vector<std::pair<uint64_t, data::PinInstance*>>& ed_objects, const ed::PinId& edid)
-{
-    if (!edid) return nullptr;
-    const uint64_t id = uint64_t(edid.Get());
-    auto it = std::ranges::lower_bound(ed_objects, id, {}, &std::pair<uint64_t, data::PinInstance*>::first);
-    LogRAssertS(it != ed_objects.end(), "Pin not found from id " << id, nullptr);
-    return cast::ptrs<data::PinInstance>(it->second);
-}
-data::Link* ed_to_obj(const std::vector<std::pair<uint64_t, data::Link*>>& ed_objects, const ed::LinkId& edid)
-{
-    if (!edid) return nullptr;
-    const uint64_t id = uint64_t(edid.Get());
-    auto it = std::ranges::lower_bound(ed_objects, id, {}, &std::pair<uint64_t, data::Link*>::first);
-    LogRAssertS(it != ed_objects.end(), "Link not found from id " << id, nullptr);
-    return cast::ptrs<data::Link>(it->second);
-}
-
-void ed_del_link(std::vector<std::pair<uint64_t, data::Link*>>& ed_objects, data::Link* link) noexcept
-{
-    std::erase_if(ed_objects, [id = link->ed().id()](const std::pair<uint64_t, data::Link*>& pair) { return pair.first == id; });
-    link->ed().reset();
-}
-void ed_del_batch(
-    std::vector<std::pair<uint64_t, data::NodeInstance*>>& ed_nodes,
-    std::vector<std::pair<uint64_t, data::PinInstance*>>& ed_pins,
-    std::vector<std::pair<uint64_t, data::Link*>>& ed_links,
-    const std::unordered_set<uint64_t>& ids
-) noexcept
-{
-    std::erase_if(ed_nodes, [&ids](const std::pair<uint64_t, data::NodeInstance*>& pair) { return ids.contains(pair.first); });
-    std::erase_if(ed_pins, [&ids](const std::pair<uint64_t, data::PinInstance*>& pair) { return ids.contains(pair.first); });
-    std::erase_if(ed_links, [&ids](const std::pair<uint64_t, data::Link*>& pair) { return ids.contains(pair.first); });
-}
-
-} // namespace
-
-#define OBJ_CREATE_NODE(node) obj_to_ed(m_ed_objects_nodes, node)
-#define OBJ_CREATE_PIN(pin) obj_to_ed(m_ed_objects_pins, pin)
-#define OBJ_CREATE_LINK(link) obj_to_ed(m_ed_objects_links, link)
-
-#define OBJ_LOAD_NODE(node) ed_to_obj(m_ed_objects_nodes, node)
-#define OBJ_LOAD_PIN(pin) ed_to_obj(m_ed_objects_pins, pin)
-#define OBJ_LOAD_LINK(link) ed_to_obj(m_ed_objects_links, link)
-
-#define OBJ_ID(obj) obj->ed()
-
-#define OBJ_DEL_LINK(link) ed_del_link(m_ed_objects_links, link)
-#define OBJ_DEL_BATCH(ids) ed_del_batch(m_ed_objects_nodes, m_ed_objects_pins, m_ed_objects_links, ids)
-
 NodeDrawer::NodeDrawer(data::Workflow* wf) noexcept
     : m_wf(wf)
     , m_clr_node_header_text(g::pOptsManager->color_load(AppColor::NodeHeaderText))
@@ -243,7 +162,7 @@ void NodeDrawer::locate_node(data::NodeInstance* node) noexcept
         ed::SetCurrentEditor(m_context);
 
     ed::ClearSelection();
-    ed::SelectNode(OBJ_ID(node));
+    ed::SelectNode(node->ed());
     ed::NavigateToContent();
     ed::NavigateToSelection(false, 0.5f);
 
@@ -396,33 +315,24 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
     {
         ImVec2 pos;
         if (node->is_cni_reroute_splitted()) [[unlikely]]
-            pos = static_cast<data::CNI_Reroute*>(node)->get_splitted_node_pos();
+            pos = static_cast<data::CNI_Reroute*>(node)->get_current_node_pos();
         else
             pos = node->m_rc.Min;
 
-        if (OBJ_ID(node))
-            ed::SetNodePosition(OBJ_ID(node), pos);
-        else
-            OBJ_ID(node) = ed::SetNodePosition(OBJ_CREATE_NODE(node), pos);
+        ed::SetNodePosition(node->ed(), pos);
         node->m_pos_set = true;
     }
     if (!node->m_size_set && node->m_group)
     {
-        if (OBJ_ID(node))
-            ed::SetGroupSize(OBJ_ID(node), node->m_rc.Max);
-        else
-            OBJ_ID(node) = ed::SetGroupSize(OBJ_CREATE_NODE(node), node->m_rc.Max);
+        ed::SetGroupSize(node->ed(), node->m_rc.Max);
         node->m_size_set = true;
     }
 
-    if (OBJ_ID(node))
-        ed::BeginNode(OBJ_ID(node));
-    else
-        OBJ_ID(node) = ed::BeginNode(OBJ_CREATE_NODE(node));
+    ed::BeginNode(node->ed());
 
     if (!node->m_pinned_set)
     {
-        ed::SetNodeDraggable(OBJ_ID(node), !node->get_pinned());
+        ed::SetNodeDraggable(node->ed(), !node->get_pinned());
         node->m_pinned_set = true;
     }
 
@@ -441,12 +351,12 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed)
     ed::EndNode();
 
     if (node->is_cni_reroute_splitted()) [[unlikely]]
-        static_cast<data::CNI_Reroute*>(node)->set_splitted_node_pos(ed::GetNodePosition(OBJ_ID(node)));
+        static_cast<data::CNI_Reroute*>(node)->set_current_node_pos(ed::GetNodePosition(node->ed()));
     else
-        node->m_rc.Min = ed::GetNodePosition(OBJ_ID(node));
+        node->m_rc.Min = ed::GetNodePosition(node->ed());
 
     if (!node->m_ignore_size_on_frame_end)
-        node->m_rc.Max = ed::GetNodeSize(OBJ_ID(node));
+        node->m_rc.Max = ed::GetNodeSize(node->ed());
     node->m_ignore_size_on_frame_end = false;
 
     if (node->m_group)
@@ -476,10 +386,10 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     //}
     //else
     {
-        node_size = ed::GetNodeSize(OBJ_ID(m_active_node));
+        node_size = ed::GetNodeSize(m_active_node->ed());
         if (node_size.x > 0 && node_size.y > 0)
         {
-            //node_pos = ed::GetNodePosition(OBJ_ID(m_active_node));
+            //node_pos = ed::GetNodePosition(m_active_node->ed());
             node_w = node_size.x - ed::GetStyle().NodePadding.x - ed::GetStyle().NodePadding.z;
         }
     }
@@ -924,10 +834,7 @@ void NodeDrawer::draw_output_pin(data::PinInstance* pin)
 void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin)
 {
     ImGui::PushID(&pin->state().pin_color);
-    if (OBJ_ID(pin))
-        ed::BeginPin(OBJ_ID(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
-    else
-        OBJ_ID(pin) = ed::BeginPin(OBJ_CREATE_PIN(pin), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
+    ed::BeginPin(pin->ed(), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
     draw_pin_shape(pin, collapsed_mode, align_to_widget, failed_pin);
     ed::EndPin();
     ImGui::PopID();
@@ -984,7 +891,7 @@ void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, fl
 void NodeDrawer::handle_widget_active_state(data::PinInstance* pin, const Primitive* backup /*= nullptr*/)
 {
     if (ImGui::IsItemActivated())
-        ed::SelectNode(OBJ_ID(m_active_node));
+        ed::SelectNode(m_active_node->ed());
 
     if (pin != nullptr)
     {
@@ -1236,7 +1143,7 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
     ImGui::PopTextWrapPos();
 
     if (clicked)
-        ed::SelectNode(OBJ_ID(m_active_node), false);
+        ed::SelectNode(m_active_node->ed(), false);
 
     bool tt_mod = false;
     if (!val->empty())
@@ -1328,7 +1235,7 @@ void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_op
     if (pressed)
     {
         opened = !opened;
-        ed::SelectNode(OBJ_ID(m_active_node));
+        ed::SelectNode(m_active_node->ed());
     }
     else if (ImGui::IsItemHovered())
         temp_open = true;
@@ -1345,10 +1252,7 @@ void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& link
     {
         auto in = link->get_input();
         auto out = link->get_output();
-        if (OBJ_ID(link))
-            ed::Link(OBJ_ID(link), OBJ_ID(in), OBJ_ID(out), in->state().pin_color, link->get_link_thickness());
-        else
-            OBJ_ID(link) = ed::Link(OBJ_CREATE_LINK(link.get()), OBJ_ID(in), OBJ_ID(out), in->state().pin_color, link->get_link_thickness());
+        ed::Link(link->ed(), in->ed(), out->ed(), in->state().pin_color, link->get_link_thickness());
     }
 }
 
@@ -1358,12 +1262,12 @@ void NodeDrawer::query_new_item(
 {
     if (ed::BeginCreate())
     {
-        ed::PinId start = 0, end = 0;
-        ed::PinId pin = 0;
-        if (ed::QueryNewLink(&start, &end))
+        uint64_t start = 0, end = 0;
+        uint64_t pin = 0;
+        if (ed::QueryNewLink(start, end) && start > 0 && end > 0)
         {
-            data::PinInstance* p1 = OBJ_LOAD_PIN(start);
-            data::PinInstance* p2 = OBJ_LOAD_PIN(end);
+            data::PinInstance* p1 = m_wf->ed_get_pin(start);
+            data::PinInstance* p2 = m_wf->ed_get_pin(end);
             bool allow = (p1 != p2 && p1 != nullptr && p2 != nullptr && !p1->get_is_reroute_splitting_pin() && !p2->get_is_reroute_splitting_pin());
 
             if (allow)
@@ -1406,9 +1310,9 @@ void NodeDrawer::query_new_item(
                 ed::RejectNewItem();
             }
         }
-        else if (ed::QueryNewNode(&pin))
+        else if (ed::QueryNewNode(pin) && pin > 0)
         {
-            m_querying_pin = OBJ_LOAD_PIN(pin);
+            m_querying_pin = m_wf->ed_get_pin(pin);
             if (ed::AcceptNewItem())
             {
                 if (m_querying_pin != nullptr && !m_querying_pin->get_object()->parent_node->is_dummy && !m_querying_pin->get_is_reroute_splitting_pin())
@@ -1428,14 +1332,14 @@ void NodeDrawer::handle_deleted() noexcept
 {
     if (ed::BeginDelete())
     {
-        ed::NodeId node_id;
-        while (ed::QueryDeletedNode(&node_id))
+        uint64_t node_id = 0;
+        while (ed::QueryDeletedNode(node_id) && node_id > 0)
         {
             ed::AcceptDeletedItem();
         }
 
-        ed::LinkId link_id;
-        while (ed::QueryDeletedLink(&link_id))
+        uint64_t link_id = 0;
+        while (ed::QueryDeletedLink(link_id) && link_id > 0)
         {
             ed::AcceptDeletedItem();
         }
@@ -1647,17 +1551,17 @@ ImVec2 NodeDrawer::get_mouse_pos(const ImVec2* convert_pos /*= nullptr*/) const 
 
 data::PinInstance* NodeDrawer::get_hovered_pin() const
 {
-    return OBJ_LOAD_PIN(ed::GetHoveredPin());
+    return m_wf->ed_get_pin(ed::GetHoveredPin());
 }
 
 data::NodeInstance* NodeDrawer::get_hovered_node() const
 {
-    return OBJ_LOAD_NODE(ed::GetHoveredNode());
+    return m_wf->ed_get_node(ed::GetHoveredNode());
 }
 
 data::Link* NodeDrawer::get_hovered_link() const
 {
-    return OBJ_LOAD_LINK(ed::GetHoveredLink());
+    return m_wf->ed_get_link(ed::GetHoveredLink());
 }
 
 std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes() const
@@ -1666,14 +1570,12 @@ std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes() const
     if (0 == count)
         return {};
 
-    std::vector<ed::NodeId> nodes;
-    nodes.resize(count);
-    ed::GetSelectedNodes(nodes.data(), count);
+    const std::set<uint64_t> nodes = ed::GetSelectedNodes();
 
     std::set<data::NodeInstance*> ret;
     for (auto id : nodes)
     {
-        ret.insert(OBJ_LOAD_NODE(id));
+        ret.insert(m_wf->ed_get_node(id));
     }
     return ret;
 }
@@ -1685,7 +1587,7 @@ bool NodeDrawer::is_node_selected(const EdType& node) const noexcept
 
 void NodeDrawer::select_node(const EdType& node, bool append_to_selection) const noexcept
 {
-    if (node)
+    if (node.has_id())
         ed::SelectNode(node, append_to_selection);
     else
         ed::ClearSelection();
@@ -1693,15 +1595,12 @@ void NodeDrawer::select_node(const EdType& node, bool append_to_selection) const
 
 std::set<data::Link*> NodeDrawer::get_selected_links() const
 {
-    std::vector<ed::LinkId> links;
-    const auto count = ed::GetSelectedLinksCount();
-    links.resize(count);
-    ed::GetSelectedLinks(links.data(), count);
+    const std::set<uint64_t> links = ed::GetSelectedLinks();
 
     std::set<data::Link*> ret;
     for (auto id : links)
-    {
-        ret.insert(OBJ_LOAD_LINK(id));
+{
+        ret.insert(m_wf->ed_get_link(id));
     }
     return ret;
 }
@@ -1713,7 +1612,7 @@ bool NodeDrawer::is_link_selected(const EdType& link) const noexcept
 
 void NodeDrawer::select_link(const EdType& link, bool append_to_selection) const noexcept
 {
-    if (link)
+    if (link.has_id())
         ed::SelectLink(link, append_to_selection);
     else
         ed::ClearSelection();
@@ -1804,34 +1703,10 @@ void NodeDrawer::delete_node(data::NodeInstance* node)
         ed::SetCurrentEditor(m_context);
 
     if (m_context != nullptr)
-    {
-        if (OBJ_ID(node))
-            ed::DeleteNode(OBJ_ID(node));
-        else
-            ed::DeleteNode(OBJ_CREATE_NODE(node));
-
-        if (node->is_cni_reroute_splitted())
-        {
-            static_cast<data::CNI_Reroute*>(node)->end_draw_parts();
-            if (OBJ_ID(node))
-                ed::DeleteNode(OBJ_ID(node));
-            else
-                ed::DeleteNode(OBJ_CREATE_NODE(node));
-        }
-    }
+        ed::DeleteNode(node->ed());
 
     if (nullptr == editor)
         ed::SetCurrentEditor(nullptr);
-
-    std::unordered_set<uint64_t> ids_to_del;
-
-    ids_to_del.insert(node->reset_state());
-
-    for (auto pin : node->get_inputs()) { ids_to_del.insert(pin->reset_state()); }
-    for (auto pin : node->get_outputs()) { ids_to_del.insert(pin->reset_state()); }
-
-    ids_to_del.merge(node->cni_get_all_eds());
-    OBJ_DEL_BATCH(ids_to_del);
 }
 
 void NodeDrawer::delete_link(data::Link* link)
@@ -1844,13 +1719,7 @@ void NodeDrawer::delete_link(data::Link* link)
         ed::SetCurrentEditor(m_context);
 
     if (m_context != nullptr)
-    {
-        if (OBJ_ID(link))
-            ed::DeleteLink(OBJ_ID(link));
-        else
-            ed::DeleteLink(OBJ_CREATE_LINK(link));
-        OBJ_DEL_LINK(link);
-    }
+        ed::DeleteLink(link->ed());
 
     if (nullptr == editor)
         ed::SetCurrentEditor(nullptr);    
@@ -1971,16 +1840,6 @@ void NodeDrawer::handle_node_collapsing(const data::NodeInstance* node)
             break;
         }
     }
-}
-
-data::NodeInstance* NodeDrawer::get_node_from_ed(const EdType& ed) const
-{
-    if (ed.empty())
-        return nullptr;
-
-    auto it = std::ranges::lower_bound(m_ed_objects_nodes, ed.id(), {}, &std::pair<uint64_t, data::NodeInstance*>::first);
-    LogRAssertS(it != m_ed_objects_nodes.end(), "Node not found from id " << ed.id(), nullptr);
-    return cast::ptrs<data::NodeInstance>(it->second);
 }
 
 } // namespace ui

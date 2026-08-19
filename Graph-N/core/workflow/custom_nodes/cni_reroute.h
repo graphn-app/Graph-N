@@ -68,38 +68,63 @@ public:
     void split_to_parts();
     void merge_parts(bool to_left);
 
-    void begin_draw_parts() noexcept { m_drawing_splitted_part = DrawingPart::Left; }
-    bool end_draw_parts() noexcept
+    void begin_draw_parts() noexcept
     {
-        if (!m_splitted) [[unlikely]]
-            return false;
+        LogRAssert(m_splitted, "Must be called only if splitted", );
+        m_drawing_splitted_part = DrawingPart::Left;
+    }
+    void end_draw_parts() noexcept
+    {
+        LogRAssert(m_splitted, "Must be called only if splitted", );
         m_drawing_splitted_part = DrawingPart::Right;
         if (!m_splitted_pos_set)
         {
             m_pos_set = false;
             m_splitted_pos_set = true;
         }
-        return true;
+    }
+
+    const EdType ed_splitted() const noexcept
+    {
+        LogRAssert(m_splitted, "Must be called only if splitted", EdType(false));
+        return m_ed_splitted;
     }
 
     ImVec2 get_splitted_node_pos() const
     {
-        return (!m_splitted || DrawingPart::Left == m_drawing_splitted_part ? m_rc.Min : m_splitted_pos);
+        LogRAssert(m_splitted, "Must be called only if splitted", {});
+        return m_splitted_pos;
     }
     void set_splitted_node_pos(const ImVec2& pos) noexcept
     {
-        if (!m_splitted || DrawingPart::Left == m_drawing_splitted_part) m_rc.Min = pos;
+        LogRAssert(m_splitted, "Must be called only if splitted", );
+        m_splitted_pos = pos;
+        m_pos_set = false;
+        m_splitted_pos_set = false;
+    }
+
+    ImVec2 get_current_node_pos() const
+    {
+        LogRAssert(m_splitted, "Must be called only if splitted", {});
+        return (DrawingPart::Left == m_drawing_splitted_part ? m_rc.Min : m_splitted_pos);
+    }
+    void set_current_node_pos(const ImVec2& pos) noexcept
+    {
+        LogRAssert(m_splitted, "Must be called only if splitted", );
+        if (DrawingPart::Left == m_drawing_splitted_part) m_rc = { pos, m_rc.Max };
         else m_splitted_pos = pos;
     }
 
     PinInstance* get_splitted_input() const noexcept
     {
+        LogRAssert(m_splitted, "Must be called only if splitted", {});
         if (m_splitted && DrawingPart::Right == m_drawing_splitted_part)
             return m_splitted_in;
         return nullptr;
     }
     PinInstance* get_splitted_output() const noexcept
     {
+        LogRAssert(m_splitted, "Must be called only if splitted", {});
         if (m_splitted && DrawingPart::Left == m_drawing_splitted_part)
             return m_splitted_out;
         return nullptr;

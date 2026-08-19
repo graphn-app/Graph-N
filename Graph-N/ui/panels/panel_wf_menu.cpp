@@ -293,7 +293,7 @@ bool PanelWorkflow::show_canvas_menu()
     }
     if (ImGui::MenuItem("Select all", g::pHotkeysManager->get_key_binding_name(KeyTarget::Workspace_SelAll)))
     {
-        m_drawer.select_node({}, false);
+        m_drawer.select_node(EdType(false), false);
         for (auto& node : m_wf->get_nodes())
         {
             m_drawer.select_node(node->ed(), true);
@@ -476,7 +476,7 @@ bool PanelWorkflow::show_group_menu()
         }
         if (ImGui::MenuItem("Select nodes"))
         {
-            m_drawer.select_node({}, false);
+            m_drawer.select_node(EdType(false), false);
             for (auto node : nodes)
             {
                 m_drawer.select_node(node->ed(), true);

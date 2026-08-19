@@ -87,7 +87,6 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_reroute(blob::Reader&
     if (block.pop_bool()) // splitted
     {
         static_cast<data::CNI_Reroute*>(m_curr_node)->split_to_parts();
-        static_cast<data::CNI_Reroute*>(m_curr_node)->end_draw_parts();
         static_cast<data::CNI_Reroute*>(m_curr_node)->set_splitted_node_pos(block.pop_vec2());
     }
 

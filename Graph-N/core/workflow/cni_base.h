@@ -35,9 +35,9 @@ public:
     // additional custom widget is needed
     bool is_cni_custom_widget() const noexcept { return (m_cni_flags & CNI_Flag_CniCustomWidget) > 0; }
 
-    // is reroute
-    bool is_cni_reroute() const noexcept { return (m_cni_flags & (CNI_Flag_Cni | CNI_Flag_Reroute)) > 0; }
-    bool is_cni_reroute_splitted() const noexcept { return (m_cni_flags & (CNI_Flag_Cni | CNI_Flag_Reroute | CNI_Flag_RerouteSplitted)) > 0; }
+    // reroute
+    bool is_cni_reroute() const noexcept { return (m_cni_flags & (CNI_Flag_Cni | CNI_Flag_Reroute)) == (CNI_Flag_Cni | CNI_Flag_Reroute); }
+    bool is_cni_reroute_splitted() const noexcept { return (m_cni_flags & (CNI_Flag_Cni | CNI_Flag_Reroute | CNI_Flag_RerouteSplitted)) == (CNI_Flag_Cni | CNI_Flag_Reroute | CNI_Flag_RerouteSplitted); }
 
     // cni node custom class
     virtual const char* cni_get_node_class() const noexcept { return ""; };

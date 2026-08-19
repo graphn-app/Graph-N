@@ -102,8 +102,6 @@ public:
 
     const blob::Blob& get_state() const noexcept { return m_state; }
 
-    data::NodeInstance* get_node_from_ed(const EdType& ed) const;
-
 private:
     void draw_node_header();
     void draw_collapsed_pins(bool input);
@@ -168,11 +166,6 @@ private:
 
     blob::Blob m_state;
     bool m_navigate_to_content = false;
-
-    // sorted vector is still faster than a map; 1000 objects will fit into the L1/L2 cache
-    std::vector<std::pair<uint64_t, data::NodeInstance*>> m_ed_objects_nodes;
-    std::vector<std::pair<uint64_t, data::PinInstance*>> m_ed_objects_pins;
-    std::vector<std::pair<uint64_t, data::Link*>> m_ed_objects_links;
 };
 
 
