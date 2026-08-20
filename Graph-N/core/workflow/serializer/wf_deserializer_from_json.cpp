@@ -303,7 +303,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
         }
     }
 
-    if (!dummy && node_instance->is_cni())
+    if (!dummy && node_instance->is_cni_node())
     {
         if (nullptr == deserialize_cni_node(node_instance, j))
         {

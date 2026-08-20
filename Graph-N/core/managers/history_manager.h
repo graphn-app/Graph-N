@@ -17,13 +17,18 @@ class Workflow;
 namespace mngr
 {
 
+struct HRerouteSplitted
+{
+    std::pair<ImRect, ImRect> poses;
+    bool splitted = true;
+};
 // !! types order must remain the same due to serialization
-using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, NodeMode /*mode*/, bool /*pinning*/, ImRect /*pos*/, Primitive /*pin val*/>;
+using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, NodeMode /*mode*/, bool /*pinning*/, ImRect /*pos*/, Primitive /*pin val*/, HRerouteSplitted>;
 
 enum class HistoryActionType
 {
     _none,
-    NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeExpand, NodeRerouteSplit, NodeRerouteMerge,
+    NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeExpand, NodeRerouteSplit,
     PinRen, PinVal,
     LinkAdd, LinkDel,
 
@@ -82,16 +87,6 @@ struct ActOldNew : public HistoryStep
     HActionT new_val;
 };
 
-struct ActNodeRerouteSplitting final : public HistoryStep
-{
-    ActNodeRerouteSplitting(HistoryActionType t) noexcept
-        : HistoryStep(t)
-    {}
-
-    bool merged_left = true;
-    ImVec2 splitted_pos;
-};
-
 struct ActLink : public HistoryStep
 {
     ActLink(HistoryActionType t) noexcept : HistoryStep(t) { }
@@ -117,6 +112,7 @@ struct ActNodePin final : public ActOldNew   { ActNodePin() noexcept : ActOldNew
 struct ActNodeMode final : public ActOldNew  { ActNodeMode() noexcept : ActOldNew(HistoryActionType::NodeMode) {} };
 struct ActNodeClr final : public ActOldNew   { ActNodeClr() noexcept : ActOldNew(HistoryActionType::NodeClr) {} };
 struct ActNodeExpand final : public ActOldNew   { ActNodeExpand() noexcept : ActOldNew(HistoryActionType::NodeExpand) {} };
+struct ActNodeRerouteSplit final : public ActOldNew   { ActNodeRerouteSplit() noexcept : ActOldNew(HistoryActionType::NodeRerouteSplit) {} };
 struct ActPinRen final : public ActOldNew    { ActPinRen() noexcept : ActOldNew(HistoryActionType::PinRen) {} };
 struct ActPinVal final : public ActOldNew    { ActPinVal() noexcept : ActOldNew(HistoryActionType::PinVal) {} };
 struct ActLinkAdd final : public ActLink     { ActLinkAdd() noexcept : ActLink(HistoryActionType::LinkAdd) {} };
@@ -158,7 +154,6 @@ public:
 
     void push_node_action(const data::NodeInstance* node, HistoryActionType act); // add/delete only
     void push_node_action(const data::NodeInstance* node, HistoryActionType act, HActionT&& old_val);
-    void push_node_action(data::NodeInstance* node, HistoryActionType act, bool merge_left); // reroute split/merge only
     void push_pin_action(const data::PinInstance* pin, HistoryActionType act, HActionT&& old_val);
     void push_link_action(const data::Link* link, HistoryActionType act); // add/delete only
 
@@ -192,7 +187,6 @@ private:
     void pop_node_pin(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_rect(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_reroute_split(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_node_reroute_merge(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_pin_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_pin_val(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_link_add(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);

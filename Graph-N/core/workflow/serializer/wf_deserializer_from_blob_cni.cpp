@@ -42,13 +42,14 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_primitive(blob::Reade
         return nullptr;
 
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedPrimitive>();
-    ((CNI_DeserializedPrimitive*)data.get())->widget_value = block.pop_primitive();
-    ((CNI_DeserializedPrimitive*)data.get())->cag_value = block.pop_primitive();
+    auto primitive_data = cast::strict<CNI_DeserializedPrimitive>(data.get());
+    primitive_data->widget_value = block.pop_primitive();
+    primitive_data->cag_value = block.pop_primitive();
 
     /*const auto h_id = */block.pop_hid();
-    ((CNI_DeserializedPrimitive*)data.get())->out_id = block.pop_iid();
-    ((CNI_DeserializedPrimitive*)data.get())->out_pin_type = block.pop_string_ptr();
-    ((CNI_DeserializedPrimitive*)data.get())->out_pin_name = block.pop_string_ptr();
+    primitive_data->out_id = block.pop_iid();
+    primitive_data->out_pin_type = block.pop_string_ptr();
+    primitive_data->out_pin_name = block.pop_string_ptr();
 
     primitive->cni_save_deserialized_info(std::move(data));
     primitive->cni_init();
@@ -68,7 +69,8 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_reroute(blob::Reader&
     LogRAssert(count > 0, "Null pins saved", m_curr_node);
 
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedReroute>();
-    ((CNI_DeserializedReroute*)data.get())->pairs.reserve(count);
+    auto reroute_data = cast::strict<CNI_DeserializedReroute>(data.get());
+    reroute_data->pairs.reserve(count);
     for (uint32_t i = 0; i < count; i++)
     {
         RoutedPinPair pair;
@@ -78,17 +80,18 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_reroute(blob::Reader&
         pair.out_id = block.pop_iid();
         pair.out_index = block.pop_i32();
         pair.hidden = block.pop_bool();
-        ((CNI_DeserializedReroute*)data.get())->pairs.push_back(pair);
+        reroute_data->pairs.push_back(pair);
     }
+
+    reroute_data->splitted = block.pop_bool();
+    reroute_data->splitted_node = block.pop_iid();
+    reroute_data->splitter_in = block.pop_iid();
+    reroute_data->splitter_out = block.pop_iid();
+    reroute_data->splitter_link = block.pop_iid();
+    reroute_data->poses = { block.pop_rect(), block.pop_rect() };
 
     m_curr_node->cni_save_deserialized_info(std::move(data));
     m_curr_node->cni_init();
-
-    if (block.pop_bool()) // splitted
-    {
-        static_cast<data::CNI_Reroute*>(m_curr_node)->split_to_parts();
-        static_cast<data::CNI_Reroute*>(m_curr_node)->set_splitted_node_pos(block.pop_vec2());
-    }
 
     return m_curr_node;
 }
@@ -111,8 +114,9 @@ NodeInstance* deserialize_cni_node_note_impl(blob::Reader& root_block, Workflow*
         return nullptr;
 
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedNote>();
-    ((CNI_DeserializedNote*)data.get())->id = block.pop_iid();
-    ((CNI_DeserializedNote*)data.get())->widget_value = block.pop_primitive();
+    auto note_data = cast::strict<CNI_DeserializedNote>(data.get());
+    note_data->id = block.pop_iid();
+    note_data->widget_value = block.pop_primitive();
 
     note->cni_save_deserialized_info(std::move(data));
     note->cni_init();

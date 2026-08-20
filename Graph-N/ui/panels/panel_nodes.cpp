@@ -790,12 +790,12 @@ void PanelNodes::on_collapse_all(PanelToolbar::Element& /*el*/)
     rebuild_items();
 }
 
-void PanelNodes::on_labels_mode(PanelToolbar::Element& el)
+void PanelNodes::on_labels_mode(PanelToolbar::Element& /*el*/)
 {
     m_labels_mode = !m_labels_mode;
     create_toolbar();
     rebuild_items();
-    el.reset_state = true;
+    reset_toolbar_state();
 }
 
 void PanelNodes::on_pre_expand_collapse(PanelToolbar::Element& el) noexcept

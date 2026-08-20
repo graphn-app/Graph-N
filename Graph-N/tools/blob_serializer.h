@@ -19,10 +19,11 @@ public:
     Writer& operator=(Writer&& other) noexcept;
 
     const Blob& get() const noexcept { return m_buffer; }
-    Blob release() noexcept { return std::move(m_buffer); }
+    Blob release() noexcept;
     void reset() noexcept { m_buffer->clear(); }
 
-    void patch(size_t offset, uint32_t val) noexcept;
+    void patch_begin() noexcept;
+    void patch_end(uint32_t val) noexcept;
 
     Writer& push(bool val);
     Writer& push(uint8_t val);
@@ -47,6 +48,7 @@ public:
 
 private:
     Blob m_buffer;
+    std::deque<size_t> m_patches;
 };
 
 ///////////////   Reader
@@ -119,7 +121,6 @@ public:
 
 private:
     Writer& m_writer;
-    size_t m_size_offset = 0;
     size_t m_start_offset = 0;
     bool m_opened = false;
 };

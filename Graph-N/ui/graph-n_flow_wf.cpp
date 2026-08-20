@@ -429,7 +429,7 @@ void GraphN_Flow::wf_node_get_any_selected(bool& sel_nodes, bool& sel_groups) no
     if (m_wf_focused != nullptr)
     {
         const auto* wf = m_wf_focused->get_workflow();
-        auto& nodes = wf->get_nodes();
+        auto& nodes = wf->get_nodes_all();
         for (auto& node : nodes)
         {
             if (m_wf_focused->get_node_selected(node.get()))
@@ -459,7 +459,7 @@ void GraphN_Flow::wf_node_action_on_selected(
 {
     if (m_wf_focused != nullptr)
     {        
-        auto selected = m_wf_focused->get_selected_nodes();        
+        const auto selected = m_wf_focused->get_selected_nodes(false);
         if (!selected.empty())
         {
             const bool first = first_cb(*selected.begin());
@@ -513,7 +513,7 @@ void GraphN_Flow::wf_node_group()
 {
     if (m_wf_focused != nullptr)
     {
-        std::set<data::NodeInstance*> nodes = m_wf_focused->get_selected_nodes();
+        const std::set<data::NodeInstance*> nodes = m_wf_focused->get_selected_nodes(false);
         m_wf_focused->group_nodes(nodes);
     }
 }
@@ -573,7 +573,7 @@ void GraphN_Flow::wf_node_remove()
 {
     if (m_wf_focused != nullptr)
     {
-        std::set<data::NodeInstance*> nodes = m_wf_focused->get_selected_nodes();
+        std::set<data::NodeInstance*> nodes = m_wf_focused->get_selected_nodes(true);
         m_wf_focused->delete_nodes(nodes);
     }
 }
@@ -582,7 +582,7 @@ void GraphN_Flow::wf_node_copy()
 {
     if (m_wf_focused != nullptr)
     {
-        std::set<data::NodeInstance*> nodes = m_wf_focused->get_selected_nodes();
+        std::set<data::NodeInstance*> nodes = m_wf_focused->get_selected_nodes(true);
         m_wf_focused->copy_nodes(nodes, {});
     }
 }
@@ -634,7 +634,7 @@ void GraphN_Flow::wf_node_align(bool left, bool top)
 {
     if (m_wf_focused != nullptr)
     {
-        auto selected = m_wf_focused->get_selected_nodes();
+        auto selected = m_wf_focused->get_selected_nodes(false);
         if (!selected.empty())
         {
             float pos = FLT_MAX;
@@ -698,7 +698,7 @@ void GraphN_Flow::wf_node_unlink()
         }
     };
 
-    auto selected = m_wf_focused->get_selected_nodes();
+    auto selected = m_wf_focused->get_selected_nodes(true);
     for (auto node : selected)
     {
         unlink_pins([node] { return node->get_inputs(); });

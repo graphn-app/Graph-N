@@ -62,8 +62,9 @@ void WorkflowAction::split_reroute(data::NodeInstance* reroute_node)
     LogRAssert(reroute_node->is_cni_reroute(), "Node is not reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
     LogRAssert(!reroute_node->is_cni_reroute_splitted(), "Reroute already splitted. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id(), );
 
-    static_cast<data::CNI_Reroute*>(reroute_node)->split_to_parts();
-    g::pHistoryManager->push_node_action(reroute_node, mngr::HistoryActionType::NodeRerouteSplit, true);
+    const mngr::HRerouteSplitted data = { cast::strict<data::CNI_Reroute>(reroute_node)->get_splitted_nodes_poses(), reroute_node->is_cni_reroute_splitted() };
+    cast::strict<data::CNI_Reroute>(reroute_node)->split_to_parts();
+    g::pHistoryManager->push_node_action(reroute_node, mngr::HistoryActionType::NodeRerouteSplit, mngr::HActionT(data));
 }
 
 void WorkflowAction::merge_reroute(data::NodeInstance* reroute_node, bool to_left)
@@ -72,8 +73,9 @@ void WorkflowAction::merge_reroute(data::NodeInstance* reroute_node, bool to_lef
     LogRAssert(reroute_node->is_cni_reroute(), "Node is not reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
     LogRAssert(reroute_node->is_cni_reroute_splitted(), "Reroute wasn't splitted. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id(), );
 
-    static_cast<data::CNI_Reroute*>(reroute_node)->merge_parts(to_left);
-    g::pHistoryManager->push_node_action(reroute_node, mngr::HistoryActionType::NodeRerouteMerge, to_left);
+    const mngr::HRerouteSplitted data = { cast::strict<data::CNI_Reroute>(reroute_node)->get_splitted_nodes_poses(), reroute_node->is_cni_reroute_splitted() };
+    cast::strict<data::CNI_Reroute>(reroute_node)->merge_parts(to_left);
+    g::pHistoryManager->push_node_action(reroute_node, mngr::HistoryActionType::NodeRerouteSplit, mngr::HActionT(data));
 }
 
 void WorkflowAction::delete_node(data::NodeInstance* node)
@@ -88,6 +90,13 @@ void WorkflowAction::delete_node(data::NodeInstance* node)
     if (m_drawer != nullptr)
         m_drawer->delete_node(node);
     node->ed().reset();
+
+    if (node->is_cni_reroute_splitted_r())
+    {
+        if (node->is_cni_reroute_splitted())
+            merge_reroute(node, true);
+        return;
+    }
 
     multi_action_on(node->m_group ? "Remove group" : "Remove node");
 
@@ -166,11 +175,7 @@ void WorkflowAction::unlink(const data::PinInstance* pin)
     LogRAssert(pin, "Zero ptr", );
     multi_action_on("Unlink");
 
-    const auto& links_ptr = m_wf->get_links();
-    std::vector<Link*> links;
-    links.reserve(links_ptr.size());
-    std::ranges::for_each(links_ptr, [&links](const std::unique_ptr<Link>& link) { links.push_back(link.get()); });
-
+    const auto links = m_wf->get_links_no_reroutes();
     for (auto it = links.begin(); it != links.end(); ++it)
     {
         auto& link = *it;
@@ -188,17 +193,13 @@ void WorkflowAction::unlink(const data::PinInstance* p1, const data::PinInstance
     LogRAssert(p1 && p2, "Zero ptr", );
     multi_action_on("Unlink");
 
-    const auto& links = m_wf->get_links();
-    for (auto it = links.begin(); it != links.end(); )
+    const auto links = m_wf->get_links_no_reroutes();
+    for (auto link : links)
     {
-        auto& link = *it;
         if (link->is_linked_to(p1) && link->is_linked_to(p2))
         {
-            unlink(link.get());
-            it = links.begin();
+            unlink(link);
         }
-        else
-            ++it;
     }
 
     multi_action_off();
@@ -444,7 +445,7 @@ void WorkflowAction::mirror_pin_value(data::PinInstance* pin)
     LogRAssert(pin, "Zero ptr", );
     const auto* wf = g::pWfsManager->access(pin->get_workflow_id());
     const auto* node = wf->get_node_by_instance(pin->get_parent_node());
-    if (!node->is_cni()) [[likely]]
+    if (!node->is_cni_node()) [[likely]]
         return;
 
     std::vector<PinInstance*> mirrored_pins;
@@ -458,7 +459,7 @@ void WorkflowAction::mirror_pin_value(data::PinInstance* pin)
         set_pin_val(dest_pin, std::move(old));
 
         node = wf->get_node_by_instance(dest_pin->get_parent_node()); 
-        if (node->is_cni())
+        if (node->is_cni_node())
             node->cni_mirror_value_to(dest_pin, mirrored_pins);
     }
 }

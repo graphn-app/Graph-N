@@ -31,7 +31,7 @@ o_json WfSerializerToJson::serialize()
     LogRAssert(m_wf, "Zero ptr", o_json{});
 
     std::shared_ptr<Workflow> virt_wf;
-    auto& test_nodes = m_wf->get_nodes();
+    auto& test_nodes = m_wf->get_nodes_all();
     bool has_reroutes = false;
 
     for (auto& node : test_nodes)
@@ -48,16 +48,14 @@ o_json WfSerializerToJson::serialize()
         virt_wf = g::pWfsManager->create_copy_virtual(m_wf);
         m_wf = virt_wf.get();
 
-        auto& virt_nodes = m_wf->get_nodes();
-
-        std::vector<NodeInstance*> nodes_copy;
-        std::ranges::for_each(virt_nodes, [&nodes_copy](const std::unique_ptr<NodeInstance>& node) { nodes_copy.push_back(node.get()); });
-
+        const auto nodes_copy = m_wf->get_nodes_no_reroutes();
         for (auto node : nodes_copy)
         {
             if (node->is_cni_reroute())
-            {                
-                virt_wf->split_reroutes_to_pin_pairs({ node });
+            {
+                if (node->is_cni_reroute_splitted())
+                    virt_wf->merge_reroute_parts(node, true);
+                virt_wf->split_reroute_to_parts({ node });
             }
         }
     }
@@ -90,14 +88,13 @@ iid WfSerializerToJson::serialize_nodes()
     int32_t order = 0;
 
     auto jarr = o_json::array();
-    const auto& nodes = m_wf->get_nodes();
-
-    for (auto& node_ptr : nodes)
+    const auto nodes = m_wf->get_nodes_no_reroutes();
+    for (auto node : nodes)
     {
-        if (node_ptr->m_group)
+        if (node->m_group)
             continue;
 
-        m_curr_node = node_ptr.get();
+        m_curr_node = node;
         ImVec2 node_pos(m_curr_node->m_rc.Min.x, m_curr_node->m_rc.Min.y);
 
         last_id = std::max(last_id, m_curr_node->get_instance_id());
@@ -178,7 +175,7 @@ void WfSerializerToJson::serialize_pins(o_json& j)
                 j["link"] = nullptr;
             else
             {
-                for (auto& link : m_wf->get_links())
+                for (auto& link : m_wf->get_links_all())
                 {
                     if (link->get_input()->get_instance_id() == pin->get_instance_id())
                     {
@@ -195,7 +192,7 @@ void WfSerializerToJson::serialize_pins(o_json& j)
             else
             {
                 j["links"] = o_json::array();
-                for (auto& link : m_wf->get_links())
+                for (auto& link : m_wf->get_links_all())
                 {
                     if (link->get_output()->get_instance_id() == pin->get_instance_id())
                     {
@@ -294,7 +291,7 @@ iid WfSerializerToJson::serialize_links()
         return -1;
     };
 
-    for (auto& link : m_wf->get_links())
+    for (auto& link : m_wf->get_links_all())
     {
         last_id = std::max(last_id, link->get_instance_id());
 
@@ -320,7 +317,7 @@ iid WfSerializerToJson::serialize_links()
 void WfSerializerToJson::serialize_groups()
 {
     auto jarr = o_json::array();
-    for (auto& node : m_wf->get_nodes())
+    for (auto& node : m_wf->get_nodes_all())
     {
         if (!node->m_group)
             continue;

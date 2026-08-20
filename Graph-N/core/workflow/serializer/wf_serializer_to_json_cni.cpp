@@ -41,7 +41,7 @@ void WfSerializerToJson::serialize_cni_node_primitive(o_json& j)
         else
         {
             jout["links"] = o_json::array();
-            for (auto& link : m_wf->get_links())
+            for (auto& link : m_wf->get_links_all())
             {
                 if (link->get_output()->get_instance_id() == pin->get_instance_id())
                 {
@@ -73,14 +73,14 @@ void WfSerializerToJson::serialize_cni_node_reroute(o_json& j)
     size_t active_idx = inputs.size();
     for (size_t i = 0; i < inputs.size() - 1; i++)
     {
-        if (!inputs[i]->get_object()->hidden)
+        if (!inputs[i]->is_hidden())
         {
             LogRAssert(active_idx == inputs.size(), "Reroute wasn't splitted, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id(), );
             active_idx = i;
         }
     }
     LogRAssert(active_idx != inputs.size(), "Invalid node definition, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id(), );
-    LogRAssert(!outputs[active_idx]->get_object()->hidden, "Invalid node definition, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id(), );
+    LogRAssert(!outputs[active_idx]->is_hidden(), "Invalid node definition, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id(), );
 
     const PinInstance* in = inputs[active_idx];
     const PinInstance* out = outputs[active_idx];
@@ -89,7 +89,7 @@ void WfSerializerToJson::serialize_cni_node_reroute(o_json& j)
     const auto get_links = [this](iid pin_id)
     {
         std::vector<iid> links;
-        for (auto& link : m_wf->get_links())
+        for (auto& link : m_wf->get_links_all())
         {
             if (link->get_input()->get_instance_id() == pin_id || link->get_output()->get_instance_id() == pin_id)
             {

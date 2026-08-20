@@ -7,7 +7,7 @@ std::list<std::unique_ptr<Pin>> CNI_BaseObj::m_pins;
 
 void CNI_BaseObj::cni_recreate_base_object()
 {
-    m_base_obj = cni_make_base_object(nullptr);
+    m_base_obj = cni_make_base_object();
     if (m_base_obj)
         set_object(m_base_obj.get());
 }

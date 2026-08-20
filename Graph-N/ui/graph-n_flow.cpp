@@ -546,6 +546,11 @@ void GraphN_Flow::reparse_nodes()
             return;
         }
 
+#if 1
+        auto path = fs::get_root_directory_path() / "object_info.json";
+        data = tools::path::read_file(path, false);
+#endif
+
         m_windows |= ViewParsingNodes;
         m_nodes_ready.store(false, std::memory_order_relaxed);
         m_models_ready.store(false, std::memory_order_relaxed);

@@ -22,10 +22,8 @@ o_json WfSerializerToJsonApi::serialize()
     virt_wf->prepare_for_api();
     m_wf = virt_wf.get();
 
-    const auto& nodes = m_wf->get_nodes();
     o_json j;
-
-    for (auto& node : nodes)
+    for (auto& node : m_wf->get_nodes_all())
     {
         o_json jnode;
         jnode["class_type"] = node->get_object()->node_class;
@@ -54,7 +52,7 @@ o_json WfSerializerToJsonApi::serialize()
                 {
                     const auto* output_pin = (*links.begin())->get_output();
                     const auto* output_node = m_wf->get_node_by_instance(output_pin->get_parent_node());
-                    if (output_node->is_cni() && !output_node->cni_json_api_should_export())
+                    if (output_node->is_cni_node() && !output_node->cni_json_api_should_export())
                         has_links = false;
                 }
             }
@@ -97,7 +95,7 @@ o_json WfSerializerToJsonApi::serialize()
             {
                 auto jarr = o_json::array();
 
-                for (auto& link : m_wf->get_links())
+                for (auto& link : m_wf->get_links_all())
                 {
                     if (link->get_input() == pin)
                     {

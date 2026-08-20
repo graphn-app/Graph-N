@@ -181,7 +181,7 @@ data::Pin* NodesManager::make_dummy_pin(data::Node* parent, const std::string& t
     }
     else
     {
-        pin = std::make_unique<data::Pin>(parent, name, true, false, false);
+        pin = std::make_unique<data::Pin>(parent, name, true, false/*, false*/);
         parent->input.push_back(pin.get());
     }
     pin->initialize(type);
@@ -206,7 +206,7 @@ std::unique_ptr<data::Pin> NodesManager::make_pin_ptr(data::Node* parent, const 
     }
     else
     {
-        pin = std::make_unique<data::Pin>(parent, name, true, false, false);
+        pin = std::make_unique<data::Pin>(parent, name, true, false/*, false*/);
         parent->input.push_back(pin.get());
     }
     pin->parent_node = parent;

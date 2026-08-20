@@ -19,16 +19,22 @@ struct CNI_DeserializedReroute final : public CNI_DeserializedData
     std::vector<RoutedPinPair> pairs;
     std::map<PinType, int32_t> in_pin_types;
     int32_t next_out_index = 0;
+    bool splitted = false;
+    std::pair<ImRect, ImRect> poses;
+    iid splitted_node = 0;
+    iid splitter_in = 0;
+    iid splitter_out = 0;
+    iid splitter_link = 0;
 };
 
 class CNI_Reroute final
     : public CNI_BaseObj_T<CNI_Reroute>
 {
 public:
-    CNI_Reroute(Node* obj, wid workflow_id, iid instance_id) noexcept;
-    ~CNI_Reroute() noexcept = default;
+    CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2, uint32_t cni_flags) noexcept;
+    ~CNI_Reroute() noexcept;
 
-    static std::unique_ptr<Node> cni_create_object(mngr::NodesManager* manager);
+    static std::unique_ptr<Node> cni_create_object();
     static const char* cni_get_node_class() noexcept { return CNI_CLASS_REROUTE; }
 
     void cni_init() override;
@@ -45,90 +51,52 @@ public:
 
     void cni_mirror_value_to(const PinInstance* src, std::vector<PinInstance*>& append_pins) const override;
 
-    std::unordered_set<uint64_t> cni_get_all_eds() override;
-
     void cni_deserialilzation_begins() noexcept override;
     void cni_deserialilzation_ends() override;
 
     bool cni_json_api_should_export() const noexcept override { return false; }
     bool cni_json_need_custom_serialization() const noexcept override { return true; }
 
-private:
-    enum class DrawingPart
-    {
-        Left,
-        Right,
-    };
-
 public:
-    EdType& ed() noexcept override { return !m_splitted || DrawingPart::Left == m_drawing_splitted_part ?  CNI_BaseObj_T<CNI_Reroute>::ed() : m_ed_splitted; }
-    const EdType& ed() const noexcept override { return !m_splitted || DrawingPart::Left == m_drawing_splitted_part ?  CNI_BaseObj_T<CNI_Reroute>::ed() : m_ed_splitted; }
-    uint64_t reset_state() noexcept override;
-
     void split_to_parts();
     void merge_parts(bool to_left);
 
-    void begin_draw_parts() noexcept
+    NodeInstance* get_splitted_base() noexcept
     {
-        LogRAssert(m_splitted, "Must be called only if splitted", );
-        m_drawing_splitted_part = DrawingPart::Left;
+        if (is_cni_reroute_splitted_r()) return m_splitted_part;
+        return this;
     }
-    void end_draw_parts() noexcept
+    const NodeInstance* get_splitted_base() const noexcept
     {
-        LogRAssert(m_splitted, "Must be called only if splitted", );
-        m_drawing_splitted_part = DrawingPart::Right;
-        if (!m_splitted_pos_set)
-        {
-            m_pos_set = false;
-            m_splitted_pos_set = true;
-        }
+        if (is_cni_reroute_splitted_r()) return m_splitted_part;
+        return this;
     }
-
-    const EdType ed_splitted() const noexcept
+    NodeInstance* get_splitted_part() noexcept
     {
-        LogRAssert(m_splitted, "Must be called only if splitted", EdType(false));
-        return m_ed_splitted;
+        if (is_cni_reroute_splitted_r()) return this;
+        return m_splitted_part;
     }
 
-    ImVec2 get_splitted_node_pos() const
+    PinInstance* get_splitter_input() const noexcept
     {
-        LogRAssert(m_splitted, "Must be called only if splitted", {});
-        return m_splitted_pos;
-    }
-    void set_splitted_node_pos(const ImVec2& pos) noexcept
-    {
-        LogRAssert(m_splitted, "Must be called only if splitted", );
-        m_splitted_pos = pos;
-        m_pos_set = false;
-        m_splitted_pos_set = false;
-    }
-
-    ImVec2 get_current_node_pos() const
-    {
-        LogRAssert(m_splitted, "Must be called only if splitted", {});
-        return (DrawingPart::Left == m_drawing_splitted_part ? m_rc.Min : m_splitted_pos);
-    }
-    void set_current_node_pos(const ImVec2& pos) noexcept
-    {
-        LogRAssert(m_splitted, "Must be called only if splitted", );
-        if (DrawingPart::Left == m_drawing_splitted_part) m_rc = { pos, m_rc.Max };
-        else m_splitted_pos = pos;
-    }
-
-    PinInstance* get_splitted_input() const noexcept
-    {
-        LogRAssert(m_splitted, "Must be called only if splitted", {});
-        if (m_splitted && DrawingPart::Right == m_drawing_splitted_part)
-            return m_splitted_in;
+        if (is_cni_reroute_splitted_r()) return m_splitted_pin;
         return nullptr;
     }
-    PinInstance* get_splitted_output() const noexcept
+    PinInstance* get_splitter_output() const noexcept
     {
-        LogRAssert(m_splitted, "Must be called only if splitted", {});
-        if (m_splitted && DrawingPart::Left == m_drawing_splitted_part)
-            return m_splitted_out;
-        return nullptr;
+        if (is_cni_reroute_splitted_r()) return nullptr;
+        return m_splitted_pin;
     }
+
+    void get_splitters(iid& splitted_node, iid& in_pin, iid& out_pin, iid& link) const;
+
+    std::pair<ImRect, ImRect> get_splitted_nodes_poses() const noexcept
+    {
+        if (is_cni_reroute_splitted_r()) return std::make_pair(m_splitted_part->m_rc, m_rc);
+        return std::make_pair(m_rc, m_splitted_part->m_rc);
+    }
+    void set_splitted_nodes_poses(const std::pair<ImRect, ImRect>& poses) noexcept;
+    void adjust_r_pose();
 
 private:
     struct LinkedPair;
@@ -160,19 +128,18 @@ private:
         LinkedIn input;
         LinkedOut output;
     };
-    std::list<LinkedPair> m_pairs;
-    std::map<PinType, int32_t> m_in_pin_types;
-    int32_t m_next_out_index = 1;
 
-    bool m_splitted = false;
-    DrawingPart m_drawing_splitted_part = DrawingPart::Left;
-    EdType m_ed_splitted;
-    ImVec2 m_splitted_pos;
-    bool m_splitted_pos_set = false;
-    PinInstance* m_splitted_in = nullptr;
-    PinInstance* m_splitted_out = nullptr;
+    struct RerouteData
+    {
+        std::list<LinkedPair> m_pairs;
+        std::map<PinType, int32_t> m_in_pin_types;
+        int32_t m_next_out_index = 1;
+    };
+    std::shared_ptr<RerouteData> m_data; // cleanup
 
-    std::unordered_set<uint64_t> m_removed;
+    CNI_Reroute* m_splitted_part = nullptr;
+    PinInstance* m_splitted_pin = nullptr;
+    iid m_splitter_link_id = 0;
 };
 
 } // namespace data

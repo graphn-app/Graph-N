@@ -126,7 +126,7 @@ void QueueManager::add_to_queue(data::Workflow* wf, int32_t count, bool push_fro
     group.group_id = base::GlobalID::random();
     group.wf_name = wf->get_data().name;
     group.wf = g::pWfsManager->create_copy_virtual(wf);
-    group.nodes_count = cast::to_i32(wf->get_nodes().size());
+    group.nodes_count = cast::to_i32(wf->get_nodes_all().size());
     group.state = ExecGroup::State::None;
 
     Log("Group #" << get_log_task_id(group) << " added to the " << (push_front ? "front" : "end") << ": " << count << ". Src: '" << wf->get_data().name << "', #" << wf->get_id());

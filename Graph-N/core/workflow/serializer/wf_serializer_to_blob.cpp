@@ -4,6 +4,7 @@
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
+#include "core/workflow/custom_nodes/all_impl.h"
 #include "core/managers/nodes_manager.h"
 
 namespace data
@@ -29,27 +30,22 @@ blob::Writer WfSerializerToBlob::serialize(const blob::Blob& drawer_state)
     m_writer.push(drawer_state);
     block.end();
 
-    uint32_t splitted_reroutes = 0;
-
     block.begin();
-    m_writer.push(cast::to_u32(m_wf->get_nodes().size()));
-    for (auto& node : m_wf->get_nodes())
+    const auto nodes = m_wf->get_nodes_no_reroutes();
+    m_writer.push(cast::to_u32(nodes.size()));
+    for (auto node : nodes)
     {
-        m_curr_node = node.get();
+        m_curr_node = node;
         serialize_node();
-
-        splitted_reroutes += m_curr_node->is_cni_reroute_splitted() ? 1 : 0;
     }
     block.end();
 
     block.begin();
-    m_writer.push(cast::to_u32(m_wf->get_links().size()) - splitted_reroutes);
-    for (auto& link : m_wf->get_links())
+    const auto links = m_wf->get_links_no_reroutes();
+    m_writer.push(cast::to_u32(links.size()));
+    for (auto link : links)
     {
-        m_curr_link = link.get();
-        if (m_curr_link->is_reroute_splitting_link())
-            continue;
-
+        m_curr_link = link;
         serialize_link();
     }
     block.end();
@@ -92,7 +88,7 @@ void WfSerializerToBlob::serialize_node()
     ;
     block.end();
 
-    if (m_curr_node->is_cni())
+    if (m_curr_node->is_cni_node())
     {
         serialize_cni_node();
         return;
@@ -166,10 +162,10 @@ void WfSerializerToBlob::serialize_node_definition()
     if (m_curr_node->m_group)
         return;
 
-    m_writer.push(m_curr_node->is_cni());
+    m_writer.push(m_curr_node->is_cni_node());
     m_writer.push(m_curr_node->get_object()->node_class);
 
-    if (m_curr_node->is_cni())
+    if (m_curr_node->is_cni_node())
     {
         serialize_cni_node_definition();
         return;

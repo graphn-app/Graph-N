@@ -41,14 +41,14 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
     { REROUTE_SPLITTED_PIN, PinType::REROUTE_SPLITTED }
 };
 
-Pin::Pin(Node* node, const std::string& pin_name, bool is_required, bool is_optional, bool is_hidden)
+Pin::Pin(Node* node, const std::string& pin_name, bool is_required, bool is_optional/*, bool is_hidden*/)
     : base::HashID(node->node_class + "_IN_" + pin_name)
     , parent_node(node)
     , input(true)
     , output(false)
     , required(is_required)
     , optional(is_optional)
-    , hidden(is_hidden)
+    //, hidden(is_hidden)
 {
     node->has_input = true;
 }
@@ -214,7 +214,7 @@ void Pin::finalize()
         }
         display_as_number = !(display_as_color || display_as_slider);
 
-        if (!required && !optional && !hidden)
+        if (!required && !optional /*&& !hidden*/)
         {
             LogInvalidJson("Unknown pin visibility");
             LogErrorS("Unknown pin visibility");

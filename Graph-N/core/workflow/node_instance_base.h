@@ -2,6 +2,17 @@
 #pragma once
 #include "core/workflow/cni_base.h"
 
+enum NodeFlags
+{
+    NodeFlag_None                   = 0x00000000,
+    NodeFlag_CanDelete              = 0x00000001,
+    NodeFlag_CNI                    = 0x00000002,
+    NodeFlag_Reroute                = 0x00000004,
+    NodeFlag_RerouteSplitted        = 0x00000008,
+    NodeFlag_RerouteSplitted_R      = 0x00000010,
+    NodeFlag_CustomWidget           = 0x00000020,
+};
+
 namespace data
 {
 
@@ -11,7 +22,11 @@ struct Node;
 class NodeInstanceBase : public CNI_Base
 {
 public:
-    using CNI_Base::CNI_Base;
+    NodeInstanceBase(Node* obj, wid workflow_id, iid instance_id, uint32_t node_flags)
+        : CNI_Base(obj, workflow_id, instance_id)
+    {
+        m_node_flags = node_flags | NodeFlags::NodeFlag_CanDelete;
+    }
     ~NodeInstanceBase() noexcept override;
 
     void init() override;
@@ -39,12 +54,29 @@ public:
 
     void link_cag_pins() noexcept;
 
+public:
+    bool test_node_flags(uint32_t flags) const noexcept { return (m_node_flags & flags) == flags; }
+    uint32_t get_node_flags() const noexcept { return m_node_flags; }
+
+    bool is_cni_node() const noexcept { return test_node_flags(NodeFlag_CNI); }
+    bool is_cni_reroute() const noexcept { return test_node_flags(NodeFlag_Reroute); }
+    bool is_cni_reroute_splitted() const noexcept { return test_node_flags(NodeFlag_RerouteSplitted); }
+    bool is_cni_reroute_splitted_r() const noexcept { return test_node_flags(NodeFlag_RerouteSplitted_R); }
+
 protected:
     virtual float get_additional_name_width() const noexcept { return 0.0f; }
     virtual float get_additional_node_width() const noexcept { return 0.0f; }
     virtual bool do_need_calc_node_widths() const noexcept { return true; }
 
     uint64_t reset_state() noexcept override;
+
+protected:
+    void set_node_flags(uint32_t flags, bool append) noexcept
+    {
+        if (append) m_node_flags |= flags;
+        else m_node_flags = flags;
+    }
+    void clear_node_flags(uint32_t flags) noexcept { m_node_flags &= ~flags; }
 
 public:
     float w_node = 0.0f;
@@ -74,6 +106,8 @@ private:
     float m_ideal_w = 0.0f;
     float m_min_possible_w = 0.0f;
     const float m_min_center_w = 10.0f;
+
+    uint32_t m_node_flags = NodeFlag_None;
 };
 
 } // namespace data

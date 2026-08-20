@@ -86,7 +86,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node_primitive(NodeInstanc
             const auto& jvalue1 = j["widgets_values"][1];
             if (jvalue1.is_string())
             {
-                ((CNI_DeserializedPrimitive*)data.get())->cag_value = jvalue1.get<std::string>();
+                cast::strict<CNI_DeserializedPrimitive>(data.get())->cag_value = jvalue1.get<std::string>();
             }
         }
 
@@ -150,7 +150,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node_reroute(NodeInstance*
     if (0 == pair.in_id) pair.in_id = m_wf->get_new_child_id();
     if (0 == pair.out_id) pair.out_id = m_wf->get_new_child_id();
 
-    ((CNI_DeserializedReroute*)data.get())->pairs.push_back(pair);
+    cast::strict<CNI_DeserializedReroute>(data.get())->pairs.push_back(pair);
     
     reroute->cni_save_deserialized_info(std::move(data));
     reroute->cni_init();
@@ -199,7 +199,7 @@ NodeInstance* deserialize_cni_node_note_impl(Workflow* wf, NodeInstance* node, c
     if (j.contains("widgets_values") && j["widgets_values"].is_array() && j["widgets_values"].size() == 1 && j["widgets_values"][0].is_string())
     {
         std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedNote>();
-        ((CNI_DeserializedNote*)data.get())->widget_value = j["widgets_values"][0].get<std::string>();
+        cast::strict<CNI_DeserializedNote>(data.get())->widget_value = j["widgets_values"][0].get<std::string>();
         node->cni_save_deserialized_info(std::move(data));
     }
 

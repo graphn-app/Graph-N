@@ -10,11 +10,8 @@
 namespace data
 {
 
-std::unique_ptr<Node> CNI_Primitive::cni_create_object(mngr::NodesManager* manager)
+std::unique_ptr<Node> CNI_Primitive::cni_create_object()
 {
-    if (nullptr == manager)
-        manager = g::pNodesManager;
-
     auto node = std::make_unique<data::Node>(cni_get_node_class());
     node->name = node->display_name = "Primitive";
     node->category = "utils";
@@ -26,9 +23,8 @@ std::unique_ptr<Node> CNI_Primitive::cni_create_object(mngr::NodesManager* manag
 }
 
 CNI_Primitive::CNI_Primitive(Node* obj, wid workflow_id, iid instance_id) noexcept
-    : CNI_BaseObj_T<CNI_Primitive>(obj, workflow_id, instance_id)
+    : CNI_BaseObj_T<CNI_Primitive>(obj, workflow_id, instance_id, NodeFlags::NodeFlag_CNI)
 {
-    set_cni_flags(CNI_Base::CNI_Flag_Cni);
 }
 
 void CNI_Primitive::cni_init()
@@ -111,16 +107,17 @@ bool CNI_Primitive::cni_copy_from(const NodeInstance* copy_from_node, bool copy_
     LogRAssert(!src_outs.empty(), "Source node pins empty out", true);
 
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedPrimitive>();
+    auto primitive_data = cast::strict<CNI_DeserializedPrimitive>(data.get());
     if (copy_pin_ids)
-        ((CNI_DeserializedPrimitive*)data.get())->out_id = src_outs[0]->get_instance_id();
-    ((CNI_DeserializedPrimitive*)data.get())->out_pin_name = src_outs[0]->state().name;
-    ((CNI_DeserializedPrimitive*)data.get())->out_pin_type = src_outs[0]->state().type_str;
+        primitive_data->out_id = src_outs[0]->get_instance_id();
+    primitive_data->out_pin_name = src_outs[0]->state().name;
+    primitive_data->out_pin_type = src_outs[0]->state().type_str;
 
     auto& ins = copy_from_node->get_inputs();
     if (ins.size() >= 1)
-        ((CNI_DeserializedPrimitive*)data.get())->widget_value = ins[0]->state().value;
+        primitive_data->widget_value = ins[0]->state().value;
     if (ins.size() >= 2)
-        ((CNI_DeserializedPrimitive*)data.get())->cag_value = ins[1]->state().value;
+        primitive_data->cag_value = ins[1]->state().value;
 
     cni_save_deserialized_info(std::move(data));
 

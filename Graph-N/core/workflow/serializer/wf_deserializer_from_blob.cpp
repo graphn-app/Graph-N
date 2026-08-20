@@ -62,8 +62,8 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
             deserialize_link(block);
         }
 
-        auto& nodes = m_wf->get_nodes();
-        for (auto& node : nodes)
+        const auto nodes = m_wf->get_nodes_no_reroutes();
+        for (auto node : nodes)
         {
             node->cni_deserialilzation_ends();
         }
@@ -83,6 +83,8 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
                     LogError("Duplicate node id. w:" << m_wf->get_id() << ", n:" << node->get_instance_id());
                 dup_errs++;
             }
+            if (node->is_cni_reroute_splitted_r())
+                continue;
             auto& input = node->get_inputs();
             for (auto pin : input)
             {
@@ -181,7 +183,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
     }
     m_curr_node->reset_pins();
 
-    if (!dummy && m_curr_node->is_cni())
+    if (!dummy && m_curr_node->is_cni_node())
     {
         if (nullptr == deserialize_cni_node(root))
         {

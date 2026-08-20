@@ -14,7 +14,7 @@ public:
     CNI_LoadImage(Node* obj, wid workflow_id, iid instance_id) noexcept;
     ~CNI_LoadImage() noexcept = default;
 
-    static std::unique_ptr<Node> cni_create_object(mngr::NodesManager* /*manager*/) noexcept { return nullptr; }
+    static std::unique_ptr<Node> cni_create_object() noexcept { return nullptr; }
     static const char* cni_get_node_class() noexcept { return CNI_CLASS_LOAD_IMAGE; }
 
     bool cni_is_applicable() const noexcept override;

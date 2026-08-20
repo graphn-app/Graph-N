@@ -5,6 +5,7 @@
 #include "core/workflow/link.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/node_instance.h"
+#include "core/workflow/custom_nodes/cni_reroute.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/serializer/wf_serializers.h"
 #include "ui/graph-n_flow.h"
@@ -78,10 +79,11 @@ const WfData& WfsManager::create_copy(wid source)
     auto wf = create(std::move(data), true);
 
     copy_begin(src_wf, ImVec2(0, 0));
-    auto& nodes = src_wf->get_nodes();
-    for (auto& node : nodes)
+    const auto nodes = src_wf->get_nodes_no_reroutes();
+    for (auto node : nodes)
     {
-        copy_add(node.get());
+        if (!node->is_cni_reroute_splitted_r())
+            copy_add(node);
     }
     copy_end(wf, ImVec2(0, 0));
     copy_begin(nullptr, {});
@@ -102,10 +104,10 @@ std::shared_ptr<data::Workflow> WfsManager::create_copy_virtual(const data::Work
     wf->init();
 
     copy_begin(src_wf, ImVec2(0, 0));
-    auto& nodes = src_wf->get_nodes();
-    for (auto& node : nodes)
+    const auto nodes = src_wf->get_nodes_no_reroutes();
+    for (auto node : nodes)
     {
-        copy_add(node.get());
+        copy_add(node);
     }
     copy_end(wf.get(), ImVec2(0, 0));
     copy_begin(nullptr, {});
@@ -151,7 +153,7 @@ bool WfsManager::is_loaded(wid wf_id) const
 {
     LogRAssert(wf_id != 0, "Zero wf id", false);
     const auto* wf = access(wf_id);
-    return !wf->get_nodes().empty();    
+    return !wf->get_nodes_all().empty();    
 }
 
 bool WfsManager::load(wid wf_id, blob::Blob& drawer_state)
@@ -630,7 +632,11 @@ void WfsManager::copy_add(data::NodeInstance* node)
     LogRAssert(m_copy_src, "Copy wasn't initiated", );
     LogRAssert(m_copy_src->get_id() == node->get_workflow_id(),
         "Node to copy is from diff wf. cpw:" << m_copy_src->get_id() << ", nw:" << node->get_workflow_id() << ", n:" << node->get_instance_id(), );
-    m_copied_nodes.insert(node);
+
+    if (node->is_cni_reroute_splitted())
+        m_copied_nodes.insert(cast::strict<data::CNI_Reroute>(node)->get_splitted_base());
+    else
+        m_copied_nodes.insert(node);
     Log("Node added to copy. w:" << node->get_workflow_id() << ", n:" << node->get_instance_id());
 }
 
@@ -694,6 +700,8 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
 
     for (auto node : m_copied_nodes)
     {
+        LogCAssert(!node->is_cni_reroute_splitted_r(), "Splitted node shouldn't be copied explicitly");
+
         auto new_node = wf_dest->add_node(node, dest_wf_data.virt);
         new_node->cni_deserialilzation_begins();
         new_node->m_rc.Min.x = node->m_rc.Min.x - src_pt.x;
@@ -702,10 +710,8 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
         new_node->m_rc.Min.y = dest_pt.y + new_node->m_rc.Min.y;
         new_node->m_rc.Max = node->m_rc.Max;
 
-        //if (node->is_cni_reroute_splitted())
-        //{
-            //cast::dynamic<CNI_Reroute>(new_node)->
-        //}
+        if (node->is_cni_reroute_splitted())
+            cast::strict<data::CNI_Reroute>(new_node)->adjust_r_pose();
 
         if (!dest_wf_data.virt)
             g::pHistoryManager->push_node_action(new_node, HistoryActionType::NodeAdd);
@@ -713,14 +719,9 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
         curr_node_to_new_node[node->get_instance_id()] = new_node;
     }
 
-    const auto& link_ptrs = m_copy_src->get_links();
-    std::vector<data::Link*> links;
-    std::ranges::for_each(link_ptrs, [&links](const std::unique_ptr<data::Link>& ptr) { links.push_back(ptr.get()); });
+    const auto links = m_copy_src->get_links_no_reroutes();    
     for (auto link : links)
     {
-        if (link->is_reroute_splitting_link()) [[unlikely]]
-            continue;
-
         const auto* src_in_pin = link->get_input();
         const auto* src_out_pin = link->get_output();
 
@@ -767,8 +768,8 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
     if (!dest_wf_data.virt)
         g::pHistoryManager->multi_action_end(wf_dest->get_id());
 
-    auto& dest_nodes = wf_dest->get_nodes();
-    for (auto& node : dest_nodes)
+    const auto dest_nodes = wf_dest->get_nodes_no_reroutes();
+    for (auto node : dest_nodes)
     {
         node->cni_deserialilzation_ends();
     }
@@ -786,7 +787,7 @@ void WfsManager::close_and_purge()
     {
         auto& data = wf->get_data();
 
-        if (!data.draft_exist && !data.saved_exist && wf->get_nodes().empty())
+        if (!data.draft_exist && !data.saved_exist && wf->get_nodes_all().empty())
         {
             data.pending_delete = true;
             if (!data.temp)
@@ -815,17 +816,13 @@ void WfsManager::close(wid wf_id)
     else if (data.temp)
         delete_wf(wf_id);
 
-    std::list<data::Link*> links;
-    auto& links_ptr = wf->get_links();
-    std::ranges::for_each(links_ptr, [&links](const std::unique_ptr<data::Link>& link) { links.push_back(link.get()); });
+    const auto links = wf->get_links_no_reroutes();
     for (auto link : links)
     {        
         wf->remove_link(link);
     }
 
-    std::list<data::NodeInstance*> nodes;
-    auto& nodes_ptr = wf->get_nodes();
-    std::ranges::for_each(nodes_ptr, [&nodes](const std::unique_ptr<data::NodeInstance>& node) { nodes.push_back(node.get()); });
+    const auto nodes = wf->get_nodes_no_reroutes();
     for (auto node : nodes)
     {
         node->cni_cleanup_base_object();
@@ -1021,7 +1018,7 @@ void WfsManager::export_wf(wid wf_id, bool api, const std::filesystem::path& to)
     LogRAssert(wf_it != m_wfs.end(), "Can't export - active wf not found. w:" << wf_id, );
 
     auto wf = wf_it->second.get();
-    if (wf->get_nodes().empty())
+    if (wf->get_nodes_all().empty())
     {
         blob::Blob dummy;
         load(wf->get_id(), dummy);

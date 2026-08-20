@@ -1,6 +1,7 @@
 
 #pragma once
 #include "imgui_node_editor_edtype.h"
+#include "core/managers/workflows_manager.h"
 
 namespace data
 {
@@ -23,6 +24,12 @@ public:
     void set_link_thickness(float thickness) noexcept { m_link_thickness = thickness; }
 
     iid get_instance_id() const noexcept { return m_iid; }
+#ifdef _DEBUG
+    void set_instance_id(iid id) noexcept { m_iid = id; auto wf = g::pWfsManager->access(m_workflow_id); wf->test_duplicates(); }
+#else
+    void set_instance_id(iid id) noexcept { m_iid = id; }
+#endif
+
     wid get_workflow_id() const noexcept { return m_workflow_id; }
 
     bool is_linked_to(const PinInstance* pin) const noexcept { return pin == m_input || pin == m_output; }

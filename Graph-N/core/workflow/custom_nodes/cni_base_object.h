@@ -27,7 +27,7 @@ public:
     static void cni_remove_pin(Pin* pin) noexcept { m_pins.remove_if([pin](const std::unique_ptr<Pin>& element) noexcept { return pin == element.get(); }); }
 
 protected:
-    virtual std::unique_ptr<Node> cni_make_base_object(mngr::NodesManager* /*manager*/) const { return nullptr; }
+    virtual std::unique_ptr<Node> cni_make_base_object() const { return nullptr; }
 
 private:
     std::unique_ptr<Node> m_base_obj;
@@ -41,9 +41,9 @@ public:
     using CNI_BaseObj::CNI_BaseObj;
     ~CNI_BaseObj_T() = default;
 
-    std::unique_ptr<Node> cni_make_base_object(mngr::NodesManager* manager) const override
+    std::unique_ptr<Node> cni_make_base_object() const override
     {
-        return T::cni_create_object(manager);
+        return T::cni_create_object();
     }
     static bool cni_is_same(const NodeInstance* node) noexcept
     {

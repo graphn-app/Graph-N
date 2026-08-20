@@ -40,7 +40,11 @@ TRIVIAL pop_trivial(const byte* data, size_t& offset) noexcept
 //////////////////////////////   
 
 Writer::Writer() noexcept = default;
-Writer::~Writer() noexcept = default;
+
+Writer::~Writer() noexcept
+{
+    LogAssert(m_patches.empty(), "Not all patches were closed: " << m_patches.size());
+}
 
 Writer::Writer(Writer&& other) noexcept
 {
@@ -54,6 +58,12 @@ Writer& Writer::operator=(Writer&& other) noexcept
 
     m_buffer = std::move(other.m_buffer);
     return *this;
+}
+
+Blob Writer::release() noexcept
+{
+    LogAssert(m_patches.empty(), "Not all patches were closed: " << m_patches.size());
+    return std::move(m_buffer);
 }
 
 Writer& Writer::push(bool val)
@@ -212,10 +222,20 @@ Writer& Writer::push(const Writer& val)
     return *this;
 }
 
-void Writer::patch(size_t offset, uint32_t val) noexcept
+void Writer::patch_begin() noexcept
 {
-    LogRAssert(offset + sizeof(uint32_t) <= m_buffer->size(), "Patch: Out of range", );
-    std::memcpy(m_buffer->data() + offset, &val, sizeof(uint32_t));
+    const auto off = m_buffer->size();
+    m_patches.push_back(off);
+    push(uint32_t(0));
+}
+
+void Writer::patch_end(uint32_t val) noexcept
+{
+    LogRAssert(!m_patches.empty(), "No open patches", );
+    auto off = m_patches.back();    
+    m_patches.pop_back();
+    LogRAssert(off + sizeof(uint32_t) <= m_buffer->size(), "Patch: Out of range", );
+    std::memcpy(m_buffer->data() + off, &val, sizeof(uint32_t));
 }
 
 ///////////////   Reader
@@ -480,8 +500,7 @@ void Block::begin()
     LogRAssert(!m_opened, "Block already opened", );
     m_opened = true;
 
-    m_size_offset = m_writer.get()->size();
-    m_writer.push(uint32_t(0));
+    m_writer.patch_begin();
     m_start_offset = m_writer.get()->size();
 }
 
@@ -491,7 +510,7 @@ void Block::end() noexcept
     m_opened = false;
 
     const uint32_t payload_size = uint32_t(m_writer.get()->size() - m_start_offset);
-    m_writer.patch(m_size_offset, payload_size);
+    m_writer.patch_end(payload_size);
 }
 
 } // namespace blob

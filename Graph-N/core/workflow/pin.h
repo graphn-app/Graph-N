@@ -52,7 +52,7 @@ struct Pin : public base::HashID
 {
 public:
     // ctor for input pin
-    Pin(Node* node, const std::string& pin_name, bool is_required, bool is_optional, bool is_hidden);
+    Pin(Node* node, const std::string& pin_name, bool is_required, bool is_optional/*, bool is_hidden*/);
     // ctor for ouput pin
     Pin(Node* node, int32_t pin_index);
     ~Pin() noexcept override;
@@ -96,7 +96,7 @@ public:
 
     bool required = false;
     bool optional = false;
-    bool hidden = false;
+    //bool hidden = false;
 
     bool output_is_list = false;
     bool force_input = false;

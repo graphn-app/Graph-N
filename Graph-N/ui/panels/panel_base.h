@@ -211,8 +211,6 @@ public:
 
     struct Element final
     {
-        bool reset_state = false;   // immediately stop drawing
-
         enum class Type { Empty, Button, Input, InputHint, Text, InputInt, Combo };
         Type type = Type::Button;
 
@@ -253,6 +251,7 @@ public:
     void add_toolbar_element(Element&& el, bool left_aligned);
     void finalize_toolbar() noexcept;
     void set_use_regular_size_icons() noexcept { m_use_big_icons = false; }
+    void reset_toolbar_state() noexcept { m_reset_state = true; }
 
 private:
     std::vector<Element> m_elements_l;
@@ -260,6 +259,7 @@ private:
     ImU32 m_clr_hover = 0;
     ImU32 m_clr_pressed = 0;
     bool m_use_big_icons = true;
+    bool m_reset_state = false;
 };
 
 

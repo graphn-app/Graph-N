@@ -404,6 +404,11 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
         step = std::make_unique<ActNodeRen>();
         step->new_val = node->get_name();
         break;
+    case HistoryActionType::NodeRerouteSplit:
+        history = open_action(node->get_workflow_id(), "Split into Linked Pair");
+        step = std::make_unique<ActNodeRerouteSplit>();
+        step->new_val = HRerouteSplitted{ cast::strict<const data::CNI_Reroute>(node)->get_splitted_nodes_poses(), node->is_cni_reroute_splitted() };
+        break;
     default:
         LogRError("Invalid action pushed", );
     }
@@ -412,38 +417,6 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
 
     step->id = node->get_instance_id();
     step->old_val = std::move(old_val);
-    history->steps.push_back(std::move(step));
-
-    close_action(node->get_workflow_id());
-}
-
-void HistoryManager::push_node_action(data::NodeInstance* node, HistoryActionType act, bool merge_left)
-{
-    LogRAssert(node, "Zero ptr", );
-    LogRAssert(node->is_cni_reroute_splitted(), "Node is not CNI Reroute", );
-    if (should_ignore_action(node->get_workflow_id())) return;
-
-    HistoryAction* history = nullptr;
-
-    switch (act)
-    {
-    case HistoryActionType::NodeRerouteSplit: [[likely]]
-        history = open_action(node->get_workflow_id(), "Split into Linked Pair");
-        break;
-    case HistoryActionType::NodeRerouteMerge:
-        history = open_action(node->get_workflow_id(), "Collapse Reroute");
-        break;
-    default:
-        LogRError("Invalid action pushed", );
-    }
-
-    LogRAssert(history->wf == node->get_workflow_id(), "Wfs don't match. hw:" << history->wf << " != nw:" << node->get_workflow_id() << ", n:" << node->get_instance_id(), );
-
-    std::unique_ptr<HistoryStep> step = std::make_unique<ActNodeRerouteSplitting>(act);
-    ActNodeRerouteSplitting* real_step = cast::dynamic<ActNodeRerouteSplitting>(step.get());
-    real_step->splitted_pos = static_cast<data::CNI_Reroute*>(node)->get_splitted_node_pos();
-    real_step->merged_left = merge_left;
-    step->id = node->get_instance_id();
     history->steps.push_back(std::move(step));
 
     close_action(node->get_workflow_id());
@@ -583,9 +556,6 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
     case HistoryActionType::NodeRerouteSplit:
         pop_node_reroute_split(wf, step, do_undo);
         break;
-    case HistoryActionType::NodeRerouteMerge:
-        pop_node_reroute_merge(wf, step, do_undo);
-        break;
     case HistoryActionType::PinRen:
         pop_pin_ren(wf, step, do_undo);
         break;
@@ -697,32 +667,17 @@ void HistoryManager::pop_node_rect(const data::Workflow* dest_wf, const HistoryS
 
 void HistoryManager::pop_node_reroute_split(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    if (!do_undo)
-    {
-        pop_node_reroute_merge(dest_wf, step, true);
-        return;
-    }
-    auto node = dest_wf->get_node_by_instance(step->id);
-    const ActNodeRerouteSplitting* real_step = cast::dynamic<const ActNodeRerouteSplitting>(step);
-    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
+    const ActNodeRerouteSplit* real_step = cast::dynamic<const ActNodeRerouteSplit>(step);
+    auto node = dest_wf->get_node_by_instance(step->id);    
+    LogRAssert(node, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
     LogRAssert(node->is_cni_reroute(), "Node is not CNI Reroute. w:" << dest_wf->get_id() << ", n:" << step->id, );
-    dest_wf->action()->merge_reroute(node, real_step->merged_left);
-    static_cast<data::CNI_Reroute*>(node)->set_splitted_node_pos(real_step->splitted_pos);
-}
 
-void HistoryManager::pop_node_reroute_merge(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
-{
-    if (!do_undo)
-    {
-        pop_node_reroute_split(dest_wf, step, true);
-        return;
-    }
-    const ActNodeRerouteSplitting* real_step = cast::dynamic<const ActNodeRerouteSplitting>(step);
-    auto node = dest_wf->get_node_by_instance(step->id);
-    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
-    LogRAssert(node->is_cni_reroute(), "Node is not CNI Reroute. w:" << dest_wf->get_id() << ", n:" << step->id, );
-    dest_wf->action()->split_reroute(node);
-    static_cast<data::CNI_Reroute*>(node)->set_splitted_node_pos(real_step->splitted_pos);
+    const HRerouteSplitted* data = std::get_if<HRerouteSplitted>(do_undo ? &real_step->old_val : &real_step->new_val);
+    if (data->splitted)
+        dest_wf->action()->split_reroute(node);
+    else
+        dest_wf->action()->merge_reroute(node, true);
+    cast::strict<data::CNI_Reroute>(node)->set_splitted_nodes_poses(data->poses);
 }
 
 void HistoryManager::pop_pin_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)

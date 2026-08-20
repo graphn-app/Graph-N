@@ -27,6 +27,12 @@ public:
     Workflow(mngr::WfData&& data);
     ~Workflow() noexcept;
 
+#ifdef _DEBUG
+    void test_duplicates() const;
+#else
+    void test_duplicates() const {}
+#endif
+
     void init();
 
     const std::string& get_uuid() const noexcept { return m_wf_data.uuid; }
@@ -38,7 +44,7 @@ public:
     WorkflowAction* action() const noexcept { return m_action.get(); }
 
     NodeInstance* add_group(const ImRect& rc, const std::string& name = "");
-    NodeInstance* add_node(Node* node, const ImRect& rc = ImRect(0, 0, 0, 0), const std::string& select = "", iid node_id = 0);
+    NodeInstance* add_node(Node* node, const ImRect& rc = ImRect(0, 0, 0, 0), const std::string& select = "", iid node_id = 0, iid node_id2 = 0, uint32_t cni_flags = 0);
     NodeInstance* add_node(const NodeInstance* copy_from_source, bool copy_id);
     NodeInstance* add_group_node();
     NodeInstanceRo* add_node_ro(Node* node);
@@ -55,9 +61,13 @@ public:
     Link* get_link_by_instance(iid id) const noexcept;
     std::list<Link*> get_links_by_pin(const PinInstance* pin) const;
 
-    const std::vector<std::unique_ptr<NodeInstance>>& get_nodes() const noexcept { return m_nodes; }
-    const std::vector<std::unique_ptr<PinInstance>>& get_pins() const noexcept { return m_pins; }
-    const std::vector<std::unique_ptr<Link>>& get_links() const noexcept { return m_links; }
+    std::vector<NodeInstance*> get_nodes_no_reroutes() const;
+    const std::vector<std::unique_ptr<NodeInstance>>& get_nodes_all() const noexcept { return m_nodes; }
+
+    std::vector<NodeInstanceRo*> get_nodes_ro() const;
+
+    std::vector<Link*> get_links_no_reroutes() const;
+    const std::vector<std::unique_ptr<Link>>& get_links_all() const noexcept { return m_links; }
 
     bool get_is_invalidation_state() const noexcept { return m_invalidation_state; }
     void invalidate_current() noexcept;
@@ -67,13 +77,13 @@ public:
     void remove_link(const Link* link);
     void remove_pin(const PinInstance* pin, bool cleanup_ed = true) noexcept;
 
-    void merge_reroutes(const std::set<data::NodeInstance*>& nodes);
-    void split_reroutes_to_pin_pairs(const std::set<data::NodeInstance*>& nodes);
+    void bundle_reroutes(std::set<data::NodeInstance*> nodes);
+    void separate_reroutes(std::set<data::NodeInstance*> nodes);
     void insert_reroute(data::Link* link, const ImVec2& pos);
     void collapse_reroute(data::NodeInstance* node);
 
     void split_reroute_to_parts(data::NodeInstance* node);
-    void collapse_reroute_parts(data::NodeInstance* node, bool to_left);
+    void merge_reroute_parts(data::NodeInstance* node, bool to_left);
 
     void bypass_node(data::NodeInstance* node);
 
@@ -99,8 +109,11 @@ private:
     void invalidate_comfyui_objects() override;
     void resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step step) override;
 
-    std::unique_ptr<NodeInstance> create_node(data::Node* node, iid node_id) const;
-    std::unique_ptr<NodeInstanceRo> create_node_ro(data::Node* node, iid node_id) const;
+    std::unique_ptr<NodeInstance> create_node(data::Node* node, iid node_id, iid node_id2, uint32_t cni_flags) const;
+    std::unique_ptr<NodeInstanceRo> create_node_ro(data::Node* node, iid node_id, uint32_t cni_flags) const;
+
+    std::set<data::NodeInstance*> filter_reroutes(const std::set<data::NodeInstance*>& nodes) const;
+    data::NodeInstance* filter_reroute(data::NodeInstance* node) const noexcept;
 
     void ed_create(data::NodeInstance* node);
     void ed_create(data::PinInstance* pin);

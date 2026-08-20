@@ -8,9 +8,8 @@ namespace data
 
 template <typename T>
 CNI_NoteBase<T>::CNI_NoteBase(Node* obj, wid workflow_id, iid instance_id) noexcept
-    : CNI_BaseObj_T<T>(obj, workflow_id, instance_id)
+    : CNI_BaseObj_T<T>(obj, workflow_id, instance_id, NodeFlags::NodeFlag_CNI)
 {
-    this->set_cni_flags(CNI_Base::CNI_Flag_Cni);
 }
 
 template <typename T>
@@ -73,9 +72,10 @@ bool CNI_NoteBase<T>::cni_copy_from(const NodeInstance* copy_from_node, bool cop
     LogRAssert(!src_ins.empty(), "Source node pins empty", true);
 
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedNote>();
+    auto note_data = cast::strict<CNI_DeserializedNote>(data.get());
     if (copy_pin_ids)
-        ((CNI_DeserializedNote*)data.get())->id = src_ins[0]->get_instance_id();
-    ((CNI_DeserializedNote*)data.get())->widget_value = src_ins[0]->state().value;
+        note_data->id = src_ins[0]->get_instance_id();
+    note_data->widget_value = src_ins[0]->state().value;
 
     this->cni_save_deserialized_info(std::move(data));
     return true;
@@ -85,11 +85,8 @@ template class CNI_NoteBase<CNI_Note>;
 template class CNI_NoteBase<CNI_MarkdownNote>;
 
 
-std::unique_ptr<Node> CNI_Note::cni_create_object(mngr::NodesManager* manager)
+std::unique_ptr<Node> CNI_Note::cni_create_object()
 {
-    if (nullptr == manager)
-        manager = g::pNodesManager;
-
     auto node = std::make_unique<data::Node>(cni_get_node_class());
     node->category = "utils";
     node->description = "Node to add annotations to a workflow.";
@@ -100,11 +97,8 @@ std::unique_ptr<Node> CNI_Note::cni_create_object(mngr::NodesManager* manager)
     return node;
 }
 
-std::unique_ptr<Node> CNI_MarkdownNote::cni_create_object(mngr::NodesManager* manager)
+std::unique_ptr<Node> CNI_MarkdownNote::cni_create_object()
 {
-    if (nullptr == manager)
-        manager = g::pNodesManager;
-
     constexpr const char* markdown_note_name = "Markdown Note";
 
     auto node = std::make_unique<data::Node>(cni_get_node_class());

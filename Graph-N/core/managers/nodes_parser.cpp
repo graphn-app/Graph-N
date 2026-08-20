@@ -509,12 +509,12 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
 {
     // input, input_order
 
-    const auto parse_input = [&node, &manager, this](std::vector<data::Pin*>& input, const o_json& jobjects, bool is_required, bool is_optional, bool is_hidden)
+    const auto parse_input = [&node, &manager, this](std::vector<data::Pin*>& input, const o_json& jobjects, bool is_required, bool is_optional, bool /*is_hidden*/)
     {
         auto jitems = jobjects.items();
         for (const auto& [jpin, jinfo] : jitems)
         {
-            auto pin = std::make_unique<data::Pin>(&node, jpin, is_required, is_optional, is_hidden);
+            auto pin = std::make_unique<data::Pin>(&node, jpin, is_required, is_optional/*, is_hidden*/);
             pin->def_state.name = jpin;
 
             //Log("Node: " << node.name << ", Pin: " << pin_name);
@@ -599,7 +599,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
                             break;
                     }
 
-                    auto cag = std::make_unique<data::Pin>(&node, name, is_required, is_optional, is_hidden);
+                    auto cag = std::make_unique<data::Pin>(&node, name, is_required, is_optional/*, is_hidden*/);
                     input.push_back(cag.get());
 
                     cag->cag_pin = true;
@@ -975,12 +975,12 @@ void NodesParser::sort_nodes(NodesManager& manager)
 }
 
 template <typename T>
-data::Node* add_internal_node(NodesManager& manager, std::unordered_map<hid, std::unique_ptr<data::Node>>& all_nodes)
+data::Node* add_internal_node(std::unordered_map<hid, std::unique_ptr<data::Node>>& all_nodes)
 {
     data::Node* node = nullptr;
     if (all_nodes.find(base::HashID::make_hash(T::cni_get_node_class())) == all_nodes.end())
     {
-        auto node_ptr = T::cni_create_object(&manager);
+        auto node_ptr = T::cni_create_object();
         node = node_ptr.get();
         const auto hash = node_ptr->get_hash();
         all_nodes.emplace(hash, std::move(node_ptr));
@@ -991,10 +991,10 @@ data::Node* add_internal_node(NodesManager& manager, std::unordered_map<hid, std
 
 void NodesParser::add_internal_nodes(NodesManager& manager)
 {
-    put_in_tree(manager, add_internal_node<data::CNI_Reroute>(manager, manager.m_nodes));
-    put_in_tree(manager, add_internal_node<data::CNI_Primitive>(manager, manager.m_nodes));
-    put_in_tree(manager, add_internal_node<data::CNI_Note>(manager, manager.m_nodes));
-    put_in_tree(manager, add_internal_node<data::CNI_MarkdownNote>(manager, manager.m_nodes));
+    put_in_tree(manager, add_internal_node<data::CNI_Reroute>(manager.m_nodes));
+    put_in_tree(manager, add_internal_node<data::CNI_Primitive>(manager.m_nodes));
+    put_in_tree(manager, add_internal_node<data::CNI_Note>(manager.m_nodes));
+    put_in_tree(manager, add_internal_node<data::CNI_MarkdownNote>(manager.m_nodes));
 }
 
 } // namespace mngr

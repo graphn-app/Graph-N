@@ -708,20 +708,20 @@ void PanelWfList::on_pre_delete_wf(PanelToolbar::Element& el) noexcept
     el.enabled = (m_active != 0);
 }
 
-void PanelWfList::on_deleted_mode(PanelToolbar::Element& el)
+void PanelWfList::on_deleted_mode(PanelToolbar::Element& /*el*/)
 {
     m_deleted_mode = !m_deleted_mode;
     create_toolbar();
     rebuild_items();
-    el.reset_state = true;
+    reset_toolbar_state();
 }
 
-void PanelWfList::on_labels_mode(PanelToolbar::Element& el)
+void PanelWfList::on_labels_mode(PanelToolbar::Element& /*el*/)
 {
     m_labels_mode = !m_labels_mode;
     create_toolbar();
     rebuild_items();
-    el.reset_state = true;
+    reset_toolbar_state();
 }
 
 void PanelWfList::on_add_label(PanelToolbar::Element& /*el*/)

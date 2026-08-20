@@ -12,32 +12,11 @@ struct CNI_DeserializedData
 
 class CNI_Base : public Instance<Node>
 {
-protected:
-    enum CniFlags
-    {
-        CNI_Flag_None                   = 0x0000,
-        CNI_Flag_Cni                    = 0x0001,
-        CNI_Flag_Reroute                = 0x0002,
-        CNI_Flag_RerouteSplitted        = 0x0004,
-        CNI_Flag_CniCustomWidget        = 0x0008
-    };
-    void set_cni_flags(uint32_t flags) noexcept { m_cni_flags = flags; }
-
 public:
-    using Instance<data::Node>::Instance;
+    using Instance<Node>::Instance;
     ~CNI_Base() noexcept override = default;
 
     virtual void cni_init() {}
-
-    // is this is CNI node
-    bool is_cni() const noexcept { return (m_cni_flags & CNI_Flag_Cni) > 0; }
-
-    // additional custom widget is needed
-    bool is_cni_custom_widget() const noexcept { return (m_cni_flags & CNI_Flag_CniCustomWidget) > 0; }
-
-    // reroute
-    bool is_cni_reroute() const noexcept { return (m_cni_flags & (CNI_Flag_Cni | CNI_Flag_Reroute)) == (CNI_Flag_Cni | CNI_Flag_Reroute); }
-    bool is_cni_reroute_splitted() const noexcept { return (m_cni_flags & (CNI_Flag_Cni | CNI_Flag_Reroute | CNI_Flag_RerouteSplitted)) == (CNI_Flag_Cni | CNI_Flag_Reroute | CNI_Flag_RerouteSplitted); }
 
     // cni node custom class
     virtual const char* cni_get_node_class() const noexcept { return ""; };
@@ -54,7 +33,7 @@ public:
     // collect some interesting searchable data
     virtual void cni_collect_search_data(std::stringstream& /*data*/) const {}
 
-    // can link two pins. is_cni() must be called first
+    // can link two pins. is_cni_node() must be called first
     virtual bool cni_can_link(const PinInstance* /*p1*/, const PinInstance* /*p2*/) const noexcept { LogRError("Must not be called", false); };
 
     // link/unlink handling
@@ -66,9 +45,6 @@ public:
 
     // pin value changed, CNI node to return list of pins to mirror value
     virtual void cni_mirror_value_to(const PinInstance* /*src*/, std::vector<PinInstance*>& /*append_pins*/) const { LogRError("Must not be called", ); }
-
-    // all internal objects to be cleaned up
-    virtual std::unordered_set<uint64_t> cni_get_all_eds() { return {}; }
 
     // serialization
 
@@ -90,7 +66,6 @@ public:
 
 protected:
     std::unique_ptr<CNI_DeserializedData> m_deserialized_values;
-    uint32_t m_cni_flags = 0;
 };
 
 } // namespace data

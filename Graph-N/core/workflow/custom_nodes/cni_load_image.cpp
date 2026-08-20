@@ -15,9 +15,8 @@ std::vector<Primitive> CNI_LoadImage::g_image_list;
 int32_t CNI_LoadImage::g_image_list_version = -1;
 
 CNI_LoadImage::CNI_LoadImage(Node* obj, wid workflow_id, iid instance_id) noexcept
-    : CNI_BaseObj_T<CNI_LoadImage>(obj, workflow_id, instance_id)
+    : CNI_BaseObj_T<CNI_LoadImage>(obj, workflow_id, instance_id, NodeFlags::NodeFlag_CustomWidget)
 {
-    set_cni_flags(CNI_Base::CNI_Flag_CniCustomWidget);
 }
 
 bool CNI_LoadImage::cni_is_applicable() const noexcept

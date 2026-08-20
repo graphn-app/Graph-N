@@ -69,7 +69,7 @@ public:
     data::NodeInstance* get_hovered_node() const;
     data::Link* get_hovered_link() const;
     
-    std::set<data::NodeInstance*> get_selected_nodes() const;
+    std::set<data::NodeInstance*> get_selected_nodes(bool reroutes_as_single_node) const;
     bool is_node_selected(const EdType& node) const noexcept;
     void select_node(const EdType& node, bool append_to_selection) const noexcept;
 

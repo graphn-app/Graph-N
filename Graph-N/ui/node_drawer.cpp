@@ -313,13 +313,7 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
 
     if (!node->m_pos_set)
     {
-        ImVec2 pos;
-        if (node->is_cni_reroute_splitted()) [[unlikely]]
-            pos = static_cast<data::CNI_Reroute*>(node)->get_current_node_pos();
-        else
-            pos = node->m_rc.Min;
-
-        ed::SetNodePosition(node->ed(), pos);
+        ed::SetNodePosition(node->ed(), node->m_rc.Min);
         node->m_pos_set = true;
     }
     if (!node->m_size_set && node->m_group)
@@ -350,10 +344,7 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed)
     LogRAssert(nullptr == m_active_node, "Active node must be zero ptr", );
     ed::EndNode();
 
-    if (node->is_cni_reroute_splitted()) [[unlikely]]
-        static_cast<data::CNI_Reroute*>(node)->set_current_node_pos(ed::GetNodePosition(node->ed()));
-    else
-        node->m_rc.Min = ed::GetNodePosition(node->ed());
+    node->m_rc.Min = ed::GetNodePosition(node->ed());
 
     if (!node->m_ignore_size_on_frame_end)
         node->m_rc.Max = ed::GetNodeSize(node->ed());
@@ -439,7 +430,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     bool draw_pins = true;
     if (m_active_node->is_cni_reroute_splitted()) [[unlikely]]
     {
-        const auto reroute_splitting_pin = static_cast<data::CNI_Reroute*>(m_active_node)->get_splitted_input();
+        const auto reroute_splitting_pin = cast::strict<data::CNI_Reroute>(m_active_node)->get_splitter_input();
         if (reroute_splitting_pin != nullptr)
         {
             ImGui::PushID(reroute_splitting_pin);
@@ -454,7 +445,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         const auto& inputs = m_active_node->get_inputs();
         for (auto pin : inputs)
         {
-            if (!pin->get_object()->hidden && !pin->get_object()->is_widget(pin->state()))
+            if (!pin->is_hidden() && !pin->get_object()->is_widget(pin->state()))
             {
                 ImGui::PushID(pin);
                 const bool failed = (failed_pins != nullptr && failed_pins->count(pin->get_object()->def_state.name));
@@ -482,7 +473,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     draw_pins = true;
     if (m_active_node->is_cni_reroute_splitted()) [[unlikely]]
     {
-        const auto reroute_splitting_pin = static_cast<data::CNI_Reroute*>(m_active_node)->get_splitted_output();
+        const auto reroute_splitting_pin = cast::strict<data::CNI_Reroute>(m_active_node)->get_splitter_output();
         if (reroute_splitting_pin != nullptr)
         {
             ImGui::PushID(reroute_splitting_pin);
@@ -498,7 +489,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         const auto& output = m_active_node->get_outputs();
         for (auto pin : output)
         {
-            if (pin->get_object()->hidden)
+            if (pin->is_hidden())
                 continue;
 
             ImGui::PushID(pin);
@@ -645,6 +636,7 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
     }
 
     ed::Group(m_active_node->m_rc.Max);
+    m_active_node = nullptr;
 }
 
 void NodeDrawer::draw_node_header()
@@ -786,9 +778,9 @@ void NodeDrawer::draw_collapsed_pins(bool input)
     if (m_active_node->is_cni_reroute_splitted()) [[unlikely]]
     {
         if (input)
-            reroute_splitted_pin = static_cast<data::CNI_Reroute*>(m_active_node)->get_splitted_input();
+            reroute_splitted_pin = cast::strict<data::CNI_Reroute>(m_active_node)->get_splitter_input();
         else
-            reroute_splitted_pin = static_cast<data::CNI_Reroute*>(m_active_node)->get_splitted_output();
+            reroute_splitted_pin = cast::strict<data::CNI_Reroute>(m_active_node)->get_splitter_output();
     }
 
     if (reroute_splitted_pin != nullptr) [[unlikely]]
@@ -853,7 +845,7 @@ void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_wid
     else
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle);
     draw_widget(pin, widget_name_width, widget_value_width);
-    if (!pin->get_object()->cag_pin && m_active_node->is_cni_custom_widget())
+    if (!pin->get_object()->cag_pin && m_active_node->test_node_flags(NodeFlags::NodeFlag_CustomWidget))
         m_active_node->cni_draw_widget(pin, widget_pos, widget_name_width + widget_value_width);
 }
 
@@ -1564,7 +1556,7 @@ data::Link* NodeDrawer::get_hovered_link() const
     return m_wf->ed_get_link(ed::GetHoveredLink());
 }
 
-std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes() const
+std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes(bool reroutes_as_single_node) const
 {
     const auto count = ed::GetSelectedNodesCount();
     if (0 == count)
@@ -1575,7 +1567,12 @@ std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes() const
     std::set<data::NodeInstance*> ret;
     for (auto id : nodes)
     {
-        ret.insert(m_wf->ed_get_node(id));
+        auto node = m_wf->ed_get_node(id);
+        LogCAssert(node, "Zero selected node");
+        if (reroutes_as_single_node && node->is_cni_reroute_splitted_r())
+            ret.insert(cast::strict<data::CNI_Reroute>(node)->get_splitted_base());
+        else
+            ret.insert(node);
     }
     return ret;
 }

@@ -491,6 +491,16 @@ void PanelToolbar::draw_toolbar()
     ImVec2 regular_btn_size = {};
     bool pressed = false;
 
+    m_reset_state = false;
+    const auto test_reset = [this]()
+    {
+        const bool reset = m_reset_state;
+        m_reset_state = false;
+        if (reset)
+            ImGui::PopStyleColor(3);
+        return reset;
+    };
+
     for (auto it = m_elements_l.begin(); it != m_elements_l.end(); ++it)
     {
         auto& el = *it;
@@ -503,7 +513,10 @@ void PanelToolbar::draw_toolbar()
         ImGui::SetCursorPosX(start_pos);
 
         if (el.on_preview) el.on_preview(el);
-        if (!el.enabled) ImGui::BeginDisabled();
+        if (test_reset()) return;
+
+        const bool enabled = el.enabled;
+        if (!enabled) ImGui::BeginDisabled();
 
         if (Element::Type::Button == el.type)
         {
@@ -625,14 +638,11 @@ void PanelToolbar::draw_toolbar()
         }
 
         if (pressed && el.on_click) el.on_click(el);
-        if (!el.enabled) ImGui::EndDisabled();
-        if (el.on_postview) el.on_postview(el);
+        if (!enabled) ImGui::EndDisabled();
+        if (test_reset()) return;
 
-        if (el.reset_state)
-        {
-            ImGui::PopStyleColor(3);
-            return;
-        }
+        if (el.on_postview) el.on_postview(el);
+        if (test_reset()) return;
 
         ImGui::SameLine();
     }
@@ -649,7 +659,10 @@ void PanelToolbar::draw_toolbar()
         }
 
         if (el.on_preview) el.on_preview(el);
-        if (!el.enabled) ImGui::BeginDisabled();
+        if (test_reset()) return;
+
+        const bool enabled = el.enabled;
+        if (!enabled) ImGui::BeginDisabled();
 
         if (Element::Type::Button == el.type)
         {
@@ -782,11 +795,11 @@ void PanelToolbar::draw_toolbar()
         }
 
         if (pressed && el.on_click) el.on_click(el);
-        if (!el.enabled) ImGui::EndDisabled();
-        if (el.on_postview) el.on_postview(el);
+        if (!enabled) ImGui::EndDisabled();
+        if (test_reset()) return;
 
-        if (el.reset_state)
-            break;
+        if (el.on_postview) el.on_postview(el);
+        if (test_reset()) return;
 
         ImGui::SameLine();
     }

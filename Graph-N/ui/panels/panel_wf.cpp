@@ -200,12 +200,18 @@ void PanelWorkflow::group_nodes(const std::set<data::NodeInstance*>& nodes)
 void PanelWorkflow::delete_nodes(const std::set<data::NodeInstance*>& nodes)
 {
     m_action->multi_action_on("Remove");
+    std::set<data::NodeInstance*> nodes_upd;
     for (auto node : nodes)
     {
         if (node->is_cni_reroute())
+        {
+            if (node->is_cni_reroute_splitted_r())
+                node = cast::strict<data::CNI_Reroute>(node)->get_splitted_base();
             m_wf->collapse_reroute(node);
+        }
+        nodes_upd.insert(node);
     }
-    for (auto node : nodes)
+    for (auto node : nodes_upd)
     {
         m_action->delete_node(node);
     }
@@ -218,7 +224,12 @@ void PanelWorkflow::copy_nodes(const std::set<data::NodeInstance*>& nodes, std::
     for (auto node : nodes)
     {
         if (!node->get_object()->is_dummy)
-            g::pWfsManager->copy_add(node);
+        {
+            if (node->is_cni_reroute_splitted_r())
+                g::pWfsManager->copy_add(cast::strict<data::CNI_Reroute>(node)->get_splitted_base());
+            else
+                g::pWfsManager->copy_add(node);
+        }
     }
 }
 
@@ -245,20 +256,20 @@ void PanelWorkflow::redo() const
         g::pHistoryManager->redo(m_wf->get_id());
 }
 
-void PanelWorkflow::split_reroutes_to_pin_pairs(const std::set<data::NodeInstance*>& nodes)
+void PanelWorkflow::separate_reroutes(const std::set<data::NodeInstance*>& nodes)
 {
     if (nodes.empty())
         return;
 
-    m_wf->split_reroutes_to_pin_pairs(nodes);
+    m_wf->separate_reroutes(nodes);
 }
 
-void PanelWorkflow::merge_reroutes(const std::set<data::NodeInstance*>& nodes)
+void PanelWorkflow::bundle_reroutes(const std::set<data::NodeInstance*>& nodes)
 {
     if (nodes.size() <= 1)
         return;
 
-    m_wf->merge_reroutes(nodes);
+    m_wf->bundle_reroutes(nodes);
 }
 
 void PanelWorkflow::insert_reroute(data::Link* link, const ImVec2& pos)
@@ -273,10 +284,10 @@ void PanelWorkflow::split_reroute_to_parts(data::NodeInstance* reroute)
     m_wf->split_reroute_to_parts(reroute);
 }
 
-void PanelWorkflow::collapse_reroute_parts(data::NodeInstance* reroute, bool to_left)
+void PanelWorkflow::merge_reroute_parts(data::NodeInstance* reroute, bool to_left)
 {
     LogRAssert(reroute != nullptr, "Zero ptr", );
-    m_wf->collapse_reroute_parts(reroute, to_left);
+    m_wf->merge_reroute_parts(reroute, to_left);
 }
 
 void PanelWorkflow::draw_wf()
@@ -288,7 +299,7 @@ void PanelWorkflow::draw_wf()
     const ImGuiConfigFlags old_flags = io.ConfigFlags;
     io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
-    auto& nodes = m_wf->get_nodes();
+    auto& nodes = m_wf->get_nodes_all();
     m_drawer.pre_draw_all(get_panel_id(), nodes.size());
 
     if (m_select_new_nodes)
@@ -297,6 +308,8 @@ void PanelWorkflow::draw_wf()
     for (size_t node_idx = 0; node_idx < nodes.size(); node_idx++)
     {
         auto node = nodes[node_idx].get();
+        if (node->is_hidden())
+            continue;
 
         bool failed_node = false;
         const std::set<std::string>* failed_pins = nullptr;
@@ -318,10 +331,7 @@ void PanelWorkflow::draw_wf()
                 node->reset_width();
         }
 
-        ImGui::PushID(node);
-
-        if (node->is_cni_reroute_splitted()) [[unlikely]]
-            static_cast<data::CNI_Reroute*>(node)->begin_draw_parts();
+        ImGui::PushID(node);        
 
         m_drawer.pre_draw_node(node, failed_node);
         if (node->m_group)
@@ -329,14 +339,6 @@ void PanelWorkflow::draw_wf()
         else
             m_drawer.draw_node(node, node->get_object()->w_fit, node_idx, failed_pins);
         m_drawer.post_draw_node(node, failed_node);
-
-        if (node->is_cni_reroute_splitted()) [[unlikely]]
-        {
-            static_cast<data::CNI_Reroute*>(node)->end_draw_parts();
-            m_drawer.pre_draw_node(node, failed_node);
-            m_drawer.draw_node(node, node->get_object()->w_fit, node_idx, failed_pins);
-            m_drawer.post_draw_node(node, failed_node);
-        }
 
         ImGui::PopID();
 
@@ -358,7 +360,7 @@ void PanelWorkflow::draw_wf()
         m_locate_selected = false;
     }
 
-    m_drawer.draw_links(m_wf->get_links());
+    m_drawer.draw_links(m_wf->get_links_all());
     m_drawer.query_new_item(
         [this](data::PinInstance* pin) { m_action->unlink(pin); },
         [this](data::PinInstance* pin, const ImVec2& pt)
@@ -399,11 +401,11 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
     m_action->multi_action_on("Fit");
     if (items.empty())
     {
-        for (auto& node : m_wf->get_nodes())
+        for (auto& node : m_wf->get_nodes_all())
         {
             if (node->m_group)
             {
-                items.insert({ node.get(), m_drawer.get_nodes_in_group(node.get(), m_wf->get_nodes()) });
+                items.insert({ node.get(), m_drawer.get_nodes_in_group(node.get(), m_wf->get_nodes_all()) });
             }
             else
             {
@@ -435,7 +437,7 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
         {
             if (node != it->first && node->m_group && items.find(node) != items.end())
             {
-                if (m_action->set_node_rect(node, m_drawer.fit_group_rect(node, m_drawer.get_nodes_in_group(node, m_wf->get_nodes()))))
+                if (m_action->set_node_rect(node, m_drawer.fit_group_rect(node, m_drawer.get_nodes_in_group(node, m_wf->get_nodes_all()))))
                     add_y.insert(it->first);
                 items.erase(node);
             }
@@ -480,7 +482,7 @@ bool PanelWorkflow::handle_moves()
         auto node = m_drawer.get_hovered_node();
         if (node != nullptr)
         {
-            auto selected = m_drawer.get_selected_nodes();
+            auto selected = m_drawer.get_selected_nodes(false);
             if (!m_drawer.is_node_selected(node->ed()))
             {
                 selected.clear();
@@ -492,7 +494,7 @@ bool PanelWorkflow::handle_moves()
             {
                 if (sel->m_group)
                 {
-                    auto subnodes = m_drawer.get_nodes_in_group(sel, m_wf->get_nodes());
+                    auto subnodes = m_drawer.get_nodes_in_group(sel, m_wf->get_nodes_all());
                     for (auto subnode : subnodes)
                     {
                         add_subnodes.insert(subnode);
@@ -954,7 +956,7 @@ void PanelWorkflow::on_show_dummy_node(PanelToolbar::Element& el)
         return;
 
     int32_t idx = 0;
-    for (auto& node : m_wf->get_nodes())
+    for (auto& node : m_wf->get_nodes_all())
     {
         if (node->get_object()->is_dummy)
         {

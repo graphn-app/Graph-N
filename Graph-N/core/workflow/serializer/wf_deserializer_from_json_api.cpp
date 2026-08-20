@@ -324,10 +324,10 @@ void WfDeserializerFromJsonApi::link_api_nodes(const std::list<ApiNode>& api_nod
 
 void WfDeserializerFromJsonApi::arrange_nodes()
 {
-    const auto& wf_nodes = m_wf->get_nodes();
+    const auto& wf_nodes = m_wf->get_nodes_all();
     if (wf_nodes.empty())
         return;
-    const auto& wf_links = m_wf->get_links();
+    const auto& wf_links = m_wf->get_links_all();
 
     struct NodeWithParents
     {

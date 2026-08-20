@@ -211,6 +211,18 @@ constexpr const DEST* dynamic(const SRC* param) noexcept
     return dynamic_cast<const DEST*>(param);
 }
 
+template <typename DEST, typename SRC>
+constexpr DEST* strict(SRC* param) noexcept
+{
+    return static_cast<DEST*>(param);
+}
+
+template <typename DEST, typename SRC>
+constexpr const DEST* strict(const SRC* param) noexcept
+{
+    return static_cast<const DEST*>(param);
+}
+
 template <typename TYPE>
 constexpr TYPE* remove_const(const TYPE* type) noexcept
 {

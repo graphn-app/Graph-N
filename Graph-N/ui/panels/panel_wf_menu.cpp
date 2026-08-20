@@ -106,14 +106,14 @@ bool PanelWorkflow::context_menu_handler()
             m_menu_objs = {};
             m_menu_objs.click_pos = m_drawer.get_mouse_pos();
 
-            auto nodes = m_drawer.get_selected_nodes();
+            auto nodes = m_drawer.get_selected_nodes(false);
             if (!m_drawer.is_node_selected(node->ed()))
             {
                 m_drawer.select_node(node->ed(), false);
-                nodes = m_drawer.get_selected_nodes();
+                nodes = m_drawer.get_selected_nodes(false);
 
                 if (node->m_group)
-                    m_menu_objs.groups.insert({ node, m_drawer.get_nodes_in_group(node, m_wf->get_nodes()) });
+                    m_menu_objs.groups.insert({ node, m_drawer.get_nodes_in_group(node, m_wf->get_nodes_all()) });
                 else
                     m_menu_objs.nodes.insert(node);
                 m_context_menu_type = node->m_group ? MenuType::Group : MenuType::Node;
@@ -125,7 +125,7 @@ bool PanelWorkflow::context_menu_handler()
                 {
                     if (node_it->m_group)
                     {
-                        m_menu_objs.groups.insert({ node_it, m_drawer.get_nodes_in_group(node_it, m_wf->get_nodes()) });
+                        m_menu_objs.groups.insert({ node_it, m_drawer.get_nodes_in_group(node_it, m_wf->get_nodes_all()) });
                     }
                     else
                     {
@@ -294,14 +294,14 @@ bool PanelWorkflow::show_canvas_menu()
     if (ImGui::MenuItem("Select all", g::pHotkeysManager->get_key_binding_name(KeyTarget::Workspace_SelAll)))
     {
         m_drawer.select_node(EdType(false), false);
-        for (auto& node : m_wf->get_nodes())
+        for (auto& node : m_wf->get_nodes_all())
         {
             m_drawer.select_node(node->ed(), true);
         }
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Duplicate workflow", nullptr, nullptr, !m_wf->get_nodes().empty() && m_wf->get_data().valid))
+    if (ImGui::MenuItem("Duplicate workflow", nullptr, nullptr, !m_wf->get_nodes_all().empty() && m_wf->get_data().valid))
     {
         g::pFlow->wf_create_copy_from(m_wf->get_id(), m_drawer.get_viewport_rect(), m_drawer.get_zoom());
         close = true;
@@ -398,21 +398,16 @@ bool PanelWorkflow::show_node_menu()
 
     if (node->is_cni_reroute())
     {
-        if (ImGui::MenuItem("Split Reroutes", nullptr, nullptr, !node->get_object()->is_dummy && node->get_inputs().size() > 2))
+        if (ImGui::MenuItem("Separate Reroute", nullptr, nullptr, !node->get_object()->is_dummy && node->get_inputs().size() > 2))
         {
-            split_reroutes_to_pin_pairs(m_menu_objs.nodes);
+            separate_reroutes(m_menu_objs.nodes);
             close = true;
         }
         if (node->is_cni_reroute_splitted())
         {
-            if (ImGui::MenuItem("Collapse to Left"))
+            if (ImGui::MenuItem("Merge Pair"))
             {
-                collapse_reroute_parts(*m_menu_objs.nodes.begin(), true);
-                close = true;
-            }
-            if (ImGui::MenuItem("Collapse to Right"))
-            {
-                collapse_reroute_parts(*m_menu_objs.nodes.begin(), false);
+                merge_reroute_parts(*m_menu_objs.nodes.begin(), true);
                 close = true;
             }
         }
@@ -676,14 +671,14 @@ bool PanelWorkflow::show_multinode_menu()
     }
     if (all_reroutes)
     {
-        if (ImGui::MenuItem("Split Reroutes", nullptr, nullptr, true))
+        if (ImGui::MenuItem("Separate Reroutes", nullptr, nullptr, true))
         {
-            split_reroutes_to_pin_pairs(m_menu_objs.nodes);
+            separate_reroutes(m_menu_objs.nodes);
             close = true;
         }
-        if (ImGui::MenuItem("Merge Reroutes", nullptr, nullptr, true))
+        if (ImGui::MenuItem("Bundle Reroutes", nullptr, nullptr, true))
         {
-            merge_reroutes(m_menu_objs.nodes);
+            bundle_reroutes(m_menu_objs.nodes);
             close = true;
         }
         ImGui::Separator();

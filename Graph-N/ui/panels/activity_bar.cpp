@@ -85,6 +85,23 @@ void ActivityBar::recalc_viewport_size(bool left, bool right) noexcept
     }
 }
 
+const ImGuiDockNode* ActivityBar::get_central_node(const ImGuiDockNode* node)
+{
+    if (!node)
+        return nullptr;
+
+    if (node->IsCentralNode())
+        return node;
+
+    if (const auto* res = get_central_node(node->ChildNodes[0]))
+        return res;
+
+    if (const auto* res = get_central_node(node->ChildNodes[1]))
+        return res;
+
+    return nullptr;
+}
+
 void ActivityBar::show(ActivityBarMode mode)
 {
     const bool show_left = (ActivityBarMode::Smart == mode || ActivityBarMode::Left == mode);
@@ -94,7 +111,9 @@ void ActivityBar::show(ActivityBarMode mode)
 
     calc_window_sizes(show_left, show_right);
 
-    const ImGuiDockNode* central_node = ImGui::DockBuilderGetCentralNode(g::pFlow->get_main_dockspace_id());
+    const ImGuiDockNode* root_node = ImGui::DockBuilderGetNode(g::pFlow->get_main_dockspace_id());
+    const ImGuiDockNode* central_node = get_central_node(root_node);
+
     size_t l_panels = 0, r_panels = 0;
     for (auto& [id, direction] : m_panels)
     {

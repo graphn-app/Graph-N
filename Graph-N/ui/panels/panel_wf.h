@@ -54,7 +54,7 @@ public:
     void set_num_of_runs(int32_t num) noexcept;
 
     bool get_node_selected(data::NodeInstance* node) const noexcept;
-    std::set<data::NodeInstance*> get_selected_nodes() const { return m_drawer.get_selected_nodes(); }
+    std::set<data::NodeInstance*> get_selected_nodes(bool reroutes_as_single_node) const { return m_drawer.get_selected_nodes(reroutes_as_single_node); }
 
     bool can_save() const noexcept { return m_can_save && !m_invalidation_state; }
     void save() const;
@@ -70,12 +70,12 @@ public:
     void copy_nodes(const std::set<data::NodeInstance*>& nodes, std::optional<ImVec2> src_point);
     void paste_copied(std::optional<ImVec2> paste_at);
 
-    void split_reroutes_to_pin_pairs(const std::set<data::NodeInstance*>& nodes);
-    void merge_reroutes(const std::set<data::NodeInstance*>& nodes);
+    void separate_reroutes(const std::set<data::NodeInstance*>& nodes);
+    void bundle_reroutes(const std::set<data::NodeInstance*>& nodes);
     void insert_reroute(data::Link* link, const ImVec2& pos);
 
     void split_reroute_to_parts(data::NodeInstance* reroute);
-    void collapse_reroute_parts(data::NodeInstance* reroute, bool to_left);
+    void merge_reroute_parts(data::NodeInstance* reroute, bool to_left);
 
 private:
     DlgCode show(bool& focused) override;
