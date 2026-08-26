@@ -12,9 +12,9 @@ NodeInstanceBase::~NodeInstanceBase() noexcept = default;
 
 void NodeInstanceBase::init()
 {
-    Instance<data::Node>::init();
+    CNI_Base::init();
 
-    if (get_object() != nullptr)
+    if (has_object())
     {
         m_input.reserve(get_object()->input.size());
         m_output.reserve(get_object()->output.size());
@@ -45,7 +45,7 @@ void NodeInstanceBase::reset_width() noexcept
 
 uint64_t NodeInstanceBase::reset_state() noexcept
 {
-   const auto id = Instance<data::Node>::reset_state();
+   const auto id = CNI_Base::reset_state();
    reset_width();
    return id;
 }
@@ -81,15 +81,15 @@ void NodeInstanceBase::set_name(std::string name) noexcept
 
 void NodeInstanceBase::link_cag_pins() noexcept
 {
-    if (get_object() != nullptr)
+    if (has_object())
     {
         for (auto it = m_input.begin(); it != m_input.end(); ++it)
         {
             auto pin = *it;
-            if (pin->get_object()->cag_require)
+            if (pin->obj_flags().has(PinObjFlags::CagRequire))
             {
                 auto cag = *++it;
-                LogCAssert(cag->get_object()->cag_pin, "Wrong cag pins order. w:" << get_workflow_id() << ", n:" << get_instance_id());
+                LogCAssert(cag->obj_flags().has(PinObjFlags::CagPin), "Wrong cag pins order. w:" << get_workflow_id() << ", n:" << get_instance_id());
 
                 pin->state().cag = cag->get_instance_id();
                 cag->state().cag = pin->get_instance_id();
@@ -150,8 +150,8 @@ float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon) noexcept
 {
     auto obj = get_object();
     if (nullptr == obj) return 0.0f;
-    
-    m_has_out_pins = m_has_in_pins = m_has_widgets = false;
+
+    flags().remove(NodeInstFlags::HasInPins, NodeInstFlags::HasOutPins, NodeInstFlags::HasWidgets);
     obj->w_widget_name_max = obj->w_widget_value_max = obj->w_pin_in_max = get_object()->w_pin_out_max = m_min_possible_w = 0.0f;
 
     for (auto& in : m_input)
@@ -159,14 +159,14 @@ float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon) noexcept
         auto pin_obj = in->get_object();
         if (pin_obj->is_widget(in->state()))
         {
-            m_has_widgets = true;
+            flags().add(NodeInstFlags::HasWidgets);
             in->state().w_name = ImGui::CalcTextSize(in->state().name.c_str()).x;
             obj->w_widget_name_max = std::max(obj->w_widget_name_max, in->state().w_name + ImGui::GetStyle().ItemSpacing.x * 2);
             obj->w_widget_value_max = std::max(obj->w_widget_value_max, pin_obj->w_value);
         }
         else
         {
-            m_has_in_pins = true;
+            flags().add(NodeInstFlags::HasInPins);
             in->state().w_name = ImGui::CalcTextSize(in->state().name.c_str()).x;
             obj->w_pin_in_max = std::max(obj->w_pin_in_max, in->state().w_name);
         }
@@ -174,13 +174,13 @@ float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon) noexcept
 
     for (auto& out : m_output)
     {
-        m_has_out_pins = true;
+        flags().add(NodeInstFlags::HasOutPins);
         out->state().w_name = ImGui::CalcTextSize(out->state().name.c_str()).x;
         obj->w_pin_out_max = std::max(obj->w_pin_out_max, out->state().w_name);
     }
 
     // empty
-    if (!m_has_in_pins && !m_has_out_pins && !m_has_widgets) [[unlikely]]
+    if (flags().has_none(NodeInstFlags::HasInPins, NodeInstFlags::HasOutPins, NodeInstFlags::HasWidgets)) [[unlikely]]
     {
         obj->w_fit = m_min_possible_w = 100.0f;
         m_ideal_w = obj->w_fit;
@@ -205,7 +205,7 @@ float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon) noexcept
 
 float NodeInstanceBase::recalc_node_width(float new_width, bool ro, bool use_big_pin_icon) noexcept
 {
-    if (get_object() == nullptr) return new_width;
+    if (!has_object()) return new_width;
 
     if (ro)
         new_width = m_ideal_w;

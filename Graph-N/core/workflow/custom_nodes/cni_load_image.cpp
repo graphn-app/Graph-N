@@ -15,8 +15,9 @@ std::vector<Primitive> CNI_LoadImage::g_image_list;
 int32_t CNI_LoadImage::g_image_list_version = -1;
 
 CNI_LoadImage::CNI_LoadImage(Node* obj, wid workflow_id, iid instance_id) noexcept
-    : CNI_BaseObj_T<CNI_LoadImage>(obj, workflow_id, instance_id, NodeFlags::NodeFlag_CustomWidget)
+    : CNI_BaseObj_T<CNI_LoadImage>(obj, workflow_id, instance_id)
 {
+    flags().add(NodeInstFlags::CustomWidget);
 }
 
 bool CNI_LoadImage::cni_is_applicable() const noexcept
@@ -26,7 +27,7 @@ bool CNI_LoadImage::cni_is_applicable() const noexcept
     {
         if (pin->def_state.type == PinType::COMBO)
         {
-            return pin->image_upload;
+            return pin->flags.has(PinObjFlags::ImageUpload);
         }
     }
     LogRError("Node is not applicable", false);
@@ -38,7 +39,7 @@ void CNI_LoadImage::cni_draw_widget(PinInstance* pin, float pos, float width)
     const auto& state = pin->state();
     auto obj = pin->get_object();
 
-    if (state.type != PinType::COMBO || !obj->image_upload || state.links > 0) [[unlikely]]
+    if (state.type != PinType::COMBO || obj->flags.has_not(PinObjFlags::ImageUpload) || state.links > 0) [[unlikely]]
         return;
 
     draw_upload_button(pos, width);

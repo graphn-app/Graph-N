@@ -199,13 +199,15 @@ void PanelWorkflow::group_nodes(const std::set<data::NodeInstance*>& nodes)
 
 void PanelWorkflow::delete_nodes(const std::set<data::NodeInstance*>& nodes)
 {
+    m_drawer.clear_selection();
+
     m_action->multi_action_on("Remove");
     std::set<data::NodeInstance*> nodes_upd;
     for (auto node : nodes)
     {
-        if (node->is_cni_reroute())
+        if (node->flags().has(NodeInstFlags::Reroute))
         {
-            if (node->is_cni_reroute_splitted_r())
+            if (node->flags().has(NodeInstFlags::RerouteSplitted_R))
                 node = cast::strict<data::CNI_Reroute>(node)->get_splitted_base();
             m_wf->collapse_reroute(node);
         }
@@ -223,9 +225,9 @@ void PanelWorkflow::copy_nodes(const std::set<data::NodeInstance*>& nodes, std::
     g::pWfsManager->copy_begin(m_wf, src_point);
     for (auto node : nodes)
     {
-        if (!node->get_object()->is_dummy)
+        if (node->obj_flags().has_not(NodeObjFlags::Dummy))
         {
-            if (node->is_cni_reroute_splitted_r())
+            if (node->flags().has(NodeInstFlags::RerouteSplitted_R))
                 g::pWfsManager->copy_add(cast::strict<data::CNI_Reroute>(node)->get_splitted_base());
             else
                 g::pWfsManager->copy_add(node);
@@ -303,12 +305,12 @@ void PanelWorkflow::draw_wf()
     m_drawer.pre_draw_all(get_panel_id(), nodes.size());
 
     if (m_select_new_nodes)
-        m_drawer.select_node(EdType(false), false);
+        m_drawer.clear_selection();
 
     for (size_t node_idx = 0; node_idx < nodes.size(); node_idx++)
     {
         auto node = nodes[node_idx].get();
-        if (node->is_hidden())
+        if (node->flags().has(NodeInstFlags::Hidden))
             continue;
 
         bool failed_node = false;
@@ -327,14 +329,14 @@ void PanelWorkflow::draw_wf()
         if (is_new) [[unlikely]]
         {
             node->reset_state();
-            if (!node->m_group)
+            if (node->flags().has_not(NodeInstFlags::Group))
                 node->reset_width();
         }
 
         ImGui::PushID(node);        
 
         m_drawer.pre_draw_node(node, failed_node);
-        if (node->m_group)
+        if (node->flags().has(NodeInstFlags::Group))
             m_drawer.draw_group(node, node_idx);
         else
             m_drawer.draw_node(node, node->get_object()->w_fit, node_idx, failed_pins);
@@ -403,7 +405,7 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
     {
         for (auto& node : m_wf->get_nodes_all())
         {
-            if (node->m_group)
+            if (node->flags().has(NodeInstFlags::Group))
             {
                 items.insert({ node.get(), m_drawer.get_nodes_in_group(node.get(), m_wf->get_nodes_all()) });
             }
@@ -416,7 +418,7 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
 
     for (auto it = items.begin(); it != items.end(); )
     {
-        if (!it->first->m_group)
+        if (it->first->flags().has_not(NodeInstFlags::Group))
         {
             m_action->reset_node_size(it->first);
             it = items.erase(it);
@@ -435,7 +437,7 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
         auto& nodes = it->second;
         for (auto node : nodes)
         {
-            if (node != it->first && node->m_group && items.find(node) != items.end())
+            if (node != it->first && node->flags().has(NodeInstFlags::Group) && items.find(node) != items.end())
             {
                 if (m_action->set_node_rect(node, m_drawer.fit_group_rect(node, m_drawer.get_nodes_in_group(node, m_wf->get_nodes_all()))))
                     add_y.insert(it->first);
@@ -492,7 +494,7 @@ bool PanelWorkflow::handle_moves()
             std::set<data::NodeInstance*> add_subnodes;
             for (auto sel : selected)
             {
-                if (sel->m_group)
+                if (sel->flags().has(NodeInstFlags::Group))
                 {
                     auto subnodes = m_drawer.get_nodes_in_group(sel, m_wf->get_nodes_all());
                     for (auto subnode : subnodes)
@@ -958,7 +960,7 @@ void PanelWorkflow::on_show_dummy_node(PanelToolbar::Element& el)
     int32_t idx = 0;
     for (auto& node : m_wf->get_nodes_all())
     {
-        if (node->get_object()->is_dummy)
+        if (node->obj_flags().has(NodeObjFlags::Dummy))
         {
             if (m_curr_dummy_node == idx++)
             {

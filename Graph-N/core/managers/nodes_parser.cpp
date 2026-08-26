@@ -315,19 +315,19 @@ void NodesParser::prepare_parsers_map()
     m_parsers["advanced"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.advanced = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::Advanced, j.get<bool>());
         else log_err_type(node, pin, j, "advanced");
     };
     m_parsers["audio_upload"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.audio_upload = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::AudioUpload, j.get<bool>());
         else log_err_type(node, pin, j, "audio_upload");
     };
     m_parsers["control_after_generate"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.cag_require = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::CagRequire, j.get<bool>());
         else log_err_type(node, pin, j, "control_after_generate");
     };
     m_parsers["default"] =
@@ -338,7 +338,7 @@ void NodesParser::prepare_parsers_map()
     m_parsers["defaultInput"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.def_input = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::DefInput, j.get<bool>());
         else log_err_type(node, pin, j, "defaultInput");
     };
     m_parsers["display"] =
@@ -349,11 +349,11 @@ void NodesParser::prepare_parsers_map()
             const std::string& display = j.get_ref<const std::string&>();
             if (display == "color")
             {
-                pin.display_as_color = true;
+                pin.flags.add(PinObjFlags::DisplAsColor);
             }
             else if (display == "slider")
             {
-                pin.display_as_slider = true;
+                pin.flags.add(PinObjFlags::DisplAsSlider);
             }
             else if (display != "number")
             {
@@ -366,19 +366,19 @@ void NodesParser::prepare_parsers_map()
     m_parsers["dynamicPrompts"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.dynamic_prompts = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::DynamicPrompts, j.get<bool>());
         else log_err_type(node, pin, j, "dynamicPrompts");
     };
     m_parsers["file_upload"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.file_upload = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::FileUpload, j.get<bool>());
         else log_err_type(node, pin, j, "file_upload");
     };
     m_parsers["forceInput"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.force_input = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::ForceInput, j.get<bool>());
         else log_err_type(node, pin, j, "forceInput");
     };
     m_parsers["image_folder"] =
@@ -390,7 +390,7 @@ void NodesParser::prepare_parsers_map()
     m_parsers["image_upload"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.image_upload = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::ImageUpload, j.get<bool>());
         else log_err_type(node, pin, j, "image_upload");
     };
     m_parsers["label_off"] =
@@ -408,7 +408,7 @@ void NodesParser::prepare_parsers_map()
     m_parsers["lazy"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.lazy = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::Lazy, j.get<bool>());
         else log_err_type(node, pin, j, "lazy");
     };
     m_parsers["min"] =
@@ -424,13 +424,13 @@ void NodesParser::prepare_parsers_map()
     m_parsers["multiline"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.multiline = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::Multiline, j.get<bool>());
         else log_err_type(node, pin, j, "multiline");
     };
     m_parsers["multiselect"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.multiselect = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::Multiselect, j.get<bool>());
         else log_err_type(node, pin, j, "multiselect");
     };
     m_parsers["options"] =
@@ -487,7 +487,7 @@ void NodesParser::prepare_parsers_map()
     m_parsers["video_upload"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        if (j.is_boolean()) pin.video_upload = j;
+        if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::VideoUpload, j.get<bool>());
         else log_err_type(node, pin, j, "video_upload");
     };
 }
@@ -586,7 +586,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
             else [[likely]]
             {
                 input.push_back(ptr);
-                if (ptr->cag_require)
+                if (ptr->flags.has(PinObjFlags::CagRequire))
                 {
                     //BREAK_IF(node.node_class == "KSampler");
 
@@ -602,8 +602,8 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
                     auto cag = std::make_unique<data::Pin>(&node, name, is_required, is_optional/*, is_hidden*/);
                     input.push_back(cag.get());
 
-                    cag->cag_pin = true;
-                    cag->can_link = false;
+                    cag->flags.add(PinObjFlags::CagPin);
+                    cag->flags.remove(PinObjFlags::CanLink);
                     cag->def_state.name = "control";
                     cag->initialize("COMBO");
                     cag->finalize();
@@ -690,7 +690,7 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
     //    //}
     //}
 
-    node.has_input = !node.input.empty();
+    node.flags.add_remove_if(NodeObjFlags::HasInput, !node.input.empty());
 }
 
 void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_json& jnode)
@@ -706,7 +706,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
             for (const auto& jitem : joutput)
             {
                 auto pin = std::make_unique<data::Pin>(&node, index++);
-                pin->output = true;
+                pin->flags.add(PinObjFlags::Output);
 
                 if (jitem.is_string())
                 {
@@ -793,14 +793,14 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
         {
             if (jitem.is_boolean())
             {
-                pin->output_is_list = jitem;
+                pin->flags.add_remove_if(PinObjFlags::OutputIsList, jitem.get<bool>());
                 return true;
             }
             return false;
         },
         [](data::Pin* pin)
         {
-            pin->output_is_list = false;
+            pin->flags.remove(PinObjFlags::OutputIsList);
         }
     );
 
@@ -834,7 +834,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
     {
         const auto& output_node = jnode["output_node"];
         if (output_node.is_boolean())
-            node.output_node = output_node;
+            node.flags.add_remove_if(NodeObjFlags::OutputNode, output_node.get<bool>());
         else
         {
             LogInvalidJson("output_node not a bool. Node=" << node.name);
@@ -846,24 +846,22 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
         pin->finalize();
     }
 
-    node.has_output = !node.output.empty();
+    node.flags.add_remove_if(NodeObjFlags::HasOutput, !node.output.empty());
 }
 
 void NodesParser::parse_others(data::Node& node, const o_json& jnode)
 {
     // python_module, experimental, deprecated, api_node
 
-    const auto get_bool = [this, &node, &jnode](const char* json_name, bool& value)
+    const auto get_bool = [this, &node, &jnode](const char* json_name)
     {
-        if (!jnode.contains(json_name))
-            return;
+        if (!jnode.contains(json_name)) [[likely]]
+            return false;
         const auto& jvalue = jnode[json_name];
-        if (jvalue.is_boolean())
-            value = jvalue;
-        else [[unlikely]]
-        {
-            LogInvalidJson(json_name << " not a bool. Node=" << node.name);
-        }
+        if (jvalue.is_boolean()) [[likely]]
+            return jvalue.get<bool>();
+        LogInvalidJson(json_name << " not a bool. Node=" << node.name);
+        return false;
     };
 
     const auto get_string = [this, &node, &jnode](const char* json_name, std::string& value)
@@ -879,9 +877,9 @@ void NodesParser::parse_others(data::Node& node, const o_json& jnode)
         }
     };
 
-    get_bool("experimental", node.experimental);
-    get_bool("deprecated", node.deprecated);
-    get_bool("api_node", node.api_node);
+    node.flags.add_remove_if(NodeObjFlags::Experimental, get_bool("experimental"));
+    node.flags.add_remove_if(NodeObjFlags::Deprecated, get_bool("deprecated"));
+    node.flags.add_remove_if(NodeObjFlags::ApiNode, get_bool("api_node"));
     get_string("python_module", node.python_module);
 
     if (m_known_attributes.empty())

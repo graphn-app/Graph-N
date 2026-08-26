@@ -19,7 +19,7 @@ void NodeInstance::init(const std::string& select)
 
     reset_to_default_colors();
 
-    if (m_group || nullptr == get_object())
+    if (flags().has(NodeInstFlags::Group) || !has_object())
         return;
 
     auto wf = g::pWfsManager->access(m_wid);
@@ -58,19 +58,22 @@ void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
     NodeInstanceBase::init();
 
     m_rc = copy_from_node->m_rc;
-  //  if (copy_from_node->m_group)
+  //  if (copy_from_node->flags().has(NodeInstFlags::Group))
   //      m_rc.Max.y -= ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 4;
     m_clr_node = copy_from_node->m_clr_node;
     m_clr_group = copy_from_node->m_clr_group;
     m_clr_head = copy_from_node->m_clr_head;
     m_clr_group_capt = copy_from_node->m_clr_group_capt;
-    m_group = copy_from_node->m_group;
-    m_expanded = copy_from_node->m_expanded;
-    m_mode = copy_from_node->m_mode;
-    m_pinned = copy_from_node->m_pinned;
     m_name = copy_from_node->m_name;
 
-    if (m_group)
+    flags().copy_from_by_mask(copy_from_node->flags(),
+        NodeInstFlags::Group,
+        NodeInstFlags::Expanded,
+        NodeInstFlags::Pinned
+    );
+    flags().copy_from_by_mask(copy_from_node->flags(), g_node_inst_all_modes_mask);
+
+    if (flags().has(NodeInstFlags::Group))
         return;
 
     if (cni_copy_from(copy_from_node, copy_pin_ids))
@@ -100,14 +103,14 @@ void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
 uint64_t NodeInstance::reset_state() noexcept
 {
     const auto id = NodeInstanceBase::reset_state();
-    m_pos_set = m_size_set = m_pinned_set = false;
+    flags().remove(NodeInstFlags::PosSet, NodeInstFlags::SizeSet, NodeInstFlags::PinnedSet);
     return id;
 }
 
 void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_action)
 {
     LogRAssert(copy_to && wf_action, "Zero ptr", );
-    if (m_group || nullptr == get_object() || get_object()->is_dummy)
+    if (flags().has(NodeInstFlags::Group) || !has_object() || obj_flags().has(NodeObjFlags::Dummy))
         return;
 
     auto find_pin = [this](const std::vector<PinInstance*>& input, iid pin_id) -> PinInstance*
@@ -122,7 +125,7 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
 
     for (auto pin : m_input)
     {
-        if (pin->get_object()->cag_require)
+        if (pin->obj_flags().has(PinObjFlags::CagRequire))
         {
             PinInstance* pin_copy_to = nullptr;
             if (copy_to != nullptr)
@@ -130,7 +133,7 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
 
             auto cag_pin = find_pin(m_input, pin->state().cag);
             LogCAssert(cag_pin != nullptr, "CAG pin not found. w:" << get_workflow_id() << ", n:" << get_instance_id() << ", p:" << pin->get_instance_id() << ", cag:" << pin->state().cag);
-            LogCAssert(cag_pin->get_object()->cag_pin, "Linked CAG pin is not CAG. w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str);
+            LogCAssert(cag_pin->obj_flags().has(PinObjFlags::CagPin), "Linked CAG pin is not CAG. w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str);
             LogCAssert(cag_pin->get_object()->def_state.type == PinType::COMBO, "Linked CAG pin is not COMBO. w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str);
             LogCAssert(cag_pin->get_object()->def_state.value.is_int(), "Linked CAG pin holds wrong type. w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str);
 
@@ -244,7 +247,7 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
 
 void NodeInstance::collect_search_data(std::stringstream& data) const
 {
-    if (m_group || nullptr == get_object() || get_object()->is_dummy)
+    if (flags().has(NodeInstFlags::Group) || !has_object() || obj_flags().has(NodeObjFlags::Dummy))
         return;
 
     for (auto pin : m_input)
@@ -328,46 +331,60 @@ void NodeInstance::collect_search_data(std::stringstream& data) const
 
 const std::string& NodeInstance::get_name() const noexcept
 {
-    if (m_group)
+    if (flags().has(NodeInstFlags::Group))
         return m_name;
     return NodeInstanceBase::get_name();
 }
 
 void NodeInstance::set_name(std::string name) noexcept
 {
-    if (m_group)
+    if (flags().has(NodeInstFlags::Group))
         m_name = std::move(name);
     else
         NodeInstanceBase::set_name(std::move(name));
 }
 
-void NodeInstance::pin(bool pin) noexcept
+void NodeInstance::pin_node(bool pin) noexcept
 {
+    if (flags().has(NodeInstFlags::Pinned) == pin)
+        return;
     w_name = -1.0f;
     m_saved_width = -1.0f;
-    m_pinned = pin;
-    m_pinned_set = false;
+    flags().add_remove_if(NodeInstFlags::Pinned, pin);
+    flags().remove(NodeInstFlags::PinnedSet);
 }
 
-void NodeInstance::set_mode(NodeMode mode) noexcept
+void NodeInstance::expand_node(bool expand) noexcept
 {
-    if (NodeMode::Bypass == mode && !get_object()->can_bypass)
+    if (flags().has(NodeInstFlags::Expanded) == expand)
         return;
-    if (NodeMode::Mute == mode && !get_object()->can_mute)
-        return;
-
+    flags().add_remove_if(NodeInstFlags::Expanded, expand);
     w_name = -1.0f;
     m_saved_width = -1.0f;
-    m_mode = mode;
 }
 
-void NodeInstance::expand(bool expand) noexcept
+void NodeInstance::set_mode(NodeInstFlags mode) noexcept
 {
-    if (m_expanded == expand)
+    LogRAssert(g_node_inst_all_modes_mask.has(mode), "Invalid mode passed", );
+
+    if (flags().has(mode))
         return;
-    m_expanded = expand;
+    if (NodeInstFlags::ModeBypass == mode && obj_flags().has_not(NodeObjFlags::CanBypass))
+        return;
+    if (ObjectFlags<NodeInstFlags>::is_one_of(mode, NodeInstFlags::ModeMute, NodeInstFlags::ModeOnEvent, NodeInstFlags::ModeOnTrigger) && obj_flags().has_not(NodeObjFlags::CanMute))
+        return;
+
     w_name = -1.0f;
     m_saved_width = -1.0f;
+
+    flags().remove(
+        NodeInstFlags::ModeAlways, 
+        NodeInstFlags::ModeOnEvent, 
+        NodeInstFlags::ModeMute, 
+        NodeInstFlags::ModeOnTrigger, 
+        NodeInstFlags::ModeBypass
+    );
+    flags().add(mode);
 }
 
 void NodeInstance::set_group_color(ImVec4 clr) noexcept
@@ -391,11 +408,11 @@ void NodeInstance::set_node_color(const ImVec4& clr) noexcept
 
 void NodeInstance::reset_to_default_colors() noexcept
 {
-    if (m_group)
+    if (flags().has(NodeInstFlags::Group))
     {
         set_group_color(ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::GroupBg)));
     }
-    else if (get_object() != nullptr)
+    else if (has_object())
     {
         const auto& cl = get_object()->node_class;
         ImU32 color = 0;
@@ -409,27 +426,27 @@ void NodeInstance::reset_to_default_colors() noexcept
 
 void NodeInstance::reset_width() noexcept
 {
-    if (!m_group)
+    if (flags().has_not(NodeInstFlags::Group))
     {
         NodeInstanceBase::reset_width();
         m_rc.Max.x = get_ideal_width();
     }
-    m_size_set = false;
+    flags().remove(NodeInstFlags::SizeSet);
 }
 
 float NodeInstance::get_additional_name_width() const noexcept
 {
     float add = 0.0f;
-    if (m_pinned)
+    if (flags().has(NodeInstFlags::Pinned))
         add += ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
-    if (m_mode != NodeMode::Always)
+    if (!get_mode_always())
         add += ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
     return add;
 }
 
 float NodeInstance::get_additional_node_width() const noexcept
 {
-    if (!m_expanded)
+    if (flags().has_not(NodeInstFlags::Expanded))
     {
         return (m_input.empty() ? 0 : w::pin_l_offset_rw + w::ico_circle + w::pin_r_offset + ImGui::GetStyle().ItemSpacing.x) +
             (m_output.empty() ? 0 : w::pin_l_offset_rw + w::ico_circle + w::pin_r_offset + ImGui::GetStyle().ItemSpacing.x);

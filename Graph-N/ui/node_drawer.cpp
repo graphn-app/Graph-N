@@ -278,7 +278,7 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
     LogRAssert(node, "Zero ptr", );
     LogRAssert(nullptr == m_active_node, "Active node must be zero ptr", );
 
-    if (node->m_group)
+    if (node->flags().has(NodeInstFlags::Group))
     {
         ed::PushStyleColor(ed::StyleColor_GroupBg, ImVec4(0, 0, 0, 0));
         ed::PushStyleColor(ed::StyleColor_GroupBorder, ImVec4(0, 0, 0, 0));
@@ -286,7 +286,7 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
     }
     else
     {
-        if (node->get_object()->is_dummy || execution_failed)
+        if (node->obj_flags().has(NodeObjFlags::Dummy) || execution_failed)
         {
             const auto clr = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::DummyNode));
             ed::PushStyleColor(ed::StyleColor_NodeBorder, clr);
@@ -298,36 +298,36 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
         ed::PushStyleColor(ed::StyleColor_NodeBg, node->m_clr_node);
     }
 
-    if (node->get_mode() == NodeMode::Mute || node->get_mode() == NodeMode::OnEvent || node->get_mode() == NodeMode::OnTrigger)
+    if (node->get_mode_mute())
     {
         ed::PushStyleColor(ed::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBorderMuted)));
         ed::PushStyleColor(ed::StyleColor_NodeBg, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBgMuted)));
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * m_mode_alpha);
     }
-    else if (node->get_mode() == NodeMode::Bypass)
+    else if (node->get_mode_bypass())
     {
         ed::PushStyleColor(ed::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBorderBypassed)));
         ed::PushStyleColor(ed::StyleColor_NodeBg, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBgBypassed)));
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * m_mode_alpha);
     }
 
-    if (!node->m_pos_set)
+    if (node->flags().has_not(NodeInstFlags::PosSet))
     {
         ed::SetNodePosition(node->ed(), node->m_rc.Min);
-        node->m_pos_set = true;
+        node->flags().add(NodeInstFlags::PosSet);
     }
-    if (!node->m_size_set && node->m_group)
+    if (node->flags().has_and_has_not(NodeInstFlags::Group, NodeInstFlags::SizeSet))
     {
         ed::SetGroupSize(node->ed(), node->m_rc.Max);
-        node->m_size_set = true;
+        node->flags().add(NodeInstFlags::SizeSet);
     }
 
     ed::BeginNode(node->ed());
 
-    if (!node->m_pinned_set)
+    if (node->flags().has_not(NodeInstFlags::PinnedSet))
     {
-        ed::SetNodeDraggable(node->ed(), !node->get_pinned());
-        node->m_pinned_set = true;
+        ed::SetNodeDraggable(node->ed(), node->flags().has_not(NodeInstFlags::Pinned));
+        node->flags().add(NodeInstFlags::PinnedSet);
     }
 
     const bool deferred_node_active = m_deffered_action->active_node == node;
@@ -346,18 +346,18 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed)
 
     node->m_rc.Min = ed::GetNodePosition(node->ed());
 
-    if (!node->m_ignore_size_on_frame_end)
+    if (node->flags().has_not(NodeInstFlags::IgnoreSizeOnFrameEnd))
         node->m_rc.Max = ed::GetNodeSize(node->ed());
-    node->m_ignore_size_on_frame_end = false;
+    node->flags().remove(NodeInstFlags::IgnoreSizeOnFrameEnd);
 
-    if (node->m_group)
+    if (node->flags().has(NodeInstFlags::Group))
         ed::PopStyleColor(3);
-    else if (node->get_object()->is_dummy || execution_failed)
+    else if (node->obj_flags().has(NodeObjFlags::Dummy) || execution_failed)
         ed::PopStyleColor(6);
     else
         ed::PopStyleColor();
 
-    if (node->get_mode() != NodeMode::Always)
+    if (!node->get_mode_always())
     {
         ed::PopStyleColor(2);
         ImGui::PopStyleVar();
@@ -385,10 +385,10 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         }
     }
 
-    if (!m_active_node->m_size_set && m_active_node->m_rc.Max.x > 0)
+    if (m_active_node->flags().has_not(NodeInstFlags::SizeSet) && m_active_node->m_rc.Max.x > 0)
     {
         node_w = m_active_node->m_rc.Max.x;
-        m_active_node->m_size_set = true;
+        m_active_node->flags().add(NodeInstFlags::SizeSet);
     }
     node_w = m_active_node->recalc_node_width(node_w, false, false);
 
@@ -414,7 +414,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     //ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing));
     draw_node_header();
-    if (!m_active_node->get_expanded())
+    if (m_active_node->flags().has_not(NodeInstFlags::Expanded))
     {
         m_active_node = nullptr;
         return;
@@ -428,7 +428,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     ImGui::PushStyleColor(ImGuiCol_Text, m_clr_node_pin_text);
 
     bool draw_pins = true;
-    if (m_active_node->is_cni_reroute_splitted()) [[unlikely]]
+    if (m_active_node->flags().has(NodeInstFlags::RerouteSplitted)) [[unlikely]]
     {
         const auto reroute_splitting_pin = cast::strict<data::CNI_Reroute>(m_active_node)->get_splitter_input();
         if (reroute_splitting_pin != nullptr)
@@ -445,7 +445,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         const auto& inputs = m_active_node->get_inputs();
         for (auto pin : inputs)
         {
-            if (!pin->is_hidden() && !pin->get_object()->is_widget(pin->state()))
+            if (pin->flags().has_not(PinInstFlags::Hidden) && !pin->get_object()->is_widget(pin->state()))
             {
                 ImGui::PushID(pin);
                 const bool failed = (failed_pins != nullptr && failed_pins->count(pin->get_object()->def_state.name));
@@ -471,7 +471,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     //const auto out_pins_pos = ImGui::GetCursorPosX();
 
     draw_pins = true;
-    if (m_active_node->is_cni_reroute_splitted()) [[unlikely]]
+    if (m_active_node->flags().has(NodeInstFlags::RerouteSplitted)) [[unlikely]]
     {
         const auto reroute_splitting_pin = cast::strict<data::CNI_Reroute>(m_active_node)->get_splitter_output();
         if (reroute_splitting_pin != nullptr)
@@ -489,7 +489,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         const auto& output = m_active_node->get_outputs();
         for (auto pin : output)
         {
-            if (pin->is_hidden())
+            if (pin->flags().has(PinInstFlags::Hidden))
                 continue;
 
             ImGui::PushID(pin);
@@ -503,7 +503,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     ImGui::PopStyleColor();
 
-    if (!m_active_node->m_has_widgets)
+    if (m_active_node->flags().has_not(NodeInstFlags::HasWidgets))
         ImGui::SetCursorPosY(std::max(last_in_off_y, ImGui::GetCursorPosY()));
     ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing * 2));
 
@@ -512,7 +512,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     // --- WIDGETS ---
 
-    if (m_active_node->m_has_widgets)
+    if (m_active_node->flags().has(NodeInstFlags::HasWidgets))
     {
         ImGui::SetCursorPosY(std::max(last_in_off_y, ImGui::GetCursorPosY()));
 
@@ -521,7 +521,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         for (auto pin : inputs)
         {
             auto obj = pin->get_object();
-            if (obj->advanced)
+            if (obj->flags.has(PinObjFlags::Advanced))
                 advanced++;
             else if (obj->is_widget(pin->state()))
             {
@@ -533,13 +533,15 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         if (advanced > 0)
         {
             bool temp_open = false;
-            draw_widget_separator(w::pin_l_offset_rw + w::ico_max + w::pin_r_offset, m_active_node->m_show_hidden, temp_open);
-            if (m_active_node->m_show_hidden || temp_open)
+            bool hidden = m_active_node->flags().has(NodeInstFlags::ShowHidden);
+            draw_widget_separator(w::pin_l_offset_rw + w::ico_max + w::pin_r_offset, hidden, temp_open);
+            m_active_node->flags().add_remove_if(NodeInstFlags::ShowHidden, hidden);
+            if (hidden || temp_open) [[unlikely]]
             {
                 for (auto pin : inputs)
                 {
                     auto obj = pin->get_object();
-                    if (obj->advanced)
+                    if (obj->flags.has(PinObjFlags::Advanced))
                     {
                         ImGui::PushID(pin);
                         draw_input_widget(pin, m_active_node->w_widget_name, m_active_node->w_widget_value);
@@ -549,7 +551,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
             }
         }
         else
-            m_active_node->m_show_hidden = false;
+            m_active_node->flags().remove(NodeInstFlags::ShowHidden);
 
         ImGui::Dummy(ImVec2(m_active_node->w_node, 10.0f));
     }
@@ -647,19 +649,19 @@ void NodeDrawer::draw_node_header()
         const auto& style = ed::GetStyle();
 
         //const ImU32 bg_color = (m_active_node->m_clr_custom ? m_active_node->m_clr_head : m_defclr_node_header_bg);
-        const float header_h = ImGui::GetTextLineHeight() * 1.5f - (m_active_node->get_expanded() ? 0 : style.NodeBorderWidth);
+        const float header_h = ImGui::GetTextLineHeight() * 1.5f - (m_active_node->flags().has(NodeInstFlags::Expanded) ? 0 : style.NodeBorderWidth);
 
         draw_list->AddRectFilled(
             ImVec2(m_curr_node_left_offset - style.NodePadding.x + style.NodeBorderWidth, m_curr_node_top_offset - style.NodePadding.y + style.NodeBorderWidth),
             ImVec2(m_curr_node_left_offset + style.NodePadding.x + m_active_node->w_node - style.NodeBorderWidth, m_curr_node_top_offset + header_h),
             m_active_node->m_clr_head,
             style.NodeRounding,
-            (m_active_node->get_expanded() ? ImDrawFlags_RoundCornersTop : ImDrawFlags_RoundCornersAll)
+            (m_active_node->flags().has(NodeInstFlags::Expanded) ? ImDrawFlags_RoundCornersTop : ImDrawFlags_RoundCornersAll)
         );
     }
 
     const float collapsed_pin_y = ImGui::GetCursorPosY();
-    if (!m_active_node->get_expanded() && !m_active_node->get_inputs().empty())
+    if (m_active_node->flags().has_not(NodeInstFlags::Expanded) && !m_active_node->get_inputs().empty())
     {
         draw_collapsed_pins(true);
         ImGui::SameLine();
@@ -668,7 +670,7 @@ void NodeDrawer::draw_node_header()
     if (m_active_node != m_renaming_node)
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_name_off);
-        ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->get_object()->is_dummy ? g::pOptsManager->color_load(AppColor::DummyNode) : m_clr_node_header_text);
+        ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->obj_flags().has(NodeObjFlags::Dummy) ? g::pOptsManager->color_load(AppColor::DummyNode) : m_clr_node_header_text);
 //#ifdef _DEBUG
 //        ImGui::TextUnformatted((m_active_node->get_name() + "[" + std::to_string(m_active_node->get_instance_id()) + "]").c_str());
 //#else
@@ -678,7 +680,7 @@ void NodeDrawer::draw_node_header()
 
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         {
-            if (m_active_node->get_object() != nullptr && m_active_node->get_object()->can_rename)
+            if (m_active_node->has_object() && m_active_node->obj_flags().has(NodeObjFlags::CanRename))
             {
                 m_renaming_node = m_active_node;
                 m_renaming_buff = m_active_node->get_name();
@@ -686,7 +688,7 @@ void NodeDrawer::draw_node_header()
             }
         }
 
-        if (m_active_node->get_pinned())
+        if (m_active_node->flags().has(NodeInstFlags::Pinned))
         {
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
@@ -694,7 +696,7 @@ void NodeDrawer::draw_node_header()
             ImGui::PopStyleColor();
             if (ImGui::IsItemHovered()) m_active_tt = "Node is pinned to the canvas.";
         }
-        if (m_active_node->get_mode() == NodeMode::Bypass)
+        if (m_active_node->get_mode_bypass())
         {
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
@@ -702,7 +704,7 @@ void NodeDrawer::draw_node_header()
             ImGui::PopStyleColor();
             if (ImGui::IsItemHovered()) m_active_tt = "Node is bypassed. Inputs pass through to outputs.";
         }
-        else if (m_active_node->get_mode() != NodeMode::Always)
+        else if (!m_active_node->get_mode_always())
         {
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
@@ -718,7 +720,7 @@ void NodeDrawer::draw_node_header()
             ImGui::SetKeyboardFocusHere();
             m_need_renaming_focus = false;
         }
-        if (m_active_node->get_expanded())
+        if (m_active_node->flags().has(NodeInstFlags::Expanded))
         {
             ImGui::SetCursorPosX(m_curr_node_left_offset + ImGui::GetStyle().ItemSpacing.x * 2);
             ImGui::SetNextItemWidth(m_active_node->w_node - ImGui::GetStyle().ItemSpacing.x * 4);
@@ -748,7 +750,7 @@ void NodeDrawer::draw_node_header()
         }
     }
 
-    if (!m_active_node->get_expanded())
+    if (m_active_node->flags().has_not(NodeInstFlags::Expanded))
     {
         ImGui::BeginDisabled();
         ImGui::SameLine();
@@ -775,7 +777,7 @@ void NodeDrawer::draw_collapsed_pins(bool input)
     ImGui::SetCursorPosX(pos_x);
 
     data::PinInstance* reroute_splitted_pin = nullptr;
-    if (m_active_node->is_cni_reroute_splitted()) [[unlikely]]
+    if (m_active_node->flags().has(NodeInstFlags::RerouteSplitted)) [[unlikely]]
     {
         if (input)
             reroute_splitted_pin = cast::strict<data::CNI_Reroute>(m_active_node)->get_splitter_input();
@@ -826,7 +828,7 @@ void NodeDrawer::draw_output_pin(data::PinInstance* pin)
 void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin)
 {
     ImGui::PushID(&pin->state().pin_color);
-    ed::BeginPin(pin->ed(), pin->get_object()->input ? ed::PinKind::Input : ed::PinKind::Output);
+    ed::BeginPin(pin->ed(), pin->obj_flags().has(PinObjFlags::Input) ? ed::PinKind::Input : ed::PinKind::Output);
     draw_pin_shape(pin, collapsed_mode, align_to_widget, failed_pin);
     ed::EndPin();
     ImGui::PopID();
@@ -835,7 +837,7 @@ void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool alig
 void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     float widget_pos = 0.0f;
-    if (pin->get_object()->can_link)
+    if (pin->obj_flags().has(PinObjFlags::CanLink))
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
         draw_pin(pin, false, true, false);
@@ -845,7 +847,7 @@ void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_wid
     else
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle);
     draw_widget(pin, widget_name_width, widget_value_width);
-    if (!pin->get_object()->cag_pin && m_active_node->test_node_flags(NodeFlags::NodeFlag_CustomWidget))
+    if (pin->obj_flags().has_not(PinObjFlags::CagPin) && m_active_node->flags().has(NodeInstFlags::CustomWidget))
         m_active_node->cni_draw_widget(pin, widget_pos, widget_name_width + widget_value_width);
 }
 
@@ -866,7 +868,7 @@ void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, fl
         draw_widget_bool(pin, widget_name_width, widget_value_width);
         break;
     case PinType::STRING:
-        if (pin->get_object()->multiline)
+        if (pin->obj_flags().has(PinObjFlags::Multiline))
             draw_widget_str_ml(pin, widget_name_width, widget_value_width);
         else
             draw_widget_str(pin, widget_name_width, widget_value_width);
@@ -887,7 +889,7 @@ void NodeDrawer::handle_widget_active_state(data::PinInstance* pin, const Primit
 
     if (pin != nullptr)
     {
-        if (PinType::STRING == pin->state().type && !pin->get_object()->multiline)
+        if (PinType::STRING == pin->state().type && pin->obj_flags().has_not(PinObjFlags::Multiline))
         {
             if (ImGui::IsItemActivated())
                 m_old_pin_val_pr = pin->state().value;
@@ -1197,7 +1199,7 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     if (linked) ImGui::BeginDisabled();
     if (ImGui::ColorEdit4("##value", colors,
         ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop |
-        ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoTooltip | (obj->alpha_enabled ? 0 : ImGuiColorEditFlags_NoAlpha)))
+        ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoTooltip | (obj->flags.has(PinObjFlags::ClrAlphaEnabled) ? 0 : ImGuiColorEditFlags_NoAlpha)))
     {
         m_wf->action()->set_pin_val(pin, colors);
     }
@@ -1260,16 +1262,16 @@ void NodeDrawer::query_new_item(
         {
             data::PinInstance* p1 = m_wf->ed_get_pin(start);
             data::PinInstance* p2 = m_wf->ed_get_pin(end);
-            bool allow = (p1 != p2 && p1 != nullptr && p2 != nullptr && !p1->get_is_reroute_splitting_pin() && !p2->get_is_reroute_splitting_pin());
+            bool allow = (p1 != p2 && p1 != nullptr && p2 != nullptr && p1->flags().has_not(PinInstFlags::RerouteSplittingPin) && p2->flags().has_not(PinInstFlags::RerouteSplittingPin));
 
             if (allow)
             {
                 auto linked_node = m_wf->get_node_by_instance(p1->get_parent_node());
-                allow = linked_node->get_expanded() && !linked_node->get_object()->is_dummy;
+                allow = linked_node->flags().has(NodeInstFlags::Expanded) && linked_node->obj_flags().has_not(NodeObjFlags::Dummy);
                 if (allow)
                 {
                     linked_node = m_wf->get_node_by_instance(p2->get_parent_node());
-                    allow = linked_node->get_expanded() && !linked_node->get_object()->is_dummy;
+                    allow = linked_node->flags().has(NodeInstFlags::Expanded) && linked_node->obj_flags().has_not(NodeObjFlags::Dummy);
                 }
             }
             if (allow && data::Link::can_link(p1, p2))
@@ -1277,9 +1279,9 @@ void NodeDrawer::query_new_item(
                 if (ed::AcceptNewItem())
                 {
                     m_wf->action()->multi_action_on("Link");
-                    if (p1->state().links > 0 && p1->get_object()->input)
+                    if (p1->state().links > 0 && p1->obj_flags().has(PinObjFlags::Input))
                         unlink_handler(p1);
-                    else if (p2->state().links > 0 && p2->get_object()->input)
+                    else if (p2->state().links > 0 && p2->obj_flags().has(PinObjFlags::Input))
                         unlink_handler(p2);
 
                     m_querying_pin = nullptr;
@@ -1288,12 +1290,12 @@ void NodeDrawer::query_new_item(
 
                     auto node = m_wf->get_node_by_instance(p1->get_parent_node());
                     node->reset_width();
-                    if (p1->get_object()->input)
+                    if (p1->obj_flags().has(PinObjFlags::Input))
                         g::pFlow->txt_panel_delete(m_wf->get_id(), node, p1);
 
                     node = m_wf->get_node_by_instance(p2->get_parent_node());
                     node->reset_width();
-                    if (p2->get_object()->input)
+                    if (p2->obj_flags().has(PinObjFlags::Input))
                         g::pFlow->txt_panel_delete(m_wf->get_id(), node, p2);
                 }
             }
@@ -1307,7 +1309,7 @@ void NodeDrawer::query_new_item(
             m_querying_pin = m_wf->ed_get_pin(pin);
             if (ed::AcceptNewItem())
             {
-                if (m_querying_pin != nullptr && !m_querying_pin->get_object()->parent_node->is_dummy && !m_querying_pin->get_is_reroute_splitting_pin())
+                if (m_querying_pin != nullptr && m_querying_pin->get_object()->parent_node->flags.has_not(NodeObjFlags::Dummy) && m_querying_pin->flags().has_not(PinInstFlags::RerouteSplittingPin))
                     new_node_handler(m_querying_pin, ed::ScreenToCanvas(ImGui::GetMousePos()));
                 m_querying_pin = nullptr;
             }
@@ -1350,7 +1352,7 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
     const bool compatible = (m_querying_pin == pin || (querying && data::Link::can_link(pin, m_querying_pin)));
 #endif
     const bool connected = (m_querying_pin == pin || pin->state().links > 0);
-    const auto type = (collapsed_mode && !pin->get_is_reroute_splitting_pin() ? PinShape::Circle : data::Pin::get_shape(pin->state().type));
+    const auto type = (collapsed_mode && pin->flags().has_not(PinInstFlags::RerouteSplittingPin) ? PinShape::Circle : data::Pin::get_shape(pin->state().type));
     const float thickness = failed_pin ? 2.5f : 2.0f;
     constexpr const int32_t segments = 12;
     const auto draw_list = ImGui::GetWindowDrawList();
@@ -1425,8 +1427,8 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
         break;
     case PinShape::SemiCircle:
         {
-            bool in = pin->get_object()->input;
-            if (pin->get_is_reroute_splitting_pin())
+            bool in = pin->obj_flags().has(PinObjFlags::Input);
+            if (pin->flags().has(PinInstFlags::RerouteSplittingPin))
                 in = !in;
             if (in)
                 draw_list->PathArcTo(pin_center, radius, IM_PI * 1.5f, IM_PI * 2.5f, segments / 2);
@@ -1569,10 +1571,13 @@ std::set<data::NodeInstance*> NodeDrawer::get_selected_nodes(bool reroutes_as_si
     {
         auto node = m_wf->ed_get_node(id);
         LogCAssert(node, "Zero selected node");
-        if (reroutes_as_single_node && node->is_cni_reroute_splitted_r())
-            ret.insert(cast::strict<data::CNI_Reroute>(node)->get_splitted_base());
-        else
-            ret.insert(node);
+        if (reroutes_as_single_node && node->flags().has(NodeInstFlags::RerouteSplitted_R))
+        {
+            node = cast::strict<data::CNI_Reroute>(node)->get_splitted_base();
+            LogCAssert(node, "Zero splitted node");
+        }
+
+        ret.insert(node);
     }
     return ret;
 }
@@ -1769,7 +1774,7 @@ bool NodeDrawer::handle_pin_renaming(const data::PinInstance* curr_pin)
             ImGui::SetKeyboardFocusHere();
             m_need_renaming_focus = false;
         }
-        ImGui::SetNextItemWidth(m_renaming_pin->get_object()->input ? m_active_node->get_object()->w_pin_in_max : m_active_node->get_object()->w_pin_out_max);
+        ImGui::SetNextItemWidth(m_renaming_pin->obj_flags().has(PinObjFlags::Input) ? m_active_node->get_object()->w_pin_in_max : m_active_node->get_object()->w_pin_out_max);
         if (ImGuiEx::InputText("##pinrename", &m_renaming_buff, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue) ||
             ImGui::IsItemDeactivatedAfterEdit())
         {

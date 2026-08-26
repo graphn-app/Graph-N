@@ -343,11 +343,11 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
     switch (act)
     {
     case HistoryActionType::NodeAdd:
-        history = open_action(node->get_workflow_id(), node->m_group ? "Add group" : "Add node");
+        history = open_action(node->get_workflow_id(), node->flags().has(NodeInstFlags::Group) ? "Add group" : "Add node");
         step = std::make_unique<ActNodeAdd>();
         break;
     case HistoryActionType::NodeDel:
-        history = open_action(node->get_workflow_id(), node->m_group ? "Remove group" : "Remove node");
+        history = open_action(node->get_workflow_id(), node->flags().has(NodeInstFlags::Group) ? "Remove group" : "Remove node");
         step = std::make_unique<ActNodeDel>();
         break;
     default:
@@ -377,22 +377,22 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
     case HistoryActionType::NodeClr:
         history = open_action(node->get_workflow_id(), "Set color");
         step = std::make_unique<ActNodeClr>();
-        step->new_val = (node->m_group ? node->m_clr_group : ImGui::ColorConvertFloat4ToU32(node->m_clr_node));
+        step->new_val = (node->flags().has(NodeInstFlags::Group) ? node->m_clr_group : ImGui::ColorConvertFloat4ToU32(node->m_clr_node));
         break;
     case HistoryActionType::NodeExpand:
-        history = open_action(node->get_workflow_id(), node->get_expanded() ? "Expand" : "Collapse");
+        history = open_action(node->get_workflow_id(), node->flags().has(NodeInstFlags::Expanded) ? "Expand" : "Collapse");
         step = std::make_unique<ActNodeExpand>();
-        step->new_val = node->get_expanded();
+        step->new_val = node->flags().get_by_mask(NodeInstFlags::Expanded);
         break;
     case HistoryActionType::NodeMode:
         history = open_action(node->get_workflow_id(), "Set mode");
         step = std::make_unique<ActNodeMode>();
-        step->new_val = node->get_mode();
+        step->new_val = node->flags().get_by_mask(g_node_inst_all_modes_mask);
         break;
     case HistoryActionType::NodePin:
         history = open_action(node->get_workflow_id(), "Pin node");
         step = std::make_unique<ActNodePin>();
-        step->new_val = node->get_pinned();
+        step->new_val = node->flags().get_by_mask(NodeInstFlags::Pinned);
         break;
     case HistoryActionType::NodeRect: [[likely]]
         history = open_action(node->get_workflow_id(), "Move");
@@ -407,7 +407,7 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
     case HistoryActionType::NodeRerouteSplit:
         history = open_action(node->get_workflow_id(), "Split into Linked Pair");
         step = std::make_unique<ActNodeRerouteSplit>();
-        step->new_val = HRerouteSplitted{ cast::strict<const data::CNI_Reroute>(node)->get_splitted_nodes_poses(), node->is_cni_reroute_splitted() };
+        step->new_val = HRerouteSplitted{ cast::strict<const data::CNI_Reroute>(node)->get_splitted_nodes_poses(), node->flags().has(NodeInstFlags::RerouteSplitted) };
         break;
     default:
         LogRError("Invalid action pushed", );
@@ -626,7 +626,9 @@ void HistoryManager::pop_node_expand(const data::Workflow* dest_wf, const Histor
     auto node = dest_wf->get_node_by_instance(step->id);
     LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
-    dest_wf->action()->set_node_expanded(node, *std::get_if<bool>(do_undo ? &real_step->old_val : &real_step->new_val));
+    ObjectFlags<NodeInstFlags> obj_flag;
+    obj_flag.set_raw(*std::get_if<uint64_t>(do_undo ? &real_step->old_val : &real_step->new_val));
+    dest_wf->action()->set_node_expanded(node, obj_flag.has(NodeInstFlags::Expanded));
 }
 
 void HistoryManager::pop_node_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
@@ -644,7 +646,15 @@ void HistoryManager::pop_node_mode(const data::Workflow* dest_wf, const HistoryS
     auto node = dest_wf->get_node_by_instance(step->id);
     LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
-    dest_wf->action()->set_node_mode(node, *std::get_if<NodeMode>(do_undo ? &real_step->old_val : &real_step->new_val));
+    ObjectFlags<NodeInstFlags> obj_flag;
+    obj_flag.set_raw(*std::get_if<uint64_t>(do_undo ? &real_step->old_val : &real_step->new_val));
+    NodeInstFlags flag = NodeInstFlags::ModeAlways;
+    if (obj_flag.has(NodeInstFlags::ModeBypass))            flag = NodeInstFlags::ModeBypass;
+    else if (obj_flag.has(NodeInstFlags::ModeMute))         flag = NodeInstFlags::ModeMute;
+    else if (obj_flag.has(NodeInstFlags::ModeOnEvent))      flag = NodeInstFlags::ModeOnEvent;
+    else if (obj_flag.has(NodeInstFlags::ModeOnTrigger))    flag = NodeInstFlags::ModeOnTrigger;
+
+    dest_wf->action()->set_node_mode(node, flag);
 }
 
 void HistoryManager::pop_node_pin(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
@@ -653,7 +663,9 @@ void HistoryManager::pop_node_pin(const data::Workflow* dest_wf, const HistorySt
     auto node = dest_wf->get_node_by_instance(step->id);
     LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
-    dest_wf->action()->set_node_pinning(node, *std::get_if<bool>(do_undo ? &real_step->old_val : &real_step->new_val));
+    ObjectFlags<NodeInstFlags> obj_flag;
+    obj_flag.set_raw(*std::get_if<uint64_t>(do_undo ? &real_step->old_val : &real_step->new_val));
+    dest_wf->action()->set_node_pinning(node, obj_flag.has(NodeInstFlags::Pinned));
 }
 
 void HistoryManager::pop_node_rect(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
@@ -670,7 +682,7 @@ void HistoryManager::pop_node_reroute_split(const data::Workflow* dest_wf, const
     const ActNodeRerouteSplit* real_step = cast::dynamic<const ActNodeRerouteSplit>(step);
     auto node = dest_wf->get_node_by_instance(step->id);    
     LogRAssert(node, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
-    LogRAssert(node->is_cni_reroute(), "Node is not CNI Reroute. w:" << dest_wf->get_id() << ", n:" << step->id, );
+    LogRAssert(node->flags().has(NodeInstFlags::Reroute), "Node is not CNI Reroute. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     const HRerouteSplitted* data = std::get_if<HRerouteSplitted>(do_undo ? &real_step->old_val : &real_step->new_val);
     if (data->splitted)

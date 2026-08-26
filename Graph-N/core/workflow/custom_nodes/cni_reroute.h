@@ -31,7 +31,7 @@ class CNI_Reroute final
     : public CNI_BaseObj_T<CNI_Reroute>
 {
 public:
-    CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2, uint32_t cni_flags) noexcept;
+    CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2) noexcept;
     ~CNI_Reroute() noexcept;
 
     static std::unique_ptr<Node> cni_create_object();
@@ -51,11 +51,7 @@ public:
 
     void cni_mirror_value_to(const PinInstance* src, std::vector<PinInstance*>& append_pins) const override;
 
-    void cni_deserialilzation_begins() noexcept override;
-    void cni_deserialilzation_ends() override;
-
-    bool cni_json_api_should_export() const noexcept override { return false; }
-    bool cni_json_need_custom_serialization() const noexcept override { return true; }
+    void on_deserialilzation_ends() override;
 
 public:
     void split_to_parts();
@@ -63,28 +59,28 @@ public:
 
     NodeInstance* get_splitted_base() noexcept
     {
-        if (is_cni_reroute_splitted_r()) return m_splitted_part;
+        if (flags().has(NodeInstFlags::RerouteSplitted_R)) return m_splitted_part;
         return this;
     }
     const NodeInstance* get_splitted_base() const noexcept
     {
-        if (is_cni_reroute_splitted_r()) return m_splitted_part;
+        if (flags().has(NodeInstFlags::RerouteSplitted_R)) return m_splitted_part;
         return this;
     }
     NodeInstance* get_splitted_part() noexcept
     {
-        if (is_cni_reroute_splitted_r()) return this;
+        if (flags().has(NodeInstFlags::RerouteSplitted_R)) return this;
         return m_splitted_part;
     }
 
     PinInstance* get_splitter_input() const noexcept
     {
-        if (is_cni_reroute_splitted_r()) return m_splitted_pin;
+        if (flags().has(NodeInstFlags::RerouteSplitted_R)) return m_splitted_pin;
         return nullptr;
     }
     PinInstance* get_splitter_output() const noexcept
     {
-        if (is_cni_reroute_splitted_r()) return nullptr;
+        if (flags().has(NodeInstFlags::RerouteSplitted_R)) return nullptr;
         return m_splitted_pin;
     }
 
@@ -92,7 +88,7 @@ public:
 
     std::pair<ImRect, ImRect> get_splitted_nodes_poses() const noexcept
     {
-        if (is_cni_reroute_splitted_r()) return std::make_pair(m_splitted_part->m_rc, m_rc);
+        if (flags().has(NodeInstFlags::RerouteSplitted_R)) return std::make_pair(m_splitted_part->m_rc, m_rc);
         return std::make_pair(m_rc, m_splitted_part->m_rc);
     }
     void set_splitted_nodes_poses(const std::pair<ImRect, ImRect>& poses) noexcept;

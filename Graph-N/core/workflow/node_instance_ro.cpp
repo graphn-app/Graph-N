@@ -11,7 +11,7 @@ NodeInstanceRo::~NodeInstanceRo() noexcept = default;
 
 void NodeInstanceRo::init()
 {
-    Instance<data::Node>::init();
+    NodeInstanceBase::init();
 
     auto wf = g::pWfsManager->access(m_wid);
 

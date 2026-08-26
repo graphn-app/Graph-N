@@ -28,12 +28,12 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     const auto p2 = i2->get_object();
     LogRAssertS(p1 && p2, "Zero ptr", false);
 
-    if (i1->get_is_reroute_splitting_pin() && i2->get_is_reroute_splitting_pin())
+    if (i1->flags().has(PinInstFlags::RerouteSplittingPin) && i2->flags().has(PinInstFlags::RerouteSplittingPin))
         return true;
-    if (i1->get_is_reroute_splitting_pin() || i2->get_is_reroute_splitting_pin())
+    if (i1->flags().has(PinInstFlags::RerouteSplittingPin) || i2->flags().has(PinInstFlags::RerouteSplittingPin))
         return false;
 
-    if (!p1->can_link || !p2->can_link)
+    if (p1->flags.has_not(PinObjFlags::CanLink) || p2->flags.has_not(PinObjFlags::CanLink))
         return false;
     if (i1 == i2 || i1->get_parent_node() == i2->get_parent_node())     // same pin, same node
         return false;
@@ -41,8 +41,11 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     const auto& s1 = i1->state();
     const auto& s2 = i2->state();
 
-    if (p1->input == p2->input || p1->output == p2->output)     // input to input, output to output
+    if (p1->flags.has(PinObjFlags::Input) == p2->flags.has(PinObjFlags::Input) ||
+        p1->flags.has(PinObjFlags::Output) == p2->flags.has(PinObjFlags::Output))     // input to input, output to output
+    {
         return false;
+    }
 
     if (PinType::ANY == i1->state().type && PinType::ANY == i2->state().type)
         return false;
@@ -58,8 +61,8 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     const auto* n2 = wf->get_node_by_instance(i2->get_parent_node());
     LogRAssertS(n1 && n2, "Node not found", false);
 
-    if (n1->is_cni_node() && !n1->cni_can_link(i1, i2)) return false;
-    if (n2->is_cni_node() && !n2->cni_can_link(i2, i1)) return false;
+    if (n1->flags().has(NodeInstFlags::CNI) && !n1->cni_can_link(i1, i2)) return false;
+    if (n2->flags().has(NodeInstFlags::CNI) && !n2->cni_can_link(i2, i1)) return false;
 
     if (PinType::ANY == i1->state().type || PinType::ANY == i2->state().type)
         return true;
@@ -74,13 +77,13 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
         "Check can link before entablish connection. w1:" << i1->get_workflow_id() << ", p1:" << i1->get_instance_id() << ", w2:" << i2->get_workflow_id() << ", p2:" << i2->get_instance_id(),
         nullptr);
 
-    if (i1->state().links > 0 && i1->get_object()->input || i2->state().links > 0 && i2->get_object()->input)
+    if (i1->state().links > 0 && i1->obj_flags().has(PinObjFlags::Input) || i2->state().links > 0 && i2->obj_flags().has(PinObjFlags::Input))
     {
         LogRErrorS("Input pin can't has more than 1 links. w1:" << i1->get_workflow_id() << ", p1:" << i1->get_instance_id() << ", w2:" << i2->get_workflow_id() << ", p2:" << i2->get_instance_id(),
             nullptr);
     }
 
-    LogRAssertS(i1->get_is_reroute_splitting_pin() && i2->get_is_reroute_splitting_pin() || !i1->get_is_reroute_splitting_pin() && !i2->get_is_reroute_splitting_pin(),
+    LogRAssertS(i1->flags().has(PinInstFlags::RerouteSplittingPin) == i2->flags().has(PinInstFlags::RerouteSplittingPin),
         "Both pins must be in the same reroute splitting pins mode. w1:" << i1->get_workflow_id() << ", p1:" << i1->get_instance_id() << ", p2:" << i2->get_instance_id(),
         nullptr);
 
@@ -96,7 +99,7 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
     NodeInstance* n1 = nullptr;
     NodeInstance* n2 = nullptr;
 
-    if (!i1->get_is_reroute_splitting_pin())
+    if (i1->flags().has_not(PinInstFlags::RerouteSplittingPin))
     {
         n1 = wf->get_node_by_instance(i1->get_parent_node());
         n2 = wf->get_node_by_instance(i2->get_parent_node());
@@ -122,11 +125,11 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
     s1.links++;
     s2.links++;
 
-    link->m_input = (p1->input ? i1 : i2);
-    link->m_output = (p1->output ? i1 : i2);
+    link->m_input = (p1->flags.has(PinObjFlags::Input) ? i1 : i2);
+    link->m_output = (p1->flags.has(PinObjFlags::Output) ? i1 : i2);
 
-    if (n1 != nullptr && n1->is_cni_node())  n1->cni_pin_linked(i1, i2);
-    if (n2 != nullptr && n2->is_cni_node())  n2->cni_pin_linked(i2, i1);
+    if (n1 != nullptr && n1->flags().has(NodeInstFlags::CNI))  n1->cni_pin_linked(i1, i2);
+    if (n2 != nullptr && n2->flags().has(NodeInstFlags::CNI))  n2->cni_pin_linked(i2, i1);
 
     LogS("Linked. w:" << link->get_workflow_id() << ", l:" << link->get_instance_id() << ", p1:" << link->m_input->get_instance_id() << ", p2:" << link->m_output->get_instance_id());
     return link;
@@ -145,7 +148,7 @@ void Link::unlink()
     s1.links--;
     s2.links--;
 
-    if (!p1->get_is_reroute_splitting_pin())
+    if (p1->flags().has_not(PinInstFlags::RerouteSplittingPin))
     {
         auto o1 = p1->get_object();
         auto o2 = p2->get_object();
@@ -156,12 +159,12 @@ void Link::unlink()
         LogRAssertS(n1 && n2, "Node not found", );
 
         data::NodeInstance* recalc = nullptr;
-        if (o1->type_any && 0 == s1.links)
+        if (o1->flags.has(PinObjFlags::TypeAny) && 0 == s1.links)
         {
             o1->def_state.copy_to(s1);
             recalc = n1;
         }
-        if (o2->type_any && 0 == s2.links)
+        if (o2->flags.has(PinObjFlags::TypeAny) && 0 == s2.links)
         {
             o2->def_state.copy_to(s2);
             recalc = n2;
@@ -169,8 +172,8 @@ void Link::unlink()
         if (recalc != nullptr)
             recalc->reset_width();
 
-        if (n1->is_cni_node()) n1->cni_pin_unlinked(p1, p2);
-        if (n2->is_cni_node()) n2->cni_pin_unlinked(p2, p1);
+        if (n1->flags().has(NodeInstFlags::CNI)) n1->cni_pin_unlinked(p1, p2);
+        if (n2->flags().has(NodeInstFlags::CNI)) n2->cni_pin_unlinked(p2, p1);
     }
 
     Log("Unlinked. w:" << get_workflow_id() << ", l:" << get_instance_id() << ", p1:" << p1->get_instance_id() << ", p2" << p2->get_instance_id());
@@ -178,7 +181,7 @@ void Link::unlink()
 
 bool Link::is_reroute_splitting_link() const noexcept
 {
-    return m_input->get_is_reroute_splitting_pin() || m_output->get_is_reroute_splitting_pin();
+    return m_input->flags().has(PinInstFlags::RerouteSplittingPin) || m_output->flags().has(PinInstFlags::RerouteSplittingPin);
 }
 
 uint64_t Link::reset_state() noexcept

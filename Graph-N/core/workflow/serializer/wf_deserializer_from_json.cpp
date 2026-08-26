@@ -264,19 +264,19 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
         {
         case 0:
         default:
-            node_instance->set_mode(NodeMode::Always);
+            node_instance->set_mode(NodeInstFlags::ModeAlways);
             break;
         case 1:
-            node_instance->set_mode(NodeMode::OnEvent);
+            node_instance->set_mode(NodeInstFlags::ModeOnEvent);
             break;
         case 2:
-            node_instance->set_mode(NodeMode::Mute);
+            node_instance->set_mode(NodeInstFlags::ModeMute);
             break;
         case 3:
-            node_instance->set_mode(NodeMode::OnTrigger);
+            node_instance->set_mode(NodeInstFlags::ModeOnTrigger);
             break;
         case 4:
-            node_instance->set_mode(NodeMode::Bypass);
+            node_instance->set_mode(NodeInstFlags::ModeBypass);
             break;
         }
     }
@@ -290,20 +290,20 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
     }
 
     // pinned, collapsed
-    node_instance->expand(true);
-    node_instance->pin(false);
+    node_instance->flags().add(NodeInstFlags::Expanded);
+    node_instance->flags().remove(NodeInstFlags::Pinned);
     if (j.contains("flags") && j["flags"].is_object())
     {
         for (const auto& [jname, jvalue] : j["flags"].items())
         {
             if (jname == "collapsed" && jvalue.is_boolean() && jvalue.get<bool>() == true)
-                node_instance->expand(false);
+                node_instance->flags().remove(NodeInstFlags::Expanded);
             else if (jname == "pinned" && jvalue.is_boolean() && jvalue.get<bool>() == true)
-                node_instance->pin(true);
+                node_instance->flags().add(NodeInstFlags::Pinned);
         }
     }
 
-    if (!dummy && node_instance->is_cni_node())
+    if (!dummy && node_instance->flags().has(NodeInstFlags::JsonCustomSerialization))
     {
         if (nullptr == deserialize_cni_node(node_instance, j))
         {
@@ -576,7 +576,7 @@ bool WfDeserializerFromJson::deserialize_subgraph(const o_json& j)
         node->m_rc.Min.y = sg_rc.Min.y + node->m_rc.Min.y;
 
         m_node_ids[jid] = node->get_instance_id();
-        if (node->get_object()->is_dummy)
+        if (node->obj_flags().has(NodeObjFlags::Dummy))
             m_wf->get_data().valid = false;
     }
 
@@ -619,7 +619,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_group(const o_json& j)
         for (const auto& [jname, jvalue] : j["flags"].items())
         {
             if (jname == "pinned" && jvalue.is_boolean() && jvalue.get<bool>() == true)
-                node->pin(true);
+                node->flags().add(NodeInstFlags::Pinned);
         }
     }
 

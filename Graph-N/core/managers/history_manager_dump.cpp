@@ -52,15 +52,11 @@ std::string action_val_to_str(const HActionT& val)
         {
             using T = std::decay_t<decltype(v)>;
             if constexpr (std::is_same_v<T, std::string>)
-                return fmt::format(FMT_COMPILE("\"{}\""), v);
+                return fmt::format(FMT_STRING("\"{}\""), v);
             else if constexpr (std::is_same_v<T, ImU32>)
-                return fmt::format(FMT_COMPILE("#{:08X}"), v);
-            else if constexpr (std::is_same_v<T, bool>)
-                return v ? "true" : "false";
-            else if constexpr (std::is_same_v<T, int32_t>)
-                return fmt::format(FMT_STRING("{}"), v);
-            else if constexpr (std::is_same_v<T, NodeMode>)
-                return fmt::format(FMT_COMPILE("Mode({})"), cast::to_i32(v));
+                return fmt::format(FMT_STRING("#{:08X}"), v);
+            else if constexpr (std::is_same_v<T, uint64_t>)
+                return fmt::format(FMT_STRING("Flag({})"), cast::to_u64(v));
             else if constexpr (std::is_same_v<T, Primitive>)
                 return prim_to_str(v);
             else if constexpr (std::is_same_v<T, ImRect>)

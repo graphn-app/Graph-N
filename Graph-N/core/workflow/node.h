@@ -16,29 +16,17 @@ struct Node : public base::HashID
     void finalize(std::unordered_map<std::string, std::list<hid>>* models_map);
     Pin* find_pin(hid pin_hash, bool input) noexcept;
 
-    bool has_input = false;
-    bool has_output = false;
+    ObjectFlags<NodeObjFlags> flags;
 
     std::vector<Pin*> input;
     std::vector<Pin*> output;
-
-    bool is_dummy = false;
-    bool output_node = false;
-
-    bool can_bypass = true;
-    bool can_mute = true;
-    bool can_rename = true;
 
     std::string name;
     std::string node_class;
     std::string display_name;	// use name if empty
     std::string description;
     std::string category;		// full path
-
     std::string python_module;
-    bool experimental = false;
-    bool deprecated = false;
-    bool api_node = false;
 
     float w_name = 0.0f;
     float w_pin_in_max = 0.0f;

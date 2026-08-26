@@ -16,15 +16,15 @@ std::unique_ptr<Node> CNI_Primitive::cni_create_object()
     node->name = node->display_name = "Primitive";
     node->category = "utils";
     node->description = "Primitive values like numbers, strings, and booleans.";
-    node->can_bypass = false;
-
+    node->flags.remove(NodeObjFlags::CanBypass);
     node->finalize(nullptr);
     return node;
 }
 
 CNI_Primitive::CNI_Primitive(Node* obj, wid workflow_id, iid instance_id) noexcept
-    : CNI_BaseObj_T<CNI_Primitive>(obj, workflow_id, instance_id, NodeFlags::NodeFlag_CNI)
+    : CNI_BaseObj_T<CNI_Primitive>(obj, workflow_id, instance_id)
 {
+    flags().add(NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
 }
 
 void CNI_Primitive::cni_init()
@@ -77,7 +77,7 @@ void CNI_Primitive::cni_init()
 
     auto obj = g::pNodesManager->make_pin_ptr(get_object(), "*", "connect to widget input", 0);
     auto instance = wf->add_pin(this, obj.get(), out_id);
-    obj->can_rename = false;
+    obj->flags.remove(PinObjFlags::CanRename);
     add_output(instance);
     cni_add_pin(std::move(obj));    
 
@@ -90,14 +90,8 @@ void CNI_Primitive::cni_init()
     //cni_add_pin(std::move(obj));
 }
 
-void CNI_Primitive::cni_deserialilzation_begins() noexcept
+void CNI_Primitive::on_deserialilzation_ends()
 {
-    m_deserialization_mode = true;
-}
-
-void CNI_Primitive::cni_deserialilzation_ends()
-{
-    m_deserialization_mode = false;
     update();
 }
 
@@ -229,7 +223,7 @@ void CNI_Primitive::update()
         LogRAssert(!outs.empty(), "Empty out pins", );
 
         auto pin = outs[0];
-        pin->get_object()->can_rename = false;
+        pin->obj_flags().remove(PinObjFlags::CanRename);
         pin->state().name = pin->get_object()->def_state.name;
 
         auto& ins = get_inputs();
@@ -247,7 +241,7 @@ void CNI_Primitive::update()
         return;
     }
 
-    m_has_in_pins = true;
+    flags().add(NodeInstFlags::HasInPins);
 
     auto src_pin_inst = *m_links.begin();
     const auto src_pin_obj = src_pin_inst->get_object();
@@ -271,8 +265,8 @@ void CNI_Primitive::update()
         {
             auto this_pin_obj = g::pNodesManager->make_pin_ptr(this_node_obj, "INT", pin_name, -1);
             src_pin_obj->copy_int(this_pin_obj.get());
-            this_pin_obj->cag_require = true;
-            this_pin_obj->can_link = false;
+            this_pin_obj->flags.add(PinObjFlags::CagRequire);
+            this_pin_obj->flags.remove(PinObjFlags::CanLink);
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
@@ -290,8 +284,8 @@ void CNI_Primitive::update()
         {
             auto this_pin_obj = g::pNodesManager->make_pin_ptr(this_node_obj, "FLOAT", pin_name, -1);
             src_pin_obj->copy_float(this_pin_obj.get());
-            this_pin_obj->cag_require = true;
-            this_pin_obj->can_link = false;
+            this_pin_obj->flags.add(PinObjFlags::CagRequire);
+            this_pin_obj->flags.remove(PinObjFlags::CanLink);
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
@@ -307,8 +301,8 @@ void CNI_Primitive::update()
         {
             auto this_pin_obj = g::pNodesManager->make_pin_ptr(this_node_obj, "NUMBER", pin_name, -1);
             src_pin_obj->copy_number(this_pin_obj.get());
-            this_pin_obj->cag_require = true;
-            this_pin_obj->can_link = false;
+            this_pin_obj->flags.add(PinObjFlags::CagRequire);
+            this_pin_obj->flags.remove(PinObjFlags::CanLink);
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
@@ -324,8 +318,8 @@ void CNI_Primitive::update()
         {
             auto this_pin_obj = g::pNodesManager->make_pin_ptr(this_node_obj, "COMBO", pin_name, -1);
             src_pin_obj->copy_combo(this_pin_obj.get());
-            this_pin_obj->cag_require = true;
-            this_pin_obj->can_link = false;
+            this_pin_obj->flags.add(PinObjFlags::CagRequire);
+            this_pin_obj->flags.remove(PinObjFlags::CanLink);
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
@@ -341,9 +335,8 @@ void CNI_Primitive::update()
         {
             auto this_pin_obj = g::pNodesManager->make_pin_ptr(this_node_obj, "STRING", pin_name, -1);
             src_pin_obj->copy_string(this_pin_obj.get());
-            this_pin_obj->cag_require = false;
-            this_pin_obj->can_link = false;
-            this_pin_obj->multiline = true;
+            this_pin_obj->flags.remove(PinObjFlags::CagRequire, PinObjFlags::CanLink);
+            this_pin_obj->flags.add(PinObjFlags::Multiline);
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
@@ -359,8 +352,7 @@ void CNI_Primitive::update()
         {
             auto this_pin_obj = g::pNodesManager->make_pin_ptr(this_node_obj, "BOOLEAN", pin_name, -1);
             src_pin_obj->copy_bool(this_pin_obj.get());
-            this_pin_obj->cag_require = false;
-            this_pin_obj->can_link = false;
+            this_pin_obj->flags.remove(PinObjFlags::CagRequire, PinObjFlags::CanLink);
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
@@ -375,10 +367,9 @@ void CNI_Primitive::update()
         if (PinType::INT == src_type || PinType::FLOAT == src_type|| PinType::NUMBER == src_type || PinType::COMBO == src_type)
         {
             auto this_pin_obj = g::pNodesManager->make_pin_ptr(this_node_obj, "COMBO", base::GlobalID::uuid(), -1);
-            this_pin_obj->cag_pin = true;
+            this_pin_obj->flags.add(PinObjFlags::CagPin);
             this_pin_obj->finalize_combo();
-            this_pin_obj->cag_require = false;
-            this_pin_obj->can_link = false;
+            this_pin_obj->flags.remove(PinObjFlags::CagRequire, PinObjFlags::CanLink);
             this_pin_obj->def = cast::to_i64(ControlAfterGenerate::CAGFixed);
             this_pin_obj->def_state.name = "control";
             this_pin_obj->def_state.value = this_pin_obj->def;
@@ -422,7 +413,7 @@ void CNI_Primitive::update()
         out->get_object()->max = in->get_object()->max;
         out->get_object()->step = in->get_object()->step;
         out->get_object()->def = in->get_object()->def;
-        out->get_object()->can_rename = true;
+        out->obj_flags().add(PinObjFlags::CanRename);
         if (deserialized_values != nullptr)
             out->state().name = deserialized_values->out_pin_name;
 
@@ -537,7 +528,7 @@ void CNI_Primitive::cni_mirror_value_to(const PinInstance* src, std::vector<PinI
 std::list<PinType> CNI_Primitive::get_supported_pin_types(PinInstance* pin) const
 {
     LogRAssert(pin, "Zero ptr", std::list<PinType>{});
-    if (pin->get_object()->input)
+    if (pin->obj_flags().has(PinObjFlags::Input))
         return { PinType::_none };
 
     if (PinType::ANY == pin->state().type)
@@ -566,7 +557,7 @@ void CNI_Primitive::cni_pin_unlinked(const PinInstance* p1, const PinInstance* p
             cni_remove_pin(pin);
         }
 
-        m_has_in_pins = false;
+        flags().remove(NodeInstFlags::HasInPins);
         m_linked = false;
         m_links.clear();
         cni_recreate_base_object();

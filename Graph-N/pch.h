@@ -137,6 +137,7 @@
 #include "icons_lucide.h"
 #include "tools/tools_datetime.h"
 #include "core/base/types.h"
+#include "core/base/flags.h"
 #include "core/base/id.h"
 #include "tools/cast.h"
 #include "core/base/filesystem.h"

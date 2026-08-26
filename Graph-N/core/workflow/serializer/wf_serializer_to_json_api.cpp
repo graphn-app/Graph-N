@@ -34,7 +34,7 @@ o_json WfSerializerToJsonApi::serialize()
 
         for (auto pin : node->get_inputs())
         {
-            if (pin->get_object()->cag_pin)
+            if (pin->obj_flags().has(PinObjFlags::CagPin))
                 continue;
 
             if (!pin->get_object()->is_widget(pin->state()) && 0 == pin->state().links)
@@ -52,7 +52,7 @@ o_json WfSerializerToJsonApi::serialize()
                 {
                     const auto* output_pin = (*links.begin())->get_output();
                     const auto* output_node = m_wf->get_node_by_instance(output_pin->get_parent_node());
-                    if (output_node->is_cni_node() && !output_node->cni_json_api_should_export())
+                    if (output_node->flags().has(NodeInstFlags::JsonApiDontExport))
                         has_links = false;
                 }
             }

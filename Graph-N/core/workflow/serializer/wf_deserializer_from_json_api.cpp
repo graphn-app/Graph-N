@@ -277,7 +277,7 @@ void WfDeserializerFromJsonApi::link_api_nodes(const std::list<ApiNode>& api_nod
             {
                 const auto* node = m_wf->get_node_by_instance(api_node.node_iid);
                 LogRAssert(node != nullptr, "Can't find deserialized API node " << api_node.node_iid, nullptr);
-                if (node->get_object()->is_dummy)
+                if (node->obj_flags().has(NodeObjFlags::Dummy))
                     return nullptr;
 
                 auto& outputs = node->get_outputs();
@@ -297,7 +297,7 @@ void WfDeserializerFromJsonApi::link_api_nodes(const std::list<ApiNode>& api_nod
                 return pin;
         }
 
-        LogAssertS(node->get_object()->is_dummy, "Can't find pair of node/pin -> " << node->get_object()->name << "/" << pin_name);
+        LogAssertS(node->obj_flags().has(NodeObjFlags::Dummy), "Can't find pair of node/pin -> " << node->get_object()->name << "/" << pin_name);
         return nullptr;
     };
 
@@ -367,7 +367,7 @@ void WfDeserializerFromJsonApi::arrange_nodes()
 
             if (in->get_object()->is_widget(in->state()))
             {
-                if (PinType::STRING == in->state().type && in->get_object()->multiline)
+                if (PinType::STRING == in->state().type && in->obj_flags().has(PinObjFlags::Multiline))
                     max_h_widget_in += pin_h * 3;
                 else
                     max_h_widget_in += pin_h;

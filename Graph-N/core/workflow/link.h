@@ -49,7 +49,6 @@ private:
     PinInstance* m_input = nullptr;
     PinInstance* m_output = nullptr;
     float m_link_thickness = 0.0f;
-
     EdType m_ed;
 };
 

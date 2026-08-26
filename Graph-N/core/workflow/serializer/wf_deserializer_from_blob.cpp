@@ -65,7 +65,8 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
         const auto nodes = m_wf->get_nodes_no_reroutes();
         for (auto node : nodes)
         {
-            node->cni_deserialilzation_ends();
+            node->flags().remove(NodeInstFlags::Deserialization);
+            node->on_deserialilzation_ends();
         }
 
 #ifdef _DEBUG
@@ -74,7 +75,7 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
 
         for (auto& node : nodes)
         {
-            if (node->m_group)
+            if (node->flags().has(NodeInstFlags::Group))
                 continue;
 
             if (!ids.insert(node->get_instance_id()).second)
@@ -83,7 +84,7 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
                     LogError("Duplicate node id. w:" << m_wf->get_id() << ", n:" << node->get_instance_id());
                 dup_errs++;
             }
-            if (node->is_cni_reroute_splitted_r())
+            if (node->flags().has(NodeInstFlags::RerouteSplitted_R))
                 continue;
             auto& input = node->get_inputs();
             for (auto pin : input)
@@ -123,7 +124,10 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& block)
     const bool dummy = !check_node_definition(block);
     auto node = deserialize_node(block, dummy);
     if (node != nullptr)
-        node->cni_deserialilzation_ends();
+    {
+        node->flags().remove(NodeInstFlags::Deserialization);
+        node->on_deserialilzation_ends();
+    }
     return node;
 }
 
@@ -156,7 +160,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
             auto obj = g::pNodesManager->find_node(obj_hid);
             LogRAssert(obj != nullptr, "Dummy node " << node_class << " in base map", nullptr);
             m_curr_node = m_wf->add_node(obj, {}, {}, obj_iid);
-            m_curr_node->cni_deserialilzation_begins();
+            m_curr_node->flags().add(NodeInstFlags::Deserialization);
         }
     }
 
@@ -166,11 +170,8 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
     m_curr_node->m_clr_group = block.pop_clr();
     m_curr_node->m_clr_head = block.pop_clr();
     m_curr_node->m_clr_group_capt = block.pop_clr();
-    m_curr_node->m_group = block.pop_bool();
-    m_curr_node->m_show_hidden = block.pop_bool();
-    m_curr_node->expand(block.pop_bool());
-    m_curr_node->pin(block.pop_bool());
-    m_curr_node->set_mode(cast::to_enum<NodeMode>(block.pop_u32()));
+    const uint64_t flags = block.pop_u64() | block.pop_u64();
+    m_curr_node->flags().add_raw(flags);
 
     m_curr_node->cni_cleanup_base_object();
     for (auto pin : m_curr_node->get_inputs())
@@ -183,7 +184,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
     }
     m_curr_node->reset_pins();
 
-    if (!dummy && m_curr_node->is_cni_node())
+    if (!dummy && m_curr_node->flags().has(NodeInstFlags::BlobCustomSerialization))
     {
         if (nullptr == deserialize_cni_node(root))
         {
@@ -260,7 +261,7 @@ bool WfDeserializerFromBlob::deserialize_pin(blob::Reader& root_block, bool dumm
     m_curr_pin->state().type = cast::to_enum<PinType>(block.pop_u32());
     m_curr_pin->state().value = block.pop_primitive();
     m_curr_pin->state().cag = block.pop_iid();
-    m_curr_pin->get_object()->cag_require = block.pop_bool();
+    m_curr_pin->obj_flags().add_remove_if(PinObjFlags::CagRequire, block.pop_bool());
     return true;
 }
 

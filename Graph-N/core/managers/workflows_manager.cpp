@@ -82,7 +82,7 @@ const WfData& WfsManager::create_copy(wid source)
     const auto nodes = src_wf->get_nodes_no_reroutes();
     for (auto node : nodes)
     {
-        if (!node->is_cni_reroute_splitted_r())
+        if (node->flags().has_not(NodeInstFlags::RerouteSplitted_R))
             copy_add(node);
     }
     copy_end(wf, ImVec2(0, 0));
@@ -633,7 +633,7 @@ void WfsManager::copy_add(data::NodeInstance* node)
     LogRAssert(m_copy_src->get_id() == node->get_workflow_id(),
         "Node to copy is from diff wf. cpw:" << m_copy_src->get_id() << ", nw:" << node->get_workflow_id() << ", n:" << node->get_instance_id(), );
 
-    if (node->is_cni_reroute_splitted())
+    if (node->flags().has(NodeInstFlags::RerouteSplitted))
         m_copied_nodes.insert(cast::strict<data::CNI_Reroute>(node)->get_splitted_base());
     else
         m_copied_nodes.insert(node);
@@ -700,17 +700,17 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
 
     for (auto node : m_copied_nodes)
     {
-        LogCAssert(!node->is_cni_reroute_splitted_r(), "Splitted node shouldn't be copied explicitly");
+        LogCAssert(node->flags().has_not(NodeInstFlags::RerouteSplitted_R), "Splitted node shouldn't be copied explicitly");
 
         auto new_node = wf_dest->add_node(node, dest_wf_data.virt);
-        new_node->cni_deserialilzation_begins();
+        new_node->flags().add(NodeInstFlags::Deserialization);
         new_node->m_rc.Min.x = node->m_rc.Min.x - src_pt.x;
         new_node->m_rc.Min.x = dest_pt.x + new_node->m_rc.Min.x;
         new_node->m_rc.Min.y = node->m_rc.Min.y - src_pt.y;
         new_node->m_rc.Min.y = dest_pt.y + new_node->m_rc.Min.y;
         new_node->m_rc.Max = node->m_rc.Max;
 
-        if (node->is_cni_reroute_splitted())
+        if (node->flags().has(NodeInstFlags::RerouteSplitted))
             cast::strict<data::CNI_Reroute>(new_node)->adjust_r_pose();
 
         if (!dest_wf_data.virt)
@@ -771,7 +771,8 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
     const auto dest_nodes = wf_dest->get_nodes_no_reroutes();
     for (auto node : dest_nodes)
     {
-        node->cni_deserialilzation_ends();
+        node->flags().remove(NodeInstFlags::Deserialization);
+        node->on_deserialilzation_ends();
     }
 
     if (!dest_wf_data.virt)

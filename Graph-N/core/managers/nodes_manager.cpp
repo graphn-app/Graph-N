@@ -126,7 +126,7 @@ data::Node* NodesManager::make_dummy_node(const std::string& node_class)
     auto node = std::make_unique<data::Node>(node_class);
     node->name = node_class;
     node->node_class = node_class;
-    node->is_dummy = true;
+    node->flags.add(NodeObjFlags::Dummy);
 
     auto ptr = node.get();
     m_dummy_nodes.push_back(std::move(node));
@@ -143,7 +143,7 @@ void NodesManager::remove_dummy_node(data::Node* node)
             auto& dummy = *it;
             if (dummy.get() == pin)
             {
-                LogS("Dummy pin removed. i:" << pin->input << ", p:" << pin->def_state.type_str);
+                LogS("Dummy pin removed. i:" << pin->flags.has(PinObjFlags::Input) << ", p:" << pin->def_state.type_str);
                 m_dummy_pins.erase(it);
                 break;
             }
@@ -187,7 +187,7 @@ data::Pin* NodesManager::make_dummy_pin(data::Node* parent, const std::string& t
     pin->initialize(type);
     pin->finalize();
     pin->def_state.name = name;
-    if (pin->output || pin->def_state.type != PinType::STRING)
+    if (pin->flags.has(PinObjFlags::Output) || pin->def_state.type != PinType::STRING)
         pin->def_state.w_name = ImGui::CalcTextSize(name.c_str(), name.c_str() + name.size()).x;
 
     auto ptr = pin.get();
@@ -213,7 +213,7 @@ std::unique_ptr<data::Pin> NodesManager::make_pin_ptr(data::Node* parent, const 
     pin->initialize(type);
     pin->finalize();
     pin->def_state.name = name;
-    if (pin->output || pin->def_state.type != PinType::STRING)
+    if (pin->flags.has(PinObjFlags::Output) || pin->def_state.type != PinType::STRING)
         pin->def_state.w_name = ImGui::CalcTextSize(name.c_str(), name.c_str() + name.size()).x;    
     return pin;
 }

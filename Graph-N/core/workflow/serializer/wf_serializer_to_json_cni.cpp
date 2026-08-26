@@ -73,14 +73,14 @@ void WfSerializerToJson::serialize_cni_node_reroute(o_json& j)
     size_t active_idx = inputs.size();
     for (size_t i = 0; i < inputs.size() - 1; i++)
     {
-        if (!inputs[i]->is_hidden())
+        if (inputs[i]->flags().has_not(PinInstFlags::Hidden))
         {
             LogRAssert(active_idx == inputs.size(), "Reroute wasn't splitted, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id(), );
             active_idx = i;
         }
     }
     LogRAssert(active_idx != inputs.size(), "Invalid node definition, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id(), );
-    LogRAssert(!outputs[active_idx]->is_hidden(), "Invalid node definition, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id(), );
+    LogRAssert(outputs[active_idx]->flags().has_not(PinInstFlags::Hidden), "Invalid node definition, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id(), );
 
     const PinInstance* in = inputs[active_idx];
     const PinInstance* out = outputs[active_idx];

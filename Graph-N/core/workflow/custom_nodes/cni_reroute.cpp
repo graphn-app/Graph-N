@@ -13,27 +13,33 @@ std::unique_ptr<Node> CNI_Reroute::cni_create_object()
     node->name = node->display_name = cni_get_node_class();
     node->category = "utils";
     node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
-    node->can_bypass = false;
-    node->can_rename = false;
-
+    node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanRename);
     node->finalize(nullptr);
     return node;
 }
 
-CNI_Reroute::CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2, uint32_t cni_flags) noexcept
-    : CNI_BaseObj_T<CNI_Reroute>(obj, workflow_id, instance_id, NodeFlags::NodeFlag_CNI | NodeFlags::NodeFlag_Reroute | cni_flags)
+CNI_Reroute::CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2) noexcept
+    : CNI_BaseObj_T<CNI_Reroute>(obj, workflow_id, instance_id)
 {
+    flags().add(NodeInstFlags::CNI, NodeInstFlags::Reroute, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
+
+    static bool r_node_creation = false;
+    if (r_node_creation)
+        flags().add(NodeInstFlags::RerouteSplitted_R);
+    r_node_creation = false;
+
     auto wf = g::pWfsManager->access(workflow_id);
-    if (is_cni_reroute_splitted_r())
+    if (flags().has(NodeInstFlags::RerouteSplitted_R))
     {
-        hide_instance(true);
-        clear_node_flags(NodeFlags::NodeFlag_CanDelete);
+        flags().add(NodeInstFlags::Hidden);
+        flags().remove(NodeInstFlags::CanDelete);
         m_data = nullptr; // lets crash, this shouldn't be used
     }
     else
-    {        
-        auto node = wf->add_node(obj, {}, {}, instance_id2, 0, get_node_flags() | NodeFlags::NodeFlag_RerouteSplitted_R);
-        LogRAssert(node->is_cni_reroute(), "Invalid node created. w:" << get_workflow_id() << ", n1:" << get_instance_id() << ", n1:" << node->get_instance_id(), );
+    {
+        r_node_creation = true;
+        auto node = wf->add_node(obj, {}, {}, instance_id2);
+        LogRAssert(node->flags().has(NodeInstFlags::Reroute), "Invalid node created. w:" << get_workflow_id() << ", n1:" << get_instance_id() << ", n1:" << node->get_instance_id(), );
         m_splitted_part = cast::strict<CNI_Reroute>(node);
         m_splitted_part->m_splitted_part = this;
         m_data = std::make_shared<RerouteData>();
@@ -46,18 +52,18 @@ CNI_Reroute::~CNI_Reroute() noexcept
     {
         auto wf = g::pWfsManager->access(get_workflow_id());
 
-        if (is_cni_reroute_splitted_r())
+        if (flags().has(NodeInstFlags::RerouteSplitted_R))
         {
             m_splitted_part->m_splitted_part = nullptr;
-            LogAssert(test_node_flags(NodeFlags::NodeFlag_CanDelete), "Splitted R part should not be removed prior to L part");
+            LogAssert(flags().has(NodeInstFlags::CanDelete), "Splitted R part should not be removed prior to L part");
         }
         else
         {
             auto links = wf->get_links_by_pin(m_splitted_pin);
             if (!links.empty())
             {
-                m_splitted_pin->get_object()->can_unlink = true;
-                m_splitted_part->m_splitted_pin->get_object()->can_unlink = true;
+                m_splitted_pin->obj_flags().add(PinObjFlags::CanUnlink);
+                m_splitted_part->m_splitted_pin->obj_flags().add(PinObjFlags::CanUnlink);
                 wf->remove_link(links.front());
             }
         }
@@ -66,10 +72,10 @@ CNI_Reroute::~CNI_Reroute() noexcept
         wf->remove_pin(m_splitted_pin);
         m_splitted_pin = nullptr;
 
-        if (!is_cni_reroute_splitted_r() && m_splitted_part != nullptr)
+        if (flags().has_not(NodeInstFlags::RerouteSplitted_R) && m_splitted_part != nullptr)
         {
             m_splitted_part->reset_pins();
-            m_splitted_part->set_node_flags(NodeFlags::NodeFlag_CanDelete, true /*append*/);
+            m_splitted_part->flags().add(NodeInstFlags::CanDelete);
             wf->remove_node(m_splitted_part);
         }
     }
@@ -84,7 +90,7 @@ void CNI_Reroute::cni_init()
     const std::string pin_type = REROUTE_SPLITTED_PIN;
 
     auto wf = g::pWfsManager->access(get_workflow_id());
-    if (is_cni_reroute_splitted_r())
+    if (flags().has(NodeInstFlags::RerouteSplitted_R))
     {
         cni_recreate_base_object();
         pin_obj = g::pNodesManager->make_pin_ptr(get_object(), pin_type, pin_type, -1);
@@ -94,10 +100,7 @@ void CNI_Reroute::cni_init()
         pin_obj = g::pNodesManager->make_pin_ptr(get_object(), pin_type, pin_type, 0);
     }
 
-    pin_obj->can_rename = false;
-    pin_obj->can_link = false;
-    pin_obj->can_unlink = false;
-    pin_obj->input_can_be_widget = false;
+    pin_obj->flags.remove(PinObjFlags::CanRename, PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::InputCanBeWidget);
 
     auto instance = wf->add_pin(this, pin_obj.get());
     cni_add_pin(std::move(pin_obj));
@@ -105,9 +108,9 @@ void CNI_Reroute::cni_init()
     m_splitted_pin = instance;
     m_splitted_pin->state().name.clear();
     m_splitted_pin->state().w_name = 0;
-    m_splitted_pin->set_is_reroute_splitting_pin();
+    m_splitted_pin->flags().add(PinInstFlags::RerouteSplittingPin);
 
-    if (is_cni_reroute_splitted_r())
+    if (flags().has(NodeInstFlags::RerouteSplitted_R))
         return;
 
     cleanup_pairs(false);
@@ -147,7 +150,7 @@ void CNI_Reroute::cni_init()
 
 void CNI_Reroute::cni_cleanup_base_object()
 {
-    if (is_cni_reroute_splitted_r())
+    if (flags().has(NodeInstFlags::RerouteSplitted_R))
         return;
 
     cleanup_pairs(false);
@@ -155,9 +158,9 @@ void CNI_Reroute::cni_cleanup_base_object()
 
 bool CNI_Reroute::cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids)
 {
-    LogRAssert(copy_from_node->is_cni_reroute(), "Source node is not reroute", false);
+    LogRAssert(copy_from_node->flags().has(NodeInstFlags::Reroute), "Source node is not reroute", false);
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), false);
-    LogRAssert(!is_cni_reroute_splitted_r(), "Invalid logic. Splitted R part shouldn't be here", false);
+    LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", false);
 
     const auto* reroute = cast::strict<const CNI_Reroute>(copy_from_node);
     LogRAssert(reroute, "Node is not CNI. w:" << copy_from_node->get_workflow_id() << ", n: " << copy_from_node->get_instance_id() << ", t:" << typeid(copy_from_node).name(), true);
@@ -175,7 +178,7 @@ bool CNI_Reroute::cni_copy_from(const NodeInstance* copy_from_node, bool copy_pi
     {
         const auto* in = ins[i];
         const auto* out = outs[i];
-        if (in->is_hidden() || out->is_hidden())
+        if (in->flags().has(PinInstFlags::Hidden) || out->flags().has(PinInstFlags::Hidden))
             continue;
 
         RoutedPinPair pair;
@@ -190,7 +193,7 @@ bool CNI_Reroute::cni_copy_from(const NodeInstance* copy_from_node, bool copy_pi
     reroute_data->in_pin_types = reroute->m_data->m_in_pin_types;
     reroute_data->next_out_index = reroute->m_data->m_next_out_index;
 
-    if (copy_from_node->is_cni_reroute_splitted())
+    if (copy_from_node->flags().has(NodeInstFlags::RerouteSplitted))
     {
         reroute_data->splitted = true;
         reroute_data->poses = reroute->get_splitted_nodes_poses();
@@ -206,7 +209,7 @@ void CNI_Reroute::cni_mirror_value_to(const PinInstance* src, std::vector<PinIns
 {
     LogRAssert(src, "Zero ptr", );
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
-    LogRAssert(!is_cni_reroute_splitted_r(), "Invalid logic. Splitted R part shouldn't be here", );
+    LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", );
 
     for (const auto& pair : m_data->m_pairs)
     {
@@ -215,7 +218,7 @@ void CNI_Reroute::cni_mirror_value_to(const PinInstance* src, std::vector<PinIns
 
         if (pair.input.internal == src)
         {
-            std::ranges::for_each(pair.output.external, [&append_pins](const PinInstance* pin) { append_pins.push_back(cast::remove_const(pin)); });
+            std::ranges::for_each(pair.output.external, [&append_pins](const PinInstance* pin) { append_pins.push_back(cast::remove_const<PinInstance>(pin)); });
             break;
         }
     }
@@ -228,8 +231,7 @@ PinInstance* CNI_Reroute::add_pin_internal(Workflow* wf, const std::string& type
 
     auto obj = g::pNodesManager->make_pin_ptr(get_object(), type, name, out_index);
     auto instance = wf->add_pin(this, obj.get(), id);
-    obj->can_rename = false;
-    obj->input_can_be_widget = false;
+    obj->flags.remove(PinObjFlags::CanRename, PinObjFlags::InputCanBeWidget);
     if (out_index >= 0)
     {
         add_output(instance);
@@ -253,9 +255,9 @@ void CNI_Reroute::remove_pin_internal(Workflow* wf, PinInstance* pin, bool force
         m_splitted_part->remove_pin(pin);
         wf->remove_pin(pin);
     }
-    else if (!pin->is_hidden())
+    else if (pin->flags().has_not(PinInstFlags::Hidden))
     {
-        pin->hide_instance(true);
+        pin->flags().add(PinInstFlags::Hidden);
         Log("Pin hidden. w:" << get_workflow_id() << ", n:" << get_instance_id() << ", p:" << pin->get_instance_id() << ", t:" << pin->state().type_str);
     }
 }
@@ -278,16 +280,9 @@ std::string CNI_Reroute::create_pin_name(const std::string& type_str)
     return type_str + "_" + std::to_string(m_data->m_in_pin_types[type]);
 }
 
-void CNI_Reroute::cni_deserialilzation_begins() noexcept
+void CNI_Reroute::on_deserialilzation_ends()
 {
-    LogRAssert(!is_cni_reroute_splitted_r(), "Invalid logic. Splitted R part shouldn't be here", );
-    m_deserialization_mode = true;
-}
-
-void CNI_Reroute::cni_deserialilzation_ends()
-{
-    LogRAssert(!is_cni_reroute_splitted_r(), "Invalid logic. Splitted R part shouldn't be here", );
-    m_deserialization_mode = false;
+    LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", );
     cleanup_pairs(true);
     add_pair({});
 }
@@ -339,7 +334,7 @@ void CNI_Reroute::get_pins_from_link(const PinInstance* p1, const PinInstance* p
 bool CNI_Reroute::cni_can_link(const PinInstance* p1, const PinInstance* p2) const noexcept
 {
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), false);
-    LogRAssert(!is_cni_reroute_splitted_r(), "Invalid logic. Splitted R part shouldn't be here", false);
+    LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", false);
 
     LogRAssert(p1 && p2, "Zero ptr", false);
 
@@ -406,16 +401,14 @@ void CNI_Reroute::refresh_pair_state(LinkedPair& pair)
             int_obj->min = ext_obj->min;
             int_obj->max = ext_obj->max;
             int_obj->def = ext_obj->def;            
-            int_obj->can_rename = false;
-            int_obj->input_can_be_widget = false;
+            int_obj->flags.remove(PinObjFlags::CanRename, PinObjFlags::InputCanBeWidget);
             pair.input.internal->reset_state();
 
             int_obj = pair.output.internal->get_object();
             int_obj->min = ext_obj->min;
             int_obj->max = ext_obj->max;
             int_obj->def = ext_obj->def;
-            int_obj->can_rename = false;
-            int_obj->input_can_be_widget = false;
+            int_obj->flags.remove(PinObjFlags::CanRename, PinObjFlags::InputCanBeWidget);
             pair.output.internal->reset_state();
 
             pair.type = ext_state.type;
@@ -439,8 +432,8 @@ void CNI_Reroute::add_pair(const RoutedPinPair& pair/* = {}*/)
     new_pair.input.internal = add_pin_internal(wf, pair.type, pair_name, -1, pair.in_id);
     new_pair.output.internal = add_pin_internal(wf, pair.type, pair_name, out_index, pair.out_id);
 
-    new_pair.input.internal->hide_instance(pair.hidden);
-    new_pair.output.internal->hide_instance(pair.hidden);
+    new_pair.input.internal->flags().add_remove_if(PinInstFlags::Hidden, pair.hidden);
+    new_pair.output.internal->flags().add_remove_if(PinInstFlags::Hidden, pair.hidden);
 
     m_data->m_pairs.push_back(new_pair);
 }
@@ -479,7 +472,7 @@ void CNI_Reroute::cleanup_pairs(bool keep_linked)
 void CNI_Reroute::cni_pin_linked(PinInstance* p1, PinInstance* p2)
 {
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
-    LogRAssert(!is_cni_reroute_splitted_r(), "Invalid logic. Splitted R part shouldn't be here", );
+    LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", );
 
     LogRAssert(p1 && p2, "Zero ptr", );
     LogRAssert(cni_can_link(p1, p2),
@@ -492,7 +485,7 @@ void CNI_Reroute::cni_pin_linked(PinInstance* p1, PinInstance* p2)
         "Pair not found. w:" << get_workflow_id() << ", n: " << get_instance_id() << ", p1:" << p1->get_instance_id() << ", p2:" << p2->get_instance_id(), );
 
     // register the new connection
-    if (external_pin->get_object()->input)
+    if (external_pin->obj_flags().has(PinObjFlags::Input))
     {
         pair->output.external.push_back(external_pin);
     }
@@ -505,15 +498,15 @@ void CNI_Reroute::cni_pin_linked(PinInstance* p1, PinInstance* p2)
     pair->ever_linked = true;
     if (pair->input.internal != nullptr)
     {
-        if (pair->input.internal->is_hidden())
+        if (pair->input.internal->flags().has(PinInstFlags::Hidden))
             Log("Pin unhidden. w:" << get_workflow_id() << ", n:" << get_instance_id() << ", p:" << pair->input.internal->get_instance_id() << ", t:" << pair->input.internal->state().type_str);
-        pair->input.internal->hide_instance(false);
+        pair->input.internal->flags().remove(PinInstFlags::Hidden);
     }
     if (pair->output.internal != nullptr)
     {
-        if (pair->output.internal->is_hidden())
+        if (pair->output.internal->flags().has(PinInstFlags::Hidden))
             Log("Pin unhidden. w:" << get_workflow_id() << ", n:" << get_instance_id() << ", p:" << pair->output.internal->get_instance_id() << ", t:" << pair->output.internal->state().type_str);
-        pair->output.internal->hide_instance(false);        
+        pair->output.internal->flags().remove(PinInstFlags::Hidden);
     }
 
     Log("Reroute linked. w:" << get_workflow_id() << ", n:" << get_instance_id() <<
@@ -523,7 +516,7 @@ void CNI_Reroute::cni_pin_linked(PinInstance* p1, PinInstance* p2)
 
     // refresh type and name based on the new connections
     refresh_pair_state(*pair);
-    if (!m_deserialization_mode)
+    if (flags().has_not(NodeInstFlags::Deserialization))
     {
         cleanup_pairs(true);
         add_pair();
@@ -533,7 +526,7 @@ void CNI_Reroute::cni_pin_linked(PinInstance* p1, PinInstance* p2)
 void CNI_Reroute::cni_pin_unlinked(const PinInstance* p1, const PinInstance* p2)
 {
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
-    LogRAssert(!is_cni_reroute_splitted_r(), "Invalid logic. Splitted R part shouldn't be here", );
+    LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", );
 
     LogRAssert(p1 && p2, "Zero ptr", );
 
@@ -544,7 +537,7 @@ void CNI_Reroute::cni_pin_unlinked(const PinInstance* p1, const PinInstance* p2)
         "Pair not found. w:" << get_workflow_id() << ", n: " << get_instance_id() << ", p1:" << p1->get_instance_id() << ", p2:" << p2->get_instance_id(), );
 
     // remove the disconnected pin
-    if (external_pin->get_object()->input)
+    if (external_pin->obj_flags().has(PinObjFlags::Input))
     {
         for (auto it = pair->output.external.begin(); it != pair->output.external.end(); ++it)
         {
@@ -580,13 +573,13 @@ void CNI_Reroute::cni_pin_unlinked(const PinInstance* p1, const PinInstance* p2)
 
 void CNI_Reroute::split_to_parts()
 {
-    LogRAssert(!is_cni_reroute_splitted(), "Reroute already splitted. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
+    LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted), "Reroute already splitted. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
-    LogRAssert(!is_cni_reroute_splitted_r(), "Invalid logic. Splitted R part shouldn't be here", );
+    LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", );
 
-    set_node_flags(NodeFlags::NodeFlag_RerouteSplitted, true);
-    m_splitted_part->hide_instance(false);
-    m_splitted_part->set_node_flags(NodeFlags::NodeFlag_RerouteSplitted, true);
+    flags().add(NodeInstFlags::RerouteSplitted);
+    m_splitted_part->flags().add(NodeInstFlags::RerouteSplitted);
+    m_splitted_part->flags().remove(NodeInstFlags::Hidden);
 
     auto right_pin = m_splitted_part->m_splitted_pin;
     LogRAssert(Link::can_link(m_splitted_pin, right_pin), "Can't link splitted reroutes. w:" << get_workflow_id() << ", n1:" << get_instance_id() << ", n2:" << m_splitted_part->get_instance_id() << ", p1:" << m_splitted_pin->get_instance_id() << ", p2:" << right_pin->get_instance_id(), );
@@ -604,7 +597,7 @@ void CNI_Reroute::split_to_parts()
 void CNI_Reroute::adjust_r_pose()
 {
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
-    LogRAssert(!is_cni_reroute_splitted_r(), "Invalid logic. Splitted R part shouldn't be here", );
+    LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", );
 
     auto rc = m_rc;
     rc.Min.x = m_rc.Min.x + m_rc.Max.x + 100.0f;
@@ -615,7 +608,7 @@ void CNI_Reroute::set_splitted_nodes_poses(const std::pair<ImRect, ImRect>& pose
 {
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
 
-    if (is_cni_reroute_splitted_r())
+    if (flags().has(NodeInstFlags::RerouteSplitted_R))
     {
         m_splitted_part->m_rc = poses.first;
         m_rc = poses.second;
@@ -626,47 +619,44 @@ void CNI_Reroute::set_splitted_nodes_poses(const std::pair<ImRect, ImRect>& pose
         m_splitted_part->m_rc = poses.second;
     }
 
-    m_pos_set = false;
-    m_size_set = false;
+    flags().remove(NodeInstFlags::PosSet, NodeInstFlags::SizeSet);
     reset_width();
 
-    m_splitted_part->m_pos_set = false;
-    m_splitted_part->m_size_set = false;
+    m_splitted_part->flags().remove(NodeInstFlags::PosSet, NodeInstFlags::SizeSet);
     m_splitted_part->reset_width();
 }
 
 void CNI_Reroute::merge_parts(bool to_left)
 {
-    LogRAssert(is_cni_reroute_splitted(), "Reroute wasn't splitted. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
+    LogRAssert(flags().has(NodeInstFlags::RerouteSplitted), "Reroute wasn't splitted. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
-    LogRAssert(!is_cni_reroute_splitted_r(), "Invalid logic. Splitted R part shouldn't be here", );
+    LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", );
 
     auto wf = g::pWfsManager->access(get_workflow_id());
     auto links = wf->get_links_by_pin(m_splitted_pin);
 
     LogRAssert(links.size() == 1, "Empty splitted links", );
-    m_splitted_pin->get_object()->can_unlink = true;
-    m_splitted_part->m_splitted_pin->get_object()->can_unlink = true;
-    m_splitted_part->clear_node_flags(NodeFlags::NodeFlag_RerouteSplitted);
+    m_splitted_pin->obj_flags().add(PinObjFlags::CanUnlink);
+    m_splitted_part->m_splitted_pin->obj_flags().add(PinObjFlags::CanUnlink);
+    m_splitted_part->flags().remove(NodeInstFlags::RerouteSplitted);
 
     wf->remove_link(links.front());
     m_splitter_link_id = 0;
 
-    clear_node_flags(NodeFlags::NodeFlag_RerouteSplitted);
-    m_splitted_part->hide_instance(true);
+    flags().remove(NodeInstFlags::RerouteSplitted);
+    m_splitted_part->flags().add(NodeInstFlags::Hidden);
 
     if (!to_left)
         m_rc = m_splitted_part->m_rc;
 
     reset_width();
-    m_pos_set = false;
-    m_size_set = false;
+    flags().remove(NodeInstFlags::PosSet, NodeInstFlags::SizeSet);
     Log("Reroute merged. w:" << get_workflow_id() << ", n:" << get_instance_id());
 }
 
 void CNI_Reroute::get_splitters(iid& splitted_node, iid& in_pin, iid& out_pin, iid& link) const
 {
-    if (is_cni_reroute_splitted_r())
+    if (flags().has(NodeInstFlags::RerouteSplitted_R))
         return m_splitted_part->get_splitters(splitted_node, in_pin, out_pin, link);
 
     splitted_node = in_pin = out_pin = link = 0;

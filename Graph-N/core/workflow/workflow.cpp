@@ -53,14 +53,14 @@ void Workflow::init()
     m_action = std::make_unique<WorkflowAction>(this);
 }
 
-std::unique_ptr<NodeInstance> Workflow::create_node(data::Node* node, iid node_id, iid node_id2, uint32_t cni_flags) const
+std::unique_ptr<NodeInstance> Workflow::create_node(data::Node* node, iid node_id, iid node_id2) const
 {
     if (node != nullptr)
     {
         std::unique_ptr<NodeInstance> custom_node;
         if (CNI_LoadImage::cni_is_same(node))              custom_node = std::make_unique<CNI_LoadImage>(node, get_id(), node_id);
         else if (CNI_Primitive::cni_is_same(node))         custom_node = std::make_unique<CNI_Primitive>(node, get_id(), node_id);
-        else if (CNI_Reroute::cni_is_same(node))           custom_node = std::make_unique<CNI_Reroute>(node, get_id(), node_id, node_id2, cni_flags);
+        else if (CNI_Reroute::cni_is_same(node))           custom_node = std::make_unique<CNI_Reroute>(node, get_id(), node_id, node_id2);
         else if (CNI_Note::cni_is_same(node))              custom_node = std::make_unique<CNI_Note>(node, get_id(), node_id);
         else if (CNI_MarkdownNote::cni_is_same(node))      custom_node = std::make_unique<CNI_MarkdownNote>(node, get_id(), node_id);
 
@@ -70,19 +70,19 @@ std::unique_ptr<NodeInstance> Workflow::create_node(data::Node* node, iid node_i
             return custom_node;
         }
     }
-    auto instance = std::make_unique<NodeInstance>(node, get_id(), node_id, 0);
+    auto instance = std::make_unique<NodeInstance>(node, get_id(), node_id);
     Log("Node created. w:" << get_id() << ", n:" << instance->get_instance_id() << ":" << (node != nullptr ? node->node_class : "group"));
     return instance;
 }
 
-std::unique_ptr<NodeInstanceRo> Workflow::create_node_ro(data::Node* node, iid node_id, uint32_t cni_flags) const
+std::unique_ptr<NodeInstanceRo> Workflow::create_node_ro(data::Node* node, iid node_id) const
 {
     if (node != nullptr)
     {
         std::unique_ptr<NodeInstanceRo> custom_node;
         if (CNI_LoadImage::cni_is_same(node))              custom_node = std::make_unique<CNI_LoadImage>(node, get_id(), node_id);
         else if (CNI_Primitive::cni_is_same(node))         custom_node = std::make_unique<CNI_Primitive>(node, get_id(), node_id);
-        else if (CNI_Reroute::cni_is_same(node))           custom_node = std::make_unique<CNI_Reroute>(node, get_id(), node_id, 0, cni_flags);
+        else if (CNI_Reroute::cni_is_same(node))           custom_node = std::make_unique<CNI_Reroute>(node, get_id(), node_id, 0);
         else if (CNI_Note::cni_is_same(node))              custom_node = std::make_unique<CNI_Note>(node, get_id(), node_id);
         else if (CNI_MarkdownNote::cni_is_same(node))      custom_node = std::make_unique<CNI_MarkdownNote>(node, get_id(), node_id);
 
@@ -92,23 +92,23 @@ std::unique_ptr<NodeInstanceRo> Workflow::create_node_ro(data::Node* node, iid n
             return custom_node;
         }
     }
-    auto instance = std::make_unique<NodeInstanceRo>(node, get_id(), node_id, 0);
+    auto instance = std::make_unique<NodeInstanceRo>(node, get_id(), node_id);
     Log("Node(RO) created. w:" << get_id() << ", n:" << instance->get_instance_id() << ":" << node->node_class);
     return instance;
 }
 
-NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0, 0, 0, 0)*/, const std::string& select /*= ""*/, iid node_id /*= 0*/, iid node_id2 /*= 0*/, uint32_t cni_flags /*= 0*/)
+NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0, 0, 0, 0)*/, const std::string& select /*= ""*/, iid node_id /*= 0*/, iid node_id2 /*= 0*/)
 {
     const auto id = (0 == node_id ? get_new_child_id() : node_id);
     std::unique_ptr<NodeInstance> instance;
-    if (node->is_dummy)
+    if (node->flags.has(NodeObjFlags::Dummy))
     {
-        instance = std::make_unique<NodeInstance>(node, get_id(), id, 0);
+        instance = std::make_unique<NodeInstance>(node, get_id(), id);
         get_data().valid = false;
         Log("Dummy node created. w:" << get_id() << ", n:" << instance->get_instance_id() << ":" << node->node_class);
     }
     else
-        instance = create_node(node, id, node_id2, cni_flags);
+        instance = create_node(node, id, node_id2);
 
     instance->m_rc = rc;
     auto ptr = instance.get();
@@ -124,7 +124,7 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source, bool copy
     LogRAssert(copy_from_source, "Zero ptr", nullptr);
     LogRAssert(copy_from_source->get_object(), "Zero object ptr", nullptr);
     const auto id = (copy_id ? copy_from_source->get_instance_id() : get_new_child_id());
-    auto instance = create_node(copy_from_source->get_object(), id, 0, NodeFlags::NodeFlag_None);
+    auto instance = create_node(copy_from_source->get_object(), id, 0);
     auto ptr = instance.get();
     ptr->init(copy_from_source, copy_id);
     m_nodes.push_back(std::move(instance));
@@ -135,9 +135,9 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source, bool copy
 
 NodeInstance* Workflow::add_group_node()
 {
-    auto instance = create_node(nullptr, 0, 0, NodeFlags::NodeFlag_None);
+    auto instance = create_node(nullptr, 0, 0);
     instance->init_blank();
-    instance->m_group = true;
+    instance->flags().add(NodeInstFlags::Group, NodeInstFlags::JsonApiDontExport);
     auto ptr = instance.get();
     m_nodes.push_back(std::move(instance));
     test_duplicates();
@@ -148,7 +148,7 @@ NodeInstance* Workflow::add_group_node()
 NodeInstanceRo* Workflow::add_node_ro(data::Node* node)
 {
     const auto id = get_new_child_id();
-    auto instance = create_node_ro(node, id, 0);
+    auto instance = create_node_ro(node, id);
     auto ptr = instance.get();
     ptr->init();
     m_nodes_ro.push_back(std::move(instance));
@@ -159,10 +159,10 @@ NodeInstanceRo* Workflow::add_node_ro(data::Node* node)
 NodeInstance* Workflow::add_group(const ImRect& rc, const std::string& name /*= ""*/)
 {
     const auto id = get_new_child_id();
-    auto instance = create_node(nullptr, id, 0, NodeFlags::NodeFlag_None);
+    auto instance = create_node(nullptr, id, 0);
     instance->m_rc.Min = rc.Min;
     instance->m_rc.Max = ImVec2(-1 == rc.Max.x ? 200 : rc.Max.x, -1 == rc.Max.y ? 200 : rc.Max.y);
-    instance->m_group = true;
+    instance->flags().add(NodeInstFlags::Group, NodeInstFlags::JsonApiDontExport);
     instance->set_name(name);
     auto ptr = instance.get();
     ptr->init("");
@@ -315,7 +315,7 @@ std::vector<NodeInstance*> Workflow::get_nodes_no_reroutes() const
     auto& all = get_nodes_all();
     for (auto& node : all)
     {
-        if (!node->is_cni_reroute_splitted_r())
+        if (node->flags().has_not(NodeInstFlags::RerouteSplitted_R))
             nodes.push_back(node.get());
     }
     return nodes;
@@ -327,7 +327,7 @@ std::vector<NodeInstanceRo*> Workflow::get_nodes_ro() const
     nodes.reserve(m_nodes_ro.size());
     for (auto& node : m_nodes_ro)
     {
-        if (!node->is_cni_reroute_splitted_r())
+        if (node->flags().has_not(NodeInstFlags::RerouteSplitted_R))
             nodes.push_back(node.get());
     }
     return nodes;
@@ -349,7 +349,7 @@ std::vector<Link*> Workflow::get_links_no_reroutes() const
 void Workflow::remove_node(NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
-    if (!node->test_node_flags(NodeFlags::NodeFlag_CanDelete))
+    if (node->flags().has_not(NodeInstFlags::CanDelete))
         return;
 
     std::unordered_set<uint64_t> ids;
@@ -366,7 +366,7 @@ void Workflow::remove_node(NodeInstance* node)
 
     LogRAssert(n_it != m_nodes.end(), "Node not found. w:" << get_id() << ", n:" << node->get_instance_id(), );
 
-    if (node->is_cni_reroute_splitted_r())
+    if (node->flags().has(NodeInstFlags::RerouteSplitted_R))
     {
         ed_delete(ids);
         auto node_to_del = std::move(*n_it);
@@ -383,14 +383,14 @@ void Workflow::remove_node(NodeInstance* node)
         }
     };
 
-    if (node->get_object() != nullptr && node->get_object()->is_dummy)
+    if (node->has_object() && node->obj_flags().has(NodeObjFlags::Dummy))
         g::pNodesManager->remove_dummy_node(node->get_object());
 
     node->cni_cleanup_base_object();
     remove_pins(node->get_inputs());
     remove_pins(node->get_outputs());
 
-    if (node->get_object() == nullptr) { Log("Group removed. w:" << get_id() << ", n:" << node->get_instance_id()); }
+    if (!node->has_object()) { Log("Group removed. w:" << get_id() << ", n:" << node->get_instance_id()); }
     else { Log("Node removed. w:" << get_id() << ", n:" << node->get_instance_id()); }
 
     ed_delete(ids);
@@ -406,7 +406,7 @@ void Workflow::invalidate_current() noexcept
         m_wf_data.valid = true;
         for (auto& ptr : m_nodes)
         {
-            if (!ptr->m_group && ptr->get_object()->is_dummy)
+            if (ptr->flags().has_not(NodeInstFlags::Group) && ptr->obj_flags().has(NodeObjFlags::Dummy))
             {
                 m_wf_data.valid = false;
                 break;
@@ -418,7 +418,7 @@ void Workflow::invalidate_current() noexcept
 void Workflow::remove_node(NodeInstanceRo* node)
 {
     LogRAssert(node, "Zero ptr", );
-    if (!node->test_node_flags(NodeFlags::NodeFlag_CanDelete))
+    if (node->flags().has_not(NodeInstFlags::CanDelete))
         return;
 
     const auto n_it = std::ranges::find_if(m_nodes_ro,
@@ -490,7 +490,7 @@ std::set<data::NodeInstance*> Workflow::filter_reroutes(const std::set<data::Nod
     std::set<data::NodeInstance*> ret;
     for (auto node : nodes)
     {
-        if (node->is_cni_reroute_splitted())
+        if (node->flags().has(NodeInstFlags::RerouteSplitted))
             ret.insert(cast::strict<CNI_Reroute>(node)->get_splitted_base());
         else
             ret.insert(node);
@@ -500,7 +500,7 @@ std::set<data::NodeInstance*> Workflow::filter_reroutes(const std::set<data::Nod
 
 data::NodeInstance* Workflow::filter_reroute(data::NodeInstance* node) const noexcept
 {
-    if (node->is_cni_reroute_splitted())
+    if (node->flags().has(NodeInstFlags::RerouteSplitted))
         return cast::strict<CNI_Reroute>(node)->get_splitted_base();
     return node;
 }
@@ -512,10 +512,10 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
     m_action->multi_action_on("Split");
     for (auto node : nodes)
     {
-        LogCAssert(node->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
+        LogCAssert(node->flags().has(NodeInstFlags::Reroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
         LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
 
-        if (node->is_cni_reroute_splitted())
+        if (node->flags().has(NodeInstFlags::RerouteSplitted))
             m_action->merge_reroute(cast::strict<data::CNI_Reroute>(node)->get_splitted_base(), true);
 
         const size_t count = node->get_inputs().size() - 1;
@@ -525,7 +525,7 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
         {
             const auto in_pin = node->get_inputs()[i];
             const auto out_pin = node->get_outputs()[i];
-            if (in_pin->is_hidden() || out_pin->is_hidden())
+            if (in_pin->flags().has(PinInstFlags::Hidden) || out_pin->flags().has(PinInstFlags::Hidden))
                 continue;
 
             data::PinInstance* left_pin = nullptr;
@@ -556,7 +556,7 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
             }
 
             const auto* new_node = m_action->add_node(node->get_object(), "", rect);
-            LogCAssert(new_node->is_cni_reroute(), "New node is not reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", t:" << typeid(new_node).name());
+            LogCAssert(new_node->flags().has(NodeInstFlags::Reroute), "New node is not reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", t:" << typeid(new_node).name());
             LogCAssert(new_node->get_inputs().size() == new_node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz1:" << new_node->get_inputs().size() << ", sz2:" << new_node->get_outputs().size());
             LogCAssert(new_node->get_inputs().size() == 1, "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz:" << new_node->get_inputs().size());
 
@@ -592,13 +592,13 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
     data::NodeInstance* dest_node = nullptr;
     for (auto node : nodes)
     {
-        LogCAssert(node->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
+        LogCAssert(node->flags().has(NodeInstFlags::Reroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
         LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
 
         if (nullptr == dest_node)
         {
             dest_node = node;
-            if (node->is_cni_reroute_splitted())
+            if (node->flags().has(NodeInstFlags::RerouteSplitted))
                 m_action->merge_reroute(cast::strict<data::CNI_Reroute>(node)->get_splitted_base(), true);
             continue;
         }
@@ -611,13 +611,13 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
             const size_t count = node->get_inputs().size() - 1;
             for (size_t i = 0; node_can_merge && i < count; i++)
             {
-                if (Step::Relink == step && node->is_cni_reroute_splitted())
+                if (Step::Relink == step && node->flags().has(NodeInstFlags::RerouteSplitted))
                     m_action->merge_reroute(cast::strict<data::CNI_Reroute>(node)->get_splitted_base(), true);
 
                 const auto in_pin = node->get_inputs()[i];
                 const auto out_pin = node->get_outputs()[i];
 
-                if (in_pin->is_hidden())
+                if (in_pin->flags().has(PinInstFlags::Hidden))
                     continue;
 
                 data::PinInstance* left_pin = nullptr;
@@ -689,14 +689,14 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
 void Workflow::collapse_reroute(data::NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
-    LogRAssert(node->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name(), );
+    LogRAssert(node->flags().has(NodeInstFlags::Reroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name(), );
     LogRAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size(), );
 
     node = filter_reroute(node);
 
     m_action->multi_action_on("Collapse");
 
-    if (node->is_cni_reroute_splitted())
+    if (node->flags().has(NodeInstFlags::RerouteSplitted))
         m_action->merge_reroute(node, true);
 
     const size_t count = node->get_inputs().size() - 1;
@@ -705,7 +705,7 @@ void Workflow::collapse_reroute(data::NodeInstance* node)
     {
         const auto in_pin = node->get_inputs()[i];
         const auto out_pin = node->get_outputs()[i];
-        if (in_pin->is_hidden() || out_pin->is_hidden())
+        if (in_pin->flags().has(PinInstFlags::Hidden) || out_pin->flags().has(PinInstFlags::Hidden))
             continue;
 
         PinInstance* left_pin = nullptr;
@@ -772,7 +772,7 @@ void Workflow::bypass_node(data::NodeInstance* node)
     node = filter_reroute(node);
     m_action->multi_action_on("Bypass");
 
-    if (node->is_cni_reroute_splitted())
+    if (node->flags().has(NodeInstFlags::RerouteSplitted))
         m_action->merge_reroute(node, true);
 
     std::list<std::pair<PinInstance*, PinInstance*>> reroutes;
@@ -860,23 +860,23 @@ void Workflow::prepare_for_api()
     const auto nodes = get_nodes_no_reroutes();
     for (auto node : nodes)
     {
-        bool remove = (node->m_group || node->get_mode() == NodeMode::Mute);
+        bool remove = (node->flags().has(NodeInstFlags::Group) || node->get_mode_mute());
 
-        if (!remove && node->is_cni_reroute())
+        if (!remove && node->flags().has(NodeInstFlags::Reroute))
         {
-            if (node->is_cni_reroute_splitted())
+            if (node->flags().has(NodeInstFlags::RerouteSplitted))
                 merge_reroute_parts(node, true);
             collapse_reroute(node);
             remove = true;
         }
 
-        if (!remove && node->get_mode() == NodeMode::Bypass)
+        if (!remove && node->get_mode_bypass())
         {
             bypass_node(node);
             remove = true;
         }
 
-        if (remove || !node->cni_json_api_should_export())
+        if (remove || node->flags().has(NodeInstFlags::JsonApiDontExport))
         {
             m_action->delete_node(node);
         }
@@ -897,7 +897,7 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
 
     auto* reroute = m_action->add_node(reroute_obj, "", ImRect(pos.x, pos.y, 0, 0));
     LogRAssert(reroute != nullptr, "Reroute node not created", );
-    LogRAssert(reroute->is_cni_reroute(), "Node is not reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", t:" << typeid(reroute).name(), );
+    LogRAssert(reroute->flags().has(NodeInstFlags::Reroute), "Node is not reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", t:" << typeid(reroute).name(), );
 
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedReroute>();
     RoutedPinPair pair;
@@ -933,7 +933,7 @@ void Workflow::reset() noexcept
     {
         node->reset_state();
 
-        if (!node->m_group)
+        if (node->flags().has_not(NodeInstFlags::Group))
             node->reset_width();
     }
 

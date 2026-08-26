@@ -8,8 +8,9 @@ namespace data
 
 template <typename T>
 CNI_NoteBase<T>::CNI_NoteBase(Node* obj, wid workflow_id, iid instance_id) noexcept
-    : CNI_BaseObj_T<T>(obj, workflow_id, instance_id, NodeFlags::NodeFlag_CNI)
+    : CNI_BaseObj_T<T>(obj, workflow_id, instance_id)
 {
+    this->flags().add(NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::BlobCustomSerialization);
 }
 
 template <typename T>
@@ -53,10 +54,9 @@ void CNI_NoteBase<T>::cni_init()
     this->m_deserialized_values.reset();
 
     auto pin = g::pNodesManager->make_pin_ptr(this->get_object(), "STRING", "", -1);
-    pin->multiline = true;
     pin->placeholder = "Put note here";
-    pin->can_link = false;
-    pin->can_rename = false;
+    pin->flags.add(PinObjFlags::Multiline);
+    pin->flags.remove(PinObjFlags::CanRename, PinObjFlags::CanLink, PinObjFlags::CanUnlink);
     auto obj = pin.get();
     this->cni_add_pin(std::move(pin));
 
@@ -90,9 +90,7 @@ std::unique_ptr<Node> CNI_Note::cni_create_object()
     auto node = std::make_unique<data::Node>(cni_get_node_class());
     node->category = "utils";
     node->description = "Node to add annotations to a workflow.";
-    node->can_mute = false;
-    node->can_bypass = false;
-
+    node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
     node->finalize(nullptr);
     return node;
 }
@@ -105,9 +103,7 @@ std::unique_ptr<Node> CNI_MarkdownNote::cni_create_object()
     node->name = node->display_name = markdown_note_name;
     node->category = "utils";
     node->description = "Node to add annotations to a workflow. It supports text formatting using Markdown syntax.";
-    node->can_mute = false;
-    node->can_bypass = false;
-
+    node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
     node->finalize(nullptr);
     return node;
 }

@@ -44,7 +44,7 @@ public:
     WorkflowAction* action() const noexcept { return m_action.get(); }
 
     NodeInstance* add_group(const ImRect& rc, const std::string& name = "");
-    NodeInstance* add_node(Node* node, const ImRect& rc = ImRect(0, 0, 0, 0), const std::string& select = "", iid node_id = 0, iid node_id2 = 0, uint32_t cni_flags = 0);
+    NodeInstance* add_node(Node* node, const ImRect& rc = ImRect(0, 0, 0, 0), const std::string& select = "", iid node_id = 0, iid node_id2 = 0);
     NodeInstance* add_node(const NodeInstance* copy_from_source, bool copy_id);
     NodeInstance* add_group_node();
     NodeInstanceRo* add_node_ro(Node* node);
@@ -109,8 +109,8 @@ private:
     void invalidate_comfyui_objects() override;
     void resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step step) override;
 
-    std::unique_ptr<NodeInstance> create_node(data::Node* node, iid node_id, iid node_id2, uint32_t cni_flags) const;
-    std::unique_ptr<NodeInstanceRo> create_node_ro(data::Node* node, iid node_id, uint32_t cni_flags) const;
+    std::unique_ptr<NodeInstance> create_node(data::Node* node, iid node_id, iid node_id2) const;
+    std::unique_ptr<NodeInstanceRo> create_node_ro(data::Node* node, iid node_id) const;
 
     std::set<data::NodeInstance*> filter_reroutes(const std::set<data::NodeInstance*>& nodes) const;
     data::NodeInstance* filter_reroute(data::NodeInstance* node) const noexcept;

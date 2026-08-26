@@ -8,18 +8,35 @@
 namespace data
 {
 
-template <typename BaseObj>
+template <typename TBaseObj, typename TInstFlags, typename TObjFlags>
 class Instance
 {
 public:
-    Instance(BaseObj* obj, wid workflow_id, iid instance_id) noexcept
+    Instance(TBaseObj* obj, wid workflow_id, iid instance_id) noexcept
         : m_object(obj)
         , m_wid(workflow_id)
         , m_iid(instance_id)
-    {}
+    {
+        if (m_object != nullptr)
+            m_object_flags = &m_object->flags;
+    }
     virtual ~Instance() noexcept = default;
 
     virtual void init() {}
+
+    const ObjectFlags<TInstFlags>& flags() const noexcept { return m_flags; }
+    ObjectFlags<TInstFlags>& flags() noexcept { return m_flags; }
+
+    const ObjectFlags<TObjFlags>& obj_flags() const noexcept
+    {
+        if (m_object_flags != nullptr) [[likely]]
+            return *m_object_flags;
+        LogError("Obj flags should not be called on empty object");
+        static ObjectFlags<TObjFlags> flags;
+        flags.clear();
+        return flags;
+    }
+    ObjectFlags<TObjFlags>& obj_flags() noexcept { return cast::remove_const_ref<ObjectFlags<TObjFlags>>(std::as_const(*this).obj_flags()); }
 
     iid get_instance_id() const noexcept { return m_iid; }
     wid get_workflow_id() const noexcept { return m_wid; }
@@ -31,11 +48,16 @@ public:
 #endif
     void set_workflow_id(wid id) noexcept { m_wid = id; }
 
-    virtual BaseObj* get_object() const noexcept { return m_object; }
-    virtual void set_object(BaseObj* obj) { m_object = obj; }
+    TBaseObj* get_object() const noexcept { return m_object; }
+    bool has_object() const noexcept { return m_object != nullptr; }
 
-    void hide_instance(bool hide) noexcept { m_hidden = hide; }
-    bool is_hidden() const noexcept { return m_hidden; }
+    virtual void set_object(TBaseObj* obj)
+    {
+        m_object = obj;
+        m_object_flags = nullptr;
+        if (m_object != nullptr)
+            m_object_flags = &m_object->flags;
+    }
 
     EdType& ed() noexcept { return m_ed; }
     const EdType& ed() const noexcept { return m_ed; }
@@ -46,9 +68,10 @@ protected:
     iid m_iid = 0;
 
 private:
-    BaseObj* m_object = nullptr;     // base node/pin
+    TBaseObj* m_object = nullptr;     // base node/pin
     EdType m_ed;
-    bool m_hidden = false;
+    ObjectFlags<TInstFlags> m_flags;
+    ObjectFlags<TObjFlags>* m_object_flags = nullptr;
 };
 
 } // namespace data

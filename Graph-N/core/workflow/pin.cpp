@@ -44,23 +44,20 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
 Pin::Pin(Node* node, const std::string& pin_name, bool is_required, bool is_optional/*, bool is_hidden*/)
     : base::HashID(node->node_class + "_IN_" + pin_name)
     , parent_node(node)
-    , input(true)
-    , output(false)
-    , required(is_required)
-    , optional(is_optional)
-    //, hidden(is_hidden)
 {
-    node->has_input = true;
+    flags.set(PinObjFlags::Input, PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::CanRename, PinObjFlags::InputCanBeWidget, PinObjFlags::ClrAlphaEnabled);
+    flags.add_remove_if(PinObjFlags::Required, is_required);
+    flags.add_remove_if(PinObjFlags::Optional, is_optional);
+    node->flags.add(NodeObjFlags::HasInput);
 }
 
 Pin::Pin(Node* node, int32_t pin_index)
     : base::HashID(node->node_class + "_OUT_" + std::to_string(pin_index))
     , parent_node(node)
-    , input(false)
-    , output(true)
     , out_index(pin_index)
 {
-    node->has_output = true;
+    flags.set(PinObjFlags::Output, PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::CanRename);
+    node->flags.add(NodeObjFlags::HasOutput);
 }
 
 Pin::~Pin() noexcept = default;
@@ -140,7 +137,7 @@ void Pin::copy_string(Pin* dest) const
     dest->def = def;
     dest->w_value = 300.0f;
     dest->tooltip = tooltip;
-    dest->multiline = multiline;
+    dest->flags.add_remove_if(PinObjFlags::Multiline, flags.has(PinObjFlags::Multiline));
     dest->placeholder = placeholder;
     def_state.copy_to(dest->def_state);
 }
@@ -170,14 +167,14 @@ void Pin::copy_combo(Pin* dest) const
     dest->step = step;
     dest->w_value = 150.0f;
     dest->tooltip = tooltip;
-    dest->multiselect = multiselect;
+    dest->flags.add_remove_if(PinObjFlags::Multiselect, flags.has(PinObjFlags::Multiselect));
     dest->combo_items = combo_items;
     dest->finalize_combo();
 }
 
 bool Pin::is_widget(const PinState& state) const noexcept
 {
-    return input_can_be_widget && !output && !force_input &&
+    return flags.has(PinObjFlags::InputCanBeWidget) && flags.has_none(PinObjFlags::Output, PinObjFlags::ForceInput) &&
         cast::to_i64(state.type) >= cast::to_i64(PinType::_first_widget) && cast::to_i64(state.type) <= cast::to_i64(PinType::_last_widget);
 }
 
@@ -193,7 +190,7 @@ void Pin::initialize(const std::string& type_as_string)
 {
     def_state.type_str = type_as_string;
     def_state.type = type_str_to_type(type_as_string);
-    type_any = (PinType::ANY == def_state.type);
+    flags.add_remove_if(PinObjFlags::TypeAny, (PinType::ANY == def_state.type));
 
     init_defaults();
     generate_pin_color();
@@ -201,21 +198,26 @@ void Pin::initialize(const std::string& type_as_string)
 
 void Pin::finalize()
 {
+    const auto input = flags.has(PinObjFlags::Input);
+    const auto output = flags.has(PinObjFlags::Output);
+    const auto adv = flags.has(PinObjFlags::Advanced);
+    
     LogAssert(input != output, "Pin can't be input and output at the same time");
-    LogAssert(!(output && advanced), "Output pin can't be advanced");
+    LogAssert(!(output && adv), "Output pin can't be advanced");
 
     if (input)
     {
-        if (display_as_color && display_as_slider)
+        if (flags.has_all(PinObjFlags::DisplAsColor, PinObjFlags::DisplAsSlider))
         {
-            display_as_color = display_as_slider = false;
+            flags.remove(PinObjFlags::DisplAsColor, PinObjFlags::DisplAsSlider);
             LogInvalidJson("Both display_as_color and display_as_slider can't be set");
             LogErrorS("Both display_as_color and display_as_slider can't be set");
         }
-        display_as_number = !(display_as_color || display_as_slider);
+        flags.add_remove_if(PinObjFlags::DisplAsNumber, flags.has_none(PinObjFlags::DisplAsColor, PinObjFlags::DisplAsSlider));
 
-        if (!required && !optional /*&& !hidden*/)
+        if (flags.has_none(PinObjFlags::Required, PinObjFlags::Optional))
         {
+            flags.add(PinObjFlags::Required);
             LogInvalidJson("Unknown pin visibility");
             LogErrorS("Unknown pin visibility");
         }
@@ -253,7 +255,7 @@ void Pin::finalize()
             w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
             break;
         case PinType::COLOR:
-            w_value = (alpha_enabled ? 250.0f : 200.0f);
+            w_value = (flags.has(PinObjFlags::ClrAlphaEnabled) ? 250.0f : 200.0f);
             break;
         case PinType::STRING:
             w_value = 300.0f;
@@ -277,9 +279,8 @@ void Pin::finalize()
     }
 
     // load options
-    auto opt_adv = g::pOptsManager->pin_advanced_load(get_hash());
-    if (opt_adv.has_value())
-        advanced = opt_adv.value();
+    const auto opt_adv = g::pOptsManager->pin_advanced_load(get_hash());
+    flags.add_remove_if(PinObjFlags::Advanced, opt_adv.has_value() && opt_adv.value());
 
     clamp_values();
 }
@@ -290,7 +291,7 @@ void Pin::finalize_int()
     precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
 
     const bool seed = (tools::str::to_lower_ascii(def_state.name).find("seed") != std::string::npos);
-    cag_require = seed;
+    flags.add_remove_if(PinObjFlags::CagRequire, seed);
 
     if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int
     {
@@ -414,7 +415,7 @@ void Pin::finalize_number()
 
 void Pin::finalize_combo()
 {
-    if (cag_pin)
+    if (flags.has(PinObjFlags::CagPin))
     {
         combo_items.clear();
         for (size_t i = 0; i < sizeof(ControlAfterGenerateStr) / sizeof(ControlAfterGenerateStr[0]); i++)
@@ -451,7 +452,7 @@ void Pin::finalize_combo()
         }
     }
 
-    if (cag_pin)
+    if (flags.has(PinObjFlags::CagPin))
         def = cast::to_i64(ControlAfterGenerate::CAGRandomize);
     else
         def = def_state.value;

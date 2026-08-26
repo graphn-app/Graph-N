@@ -202,24 +202,30 @@ constexpr T from_ptr(const void* param) noexcept
 template <typename DEST, typename SRC>
 constexpr DEST* dynamic(SRC* param) noexcept
 {
+    static_assert(std::is_polymorphic_v<SRC>, "Source type must be polymorphic");
+    static_assert(std::is_class_v<DEST>, "Destination type must be a class");
     return dynamic_cast<DEST*>(param);
 }
 
 template <typename DEST, typename SRC>
 constexpr const DEST* dynamic(const SRC* param) noexcept
 {
+    static_assert(std::is_polymorphic_v<SRC>, "Source type must be polymorphic");
+    static_assert(std::is_class_v<DEST>, "Destination type must be a class");
     return dynamic_cast<const DEST*>(param);
 }
 
 template <typename DEST, typename SRC>
 constexpr DEST* strict(SRC* param) noexcept
 {
+    static_assert(std::is_base_of_v<SRC, DEST> || std::is_base_of_v<DEST, SRC>, "Types must be related by inheritance");
     return static_cast<DEST*>(param);
 }
 
 template <typename DEST, typename SRC>
 constexpr const DEST* strict(const SRC* param) noexcept
 {
+    static_assert(std::is_base_of_v<SRC, DEST> || std::is_base_of_v<DEST, SRC>, "Types must be related by inheritance");
     return static_cast<const DEST*>(param);
 }
 
@@ -227,6 +233,12 @@ template <typename TYPE>
 constexpr TYPE* remove_const(const TYPE* type) noexcept
 {
     return const_cast<TYPE*>(type);
+}
+
+template <typename TYPE>
+constexpr TYPE& remove_const_ref(const TYPE& type) noexcept
+{
+    return const_cast<TYPE&>(type);
 }
 
 #define CAST_HELPER(NAME, TYPE) \

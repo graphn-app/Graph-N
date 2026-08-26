@@ -110,7 +110,7 @@ float RoNodeDrawer::draw(data::NodeInstanceRo* node, bool tooltip_mode, float ma
 
     ImGui::Dummy(ImVec2(m_node->w_node, w::v_spacing * 2));
 
-    if (m_node->m_has_widgets)
+    if (m_node->flags().has(NodeInstFlags::HasWidgets))
     {
         // --- WIDGETS ---
 
@@ -120,7 +120,7 @@ float RoNodeDrawer::draw(data::NodeInstanceRo* node, bool tooltip_mode, float ma
         for (auto pin : input)
         {
             auto obj = pin->get_object();
-            if (obj->advanced)
+            if (obj->flags.has(PinObjFlags::Advanced))
                 advanced++;
             else if (obj->is_widget(obj->def_state))
             {
@@ -135,7 +135,7 @@ float RoNodeDrawer::draw(data::NodeInstanceRo* node, bool tooltip_mode, float ma
             for (auto pin : input)
             {
                 auto obj = pin->get_object();
-                if (obj->advanced)
+                if (obj->flags.has(PinObjFlags::Advanced))
                 {
                     ImGui::PushID(pin);
                     draw_input_widget(pin, m_node->w_widget_name, m_node->w_widget_value);
@@ -223,7 +223,7 @@ void RoNodeDrawer::draw_pin_icon(ImU32 color) noexcept
 
 void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
-    if (m_tt_mode || pin->get_object()->cag_pin)
+    if (m_tt_mode || pin->obj_flags().has(PinObjFlags::CagPin))
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro + w::ico_max + w::pin_r_offset);
     }
@@ -232,21 +232,21 @@ void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_w
         auto obj = pin->get_object();
 
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro);
-        ImGui::TextUnformatted(obj->advanced ? ICON_LC_EYE_CLOSED : ICON_LC_EYE);
+        ImGui::TextUnformatted(obj->flags.has(PinObjFlags::Advanced) ? ICON_LC_EYE_CLOSED : ICON_LC_EYE);
 
         const ImVec2 size = ImGui::GetItemRectSize();
         ImGui::SameLine();
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro);
         if (ImGui::InvisibleButton("##pin", size))
         {
-            obj->advanced = !obj->advanced;
-            g::pOptsManager->pin_advanced_save(obj->get_hash(), obj->advanced);
+            obj->flags.toggle(PinObjFlags::Advanced);
+            g::pOptsManager->pin_advanced_save(obj->get_hash(), obj->flags.has(PinObjFlags::Advanced));
 
-            if (obj->cag_require)
+            if (obj->flags.has(PinObjFlags::CagRequire))
             {
-                const auto* cag = m_wf->get_pin_by_instance(pin->state().cag);
-                cag->get_object()->advanced = obj->advanced;
-                g::pOptsManager->pin_advanced_save(cag->get_object()->get_hash(), cag->get_object()->advanced);
+                const auto cag = m_wf->get_pin_by_instance(pin->state().cag);
+                cag->obj_flags().add_remove_if(PinObjFlags::Advanced, obj->flags.has(PinObjFlags::Advanced));
+                g::pOptsManager->pin_advanced_save(cag->get_object()->get_hash(), cag->obj_flags().has(PinObjFlags::Advanced));
             }
         }
         ImGui::SameLine(0, w::pin_r_offset);
@@ -272,7 +272,7 @@ void RoNodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, 
         draw_widget_bool(pin, widget_name_width, widget_value_width);
         break;
     case PinType::STRING:
-        if (pin->get_object()->multiline)
+        if (pin->obj_flags().has(PinObjFlags::Multiline))
             draw_widget_str_ml(pin, widget_name_width, widget_value_width);
         else
             draw_widget_str(pin, widget_name_width, widget_value_width);
@@ -503,7 +503,7 @@ void RoNodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_w
     vec4.to_arr(colors);
     if (ImGui::ColorEdit4("", colors,
         ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop |
-        ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoTooltip | (obj->alpha_enabled ? 0 : ImGuiColorEditFlags_NoAlpha)))
+        ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoTooltip | (obj->flags.has(PinObjFlags::ClrAlphaEnabled) ? 0 : ImGuiColorEditFlags_NoAlpha)))
     {
         state.value = data::Pin::colors_to_int(ImVec4(colors));
     }

@@ -8,7 +8,7 @@ namespace data
 {
 
 PinInstance::PinInstance(NodeInstanceBase* parent_node, Pin* obj, wid workflow_id, iid instance_id) noexcept
-    : Instance<Pin>(obj, workflow_id, instance_id)
+    : Instance<Pin, PinInstFlags, PinObjFlags>(obj, workflow_id, instance_id)
     , m_parent_node(parent_node->get_instance_id())
 {
 }
@@ -17,13 +17,13 @@ PinInstance::~PinInstance() noexcept = default;
 
 void PinInstance::init()
 {
-    Instance<data::Pin>::init();
+    Instance<Pin, PinInstFlags, PinObjFlags>::init();
     get_object()->def_state.copy_to(m_state);
 }
 
 void PinInstance::set_object(Pin* obj)
 {
-    Instance<Pin>::set_object(obj);
+    Instance<Pin, PinInstFlags, PinObjFlags>::set_object(obj);
     get_object()->def_state.copy_to(m_state);
 }
 

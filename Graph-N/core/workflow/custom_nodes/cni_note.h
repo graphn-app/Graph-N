@@ -23,7 +23,6 @@ public:
     bool cni_is_applicable() const noexcept override { return true; }
     void cni_init() override;
     bool cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
-    bool cni_json_api_should_export() const noexcept override { return false; }
 };
 
 

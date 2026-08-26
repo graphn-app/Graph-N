@@ -80,10 +80,10 @@ void WfSerializerToBlob::serialize_cni_node_reroute()
         m_writer.push(in->get_object()->def_state.name);
         m_writer.push(out->get_instance_id());
         m_writer.push(out->get_object()->out_index);
-        m_writer.push(in->is_hidden());
+        m_writer.push(in->flags().has(PinInstFlags::Hidden));
     }
 
-    m_writer.push(m_curr_node->is_cni_reroute_splitted());
+    m_writer.push(m_curr_node->flags().has(NodeInstFlags::RerouteSplitted));
 
     auto reroute = cast::strict<const data::CNI_Reroute>(m_curr_node);
     auto poses = reroute->get_splitted_nodes_poses();

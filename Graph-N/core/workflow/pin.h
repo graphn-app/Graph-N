@@ -89,45 +89,22 @@ public:
 
 public:
     const Node* parent_node = nullptr;
+    ObjectFlags<PinObjFlags> flags;
 
-    bool input = false;
-    bool output = false;
     int32_t out_index = -1;
 
-    bool required = false;
-    bool optional = false;
-    //bool hidden = false;
-
-    bool output_is_list = false;
-    bool force_input = false;
-    bool def_input = false; // TODO
-    bool lazy = false; // TODO
-    bool advanced = false;      // is visible on node
-
-    bool can_link = true;
-    bool can_unlink = true;
-    bool can_rename = true;
-    bool input_can_be_widget = true;
-
-    bool image_upload = false;
-    bool audio_upload = false;
-    bool file_upload = false;
-    bool video_upload = false;
     std::string image_folder;
 
     float w_value = 0.0f;
     std::string tooltip;
 
-    bool type_any = false;
     PinState def_state;
 
     // all
     Primitive def;
 
     // string
-    bool multiline = false;
     std::string placeholder;
-    bool dynamic_prompts = false;
 
     // boolean
     std::string label_on;
@@ -141,9 +118,6 @@ public:
 
     // int, double
     Primitive step;
-    bool display_as_number = false;
-    bool display_as_color = false;
-    bool display_as_slider = false;
 
     // double
     std::optional<double> round;
@@ -152,17 +126,9 @@ public:
     std::string precision_named;
 
     // combo
-    bool multiselect = false;
     std::vector<Primitive> combo_items;
     std::vector<const char*> combo_items_ptr;
     std::vector<std::string> combo_items_str;
-
-    // color
-    bool alpha_enabled = true;
-
-    // control after generate
-    bool cag_require = false;
-    bool cag_pin = false;
 
 private:
     static const std::unordered_map<std::string, PinType> pin_type_map;

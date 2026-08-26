@@ -10,10 +10,10 @@ struct CNI_DeserializedData
     virtual ~CNI_DeserializedData() noexcept = default;
 };
 
-class CNI_Base : public Instance<Node>
+class CNI_Base : public Instance<Node, NodeInstFlags, NodeObjFlags>
 {
 public:
-    using Instance<Node>::Instance;
+    using Instance<Node, NodeInstFlags, NodeObjFlags>::Instance;
     ~CNI_Base() noexcept override = default;
 
     virtual void cni_init() {}
@@ -47,16 +47,6 @@ public:
     virtual void cni_mirror_value_to(const PinInstance* /*src*/, std::vector<PinInstance*>& /*append_pins*/) const { LogRError("Must not be called", ); }
 
     // serialization
-
-    // notify node
-    virtual void cni_deserialilzation_begins() {}
-    virtual void cni_deserialilzation_ends() {}
-
-    // should export node to API json
-    virtual bool cni_json_api_should_export() const noexcept { return true; }
-
-    // JSON export
-    virtual bool cni_json_need_custom_serialization() const noexcept { return false; }
 
     // some deserialized data that should be saved for later use
     void cni_save_deserialized_info(std::unique_ptr<CNI_DeserializedData>&& data) noexcept

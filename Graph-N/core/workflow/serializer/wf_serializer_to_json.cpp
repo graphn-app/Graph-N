@@ -36,7 +36,7 @@ o_json WfSerializerToJson::serialize()
 
     for (auto& node : test_nodes)
     {
-        if (node->is_cni_reroute())
+        if (node->flags().has(NodeInstFlags::Reroute))
         {
             has_reroutes = true;
             break;
@@ -51,9 +51,9 @@ o_json WfSerializerToJson::serialize()
         const auto nodes_copy = m_wf->get_nodes_no_reroutes();
         for (auto node : nodes_copy)
         {
-            if (node->is_cni_reroute())
+            if (node->flags().has(NodeInstFlags::Reroute))
             {
-                if (node->is_cni_reroute_splitted())
+                if (node->flags().has(NodeInstFlags::RerouteSplitted))
                     virt_wf->merge_reroute_parts(node, true);
                 virt_wf->split_reroute_to_parts({ node });
             }
@@ -91,7 +91,7 @@ iid WfSerializerToJson::serialize_nodes()
     const auto nodes = m_wf->get_nodes_no_reroutes();
     for (auto node : nodes)
     {
-        if (node->m_group)
+        if (node->flags().has(NodeInstFlags::Group))
             continue;
 
         m_curr_node = node;
@@ -106,35 +106,26 @@ iid WfSerializerToJson::serialize_nodes()
         if (m_curr_node->get_name() != m_curr_node->get_name_original())
             jn["title"] = m_curr_node->get_name();
 
-        if (!m_curr_node->get_expanded())
+        if (m_curr_node->flags().has_not(NodeInstFlags::Expanded))
             jn["flags"]["collapsed"] = true;
-        if (m_curr_node->get_pinned())
+        if (m_curr_node->flags().has(NodeInstFlags::Pinned))
             jn["flags"]["pinned"] = true;
 
         jn["color"] = color_to_string(m_curr_node->m_clr_head);
         jn["bgcolor"] = color_to_string(m_curr_node->m_clr_node);
 
-        switch (m_curr_node->get_mode())
-        {
-        case NodeMode::OnEvent:
+        if (m_curr_node->flags().has(NodeInstFlags::ModeOnEvent))
             jn["mode"] = 1;
-            break;
-        case NodeMode::Mute:
+        else if (m_curr_node->flags().has(NodeInstFlags::ModeMute))
             jn["mode"] = 2;
-            break;
-        case NodeMode::OnTrigger:
+        else if (m_curr_node->flags().has(NodeInstFlags::ModeOnTrigger))
             jn["mode"] = 3;
-            break;
-        case NodeMode::Bypass:
+        else if (m_curr_node->flags().has(NodeInstFlags::ModeBypass))
             jn["mode"] = 4;
-            break;
-        case NodeMode::Always:
-        default:
+        else
             jn["mode"] = 0;
-            break;
-        }
 
-        if (m_curr_node->cni_json_need_custom_serialization())
+        if (m_curr_node->flags().has(NodeInstFlags::JsonCustomSerialization))
         {
             serialize_cni_node(jn);
         }
@@ -169,7 +160,7 @@ void WfSerializerToJson::serialize_pins(o_json& j)
         if (pin->get_object()->is_widget(pin->state()))
             j["widget"]["name"] = pin->get_object()->def_state.name;
 
-        if (pin->get_object()->input)
+        if (pin->obj_flags().has(PinObjFlags::Input))
         {
             if (0 == pin->state().links)
                 j["link"] = nullptr;
@@ -185,7 +176,7 @@ void WfSerializerToJson::serialize_pins(o_json& j)
                 }
             }
         }
-        else if (pin->get_object()->output)
+        else if (pin->obj_flags().has(PinObjFlags::Output))
         {
             if (0 == pin->state().links)
                 j["links"] = nullptr;
@@ -201,6 +192,10 @@ void WfSerializerToJson::serialize_pins(o_json& j)
                 }
             }
         }
+        else [[unlikely]]
+        {
+            LogError("Unknown pin direction");
+        }
 
         return j;
     };
@@ -208,7 +203,7 @@ void WfSerializerToJson::serialize_pins(o_json& j)
     auto jarr = o_json::array();
     for (auto& pin : m_curr_node->get_inputs())
     {
-        if (pin->get_object()->cag_pin)
+        if (pin->obj_flags().has(PinObjFlags::CagPin))
             continue;
 
         jarr.push_back(serialize_pin(pin));
@@ -278,7 +273,7 @@ iid WfSerializerToJson::serialize_links()
         const auto& pins = (in ? node->get_inputs() : node->get_outputs());
         for (auto pin : pins)
         {
-            if (pin->get_object()->cag_pin)
+            if (pin->obj_flags().has(PinObjFlags::CagPin))
                 continue;
             if (pin->get_instance_id() == pin_id)
             {
@@ -319,15 +314,15 @@ void WfSerializerToJson::serialize_groups()
     auto jarr = o_json::array();
     for (auto& node : m_wf->get_nodes_all())
     {
-        if (!node->m_group)
+        if (node->flags().has_not(NodeInstFlags::Group))
             continue;
 
         o_json jg;
         jg["id"] = node->get_instance_id();
         jg["title"] = node->get_name();
         jg["color"] = color_to_string(node->m_clr_group);
-        if (node->get_pinned())
-            jg["flags"]["pinned"] = node->get_pinned();
+        if (node->flags().has(NodeInstFlags::Pinned))
+            jg["flags"]["pinned"] = true;
         jg["bounding"] = { node->m_rc.Min.x, node->m_rc.Min.y, node->m_rc.Max.x, node->m_rc.Max.y };
 
         jarr.push_back(std::move(jg));

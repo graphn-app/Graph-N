@@ -55,7 +55,7 @@ public:
 
     void set_node_expanded(data::NodeInstance* node, bool expanded);
     void set_node_pinning(data::NodeInstance* node, bool pin);
-    void set_node_mode(data::NodeInstance* node, NodeMode mode);
+    void set_node_mode(data::NodeInstance* node, NodeInstFlags mode);
 
     void begin_nodes_move(const std::set<data::NodeInstance*>& nodes);
     void end_nodes_move(bool cancel);

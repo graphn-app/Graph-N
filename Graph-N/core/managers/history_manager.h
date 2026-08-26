@@ -23,7 +23,7 @@ struct HRerouteSplitted
     bool splitted = true;
 };
 // !! types order must remain the same due to serialization
-using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, NodeMode /*mode*/, bool /*pinning*/, ImRect /*pos*/, Primitive /*pin val*/, HRerouteSplitted>;
+using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, uint64_t /*flags*/, ImRect /*pos*/, Primitive /*pin val*/, HRerouteSplitted>;
 
 enum class HistoryActionType
 {

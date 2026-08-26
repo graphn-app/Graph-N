@@ -414,20 +414,6 @@ enum class ConnectState
     Connected,
 };
 
-enum class NodeMode
-{
-    _none,
-
-    Always = _none,
-    OnEvent,
-    Mute,
-    OnTrigger,
-    Bypass,
-
-    _first = Always,
-    _last = Bypass
-};
-
 // keep order in sync with the 'texts' array in OptRightPane::show_keys
 // check ui_hotkey_is_skipped
 enum class KeyTarget 

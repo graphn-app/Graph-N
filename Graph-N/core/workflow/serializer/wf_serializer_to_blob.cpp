@@ -71,24 +71,21 @@ void WfSerializerToBlob::serialize_node()
 
     blob::Block block(m_writer);
     m_writer
-        .push(m_curr_node->m_group ? 0 : m_curr_node->get_object()->get_hash())
+        .push(m_curr_node->flags().has(NodeInstFlags::Group) ? 0 : m_curr_node->get_object()->get_hash())
         .push(m_curr_node->get_instance_id())
-        .push(m_curr_node->m_group ? "" : m_curr_node->get_object()->node_class)
+        .push(m_curr_node->flags().has(NodeInstFlags::Group) ? "" : m_curr_node->get_object()->node_class)
         .push(m_curr_node->get_name())
         .push(m_curr_node->m_rc)
         .push(m_curr_node->m_clr_node)
         .push(m_curr_node->m_clr_group)
         .push(m_curr_node->m_clr_head)
         .push(m_curr_node->m_clr_group_capt)
-        .push(m_curr_node->m_group)
-        .push(m_curr_node->m_show_hidden)
-        .push(m_curr_node->get_expanded())
-        .push(m_curr_node->get_pinned())
-        .push(cast::to_u32(m_curr_node->get_mode()))
+        .push(m_curr_node->flags().get_by_mask(NodeInstFlags::Group, NodeInstFlags::ShowHidden, NodeInstFlags::Expanded, NodeInstFlags::Pinned))
+        .push(m_curr_node->flags().get_by_mask(g_node_inst_all_modes_mask))
     ;
     block.end();
 
-    if (m_curr_node->is_cni_node())
+    if (m_curr_node->flags().has(NodeInstFlags::BlobCustomSerialization))
     {
         serialize_cni_node();
         return;
@@ -140,7 +137,7 @@ void WfSerializerToBlob::serialize_pin()
 
         .push(m_curr_pin->state().value)
         .push(m_curr_pin->state().cag)
-        .push(m_curr_pin->get_object()->cag_require)
+        .push(m_curr_pin->obj_flags().has(PinObjFlags::CagRequire))
     ;
 }
 
@@ -158,14 +155,14 @@ void WfSerializerToBlob::serialize_node_definition()
 {
     blob::Block block(m_writer);
 
-    m_writer.push(m_curr_node->m_group);
-    if (m_curr_node->m_group)
+    m_writer.push(m_curr_node->flags().has(NodeInstFlags::Group));
+    if (m_curr_node->flags().has(NodeInstFlags::Group))
         return;
 
-    m_writer.push(m_curr_node->is_cni_node());
+    m_writer.push(m_curr_node->flags().has(NodeInstFlags::CNI));
     m_writer.push(m_curr_node->get_object()->node_class);
 
-    if (m_curr_node->is_cni_node())
+    if (m_curr_node->flags().has(NodeInstFlags::BlobCustomSerialization))
     {
         serialize_cni_node_definition();
         return;

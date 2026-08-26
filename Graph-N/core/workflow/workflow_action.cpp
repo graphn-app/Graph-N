@@ -59,10 +59,10 @@ data::NodeInstance* WorkflowAction::add_group(std::optional<ImRect> size)
 void WorkflowAction::split_reroute(data::NodeInstance* reroute_node)
 {
     LogRAssert(reroute_node, "Zero ptr", );
-    LogRAssert(reroute_node->is_cni_reroute(), "Node is not reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
-    LogRAssert(!reroute_node->is_cni_reroute_splitted(), "Reroute already splitted. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id(), );
+    LogRAssert(reroute_node->flags().has(NodeInstFlags::Reroute), "Node is not reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
+    LogRAssert(reroute_node->flags().has_not(NodeInstFlags::RerouteSplitted), "Reroute already splitted. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id(), );
 
-    const mngr::HRerouteSplitted data = { cast::strict<data::CNI_Reroute>(reroute_node)->get_splitted_nodes_poses(), reroute_node->is_cni_reroute_splitted() };
+    const mngr::HRerouteSplitted data = { cast::strict<data::CNI_Reroute>(reroute_node)->get_splitted_nodes_poses(), reroute_node->flags().has(NodeInstFlags::RerouteSplitted) };
     cast::strict<data::CNI_Reroute>(reroute_node)->split_to_parts();
     g::pHistoryManager->push_node_action(reroute_node, mngr::HistoryActionType::NodeRerouteSplit, mngr::HActionT(data));
 }
@@ -70,10 +70,9 @@ void WorkflowAction::split_reroute(data::NodeInstance* reroute_node)
 void WorkflowAction::merge_reroute(data::NodeInstance* reroute_node, bool to_left)
 {
     LogRAssert(reroute_node, "Zero ptr", );
-    LogRAssert(reroute_node->is_cni_reroute(), "Node is not reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
-    LogRAssert(reroute_node->is_cni_reroute_splitted(), "Reroute wasn't splitted. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id(), );
+    LogRAssert(reroute_node->flags().has_all(NodeInstFlags::Reroute, NodeInstFlags::RerouteSplitted), "Node is not splitted reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
 
-    const mngr::HRerouteSplitted data = { cast::strict<data::CNI_Reroute>(reroute_node)->get_splitted_nodes_poses(), reroute_node->is_cni_reroute_splitted() };
+    const mngr::HRerouteSplitted data = { cast::strict<data::CNI_Reroute>(reroute_node)->get_splitted_nodes_poses(), reroute_node->flags().has(NodeInstFlags::RerouteSplitted) };
     cast::strict<data::CNI_Reroute>(reroute_node)->merge_parts(to_left);
     g::pHistoryManager->push_node_action(reroute_node, mngr::HistoryActionType::NodeRerouteSplit, mngr::HActionT(data));
 }
@@ -91,16 +90,16 @@ void WorkflowAction::delete_node(data::NodeInstance* node)
         m_drawer->delete_node(node);
     node->ed().reset();
 
-    if (node->is_cni_reroute_splitted_r())
+    if (node->flags().has(NodeInstFlags::RerouteSplitted_R))
     {
-        if (node->is_cni_reroute_splitted())
+        if (node->flags().has(NodeInstFlags::RerouteSplitted))
             merge_reroute(node, true);
         return;
     }
 
-    multi_action_on(node->m_group ? "Remove group" : "Remove node");
+    multi_action_on(node->flags().has(NodeInstFlags::Group) ? "Remove group" : "Remove node");
 
-    if (node->is_cni_reroute_splitted())
+    if (node->flags().has(NodeInstFlags::RerouteSplitted))
         merge_reroute(node, true);
 
     m_wf->bypass_node(node);
@@ -153,13 +152,13 @@ data::Link* WorkflowAction::link(data::PinInstance* p1, data::PinInstance* p2, i
     g::pHistoryManager->push_link_action(link, mngr::HistoryActionType::LinkAdd);
     if (p1->state().type == p2->state().type)
     {
-        if (p1->get_object()->input && data::Pin::is_primitive_type(p1->state().type))
+        if (p1->obj_flags().has(PinObjFlags::Input) && data::Pin::is_primitive_type(p1->state().type))
         {
             auto old = p1->state().value;
             p1->state().value = p2->state().value;
             set_pin_val(p1, std::move(old));
         }
-        else if (p2->get_object()->input && data::Pin::is_primitive_type(p2->state().type))
+        else if (p2->obj_flags().has(PinObjFlags::Input) && data::Pin::is_primitive_type(p2->state().type))
         {
             auto old = p2->state().value;
             p2->state().value = p1->state().value;
@@ -219,7 +218,7 @@ void WorkflowAction::set_node_color(data::NodeInstance* node, ImU32 color)
 {
     LogRAssert(node, "Zero ptr", );
     ImU32 old_clr = 0, new_clr = 0;
-    if (node->m_group)
+    if (node->flags().has(NodeInstFlags::Group))
     {
         old_clr = node->m_clr_group;
         node->set_group_color(ImGui::ColorConvertU32ToFloat4(color));
@@ -242,7 +241,7 @@ void WorkflowAction::reset_node_color(data::NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
     ImU32 old_clr = 0, new_clr = 0;
-    if (node->m_group)
+    if (node->flags().has(NodeInstFlags::Group))
     {
         old_clr = node->m_clr_group;
         node->reset_to_default_colors();
@@ -270,9 +269,9 @@ void WorkflowAction::set_node_name(data::NodeInstance* node, const std::string& 
         return;
 
     node->set_name(new_name);
-    if (!node->m_group)
+    if (node->flags().has_not(NodeInstFlags::Group))
     {
-        node->m_ignore_size_on_frame_end = true;
+        node->flags().add(NodeInstFlags::IgnoreSizeOnFrameEnd);
         node->reset_width();
     }
 
@@ -293,9 +292,9 @@ bool WorkflowAction::set_node_rect(data::NodeInstance* node, const ImRect& rect)
         return false;
 
     node->m_rc = rect;
-    node->m_pos_set = false;
-    if (node->m_group)
-        node->m_size_set = false;
+    node->flags().remove(NodeInstFlags::PosSet);
+    if (node->flags().has(NodeInstFlags::Group))
+        node->flags().remove(NodeInstFlags::SizeSet);
 
     g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeRect, mngr::HActionT(old_rc));
     return true;
@@ -316,35 +315,40 @@ void WorkflowAction::reset_node_size(data::NodeInstance* node)
 void WorkflowAction::set_node_expanded(data::NodeInstance* node, bool expanded)
 {
     LogRAssert(node, "Zero ptr", );
-    if (node->get_expanded() == expanded)
+    if (node->flags().has(NodeInstFlags::Expanded) == expanded)
         return;
     if (m_drawer != nullptr && !expanded)
         m_drawer->handle_node_collapsing(node);
-    node->expand(expanded);
-    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeExpand, mngr::HActionT(!expanded));
+    const uint64_t old_mode = node->flags().get_by_mask(NodeInstFlags::Expanded);
+    node->expand_node(expanded);
+    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeExpand, mngr::HActionT(old_mode));
 }
 
 void WorkflowAction::set_node_pinning(data::NodeInstance* node, bool pin)
 {
     LogRAssert(node, "Zero ptr", );
-    if (node->get_pinned() == pin)
+    if (node->flags().has(NodeInstFlags::Pinned) == pin)
         return;
-    node->pin(pin);
+    const uint64_t old_mode = node->flags().get_by_mask(NodeInstFlags::Pinned);
+    node->pin_node(pin);
     if (m_drawer != nullptr)
-        m_drawer->pin_node(node->ed(), node->get_pinned());
-    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodePin, mngr::HActionT(!pin));
+        m_drawer->pin_node(node->ed(), node->flags().has(NodeInstFlags::Pinned));    
+    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodePin, mngr::HActionT(old_mode));
 }
 
-void WorkflowAction::set_node_mode(data::NodeInstance* node, NodeMode mode)
+void WorkflowAction::set_node_mode(data::NodeInstance* node, NodeInstFlags mode)
 {
     LogRAssert(node, "Zero ptr", );
-    if (NodeMode::Bypass == mode && !node->get_object()->can_bypass)
+    LogRAssert(g_node_inst_all_modes_mask.has(mode), "Invalid mode passed", );
+
+    if (node->flags().has(mode))
         return;
-    if (NodeMode::Mute == mode && !node->get_object()->can_mute)
+    if (NodeInstFlags::ModeBypass == mode && node->obj_flags().has_not(NodeObjFlags::CanBypass))
         return;
-    const auto old_mode = node->get_mode();
-    if (old_mode == mode)
+    if (ObjectFlags<NodeInstFlags>::is_one_of(mode, NodeInstFlags::ModeMute, NodeInstFlags::ModeOnEvent, NodeInstFlags::ModeOnTrigger) && node->obj_flags().has_not(NodeObjFlags::CanMute))
         return;
+
+    const uint64_t old_mode = node->flags().get_by_mask(g_node_inst_all_modes_mask);
     node->set_mode(mode);
     g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeMode, mngr::HActionT(old_mode));
 }
@@ -389,7 +393,7 @@ void WorkflowAction::set_pin_name(data::PinInstance* pin, const std::string& nam
     
     auto node = m_wf->get_node_by_instance(pin->get_parent_node());
     node->reset_width();
-    node->m_ignore_size_on_frame_end = true;
+    node->flags().add(NodeInstFlags::IgnoreSizeOnFrameEnd);
 
     g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinRen, mngr::HActionT(std::move(old_name)));
 }
@@ -445,7 +449,7 @@ void WorkflowAction::mirror_pin_value(data::PinInstance* pin)
     LogRAssert(pin, "Zero ptr", );
     const auto* wf = g::pWfsManager->access(pin->get_workflow_id());
     const auto* node = wf->get_node_by_instance(pin->get_parent_node());
-    if (!node->is_cni_node()) [[likely]]
+    if (node->flags().has_not(NodeInstFlags::CNI)) [[likely]]
         return;
 
     std::vector<PinInstance*> mirrored_pins;
@@ -459,7 +463,7 @@ void WorkflowAction::mirror_pin_value(data::PinInstance* pin)
         set_pin_val(dest_pin, std::move(old));
 
         node = wf->get_node_by_instance(dest_pin->get_parent_node()); 
-        if (node->is_cni_node())
+        if (node->flags().has(NodeInstFlags::CNI))
             node->cni_mirror_value_to(dest_pin, mirrored_pins);
     }
 }

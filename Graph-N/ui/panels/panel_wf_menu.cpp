@@ -58,7 +58,7 @@ bool PanelWorkflow::context_menu_handler()
         if (pin != nullptr)
         {
             const auto parent = m_wf->get_node_by_instance(pin->get_parent_node());
-            if (parent->get_expanded() && !parent->get_object()->is_dummy)
+            if (parent->flags().has(NodeInstFlags::Expanded) && parent->obj_flags().has_not(NodeObjFlags::Dummy))
             {
                 m_handle_context_menu = true;
                 m_menu_objs = {};
@@ -112,18 +112,18 @@ bool PanelWorkflow::context_menu_handler()
                 m_drawer.select_node(node->ed(), false);
                 nodes = m_drawer.get_selected_nodes(false);
 
-                if (node->m_group)
+                if (node->flags().has(NodeInstFlags::Group))
                     m_menu_objs.groups.insert({ node, m_drawer.get_nodes_in_group(node, m_wf->get_nodes_all()) });
                 else
                     m_menu_objs.nodes.insert(node);
-                m_context_menu_type = node->m_group ? MenuType::Group : MenuType::Node;
-                Log((node->m_group ? "Group" : "Node") << " menu initiated");
+                m_context_menu_type = node->flags().has(NodeInstFlags::Group) ? MenuType::Group : MenuType::Node;
+                Log((node->flags().has(NodeInstFlags::Group) ? "Group" : "Node") << " menu initialized");
             }
             else
             {
                 for (auto node_it : nodes)
                 {
-                    if (node_it->m_group)
+                    if (node_it->flags().has(NodeInstFlags::Group))
                     {
                         m_menu_objs.groups.insert({ node_it, m_drawer.get_nodes_in_group(node_it, m_wf->get_nodes_all()) });
                     }
@@ -293,7 +293,7 @@ bool PanelWorkflow::show_canvas_menu()
     }
     if (ImGui::MenuItem("Select all", g::pHotkeysManager->get_key_binding_name(KeyTarget::Workspace_SelAll)))
     {
-        m_drawer.select_node(EdType(false), false);
+        m_drawer.clear_selection();
         for (auto& node : m_wf->get_nodes_all())
         {
             m_drawer.select_node(node->ed(), true);
@@ -331,12 +331,12 @@ bool PanelWorkflow::show_node_menu()
     bool close = false;
     auto node = *m_menu_objs.nodes.begin();
 
-    if (ImGui::MenuItem("Rename", nullptr, nullptr, !node->get_object()->is_dummy && node->get_object()->can_rename))
+    if (ImGui::MenuItem("Rename", nullptr, nullptr, node->obj_flags().has_and_has_not(NodeObjFlags::CanRename, NodeObjFlags::Dummy)))
     {
         m_drawer.rename_node(node);
         close = true;
     }
-    if (!node->get_object()->is_dummy && node->get_name() != node->get_name_original())
+    if (node->obj_flags().has_not(NodeObjFlags::Dummy) && node->get_name() != node->get_name_original())
     {
         if (ImGui::MenuItem("Reset node name"))
         {
@@ -350,14 +350,14 @@ bool PanelWorkflow::show_node_menu()
     //    node->reset_width();
     //    close = true;
     //}
-    if (ImGui::MenuItem(node->get_pinned() ? "Unpin" : "Pin", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Pin)))
+    if (ImGui::MenuItem(node->flags().has(NodeInstFlags::Pinned) ? "Unpin" : "Pin", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Pin)))
     {
-        m_action->set_node_pinning(node, !node->get_pinned());
+        m_action->set_node_pinning(node, node->flags().has_not(NodeInstFlags::Pinned));
         close = true;
     }
-    if (ImGui::MenuItem(node->get_expanded() ? "Collapse" : "Expand", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Collapse)))
+    if (ImGui::MenuItem(node->flags().has(NodeInstFlags::Expanded) ? "Collapse" : "Expand", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Collapse)))
     {
-        m_action->set_node_expanded(node, !node->get_expanded());
+        m_action->set_node_expanded(node, node->flags().has_not(NodeInstFlags::Expanded));
         close = true;
     }
     if (ImGui::MenuItem("Group", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Group)))
@@ -366,19 +366,19 @@ bool PanelWorkflow::show_node_menu()
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Always", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Always), node->get_mode() == NodeMode::Always, !node->get_object()->is_dummy))
+    if (ImGui::MenuItem("Always", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Always), node->get_mode_always(), node->obj_flags().has_not(NodeObjFlags::Dummy)))
     {
-        m_action->set_node_mode(node, NodeMode::Always);
+        m_action->set_node_mode(node, NodeInstFlags::ModeAlways);
         close = true;
     }
-    if (ImGui::MenuItem("Bypass", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Bypass), node->get_mode() == NodeMode::Bypass, node->get_object()->can_bypass && !node->get_object()->is_dummy))
+    if (ImGui::MenuItem("Bypass", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Bypass), node->get_mode_bypass(), node->obj_flags().has_and_has_not(NodeObjFlags::CanBypass, NodeObjFlags::Dummy)))
     {
-        m_action->set_node_mode(node, NodeMode::Bypass);
+        m_action->set_node_mode(node, NodeInstFlags::ModeBypass);
         close = true;
     }
-    if (ImGui::MenuItem("Mute", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Mute), node->get_mode() == NodeMode::Mute || node->get_mode() == NodeMode::OnTrigger || node->get_mode() == NodeMode::OnEvent, node->get_object()->can_mute && !node->get_object()->is_dummy))
+    if (ImGui::MenuItem("Mute", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Mute), node->get_mode_mute(), node->obj_flags().has_and_has_not(NodeObjFlags::CanMute, NodeObjFlags::Dummy)))
     {
-        m_action->set_node_mode(node, NodeMode::Mute);
+        m_action->set_node_mode(node, NodeInstFlags::ModeMute);
         close = true;
     }
     ImGui::Separator();
@@ -389,21 +389,21 @@ bool PanelWorkflow::show_node_menu()
         create_toolbar();
         return close;
     }
-    if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy), nullptr, !node->get_object()->is_dummy))
+    if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy), nullptr, node->obj_flags().has_not(NodeObjFlags::Dummy)))
     {
         copy_nodes({ node }, {});
         close = true;
     }
     ImGui::Separator();
 
-    if (node->is_cni_reroute())
+    if (node->flags().has(NodeInstFlags::Reroute))
     {
-        if (ImGui::MenuItem("Separate Reroute", nullptr, nullptr, !node->get_object()->is_dummy && node->get_inputs().size() > 2))
+        if (ImGui::MenuItem("Separate Reroute", nullptr, nullptr, node->obj_flags().has_not(NodeObjFlags::Dummy) && node->get_inputs().size() > 2))
         {
             separate_reroutes(m_menu_objs.nodes);
             close = true;
         }
-        if (node->is_cni_reroute_splitted())
+        if (node->flags().has(NodeInstFlags::RerouteSplitted))
         {
             if (ImGui::MenuItem("Merge Pair"))
             {
@@ -471,7 +471,7 @@ bool PanelWorkflow::show_group_menu()
         }
         if (ImGui::MenuItem("Select nodes"))
         {
-            m_drawer.select_node(EdType(false), false);
+            m_drawer.clear_selection();
             for (auto node : nodes)
             {
                 m_drawer.select_node(node->ed(), true);
@@ -630,8 +630,8 @@ bool PanelWorkflow::show_multinode_menu()
         m_action->multi_action_on("Always mode");
         for (auto node : m_menu_objs.nodes)
         {
-            if (!node->get_object()->is_dummy)
-                m_action->set_node_mode(node, NodeMode::Always);
+            if (node->obj_flags().has_not(NodeObjFlags::Dummy))
+                m_action->set_node_mode(node, NodeInstFlags::ModeAlways);
         }
         m_action->multi_action_off();
         close = true;
@@ -641,8 +641,8 @@ bool PanelWorkflow::show_multinode_menu()
         m_action->multi_action_on("Bypass");
         for (auto node : m_menu_objs.nodes)
         {
-            if (!node->get_object()->is_dummy)
-                m_action->set_node_mode(node, NodeMode::Bypass);
+            if (node->obj_flags().has_not(NodeObjFlags::Dummy))
+                m_action->set_node_mode(node, NodeInstFlags::ModeBypass);
         }
         m_action->multi_action_off();
         close = true;
@@ -652,8 +652,8 @@ bool PanelWorkflow::show_multinode_menu()
         m_action->multi_action_on("Mute");
         for (auto node : m_menu_objs.nodes)
         {
-            if (!node->get_object()->is_dummy)
-                m_action->set_node_mode(node, NodeMode::Mute);
+            if (node->obj_flags().has_not(NodeObjFlags::Dummy))
+                m_action->set_node_mode(node, NodeInstFlags::ModeMute);
         }
         m_action->multi_action_off();
         close = true;
@@ -663,7 +663,7 @@ bool PanelWorkflow::show_multinode_menu()
     bool all_reroutes = true;
     for (auto node : m_menu_objs.nodes)
     {
-        if (!node->is_cni_reroute())
+        if (node->flags().has_not(NodeInstFlags::Reroute))
         {
             all_reroutes = false;
             break;
@@ -853,7 +853,7 @@ bool PanelWorkflow::show_multiobj_menu()
         std::set<data::NodeInstance*> objs;
         for (auto node : m_menu_objs.nodes)
         {
-            if (!node->get_object()->is_dummy)
+            if (node->obj_flags().has_not(NodeObjFlags::Dummy))
                 objs.insert(node);
         }
         for (auto& group : m_menu_objs.groups)
@@ -918,9 +918,9 @@ bool PanelWorkflow::show_pin_menu()
     const bool linked = (pin->state().links > 0);
     const bool is_widget = pin->get_object()->is_widget(pin->state());
     const bool name_eq = (pin->state().name == pin->get_object()->def_state.name);
-    const bool can_rename = pin->get_object()->can_rename;
+    const bool can_rename = pin->obj_flags().has(PinObjFlags::CanRename);
 
-    if (ImGui::MenuItem("Unlink", nullptr, nullptr, linked && pin->get_object()->can_unlink))
+    if (ImGui::MenuItem("Unlink", nullptr, nullptr, linked && pin->obj_flags().has(PinObjFlags::CanUnlink)))
     {
         m_action->unlink(pin); // pin might be destroyed here
         close = true;
@@ -944,7 +944,7 @@ bool PanelWorkflow::show_link_menu()
 {
     bool close = false;
     const auto link = *m_menu_objs.links.begin();
-    const bool can_unlink = (link->get_input()->get_object()->can_unlink && link->get_output()->get_object()->can_unlink);
+    const bool can_unlink = (link->get_input()->obj_flags().has(PinObjFlags::CanUnlink) && link->get_output()->obj_flags().has(PinObjFlags::CanUnlink));
 
     if (ImGui::MenuItem("Unlink", nullptr, nullptr, can_unlink))
     {
@@ -995,9 +995,9 @@ bool PanelWorkflow::show_new_node_menu()
 
     bool close = false;
 
-    const bool input = pin_inst->get_object()->input;
-    const auto input_filter = input ? std::list<PinType>{ PinType::_none } : node_inst->get_supported_pin_types(pin_inst);
-    const auto output_filter = input ? node_inst->get_supported_pin_types(pin_inst) : std::list<PinType>{ PinType::_none };
+    const bool is_input = pin_inst->obj_flags().has(PinObjFlags::Input);
+    const auto input_filter = is_input ? std::list<PinType>{ PinType::_none } : node_inst->get_supported_pin_types(pin_inst);
+    const auto output_filter = is_input ? node_inst->get_supported_pin_types(pin_inst) : std::list<PinType>{ PinType::_none };
     const auto node = show_nodes_menu(input_filter, output_filter);
     if (node != nullptr)
     {
@@ -1005,11 +1005,11 @@ bool PanelWorkflow::show_new_node_menu()
         close = true;
         bool linked = false;
         const auto* inst = m_action->add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
-        const auto& oppo = input ? inst->get_outputs() : inst->get_inputs();
-        const auto& filter = input ? output_filter : input_filter;
+        const auto& oppo = is_input ? inst->get_outputs() : inst->get_inputs();
+        const auto& filter = is_input ? output_filter : input_filter;
         if (PinType::ANY == filter.front() && !oppo.empty())
         {
-            if (pin_inst->state().links > 0 && pin_inst->get_object()->input)
+            if (pin_inst->state().links > 0 && is_input)
                 m_action->unlink(pin_inst);
             m_action->link(*oppo.begin(), pin_inst);
             linked = true;
@@ -1020,7 +1020,7 @@ bool PanelWorkflow::show_new_node_menu()
             {
                 if (std::ranges::find_if(filter, [type = pin->state().type](PinType filter) { return filter == type; }) != filter.end())
                 {
-                    if (pin_inst->state().links > 0 && pin_inst->get_object()->input)
+                    if (pin_inst->state().links > 0 && is_input)
                         m_action->unlink(pin_inst);
 
                     m_action->link(pin, pin_inst);
@@ -1033,9 +1033,9 @@ bool PanelWorkflow::show_new_node_menu()
         {
             for (auto pin : oppo)
             {
-                if (pin->get_object()->type_any)
+                if (pin->obj_flags().has(PinObjFlags::TypeAny))
                 {
-                    if (pin_inst->state().links > 0 && pin_inst->get_object()->input)
+                    if (pin_inst->state().links > 0 && is_input)
                         m_action->unlink(pin_inst);
 
                     m_action->link(pin, pin_inst);

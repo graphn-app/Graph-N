@@ -9,6 +9,7 @@ Node::Node(const std::string& class_name)
     : base::HashID(class_name)
 {
     name = node_class = display_name = class_name;
+    flags.set(NodeObjFlags::CanBypass, NodeObjFlags::CanMute, NodeObjFlags::CanRename);
 }
 
 Node::~Node() noexcept = default;
@@ -18,7 +19,7 @@ void Node::finalize(std::unordered_map<std::string, std::list<hid>>* models_map)
     w_name = ImGui::CalcTextSize(display_name.empty() ? name.c_str() : display_name.c_str()).x;
 
     if (input.empty() || output.empty())
-        can_bypass = false;
+        flags.remove(NodeObjFlags::CanBypass);
 
     if (nullptr == models_map)
         return;
