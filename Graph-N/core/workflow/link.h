@@ -24,11 +24,13 @@ public:
     void set_link_thickness(float thickness) noexcept { m_link_thickness = thickness; }
 
     iid get_instance_id() const noexcept { return m_iid; }
-#ifdef _DEBUG
-    void set_instance_id(iid id) noexcept { m_iid = id; auto wf = g::pWfsManager->access(m_workflow_id); wf->test_duplicates(); }
-#else
-    void set_instance_id(iid id) noexcept { m_iid = id; }
-#endif
+    void set_instance_id(iid id)
+    {
+        m_iid = id;
+        auto wf = g::pWfsManager->access(m_workflow_id);
+        wf->set_last_child_id(id);
+        wf->test_duplicates();
+    }
 
     wid get_workflow_id() const noexcept { return m_workflow_id; }
 

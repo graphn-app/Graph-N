@@ -1589,10 +1589,13 @@ bool NodeDrawer::is_node_selected(const EdType& node) const noexcept
 
 void NodeDrawer::select_node(const EdType& node, bool append_to_selection) const noexcept
 {
-    if (node.has_id())
-        ed::SelectNode(node, append_to_selection);
-    else
-        ed::ClearSelection();
+    LogRAssert(node.has_id(), "Node has no id", );
+    ed::SelectNode(node, append_to_selection);
+}
+
+void NodeDrawer::clear_selection() noexcept
+{
+    ed::ClearSelection();
 }
 
 std::set<data::Link*> NodeDrawer::get_selected_links() const
@@ -1618,11 +1621,6 @@ void NodeDrawer::select_link(const EdType& link, bool append_to_selection) const
         ed::SelectLink(link, append_to_selection);
     else
         ed::ClearSelection();
-}
-
-void NodeDrawer::clear_selection() noexcept
-{
-    ed::ClearSelection();
 }
 
 std::set<data::NodeInstance*> NodeDrawer::get_nodes_in_group(const data::NodeInstance* group, const std::vector<std::unique_ptr<data::NodeInstance>>& all_nodes) const

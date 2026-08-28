@@ -197,7 +197,10 @@ bool CNI_Reroute::cni_copy_from(const NodeInstance* copy_from_node, bool copy_pi
     {
         reroute_data->splitted = true;
         reroute_data->poses = reroute->get_splitted_nodes_poses();
-        reroute->get_splitters(reroute_data->splitted_node, reroute_data->splitter_in, reroute_data->splitter_out, reroute_data->splitter_link);
+        if (copy_pin_ids)
+            reroute->get_splitters(reroute_data->splitted_node, reroute_data->splitter_in, reroute_data->splitter_out, reroute_data->splitter_link);
+        else
+            reroute_data->splitted_node = reroute_data->splitter_in = reroute_data->splitter_out = reroute_data->splitter_link = 0;
     }
 
     cni_save_deserialized_info(std::move(data));

@@ -27,12 +27,6 @@ public:
     Workflow(mngr::WfData&& data);
     ~Workflow() noexcept;
 
-#ifdef _DEBUG
-    void test_duplicates() const;
-#else
-    void test_duplicates() const {}
-#endif
-
     void init();
 
     const std::string& get_uuid() const noexcept { return m_wf_data.uuid; }
@@ -97,11 +91,17 @@ public:
 
     iid get_new_child_id() noexcept { return ++m_last_child_id; }
     iid get_last_child_id() const noexcept { return m_last_child_id; }
-    void set_last_child_id(iid id) noexcept { m_last_child_id = id; }
+    void set_last_child_id(iid id) noexcept { m_last_child_id = std::max(id, m_last_child_id); }
 
     data::NodeInstance* ed_get_node(uint64_t id) const { return ed_get(id, m_ed_objects_nodes); }
     data::PinInstance* ed_get_pin(uint64_t id) const { return ed_get(id, m_ed_objects_pins); }
     data::Link* ed_get_link(uint64_t id) const { return ed_get(id, m_ed_objects_links); }
+
+#ifdef _DEBUG
+    void test_duplicates() const;
+#else
+    void test_duplicates() const {}
+#endif
 
 private:
     // ComfyUiObjectValidityListener

@@ -41,11 +41,13 @@ public:
     iid get_instance_id() const noexcept { return m_iid; }
     wid get_workflow_id() const noexcept { return m_wid; }
 
-#ifdef _DEBUG
-    void set_instance_id(iid id) noexcept { m_iid = id; auto wf = g::pWfsManager->access(m_wid); wf->test_duplicates(); }
-#else
-    void set_instance_id(iid id) noexcept { m_iid = id; }
-#endif
+    void set_instance_id(iid id)
+    {
+        m_iid = id;
+        auto wf = g::pWfsManager->access(m_wid);
+        wf->set_last_child_id(id);
+        wf->test_duplicates();
+    }
     void set_workflow_id(wid id) noexcept { m_wid = id; }
 
     TBaseObj* get_object() const noexcept { return m_object; }

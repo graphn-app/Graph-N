@@ -12,11 +12,10 @@ struct Object;
 class EdType final
 {
 public:
-    explicit EdType(bool do_init = true) noexcept
+    explicit EdType() noexcept
     {
         static std::atomic_uint64_t g_id = 1;
-        if (do_init)
-            m_id = g_id.fetch_add(1, std::memory_order_relaxed);
+        m_id = g_id.fetch_add(1, std::memory_order_relaxed);
     }
     ~EdType() noexcept = default;
 

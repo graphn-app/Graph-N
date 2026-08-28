@@ -72,12 +72,11 @@ public:
     std::set<data::NodeInstance*> get_selected_nodes(bool reroutes_as_single_node) const;
     bool is_node_selected(const EdType& node) const noexcept;
     void select_node(const EdType& node, bool append_to_selection) const noexcept;
+    void clear_selection() noexcept;
 
     std::set<data::Link*> get_selected_links() const;
     bool is_link_selected(const EdType& link) const noexcept;
     void select_link(const EdType& link, bool append_to_selection) const noexcept;
-
-    void clear_selection() noexcept;
 
     std::set<data::NodeInstance*> get_nodes_in_group(const data::NodeInstance* group, const std::vector<std::unique_ptr<data::NodeInstance>>& all_nodes) const;
     ImRect calc_group_rect(const ImRect& node_rc) const noexcept;
