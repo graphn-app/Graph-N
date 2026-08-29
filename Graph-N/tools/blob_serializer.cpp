@@ -5,6 +5,7 @@ namespace blob
 ///////////////   primitive
 //////////////////////////////
 
+#ifndef TOOLS_DETACHED_STATE
 enum PrimitiveType
 {
     pt_none,
@@ -15,6 +16,7 @@ enum PrimitiveType
     pt_string,
     pt_monostate
 };
+#endif // TOOLS_DETACHED_STATE
 
 
 template <typename TRIVIAL>
@@ -113,12 +115,14 @@ Writer& Writer::push(double val)
     return *this;
 }
 
+#ifndef TOOLS_DETACHED_STATE
 Writer& Writer::push(number val)
 {
     static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
     push_trivial(val.underlying_type(), m_buffer);
     return *this;
 }
+#endif // TOOLS_DETACHED_STATE
 
 Writer& Writer::push(const byte* data, size_t len)
 {
@@ -152,6 +156,13 @@ Writer& Writer::push(const std::string& val)
     return *this;
 }
 
+Writer& Writer::push(const std::wstring& val)
+{
+    push(cast::ptrs<byte>(val.data()), val.size() * sizeof(wchar_t));
+    return *this;
+}
+
+#ifndef TOOLS_DETACHED_STATE
 Writer& Writer::push(const Primitive& val)
 {
     std::visit([this](const auto& v)
@@ -208,6 +219,7 @@ Writer& Writer::push(const ImRect& val)
     push_trivial(val, m_buffer);
     return *this;
 }
+#endif // TOOLS_DETACHED_STATE
 
 Writer& Writer::push(const Blob& val)
 {
@@ -337,12 +349,14 @@ double Reader::pop_double() noexcept
     return pop_trivial<double>(m_data, m_offset);
 }
 
+#ifndef TOOLS_DETACHED_STATE
 number Reader::pop_number() noexcept
 {
     static_assert(std::same_as<number_t, double>, "Update this function if number_t changes");
     if (!test_len(sizeof(double))) return 0.0f;
     return pop_trivial<double>(m_data, m_offset);
 }
+#endif // TOOLS_DETACHED_STATE
 
 void Reader::pop_buff(float* arr) noexcept
 {
@@ -371,6 +385,12 @@ byte_buff Reader::pop_buff()
     return buff;
 }
 
+std::string Reader::pop_string()
+{
+    std::string str(pop_string_ptr());
+    return str;
+}
+
 std::string_view Reader::pop_string_ptr() noexcept
 {
     const uint32_t len = pop_u32();
@@ -384,12 +404,26 @@ std::string_view Reader::pop_string_ptr() noexcept
     return view;
 }
 
-std::string Reader::pop_string()
+std::wstring Reader::pop_wstring()
 {
-    std::string str(pop_string_ptr());
+    std::wstring str(pop_wstring_ptr());
     return str;
 }
 
+std::wstring_view Reader::pop_wstring_ptr() noexcept
+{
+    const uint32_t len = pop_u32();
+    if (0 == len || !test_len(len))
+    {
+        static const wchar_t* empty = L"";
+        return std::wstring_view(empty);
+    }
+    std::wstring_view view(cast::ptrs<wchar_t>(m_data + m_offset), len);
+    m_offset += len;
+    return view;
+}
+
+#ifndef TOOLS_DETACHED_STATE
 Primitive Reader::pop_primitive()
 {
     Primitive ret;
@@ -461,6 +495,7 @@ hid Reader::pop_hid() noexcept
     if (!test_len(sizeof(hid))) return 0;
     return pop_trivial<hid>(m_data, m_offset);
 }
+#endif // TOOLS_DETACHED_STATE
 
 Blob Reader::pop_blob()
 {

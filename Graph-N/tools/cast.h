@@ -133,12 +133,14 @@ constexpr char to_char(T param) noexcept
     return to<char>(param);
 }
 
+#ifndef TOOLS_DETACHED_STATE
 template <typename T>
 constexpr double to_number(T param) noexcept
 {
     static_assert(std::same_as<number_t, double>, "Update this function if number_t changes");
     return to<double>(param);
 }
+#endif // TOOLS_DETACHED_STATE
 
 template <typename T>
 constexpr unsigned char to_uchar(T param) noexcept
@@ -259,7 +261,9 @@ CAST_HELPER(to_szt, size_t)
 CAST_HELPER(to_float, float)
 CAST_HELPER(to_double, double)
 CAST_HELPER(to_time, time_t)
+#ifndef TOOLS_DETACHED_STATE
 CAST_HELPER(to_imguikey, ImGuiKey)
+#endif // TOOLS_DETACHED_STATE
 
 #undef CAST_HELPER
 

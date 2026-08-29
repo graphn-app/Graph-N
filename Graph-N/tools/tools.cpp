@@ -1,7 +1,8 @@
-
+#ifndef TOOLS_DETACHED_STATE
 #ifdef _WIN32
 #include "main/main_win32.h"
-#endif
+#endif // _WIN32
+#endif // TOOLS_DETACHED_STATE
 
 namespace tools
 {
@@ -404,6 +405,17 @@ std::wstring utf8_to_wide(const std::string& utf8_str)
     ::MultiByteToWideChar(CP_UTF8, 0, utf8_str.c_str(), cast::to_i32(utf8_str.size()), wide_str.data(), size_needed);
     return wide_str;
 }
+
+std::string wide_to_utf8(const std::wstring& wide_str)
+{
+    if (wide_str.empty())
+        return {};
+
+    const auto size_needed = ::WideCharToMultiByte(CP_UTF8, 0, wide_str.c_str(), cast::to_i32(wide_str.size()), nullptr, 0, nullptr, nullptr);
+    std::string utf8_str(size_needed, 0);
+    ::WideCharToMultiByte(CP_UTF8, 0, wide_str.c_str(), cast::to_i32(wide_str.size()), utf8_str.data(), size_needed, nullptr, nullptr);
+    return utf8_str;
+}
 #endif // #ifdef _WIN32
 
 std::string u8_to_string(const std::u8string& u8_str)
@@ -800,6 +812,7 @@ std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::pa
     return out;
 }
 
+#ifndef TOOLS_DETACHED_STATE
 #ifdef _WIN32
 struct FdData final
 {
@@ -1041,6 +1054,7 @@ void select_dirs(const FdSelectResultMt& callback)
     data->callback_mt = callback;
     std::thread(select_files_th, std::move(data)).detach();
 }
+#endif // TOOLS_DETACHED_STATE
 
 #ifdef _WIN32
 std::wstring build_commandline_arg(const std::wstring& arg)
@@ -1134,7 +1148,6 @@ void open_file(const std::filesystem::path& path)
     {
         LogS("File run " << path);
     }
-
 #endif // #ifdef _WIN32
 }
 

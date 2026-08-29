@@ -1,4 +1,3 @@
-
 #pragma once
 
 namespace tools
@@ -37,7 +36,8 @@ std::string sha256(const std::vector<byte>& src);
 
 #ifdef _WIN32
 std::wstring utf8_to_wide(const std::string& utf8_str);
-#endif
+std::string wide_to_utf8(const std::wstring& wide_str);
+#endif // _WIN32
 
 std::string u8_to_string(const std::u8string& u8_str);
 std::string path_to_string(const std::filesystem::path& path);
@@ -80,6 +80,7 @@ std::vector<std::filesystem::path> enumerate_directory(const std::filesystem::pa
 std::vector<std::string> enumerate_directory_set_slash(const std::filesystem::path& path,
     bool recursively, bool include_dirs, bool include_files, bool relative_pathes, char slash);
 
+#ifndef TOOLS_DETACHED_STATE
 using FdSelectResultSg = std::function<void(bool, std::filesystem::path&&)>;
 using FdSelectResultMt = std::function<void(bool, std::list<std::filesystem::path>&&)>;
 void select_file_open(std::list<std::pair<std::wstring, std::wstring>>&& filters, const FdSelectResultSg& callback);
@@ -87,11 +88,12 @@ void select_files_open(std::list<std::pair<std::wstring, std::wstring>>&& filter
 void select_file_save(std::list<std::pair<std::wstring, std::wstring>>&& filters, std::filesystem::path init_file, const FdSelectResultSg& callback);
 void select_dir(const FdSelectResultSg& callback);
 void select_dirs(const FdSelectResultMt& callback);
+#endif // TOOLS_DETACHED_STATE
 
 #ifdef _WIN32
 std::wstring build_commandline_arg(const std::wstring& arg);
 std::string build_commandline_arg(const std::string& arg);
-#endif
+#endif // _WIN32
 
 void open_file(const std::filesystem::path& path);
 

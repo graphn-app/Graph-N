@@ -32,16 +32,21 @@ public:
     Writer& push(uint64_t val);
     Writer& push(float val);
     Writer& push(double val);
+#ifndef TOOLS_DETACHED_STATE
     Writer& push(number val);
+#endif // TOOLS_DETACHED_STATE
     Writer& push(const byte* data, size_t len);
     Writer& push(const float* val, size_t len);
     Writer& push(const byte_buff& data);
     Writer& push(const char* val, size_t len);
     Writer& push(const std::string& val);
+    Writer& push(const std::wstring& val);
+#ifndef TOOLS_DETACHED_STATE
     Writer& push(const Primitive& val);
     Writer& push(const ImVec2& val);
     Writer& push(const ImVec4& val);
     Writer& push(const ImRect& val);
+#endif // TOOLS_DETACHED_STATE
     Writer& push(const Blob& val);
     Writer& push(const Writer& val);
 
@@ -76,12 +81,17 @@ public:
     uint64_t pop_u64() noexcept;
     float pop_float() noexcept;
     double pop_double() noexcept;
+#ifndef TOOLS_DETACHED_STATE
     number pop_number() noexcept;
+#endif // TOOLS_DETACHED_STATE
     void pop_buff(float* arr) noexcept;
     void pop_buff(byte* data) noexcept;
     byte_buff pop_buff();
     std::string pop_string();
     std::string_view pop_string_ptr() noexcept;
+    std::wstring pop_wstring();
+    std::wstring_view pop_wstring_ptr() noexcept;
+#ifndef TOOLS_DETACHED_STATE
     Primitive pop_primitive();
     ImVec2 pop_vec2() noexcept;
     ImVec4 pop_vec4() noexcept;
@@ -90,6 +100,7 @@ public:
     iid pop_iid() noexcept;
     wid pop_wid() noexcept;
     hid pop_hid() noexcept;
+#endif // TOOLS_DETACHED_STATE
     Blob pop_blob();
 
     Reader pop_block() noexcept;

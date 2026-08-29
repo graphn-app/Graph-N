@@ -1,6 +1,8 @@
 #pragma once
 
+#ifndef TOOLS_DETACHED_STATE
 class number;
+#endif // TOOLS_DETACHED_STATE
 
 namespace glog
 {
@@ -14,8 +16,10 @@ public:
     void stop() noexcept;
 
     static bool get_log_enabled() noexcept { return m_enabled.load(std::memory_order_relaxed); }
+#ifndef TOOLS_DETACHED_STATE
     static bool get_log_web_response_enabled() { return check_web_dump_file_mark(); }
     static bool get_log_object_info_enabled() { return check_object_info_file_mark(); }
+#endif // TOOLS_DETACHED_STATE
 
     static void set_log_enabled(bool enable);
     static void disable_logging() noexcept { m_enabled.store(false, std::memory_order_relaxed); }
@@ -30,8 +34,10 @@ private:
     NO_COPY_MOVE(Logger);
 
     static bool check_log_file_mark();
+#ifndef TOOLS_DETACHED_STATE
     static bool check_web_dump_file_mark();
     static bool check_object_info_file_mark();
+#endif // TOOLS_DETACHED_STATE
 
     void log_start() noexcept;
     void log_stop() noexcept;
@@ -40,8 +46,10 @@ private:
 
 private:
     static const char* m_log_file_mark;
+#ifndef TOOLS_DETACHED_STATE
     static const char* m_log_web_dump_file_mark;
     static const char* m_log_object_info_file_mark;
+#endif // TOOLS_DETACHED_STATE
     static std::atomic_bool m_enabled;
 
     std::ofstream m_logfs;
@@ -111,9 +119,11 @@ public:
     LogWriter& operator << (const byte_buff& buff);
     LogWriter& operator << (const tools::dt& dt);
 
+#ifndef TOOLS_DETACHED_STATE
     LogWriter& operator << (const ImVec2& vec2);
     LogWriter& operator << (const ImVec4& vec4);
     LogWriter& operator << (const ImRect& rc);
+#endif // TOOLS_DETACHED_STATE
 
     LogWriter& operator << (int32_t i32);
     LogWriter& operator << (uint32_t ui32);
@@ -121,10 +131,16 @@ public:
     LogWriter& operator << (uint64_t ui64);
     LogWriter& operator << (float f);
     LogWriter& operator << (double d);
-    LogWriter& operator << (const number& n);
     LogWriter& operator << (bool b);
+#ifdef _WIN32
+    LogWriter& operator << (DWORD dw);
+#endif // _WIN32
+
+#ifndef TOOLS_DETACHED_STATE
+    LogWriter& operator << (const number& n);
 
     LogWriter& operator << (DlgCode code);
+#endif // TOOLS_DETACHED_STATE
 
     LogWriter& operator << (const type_info& type);
 
@@ -145,6 +161,7 @@ struct LogGuard final
     }
     ~LogGuard()
     {
+        glog::Logger::cleanup();
         Logger::instance().stop();
     }
 };
@@ -157,7 +174,12 @@ struct LogGuard final
 #define WIDELINE(x) WIDELINE2(x)
 #define __WIDEFILE__ WIDELINE(__FILE__)
 
+#ifndef TOOLS_DETACHED_STATE
 #define SAVE_EXCEPTION(message)         g::save_exception(message, __FILE__, __LINE__)
+#else
+#define SAVE_EXCEPTION(message)
+#endif // TOOLS_DETACHED_STATE
+
 #if defined (_DEBUG) && defined (_WIN32) && !defined (SKIP_DEBUG_CATCH)
 #define DEBUG_CATCH \
     { \
@@ -290,12 +312,14 @@ struct LogGuard final
 #define LogCAssert(true_cond, message)           if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(this, "ASSERT", message, true); continue; }
 #define LogCAssertS(true_cond, message)          if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(nullptr, "ASSERT", message, true); continue; }
 
+#ifndef TOOLS_DETACHED_STATE
 #define LogSqlDbErr(message)                     LOG_AND_CATCH(this, "SQL_ERROR", message, false)
 
 #define LogUnhandledJson(message)                Log("[JSON_UNHANDLED] " << message)
 #define LogUnhandledJsonS(message)               LogS("[JSON_UNHANDLED] " << message)
 #define LogInvalidJson(message)                  Log("[JSON_INVALID] " << message)
 #define LogInvalidJsonS(message)                 LogS("[JSON_INVALID] " << message)
+#endif // TOOLS_DETACHED_STATE
 
 #define LogIn                                    Log(" > in")
 #define LogInS                                   LogS(" > in")

@@ -1,13 +1,17 @@
 #include "tools/logging.h"
+#ifndef TOOLS_DETACHED_STATE
 #include "core/base/version.h"
 #include "core/managers/db_manager.h"
+#endif // TOOLS_DETACHED_STATE
 
 namespace glog
 {
 
 const char* Logger::m_log_file_mark = "__log_enabled__";
+#ifndef TOOLS_DETACHED_STATE
 const char* Logger::m_log_web_dump_file_mark = "__dump_web_response__";
 const char* Logger::m_log_object_info_file_mark = "__dump_object_info__";
+#endif // TOOLS_DETACHED_STATE
 std::atomic_bool Logger::m_enabled = false;
 
 /////////////////////////////////////////////////////////////////
@@ -74,6 +78,7 @@ bool Logger::check_log_file_mark()
     return check_log_file_mark_exists(m_log_file_mark);
 }
 
+#ifndef TOOLS_DETACHED_STATE
 bool Logger::check_web_dump_file_mark()
 {
     return check_log_file_mark_exists(m_log_web_dump_file_mark);
@@ -83,6 +88,7 @@ bool Logger::check_object_info_file_mark()
 {
     return check_log_file_mark_exists(m_log_object_info_file_mark);
 }
+#endif // TOOLS_DETACHED_STATE
 
 void Logger::set_log_enabled(bool enable)
 {
@@ -164,21 +170,29 @@ void Logger::log_start() noexcept
             m_enabled.store(true, std::memory_order_relaxed);
             m_working_thread = std::thread(&Logger::working_thread, this);
 
+#ifndef TOOLS_DETACHED_STATE
             const auto db_meta = mngr::DbManager::read_db_metadata();
+#endif // TOOLS_DETACHED_STATE
 
             LogWriter writer;
             writer
                 << "\n\n"
                 << "Log started: " << tools::dt::get_app_start_time().as_log_line() << "\n"
+#ifndef TOOLS_DETACHED_STATE
                 << "App version: " << ver::ver_as_string() << "\n"
                 << "Db meta: "
-                ;
+#endif // TOOLS_DETACHED_STATE
+            ;
+#ifndef TOOLS_DETACHED_STATE
             if (db_meta.db_ver != 0)
                 writer << "db ver " << db_meta.db_ver << ", app ver " << db_meta.app_ver << ", last run " << db_meta.last_run << "\n";
             else
+#endif // TOOLS_DETACHED_STATE
                 writer << "\n";
             writer
+#ifndef TOOLS_DETACHED_STATE
                 << "Generated client id: " << base::GlobalID::client_id() << "\n"
+#endif // TOOLS_DETACHED_STATE
 #ifdef _WIN32
                 << "Process ID: " << cast::to_u32(::GetCurrentProcessId()) << "\n"
                 << "Main thread ID: " << cast::to_u32(::GetCurrentThreadId()) << "\n"
@@ -287,6 +301,7 @@ void Logger::working_thread()
         catch (const std::exception& e)
         {
             disable_logging();
+            (void)e;
             SAVE_EXCEPTION(e.what());
             DEBUG_CATCH;
         }
@@ -370,6 +385,7 @@ LogWriter& LogWriter::operator << (const tools::dt& dt)
     return *this;
 }
 
+#ifndef TOOLS_DETACHED_STATE
 LogWriter& LogWriter::operator << (const ImVec2& vec2)
 {
     fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("x={}, y={}"), vec2.x, vec2.y);
@@ -387,6 +403,7 @@ LogWriter& LogWriter::operator << (const ImRect& rc)
     fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("Min.x={}, Min.y={}, Max.x={}, Max.y={}"), rc.Min.x, rc.Min.y, rc.Max.x, rc.Max.y);
     return *this;
 }
+#endif // TOOLS_DETACHED_STATE
 
 LogWriter& LogWriter::operator << (int32_t i32)
 {
@@ -424,16 +441,25 @@ LogWriter& LogWriter::operator << (double d)
     return *this;
 }
 
+LogWriter& LogWriter::operator << (bool b)
+{
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), (b ? "yes" : "no"));
+    return *this;
+}
+
+#ifdef _WIN32
+LogWriter& LogWriter::operator << (DWORD dw)
+{
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), uint32_t(dw));
+    return *this;
+}
+#endif // WIN32
+
+#ifndef TOOLS_DETACHED_STATE
 LogWriter& LogWriter::operator << (const number& n)
 {
     static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
     fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{:.8f}"), n.underlying_type());
-    return *this;
-}
-
-LogWriter& LogWriter::operator << (bool b)
-{
-    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), (b ? "yes" : "no"));
     return *this;
 }
 
@@ -454,6 +480,7 @@ LogWriter& LogWriter::operator << (DlgCode code)
     }
     return *this;
 }
+#endif // TOOLS_DETACHED_STATE
 
 LogWriter& LogWriter::operator << (const type_info& type)
 {
