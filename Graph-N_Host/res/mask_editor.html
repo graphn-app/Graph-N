@@ -52,28 +52,17 @@
         /* TOOLBARS GLOBAL */
         .toolbar {
             background: var(--panel); border: 1px solid var(--border);
-            display: grid; /* GRID LAYOUT FOR BOTH BARS */
-            grid-template-columns: 1fr auto 1fr; /* Left - Center - Right */
+            display: grid; 
+            grid-template-columns: 1fr auto 1fr; 
             padding: 0 10px;
             z-index: 100;
             cursor: default; 
             align-items: center;
         }
         
-        /* TOP BAR */
-        #top-bar { 
-            border-bottom: 1px solid var(--border); 
-            height: 44px; 
-        }
+        #top-bar { border-bottom: 1px solid var(--border); height: 44px; }
+        #bottom-bar { border-top: 1px solid var(--border); height: 40px; padding-bottom: 5px; }
 
-        /* BOTTOM BAR */
-        #bottom-bar { 
-            border-top: 1px solid var(--border); 
-            height: 40px;
-            padding-bottom: 5px; 
-        }
-
-        /* Alignment helpers for Grid areas */
         .bar-left { display: flex; justify-self: start; align-items: center; gap: 10px; height: 100%; }
         .bar-center { display: flex; justify-self: center; align-items: center; height: 100%; }
         .bar-right { display: flex; justify-self: end; align-items: center; height: 100%; }
@@ -121,13 +110,8 @@
         .label-row { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #888; width: 100%; gap: 5px;}
         
         /* OVERLAYS & INFO */
-        #status-bar-overlay { 
-            font-size: 11px; color: #aaa; 
-            position: absolute; bottom: 5px; right: 10px; 
-            pointer-events: none; z-index: 50; text-shadow: 0 0 2px black;
-        }
-        
         #res-info { font-size: 11px; color: #888; font-family: monospace; }
+        #controls-info { font-size: 11px; color: #888; }
 
         /* Control Sets */
         #editor-controls, #sam-controls { display: flex; align-items: center; gap: 10px;}
@@ -149,7 +133,7 @@
 
         <div class="bar-center">
             <div class="tool-group">
-				<button id="btnPreview" title="Toggle Preview Mode (P)">&#128065; Preview</button> 
+                <button id="btnPreview" title="Toggle Preview Mode (P)">&#128065; Preview</button> 
             </div>
             <div class="tool-group">
                 <button id="btnUndo" title="Undo (Ctrl+Z)">&#8617;</button>
@@ -184,7 +168,6 @@
             <canvas id="maskCanvas"></canvas>
             <canvas id="uiCanvas"></canvas>
         </div>
-        <div id="status-bar-overlay">Space+Drag: Pan | Wheel: Zoom | Alt+Wheel: Brush Size</div>
     </div>
 
     <div id="bottom-bar" class="toolbar">
@@ -247,6 +230,10 @@
                         <input type="range" id="rngOpacity" min="1" max="100" value="100">
                     </div>
                 </div>
+
+                <div class="tool-group" style="border-left: 1px solid var(--border); padding-left: 10px; border-right: none;">
+                    <button id="btnResetBrush" title="Reset brush settings">Reset</button>
+                </div>
             </div>
 
             <div id="sam-controls" class="hidden">
@@ -266,11 +253,9 @@
                         <div style="display: flex; gap: 5px;">
                             <div style="text-align:center">
                                 <input type="color" id="clrPos" value="#00ff00" title="Positive Point Color">
-                                <!--div style="font-size:9px; color:#666">POS</div-->
                             </div>
                             <div style="text-align:center">
                                 <input type="color" id="clrNeg" value="#ff0000" title="Negative Point Color">
-                                <!--div style="font-size:9px; color:#666">NEG</div-->
                             </div>
                         </div>
                     </div>
@@ -303,12 +288,24 @@
             </div>
         </div>
 
-        <div class="bar-right"></div>
+        <div class="bar-right">
+            <span id="controls-info">Space+Drag: Pan | Wheel: Zoom | Alt+Wheel: Brush Size</span>
+        </div>
     </div>
 
     <script>
         const API_BASE = "http://app.local";
         const TEST_IMAGE = `${API_BASE}/input.png?t=` + Date.now();
+
+        const INJECTED_SETTINGS = /*APP_SETTINGS_TOKEN*/ null;
+        
+        const defaultSettings = {
+            brushSize: 30,
+            brushHardness: 100,
+            brushOpacity: 1.0,
+            maskColor: '#ffffff',
+            shape: 'circle'
+        };
 
         // === STATE ===
         const state = {
@@ -320,11 +317,12 @@
             isPanning: false,
             isSpacePressed: false,
             mode: 'draw', 
-            shape: 'circle',
-            brushSize: 30,
-            brushHardness: 100,
-            brushOpacity: 1.0,
-            maskColor: '#000000',
+            
+            shape: INJECTED_SETTINGS?.shape || defaultSettings.shape,
+            brushSize: INJECTED_SETTINGS?.brushSize || defaultSettings.brushSize,
+            brushHardness: INJECTED_SETTINGS?.brushHardness || defaultSettings.brushHardness,
+            brushOpacity: INJECTED_SETTINGS?.brushOpacity || defaultSettings.brushOpacity,
+            maskColor: INJECTED_SETTINGS?.maskColor || defaultSettings.maskColor,
             
             confidence: 0.50,
             samPointSize: 2,
@@ -371,7 +369,7 @@
             panelSAM: document.getElementById('sam-controls'),
             modeEditor: document.getElementById('modeEditor'),
             modeSAM: document.getElementById('modeSAM'),
-            statusBar: document.getElementById('status-bar-overlay'),
+            statusBar: document.getElementById('controls-info'),
             resInfo: document.getElementById('res-info'),
             
             btnClearMask: document.getElementById('btnClearMask'),
@@ -647,13 +645,10 @@
             ctxUI.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
             state.samPoints.forEach(pt => {
                 ctxUI.fillStyle = pt.positive ? state.samColorPos : state.samColorNeg;
-                //ctxUI.strokeStyle = "#fff";
-                //ctxUI.lineWidth = 1;
                 const sz = state.samPointSize;
                 ctxUI.beginPath();
                 ctxUI.arc(pt.x, pt.y, sz, 0, Math.PI*2);
                 ctxUI.fill();
-                //ctxUI.stroke();
             });
         }
 
@@ -851,6 +846,9 @@
             document.getElementById('btnDraw').classList.toggle('active', state.mode === 'draw');
             document.getElementById('btnErase').classList.toggle('active', state.mode === 'erase');
 
+            document.getElementById('btnShapeCircle').classList.toggle('active', state.shape === 'circle');
+            document.getElementById('btnShapeSquare').classList.toggle('active', state.shape === 'square');
+
             ui.rngConf.value = Math.round(state.confidence * 100);
             ui.numConf.value = state.confidence;
             ui.rngPtSize.value = ui.numPtSize.value = state.samPointSize;
@@ -930,25 +928,59 @@
             ctxMask.putImageData(id, 0, 0);
             if(state.previewMode) renderPreview();
         };
+        
+        document.getElementById('btnResetBrush').onclick = () => {
+            state.brushSize = defaultSettings.brushSize;
+            state.brushHardness = defaultSettings.brushHardness;
+            state.brushOpacity = defaultSettings.brushOpacity;
+            state.maskColor = defaultSettings.maskColor;
+            state.shape = defaultSettings.shape;
+            syncUI();
+            updateCursor();
+        };
 
         function generateOutput(asBase64) {
             const tmpCanvas = document.createElement('canvas');
             tmpCanvas.width = maskCanvas.width;
             tmpCanvas.height = maskCanvas.height;
             const tCtx = tmpCanvas.getContext('2d');
+            
+            // 1. Заливаем всё белым цветом (будущая маска)
+            tCtx.fillStyle = "white";
+            tCtx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
+
+            // 2. Оставляем белый цвет только там, где юзер что-то нарисовал (используем альфа-канал маски)
+            tCtx.globalCompositeOperation = "destination-in";
+            tCtx.drawImage(maskCanvas, 0, 0);
+
+            // 3. Подкладываем черный фон под оставшийся белый рисунок
+            tCtx.globalCompositeOperation = "destination-over";
             tCtx.fillStyle = "black";
             tCtx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
-            tCtx.drawImage(maskCanvas, 0, 0);
+            
+            // Возвращаем режим наложения по умолчанию
+            tCtx.globalCompositeOperation = "source-over";
 
             if (asBase64) return tmpCanvas.toDataURL("image/png");
             
             tmpCanvas.toBlob(async (blob) => {
                 if (!blob) return;
                 try {
+                    const currentSettings = {
+                        shape: state.shape,
+                        maskColor: state.maskColor,
+                        brushSize: state.brushSize,
+                        brushHardness: state.brushHardness,
+                        brushOpacity: state.brushOpacity
+                    };
+
                     await fetch(`${API_BASE}/save_mask`, {
                         method: "POST",
                         body: blob,
-                        headers: { "Content-Type": "image/png" }
+                        headers: { 
+                            "Content-Type": "image/png",
+                            "X-Editor-Settings": JSON.stringify(currentSettings)
+                        }
                     });
                 } catch (e) { console.error(e); }
             }, "image/png");

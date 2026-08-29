@@ -2,9 +2,10 @@ cmake_minimum_required(VERSION 3.24)
 project(Graph-N)
 
 # ------------------------------------------------------------------------------
-# ANALYZERS SETTINGS
+# ANALYZERS & SANITIZERS SETTINGS
 # ------------------------------------------------------------------------------
 option(ANALYZERS_ON "Enable MSVC and Clang-Tidy static analyzers" OFF)
+option(USE_ASAN "Enable AddressSanitizer" ON)
 
 # ------------------------------------------------------------------------------
 # Global Settings
@@ -33,8 +34,9 @@ if(MSVC)
     # Force MSVC to ignore warnings and code analysis in SYSTEM headers
     add_compile_options(/external:W0 /analyze:external-)
 
-    # DYNAMIC ANALYZER (AddressSanitizer) - ALWAYS ON
-    add_compile_options(/fsanitize=address)
+    if(USE_ASAN)
+    	add_compile_options(/fsanitize=address)
+    endif()
 endif()
 
 # Define the working directory variable
@@ -303,43 +305,72 @@ else()
 endif()
 
 # ------------------------------------------------------------------------------
-# Mask Editor
+# Host
 # ------------------------------------------------------------------------------
-# Look for sources directly in Graph-N folder (no 'src' subfolder)
-file(GLOB_RECURSE MASKEDITOR_SOURCES "Graph-N_MaskEditor/*.cpp")
+file(GLOB_RECURSE HOST_SOURCES "Graph-N_Host/*.cpp")
+file(GLOB_RECURSE HOST_HEADERS "Graph-N_Host/*.h")
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host" PREFIX "Source Files" FILES ${HOST_SOURCES})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host" PREFIX "Header Files" FILES ${HOST_HEADERS})
+
+set(HOST_SHARED_SOURCES
+	"Graph-N/tools/cast.h"
+	"Graph-N/tools/logging.h"
+	"Graph-N/tools/logging.cpp"
+	"Graph-N/tools/tools.h"
+	"Graph-N/tools/tools.cpp"
+	"Graph-N/core/base/filesystem.h"
+	"Graph-N/core/base/filesystem.cpp"
+	"Graph-N/tools/tools_datetime.h"
+	"Graph-N/tools/tools_datetime.cpp"
+    "Graph-N/core/base/blob.h"
+    "Graph-N/tools/blob_serializer.cpp"
+    "Graph-N/tools/blob_serializer.h"
+    "Graph-N/tools/host_data_serializer.cpp"
+    "Graph-N/tools/host_data_serializer.h"
+)
+
+list(APPEND HOST_SOURCES ${HOST_SHARED_SOURCES})
 
 # resources
-set(MASKEDITOR_RESOURCES "Graph-N_MaskEditor/res/maskeditor.rc")
-
-# source tree for Visual Studio
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_MaskEditor" PREFIX "Source Files" FILES ${MASKEDITOR_SOURCES})
+set(HOST_RESOURCES "Graph-N_Host/res/host.rc")
 
 # app
-add_executable(Graph-N_MaskEditor WIN32 ${MASKEDITOR_SOURCES} ${MASKEDITOR_RESOURCES})
+add_executable(Graph-N_Host WIN32 ${HOST_HEADERS} ${HOST_SOURCES} ${HOST_RESOURCES})
 
 if(MSVC)
     # Force main() entry point even for GUI subsystem (fixes linker error in Release)
-    target_link_options(Graph-N_MaskEditor PRIVATE "/ENTRY:mainCRTStartup")
+    target_link_options(Graph-N_Host PRIVATE "/ENTRY:mainCRTStartup")
 
     # STRICT MODE: Warnings as Errors (/WX), High Warning Level (/W4)
-    target_compile_options(Graph-N_MaskEditor PRIVATE /W4 /WX /utf-8)
+    target_compile_options(Graph-N_Host PRIVATE /W4 /WX /utf-8)
 endif()
 
 # --- Include Directories ---
-# SYSTEM flag tells compiler to ignore warnings in these headers
-target_include_directories(Graph-N_MaskEditor SYSTEM PRIVATE
+target_include_directories(Graph-N_Host SYSTEM PRIVATE
+	"Graph-N"
     "WebView"
     "cpp-httplib"
     "nlohmann/include"
 )
 
-target_include_directories(Graph-N_MaskEditor PRIVATE "Graph-N_MaskEditor")
+target_include_directories(Graph-N_Host PRIVATE "Graph-N_Host")
+
+target_compile_definitions(Graph-N_Host PRIVATE 	
+	_CRT_SECURE_NO_WARNINGS
+    _CRT_NON_CONFORMING_SWPRINTFS
+    _WIN32_WINNT=0x0A00
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+	TOOLS_DETACHED_STATE 
+)
+
+target_precompile_headers(Graph-N_Host PRIVATE "Graph-N_Host/pch.h")
 
 # --- Linking ---
 if(WIN32)
-    target_link_libraries(Graph-N_MaskEditor PRIVATE
+    target_link_libraries(Graph-N_Host PRIVATE
         fmt::fmt
-        "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_MaskEditor/res/WebView2Loader.dll.lib"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host/res/WebView2Loader.dll.lib"
         shlwapi
     )
 endif()
@@ -355,7 +386,7 @@ if(ANALYZERS_ON)
             VS_GLOBAL_RunCodeAnalysis "true"
             VS_GLOBAL_CodeAnalysisRuleSet "CppCoreCheckRules.ruleset"
         )
-        set_target_properties(Graph-N_MaskEditor PROPERTIES
+        set_target_properties(Graph-N_Host PROPERTIES
             VS_GLOBAL_RunCodeAnalysis "true"
             VS_GLOBAL_CodeAnalysisRuleSet "CppCoreCheckRules.ruleset"
         )
@@ -372,7 +403,7 @@ else()
             VS_GLOBAL_RunCodeAnalysis "false"
             VS_GLOBAL_EnableMicrosoftCodeAnalysis "false"
         )
-        set_target_properties(Graph-N_MaskEditor PROPERTIES
+        set_target_properties(Graph-N_Host PROPERTIES
             VS_GLOBAL_RunCodeAnalysis "false"
             VS_GLOBAL_EnableMicrosoftCodeAnalysis "false"
         )
@@ -387,17 +418,15 @@ endif()
 # ------------------------------------------------------------------------------
 
 # copying to work_dir
-
 add_custom_command(TARGET Graph-N POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E $<$<CONFIG:Debug>:copy_if_different> $<$<CONFIG:Debug>:$<TARGET_FILE:Graph-N>> $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>>
-    COMMENT "Copying Debug executable to work_dir..."
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Graph-N> ${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>
+    COMMENT "Copying Graph-N to work_dir..."
 )
 
-add_custom_command(TARGET Graph-N_MaskEditor POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E $<$<CONFIG:Debug>:copy_if_different> $<$<CONFIG:Debug>:$<TARGET_FILE:Graph-N>> $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N_MaskEditor>>
-    COMMENT "Copying Debug executable to work_dir..."
+add_custom_command(TARGET Graph-N_Host POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Graph-N_Host> ${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N_Host>
+    COMMENT "Copying Graph-N_Host to work_dir..."
 )
-
 
 # debug run - Visual Studio (F5)
 set_target_properties(Graph-N PROPERTIES 
@@ -408,13 +437,13 @@ set_target_properties(Graph-N PROPERTIES
     # Release -> run from bin/Graph-N.exe
     VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N>>"
 )
-set_target_properties(Graph-N_MaskEditor PROPERTIES 
+set_target_properties(Graph-N_Host PROPERTIES 
     # run from work_dir
     VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
     
     # Debug -> run from work_dir/Graph-N.exe
     # Release -> run from bin/Graph-N.exe
-    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N_MaskEditor>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N_MaskEditor>>"
+    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N_Host>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N_Host>>"
 )
 
 # ------------------------------------------------------------------------------
@@ -514,8 +543,8 @@ gtest_discover_tests(UnitTests)
 
 # copying to work_dir
 add_custom_command(TARGET UnitTests POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E $<$<CONFIG:Debug>:copy_if_different> $<$<CONFIG:Debug>:$<TARGET_FILE:Graph-N>> $<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>>
-    COMMENT "Copying Debug executable to work_dir..."
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:UnitTests> ${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>
+    COMMENT "Copying UnitTests to work_dir..."
 )
 
 # debug run - Visual Studio (F5)
