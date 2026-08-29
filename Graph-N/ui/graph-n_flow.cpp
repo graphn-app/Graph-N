@@ -1,7 +1,5 @@
-
 #include "ui/graph-n_flow.h"
 #include "ui/base_dlg.h"
-#include "main.h"
 #include "ui/dialogs/options/opts_dlg.h"
 #include "ui/dialogs/modal_message.h"
 #include "ui/dialogs/sync_projects_dlg.h"
@@ -31,6 +29,7 @@
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/serializer/wf_serializers.h"
 #include "core/base/comfyui_web_paths.h"
+#include "main.h"
 
 namespace w
 {

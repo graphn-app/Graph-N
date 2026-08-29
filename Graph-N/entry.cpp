@@ -1,4 +1,3 @@
-
 #ifdef _WIN32
 #include "main/main_win32.h"
 #include "ui/helpers/textures_win32.h"
@@ -107,7 +106,6 @@ int32_t main(int32_t, char**)
             return 0;
 
         const auto ret = do_main(request_focus);
-        glog::Logger::cleanup();
         return ret;
     }
     catch (const std::exception& ex)

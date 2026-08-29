@@ -1,4 +1,3 @@
-
 #include "core/managers/queue_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/connect_manager.h"

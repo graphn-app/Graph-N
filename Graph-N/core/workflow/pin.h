@@ -1,4 +1,3 @@
-
 #pragma once
 #include "core/base/id.h"
 

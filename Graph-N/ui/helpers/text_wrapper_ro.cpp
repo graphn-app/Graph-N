@@ -1,4 +1,3 @@
-
 #include "ui/helpers/text_wrapper_ro.h"
 
 namespace ui

@@ -1,4 +1,3 @@
-
 #include "ui/graph-n_flow.h"
 #include "ui/panels/panel_wf.h"
 #include "ui/panels/panel_wf_list.h"

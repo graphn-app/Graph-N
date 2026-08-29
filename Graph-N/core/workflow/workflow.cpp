@@ -1,4 +1,3 @@
-
 #include "core/workflow/workflow.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/node_instance_ro.h"

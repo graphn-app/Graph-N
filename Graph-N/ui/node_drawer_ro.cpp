@@ -1,4 +1,3 @@
-
 #include "ui/node_drawer_ro.h"
 #include "core/managers/settings_manager.h"
 #include "core/workflow/node.h"

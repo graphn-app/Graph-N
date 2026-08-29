@@ -1,4 +1,3 @@
-
 #include "ui/panels/panel_wf_list.h"
 #include "core/workflow/workflow.h"
 #include "core/managers/workflows_manager.h"

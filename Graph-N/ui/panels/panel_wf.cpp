@@ -1,4 +1,3 @@
-
 #include "ui/panels/panel_wf.h"
 #include "ui/graph-n_flow.h"
 #include "core/managers/workflows_manager.h"

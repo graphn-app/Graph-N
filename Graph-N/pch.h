@@ -9,6 +9,7 @@
 #include <concepts>
 #include <condition_variable>
 #include <cstdint>
+#include <deque>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -18,7 +19,6 @@
 #include <memory>
 #include <optional>
 #include <queue>
-#include <deque>
 #include <ranges>
 #include <stack>
 #include <string>
@@ -98,28 +98,6 @@
     ClassName(ClassName&&) = delete; \
     ClassName& operator=(ClassName&&) = delete;
 
-#if defined (_DEBUG) && defined (_WIN32) && !defined (SKIP_DEBUG_CATCH)
-#define DEBUG_CATCH \
-    { \
-        switch (::MessageBoxA(nullptr, \
-            "Some error happened\nTo exit app - press 'Abort'\nTo attach debugger - press 'Retry'\nTo continue execution - press 'Ignore')", \
-            APP_CAPTION, MB_ABORTRETRYIGNORE | MB_ICONWARNING | MB_TASKMODAL | MB_TOPMOST)) \
-        { \
-        case IDABORT: \
-            ::exit(1); \
-            break; \
-        default: \
-        case IDRETRY: \
-            __debugbreak(); \
-            break; \
-        case IDIGNORE: \
-            break; \
-        } \
-    }
-#else
-#define DEBUG_CATCH
-#endif
-
 #if defined (_DEBUG) && defined (_WIN32)
 #define BREAK_IF(cond_true)       if ((cond_true))    { __debugbreak(); }
 #else
@@ -137,11 +115,13 @@
 #include "icons_lucide.h"
 #include "tools/tools_datetime.h"
 #include "core/base/types.h"
+#include "core/base/blob.h"
 #include "core/base/flags.h"
 #include "core/base/id.h"
 #include "tools/cast.h"
 #include "core/base/filesystem.h"
 #include "tools/tools.h"
+#include "core/base/structs.h"
 #include "tools/logging.h"
 #include "core/base/primitive.h"
 #include "tools/blob_serializer.h"

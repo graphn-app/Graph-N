@@ -1,11 +1,10 @@
-
 #include "ui/panels/panel_models.h"
 #include "core/managers/models_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "ui/helpers/textures.h"
-#include "main.h"
 #include "ui/graph-n_flow.h"
 #include "ui/helpers/font_guard.h"
+#include "main.h"
 
 namespace ui
 {

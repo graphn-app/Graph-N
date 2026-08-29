@@ -1,4 +1,3 @@
-
 #ifdef _WIN32
 #include "main/main_win32.h"
 #include "ui/helpers/textures.h"

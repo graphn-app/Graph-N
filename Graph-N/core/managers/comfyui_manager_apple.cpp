@@ -1,4 +1,3 @@
-
 #ifdef __APPLE__
 #include "core/managers/comfyui_manager_apple.h"
 #include "core/managers/settings_manager.h"

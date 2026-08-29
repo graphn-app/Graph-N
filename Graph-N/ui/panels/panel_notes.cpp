@@ -1,4 +1,3 @@
-
 #include "ui/panels/panel_notes.h"
 
 namespace ui

@@ -1,10 +1,9 @@
-
 #include "ui/panels/panel_logs.h"
 #include "ui/graph-n_flow.h"
 #include "ui/helpers/font_guard.h"
-#include "main.h"
 #include "core/managers/comfyui_manager.h"
 #include "core/managers/settings_manager.h"
+#include "main.h"
 
 namespace ui
 {

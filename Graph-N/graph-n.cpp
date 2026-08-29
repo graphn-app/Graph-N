@@ -1,8 +1,6 @@
-
 #include "graph-n.h"
 #include "ui/graph-n_flow.h"
 #include "ui/helpers/textures.h"
-#include "main.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
@@ -20,6 +18,7 @@
 #include "core/managers/comfyui_manager_apple.h"
 #endif
 #include "core/base/id.h"
+#include "main.h"
 
 namespace g
 {

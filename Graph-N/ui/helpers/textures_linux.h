@@ -1,7 +1,5 @@
-
 #pragma once
 #ifdef __linux__
-
 #include "ui/helpers/textures.h"
 
 namespace platform

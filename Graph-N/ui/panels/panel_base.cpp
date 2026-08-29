@@ -1,4 +1,3 @@
-
 #include "ui/panels/panel_base.h"
 #include "ui/helpers/font_guard.h"
 #include "main.h"

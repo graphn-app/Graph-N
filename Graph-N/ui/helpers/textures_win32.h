@@ -1,4 +1,3 @@
-
 #pragma once
 #ifdef _WIN32
 #include "ui/helpers/textures.h"

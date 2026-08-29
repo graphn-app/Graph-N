@@ -1,9 +1,8 @@
-
 #include "ui/panels/activity_bar.h"
 #include "ui/graph-n_flow.h"
 #include "ui/helpers/font_guard.h"
-#include "main.h"
 #include "core/managers/settings_manager.h"
+#include "main.h"
 
 namespace ui
 {

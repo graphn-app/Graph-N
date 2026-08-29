@@ -1,4 +1,3 @@
-
 #pragma once
 #ifdef __linux__
 #include "core/managers/comfyui_manager.h"

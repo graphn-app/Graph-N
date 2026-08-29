@@ -1,4 +1,3 @@
-
 #include "core/managers/history_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/workflow/node_instance.h"

@@ -1,7 +1,5 @@
-
 #pragma once
 #ifdef __APPLE__
-
 #include "ui/helpers/textures.h"
 
 namespace platform

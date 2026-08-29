@@ -158,6 +158,27 @@ struct LogGuard final
 #define __WIDEFILE__ WIDELINE(__FILE__)
 
 #define SAVE_EXCEPTION(message)         g::save_exception(message, __FILE__, __LINE__)
+#if defined (_DEBUG) && defined (_WIN32) && !defined (SKIP_DEBUG_CATCH)
+#define DEBUG_CATCH \
+    { \
+        switch (::MessageBoxA(nullptr, \
+            "Some error happened\nTo exit app - press 'Abort'\nTo attach debugger - press 'Retry'\nTo continue execution - press 'Ignore')", \
+            APP_CAPTION, MB_ABORTRETRYIGNORE | MB_ICONWARNING | MB_TASKMODAL | MB_TOPMOST)) \
+        { \
+        case IDABORT: \
+            ::exit(1); \
+            break; \
+        default: \
+        case IDRETRY: \
+            __debugbreak(); \
+            break; \
+        case IDIGNORE: \
+            break; \
+        } \
+    }
+#else
+#define DEBUG_CATCH
+#endif // _DEBUG && _WIN32 && SKIP_DEBUG_CATCH
 
 #define LogFull(ptr, message) \
     { if (glog::Logger::get_log_enabled()) \
@@ -333,12 +354,13 @@ std::string format_log_msg(Args&&... args)
 #define LogVS(...)                   LogS(format_log_msg(__VA_ARGS__))
 
 #ifdef _WIN32
-#define LogApiERR                    uint32_t(GetLastError())
+#define LogApiERR                    uint32_t(::GetLastError())
 #elif defined __APPLE__
 #error Not implemented
 #elif defined __linux__
 #error Not implemented
 #endif
+
 #define LogHEX(h)                    glog::LogHex(h)
 #define LogHRES(h)                   glog::LogHRes(uint32_t(h))
 #define LogPTR(p)                    glog::LogPtr(p)

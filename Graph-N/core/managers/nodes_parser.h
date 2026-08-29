@@ -1,4 +1,3 @@
-
 #pragma once
 #include "core/managers/nodes_manager.h"
 #include "core/workflow/node.h"

@@ -1,4 +1,3 @@
-
 #include "ui/graph-n_flow.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/workflows_manager.h"

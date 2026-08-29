@@ -1,4 +1,5 @@
 #pragma once
+#include "tools/exception_handler.h" 
 
 #ifdef _WIN32
 
@@ -8,9 +9,6 @@
 #include <atomic>
 #pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "Shlwapi.lib")
-
-// Assuming proper includes for logging and file system exists
-#include "tools/exception_handler.h" 
 
 namespace tools
 {

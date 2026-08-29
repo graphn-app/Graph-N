@@ -1,4 +1,3 @@
-
 #include "core/managers/hotkeys_manager.h"
 #include "core/managers/settings_manager.h"
 #include "ui/panels/panel_wf.h"

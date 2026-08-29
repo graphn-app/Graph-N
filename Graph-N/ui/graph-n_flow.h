@@ -1,5 +1,4 @@
 #pragma once
-#include "core/base/structs.h"
 #include "core/managers/connect_manager.h"
 #include "core/alive.h"
 

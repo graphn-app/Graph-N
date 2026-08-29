@@ -1,6 +1,4 @@
-
 #pragma once
-#include "core/base/structs.h"
 #include "core/managers/manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/node.h"

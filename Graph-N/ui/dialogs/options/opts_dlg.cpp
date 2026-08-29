@@ -1,4 +1,3 @@
-
 #include "ui/dialogs/options/opts_dlg.h"
 #include "ui/dialogs/options/opts_right_pane.h"
 #include "core/managers/settings_manager.h"

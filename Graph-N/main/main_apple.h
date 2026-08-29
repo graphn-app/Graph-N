@@ -1,7 +1,5 @@
-
 #pragma once
 #ifdef __APPLE__
-
 #include "main.h"
 
 namespace platform

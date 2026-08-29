@@ -1,4 +1,3 @@
-
 #pragma once
 #include "ui/panels/panel_base.h"
 #include "core/listeners.h"

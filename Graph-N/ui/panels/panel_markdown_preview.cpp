@@ -1,4 +1,3 @@
-
 #include "ui/panels/panel_markdown_preview.h"
 
 namespace ui

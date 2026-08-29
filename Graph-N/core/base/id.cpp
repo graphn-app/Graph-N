@@ -1,3 +1,4 @@
+#include "core/base/id.h"
 #include "imgui_widget_limits.h"
 
 namespace base

@@ -1,4 +1,3 @@
-
 #include "core/workflow/workflow_action.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/nodes_manager.h"

@@ -1,4 +1,3 @@
-
 #include "core/workflow/node.h"
 #include "core/managers/settings_manager.h"
 

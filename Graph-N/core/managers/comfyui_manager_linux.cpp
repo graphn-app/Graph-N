@@ -1,4 +1,3 @@
-
 #ifdef __linux__
 #include "core/managers/comfyui_manager_linux.h"
 #include "core/managers/settings_manager.h"

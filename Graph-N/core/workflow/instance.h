@@ -1,4 +1,3 @@
-
 #pragma once
 #include "core/workflow/workflow.h"
 #include "core/workflow/node.h"

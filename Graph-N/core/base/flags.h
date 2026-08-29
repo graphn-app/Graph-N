@@ -1,4 +1,5 @@
 #pragma once
+
 template <typename T>
 struct ObjectFlags
 {
@@ -224,9 +225,9 @@ enum class NodeInstFlags : uint64_t
     JsonApiDontExport         = 1 << 24, // 16777216           -  0x1000000
     JsonCustomSerialization   = 1 << 25, // 33554432           -  0x2000000
     BlobCustomSerialization   = 1 << 26, // 67108864           -  0x4000000
-    MaskEditorSupport         = 1 << 27, // 134217728          -  0x8000000
+    MaskEditorSupported       = 1 << 27, // 134217728          -  0x8000000
     MaskEditorReady           = 1 << 28, // 268435456          -  0x10000000
-    PosEditorSupport          = 1 << 29, // 536870912          -  0x20000000
+    PosEditorSupported        = 1 << 29, // 536870912          -  0x20000000
     PosEditorReady            = 1 << 30, // 1073741824         -  0x40000000
 };
 

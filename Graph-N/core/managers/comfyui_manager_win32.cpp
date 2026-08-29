@@ -1,4 +1,3 @@
-
 #ifdef _WIN32
 #include "core/managers/comfyui_manager_win32.h"
 #include "core/managers/settings_manager.h"

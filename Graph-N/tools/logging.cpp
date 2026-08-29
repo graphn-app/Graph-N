@@ -1,4 +1,4 @@
-
+#include "tools/logging.h"
 #include "core/base/version.h"
 #include "core/managers/db_manager.h"
 

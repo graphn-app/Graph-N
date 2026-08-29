@@ -1,7 +1,5 @@
-
 #pragma once
 #ifdef _WIN32
-
 #include "main.h"
 #include <d3d11.h>
 

@@ -1,4 +1,3 @@
-
 #include "tools/blob_serializer.h"
 
 namespace blob

@@ -1,4 +1,3 @@
-
 #pragma once
 #ifdef __APPLE__
 #include "core/managers/comfyui_manager.h"

@@ -1,7 +1,5 @@
-
 #pragma once
 #ifdef __linux__
-
 #include "main.h"
 
 namespace platform

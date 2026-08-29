@@ -1,4 +1,3 @@
-
 #ifdef __linux__
 #include "GLFW/glfw3.h"
 #include "ui/helpers/textures_linux.h"

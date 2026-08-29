@@ -1,3 +1,4 @@
+#include "core/base/filesystem.h"
 
 namespace fs
 {

@@ -1,4 +1,3 @@
-
 #pragma once
 #ifdef _WIN32
 #include "core/managers/comfyui_manager.h"

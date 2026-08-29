@@ -1,4 +1,3 @@
-
 #include "ui/helpers/imgui_ex.h"
 #include "core/managers/settings_manager.h"
 

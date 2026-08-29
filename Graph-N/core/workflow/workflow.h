@@ -1,6 +1,4 @@
-
 #pragma once
-#include "core/base/structs.h"
 #include "core/listeners.h"
 
 namespace mngr

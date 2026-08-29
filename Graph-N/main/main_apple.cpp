@@ -1,4 +1,3 @@
-
 #ifdef __APPLE__
 #include "main/main_apple.h"
 

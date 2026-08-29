@@ -1,4 +1,3 @@
-
 #include "ui/panels/panel_text_editor.h"
 #include "core/workflow/node.h"
 #include "core/workflow/pin.h"

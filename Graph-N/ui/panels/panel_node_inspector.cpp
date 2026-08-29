@@ -1,4 +1,3 @@
-
 #include "ui/panels/panel_node_inspector.h"
 #include "core/workflow/node.h"
 #include "core/workflow/pin.h"

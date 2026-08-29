@@ -1,4 +1,3 @@
-
 #include "core/workflow/node_instance_base.h"
 #include "core/workflow/pin_instance.h"
 #include "core/managers/nodes_manager.h"

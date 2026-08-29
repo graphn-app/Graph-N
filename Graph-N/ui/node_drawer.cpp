@@ -1,8 +1,6 @@
-
 #include "ui/node_drawer.h"
 #include "ui/helpers/imgui_ex_ne.h"
 #include "ui/graph-n_flow.h"
-#include "main.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/history_manager.h"
 #include "core/workflow/node.h"
@@ -14,6 +12,7 @@
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
 #include "imgui_node_editor.h"
+#include "main.h"
 
 /*
 NODE

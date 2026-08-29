@@ -1,4 +1,3 @@
-
 #pragma once
 #include "core/workflow/node_instance_base.h"
 

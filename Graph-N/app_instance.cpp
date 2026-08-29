@@ -1,4 +1,3 @@
-
 #include "app_instance.h"
 
 AppInstance::AppInstance(WakeUpCallback on_wake_up)

@@ -1,4 +1,3 @@
-
 #include "ui/panels/panel_stats.h"
 #include "ui/graph-n_flow.h"
 #include "core/managers/connect_manager.h"

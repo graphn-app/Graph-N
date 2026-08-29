@@ -1,4 +1,3 @@
-
 #pragma once
 #include "ui/panels/panel_base.h"
 #include "ui/node_drawer_ro.h"

@@ -1,6 +1,4 @@
-
 #pragma once
-#include "core/base/structs.h"
 #include "imgui_node_editor_edtype.h"
 
 namespace data

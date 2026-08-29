@@ -1,4 +1,3 @@
-
 #include "core/managers/settings_manager.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/hotkeys_manager.h"

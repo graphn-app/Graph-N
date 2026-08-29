@@ -1,4 +1,3 @@
-
 #pragma once
 #include "core/workflow/cni_base.h"
 

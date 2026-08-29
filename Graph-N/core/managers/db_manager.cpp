@@ -1,4 +1,3 @@
-
 #include "core/managers/db_manager.h"
 #include "core/base/version.h"
 

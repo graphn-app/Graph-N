@@ -1,5 +1,4 @@
 #pragma once
-#include "core/base/structs.h"
 #include "ui/panels/panel_base.h"
 
 namespace data

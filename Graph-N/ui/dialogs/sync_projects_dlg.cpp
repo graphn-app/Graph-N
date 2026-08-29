@@ -1,4 +1,3 @@
-
 #include "ui/dialogs/sync_projects_dlg.h"
 #include "ui/graph-n_flow.h"
 #include "core/managers/connect_manager.h"
