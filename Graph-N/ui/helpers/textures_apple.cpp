@@ -4,6 +4,7 @@
 
 namespace platform
 {
+#error Not implemented
 } // namespace platform
 
 #endif // #ifdef __APPLE__

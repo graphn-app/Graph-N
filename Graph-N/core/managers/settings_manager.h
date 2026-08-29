@@ -59,6 +59,9 @@ public:
     std::vector<ui::KeyBinding> ui_hotkeys_load() noexcept;
     void ui_hotkeys_save(const std::vector<ui::KeyBinding>& hotkeys) { save_option(m_ui_hotkeys, format_hotkeys_to_json(hotkeys)); }
 
+    std::string ui_host_settings_load() noexcept { return *std::get_if<std::string>(&m_ui_host_settings.value); }
+    void ui_host_settings_save(const std::string& settings);
+
     // comfyui
     const std::string& comfyui_host_load() const noexcept { return *std::get_if<std::string>(&m_comfyui_host.value); }
     std::string comfyui_host_load_safe();
@@ -238,6 +241,7 @@ private:
     OptionValue m_ui_activity_bar_big_icons; // int
     OptionValue m_ui_activity_bar_show_restart; // int
     OptionValue m_ui_hotkeys; // str
+    OptionValue m_ui_host_settings; // str
 
     // comfyui
     OptionValue m_comfyui_host; // str

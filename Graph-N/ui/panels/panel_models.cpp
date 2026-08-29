@@ -398,7 +398,7 @@ void PanelModels::on_alloc_tt_data(int32_t idx)
     if (g::pTextures->get_image_alive(model->info.textures_id))
         return;
 
-    model->info.textures_id = g::pTextures->load_image(tools::str::path_to_string(model->info.image_path).c_str(), 300, 300, 20);
+    model->info.textures_id = g::pTextures->load_image(tools::path::path_to_string(model->info.image_path).c_str(), 300, 300, 20);
 }
 
 bool PanelModels::on_pre_tt(int32_t idx) noexcept

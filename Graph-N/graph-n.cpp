@@ -10,12 +10,16 @@
 #include "core/managers/history_manager.h"
 #include "core/managers/queue_manager.h"
 #include "core/managers/hotkeys_manager.h"
+#include "core/managers/host_manager.h"
 #if defined _WIN32
 #include "core/managers/comfyui_manager_win32.h"
+#include "core/managers/host_manager_win32.h"
 #elif defined __linux__
 #include "core/managers/comfyui_manager_linux.h"
+#include "core/managers/host_manager_linux.h"
 #elif defined __APPLE__
 #include "core/managers/comfyui_manager_apple.h"
+#include "core/managers/host_manager_apple.h"
 #endif
 #include "core/base/id.h"
 #include "main.h"
@@ -40,6 +44,7 @@ mngr::ComfyUIManager* pComfyUIManager = nullptr;
 mngr::HistoryManager* pHistoryManager = nullptr;
 mngr::QueueManager* pQueueManager = nullptr;
 mngr::HotkeysManager* pHotkeysManager = nullptr;
+mngr::HostManager* pHostManager = nullptr;
 
 std::stop_source app_global_stop_all_threads;
 int32_t block_hotkeys_counter = 0;
@@ -66,25 +71,25 @@ bool GraphN::init_graphn()
     LogIn;
 
     m_managers.push_back(std::make_unique<mngr::DbManager>());
-    g::pDbManager = (mngr::DbManager*)m_managers.back().get();
+    g::pDbManager = cast::ptrs<mngr::DbManager>(m_managers.back().get());
 
     m_managers.push_back(std::make_unique<mngr::SettingsManager>());
-    g::pOptsManager = (mngr::SettingsManager*)m_managers.back().get();
+    g::pOptsManager = cast::ptrs<mngr::SettingsManager>(m_managers.back().get());
 
     m_managers.push_back(std::make_unique<mngr::NodesManager>());
-    g::pNodesManager = (mngr::NodesManager*)m_managers.back().get();
+    g::pNodesManager = cast::ptrs<mngr::NodesManager>(m_managers.back().get());
 
     m_managers.push_back(std::make_unique<mngr::ModelsManager>());
-    g::pModelsManager = (mngr::ModelsManager*)m_managers.back().get();
+    g::pModelsManager = cast::ptrs<mngr::ModelsManager>(m_managers.back().get());
 
     m_managers.push_back(std::make_unique<mngr::ConnectManager>());
-    g::pConnectManager = (mngr::ConnectManager*)m_managers.back().get();
+    g::pConnectManager = cast::ptrs<mngr::ConnectManager>(m_managers.back().get());
 
     m_managers.push_back(std::make_unique<mngr::HistoryManager>());
-    g::pHistoryManager = (mngr::HistoryManager*)m_managers.back().get();
+    g::pHistoryManager = cast::ptrs<mngr::HistoryManager>(m_managers.back().get());
 
     m_managers.push_back(std::make_unique<mngr::WfsManager>());
-    g::pWfsManager = (mngr::WfsManager*)m_managers.back().get();
+    g::pWfsManager = cast::ptrs<mngr::WfsManager>(m_managers.back().get());
 
 #if defined _WIN32
     m_managers.push_back(std::make_unique<mngr::ComfyUIManager_Win32>());
@@ -93,13 +98,22 @@ bool GraphN::init_graphn()
 #elif defined __APPLE__
     m_managers.push_back(std::make_unique<mngr::ComfyUIManager_Apple>());
 #endif
-    g::pComfyUIManager = (mngr::ComfyUIManager*)m_managers.back().get();
+    g::pComfyUIManager = cast::ptrs<mngr::ComfyUIManager>(m_managers.back().get());
 
     m_managers.push_back(std::make_unique<mngr::QueueManager>());
-    g::pQueueManager = (mngr::QueueManager*)m_managers.back().get();
+    g::pQueueManager = cast::ptrs<mngr::QueueManager>(m_managers.back().get());
 
     m_managers.push_back(std::make_unique<mngr::HotkeysManager>());
-    g::pHotkeysManager = (mngr::HotkeysManager*)m_managers.back().get();
+    g::pHotkeysManager = cast::ptrs<mngr::HotkeysManager>(m_managers.back().get());
+
+#if defined _WIN32
+    m_managers.push_back(std::make_unique<mngr::HostManager_Win32>());
+#elif defined __linux__
+    m_managers.push_back(std::make_unique<mngr::HostManager_Linux>());
+#elif defined __APPLE__
+    m_managers.push_back(std::make_unique<mngr::HostManager_Apple>());
+#endif
+    g::pHostManager = cast::ptrs<mngr::HostManager>(m_managers.back().get());
 
     bool success = true;
     std::for_each(m_managers.begin(), m_managers.end(), [&success](std::unique_ptr<mngr::Manager>& manager)

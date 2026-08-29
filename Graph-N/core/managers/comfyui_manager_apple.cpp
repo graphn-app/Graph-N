@@ -10,12 +10,10 @@ ComfyUIManager_Apple::~ComfyUIManager_Apple() noexcept = default;
 
 void ComfyUIManager_Apple::stop_all_threads()
 {
-    LogF;
 }
 
 bool ComfyUIManager_Apple::init()
 {
-    LogF;
     if (!ComfyUIManager::init())
         return false;
 
@@ -24,11 +22,11 @@ bool ComfyUIManager_Apple::init()
 
 void ComfyUIManager_Apple::free()
 {
-    LogF;
 }
 
 void ComfyUIManager_Apple::run_server()
 {
+#error Not implemented
 }
 
 } // namespace mngr

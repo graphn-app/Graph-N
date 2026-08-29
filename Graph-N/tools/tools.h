@@ -40,7 +40,6 @@ std::string wide_to_utf8(const std::wstring& wide_str);
 #endif // _WIN32
 
 std::string u8_to_string(const std::u8string& u8_str);
-std::string path_to_string(const std::filesystem::path& path);
 
 std::string url_encode(const std::string& url);
 
@@ -57,6 +56,7 @@ std::optional<std::filesystem::path> copy(const std::filesystem::path& from, con
 std::optional<std::filesystem::path> move(const std::filesystem::path& from, const std::filesystem::path& to, bool overwrite, bool rename);
 
 bool make_folder(const std::filesystem::path& dirpath);
+bool make_file(const std::filesystem::path& filepath, bool overwrite);
 bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::vector<byte>& data_to_write);
 bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const std::vector<byte>& data_to_write);
 bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::string& data_to_write);
@@ -71,6 +71,7 @@ bool is_file(const std::filesystem::path& path) noexcept;
 bool is_dir(const std::filesystem::path& path) noexcept;
 bool is_empty(const std::filesystem::path& path) noexcept;
 
+std::string path_to_string(const std::filesystem::path& path);
 std::string get_extension(const std::filesystem::path& path);
 
 // creates list of objects with pathes

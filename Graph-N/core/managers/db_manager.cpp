@@ -745,9 +745,6 @@ std::vector<ExecTask> DbManager::history_load_all()
                 gdb_val_prompt_id, gdb_val_flow, gdb_val_data,
                 gdb_tbl_history));
 
-        const auto temp = fs::get_temp_directory_path();
-        const bool temp_ok = tools::path::make_folder(temp);    
-
         std::vector<ExecTask> ret;
         ret.reserve(500);
         while (query.executeStep())
@@ -798,10 +795,11 @@ std::vector<ExecTask> DbManager::history_load_all()
                     auto& jtexts = jitem["texts"];
                     o.text = jtexts.get<std::string>();
 
-                    if (temp_ok && !o.filename.empty())
+                    if (!o.filename.empty())
                     {
-                        const auto filename = tools::str::generate_uuid_v4() + tools::str::path_to_string(std::filesystem::path(o.filename).extension());
-                        o.binary_path = tools::str::path_to_string(temp / filename);
+                        const auto temp_filename = fs::get_temp_filepath(tools::path::path_to_string(std::filesystem::path(o.filename).extension()));
+                        if (!temp_filename.empty())
+                            o.binary_path = tools::path::path_to_string(temp_filename);
                     }
 
                     task.outputs.push_back(std::move(o));

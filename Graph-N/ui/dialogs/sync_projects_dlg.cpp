@@ -383,7 +383,7 @@ void SyncProjectsDlg::load_projects()
 
         for (auto& [name, time] : projects)
         {
-            name = tools::str::path_to_string(std::filesystem::path(name).stem());
+            name = tools::path::path_to_string(std::filesystem::path(name).stem());
 
             bool local_found = false;
             for (auto& row : m_rows)

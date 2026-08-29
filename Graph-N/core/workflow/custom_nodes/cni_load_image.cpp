@@ -108,7 +108,7 @@ void CNI_LoadImage::cni_draw_widget(PinInstance* pin, float pos, float width)
         return;
 
     std::filesystem::path source_name = obj->combo_items_ptr[index];
-    const auto download_image = [this, index, ext = tools::str::path_to_string(source_name.extension())](int32_t result, std::string&& data)
+    const auto download_image = [this, index, ext = tools::path::path_to_string(source_name.extension())](int32_t result, std::string&& data)
     {
         if (result != HTTP_RESP_OK || data.empty()) [[unlikely]]
             return;
@@ -119,21 +119,19 @@ void CNI_LoadImage::cni_draw_widget(PinInstance* pin, float pos, float width)
             return;
         }
 
-        auto temp = fs::get_temp_directory_path();
-        if (tools::path::make_folder(temp))
+        auto temp_filename = fs::get_temp_filepath(ext);
+        if (!temp_filename.empty())
         {
-            auto dest = tools::str::generate_uuid_v4() + ext;
-            temp /= dest;
-            if (tools::path::make_file(temp, true, data))
-                m_images[index].temp_path = temp.string();
+            if (tools::path::make_file(temp_filename, true, data))
+                m_images[index].temp_path = temp_filename.string();
         }
 
         m_images[index].or_size.clear();
         m_images[index].image_id = g::pTextures->load_image(std::move(data), NODE_IMAGE_RECT, NODE_IMAGE_RECT, NODE_IMAGE_LIFETIME);
     };
 
-    const std::string directory = tools::str::path_to_string(source_name.parent_path());
-    const std::string filename = tools::str::path_to_string(source_name.filename());
+    const std::string directory = tools::path::path_to_string(source_name.parent_path());
+    const std::string filename = tools::path::path_to_string(source_name.filename());
     const auto request = fmt::format(comfyui_http::view_input_, tools::str::url_encode(filename), tools::str::url_encode(directory));
     g::pFlow->http_get("CNI_LoadImage", get_alive_callback(), request.c_str(), download_image, true);
     m_images[index].requested = true;
@@ -195,7 +193,7 @@ void CNI_LoadImage::draw_upload_button(float pos, float width)
             {
                 "image",
                 std::move(buffer),
-                tools::str::path_to_string(path.filename()),
+                tools::path::path_to_string(path.filename()),
                 tools::img::get_mime_type(path)
             },
             { "type", "input", "", "" },

@@ -4,7 +4,7 @@
 
 namespace platform
 {
-
+#error Not implemented
 } // namespace platform
 
 #endif // #ifdef __linux__

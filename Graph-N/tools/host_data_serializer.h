@@ -3,7 +3,7 @@
 namespace blob
 {
 
-struct HostData
+struct HostData final
 {
     enum Command
     {
@@ -33,6 +33,8 @@ struct HostData
     int32_t comfyui_port = 0;                   // MaskEditor                           -> ComfyUI server port, required if SAM is ON
 
     std::string settings;                       // MaskEditor, PosEditor, Apply         -> send saved/updated settings
+
+    bool alive = false;                         // internal, do not serialize
 };
 
 class HostSerializer

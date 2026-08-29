@@ -32,44 +32,64 @@ std::filesystem::path get_this_app_filepath()
 
 std::filesystem::path get_root_directory_path()
 {
-    auto root = get_this_app_filepath();
-    return root.remove_filename();
+    auto path = get_this_app_filepath();
+    return path.remove_filename();
 }
 
 std::filesystem::path get_log_directory_path()
 {
-    auto root = get_root_directory_path();
-    root /= "log";
-    return root;
+    auto path = get_root_directory_path();
+    path /= "log";
+    return path;
 }
 
 std::filesystem::path get_res_directory_path()
 {
-    auto root = get_root_directory_path();
-    root /= "res";
-    return root;
+    auto path = get_root_directory_path();
+    path /= "res";
+    return path;
 }
 
 std::filesystem::path get_temp_directory_path()
 {
-    auto root = get_root_directory_path();
-    root /= "temp";
-    return root;
+    auto path = get_root_directory_path();
+    path /= "temp";
+    return path;
+}
+
+std::filesystem::path get_temp_filepath(const std::string& ext)
+{
+    const auto dir = get_temp_directory_path();
+    if (!tools::path::make_folder(dir))
+        return {};
+
+    auto path = dir / (tools::str::generate_uuid_v4() + ext);
+    while(tools::path::exists(path))
+    {
+        path = dir / (tools::str::generate_uuid_v4() + ext);
+    }
+    return path;
 }
 
 std::filesystem::path get_backup_directory_path()
 {
-    auto root = get_root_directory_path();
-    root /= "backup";
-    return root;
+    auto path = get_root_directory_path();
+    path /= "backup";
+    return path;
 }
 
 std::filesystem::path get_crash_dump_directory_path()
 {
-    auto root = get_root_directory_path();
-    root /= "crash_dump";
-    return root;
+    auto path = get_root_directory_path();
+    path /= "crash_dump";
+    return path;
 }
 
+std::filesystem::path get_host_path()
+{
+    auto path = get_root_directory_path();
+    path /= "Graph-N_Host.exe";
+    return path;
+}
 
 }

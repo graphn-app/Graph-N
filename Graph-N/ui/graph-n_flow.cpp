@@ -25,6 +25,7 @@
 #include "core/managers/history_manager.h"
 #include "core/managers/queue_manager.h"
 #include "core/managers/hotkeys_manager.h"
+#include "core/managers/host_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/serializer/wf_serializers.h"
@@ -363,6 +364,7 @@ bool GraphN_Flow::run()
     g::pQueueManager->process();
 
     check_http_reply();
+    check_host_reply();
 
     return true;
 }
@@ -1335,7 +1337,7 @@ uint32_t GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallb
 
 void GraphN_Flow::check_http_reply()
 {
-    if (get_is_quit())
+    if (get_is_quit()) [[unlikely]]
         return;
 
     constexpr auto max_processing_time = 0.003; // max 3ms per frame
@@ -1403,7 +1405,7 @@ void GraphN_Flow::check_http_reply()
 
 void GraphN_Flow::check_ws_message(const std::function<void(bool, std::string&)>& callback)
 {
-    if (get_is_quit())
+    if (get_is_quit()) [[unlikely]]
         return;
 
     constexpr auto max_processing_time = 0.003; // max 3ms per frame
@@ -1418,6 +1420,26 @@ void GraphN_Flow::check_ws_message(const std::function<void(bool, std::string&)>
         if ((ImGui::GetTime() - start_time) > max_processing_time)
             break;
     }
+}
+
+void GraphN_Flow::check_host_reply()
+{
+    if (get_is_quit()) [[unlikely]]
+        return;
+
+    wid wf_id = 0;
+    iid node_id = 0;
+    bool result = false;
+    std::filesystem::path image_path;
+    if (!g::pHostManager->pickup_finished_host(wf_id, node_id, result, image_path)) [[likely]]
+        return;
+
+    Log("Host reply to w:" << wf_id << ", n:" << node_id << ", img:" << image_path);
+    auto wf = g::pWfsManager->access(wf_id);
+    LogRAssert(wf, "Wf not found", );
+
+    auto node = wf->get_node_by_instance(node_id);
+    LogRAssert(node, "Node not found", );
 }
 
 void GraphN_Flow::test_hotkeys()

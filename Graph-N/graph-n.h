@@ -22,6 +22,7 @@ class ComfyUIManager;
 class HistoryManager;
 class QueueManager;
 class HotkeysManager;
+class HostManager;
 }
 
 namespace ui
@@ -113,6 +114,7 @@ extern mngr::ComfyUIManager* pComfyUIManager;
 extern mngr::HistoryManager* pHistoryManager;
 extern mngr::QueueManager* pQueueManager;
 extern mngr::HotkeysManager* pHotkeysManager;
+extern mngr::HostManager* pHostManager;
 
 extern std::stop_source app_global_stop_all_threads;
 extern int32_t block_hotkeys_counter;

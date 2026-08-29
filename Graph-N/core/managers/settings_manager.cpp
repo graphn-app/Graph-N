@@ -28,6 +28,7 @@ bool SettingsManager::init()
     m_ui_activity_bar_big_icons =                     { "activity_bar_big_icons",   bool(false) };
     m_ui_activity_bar_show_restart =                  { "activity_bar_add_restart", bool(false) };    
     m_ui_hotkeys =                                    { "key_bindings",             format_hotkeys_to_json(g::pHotkeysManager->get_default_key_bindings()) };
+    m_ui_host_settings =                /* safe */    { "host_settings",            std::string("{}"),                  true };
 
     // comfyui
     m_comfyui_host =                    /* safe */    { "comfyui_host",             std::string("127.0.0.1"),           true };
@@ -197,6 +198,7 @@ bool SettingsManager::init()
     values.push_back(&m_ui_activity_bar_big_icons);
     values.push_back(&m_ui_activity_bar_show_restart);
     values.push_back(&m_ui_hotkeys);
+    values.push_back(&m_ui_host_settings);
     values.push_back(&m_comfyui_host);
     values.push_back(&m_comfyui_port);
     values.push_back(&m_comfyui_conn_time);
@@ -284,7 +286,7 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
                 }
                 else if constexpr (std::is_same_v<T, std::filesystem::path>)
                 {
-                    db_opt.val = tools::str::path_to_string(v);
+                    db_opt.val = tools::path::path_to_string(v);
                 }
                 else
                 {
@@ -382,11 +384,11 @@ void SettingsManager::save_option(OptionValue& option, const std::filesystem::pa
     if (option.guard_required) [[unlikely]]
     {
         std::unique_lock<std::mutex> lock(m_guard);
-        save_option_impl(option.value, option.db_name, new_path, { tools::str::path_to_string(new_path) }, "path");
+        save_option_impl(option.value, option.db_name, new_path, { tools::path::path_to_string(new_path) }, "path");
     }
     else
     {
-        save_option_impl(option.value, option.db_name, new_path, { tools::str::path_to_string(new_path) }, "path");
+        save_option_impl(option.value, option.db_name, new_path, { tools::path::path_to_string(new_path) }, "path");
     }
 }
 
@@ -523,6 +525,46 @@ std::vector<ui::KeyBinding> SettingsManager::ui_hotkeys_load() noexcept
         LogExcep("Failed to parse key bindings: " << ex.what());        
     }
     return {};
+}
+
+void SettingsManager::ui_host_settings_save(const std::string& settings)
+{
+    try
+    {
+        const auto& existing = *std::get_if<std::string>(&m_ui_host_settings.value);
+        if (existing.empty())
+        {
+            save_option(m_ui_host_settings, settings);
+            return;
+        }
+        auto jold = u_json::parse(existing);
+        if (jold.empty())
+        {
+            save_option(m_ui_host_settings, settings);
+            return;
+        }
+
+        const auto jnew = u_json::parse(settings);
+        if (jold.is_object() && jnew.is_object())
+        {
+            for (auto& [name, jval] : jold.items())
+            {                
+                if (jnew.contains(name) && jnew[name].is_string())
+                {
+                    jval = std::move(jnew[name]);
+                }
+            }
+
+            save_option(m_ui_host_settings, jold.dump());
+        }
+        else
+            save_option(m_ui_host_settings, settings);
+    }
+    catch (const std::exception& ex)
+    {
+        LogExcep("Failed to parse host settings: " << ex.what());
+        save_option(m_ui_host_settings, settings);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -59,12 +59,12 @@ void OptRightPane::init(OptsData& data)
     m_data->buffer_i.resize(_i_count);
 
     m_data->buffer_s[BuffHost] = g::pOptsManager->comfyui_host_load();
-    m_data->buffer_s[BuffMainpy] = tools::str::path_to_string(g::pOptsManager->comfyui_main_py_load());
-    m_data->buffer_s[BuffPython] = tools::str::path_to_string(g::pOptsManager->comfyui_python_load());
+    m_data->buffer_s[BuffMainpy] = tools::path::path_to_string(g::pOptsManager->comfyui_main_py_load());
+    m_data->buffer_s[BuffPython] = tools::path::path_to_string(g::pOptsManager->comfyui_python_load());
     m_data->buffer_s[BuffPythonArgs] = g::pOptsManager->comfyui_python_args_load();
     m_data->buffer_s[BuffComfyUIArgs] = g::pOptsManager->comfyui_comfyui_args_load();
-    m_data->buffer_s[BuffWorkDir] = tools::str::path_to_string(g::pOptsManager->comfyui_workdir_load());
-    m_data->buffer_s[BuffOutput] = tools::str::path_to_string(g::pOptsManager->comfyui_output_load());
+    m_data->buffer_s[BuffWorkDir] = tools::path::path_to_string(g::pOptsManager->comfyui_workdir_load());
+    m_data->buffer_s[BuffOutput] = tools::path::path_to_string(g::pOptsManager->comfyui_output_load());
 
     m_data->buffer_i[BuffFpsLimit] = g::pOptsManager->app_fps_limit_val_load();
     m_data->buffer_i[BuffScale] = g::pOptsManager->app_scale_load();
@@ -1334,7 +1334,7 @@ void OptRightPane::browse_for_python()
     {
         if (result)
         {
-            m_data->buffer_s[BuffPython] = tools::str::path_to_string(path);
+            m_data->buffer_s[BuffPython] = tools::path::path_to_string(path);
             g::pOptsManager->comfyui_python_save(m_data->buffer_s[BuffPython]);
         }
     };
@@ -1347,7 +1347,7 @@ void OptRightPane::browse_for_mainpy()
     {
         if (result)
         {
-            m_data->buffer_s[BuffMainpy] = tools::str::path_to_string(path);
+            m_data->buffer_s[BuffMainpy] = tools::path::path_to_string(path);
             g::pOptsManager->comfyui_main_py_save(m_data->buffer_s[BuffMainpy]);
         }
     };
@@ -1360,7 +1360,7 @@ void OptRightPane::browse_for_workdir()
     {
         if (result)
         {
-            m_data->buffer_s[BuffWorkDir] = tools::str::path_to_string(path);
+            m_data->buffer_s[BuffWorkDir] = tools::path::path_to_string(path);
             g::pOptsManager->comfyui_workdir_save(m_data->buffer_s[BuffWorkDir]);
         }
     };
@@ -1373,7 +1373,7 @@ void OptRightPane::browse_for_outputdir()
     {
         if (result)
         {
-            m_data->buffer_s[BuffOutput] = tools::str::path_to_string(path);
+            m_data->buffer_s[BuffOutput] = tools::path::path_to_string(path);
             g::pOptsManager->comfyui_output_save(m_data->buffer_s[BuffOutput]);
         }
     };
@@ -1675,15 +1675,15 @@ void OptRightPane::import_from_comfyui()
         tools::path::exists(work_dir) && work_dir.is_absolute() &&
         !python_args_tmp.empty() && !comfyui_args.empty())
     {
-        m_data->buffer_s[BuffPython] = tools::str::path_to_string(python_path);
+        m_data->buffer_s[BuffPython] = tools::path::path_to_string(python_path);
         g::pOptsManager->comfyui_python_save(m_data->buffer_s[BuffPython]);
-        m_data->buffer_s[BuffMainpy] = tools::str::path_to_string(mainpy_path);
+        m_data->buffer_s[BuffMainpy] = tools::path::path_to_string(mainpy_path);
         g::pOptsManager->comfyui_main_py_save(m_data->buffer_s[BuffMainpy]);
-        m_data->buffer_s[BuffWorkDir] = tools::str::path_to_string(work_dir);
+        m_data->buffer_s[BuffWorkDir] = tools::path::path_to_string(work_dir);
         g::pOptsManager->comfyui_workdir_save(m_data->buffer_s[BuffWorkDir]);
         if (tools::path::exists(output_dir))
         {
-            m_data->buffer_s[BuffOutput] = tools::str::path_to_string(output_dir);
+            m_data->buffer_s[BuffOutput] = tools::path::path_to_string(output_dir);
             g::pOptsManager->comfyui_output_save(m_data->buffer_s[BuffOutput]);
         }
         m_data->buffer_s[BuffPythonArgs] = _bstr_t(python_args_tmp.c_str());

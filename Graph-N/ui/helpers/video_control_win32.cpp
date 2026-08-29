@@ -471,8 +471,8 @@ std::string VideoControl_Win32::get_thumbnail(const std::string& filename, uint3
     if (!tools::path::exists(filename)) [[unlikely]]
         return {};
 
-    const auto temp = fs::get_temp_directory_path();
-    if (!tools::path::make_folder(temp)) [[unlikely]]
+    const auto dest_filename = fs::get_temp_filepath(".png");
+    if (dest_filename.empty()) [[unlikely]]
         return {};
 
     HRESULT hr = S_OK;
@@ -492,11 +492,8 @@ std::string VideoControl_Win32::get_thumbnail(const std::string& filename, uint3
     hr = attributes->SetUINT32(MF_SOURCE_READER_ENABLE_ADVANCED_VIDEO_PROCESSING, TRUE);
     if (FAILED(hr)) [[unlikely]] return log_err("Failed to set attr video processing for");
 
-    auto dest = tools::str::generate_uuid_v4() + ".png";
-    dest = tools::str::path_to_string(temp / dest);
-    std::filesystem::path wfilepath(filename);
-
     IMFSourceReader* reader = nullptr;
+    std::filesystem::path wfilepath(filename);
     hr = MFCreateSourceReaderFromURL(wfilepath.c_str(), attributes.Get(), &reader);
     if (FAILED(hr)) [[unlikely]] return log_err("Failed to create reader from");
 
@@ -594,14 +591,14 @@ std::string VideoControl_Win32::get_thumbnail(const std::string& filename, uint3
     }
 
     // write the raw rgba buffer to disk using stb_image_write
-    const auto write_res = stbi_write_png(dest.c_str(), cast::to_i32(w), cast::to_i32(h), 4, output_pixels.data(), cast::to_i32(w * 4));
-    if (0 == write_res || !tools::path::exists(dest))
+    const auto write_res = stbi_write_png(tools::path::path_to_string(dest_filename).c_str(), cast::to_i32(w), cast::to_i32(h), 4, output_pixels.data(), cast::to_i32(w * 4));
+    if (0 == write_res || !tools::path::exists(dest_filename))
     {
         hr = write_res;
         return log_err("Failed to write stb png for");
     }
 
-    return dest;
+    return tools::path::path_to_string(dest_filename);
 }
 
 } // namespace platform

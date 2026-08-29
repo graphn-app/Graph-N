@@ -943,28 +943,28 @@ void WfsManager::dump(wid wf_id) const
 wid WfsManager::import_wf(const std::filesystem::path& from)
 {
     Log("Import project from " << from);
-    const auto ext = tools::str::to_lower_ascii(tools::str::path_to_string(from.extension()));
-    const auto name = tools::str::path_to_string(from.stem());
+    const auto ext = tools::str::to_lower_ascii(tools::path::path_to_string(from.extension()));
+    const auto name = tools::path::path_to_string(from.stem());
 
     if (ext == ".json")
     {
         const auto data = tools::path::read_file(from, true);
         if (!data.empty())
-            return import_wf_from_json(data, tools::str::path_to_string(from.stem()));
+            return import_wf_from_json(data, tools::path::path_to_string(from.stem()));
         return 0;
     }
     if (ext == ".png")
     {
         const auto data = tools::img::extract_workflow_from_png(from);
         if (!data.empty())
-            return import_wf_from_json(data, tools::str::path_to_string(from.stem()));
+            return import_wf_from_json(data, tools::path::path_to_string(from.stem()));
         return 0;
     }
     if (ext == ".webp")
     {
         const auto data = tools::img::extract_workflow_from_webp(from);
         if (!data.empty())
-            return import_wf_from_json(data, tools::str::path_to_string(from.stem()));
+            return import_wf_from_json(data, tools::path::path_to_string(from.stem()));
         return 0;
     }
 
@@ -980,7 +980,7 @@ wid WfsManager::import_wf_from_json(const std::string& jdata, const std::string&
 
         WfData wf_data;
         wf_data.ro = false;
-        wf_data.name = tools::str::path_to_string(std::filesystem::path(name).stem());
+        wf_data.name = tools::path::path_to_string(std::filesystem::path(name).stem());
         if (!use_time.null())
         {
             wf_data.ext_time = use_time;

@@ -31,7 +31,7 @@ void cleanup(const std::filesystem::path& dir, const std::string& prefix, size_t
     std::list<std::filesystem::path> filtered;
     for (auto& file : list)
     {
-        if (tools::str::path_to_string(file.filename()).starts_with(prefix))
+        if (tools::path::path_to_string(file.filename()).starts_with(prefix))
         {
             filtered.push_back(std::move(file));
         }

@@ -107,7 +107,7 @@ void ModelsManager::load_models_th()
                         model_req += "/" + req;
 
                         httplib::Params params;
-                        params.emplace("filename", tools::str::path_to_string(filename.filename()));
+                        params.emplace("filename", tools::path::path_to_string(filename.filename()));
                         http_res = g::pFlow->http_get_and_wait("Models/Model", model_req.c_str(), std::move(params), {}, false,
                             [stop_flag = m_stop_flag.get_token()]() noexcept { return stop_flag.stop_requested(); }, data);
 
@@ -176,7 +176,7 @@ std::unique_ptr<data::ModelItem> ModelsManager::add_file(std::string root_folder
         {
             auto fn = std::make_unique<data::ModelItem>();
             fn->is_model = false;
-            fn->name = tools::str::path_to_string(*part);
+            fn->name = tools::path::path_to_string(*part);
             fn->search = tools::str::to_lower_ascii(fn->name);
             auto ptr = fn.get();
             parent->children.push_back(std::move(fn));
@@ -186,7 +186,7 @@ std::unique_ptr<data::ModelItem> ModelsManager::add_file(std::string root_folder
 
     auto file = std::make_unique<data::ModelItem>();
     file->is_model = true;
-    file->name = tools::str::path_to_string(file_path.filename());
+    file->name = tools::path::path_to_string(file_path.filename());
     file->search = tools::str::to_lower_ascii(file->name);
     file->hash = base::HashID::make_hash(file->name);
     const auto starred = g::pOptsManager->model_starred_load(file->hash);
@@ -240,10 +240,9 @@ void ModelsManager::parse_file_info(data::ModelItem* item, std::string&& info)
 
     if (j.contains("modelspec.thumbnail") && j.contains("modelspec.hash_sha256"))
     {
-        auto temp = fs::get_temp_directory_path();
-        if (tools::path::make_folder(temp))
+        const auto temp_filename = fs::get_temp_filepath(".image");
+        if (!temp_filename.empty())
         {
-            auto filename = tools::str::generate_uuid_v4() + ".image";
             const std::string image = j["modelspec.thumbnail"];
             auto pos = image.find(",");
             if (pos != std::string::npos)
@@ -252,10 +251,9 @@ void ModelsManager::parse_file_info(data::ModelItem* item, std::string&& info)
                 const auto binary = tools::str::base64_decode(base64);
                 if (!binary.empty())
                 {
-                    temp /= filename;
-                    if (tools::path::make_file(temp, true, binary))
+                    if (tools::path::make_file(temp_filename, true, binary))
                     {
-                        item->info.image_path = temp;
+                        item->info.image_path = temp_filename;
                     }
                 }
             }

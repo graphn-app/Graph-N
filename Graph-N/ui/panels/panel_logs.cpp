@@ -252,7 +252,7 @@ void PanelServerLogs::show_logs()
                         ImGui::Selectable("##stub", false);
                     else
                     {
-                        if (ImGuiEx::UrlButton(tools::str::path_to_string(path).c_str(), "Open log file"))
+                        if (ImGuiEx::UrlButton(tools::path::path_to_string(path).c_str(), "Open log file"))
                         {
                             tools::path::open_file(g::pComfyUIManager->get_log_filepath());
                         }

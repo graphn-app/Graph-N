@@ -1354,9 +1354,6 @@ void append_err(std::string& full, const std::string& err)
 
 void PanelQueue::load_history()
 {
-    const auto temp = fs::get_temp_directory_path();
-    const bool temp_ok = tools::path::make_folder(temp);
-
     std::string data;
     const auto history_request = fmt::format(comfyui_http::history_, g::pOptsManager->queue_history_num_load());
 
@@ -1541,10 +1538,11 @@ void PanelQueue::load_history()
                                                     if (jitem.contains("format") && jitem["format"].is_string())
                                                         out.format = jitem["format"];
 
-                                                    if (temp_ok && !out.filename.empty())
+                                                    if (!out.filename.empty())
                                                     {
-                                                        const auto filename = tools::str::generate_uuid_v4() + tools::str::path_to_string(std::filesystem::path(out.filename).extension());
-                                                        out.binary_path = tools::str::path_to_string(temp / filename);
+                                                        const auto temp_filename = fs::get_temp_filepath(tools::path::path_to_string(std::filesystem::path(out.filename).extension()));
+                                                        if (!temp_filename.empty())
+                                                            out.binary_path = tools::path::path_to_string(temp_filename);
                                                     }
                                                 }
 

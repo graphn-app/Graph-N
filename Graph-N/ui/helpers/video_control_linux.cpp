@@ -4,7 +4,10 @@
 
 namespace platform
 {
-VideoControl_Linux::~VideoControl_Linux() noexcept = default;
+VideoControl_Linux::~VideoControl_Linux() noexcept
+{
+#error Not implemented
+}
 
 } // namespace platform
 

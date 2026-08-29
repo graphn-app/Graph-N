@@ -325,7 +325,7 @@ bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std
 
 bool ConnectManager::pickup_ws_message(bool& is_binary, std::string& message)
 {
-    if (m_ws != nullptr)
+    if (m_ws != nullptr) [[likely]]
     {
         auto msgs = m_ws->get();
         for (auto& msg : msgs)
@@ -333,7 +333,7 @@ bool ConnectManager::pickup_ws_message(bool& is_binary, std::string& message)
             m_ws_pickup.push_back({ msg.binary, std::move(msg.message) });
         }
     }
-    if (m_ws_pickup.empty())
+    if (m_ws_pickup.empty()) [[likely]]
         return false;
 
     auto& msg = m_ws_pickup.front();

@@ -423,11 +423,6 @@ std::string u8_to_string(const std::u8string& u8_str)
     return std::string(u8_str.begin(), u8_str.end());
 }
 
-std::string path_to_string(const std::filesystem::path& path)
-{
-    return u8_to_string(path.u8string());
-}
-
 std::string url_encode(const std::string& value) 
 {
     std::string escaped;
@@ -455,9 +450,9 @@ namespace path
 
 std::filesystem::path find_next_name(const std::filesystem::path& path)
 {
-    const auto ext = tools::str::path_to_string(path.extension());
+    const auto ext = tools::path::path_to_string(path.extension());
     const auto parent = path.parent_path();
-    const auto stem = tools::str::path_to_string(path.stem());
+    const auto stem = tools::path::path_to_string(path.stem());
 
     size_t idx = 2;
     std::filesystem::path next_path;
@@ -622,6 +617,11 @@ bool make_file(const std::filesystem::path& filepath, bool overwrite, const char
     return true;
 }
 
+bool make_file(const std::filesystem::path& filepath, bool overwrite)
+{
+    return make_file(filepath, overwrite, nullptr, 0);
+}
+
 bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::vector<byte>& data_to_write)
 {
     return make_file(filepath, overwrite, (const char*)data_to_write.data(), data_to_write.size());
@@ -732,11 +732,16 @@ bool is_empty(const std::filesystem::path& path) noexcept
     return std::filesystem::is_empty(path, ec);
 }
 
+std::string path_to_string(const std::filesystem::path& path)
+{
+    return tools::str::u8_to_string(path.u8string());
+}
+
 std::string get_extension(const std::filesystem::path& path)
 {
     if (path.empty())
         return {};
-    return tools::str::path_to_string(path.extension());
+    return tools::path::path_to_string(path.extension());
 }
 
 std::vector<std::filesystem::path> enumerate_directory(

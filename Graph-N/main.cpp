@@ -43,10 +43,10 @@ void MainRoutine::prepare_fonts()
 
     // paths
     const auto res_path = fs::get_res_directory_path();
-    const auto path_inter_reg = tools::str::path_to_string(res_path / "Inter_18pt-Regular.ttf");
-    const auto path_inter_bold = tools::str::path_to_string(res_path / "Inter_18pt-Bold.ttf");
-    const auto path_emoji = tools::str::path_to_string(res_path / "NotoEmoji-Regular.ttf");
-    const auto path_icons = tools::str::path_to_string(res_path / FONT_ICON_FILE_NAME_LC);
+    const auto path_inter_reg = tools::path::path_to_string(res_path / "Inter_18pt-Regular.ttf");
+    const auto path_inter_bold = tools::path::path_to_string(res_path / "Inter_18pt-Bold.ttf");
+    const auto path_emoji = tools::path::path_to_string(res_path / "NotoEmoji-Regular.ttf");
+    const auto path_icons = tools::path::path_to_string(res_path / FONT_ICON_FILE_NAME_LC);
 
     // ================= REGULAR FONT =================
 

@@ -785,26 +785,24 @@ void QueueManager::load_output_data(uint64_t task_id, uint64_t out_id, const std
         LogRAssert(task, "Output task " << task_id << " not found", );
     }
 
-    const auto temp = fs::get_temp_directory_path();
-    const bool temp_ready = tools::path::make_folder(temp);
-
     for (auto& out : task->outputs)
     {
         if (out.id == out_id)
         {
-            if (!temp_ready || binary.empty())
+            if (binary.empty() || out.filename.empty())
             {
                 out.exists = false;
                 out.ready = true;
-                return;
+                continue;
             }
 
-            const auto filename = tools::str::generate_uuid_v4() + tools::str::path_to_string(std::filesystem::path(out.filename).extension());
-            const auto path = temp / filename;
-            if (!tools::path::make_file(path, false, binary))
-                return;
+            const auto temp_filename = fs::get_temp_filepath(tools::path::path_to_string(std::filesystem::path(out.filename).extension()));
+            if (temp_filename.empty())
+                continue;
+            if (!tools::path::make_file(temp_filename, false, binary))
+                continue;
 
-            out.binary_path = tools::str::path_to_string(path);
+            out.binary_path = tools::path::path_to_string(temp_filename);
             if (ExecTask::OutputType::Image == out.type)
                 out.media_id = g::pTextures->load_image(out.binary_path.c_str(), QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
 

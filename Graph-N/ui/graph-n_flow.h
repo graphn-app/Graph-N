@@ -208,6 +208,7 @@ private:
 
     void check_connection();
     void check_http_reply();
+    void check_host_reply();
     void handle_connected();
     void reparse_nodes();
     void import_user_projects();

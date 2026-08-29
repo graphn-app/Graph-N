@@ -22,7 +22,9 @@ enum class Mode
     PosEditor
 };
 
-struct EditorData
+using Handle = std::unique_ptr<void, decltype(&::CloseHandle)>;
+
+struct EditorData final
 {
     // window
     HWND hwnd = nullptr;
@@ -43,18 +45,14 @@ struct EditorData
 
     // pipe
     std::wstring pipe_name;
-    HANDLE hpipe = nullptr;
+    Handle hpipe;
     std::atomic_bool image_ready = false;
 
     // server data
     blob::HostData host_data;
 
     EditorData() noexcept = default;
-    ~EditorData() noexcept
-    {
-        if (hpipe)
-            ::CloseHandle(hpipe);
-    }
+    ~EditorData() noexcept = default;
 }
 g_data;
 
@@ -112,16 +110,9 @@ bool read_args()
         LogRAssertS(tools::path::exists(g_data.host_data.dest_path), "Dest path empty or not exists", false);
         LogRAssertS(g_data.pipe_name.empty(), "Pipe cannot be used in debug mode", false);
         LogRAssertS(0 == g_data.host_data.host_id, "Host id cannot be used in debug mode", false);
-        if (Mode::MaskEditor == g_data.mode)
-        {
-            g_data.host_data.settings = R"({"shape":"circle","brushSize":30,"maskColor":"#000000","brushHardness":100,"brushOpacity":1.0})";
-            LogS("Starting MaskEditor in debug mode");
-        }
-        else
-        {
-            g_data.host_data.settings = R"({"thickness":0.5,"skeletonVisible":true,"imageVisible":true,"gridVisible":true})";
-            LogS("Starting 3DPosEditor in debug mode");
-        }
+        g_data.host_data.settings = "{}";
+        if (Mode::MaskEditor == g_data.mode) { LogS("Starting MaskEditor in debug mode"); }
+        else { LogS("Starting 3DPosEditor in debug mode"); }
     }
     else
     {
@@ -151,7 +142,7 @@ void listen_thread(std::promise<bool> promise)
     if (INVALID_HANDLE_VALUE == hpipe)
         return reply(false, "Can't open pipe");
 
-    g_data.hpipe = hpipe;
+    g_data.hpipe.reset(hpipe);
     DWORD mode = PIPE_READMODE_MESSAGE;
     if (!::SetNamedPipeHandleState(hpipe, &mode, nullptr, nullptr))
         return reply(false, "Can't set pipe state");
@@ -162,19 +153,22 @@ void listen_thread(std::promise<bool> promise)
         ::OVERLAPPED write_ov = {};
         write_ov.hEvent = ::CreateEvent(nullptr, TRUE, FALSE, nullptr);
 
-        const auto blob = blob::HostSerializer::serialize(cmd, g_data.host_data.host_id);
-        ::WriteFile(g_data.hpipe, blob->data(), cast::to<DWORD>(blob->size()), &bytes_written, &write_ov);
-
         bool result = false;
-        if (::GetLastError() == ERROR_IO_PENDING)
-        { 
-            if (::GetOverlappedResult(g_data.hpipe, &write_ov, &bytes_written, TRUE))
-                result = true;
+        const auto blob = blob::HostSerializer::serialize(cmd, g_data.host_data.host_id);
+        if (!::WriteFile(g_data.hpipe.get(), blob->data(), cast::to<DWORD>(blob->size()), &bytes_written, &write_ov))
+        {
+            if (::GetLastError() == ERROR_IO_PENDING)
+            {
+                if (::GetOverlappedResult(g_data.hpipe.get(), &write_ov, &bytes_written, TRUE))
+                    result = true;
+                else
+                    LogS("Can't write to pipe - overlapped result failed. err: " << LogApiERR);
+            }
             else
-                LogS("Can't write to pipe - overlapped result failed. err: " << LogApiERR);
+                LogS("Can't write to pipe. err: " << LogApiERR);
         }
         else
-            LogS("Can't write to pipe. err: " << LogApiERR);            
+            result = true;
 
         ::CloseHandle(write_ov.hEvent);
         return result;
@@ -184,7 +178,7 @@ void listen_thread(std::promise<bool> promise)
     const auto get_data_ready = [min_size]() -> DWORD
     {
         DWORD bytes_avail = 0;
-        const BOOL peek_status = ::PeekNamedPipe(g_data.hpipe, nullptr, 0, nullptr, nullptr, &bytes_avail);
+        const BOOL peek_status = ::PeekNamedPipe(g_data.hpipe.get(), nullptr, 0, nullptr, nullptr, &bytes_avail);
         if (peek_status && bytes_avail >= min_size)
             return bytes_avail;
         return 0;
@@ -194,7 +188,23 @@ void listen_thread(std::promise<bool> promise)
     {
         byte_buff buffer(data_size);
         DWORD bytes_read = 0;
-        if (!::ReadFile(g_data.hpipe, buffer.data(), data_size, &bytes_read, nullptr) || bytes_read != data_size)
+        ::OVERLAPPED read_ov = {};
+        read_ov.hEvent = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
+
+        bool success = false;
+        if (::ReadFile(g_data.hpipe.get(), buffer.data(), data_size, &bytes_read, &read_ov))
+        {
+            success = true;
+        }
+        else if (::GetLastError() == ERROR_IO_PENDING)
+        {
+            if (::GetOverlappedResult(g_data.hpipe.get(), &read_ov, &bytes_read, TRUE))
+                success = true;
+        }
+
+        ::CloseHandle(read_ov.hEvent);
+
+        if (!success || bytes_read != data_size)
             return false;
 
         blob::Blob blob(std::move(buffer));
@@ -222,7 +232,7 @@ void listen_thread(std::promise<bool> promise)
     g_data.host_data = std::move(data);
     if (g_data.host_data.cmd != blob::HostData::Cmd_MaskEditor && g_data.host_data.cmd != blob::HostData::Cmd_PosEditor)
         return reply(false, "Invalid mode");
-    g_data.mode = (blob::HostData::Cmd_MaskEditor ? Mode::MaskEditor : Mode::PosEditor);
+    g_data.mode = (blob::HostData::Cmd_MaskEditor == g_data.host_data.cmd ? Mode::MaskEditor : Mode::PosEditor);
     if (0 == g_data.host_data.host_id)
         return reply(false, "Invalid host id");
     if (!tools::path::exists(g_data.host_data.source_path))
@@ -254,10 +264,12 @@ void listen_thread(std::promise<bool> promise)
                     break;
                 case blob::HostData::Cmd_Rename:
                     {
-                        LogS("Rename command received: " << data.node_name);
-                        char* buff = new char[data.node_name.size() + 2];
-                        strcpy_s(buff, data.node_name.size() + 1, data.node_name.c_str());
-                        ::PostMessage(g_data.hwnd, USER_MSG_RENAME, 0, cast::from_ptr<LPARAM>(buff));
+                        LogS("Rename command received: w:" << data.wf_name << ", n:" << data.node_name);
+                        char* wf_buff = new char[data.wf_name.size() + 2];
+                        strcpy_s(wf_buff, data.wf_name.size() + 1, data.wf_name.c_str());
+                        char* node_buff = new char[data.node_name.size() + 2];
+                        strcpy_s(node_buff, data.node_name.size() + 1, data.node_name.c_str());
+                        ::PostMessage(g_data.hwnd, USER_MSG_RENAME, cast::from_ptr<WPARAM>(wf_buff), cast::from_ptr<LPARAM>(node_buff));
                     }
                     break;
                 case blob::HostData::Cmd_Terminate:
@@ -486,13 +498,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case USER_MSG_RENAME:
         {
-            char* name = cast::ptrs<char>(lParam);
-            if (name != nullptr)
+            char* wf_name = cast::ptrs<char>(wParam);
+            char* node_name = cast::ptrs<char>(lParam);
+            if (wf_name != nullptr)
             {
-                g_data.host_data.node_name = name;
-                delete[] name;
-                build_caption();
+                g_data.host_data.wf_name = wf_name;
+                delete[] wf_name;
             }
+            if (node_name != nullptr)
+            {
+                g_data.host_data.node_name = node_name;
+                delete[] node_name;
+            }
+            build_caption();
         }
         break;
     case USER_MSG_INVOKE:

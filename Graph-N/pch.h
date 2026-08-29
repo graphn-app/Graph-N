@@ -128,8 +128,7 @@
 #include "ui/helpers/imgui_ex.h"
 #include "graph-n.h"
 
-#ifdef _WIN32
-#elif defined __APPLE__
+#if defined __APPLE__
 #error Not implemented
 #elif defined __linux__
 #error Not implemented

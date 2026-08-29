@@ -4,7 +4,10 @@
 
 namespace platform
 {
-VideoControl_Apple::~VideoControl_Apple() noexcept = default;
+VideoControl_Apple::~VideoControl_Apple() noexcept
+{
+#error Not implemented
+}
 } // namespace platform
 
 #endif // #ifdef __APPLE__

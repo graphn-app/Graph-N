@@ -67,9 +67,10 @@ void ComfyUIManager_Win32::run_server()
             m_log_th = std::thread(&ComfyUIManager_Win32::read_logs_th, this);
 
         if (pi.hThread != nullptr)
+        {
             ::ResumeThread(pi.hThread);
-        if (pi.hThread != nullptr)
             ::CloseHandle(pi.hThread);
+        }
 
         g::pFlow->show_logs_panel(true);
     }
