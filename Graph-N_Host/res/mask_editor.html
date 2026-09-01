@@ -297,7 +297,7 @@
         const API_BASE = "http://app.local";
         const TEST_IMAGE = `${API_BASE}/input.png?t=` + Date.now();
 
-        const INJECTED_SETTINGS = /*APP_SETTINGS_TOKEN*/ null;
+        const INJECTED_SETTINGS = /*APP_SETTINGS_TOKEN*/;
         
         const defaultSettings = {
             brushSize: 30,
@@ -306,6 +306,20 @@
             maskColor: '#ffffff',
             shape: 'circle'
         };
+		
+		const originType = INJECTED_SETTINGS?.origin || 'input';		
+		const btnSave = document.getElementById('btnSaveHost');
+        if (originType === 'output') {
+            btnSave.innerText = "Upload to server";
+            btnSave.title = "Mask/Image will be uploaded to server and available in LoadImage nodes";
+        } else {
+            btnSave.innerText = "Save to node";
+            btnSave.title = "Save and apply to the current node";
+        }
+
+		if (INJECTED_SETTINGS?.debug) {
+			btnSave.disabled = true;
+		}
 
         // === STATE ===
         const state = {

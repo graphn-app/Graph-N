@@ -51,7 +51,9 @@ struct EditorData final
     // server data
     blob::HostData host_data;
 
-    EditorData() noexcept = default;
+    EditorData() noexcept
+        : hpipe(nullptr, ::CloseHandle)
+    {}
     ~EditorData() noexcept = default;
 }
 g_data;
@@ -110,7 +112,7 @@ bool read_args()
         LogRAssertS(tools::path::exists(g_data.host_data.dest_path), "Dest path empty or not exists", false);
         LogRAssertS(g_data.pipe_name.empty(), "Pipe cannot be used in debug mode", false);
         LogRAssertS(0 == g_data.host_data.host_id, "Host id cannot be used in debug mode", false);
-        g_data.host_data.settings = "{}";
+        g_data.host_data.settings = R"({"debug":true})";
         if (Mode::MaskEditor == g_data.mode) { LogS("Starting MaskEditor in debug mode"); }
         else { LogS("Starting 3DPosEditor in debug mode"); }
     }
@@ -346,7 +348,10 @@ bool load_html()
         return false;
     }
 
-    tools::str::replace_this(html, "/*APP_SETTINGS_TOKEN*/", g_data.host_data.settings);
+    if (g_data.host_data.settings.empty())
+        tools::str::replace_this(html, "/*APP_SETTINGS_TOKEN*/", "null");
+    else
+        tools::str::replace_this(html, "/*APP_SETTINGS_TOKEN*/", g_data.host_data.settings);
     g_data.html_data.assign(html.begin(), html.end());
     return true;
 }

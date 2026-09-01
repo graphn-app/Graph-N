@@ -187,14 +187,28 @@
             [2, 15, 1]     // 18: LEar
         ];
 
-        const INJECTED_SETTINGS = /*APP_SETTINGS_TOKEN*/ null;
+        const INJECTED_SETTINGS = /*APP_SETTINGS_TOKEN*/;
         
         const defaultSettings = {
             thickness: 0.5,
             skeletonVisible: true,
             imageVisible: true,
-            gridVisible: true,
+            gridVisible: true
         };
+
+		const originType = INJECTED_SETTINGS?.origin || 'input';		
+		const btnSave = document.getElementById('btnSaveHost');
+        if (originType === 'output') {
+            btnSave.innerText = "Upload to server";
+            btnSave.title = "Mask/Image will be uploaded to server and available in LoadImage nodes";
+        } else {
+            btnSave.innerText = "Save to node";
+            btnSave.title = "Save and apply to the current node";
+        }
+		
+		if (INJECTED_SETTINGS?.debug) {
+			btnSave.disabled = true;
+		}
 
         // === STATE & HISTORY ===
         const state = {
