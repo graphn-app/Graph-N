@@ -716,6 +716,7 @@ void QueueManager::check_ws_inbox()
                                 out.text += jitem.get<std::string>() + "\r\n";
                         }
                         out.id = base::GlobalID::random();
+                        out.ready = true;
                         task.outputs.push_back(std::move(out));
                     }
                     else

@@ -915,7 +915,7 @@ bool PanelWorkflow::show_pin_menu()
 
     auto pin = *m_menu_objs.pins.begin();
     const bool linked = (pin->state().links > 0);
-    const bool is_widget = pin->get_object()->is_widget(pin->state());
+    const bool is_widget = pin->get_object()->is_widget();
     const bool name_eq = (pin->state().name == pin->get_object()->def_state.name);
     const bool can_rename = pin->obj_flags().has(PinObjFlags::CanRename);
 

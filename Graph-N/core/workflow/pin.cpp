@@ -171,10 +171,10 @@ void Pin::copy_combo(Pin* dest) const
     dest->finalize_combo();
 }
 
-bool Pin::is_widget(const PinState& state) const noexcept
+bool Pin::is_widget() const noexcept
 {
     return flags.has(PinObjFlags::InputCanBeWidget) && flags.has_none(PinObjFlags::Output, PinObjFlags::ForceInput) &&
-        cast::to_i64(state.type) >= cast::to_i64(PinType::_first_widget) && cast::to_i64(state.type) <= cast::to_i64(PinType::_last_widget);
+        cast::to_i64(def_state.type) >= cast::to_i64(PinType::_first_widget) && cast::to_i64(def_state.type) <= cast::to_i64(PinType::_last_widget);
 }
 
 PinType Pin::type_str_to_type(const std::string& type_str)
@@ -244,7 +244,7 @@ void Pin::finalize()
     def_state.value = def;
     def_state.w_name = ImGui::CalcTextSize(def_state.name.c_str()).x;
 
-    if (input && is_widget(def_state))
+    if (input && is_widget())
     {
         switch (def_state.type)
         {

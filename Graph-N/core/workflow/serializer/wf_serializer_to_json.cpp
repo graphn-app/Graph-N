@@ -157,7 +157,7 @@ void WfSerializerToJson::serialize_pins(o_json& j)
         j["type"] = pin->get_object()->def_state.type_str;
         if (pin->get_object()->def_state.name != pin->state().name)
             j["label"] = pin->state().name;
-        if (pin->get_object()->is_widget(pin->state()))
+        if (pin->get_object()->is_widget())
             j["widget"]["name"] = pin->get_object()->def_state.name;
 
         if (pin->obj_flags().has(PinObjFlags::Input))
@@ -223,7 +223,7 @@ void WfSerializerToJson::serialize_widgets(o_json& j)
     auto jarr = o_json::array();
     for (auto pin : m_curr_node->get_inputs())
     {
-        if (pin->get_object()->is_widget(pin->state()))
+        if (pin->get_object()->is_widget())
         {
             std::visit([&jarr, pin](const auto& v)
             {

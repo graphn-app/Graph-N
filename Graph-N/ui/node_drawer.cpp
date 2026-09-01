@@ -444,7 +444,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         const auto& inputs = m_active_node->get_inputs();
         for (auto pin : inputs)
         {
-            if (pin->flags().has_not(PinInstFlags::Hidden) && !pin->get_object()->is_widget(pin->state()))
+            if (pin->flags().has_not(PinInstFlags::Hidden) && !pin->get_object()->is_widget())
             {
                 ImGui::PushID(pin);
                 const bool failed = (failed_pins != nullptr && failed_pins->count(pin->get_object()->def_state.name));
@@ -522,7 +522,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
             auto obj = pin->get_object();
             if (obj->flags.has(PinObjFlags::Advanced))
                 advanced++;
-            else if (obj->is_widget(pin->state()))
+            else if (obj->is_widget())
             {
                 ImGui::PushID(pin);
                 draw_input_widget(pin, m_active_node->w_widget_name, m_active_node->w_widget_value);

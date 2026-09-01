@@ -74,7 +74,7 @@ float RoNodeDrawer::draw(data::NodeInstanceRo* node, bool tooltip_mode, float ma
     const auto& input = m_node->get_inputs();
     for (auto pin : input)
     {
-        if (!pin->get_object()->is_widget(pin->get_object()->def_state))
+        if (!pin->get_object()->is_widget())
         {
             ImGui::PushID(pin);
             draw_input_pin(pin);
@@ -121,7 +121,7 @@ float RoNodeDrawer::draw(data::NodeInstanceRo* node, bool tooltip_mode, float ma
             auto obj = pin->get_object();
             if (obj->flags.has(PinObjFlags::Advanced))
                 advanced++;
-            else if (obj->is_widget(obj->def_state))
+            else if (obj->is_widget())
             {
                 ImGui::PushID(pin);
                 draw_input_widget(pin, m_node->w_widget_name, m_node->w_widget_value);

@@ -156,7 +156,7 @@ float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon) noexcept
     for (auto& in : m_input)
     {
         auto pin_obj = in->get_object();
-        if (pin_obj->is_widget(in->state()))
+        if (pin_obj->is_widget())
         {
             flags().add(NodeInstFlags::HasWidgets);
             in->state().w_name = ImGui::CalcTextSize(in->state().name.c_str()).x;

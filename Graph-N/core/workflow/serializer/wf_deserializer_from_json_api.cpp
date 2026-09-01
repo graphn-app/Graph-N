@@ -365,7 +365,7 @@ void WfDeserializerFromJsonApi::arrange_nodes()
             if (in->state().links > 0)
                 has_ins = true;
 
-            if (in->get_object()->is_widget(in->state()))
+            if (in->get_object()->is_widget())
             {
                 if (PinType::STRING == in->state().type && in->obj_flags().has(PinObjFlags::Multiline))
                     max_h_widget_in += pin_h * 3;

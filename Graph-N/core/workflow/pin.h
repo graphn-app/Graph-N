@@ -67,7 +67,7 @@ public:
     void copy_bool(Pin* dest) const;
     void copy_combo(Pin* dest) const;
 
-    bool is_widget(const PinState& state) const noexcept;
+    bool is_widget() const noexcept;
 
     static std::string any_to_string(const Primitive& item);
     static PinType type_str_to_type(const std::string& type_str);

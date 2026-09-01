@@ -879,11 +879,18 @@ void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
     if (group != nullptr && group->src_wf == m_wf->get_id())
     {
         m_status_buffer.clear();
-        const auto* node = group->wf->get_node_by_instance(group->task.current_node);
-        if (node != nullptr)
-            fmt::format_to(std::back_inserter(m_status_buffer), FMT_COMPILE("Progress: {:.0f}%: {}"), group->task.progress * 100, node->get_name());
-        else
+        if (0 == group->task.current_node)
+        {
             fmt::format_to(std::back_inserter(m_status_buffer), FMT_COMPILE("Progress: {:.0f}%"), group->task.progress * 100);
+        }
+        else
+        {
+            const auto* node = group->wf->get_node_by_instance(group->task.current_node);
+            if (node != nullptr)
+                fmt::format_to(std::back_inserter(m_status_buffer), FMT_COMPILE("Progress: {:.0f}%: {}"), group->task.progress * 100, node->get_name());
+            else
+                fmt::format_to(std::back_inserter(m_status_buffer), FMT_COMPILE("Progress: {:.0f}%"), group->task.progress * 100);
+        }
         m_status_buffer.push_back('\0');
         el.text = m_status_buffer.data();
         return;

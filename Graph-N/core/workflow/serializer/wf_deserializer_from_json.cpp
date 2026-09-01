@@ -431,7 +431,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
             std::vector<PinInstance*> widgets;
             for (auto pin : node_instance->get_inputs())
             {
-                if (pin->get_object()->is_widget(pin->state()))
+                if (pin->get_object()->is_widget())
                     widgets.push_back(pin);
             }
 
