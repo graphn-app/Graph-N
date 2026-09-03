@@ -292,9 +292,9 @@ void PanelWfList::rebuild_items()
             WfLabelState* state = ((WfLabelState*)item.item_state.get());
             for (auto& label : labels)
             {
-                if (g::pWfsManager->get_is_wf_in_label(cast::from_ptr<wid>(item.ptr), std::get<1>(label)))
+                if (g::pWfsManager->get_is_wf_in_label(cast::from_ptr<wid>(item.ptr), label.id))
                 {
-                    state->active_labels.insert(std::get<1>(label));
+                    state->active_labels.insert(label.id);
                 }
             }
 
@@ -313,16 +313,16 @@ void PanelWfList::rebuild_items()
             for (auto& label : labels)
             {
                 WfLabelState* state = ((WfLabelState*)item.item_state.get());
-                bool wf_in_label = state->active_labels.contains(std::get<1>(label));
+                bool wf_in_label = state->active_labels.contains(label.id);
 
-                ImGui::PushID(std::get<1>(label));
-                if (ImGui::Checkbox(std::get<0>(label).c_str(), &wf_in_label))
+                ImGui::PushID(label.id);
+                if (ImGui::Checkbox(label.name.c_str(), &wf_in_label))
                 {
                     item.item_state->changed = true;
                     if (wf_in_label)
-                        state->active_labels.insert(std::get<1>(label));
+                        state->active_labels.insert(label.id);
                     else
-                        state->active_labels.erase(std::get<1>(label));
+                        state->active_labels.erase(label.id);
                 }
                 ImGui::PopID();
             }
@@ -408,16 +408,16 @@ void PanelWfList::rebuild_items()
 
         for (auto& label : labels)
         {
-            auto& wfs_in_label = g::pWfsManager->get_wfs_in_label(std::get<1>(label));
+            const auto wfs_in_label = g::pWfsManager->get_wfs_in_label(label.id);
 
             PanelListItem label_item;
-            label_item.name = std::get<0>(label);
+            label_item.name = label.name;
             label_item.name_p2 = std::to_string(wfs_in_label.size());
             label_item.can_expand = true;
-            label_item.expanded = expanded.contains(std::get<1>(label));
+            label_item.expanded = expanded.contains(label.id);
             label_expanded = label_item.expanded;
             label_item.icon = label_item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
-            label_item.label = std::get<1>(label);
+            label_item.label = label.id;
             m_panel_items.push_back(std::move(label_item));
 
             if (label_expanded)
@@ -580,11 +580,11 @@ void PanelWfList::rebuild_labels()
     {
         PanelListItem item;
         item.can_dblclick = true;
-        item.name = std::get<0>(label);
-        item.label = std::get<1>(label);
+        item.name = label.name;
+        item.label = label.id;
         item.on_item_handler = on_item_handler;
         item.on_hover_handler = on_hover_handler;
-        if (m_new_label == std::get<1>(label))
+        if (m_new_label == label.id)
         {
             item.renaming = true;
             item.need_focus = true;

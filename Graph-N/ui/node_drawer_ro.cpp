@@ -239,13 +239,21 @@ void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_w
         if (ImGui::InvisibleButton("##pin", size))
         {
             obj->flags.toggle(PinObjFlags::Advanced);
-            g::pOptsManager->pin_advanced_save(obj->get_hash(), obj->flags.has(PinObjFlags::Advanced));
+            {
+                mngr::PinOptions pin_opt;
+                pin_opt.is_advanced = obj->flags.has(PinObjFlags::Advanced);
+                g::pOptsManager->items_pin_save(obj->get_hash(), pin_opt);
+            }
 
             if (obj->flags.has(PinObjFlags::CagRequire))
             {
                 const auto cag = m_wf->get_pin_by_instance(pin->state().cag);
                 cag->obj_flags().add_remove_if(PinObjFlags::Advanced, obj->flags.has(PinObjFlags::Advanced));
-                g::pOptsManager->pin_advanced_save(cag->get_object()->get_hash(), cag->obj_flags().has(PinObjFlags::Advanced));
+                {
+                    mngr::PinOptions pin_opt;
+                    pin_opt.is_advanced = cag->obj_flags().has(PinObjFlags::Advanced);
+                    g::pOptsManager->items_pin_save(cag->get_object()->get_hash(), pin_opt);
+                }
             }
         }
         ImGui::SameLine(0, w::pin_r_offset);

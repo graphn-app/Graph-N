@@ -16,14 +16,15 @@ std::string merge(const std::vector<std::string>& items, char separator);
 std::string merge(const std::set<std::string>& items, char separator);
 
 std::string to_lower_ascii(const std::string& str);
+bool compare_no_case(const std::string& str1, const std::string& str2);
 
 // single-session hash
-size_t hash_string(const std::string& str)  noexcept;
-// stable platform-independent hash
-uint64_t hash_fnv1a(const void* data, size_t size) noexcept;
-uint64_t hash_fnv1a(const char* data, size_t size) noexcept;
-uint64_t hash_fnv1a(size_t data) noexcept;
-uint64_t hash_fnv1a(const std::string& data) noexcept;
+size_t hash_runtime(const std::string& str);
+// stable platform-independent hash: fnv1a
+uint64_t hash_stable(const void* data, size_t size) noexcept;
+uint64_t hash_stable(const char* data, size_t size) noexcept;
+uint64_t hash_stable(size_t data) noexcept;
+uint64_t hash_stable(const std::string& data) noexcept;
 
 uint32_t crc32(const std::string& data) noexcept;
 

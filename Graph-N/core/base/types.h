@@ -397,13 +397,15 @@ enum class TaskResult
 
 enum class DbItemOptionType
 {
-    PinAdvanced,    // pin id as key
-    WfLabels,       // panel id as key
-    NodeLabels,     // panel id as key
-    ModelStarred,   // filename as key
+    Pins,
+    Nodes,
+    LabelWfs,
+    LabelNodes,
+    StarredModels,
+    StarredHistory,
 
     _count,
-    _first = PinAdvanced,
+    _first = Pins,
     _last = _count - 1
 };
 

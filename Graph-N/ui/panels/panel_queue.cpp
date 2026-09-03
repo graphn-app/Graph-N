@@ -36,13 +36,14 @@ void PanelQueue::init()
 
     m_load_history_stop = std::make_shared<std::atomic_bool>();
 
-    m_favorited = g::pOptsManager->queue_favorited_load();
+    m_favorited = g::pOptsManager->items_history_favs_load();
     create_toolbar();
 
     m_history_tasks = g::pDbManager->history_load_all();
     for (auto& t : m_history_tasks)
     {
         m_hidden.insert(t.group_id);
+        t.favorited = m_favorited.has_item(t.prompt_id);
     }
 }
 
@@ -447,7 +448,7 @@ void PanelQueue::show_next_tasks()
 void PanelQueue::show_favs_tasks()
 {
     m_visible_favs = false;
-    if (m_favorited.empty())
+    if (m_favorited.count() == 0)
         return;
 
     auto& past = g::pQueueManager->get_past_tasks();
@@ -645,7 +646,7 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
         if (task->favorited.has_value())
             return task->favorited.value();
 
-        task->favorited = m_favorited.contains(task->prompt_id);
+        task->favorited = m_favorited.has_item(task->prompt_id);
         return task->favorited.value();
     };
 
@@ -657,8 +658,9 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
     const AppColor clr = (favorited ? AppColor::Starred : AppColor::OptSeparator);
     if (ImGuiEx::UrlButton(icon, tt, g::pOptsManager->color_load(clr), g::pOptsManager->color_load(AppColor::SelectedItem), false)) [[unlikely]]
     {
-        m_favorited = g::pOptsManager->queue_favorited_save(task->prompt_id, !favorited);
         task->favorited = !task->favorited.value();
+        m_favorited.toggle_item(task->prompt_id);
+        g::pOptsManager->items_history_favs_save(m_favorited);
     }
 
     char run_no_txt[15] = {};
@@ -776,6 +778,7 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
                     height = QUEUE_AUDIO_RECT;
                     break;
                 default:
+                    ImGui::SetCursorPosX(off1);
                     ImGui::TextUnformatted("Unknown output format");
                     continue;
                 }
@@ -1633,7 +1636,7 @@ void PanelQueue::pickup_parsed_history()
             task.time_start_s = tools::dt::from_time(task.time_start).as_full_date_readable(false);
 
         m_hidden.insert(task.group_id); // history task is hidden by default
-        task.favorited = m_favorited.contains(task.prompt_id);
+        task.favorited = m_favorited.has_item(task.prompt_id);
 
         auto wfid = g::pWfsManager->import_wf_from_json(task.flow_json, task.prompt_id, {}, true);
         if (0 == wfid)

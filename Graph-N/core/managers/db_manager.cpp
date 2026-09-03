@@ -113,6 +113,7 @@ DbManager::~DbManager() = default;
 
 void DbManager::stop_all_threads()
 {
+    m_stop_flag.request_stop();
     m_cv.notify_all();
     if (m_th_write.joinable())
         m_th_write.join();
@@ -425,7 +426,7 @@ void DbManager::app_option_save_all(std::vector<DbAppOptionData>&& opts)
         m_cv.notify_all();
 }
 
-void DbManager::item_option_save(hid hash, DbItemOptionType type, DbValue&& value)
+void DbManager::item_option_save(DbItemOptionType type, hid hash, DbValue&& value)
 {
     WriteData data;
     ItemData item;
@@ -447,7 +448,7 @@ void DbManager::item_option_save(hid hash, DbItemOptionType type, DbValue&& valu
         m_cv.notify_all();
 }
 
-std::optional<DbValue> DbManager::item_option_load(hid hash, DbItemOptionType type)
+std::optional<DbValue> DbManager::item_option_load(DbItemOptionType type, hid hash)
 {
     try
     {
@@ -1253,9 +1254,9 @@ void DbManager::write_thread(std::filesystem::path db_path)
         std::queue<WriteData> q;
         {
             std::unique_lock<std::mutex> lock(m_lock);
-            m_cv.wait_for(lock, wait_period, [this]() noexcept { return g::app_global_stop_all_threads.stop_requested() || !m_write_queue.empty(); });
+            m_cv.wait_for(lock, wait_period, [this]() noexcept { return m_stop_flag.stop_requested() || !m_write_queue.empty(); });
 
-            if (g::app_global_stop_all_threads.stop_requested() && m_write_queue.empty() && !m_exception_write_data_flag.load(std::memory_order_relaxed))
+            if (m_stop_flag.stop_requested() && m_write_queue.empty() && !m_exception_write_data_flag.load(std::memory_order_relaxed))
                 break;
 
             if (m_write_queue.empty() && !m_exception_write_data_flag.load(std::memory_order_relaxed))
@@ -1335,6 +1336,8 @@ void DbManager::write_thread(std::filesystem::path db_path)
             LogSqlDbErr("Commit " << LOG_EXP(ex));
         }
     }
+
+    Log("DB thread exited");
 }
 
 } // namespace mngr

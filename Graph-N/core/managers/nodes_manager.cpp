@@ -4,15 +4,25 @@
 namespace mngr
 {
 
+bool NodesManager::init()
+{
+    if (!Manager::init())
+        return false;
+
+    m_labels = g::pOptsManager->items_node_labels_load();
+    m_node_items.reserve(1000);
+    m_nodes_tree.reserve(1000);
+    m_nodes_plain.reserve(1000);
+    return true;
+}
+
 void NodesManager::free()
 {
     m_nodes.clear(); m_nodes.rehash(0);
     m_pins.clear(); m_pins.rehash(0);
-    m_node_items.clear();
     m_nodes_tree.clear(); m_nodes_tree.shrink_to_fit();
     m_nodes_plain.clear(); m_nodes_plain.shrink_to_fit();
-    m_labels.clear();
-    m_nodes_in_label.clear();
+    m_node_items.clear(); m_node_items.shrink_to_fit();
 }
 
 void NodesManager::init_from_copy(NodesManager& copy)
@@ -23,10 +33,22 @@ void NodesManager::init_from_copy(NodesManager& copy)
     m_node_items = std::move(copy.m_node_items);
     m_nodes_tree = std::move(copy.m_nodes_tree);
     m_nodes_plain = std::move(copy.m_nodes_plain);
-    m_labels = std::move(copy.m_labels);
-    m_last_label_id = copy.m_last_label_id;
-    m_nodes_in_label = std::move(copy.m_nodes_in_label);
     calc_number_inside("", {}, {});
+
+    m_labels = g::pOptsManager->items_node_labels_load();
+    for (auto& label : m_labels.get_label_list())
+    {
+        std::set<hid> cleanup;
+        for (auto node_hash : label.members)
+        {
+            if (!m_nodes.contains(node_hash))
+                cleanup.insert(node_hash);
+        }
+        for (auto node_hash : cleanup)
+        {
+            m_labels.remove_item(label.id, node_hash);
+        }
+    }
 }
 
 void NodesManager::calc_number_inside(const std::string& filter, const std::list<PinType>& in_types, const std::list<PinType>& out_types)
@@ -269,200 +291,67 @@ void NodesManager::remove_pin(data::Node* parent, const data::Pin* pin) noexcept
         LogError("Pin not found. p:" << pin->def_state.type_str);
 }
 
-void NodesManager::init_labels()
-{
-    m_labels.clear();
-    m_nodes_in_label.clear();
-    m_last_label_id = 0;
-
-    auto labels = g::pOptsManager->nodes_labels_load(base::HashID::make_hash(DlgObjID[cast::to_szt(DlgObj::PanelNodes)]));
-    if (labels.empty())
-        return;
-
-    Log("Node labels loaded: " << labels);
-    try
-    {
-        const auto j = u_json::parse(labels);
-
-        for (auto& obj : j)
-        {
-            std::string name = obj["name"];
-            uint32_t id = obj["id"];
-            m_labels.push_back({ name, id });
-
-            if (id > m_last_label_id)
-                m_last_label_id = id;
-
-            auto& nodes_in_label = m_nodes_in_label[id];
-            std::vector<hid> node_hashes = obj["nodes"];
-            for (auto node_hash : node_hashes)
-            {
-                for (auto node_item : m_nodes_plain)
-                {
-                    if (node_item->is_node && node_item->node->get_hash() == node_hash)
-                    {
-                        nodes_in_label.push_back(node_item);
-                        break;
-                    }
-                }
-            }
-
-            sort_nodes(nodes_in_label);
-        }
-
-        m_labels.sort([](const std::pair<std::string, uint32_t>& l, const std::pair<std::string, uint32_t>& r)
-            { return tools::str::to_lower_ascii(l.first) < tools::str::to_lower_ascii(r.first); });
-    }
-    catch (const std::exception& ex)
-    {
-        LogExcep("Failed to parse labels (" << labels << "). Err: " << ex.what());
-    }
-}
-
 uint32_t NodesManager::create_label()
 {
-    std::string label = "new label";
-    size_t label_idx = 1;
-    for (auto it = m_labels.begin(); it != m_labels.end(); )
-    {
-        const auto& name = it->first;
-        if (tools::str::to_lower_ascii(name) == label)
-        {
-            label = fmt::format(FMT_STRING("new label ({})"), ++label_idx);
-            it = m_labels.begin();
-            continue;
-        }
-        ++it;
-    }
-
-    m_last_label_id++;
-    m_nodes_in_label[m_last_label_id];
-
-    Log("New node label added: " << label << " = " << m_last_label_id);
-
-    m_labels.push_back({ label, m_last_label_id });
-    m_labels.sort([](const std::pair<std::string, uint32_t>& l, const std::pair<std::string, uint32_t>& r)
-        { return tools::str::to_lower_ascii(l.first) < tools::str::to_lower_ascii(r.first); });
-
-    save_labels();
-    return m_last_label_id;
+    const auto id = m_labels.add_label();
+    Log("New node label added: " << std::as_const(m_labels).get_label(id)->name << " = " << id);
+    g::pOptsManager->items_node_labels_save(m_labels);
+    return id;
 }
 
 bool NodesManager::rename_label(uint32_t label_id, const std::string& new_name)
 {
-    std::list<std::pair<std::string, uint32_t>>::iterator label_it = m_labels.begin();
-    for (auto it = m_labels.begin(); it != m_labels.end(); ++it)
-    {
-        if (it->second == label_id)
-        {
-            if (it->first == new_name)
-                return false;
-            label_it = it;
-        }
-        else if (it->first == new_name)
-            return false;
-    }
-
-    LogRAssert(label_it != m_labels.end(), "Can't rename label " << label_id << ": id not found", false);
-
-    Log("Label renamed from '" << label_it->first << "' to '" << new_name << "'");
-    label_it->first = new_name;
-    m_labels.sort([](const std::pair<std::string, uint32_t>& l, const std::pair<std::string, uint32_t>& r)
-        { return tools::str::to_lower_ascii(l.first) < tools::str::to_lower_ascii(r.first); });
-
-    save_labels();
+    if (!m_labels.rename_label(label_id, new_name))
+        return false;
+    g::pOptsManager->items_node_labels_save(m_labels);
     return true;
 }
 
 void NodesManager::remove_label(uint32_t label_id)
 {
-    bool label_found = false;
-    for (auto it = m_labels.begin(); it != m_labels.end(); ++it)
-    {
-        if (it->second == label_id)
-        {
-            Log("Label " << it->first << " renamed");
-            m_labels.erase(it);
-            label_found = true;
-            break;
-        }
-    }
-
-    LogRAssert(label_found, "Can't remove label " << label_id << ": id not found", );
-
-    m_nodes_in_label.erase(label_id);
-    save_labels();
+    m_labels.remove_label(label_id);
+    g::pOptsManager->items_node_labels_save(m_labels);
 }
 
 void NodesManager::set_node_labels(data::NodeItem* node_item, std::set<uint32_t> labels)
 {
-    bool changed = false;
-    for (auto& [label_id, nodes] : m_nodes_in_label)
+    auto& all_labels = m_labels.get_label_list();
+    for (auto it = all_labels.begin(); it != all_labels.end(); ++it)
     {
-        const auto it = std::ranges::find(nodes, node_item);
-        if (it == nodes.end() && labels.contains(label_id))
-        {
-            nodes.push_back(node_item);
-            sort_nodes(nodes);
-            changed = true;
-        }
-        else if (it != nodes.end() && !labels.contains(label_id))
-        {
-            nodes.erase(it);
-            changed = true;
-        }
+        m_labels.remove_item(it->id, node_item->node->get_hash());
     }
-
-    if (changed)
-        save_labels();
+    for (auto label_id : labels)
+    {
+        m_labels.add_item(label_id, node_item->node->get_hash());
+    }
+    g::pOptsManager->items_node_labels_save(m_labels);
 }
 
-void NodesManager::save_labels() const
+std::list<data::NodeItem*> NodesManager::get_nodes_in_label(uint32_t label_id) const
 {
-    o_json j;
-    for (auto& [label, id] : m_labels)
-    {        
-        o_json jlabel;
-        jlabel["name"] = label;
-        jlabel["id"] = id;
+    auto label = std::as_const(m_labels).get_label(label_id);
+    LogRAssert(label, "Label " << label_id << " not found", {});
 
-        auto it = m_nodes_in_label.find(id);
-        if (it != m_nodes_in_label.end())
-        {
-            std::vector<hid> node_hashes;
-            node_hashes.reserve(it->second.size());
-            for (auto node_obj : it->second)
-            {
-                node_hashes.push_back(node_obj->node->get_hash());
-            }
-            jlabel["nodes"] = std::move(node_hashes);
-        }
-        else
-        {
-            jlabel["nodes"] = std::vector<hid>{};
-        }
-
-        j.push_back(std::move(jlabel));
-    }
-
-    g::pOptsManager->nodes_labels_save(base::HashID::make_hash(DlgObjID[cast::to_szt(DlgObj::PanelNodes)]), j.dump());
-}
-
-const std::list<data::NodeItem*>& NodesManager::get_nodes_in_label(uint32_t label_id) const
-{
-    auto it = m_nodes_in_label.find(label_id);
-    if (it == m_nodes_in_label.end())
+    std::list<data::NodeItem*> items;
+    for (auto node_hash : label->members)
     {
-        static std::list<data::NodeItem*> empty;
-        return empty;
+        auto item_it = std::ranges::find_if(m_node_items, [node_hash](const std::unique_ptr<data::NodeItem>& item) { return item->node != nullptr && item->node->get_hash() == node_hash; });
+        if (item_it != m_node_items.end())
+        {
+            items.push_back((*item_it).get());
+        }
     }
-    return it->second;
+
+    return items;
 }
 
 bool NodesManager::get_is_node_in_label(data::NodeItem* node_item, uint32_t label_id) const
 {
-    auto& nodes = get_nodes_in_label(label_id);
-    return std::ranges::find(nodes, node_item) != nodes.end();
+    LogRAssert(node_item, "Zero ptr", false);
+    LogRAssert(node_item->node, "Zero node ptr (groups not allowed here)", false);
+    auto label = std::as_const(m_labels).get_label(label_id);
+    LogRAssert(label, "Label " << label_id << " not found", false);
+    return label->members.contains(node_item->node->get_hash());
 }
 
 namespace

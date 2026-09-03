@@ -31,6 +31,8 @@ void PanelModels::init()
     m_tt_callbacks.on_show_tt = [this](int32_t idx) { on_show_tt(idx); };
     m_tt_callbacks.on_pre_tt = [this](int32_t idx) noexcept { return on_pre_tt(idx); };
 
+    m_favorited = g::pOptsManager->items_model_favs_load();
+
     create_toolbar();
     rebuild_items();
 }
@@ -55,6 +57,7 @@ void PanelModels::create_toolbar()
         el.on_click = [this](PanelToolbar::Element& el) { on_collapse_all(el); };
         add_toolbar_element(std::move(el), false);
     }
+/*
     {
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Empty;
@@ -68,7 +71,8 @@ void PanelModels::create_toolbar()
         el.on_click = [this](PanelToolbar::Element& el) noexcept { on_sync(el); };
         el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_sync(el); };
         add_toolbar_element(std::move(el), false);
-    }    
+    }
+*/   
     {
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Empty;
@@ -256,7 +260,7 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
     };
 
     std::function<void(const std::vector<std::unique_ptr<data::ModelItem>>&, std::vector<PanelListItem>&, int32_t, bool, bool, bool)> go_tree;
-    go_tree = [&go_tree, &expanded_models, &on_item_handler, force_expand_all, 
+    go_tree = [this, &go_tree, &expanded_models, &on_item_handler, force_expand_all, 
         is_filter_empty = dlg_data()->buffer[PanelModelsData::BuffFilter].empty()]
         (const std::vector<std::unique_ptr<data::ModelItem>>& models, std::vector<PanelListItem>& dest, int32_t depth,
             bool show_main_models, bool show_favorited_models, bool show_service_components)
@@ -277,7 +281,7 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
                 }
                 else
                 {
-                    show_model = show_favorited_models && model->starred || !show_favorited_models;
+                    show_model = show_favorited_models && m_favorited.has_item(model->hash) || !show_favorited_models;
                     if (show_model && (show_main_models && model->service_component || show_service_components && !model->service_component))
                         show_model = false;
                 }
@@ -311,7 +315,7 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
                 item.depth = depth;
                 item.name = model->name;
                 item.icon = ICON_LC_STAR;
-                item.icon_active = model->starred;
+                item.icon_active = m_favorited.has_item(model->hash);
                 if (!model->service_component)
                 {
                     if (!model->copy_to_cb_only)
@@ -367,8 +371,8 @@ void PanelModels::handle_dirty(const PanelItemState& dirty_item)
     if (dirty_item.icon_clicked && !dirty_item.lreleased)
     {
         auto* model = cast::ptrs<data::ModelItem>(m_panel_items[dirty_item.index].ptr);
-        model->starred = !model->starred;
-        g::pOptsManager->model_starred_save(model->hash, model->starred);
+        m_favorited.toggle_item(model->hash);
+        g::pOptsManager->items_model_favs_save(m_favorited);
         rebuild_items();
         return;
     }

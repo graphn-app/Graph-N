@@ -65,7 +65,7 @@ private:
     bool m_toggled_past = true;
     bool m_toggled_history = false;
 
-    std::set<std::string> m_favorited;
+    mngr::StarredList m_favorited;
     std::set<uint64_t> m_hidden;
 
     std::vector<mngr::ExecTask> m_history_tasks;

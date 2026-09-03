@@ -18,6 +18,23 @@ WfsManager::~WfsManager() noexcept = default;
 
 void WfsManager::stop_all_threads() noexcept
 {
+    for (auto& [wf_id, wf] : m_wfs)
+    {
+        if (wf->get_data().pending_delete)
+            m_labels.remove_item_for_all(wf_id);
+    }
+    std::set<uint32_t> cleanup;
+    for (auto& label : m_labels.get_label_list())
+    {
+        if (label.members.empty() && label.auto_label)
+            cleanup.insert(label.id);
+    }
+    for (auto label_id : cleanup)
+    {
+        m_labels.remove_label(label_id);
+    }
+    g::pOptsManager->items_wf_labels_save(m_labels);
+
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_timers(this);
 }
@@ -39,9 +56,22 @@ bool WfsManager::init()
         create(std::move(data), false);
     }
 
-    init_labels();
+    m_labels = g::pOptsManager->items_wf_labels_load();
+    for (auto& label : m_labels.get_label_list())
+    {
+        std::set<hid> cleanup;
+        for (auto wf_id : label.members)
+        {
+            if (!m_wfs.contains(cast::to<wid>(wf_id)))
+                cleanup.insert(wf_id);
+        }
+        for (auto wf_id : cleanup)
+        {
+            m_labels.remove_item(label.id, wf_id);
+        }
+    }
 
-    g::pGraphN->subscribe_timers(this);
+    g::pGraphN->subscribe_timers(this);    
     return true;
 }
 
@@ -50,7 +80,6 @@ void WfsManager::free()
     m_active = 0;
     m_wfs.clear(); m_wfs.rehash(0);
     m_wfs_ro.clear();
-    m_labels.clear();
 }
 
 const WfData& WfsManager::create(bool generate_name, bool dump_to_db, bool ro)
@@ -364,233 +393,76 @@ void WfsManager::remove_virtual_wf(wid wf_id)
     Log("Virtual wf removed. w:" << wf_id);
 }
 
-void WfsManager::init_labels()
-{
-    m_labels.clear();
-    m_wfs_in_label.clear();
-    m_last_label_id = 0;
-
-    auto labels = g::pOptsManager->wf_labels_load(base::HashID::make_hash(DlgObjID[cast::to_szt(DlgObj::PanelWfList_LabelsMenu)]));
-    if (labels.empty())
-        return;
-
-    Log("Wfs labels loaded: " << labels);
-    try
-    {
-        const auto j = u_json::parse(labels);
-
-        for (auto& jobj : j)
-        {
-            const std::string name = jobj["name"].get<std::string>();
-            const uint32_t id = jobj["id"].get<uint32_t>();
-            const bool auto_del = jobj["auto"].get<bool>();
-            m_labels.push_back({ name, id, auto_del });
-
-            if (id > m_last_label_id)
-                m_last_label_id = id;
-
-            auto& wfs_in_label = m_wfs_in_label[id];
-            if (jobj.contains("wfs"))
-            {
-                std::vector<wid> wf_ids = jobj["wfs"];
-                for (auto wf_id : wf_ids)
-                {
-                    for (auto& wf : m_wfs)
-                    {
-                        if (wf.second->get_id() == wf_id)
-                        {
-                            wfs_in_label.push_back(wf_id);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            sort_wfs(wfs_in_label);
-        }
-
-        m_labels.sort([](const std::tuple<std::string, uint32_t, bool>& l, const std::tuple<std::string, uint32_t, bool>& r)
-            { return tools::str::to_lower_ascii(std::get<0>(l)) < tools::str::to_lower_ascii(std::get<0>(r)); });
-    }
-    catch (const std::exception& ex)
-    {
-        LogExcep("Failed to parse labels (" << labels << "). Err: " << ex.what());
-    }
-}
-
 uint32_t WfsManager::create_label(bool auto_del /*= false*/)
 {
-    std::string label = "new label";
-    size_t label_idx = 1;
-    for (auto it = m_labels.begin(); it != m_labels.end(); )
-    {
-        const auto& name = std::get<0>(*it);
-        if (tools::str::to_lower_ascii(name) == label)
-        {
-            label = fmt::format(FMT_STRING("new label ({})"), ++label_idx);
-            it = m_labels.begin();
-            continue;
-        }
-        ++it;
-    }
-
-    m_last_label_id++;
-    m_wfs_in_label[m_last_label_id];
-
-    Log("New WF label added: " << label << " = " << m_last_label_id);
-
-    m_labels.push_back({ label, m_last_label_id, auto_del });
-    m_labels.sort([](const std::tuple<std::string, uint32_t, bool>& l, const std::tuple<std::string, uint32_t, bool>& r)
-        { return tools::str::to_lower_ascii(std::get<0>(l)) < tools::str::to_lower_ascii(std::get<0>(r)); });
-
-    save_labels();
-    return m_last_label_id;
+    const auto id = m_labels.add_label(auto_del);
+    Log("New wf label added: " << std::as_const(m_labels).get_label(id)->name << " = " << id);
+    g::pOptsManager->items_wf_labels_save(m_labels);
+    return id;
 }
 
 uint32_t WfsManager::find_label(const std::string& label_name) const
 {
     const auto lower = tools::str::to_lower_ascii(label_name);
-    for (auto it = m_labels.begin(); it != m_labels.end(); ++it)
+    auto& labels = m_labels.get_label_list();
+    for (auto it = labels.begin(); it != labels.end(); ++it)
     {
-        const auto& name = std::get<0>(*it);
-        if (tools::str::to_lower_ascii(name) == lower)
-            return std::get<1>(*it);
+        if (tools::str::to_lower_ascii(it->name) == lower)
+            return it->id;
     }
     return 0;
 }
 
 bool WfsManager::rename_label(uint32_t label_id, const std::string& new_name)
 {
-    std::list<std::tuple<std::string, uint32_t, bool>>::iterator label_it = m_labels.begin();
-    for (auto it = m_labels.begin(); it != m_labels.end(); ++it)
-    {
-        auto& label = *it;
-        if (std::get<1>(label) == label_id)
-        {
-            if (std::get<0>(label) == new_name)
-                return false;
-            label_it = it;
-        }
-        else if (std::get<0>(label) == new_name)
-            return false;
-    }
-
-    LogRAssert(label_it != m_labels.end(), "Label " << label_id << ": id not found", false);
-
-    auto& label = *label_it;
-    Log("Label renamed from '" << std::get<0>(label) << "' to '" << new_name << "'");
-    std::get<0>(label) = new_name;
-    m_labels.sort([](const std::tuple<std::string, uint32_t, bool>& l, const std::tuple<std::string, uint32_t, bool>& r)
-        { return tools::str::to_lower_ascii(std::get<0>(l)) < tools::str::to_lower_ascii(std::get<0>(r)); });
-
-    save_labels();
+    if (!m_labels.rename_label(label_id, new_name))
+        return false;
+    g::pOptsManager->items_wf_labels_save(m_labels);
     return true;
 }
 
 void WfsManager::remove_label(uint32_t label_id)
 {
-    LogRAssert(label_id != 0, "Zero label id", );
-    bool label_found = false;
-    for (auto it = m_labels.begin(); it != m_labels.end(); ++it)
-    {
-        if (std::get<1>(*it) == label_id)
-        {
-            Log("Label " << std::get<0>(*it) << " removed");
-            m_labels.erase(it);
-            label_found = true;
-            break;
-        }
-    }
-
-    LogRAssert(label_found, "Label " << label_id << " not found", );
-
-    m_wfs_in_label.erase(label_id);
-    save_labels();
+    m_labels.remove_label(label_id);
+    g::pOptsManager->items_wf_labels_save(m_labels);
 }
 
 void WfsManager::set_wf_labels(wid wf_id, std::set<uint32_t> labels)
 {
-    LogRAssert(wf_id != 0, "Zero wf id", );
-    bool changed = false;
-    for (auto& [label_id, wf_ids] : m_wfs_in_label)
+    auto& all_labels = m_labels.get_label_list();
+    for (auto it = all_labels.begin(); it != all_labels.end(); ++it)
     {
-        const auto it = std::ranges::find(wf_ids, wf_id);
-        if (it == wf_ids.end() && labels.contains(label_id))
-        {
-            wf_ids.push_back(wf_id);
-            sort_wfs(wf_ids);
-            changed = true;
-        }
-        else if (it != wf_ids.end() && !labels.contains(label_id))
-        {
-            wf_ids.erase(it);
-            changed = true;
-        }
+        m_labels.remove_item(it->id, wf_id);
     }
-
-    if (changed)
-        save_labels();
+    for (auto label_id : labels)
+    {
+        m_labels.add_item(label_id, wf_id);
+    }
+    g::pOptsManager->items_wf_labels_save(m_labels);
 }
 
 bool WfsManager::is_auto_label(uint32_t label_id) const
 {
-    LogRAssert(label_id != 0, "Zero label id", false);
-    const auto it = std::ranges::find_if(m_labels, [label_id](const std::tuple<std::string, uint32_t, bool>& t) { return std::get<1>(t) == label_id; });
-    if (it != m_labels.end())
-        return std::get<2>(*it);
-    return false;
+    auto label = std::as_const(m_labels).get_label(label_id);
+    LogRAssert(label, "Label " << label_id << " not found", false);
+    return label->auto_label;
 }
 
-void WfsManager::save_labels()
+std::list<wid> WfsManager::get_wfs_in_label(uint32_t label_id) const
 {
-    o_json j;
-    for (auto it = m_labels.begin(); it != m_labels.end(); ++it)
-    {
-        auto& label = *it;
+    auto label = std::as_const(m_labels).get_label(label_id);
+    LogRAssert(label, "Label " << label_id << " not found", {});
 
-        o_json jlabel;
-        jlabel["name"] = std::get<0>(label);
-        jlabel["id"] = std::get<1>(label);
-        jlabel["auto"] = std::get<2>(label);
-
-        auto wfs_it = m_wfs_in_label.find(std::get<1>(label));
-        if (wfs_it != m_wfs_in_label.end())
-        {
-            std::vector<wid> wf_ids;
-            wf_ids.reserve(wfs_it->second.size());
-            for (auto wf_id : wfs_it->second)
-            {
-                wf_ids.push_back(wf_id);
-            }
-            jlabel["wfs"] = std::move(wf_ids);
-        }
-        else
-        {
-            jlabel["wfs"] = std::vector<wid>{};
-        }
-
-        j.push_back(std::move(jlabel));
-    }
-
-    g::pOptsManager->wf_labels_save(base::HashID::make_hash(DlgObjID[cast::to_szt(DlgObj::PanelWfList_LabelsMenu)]), j.dump());
-}
-
-const std::list<wid>& WfsManager::get_wfs_in_label(uint32_t label_id) const
-{
-    auto it = m_wfs_in_label.find(label_id);
-    if (it != m_wfs_in_label.end())
-        return it->second;
-    
-    static std::list<wid> empty;
-    return empty;
+    std::list<wid> wfs;
+    std::ranges::for_each(label->members, [&wfs](hid wf) { wfs.push_back(cast::to<wid>(wf)); });
+    return wfs;
 }
 
 bool WfsManager::get_is_wf_in_label(wid wf_id, uint32_t label_id) const
 {
-    LogRAssert(wf_id != 0, "Zero wf id", false);
-    LogRAssert(label_id != 0, "Zero label id", false);
-    auto& ids = get_wfs_in_label(label_id);
-    return std::ranges::find(ids, wf_id) != ids.end();
+    auto label = std::as_const(m_labels).get_label(label_id);
+    LogRAssert(label, "Label " << label_id << " not found", {});
+    return label->members.contains(wf_id);
 }
 
 void WfsManager::sort_wfs(std::list<wid>& wfs)

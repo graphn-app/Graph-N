@@ -7,6 +7,86 @@
 namespace mngr
 {
 ///////////////////////////////////////////////////////////////////
+///////      Item options     /////////////////////////////////
+///////////////////////////////////////////////////////////////////
+
+struct PinOptions final
+{
+    bool is_advanced = false;
+
+    std::string serialize() const noexcept;
+    void deserialize(const std::string& opts) noexcept;
+};
+
+struct NodeOptions final
+{
+    bool display_image = false;
+    bool display_video = false;
+    bool display_audio = false;
+    bool can_upload = false;
+#ifdef _DEBUG
+    bool restrict_widget = false;
+#endif
+
+    std::string serialize() const noexcept;
+    void deserialize(const std::string& opts) noexcept;
+};
+
+struct Label final
+{
+    uint32_t id = 0;
+    std::string name;
+    bool auto_label = false;
+    std::set<hid> members;
+};
+
+struct LabelsList final
+{
+    const Label* get_label(uint32_t label_id) const;
+    const std::list<Label>& get_label_list() const noexcept { return labels; };
+
+    uint32_t add_label(bool auto_label= false, std::string name = "");
+    bool rename_label(uint32_t label_id, const std::string& new_name);
+    void remove_label(uint32_t label_id) { std::erase_if(labels, [label_id](const Label& label) { return label_id == label.id; }); }
+
+    bool has_item(uint32_t label_id, hid item) const;
+    void add_item(uint32_t label_id, hid item);
+    void remove_item(uint32_t label_id, hid item);
+    void remove_item_for_all(hid item);
+
+    std::string serialize() const noexcept;
+    void deserialize(const std::string& opts) noexcept;
+
+private:
+    Label* get_label(uint32_t label_id);
+    void sort_labels();
+
+private:
+    std::list<Label> labels;
+    uint32_t last_label_id = 0;
+};
+
+struct StarredList final
+{
+    bool has_item(hid item) const { return starred.contains(item); }
+    bool has_item(const std::string& item) const { return starred.contains(tools::str::hash_stable(item)); }
+    bool add_item(hid item) { return starred.insert(item).second; }
+    bool add_item(const std::string& item) { return starred.insert(tools::str::hash_stable(item)).second; }
+    bool remove_item(hid item) { return starred.erase(item) > 0; }
+    bool remove_item(const std::string& item) { return starred.erase(tools::str::hash_stable(item)) > 0; }
+    void toggle_item(hid item) { if (has_item(item)) remove_item(item); else add_item(item); }
+    void toggle_item(const std::string& item) { if (has_item(item)) remove_item(item); else add_item(item); }
+
+    size_t count() const noexcept { return starred.size(); }
+
+    std::string serialize() const noexcept;
+    void deserialize(const std::string& opts) noexcept;
+
+private:
+    std::set<hid> starred;
+};
+
+///////////////////////////////////////////////////////////////////
 ///////      mngr::DbValue        /////////////////////////////////
 ///////////////////////////////////////////////////////////////////
 

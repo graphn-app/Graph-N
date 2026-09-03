@@ -77,7 +77,7 @@ TEST_F(ParserTest, HandlesCrazyInput)
 
     EXPECT_EQ(g::pNodesManager->get_nodes_plain().size(), 1);
 
-    auto node = g::pNodesManager->find_node(tools::str::hash_fnv1a("CrazyNode_v1"));
+    auto node = g::pNodesManager->find_node(tools::str::hash_stable("CrazyNode_v1"));
     ASSERT_TRUE(node != nullptr);
     EXPECT_EQ(node->display_name, "🤪 Node With Emojis");
 

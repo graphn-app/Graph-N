@@ -91,21 +91,16 @@ std::string GlobalID::uuid()
 /////   HashID          /////////////////////
 /////////////////////////////////////////////
 
-hid HashID::make_hash(const std::string& unique) noexcept
-{
-    return tools::str::hash_fnv1a(unique);
-}
-
 HashID::HashID(const std::string& unique) noexcept
 {
-    set_hash(make_hash(unique));
+    m_hash = make_hash(unique);
 }
 
 HashID::~HashID() noexcept = default;
 
-void HashID::set_hash(hid hash) noexcept
+hid HashID::make_hash(const std::string& unique)
 {
-    m_hash = hash;
+    return tools::str::hash_stable(unique);
 }
 
 } // namespace base

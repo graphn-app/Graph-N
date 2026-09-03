@@ -32,8 +32,8 @@ public:
     std::vector<DbAppOptionData> app_option_load_all();
     void app_option_save_all(std::vector<DbAppOptionData>&& opts);
 
-    void item_option_save(hid hash, DbItemOptionType type, DbValue&& value);
-    std::optional<DbValue> item_option_load(hid hash, DbItemOptionType type);
+    void item_option_save(DbItemOptionType type, hid hash, DbValue&& value);
+    std::optional<DbValue> item_option_load(DbItemOptionType type, hid hash);
     std::vector<std::pair<hid, DbValue>> item_option_load_all(DbItemOptionType type);
 
     std::vector<WfData> wf_load_meta_and_purge();
@@ -103,6 +103,7 @@ private:
     std::mutex m_lock;
     std::condition_variable m_cv;
     std::queue<WriteData> m_write_queue;
+    std::stop_source m_stop_flag;
 
     ExcepData m_exception_write_data;
     std::atomic_bool m_exception_write_data_flag = false;

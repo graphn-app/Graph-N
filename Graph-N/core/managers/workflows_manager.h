@@ -54,8 +54,8 @@ public:
 
     void remove_virtual_wf(wid id);
 
-    const std::list<std::tuple<std::string, uint32_t, bool>>& get_labels() const noexcept { return m_labels; }
-    const std::list<wid>& get_wfs_in_label(uint32_t label_id) const;
+    const std::list<Label>& get_labels() const noexcept { return m_labels.get_label_list(); }
+    std::list<wid> get_wfs_in_label(uint32_t label_id) const;
     bool get_is_wf_in_label(wid wf_id, uint32_t label_id) const;
 
     uint32_t create_label(bool auto_del = false);
@@ -83,8 +83,6 @@ public:
 
 private:
     data::Workflow* create(WfData&& data, bool dump_to_db);
-    void init_labels();
-    void save_labels();
     bool is_auto_label(uint32_t label_id) const;
     void sort_wfs(std::list<wid>& wfs);
 
@@ -98,9 +96,7 @@ private:
     uint32_t m_wf_name_counter = 0;
     wid m_active = 0;
 
-    std::list<std::tuple<std::string, uint32_t, bool>> m_labels;
-    uint32_t m_last_label_id = 0;
-    std::unordered_map<uint32_t, std::list<wid>> m_wfs_in_label;
+    LabelsList m_labels;
 
     const data::Workflow* m_copy_src = nullptr;
     std::optional<ImVec2> m_copy_point;

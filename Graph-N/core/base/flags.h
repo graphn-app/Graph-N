@@ -253,6 +253,11 @@ enum class NodeObjFlags : uint64_t
     Experimental              = 1 << 7,  // 128                -  0x80
     Deprecated                = 1 << 8,  // 256                -  0x100
     ApiNode                   = 1 << 9,  // 512                -  0x200
+    DisplayImage              = 1 << 10, // 1024               -  0x400
+    DisplayVideo              = 1 << 11, // 2048               -  0x800
+    DisplayAudio              = 1 << 12, // 4096               -  0x1000
+    CanUpload                 = 1 << 13, // 8192               -  0x2000
+    RestrictCustomWidget      = 1 << 14, // 16384              -  0x4000
 };
 
 enum class PinInstFlags : uint64_t

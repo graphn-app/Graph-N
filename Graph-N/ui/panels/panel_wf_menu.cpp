@@ -1128,7 +1128,7 @@ data::Node* PanelWorkflow::show_nodes_menu(const std::list<PinType>& in_pins, co
     for (auto& label : labels)
     {
         size_t nodes_count = 0;
-        auto& nodes_in_label = g::pNodesManager->get_nodes_in_label(label.second);
+        const auto nodes_in_label = g::pNodesManager->get_nodes_in_label(label.id);
         for (auto node_item : nodes_in_label)
         {
             if (!node_item->filtered)
@@ -1140,7 +1140,7 @@ data::Node* PanelWorkflow::show_nodes_menu(const std::list<PinType>& in_pins, co
             labels_shown = true;
 
             m_fmt_buffer.clear();
-            fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("{} [{}]"), label.first, nodes_count);
+            fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("{} [{}]"), label.name, nodes_count);
             m_fmt_buffer.push_back('\0');
 
             if (ImGui::BeginMenu(m_fmt_buffer.data()))

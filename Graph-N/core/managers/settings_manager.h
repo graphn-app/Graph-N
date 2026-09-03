@@ -7,7 +7,7 @@ namespace mngr
 class SettingsManager final : public Manager
 {
 public:
-    SettingsManager() noexcept = default;
+    SettingsManager() noexcept;
     ~SettingsManager() noexcept override;
 
     bool init() override;
@@ -137,9 +137,6 @@ public:
     void wf_imported_save(const std::string& project);
 
     // queue
-    std::set<std::string> queue_favorited_load() const noexcept;
-    std::set<std::string> queue_favorited_save(const std::string& prompt_id, bool add);
-
     int64_t queue_history_num_load() const noexcept { return *std::get_if<int64_t>(&m_queue_history_num.value); }
     void queue_history_num_save(int64_t num) { save_option(m_queue_history_num, int64_t(num)); }
 
@@ -157,21 +154,27 @@ public:
     void log_comfyui_log_in_ram_save(int64_t num) { save_option(m_log_comfyui_log_in_ram, int64_t(num)); }
 
     // items
-    void pin_advanced_preload();
-    void pin_advanced_release() noexcept { m_item_preload_pin_adv.clear(); }
-    std::optional<bool> pin_advanced_load(hid pin_hash) const { auto it = m_item_preload_pin_adv.find(pin_hash); return (it == m_item_preload_pin_adv.end() ? std::nullopt : std::optional<bool>(it->second)); }
-    void pin_advanced_save(hid pin_hash, bool is_adv) const { item_save(pin_hash, DbItemOptionType::PinAdvanced, is_adv); }
+    void items_pins_hash_all();
+    void items_pins_release_hashed() { m_item_pin_opts.clear(); m_item_pin_opts_preloaded = false; }
+    const PinOptions& items_pin_load(hid pin_hash);    // will use preloaded map if <items_pins_hash_all> was called first
+    void items_pin_save(hid pin_hash, const PinOptions& opt) const { item_save(pin_hash, DbItemOptionType::Pins, opt.serialize()); }
 
-    void model_starred_preload();
-    void model_starred_release() noexcept { m_item_preload_model_starred.clear(); }
-    std::optional<bool> model_starred_load(hid model_id) const { auto it = m_item_preload_model_starred.find(model_id); return (it == m_item_preload_model_starred.end() ? std::nullopt : std::optional<bool>(it->second)); }
-    void model_starred_save(hid model_hash, bool is_starred) const { item_save(model_hash, DbItemOptionType::ModelStarred, is_starred); }
+    void items_nodes_hash_all();
+    void items_nodes_release_hashed() { m_item_node_opts.clear(); m_item_node_opts_preloaded = false; }
+    const NodeOptions& items_node_load(hid node_hash);    // will use preloaded map if <items_nodes_hash_all> was called first
+    void items_node_save(hid node_hash, const NodeOptions& opt) const { item_save(node_hash, DbItemOptionType::Nodes, opt.serialize()); }
 
-    std::string wf_labels_load(hid hash) const { auto val = item_load(hash, DbItemOptionType::WfLabels); return (val.has_value() ? std::move(val.value().sval) : ""); }
-    void wf_labels_save(hid hash, std::string&& labels) const { item_save(hash, DbItemOptionType::WfLabels, std::move(labels)); }
+    LabelsList items_wf_labels_load() const;
+    void items_wf_labels_save(const LabelsList& labels) const { item_save(tools::str::hash_stable(m_items_wf_labels_id), DbItemOptionType::LabelWfs, labels.serialize()); }
 
-    std::string nodes_labels_load(hid hash) const { auto val = item_load(hash, DbItemOptionType::NodeLabels); return (val.has_value() ? std::move(val.value().sval) : ""); }
-    void nodes_labels_save(hid hash, std::string&& labels) const { item_save(hash, DbItemOptionType::NodeLabels, std::move(labels)); }
+    LabelsList items_node_labels_load() const;
+    void items_node_labels_save(const LabelsList& labels) const { item_save(tools::str::hash_stable(m_items_node_labels_id), DbItemOptionType::LabelNodes, labels.serialize()); }
+
+    StarredList items_model_favs_load() const;
+    void items_model_favs_save(const StarredList& favs) const { item_save(tools::str::hash_stable(m_items_model_favs_id), DbItemOptionType::StarredModels, favs.serialize()); }
+
+    StarredList items_history_favs_load() const;
+    void items_history_favs_save(const StarredList& favs) const { item_save(tools::str::hash_stable(m_items_history_favs_id), DbItemOptionType::StarredHistory, favs.serialize()); }
 
     // stats
     int64_t stat_threshold_warn_load(MetricLimit type) const noexcept
@@ -217,6 +220,7 @@ private:
     void save_option(OptionValue& option, bool new_bool);
     void save_option(OptionValue& option, const std::filesystem::path& new_path);
 
+    void items_init_defaults();
     std::optional<DbValue> item_load(hid hash, DbItemOptionType type) const;
     void item_save(hid hash, DbItemOptionType type, int64_t value) const;
     void item_save(hid hash, DbItemOptionType type, std::string&& value) const;
@@ -281,8 +285,14 @@ private:
     OptionValue m_log_comfyui_log_in_ram; // int
 
     // items
-    std::map<hid, bool> m_item_preload_pin_adv;
-    std::map<hid, bool> m_item_preload_model_starred;
+    const char* m_items_wf_labels_id;
+    const char* m_items_node_labels_id;
+    const char* m_items_model_favs_id;
+    const char* m_items_history_favs_id;
+    bool m_item_pin_opts_preloaded = false;
+    bool m_item_node_opts_preloaded = false;
+    std::map<hid, PinOptions> m_item_pin_opts;
+    std::map<hid, NodeOptions> m_item_node_opts;
 
     // stats
     std::vector<OptionValue> m_stat_limits_warn;

@@ -142,12 +142,17 @@ std::string to_lower_ascii(const std::string& str)
     return lower;
 }
 
-size_t hash_string(const std::string& str) noexcept
+bool compare_no_case(const std::string& str1, const std::string& str2)
+{
+    return to_lower_ascii(str1) == to_lower_ascii(str2);
+}
+
+size_t hash_runtime(const std::string& str)
 {
     return std::hash<std::string>{}(str);
 }
 
-uint64_t hash_fnv1a(const void* data, size_t size) noexcept
+uint64_t hash_stable(const void* data, size_t size) noexcept
 {
     // FNV-1a constants for 64-bit
     constexpr uint64_t FNV_OFFSET_BASIS = 0xcbf29ce484222325;
@@ -163,19 +168,19 @@ uint64_t hash_fnv1a(const void* data, size_t size) noexcept
     return hash;
 }
 
-uint64_t hash_fnv1a(const char* data, size_t size) noexcept
+uint64_t hash_stable(const char* data, size_t size) noexcept
 {
-    return hash_fnv1a((const void*)data, size);
+    return hash_stable((const void*)data, size);
 }
 
-uint64_t hash_fnv1a(size_t data) noexcept
+uint64_t hash_stable(size_t data) noexcept
 {
-    return hash_fnv1a((const void*)&data, sizeof(data));
+    return hash_stable((const void*)&data, sizeof(data));
 }
 
-uint64_t hash_fnv1a(const std::string& data) noexcept
+uint64_t hash_stable(const std::string& data) noexcept
 {
-    return hash_fnv1a((const void*)data.c_str(), data.size());
+    return hash_stable((const void*)data.c_str(), data.size());
 }
 
 uint32_t crc32(const std::string& data) noexcept

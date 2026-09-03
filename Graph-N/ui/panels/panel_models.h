@@ -61,6 +61,7 @@ private:
     PanelWithList::TtCallbacks m_tt_callbacks;
     std::vector<PanelListItem> m_panel_items;
     size_t m_prev_model_items_count = 0;
+    mngr::StarredList m_favorited;
 };
 
 

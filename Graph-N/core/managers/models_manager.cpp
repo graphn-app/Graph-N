@@ -37,7 +37,6 @@ void ModelsManager::load_models_th()
 {
     try
     {
-        g::pOptsManager->model_starred_preload();
         const std::string models_req = comfyui_http::models;
         std::string data;
         int32_t http_res = g::pFlow->http_get_and_wait("Models/All", models_req.c_str(), {}, {}, true,
@@ -149,12 +148,10 @@ void ModelsManager::load_models_th()
         setup_model_behaviour();
         calc_number_inside("");
 
-        g::pOptsManager->model_starred_release();
         g::pFlow->set_models_ready();
     }
     catch (const std::exception& ex)
     {
-        g::pOptsManager->model_starred_release();
         LogExcep("Models thread ex " << ex.what());
     }
 }
@@ -189,9 +186,6 @@ std::unique_ptr<data::ModelItem> ModelsManager::add_file(std::string root_folder
     file->name = tools::path::path_to_string(file_path.filename());
     file->search = tools::str::to_lower_ascii(file->name);
     file->hash = base::HashID::make_hash(file->name);
-    const auto starred = g::pOptsManager->model_starred_load(file->hash);
-    if (starred.has_value())
-        file->starred = starred.value();
     parent->children.push_back(std::move(file));
 
     return root;
@@ -284,7 +278,6 @@ void ModelsManager::rebuild_models(std::vector<std::unique_ptr<data::ModelItem>>
             {
                 auto new_item = std::make_unique<data::ModelItem>();
                 new_item->is_model = src_item->is_model;
-                new_item->starred = src_item->starred;
                 new_item->hash = src_item->hash;
                 new_item->name = std::move(src_item->name);
                 new_item->search = std::move(src_item->search);

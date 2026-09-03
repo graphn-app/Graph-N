@@ -124,6 +124,7 @@ void PanelNodes::create_toolbar()
             el.on_click = [this](PanelToolbar::Element& el) { on_view(el); };
             add_toolbar_element(std::move(el), false);
         }
+/*
         {
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Empty;
@@ -138,6 +139,7 @@ void PanelNodes::create_toolbar()
             el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_sync(el); };
             add_toolbar_element(std::move(el), false);
         }
+*/
         {
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Empty;
@@ -271,9 +273,9 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             NodeLabelState* state = cast::ptrs<NodeLabelState>(item.item_state.get());
             for (auto& label : labels)
             {
-                if (g::pNodesManager->get_is_node_in_label(cast::ptrs<data::NodeItem>(item.ptr), label.second))
+                if (g::pNodesManager->get_is_node_in_label(cast::ptrs<data::NodeItem>(item.ptr), label.id))
                 {
-                    state->active_labels.insert(label.second);
+                    state->active_labels.insert(label.id);
                 }
             }
 
@@ -292,16 +294,16 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             for (auto& label : labels)
             {
                 NodeLabelState* state = ((NodeLabelState*)item.item_state.get());
-                bool node_in_label = state->active_labels.contains(label.second);
+                bool node_in_label = state->active_labels.contains(label.id);
                     
-                ImGui::PushID(label.second);
-                if (ImGui::Checkbox(label.first.c_str(), &node_in_label))
+                ImGui::PushID(label.id);
+                if (ImGui::Checkbox(label.name.c_str(), &node_in_label))
                 {
                     item.item_state->changed = true;
                     if (node_in_label)
-                        state->active_labels.insert(label.second);
+                        state->active_labels.insert(label.id);
                     else
-                        state->active_labels.erase(label.second);
+                        state->active_labels.erase(label.id);
                 }
                 ImGui::PopID();
             }
@@ -367,7 +369,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
     for (auto& label : labels)
     {
         size_t nodes_count = 0;
-        auto& nodes_in_label = g::pNodesManager->get_nodes_in_label(label.second);
+        const auto nodes_in_label = g::pNodesManager->get_nodes_in_label(label.id);
         for (auto node_item : nodes_in_label)
         {
             if (!node_item->filtered)
@@ -375,13 +377,13 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         }
 
         PanelListItem label_item;
-        label_item.name = label.first;
+        label_item.name = label.name;
         label_item.name_p2 = std::to_string(nodes_count);
         label_item.can_expand = true;
-        label_item.expanded = (force_expand_all || expanded_labels.contains(label.second));
+        label_item.expanded = (force_expand_all || expanded_labels.contains(label.id));
         const bool label_expanded = label_item.expanded;
         label_item.icon = label_item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
-        label_item.label = label.second;
+        label_item.label = label.id;
         m_panel_items.push_back(std::move(label_item));
 
         if (label_expanded)
@@ -666,11 +668,11 @@ void PanelNodes::rebuild_labels()
     {
         PanelListItem item;
         item.can_dblclick = true;
-        item.name = label.first;
-        item.label = label.second;
+        item.name = label.name;
+        item.label = label.id;
         item.on_item_handler = on_item_handler;
         item.on_hover_handler = on_hover_handler;
-        if (m_new_label == label.second)
+        if (m_new_label == label.id)
         {
             item.renaming = true;
             item.need_focus = true;

@@ -277,10 +277,6 @@ void Pin::finalize()
         }
     }
 
-    // load options
-    const auto opt_adv = g::pOptsManager->pin_advanced_load(get_hash());
-    flags.add_remove_if(PinObjFlags::Advanced, opt_adv.has_value() && opt_adv.value());
-
     clamp_values();
 }
 
@@ -639,7 +635,7 @@ void Pin::generate_pin_color() noexcept
     }
 
     // golden ratio
-    double hue = cast::to_u64(tools::str::hash_string(def_state.type_str)) * 0.618033988749895;
+    double hue = cast::to_u64(tools::str::hash_stable(def_state.type_str)) * 0.618033988749895;
     hue = std::fmod(hue, 1.0);
 
     // fix hue (S) и brightness (V)

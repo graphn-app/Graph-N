@@ -46,12 +46,8 @@ struct HashID
 
     NO_COPY_MOVE(HashID);
 
+    static hid make_hash(const std::string& unique);
     hid get_hash() const noexcept { return m_hash; }
-
-    static hid make_hash(const std::string& unique) noexcept;
-
-private:
-    void set_hash(hid hash) noexcept;
 
 private:
     hid m_hash = 0;

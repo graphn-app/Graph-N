@@ -23,7 +23,6 @@ struct ModelItem final
     NO_COPY_MOVE_CTORS(ModelItem);
     
     bool is_model = false;
-    bool starred = false;
 
     hid hash = 0;
     std::string name;

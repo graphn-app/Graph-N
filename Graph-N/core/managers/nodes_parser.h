@@ -32,6 +32,7 @@ private:
     void prepare_parsers_map();
     void parse_by_key(const data::Node& node, data::Pin& pin, const o_json& j, const std::string& key);
     void add_internal_nodes(NodesManager& manager);
+    void apply_options(NodesManager& manager);
 
 private:
     std::string m_json_data;

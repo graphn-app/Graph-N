@@ -74,8 +74,6 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
 {
     try
     {
-        g::pOptsManager->pin_advanced_preload();
-
         const auto j = o_json::parse(m_json_data);
         m_parsed_items_total.store(j.size(), std::memory_order_relaxed);
 
@@ -101,16 +99,15 @@ std::shared_ptr<NodesManager> NodesParser::parse_thread()
         Log("Parsed: " << m_parsed_item.load(std::memory_order_relaxed) << " item. Adding internal nodes");
         add_internal_nodes(*nodes_manager.get());
         sort_nodes(*nodes_manager.get());
-        nodes_manager->init_labels();
-        Log("Nodes loading and parsing done");
+        apply_options(*nodes_manager.get());
 
-        g::pOptsManager->pin_advanced_release();
+        Log("All nodes loaded and parsed");
+
         return nodes_manager;
     }
     catch (const std::exception& ex)
     {
         LogExcep("Parse error: " << ex.what());
-        g::pOptsManager->pin_advanced_release();
         m_parse_failed.store(true, std::memory_order_relaxed);
     }
     return {};
@@ -992,6 +989,39 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
     put_in_tree(manager, add_internal_node<data::CNI_Primitive>(manager.m_nodes));
     put_in_tree(manager, add_internal_node<data::CNI_Note>(manager.m_nodes));
     put_in_tree(manager, add_internal_node<data::CNI_MarkdownNote>(manager.m_nodes));
+}
+
+void NodesParser::apply_options(NodesManager& manager)
+{
+    g::pOptsManager->items_pins_hash_all();
+    g::pOptsManager->items_nodes_hash_all();
+
+    for (auto& [hash, pin] : manager.m_pins)
+    {
+        const auto& opt = g::pOptsManager->items_pin_load(hash);
+        pin->flags.add_remove_if(PinObjFlags::Advanced, opt.is_advanced);        
+    }
+
+    const std::set<hid> restricted_nodes =
+    {
+        0
+    };
+
+    for (auto& [hash, node] : manager.m_nodes)
+    {
+        const auto& opt = g::pOptsManager->items_node_load(hash);
+        node->flags.add_remove_if(NodeObjFlags::DisplayImage, opt.display_image);
+        node->flags.add_remove_if(NodeObjFlags::DisplayVideo, opt.display_video);
+        node->flags.add_remove_if(NodeObjFlags::DisplayAudio, opt.display_audio);
+        node->flags.add_remove_if(NodeObjFlags::CanUpload, opt.can_upload);
+#ifdef _DEBUG
+        node->flags.add_remove_if(NodeObjFlags::RestrictCustomWidget, opt.restrict_widget);
+#endif
+        node->flags.add_remove_if(NodeObjFlags::RestrictCustomWidget, restricted_nodes.contains(hash));
+    }
+
+    g::pOptsManager->items_pins_release_hashed();
+    g::pOptsManager->items_nodes_release_hashed();
 }
 
 } // namespace mngr

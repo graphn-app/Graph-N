@@ -6,6 +6,14 @@
 namespace mngr
 {
 
+SettingsManager::SettingsManager() noexcept
+    : m_items_wf_labels_id("{389DA1FA-80C5-45EF-93B8-6C87D3BD03B2}")
+    , m_items_node_labels_id("{5E9A2E7E-D18E-448E-8D8D-D704484D42B8}")
+    , m_items_model_favs_id("{85A87BC9-691D-44FA-AA16-1569E36ABE18}")
+    , m_items_history_favs_id("{1424AD9F-BE57-437C-BB18-9B77D5B148BF}")
+{
+}
+
 SettingsManager::~SettingsManager() noexcept = default;
 
 bool SettingsManager::init()
@@ -691,81 +699,97 @@ void SettingsManager::wf_imported_save(const std::string& project)
 }
 
 //////////////////////////////////////////////////////////////////////
-////////       QUEUE                    /////////////////////////////
-//////////////////////////////////////////////////////////////////////
-
-std::set<std::string> SettingsManager::queue_favorited_load() const noexcept
-{
-    const auto& jfavs = *std::get_if<std::string>(&m_queue_favs.value);
-    if (jfavs.empty())
-        return {};
-
-    std::set<std::string> favs;
-    try
-    {
-        const auto j = u_json::parse(jfavs);
-        if (j.contains("favorited") && j["favorited"].is_array())
-        {
-            favs = j["favorited"].get<std::set<std::string>>();
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        LogExcep("Failed to parse favorited outputs: " << ex.what());
-    }
-
-    return favs;
-}
-
-std::set<std::string> SettingsManager::queue_favorited_save(const std::string& prompt_id, bool add)
-{
-    std::set<std::string> all_favs = queue_favorited_load(); 
-
-    if (add && !all_favs.insert(prompt_id).second)  return all_favs;
-    if (!add && all_favs.erase(prompt_id) == 0)     return all_favs;
-
-    u_json jsave;
-    jsave["favorited"] = all_favs;
-    save_option(m_queue_favs, jsave.dump());
-
-    return all_favs;
-}
-
-//////////////////////////////////////////////////////////////////////
 ////////       Items                     /////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-void SettingsManager::pin_advanced_preload()
+void SettingsManager::items_init_defaults()
+{}
+
+template<typename T>
+void items_load_all(std::map<hid, T>& opts, DbItemOptionType type)
 {
-    auto vals = g::pDbManager->item_option_load_all(DbItemOptionType::PinAdvanced);
+    auto vals = g::pDbManager->item_option_load_all(type);
     for (auto& val : vals)
     {
-        m_item_preload_pin_adv[val.first] = val.second.ival == 1;
+        opts[val.first].deserialize(val.second.sval);
     }
 }
 
-void SettingsManager::model_starred_preload()
+template <typename T>
+T items_load(hid type_hash, DbItemOptionType type)
 {
-    auto vals = g::pDbManager->item_option_load_all(DbItemOptionType::ModelStarred);
-    for (auto& val : vals)
-    {
-        m_item_preload_model_starred[val.first] = val.second.ival == 1;
-    }
+    auto val = g::pDbManager->item_option_load(type, type_hash);
+    if (!val.has_value())
+        return {};
+    T items;
+    items.deserialize(val.value().sval);
+    return items;
 }
 
-std::optional<DbValue> SettingsManager::item_load(hid hash, DbItemOptionType type) const
+template <typename T>
+T items_load(const char* type_hash, DbItemOptionType type)
 {
-    return g::pDbManager->item_option_load(hash, type);
+    return items_load<T>(tools::str::hash_stable(type_hash), type);
+}
+
+void SettingsManager::items_pins_hash_all()
+{
+    items_load_all(m_item_pin_opts, DbItemOptionType::Pins);
+    m_item_pin_opts_preloaded = true;
+}
+
+const PinOptions& SettingsManager::items_pin_load(hid pin_hash)
+{
+    if (m_item_pin_opts_preloaded)
+        return m_item_pin_opts[pin_hash];
+
+    m_item_pin_opts[pin_hash] = items_load<PinOptions>(pin_hash, DbItemOptionType::Pins);
+    return m_item_pin_opts[pin_hash];
+}
+
+void SettingsManager::items_nodes_hash_all()
+{
+    items_load_all(m_item_node_opts, DbItemOptionType::Nodes);
+    m_item_node_opts_preloaded = true;
+}
+
+const NodeOptions& SettingsManager::items_node_load(hid node_hash)
+{
+    if (m_item_node_opts_preloaded)
+        return m_item_node_opts[node_hash];
+
+    m_item_node_opts[node_hash] = items_load<NodeOptions>(node_hash, DbItemOptionType::Nodes);
+    return m_item_node_opts[node_hash];
+}
+
+LabelsList SettingsManager::items_wf_labels_load() const
+{
+    return items_load<LabelsList>(m_items_wf_labels_id, DbItemOptionType::LabelWfs);
+}
+
+LabelsList SettingsManager::items_node_labels_load() const
+{
+    return items_load<LabelsList>(m_items_node_labels_id, DbItemOptionType::LabelNodes);
+}
+
+StarredList SettingsManager::items_model_favs_load() const
+{
+    return items_load<StarredList>(m_items_model_favs_id, DbItemOptionType::StarredModels);
+}
+
+StarredList SettingsManager::items_history_favs_load() const
+{
+    return items_load<StarredList>(m_items_history_favs_id, DbItemOptionType::StarredHistory);
 }
 
 void SettingsManager::item_save(hid hash, DbItemOptionType type, int64_t value) const
 {
-    g::pDbManager->item_option_save(hash, type, DbValue(value));
+    g::pDbManager->item_option_save(type, hash, DbValue(value));
 }
 
 void SettingsManager::item_save(hid hash, DbItemOptionType type, std::string&& value) const
 {
-    g::pDbManager->item_option_save(hash, type, DbValue(std::move(value)));
+    g::pDbManager->item_option_save(type, hash, DbValue(std::move(value)));
 }
 
 //////////////////////////////////////////////////////////////////////
