@@ -253,6 +253,7 @@ bool SettingsManager::init()
     }
 
     init_options(values);
+    init_items_defaults();
     init_disks();
     return true;
 }
@@ -702,8 +703,29 @@ void SettingsManager::wf_imported_save(const std::string& project)
 ////////       Items                     /////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-void SettingsManager::items_init_defaults()
-{}
+void SettingsManager::init_items_defaults()
+{
+    if (!g::pDbManager->get_is_first_run())
+        return;
+
+    using namespace tools::str;
+    item_save(hash_stable("LoadImage"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
+    item_save(hash_stable("LoadImageOutput"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
+    item_save(hash_stable("LoadImageMask"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
+    item_save(hash_stable("LoadImage //Inspire"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
+    item_save(hash_stable("Image Load"), DbItemOptionType::Nodes, R"({"display_source":"image_path","flags":204800})");
+    item_save(hash_stable("LayerUtility: LoadImage"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
+    item_save(hash_stable("LayerUtility: LoadMask"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
+    item_save(hash_stable("LoadImageBase64"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
+
+    item_save(hash_stable("LoadVideo"), DbItemOptionType::Nodes, R"({"display_source":"file","flags":200704})");
+    item_save(hash_stable("VHS_LoadVideo"), DbItemOptionType::Nodes, R"({"display_source":"video","flags":200704})");
+    item_save(hash_stable("VHS_LoadVideoFFmpeg"), DbItemOptionType::Nodes, R"({"display_source":"video","flags":200704})");
+
+    item_save(hash_stable("LoadAudio"), DbItemOptionType::Nodes, R"({"display_source":"audio","flags":198656})");
+    item_save(hash_stable("VHS_LoadAudioUpload"), DbItemOptionType::Nodes, R"({"display_source":"audio","flags":198656})");
+    item_save(hash_stable("LoadAudio //AudioLDM"), DbItemOptionType::Nodes, R"({"display_source":"audio","flags":198656})");
+}
 
 template<typename T>
 void items_load_all(std::map<hid, T>& opts, DbItemOptionType type)
@@ -732,7 +754,7 @@ T items_load(const char* type_hash, DbItemOptionType type)
     return items_load<T>(tools::str::hash_stable(type_hash), type);
 }
 
-void SettingsManager::items_pins_hash_all()
+void SettingsManager::items_pins_preload_all()
 {
     items_load_all(m_item_pin_opts, DbItemOptionType::Pins);
     m_item_pin_opts_preloaded = true;
@@ -747,7 +769,7 @@ const PinOptions& SettingsManager::items_pin_load(hid pin_hash)
     return m_item_pin_opts[pin_hash];
 }
 
-void SettingsManager::items_nodes_hash_all()
+void SettingsManager::items_nodes_preload_all()
 {
     items_load_all(m_item_node_opts, DbItemOptionType::Nodes);
     m_item_node_opts_preloaded = true;

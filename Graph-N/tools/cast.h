@@ -158,7 +158,7 @@ constexpr wchar_t to_wchar(T param) noexcept
 }
 
 template <typename T>
-constexpr void* to_void(T param) noexcept
+void* to_void(T param) noexcept
 {
     if constexpr (std::is_pointer_v<T>)
     {
@@ -177,32 +177,32 @@ constexpr std::uintptr_t to_ptr(const T* param) noexcept
 }
 
 template <typename T>
-constexpr const T* ptrs(const void* param) noexcept
+const T* ptrs(const void* param) noexcept
 {
     return reinterpret_cast<const T*>(param);
 }
 
 template <typename T>
-constexpr T* ptrs(void* param) noexcept
+T* ptrs(void* param) noexcept
 {
     return reinterpret_cast<T*>(param);
 }
 
 template <typename T>
-constexpr T* ptrs(const std::uintptr_t param) noexcept
+T* ptrs(const std::uintptr_t param) noexcept
 {
     return reinterpret_cast<T*>(param);
 }
 
 template <typename T>
-constexpr T from_ptr(const void* param) noexcept
+T from_ptr(const void* param) noexcept
 {
     return static_cast<T>(reinterpret_cast<std::uintptr_t>(param));
 }
 
 // dynamic_cast is legal in constant expressions since C++20 (for polymorphic types)
 template <typename DEST, typename SRC>
-constexpr DEST* dynamic(SRC* param) noexcept
+DEST* dynamic(SRC* param) noexcept
 {
     static_assert(std::is_polymorphic_v<SRC>, "Source type must be polymorphic");
     static_assert(std::is_class_v<DEST>, "Destination type must be a class");
@@ -210,7 +210,7 @@ constexpr DEST* dynamic(SRC* param) noexcept
 }
 
 template <typename DEST, typename SRC>
-constexpr const DEST* dynamic(const SRC* param) noexcept
+const DEST* dynamic(const SRC* param) noexcept
 {
     static_assert(std::is_polymorphic_v<SRC>, "Source type must be polymorphic");
     static_assert(std::is_class_v<DEST>, "Destination type must be a class");

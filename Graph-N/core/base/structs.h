@@ -12,7 +12,8 @@ namespace mngr
 
 struct PinOptions final
 {
-    bool is_advanced = false;
+    ObjectFlags<PinObjFlags> flags;
+    static constexpr ObjectFlags<PinObjFlags> mask { PinObjFlags::Advanced };
 
     std::string serialize() const noexcept;
     void deserialize(const std::string& opts) noexcept;
@@ -20,13 +21,9 @@ struct PinOptions final
 
 struct NodeOptions final
 {
-    bool display_image = false;
-    bool display_video = false;
-    bool display_audio = false;
-    bool can_upload = false;
-#ifdef _DEBUG
-    bool restrict_widget = false;
-#endif
+    ObjectFlags<NodeObjFlags> flags;
+    static constexpr ObjectFlags<NodeObjFlags> mask { NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtUploadButton, NodeObjFlags::CustomWdgtFromSource };
+    std::string display_source;
 
     std::string serialize() const noexcept;
     void deserialize(const std::string& opts) noexcept;

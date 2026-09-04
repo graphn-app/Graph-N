@@ -154,14 +154,14 @@ public:
     void log_comfyui_log_in_ram_save(int64_t num) { save_option(m_log_comfyui_log_in_ram, int64_t(num)); }
 
     // items
-    void items_pins_hash_all();
-    void items_pins_release_hashed() { m_item_pin_opts.clear(); m_item_pin_opts_preloaded = false; }
-    const PinOptions& items_pin_load(hid pin_hash);    // will use preloaded map if <items_pins_hash_all> was called first
+    void items_pins_preload_all();
+    void items_pins_release_all() { m_item_pin_opts.clear(); m_item_pin_opts_preloaded = false; }
+    const PinOptions& items_pin_load(hid pin_hash);    // will use preloaded map if <items_pins_preload_all> was called first
     void items_pin_save(hid pin_hash, const PinOptions& opt) const { item_save(pin_hash, DbItemOptionType::Pins, opt.serialize()); }
 
-    void items_nodes_hash_all();
-    void items_nodes_release_hashed() { m_item_node_opts.clear(); m_item_node_opts_preloaded = false; }
-    const NodeOptions& items_node_load(hid node_hash);    // will use preloaded map if <items_nodes_hash_all> was called first
+    void items_nodes_preload_all();
+    void items_nodes_release_all() { m_item_node_opts.clear(); m_item_node_opts_preloaded = false; }
+    const NodeOptions& items_node_load(hid node_hash);    // will use preloaded map if <items_nodes_preload_all> was called first
     void items_node_save(hid node_hash, const NodeOptions& opt) const { item_save(node_hash, DbItemOptionType::Nodes, opt.serialize()); }
 
     LabelsList items_wf_labels_load() const;
@@ -212,6 +212,7 @@ private:
 
     void init_options(std::vector<OptionValue*>& values);
     void init_disks();
+    void init_items_defaults();
 
     std::string format_hotkeys_to_json(const std::vector<ui::KeyBinding>& hotkeys) const;
 
@@ -220,7 +221,6 @@ private:
     void save_option(OptionValue& option, bool new_bool);
     void save_option(OptionValue& option, const std::filesystem::path& new_path);
 
-    void items_init_defaults();
     std::optional<DbValue> item_load(hid hash, DbItemOptionType type) const;
     void item_save(hid hash, DbItemOptionType type, int64_t value) const;
     void item_save(hid hash, DbItemOptionType type, std::string&& value) const;

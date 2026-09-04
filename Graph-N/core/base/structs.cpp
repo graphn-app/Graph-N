@@ -12,7 +12,7 @@ std::string PinOptions::serialize() const noexcept
     try
     {
         u_json j;
-        j["advanced"] = is_advanced;
+        j["flags"] = flags.get_raw();
         return j.dump();
     }
     catch (const std::exception& ex)
@@ -33,8 +33,8 @@ void PinOptions::deserialize(const std::string& opts) noexcept
         const auto j = u_json::parse(opts);
         if (j.is_object())
         {
-            if (j.contains("advanced") && j["advanced"].is_boolean())
-                is_advanced = j["advanced"];
+            if (j.contains("flags") && j["flags"].is_number_unsigned())
+                flags.set_raw(j["flags"].get<uint64_t>());
         }
     }
     catch (const std::exception& ex)
@@ -52,14 +52,9 @@ std::string NodeOptions::serialize() const noexcept
     try
     {
         u_json j;
-        j["display_image"] = display_image;
-        j["display_video"] = display_video;
-        j["display_audio"] = display_audio;
-        j["can_upload"] = can_upload;
-#ifdef _DEBUG
-        j["restrict_widget"] = restrict_widget;
+        j["flags"] = flags.get_raw();
+        j["display_source"] = display_source;
         return j.dump();
-#endif
     }
     catch (const std::exception& ex)
     {
@@ -79,18 +74,10 @@ void NodeOptions::deserialize(const std::string& opts) noexcept
         const auto j = u_json::parse(opts);
         if (j.is_object())
         {
-            if (j.contains("display_image") && j["display_image"].is_boolean())
-                display_image = j["display_image"].get<bool>();
-            if (j.contains("display_video") && j["display_video"].is_boolean())
-                display_image = j["display_video"].get<bool>();
-            if (j.contains("display_audio") && j["display_audio"].is_boolean())
-                display_image = j["display_audio"].get<bool>();
-            if (j.contains("can_upload") && j["can_upload"].is_boolean())
-                display_image = j["can_upload"].get<bool>();
-#ifdef _DEBUG
-            if (j.contains("restrict_widget") && j["restrict_widget"].is_boolean())
-                restrict_widget = j["restrict_widget"].get<bool>();
-#endif
+            if (j.contains("flags") && j["flags"].is_number_unsigned())
+                flags.set_raw(j["flags"].get<uint64_t>());
+            if (j.contains("display_source") && j["display_source"].is_string())
+                display_source = j["display_source"].get<std::string>();
         }
     }
     catch (const std::exception& ex)

@@ -846,8 +846,8 @@ void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_wid
     else
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle);
     draw_widget(pin, widget_name_width, widget_value_width);
-    if (pin->obj_flags().has_not(PinObjFlags::CagPin) && m_active_node->flags().has(NodeInstFlags::CustomWidget))
-        m_active_node->cni_draw_widget(pin, widget_pos, widget_name_width + widget_value_width);
+//    if (pin->obj_flags().has_not(PinObjFlags::CagPin) && m_active_node->obj_flags().has(NodeObjFlags::CustomWidget))
+//        m_active_node->cni_draw_widget(pin, widget_pos, widget_name_width + widget_value_width);
 }
 
 void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)

@@ -45,11 +45,13 @@ protected:
     bool do_need_calc_node_widths() const noexcept override { return flags().has_and_has_not(NodeInstFlags::Expanded, NodeInstFlags::Group); }
 
 public:
-    ImRect m_rc = {}; // size for group, width for node
-    ImVec4 m_clr_node = {}; // color for node backgroud
-    ImU32 m_clr_group = 0; // color for group backgroud
-    ImU32 m_clr_head = 0; // color for node/group header background
-    ImU32 m_clr_group_capt = 0; // color for group name
+    ImRect m_rc = {};               // Min.x/y: pos for all; Max.x/y: size for group, width for node
+    ImVec4 m_clr_node = {};         // color for node backgroud
+    ImU32 m_clr_group = 0;          // color for group backgroud
+    ImU32 m_clr_head = 0;           // color for node/group header background
+    ImU32 m_clr_group_capt = 0;     // color for group name
+
+    std::string m_output_source;    // path for image/video/audio output OR text for text output
 };
 
 } // namespace data

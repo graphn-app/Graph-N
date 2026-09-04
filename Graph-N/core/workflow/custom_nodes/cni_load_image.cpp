@@ -17,7 +17,7 @@ int32_t CNI_LoadImage::g_image_list_version = -1;
 CNI_LoadImage::CNI_LoadImage(Node* obj, wid workflow_id, iid instance_id) noexcept
     : CNI_BaseObj_T<CNI_LoadImage>(obj, workflow_id, instance_id)
 {
-    flags().add(NodeInstFlags::CustomWidget);
+    obj_flags().add(NodeObjFlags::CustomWidget);
 }
 
 bool CNI_LoadImage::cni_is_applicable() const noexcept

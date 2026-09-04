@@ -241,7 +241,7 @@ void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_w
             obj->flags.toggle(PinObjFlags::Advanced);
             {
                 mngr::PinOptions pin_opt;
-                pin_opt.is_advanced = obj->flags.has(PinObjFlags::Advanced);
+                pin_opt.flags.copy_from_by_mask_obj(obj->flags, pin_opt.mask);
                 g::pOptsManager->items_pin_save(obj->get_hash(), pin_opt);
             }
 
@@ -251,7 +251,7 @@ void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_w
                 cag->obj_flags().add_remove_if(PinObjFlags::Advanced, obj->flags.has(PinObjFlags::Advanced));
                 {
                     mngr::PinOptions pin_opt;
-                    pin_opt.is_advanced = cag->obj_flags().has(PinObjFlags::Advanced);
+                    pin_opt.flags.copy_from_by_mask_obj(cag->obj_flags(), pin_opt.mask);
                     g::pOptsManager->items_pin_save(cag->get_object()->get_hash(), pin_opt);
                 }
             }

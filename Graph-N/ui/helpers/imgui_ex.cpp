@@ -594,7 +594,7 @@ bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* va
 
     if (is_off)
         ImGui::PopStyleColor(2);
-    ImGui::PopStyleColor(1);
+    ImGui::PopStyleColor();
 
     ImGui::SameLine();
 
@@ -621,7 +621,7 @@ bool BooleanButtons1(const char* id_label_on, const char* id_label_off, bool* va
 
     if (is_on)
         ImGui::PopStyleColor(2);
-    ImGui::PopStyleColor(1);
+    ImGui::PopStyleColor();
 
     ImGui::PopStyleVar(2); // Pop Spacing and Rounding
 
@@ -888,9 +888,7 @@ void toast_show(Toast& toast) noexcept
         draw_list->AddRect(rect_min, rect_max, toast.frame_clr, rounding, 0, 1.0f);
         ImGui::EndTooltip();
 
-        ImGui::PopStyleVar(2);
-
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(3);
     }
     else
         toast.expired = true;

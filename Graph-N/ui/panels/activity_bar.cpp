@@ -188,7 +188,7 @@ void ActivityBar::show(ActivityBarMode mode)
     }
 
     ImGui::PopStyleColor();
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar();
 
     recalc_viewport_size(l_shown, r_shown);
 }

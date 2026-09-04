@@ -447,6 +447,128 @@ bool PanelWorkflow::show_node_menu()
     else
         m_color_buff[0] = -1.0f;
 
+
+    const data::Pin* preffered_source_pin = nullptr;
+    bool restricted = node->obj_flags().has(NodeObjFlags::CustomWdgtRestrictCfg);
+    if (!restricted)
+    {
+        if (node->get_object()->custom_widget_source != nullptr)
+        {
+            preffered_source_pin = node->get_object()->custom_widget_source;
+        }
+        else
+        {
+            bool has_combos = false;
+            for (auto pin : node->get_object()->input)
+            {
+                if (PinType::COMBO == pin->def_state.type)
+                {
+                    has_combos = true;
+                    if (preffered_source_pin != nullptr)
+                    {
+                        preffered_source_pin = nullptr;
+                        break;
+                    }
+                    preffered_source_pin = pin;
+                }
+            }
+            restricted = !has_combos;
+        }
+    }
+
+    if (!restricted)
+    {
+        ImGui::Separator();
+        if (ImGui::BeginMenu("Node config"))
+        {
+            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+
+            const auto save_opts = [node]()
+            {
+                mngr::NodeOptions opts;
+                opts.flags.copy_from_by_mask_obj(node->obj_flags(), opts.mask);
+                opts.display_source = (node->get_object()->custom_widget_source != nullptr ? node->get_object()->custom_widget_source->def_state.name : "");
+                g::pOptsManager->items_node_save(node->get_object()->get_hash(), opts);
+            };
+
+            struct CustomWidgetCfgMenu final
+            {
+                const char* menu_name = nullptr;
+                NodeObjFlags media_flag = NodeObjFlags::None;
+            };
+            constexpr CustomWidgetCfgMenu menu_cfg[3] =
+            {
+                { "Add widget: Image", NodeObjFlags::CustomWdgtImage },
+                { "Add widget: Video", NodeObjFlags::CustomWdgtVideo },
+                { "Add widget: Audio", NodeObjFlags::CustomWdgtAudio }
+            };
+
+            for (const auto& cfg : menu_cfg)
+            {
+                if (ImGui::BeginMenu(cfg.menu_name))
+                {
+                    bool display = node->obj_flags().has_all(NodeObjFlags::CustomWdgtFromSource, cfg.media_flag);
+                    if (ImGui::MenuItem("Display media", nullptr, &display))
+                    {
+                        node->obj_flags().remove(NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage);
+                        const bool media_flag = node->obj_flags().has(NodeObjFlags::CustomWdgtUploadButton) || display;
+                        node->obj_flags().add_remove_if(cfg.media_flag, media_flag);
+                        node->obj_flags().add_remove_if(NodeObjFlags::CustomWdgtFromSource, display);
+                        node->get_object()->custom_widget_source = preffered_source_pin;
+                        save_opts();
+                    }
+
+                    bool can_upload = node->obj_flags().has_all(NodeObjFlags::CustomWdgtUploadButton, cfg.media_flag);
+                    if (ImGui::MenuItem("Add 'Upload' button", nullptr, &can_upload))
+                    {
+                        node->obj_flags().remove(NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage);
+                        const bool media_flag = node->obj_flags().has(NodeObjFlags::CustomWdgtFromSource) || can_upload;
+                        node->obj_flags().add_remove_if(cfg.media_flag, media_flag);
+                        node->obj_flags().add_remove_if(NodeObjFlags::CustomWdgtUploadButton, can_upload);
+                        node->get_object()->custom_widget_source = preffered_source_pin;
+                        save_opts();
+                    }
+
+                    ImGui::Separator();
+                    ImGui::MenuItem("Select media source:", nullptr, nullptr, false);
+
+                    const std::string* display_source = (nullptr == node->get_object()->custom_widget_source ? nullptr : &node->get_object()->custom_widget_source->def_state.name);
+                    if (nullptr == display_source && preffered_source_pin != nullptr)
+                        display_source = &preffered_source_pin->def_state.name;
+                    if (node->obj_flags().has_none(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton) || node->obj_flags().has_not(cfg.media_flag))
+                        display_source = nullptr;
+
+                    for (auto pin : node->get_object()->input)
+                    {
+                        if (PinType::COMBO == pin->def_state.type)
+                        {
+                            const auto source = fmt::format(FMT_STRING("[{}]"), pin->def_state.name);
+                            if (ImGui::MenuItem(source.c_str(), nullptr, display_source != nullptr && pin->def_state.name == *display_source))
+                            {
+                                node->get_object()->custom_widget_source = pin;
+                                save_opts();
+                            }
+                        }
+                    }
+
+                    ImGui::EndMenu();
+                }
+            }
+
+            ImGui::PopItemFlag();
+
+            ImGui::Separator();
+            if (ImGui::MenuItem("Reset"))
+            {
+                node->obj_flags().remove_raw(g_node_obj_all_custom_widget_mask.get_raw());
+                save_opts();
+                close = true;
+            }
+
+            ImGui::EndMenu();
+        }
+    }
+
     return close;
 }
 

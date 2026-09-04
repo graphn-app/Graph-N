@@ -20,6 +20,8 @@ struct Node : public base::HashID
     std::vector<Pin*> input;
     std::vector<Pin*> output;
 
+    const Pin* custom_widget_source = nullptr;
+
     std::string name;
     std::string node_class;
     std::string display_name;	// use name if empty

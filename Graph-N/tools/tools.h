@@ -21,10 +21,20 @@ bool compare_no_case(const std::string& str1, const std::string& str2);
 // single-session hash
 size_t hash_runtime(const std::string& str);
 // stable platform-independent hash: fnv1a
-uint64_t hash_stable(const void* data, size_t size) noexcept;
-uint64_t hash_stable(const char* data, size_t size) noexcept;
-uint64_t hash_stable(size_t data) noexcept;
-uint64_t hash_stable(const std::string& data) noexcept;
+constexpr uint64_t hash_stable(std::string_view str) noexcept
+{
+    // FNV-1a constants for 64-bit
+    constexpr uint64_t FNV_OFFSET_BASIS = 0xcbf29ce484222325;
+    constexpr uint64_t FNV_PRIME = 0x100000001b3;
+
+    uint64_t hash = FNV_OFFSET_BASIS;    
+    for (size_t i = 0; i < str.size(); ++i)
+    {
+        hash ^= cast::to<uint64_t>(cast::to<uint8_t>(str[i]));
+        hash *= FNV_PRIME;
+    }
+    return hash;
+}
 
 uint32_t crc32(const std::string& data) noexcept;
 

@@ -152,37 +152,6 @@ size_t hash_runtime(const std::string& str)
     return std::hash<std::string>{}(str);
 }
 
-uint64_t hash_stable(const void* data, size_t size) noexcept
-{
-    // FNV-1a constants for 64-bit
-    constexpr uint64_t FNV_OFFSET_BASIS = 0xcbf29ce484222325;
-    constexpr uint64_t FNV_PRIME = 0x100000001b3;
-
-    uint64_t hash = FNV_OFFSET_BASIS;
-    const uint8_t* ptr = cast::ptrs<const uint8_t>(data);
-    for (size_t i = 0; i < size; ++i)
-    {
-        hash ^= ptr[i];
-        hash *= FNV_PRIME;
-    }
-    return hash;
-}
-
-uint64_t hash_stable(const char* data, size_t size) noexcept
-{
-    return hash_stable((const void*)data, size);
-}
-
-uint64_t hash_stable(size_t data) noexcept
-{
-    return hash_stable((const void*)&data, sizeof(data));
-}
-
-uint64_t hash_stable(const std::string& data) noexcept
-{
-    return hash_stable((const void*)data.c_str(), data.size());
-}
-
 uint32_t crc32(const std::string& data) noexcept
 {
     constexpr auto generate_crc32_table = []() consteval noexcept
@@ -205,6 +174,7 @@ uint32_t crc32(const std::string& data) noexcept
         }
         return table;
     };
+
     // Evaluate table at compile time
     static constexpr std::array<uint32_t, 256> table = generate_crc32_table();
 
@@ -280,7 +250,6 @@ std::vector<byte> base64_decode(const std::string& base64)
 
 std::vector<byte> base64_decode(const char* base64, size_t len)
 {
-    LogRAssertS(base64, "Zero ptr", std::vector<byte>{});
     constexpr const std::string_view base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     std::vector<byte> out;

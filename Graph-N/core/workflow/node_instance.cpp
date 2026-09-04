@@ -65,12 +65,12 @@ void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
     m_clr_group_capt = copy_from_node->m_clr_group_capt;
     m_name = copy_from_node->m_name;
 
-    flags().copy_from_by_mask(copy_from_node->flags(),
+    flags().copy_from_by_mask_flags(copy_from_node->flags(),
         NodeInstFlags::Group,
         NodeInstFlags::Expanded,
         NodeInstFlags::Pinned
     );
-    flags().copy_from_by_mask(copy_from_node->flags(), g_node_inst_all_modes_mask);
+    flags().copy_from_by_mask_obj(copy_from_node->flags(), g_node_inst_all_modes_mask);
 
     if (flags().has(NodeInstFlags::Group))
         return;

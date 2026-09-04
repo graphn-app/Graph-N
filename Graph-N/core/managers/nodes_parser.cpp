@@ -991,37 +991,185 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
     put_in_tree(manager, add_internal_node<data::CNI_MarkdownNote>(manager.m_nodes));
 }
 
+template <size_t N>
+struct CompileTimeSet
+{
+    std::array<hid, N> data;
+    constexpr bool contains(hid hash) const noexcept
+    {
+        for (size_t i = 0; i < N; ++i)
+        {
+            if (data[i] == hash)
+                return true;
+        }
+        return false;
+    }
+};
+
+template <typename... Args>
+CompileTimeSet(Args...) -> CompileTimeSet<sizeof...(Args)>;
+
 void NodesParser::apply_options(NodesManager& manager)
 {
-    g::pOptsManager->items_pins_hash_all();
-    g::pOptsManager->items_nodes_hash_all();
+    g::pOptsManager->items_pins_preload_all();
+    g::pOptsManager->items_nodes_preload_all();
 
     for (auto& [hash, pin] : manager.m_pins)
     {
         const auto& opt = g::pOptsManager->items_pin_load(hash);
-        pin->flags.add_remove_if(PinObjFlags::Advanced, opt.is_advanced);        
+        pin->flags.add_raw(opt.flags.get_raw());
     }
 
-    const std::set<hid> restricted_nodes =
+    using namespace tools::str;
+
+    constexpr CompileTimeSet restricted_nodes =
     {
-        0
+        hash_stable("CheckpointLoaderSimple"),
+        hash_stable("CheckpointLoader"),
+        hash_stable("CheckpointLoaderSimpleShared //Inspire"),
+        hash_stable("StableCascade_CheckpointLoader //Inspire"),
+        hash_stable("unCLIPCheckpointLoader"),
+        hash_stable("ImageOnlyCheckpointLoader"),
+        hash_stable("LoraLoader"),
+        hash_stable("LoraLoaderModelOnly"),
+        hash_stable("LoraLoaderBypass"),
+        hash_stable("LoraLoaderBypassModelOnly"),
+        hash_stable("ACN_CtrLoRALoader"),
+        hash_stable("LoraLoaderBlockWeight //Inspire"),
+        hash_stable("VAELoader"),
+        hash_stable("LTXVAudioVAELoader"),
+        hash_stable("WanVideoVAELoader"),
+        hash_stable("WanVideoTinyVAELoader"),
+        hash_stable("OviMMAudioVAELoader"),
+        hash_stable("ControlNetLoader"),
+        hash_stable("ControlNetLoaderAdvanced"),
+        hash_stable("DiffControlNetLoader"),
+        hash_stable("DiffControlNetLoaderAdvanced"),
+        hash_stable("ACN_ControlNetLoaderAdvanced"),
+        hash_stable("ACN_DiffControlNetLoaderAdvanced"),
+        hash_stable("WanVideoUni3C_ControlnetLoader"),
+        hash_stable("WanVideoControlnetLoader"),
+        hash_stable("UNETLoader"),
+        hash_stable("CLIPLoader"),
+        hash_stable("DualCLIPLoader"),
+        hash_stable("TripleCLIPLoader"),
+        hash_stable("QuadrupleCLIPLoader"),
+        hash_stable("CLIPVisionLoader"),
+        hash_stable("UpscaleModelLoader"),
+        hash_stable("LatentUpscaleModelLoader"),
+        hash_stable("StyleModelLoader"),
+        hash_stable("GLIGENLoader"),
+        hash_stable("HypernetworkLoader"),
+        hash_stable("PhotomakerLoader"),
+        hash_stable("SAMLoader"),
+        hash_stable("SAMDetectorSegmented"),
+    };
+
+    constexpr CompileTimeSet display_output_images =
+    {
+        hash_stable("PreviewImage"),
+        hash_stable("SaveImage"),
+        hash_stable("SaveImageWebsocket"),
+        hash_stable("ImageSave"),
+        hash_stable("ImageSaveExtended"),
+        hash_stable("Image Save"),
+    };
+    constexpr CompileTimeSet display_output_videos =
+    {
+        hash_stable("SaveVideo"),
+        hash_stable("VHS_VideoCombine"),
+        hash_stable("SaveAnimatedWEBP"),
+        hash_stable("SaveAnimatedPNG"),
+    };
+    constexpr CompileTimeSet display_output_audios =
+    {
+        hash_stable("SaveAudio"),
+        hash_stable("SaveAudioMP3"),
+        // hash_stable("SaveAudioOpus"),        // TODO
+        hash_stable("PreviewAudio"),
+    };
+    constexpr CompileTimeSet display_output_texts =
+    {
+        hash_stable("PreviewAny"),
+        hash_stable("DisplayAny"),
+        hash_stable("ShowText|pysssss"),
+        hash_stable("ShowText"),
+        hash_stable("CR Text"),
+        hash_stable("Preview Text"),
     };
 
     for (auto& [hash, node] : manager.m_nodes)
     {
-        const auto& opt = g::pOptsManager->items_node_load(hash);
-        node->flags.add_remove_if(NodeObjFlags::DisplayImage, opt.display_image);
-        node->flags.add_remove_if(NodeObjFlags::DisplayVideo, opt.display_video);
-        node->flags.add_remove_if(NodeObjFlags::DisplayAudio, opt.display_audio);
-        node->flags.add_remove_if(NodeObjFlags::CanUpload, opt.can_upload);
-#ifdef _DEBUG
-        node->flags.add_remove_if(NodeObjFlags::RestrictCustomWidget, opt.restrict_widget);
-#endif
-        node->flags.add_remove_if(NodeObjFlags::RestrictCustomWidget, restricted_nodes.contains(hash));
+        auto& opt = g::pOptsManager->items_node_load(hash);
+        node->flags.add_raw(opt.flags.get_raw());
+
+        if (node->flags.has_any(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton) &&
+            node->flags.has_none(NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage))
+        {
+            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton);
+        }
+
+        if (restricted_nodes.contains(hash) || node->flags.has(NodeObjFlags::CustomWdgtFromOutput))
+        {
+            node->flags.add(NodeObjFlags::CustomWdgtRestrictCfg);
+            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton);
+        }
+
+        if (display_output_images.contains(hash))
+        {
+            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton);
+            node->flags.add(NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtRestrictCfg);
+        }
+        else if (display_output_videos.contains(hash))
+        {
+            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton);
+            node->flags.add(NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtRestrictCfg);
+        }
+        else if (display_output_audios.contains(hash))
+        {
+            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton);
+            node->flags.add(NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtRestrictCfg);
+        }
+        else if (display_output_texts.contains(hash))
+        {
+            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton);
+            node->flags.add(NodeObjFlags::CustomWdgtText, NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtRestrictCfg);
+        }
+        else if (!opt.display_source.empty() && node->flags.has_not(NodeObjFlags::CustomWdgtRestrictCfg))
+        {
+            for (auto pin : node->input)
+            {
+                if (pin->def_state.name == opt.display_source)
+                {
+                    node->custom_widget_source = pin;
+                    break;
+                }
+            }
+
+            // source pin name changed?
+            if (nullptr == node->custom_widget_source && node->flags.has_any(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton))
+            {
+                for (auto pin : node->input)
+                {
+                    if (PinType::COMBO == pin->def_state.type)
+                    {
+                        if (node->custom_widget_source != nullptr)
+                        {
+                            node->custom_widget_source = nullptr;
+                            break;
+                        }
+                        node->custom_widget_source = pin;
+                    }
+                }
+            }
+        }
+
+        if (node->flags.has_any_by_mask_obj(g_node_obj_all_custom_widget_mask))
+            node->flags.add(NodeObjFlags::CustomWidget);
     }
 
-    g::pOptsManager->items_pins_release_hashed();
-    g::pOptsManager->items_nodes_release_hashed();
+    g::pOptsManager->items_pins_release_all();
+    g::pOptsManager->items_nodes_release_all();
 }
 
 } // namespace mngr
