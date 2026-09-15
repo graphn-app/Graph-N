@@ -556,14 +556,7 @@ void SettingsManager::ui_host_settings_save(const std::string& settings)
         const auto jnew = u_json::parse(settings);
         if (jold.is_object() && jnew.is_object())
         {
-            for (auto& [name, jval] : jold.items())
-            {                
-                if (jnew.contains(name) && jnew[name].is_string())
-                {
-                    jval = std::move(jnew[name]);
-                }
-            }
-
+            jold.update(jnew);
             save_option(m_ui_host_settings, jold.dump());
         }
         else

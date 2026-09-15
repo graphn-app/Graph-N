@@ -75,7 +75,7 @@ bool WfDeserializerFromJsonApi::deserialize()
                         else
                         {
                             input.raw_input = std::monostate();
-                            LogWarn("API node " << jnode_id << "/" << api_node.class_type << " contains unknown data value type")
+                            LogWarn("API node " << jnode_id << "/" << api_node.class_type << " contains unknown data value type");
                         }
                     }
                     api_node.inputs.push_back(std::move(input));

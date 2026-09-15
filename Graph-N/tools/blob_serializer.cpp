@@ -297,8 +297,9 @@ Reader Reader::clone() const noexcept
 
 bool Reader::test_len(size_t len) const noexcept
 {
-    LogRAssert(len <= m_size - m_offset, "Reader len: Out of range", false);
-    return true;
+    const bool is_valid = (len <= m_size - m_offset);
+    LogRAssert(is_valid, "Reader len: Out of range", false);
+    return is_valid;
 }
 
 bool Reader::pop_bool() noexcept
@@ -412,14 +413,16 @@ std::wstring Reader::pop_wstring()
 
 std::wstring_view Reader::pop_wstring_ptr() noexcept
 {
-    const uint32_t len = pop_u32();
+    const uint32_t len = pop_u32(); 
     if (0 == len || !test_len(len))
     {
         static const wchar_t* empty = L"";
         return std::wstring_view(empty);
     }
-    std::wstring_view view(cast::ptrs<wchar_t>(m_data + m_offset), len);
+
+    std::wstring_view view(cast::ptrs<wchar_t>(m_data + m_offset), len / sizeof(wchar_t));
     m_offset += len;
+
     return view;
 }
 

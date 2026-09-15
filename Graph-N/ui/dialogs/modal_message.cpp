@@ -61,7 +61,7 @@ void ModalMessage::init(std::string&& caption, std::string&& message, int32_t bu
     }
     
     m_def = def;
-    m_show = true;
+    m_open_dlg = true;
 }
 
 ModalDlgCtrl ModalMessage::show()
@@ -70,14 +70,18 @@ ModalDlgCtrl ModalMessage::show()
     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(230, 230, 230, 255));
     ImGuiEx::PushDlgTitleStyles(m_color);
 
-    if (m_show)
+    if (m_open_dlg)
+    {
         ImGui::OpenPopup(m_caption.c_str());
+        m_open_dlg = false;
+    }
 
     ImGui::SetNextWindowSizeConstraints(ImVec2(500, 200), ImVec2(1000, FLT_MAX));
 
     const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    if (!ImGui::BeginPopupModal(m_caption.c_str(), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
+    bool show = true;
+    if (!ImGui::BeginPopupModal(m_caption.c_str(), &show, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
     {
         ImGui::PopStyleColor(5);
         return m_return;
@@ -111,17 +115,14 @@ ModalDlgCtrl ModalMessage::show()
     ImGuiEx::Spacing(10);
 
     // buttons
-    float total_buttons_width = 0.0f;
-    for (const auto& b : m_buttons)
-    {
-        total_buttons_width += b.width + ImGui::GetStyle().FramePadding.x * 2.0f;
-    }
+    constexpr float button_w = 100.0f;
+    float total_buttons_width = m_buttons.size() * (button_w + ImGui::GetStyle().FramePadding.x * 2.0f);
     total_buttons_width += (m_buttons.size() - 1) * ImGui::GetStyle().ItemSpacing.x;
 
     ImGui::SetCursorPosX((ImGui::GetWindowContentRegionMax().x - total_buttons_width) * 0.5f);
 
     ModalDlgCtrl ret = ModalDlgCtrl::Continue;
-    for (int i = 0; i < m_buttons.size(); i++)
+    for (int32_t i = 0; i < m_buttons.size(); i++)
     {
         if (i > 0)
             ImGui::SameLine();
@@ -129,7 +130,7 @@ ModalDlgCtrl ModalMessage::show()
         if (m_buttons[i].code == m_def && ImGui::IsWindowAppearing()) 
             ImGui::SetKeyboardFocusHere();         
 
-        if (ImGui::Button(m_buttons[i].text, ImVec2(m_buttons[i].width, 0)))
+        if (ImGui::Button(m_buttons[i].text, ImVec2(button_w, 0)))
         {
             ret = m_buttons[i].code;
             ImGui::CloseCurrentPopup();

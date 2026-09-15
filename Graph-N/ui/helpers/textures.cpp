@@ -60,19 +60,14 @@ void Textures::init_ui_ready()
     g::pGraphN->subscribe_timers(this);
 }
 
-int32_t Textures::load_image(const char* path, std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time)
+int32_t Textures::load_image(const std::filesystem::path& path, std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time)
 {
     if (g::app_global_stop_all_threads.stop_requested())
         return -1;
 
-    if (buffer.empty() && (nullptr == path || !tools::path::exists(path))) [[unlikely]]
-    {
-        LogRError("Can't load image: no input data", -1);
-    }
-
     std::shared_ptr<ImageAsync> image = std::make_shared<ImageAsync>();
     image->image_id = ++m_id_counter;
-    image->path = path;
+    image->path = tools::path::path_to_string(path);
     image->buffer = std::move(buffer);
     image->width = max_width;
     image->height = max_height;
@@ -93,13 +88,15 @@ int32_t Textures::load_image(const char* path, std::string&& buffer, int32_t max
     return image->image_id;
 }
 
-int32_t Textures::load_image(const char* path, int32_t max_width, int32_t max_height, int32_t life_time)
+int32_t Textures::load_image_from_path(const std::filesystem::path& path, int32_t max_width, int32_t max_height, int32_t life_time)
 {
+    LogRAssert(tools::path::exists(path), "Can't load image: no input data", 0);
     return load_image(path, {}, max_width, max_height, life_time);
 }
 
-int32_t Textures::load_image(std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time)
+int32_t Textures::load_image_from_buffer(std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time)
 {
+    LogRAssert(!buffer.empty(), "Can't load image: no input data", 0);
     return load_image("", std::move(buffer), max_width, max_height, life_time);
 }
 
@@ -236,7 +233,7 @@ ImTextureID Textures::get_image(int32_t image_id, std::optional<bool>& image_val
 
         try
         {
-            image->textures = upload_to_gpu(image->image_data, image->width, image->height, image->generate_mips);
+            image->textures = upload_to_gpu(image->image_data.get(), image->width, image->height, image->generate_mips);
         }
         catch (const std::exception& ex)
         {

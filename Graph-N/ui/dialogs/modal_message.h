@@ -10,7 +10,7 @@ public:
 
     void init(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def = ModalDlgCtrl::BtnOK);
     ModalDlgCtrl show();
-    void update(std::string&& message) noexcept { m_message = std::move(message); }
+    void update(std::string&& message) noexcept { m_message = std::move(message); m_open_dlg = true; }
     void stop() noexcept { m_stop = true; }
 
 private:
@@ -19,7 +19,7 @@ private:
     const char* m_icon = nullptr;
     ImU32 m_color = 0;
     ModalDlgCtrl m_def = ModalDlgCtrl::BtnOK;
-    bool m_show = false;
+    bool m_open_dlg = false;
     bool m_stop = false;
     ModalDlgCtrl m_return = ModalDlgCtrl::BtnOK;
     
@@ -27,7 +27,6 @@ private:
     {
         ModalDlgCtrl code = _btn_none;
         const char* text = nullptr;
-        float width = 100.0f;
     };
     std::vector<Button> m_buttons;
 };

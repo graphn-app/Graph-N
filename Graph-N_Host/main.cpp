@@ -1,12 +1,20 @@
 #define MASKEDITOR_HTML         "mask_editor.html"
 #define POSEDITOR_HTML          "3dpos_editor.html"
 
+#define IDI_POSEDITOR           102
+#define IDI_MASKEDITOR          103
+
+#define APPCAPT_POSEDITOR       "Graph-N 3DPos Editor"
+#define APPCAPT_POSEDITOR_W     L"Graph-N 3DPos Editor"
+#define APPCAPT_MASKEDITOR      "Graph-N Mask Editor"
+#define APPCAPT_MASKEDITOR_W    L"Graph-N Mask Editor"
+
 #define ARG_PIPE_NAME           L"-pipe"
 #define ARG_ID                  L"-id"
 #define ARG_DEBUG_MSK           L"-debug-mask-editor"
 #define ARG_DEBUG_3DP           L"-debug-3dpos-editor"
-#define ARG_SRC_IMAGE           L"-src"
-#define ARG_DEST_IMAGE          L"-dest"
+#define ARG_SRC_IMAGE           L"-src"     // debug mode
+#define ARG_DEST_IMAGE          L"-dest"    // debug mode
 #define ARG_CATCH               L"-catch"
 
 #define USER_MSG_FOREGROUND     (WM_APP + 1) // bring window to foreground
@@ -113,16 +121,14 @@ bool read_args()
         LogRAssertS(g_data.pipe_name.empty(), "Pipe cannot be used in debug mode", false);
         LogRAssertS(0 == g_data.host_data.host_id, "Host id cannot be used in debug mode", false);
         g_data.host_data.settings = R"({"debug":true})";
-        if (Mode::MaskEditor == g_data.mode) { LogS("Starting MaskEditor in debug mode"); }
-        else { LogS("Starting 3DPosEditor in debug mode"); }
+        if (Mode::MaskEditor == g_data.mode) LogS("Starting MaskEditor in debug mode");
+        else LogS("Starting 3DPosEditor in debug mode");
     }
     else
     {
-        LogRAssertS(g_data.host_data.source_path.empty(), "Source path must be set via pipe", false);
-        LogRAssertS(g_data.host_data.dest_path.empty(), "Dest path must be set via pipe", false);
         LogRAssertS(!g_data.pipe_name.empty(), "Pipe name cannot be empty", false);
         LogRAssertS(g_data.host_data.host_id != 0, "Host id must be set", false);
-        LogS("Pipe name: " << g_data.pipe_name << ", host id: " << g_data.host_data.host_id);
+        LogS("Host #" << g_data.host_data.host_id << ": started");
     }
 
     return true;
@@ -130,33 +136,33 @@ bool read_args()
 
 void listen_thread(std::promise<bool> promise)
 {
-    const auto reply = [&promise](bool result, const char* error = nullptr)
+    const auto set_reply = [&promise](bool result, const char* error = nullptr)
     {
-        if (!result) { LogS("Pipe error: " << error << ", api-code: " << LogApiERR); }
+        if (!result) LogS(error << ", api-code: " << LogApiERR);
         promise.set_value(result);
     };
 
     const std::wstring pipe_name = L"\\\\.\\pipe\\" + g_data.pipe_name;
     if (!::WaitNamedPipeW(pipe_name.c_str(), NMPWAIT_USE_DEFAULT_WAIT))
-        return reply(false, "No such pipe");
+        return set_reply(false, "No such pipe");
 
     const HANDLE hpipe = ::CreateFileW(pipe_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
     if (INVALID_HANDLE_VALUE == hpipe)
-        return reply(false, "Can't open pipe");
+        return set_reply(false, "Can't open pipe");
 
     g_data.hpipe.reset(hpipe);
     DWORD mode = PIPE_READMODE_MESSAGE;
     if (!::SetNamedPipeHandleState(hpipe, &mode, nullptr, nullptr))
-        return reply(false, "Can't set pipe state");
+        return set_reply(false, "Can't set pipe state");
 
-    const auto write_pipe = [](blob::HostData::Command cmd)
+    const auto write_pipe = [](const blob::HostData& data)
     {
         DWORD bytes_written = 0;
         ::OVERLAPPED write_ov = {};
         write_ov.hEvent = ::CreateEvent(nullptr, TRUE, FALSE, nullptr);
 
         bool result = false;
-        const auto blob = blob::HostSerializer::serialize(cmd, g_data.host_data.host_id);
+        const auto blob = blob::HostSerializer::serialize(data);
         if (!::WriteFile(g_data.hpipe.get(), blob->data(), cast::to<DWORD>(blob->size()), &bytes_written, &write_ov))
         {
             if (::GetLastError() == ERROR_IO_PENDING)
@@ -164,10 +170,10 @@ void listen_thread(std::promise<bool> promise)
                 if (::GetOverlappedResult(g_data.hpipe.get(), &write_ov, &bytes_written, TRUE))
                     result = true;
                 else
-                    LogS("Can't write to pipe - overlapped result failed. err: " << LogApiERR);
+                    LogWarnS("Can't write to pipe - overlapped result failed. err: " << LogApiERR);
             }
             else
-                LogS("Can't write to pipe. err: " << LogApiERR);
+                LogWarnS("Can't write to pipe. err: " << LogApiERR);
         }
         else
             result = true;
@@ -176,13 +182,16 @@ void listen_thread(std::promise<bool> promise)
         return result;
     };
 
-    const auto min_size = cast::to<DWORD>(blob::HostSerializer::serialize(blob::HostData::Cmd_None, 0)->size());
+    const auto min_size = cast::to<DWORD>(blob::HostSerializer::get_min_size());
     const auto get_data_ready = [min_size]() -> DWORD
     {
         DWORD bytes_avail = 0;
         const BOOL peek_status = ::PeekNamedPipe(g_data.hpipe.get(), nullptr, 0, nullptr, nullptr, &bytes_avail);
         if (peek_status && bytes_avail >= min_size)
+        {
+            LogS("Message avail (" << bytes_avail << "b)");
             return bytes_avail;
+        }
         return 0;
     };
 
@@ -202,6 +211,8 @@ void listen_thread(std::promise<bool> promise)
         {
             if (::GetOverlappedResult(g_data.hpipe.get(), &read_ov, &bytes_read, TRUE))
                 success = true;
+            else
+                LogWarnS("Readfile overlapped result err : " << LogApiERR);
         }
 
         ::CloseHandle(read_ov.hEvent);
@@ -211,11 +222,21 @@ void listen_thread(std::promise<bool> promise)
 
         blob::Blob blob(std::move(buffer));
         data = blob::HostSerializer::deserialize(blob);
-        return data.cmd != blob::HostData::Cmd_None;
+
+        if (data.host_id != g_data.host_data.host_id)
+            LogWarnS("Unknown host id in command: " << data.host_id);
+        if (blob::HostData::Cmd_None == data.cmd)
+            LogWarnS("Unknown command: " << cast::to_u32(data.cmd));
+        return data.cmd != blob::HostData::Cmd_None && data.host_id == g_data.host_data.host_id;
     };
 
-    if (!write_pipe(blob::HostData::Cmd_Ready))
-        return reply(false, "Can't write init data");
+    {
+        blob::HostData ready_data;
+        ready_data.host_id = g_data.host_data.host_id;
+        ready_data.cmd = blob::HostData::Cmd_Ready;
+        if (!write_pipe(ready_data))
+            return set_reply(false, "Can't write init data");
+    }
 
     DWORD bytes_ready = 0;
     while (0 == bytes_ready)
@@ -225,40 +246,41 @@ void listen_thread(std::promise<bool> promise)
             std::this_thread::sleep_for(100ms);
     }
 
-    blob::HostData data;
-    if (!read_pipe(bytes_ready, data))
-        return reply(false, "Can't read init data");
-    if (0 == data.host_id)
-        return reply(false, "Invalid host id");
+    blob::HostData read_data;
+    if (!read_pipe(bytes_ready, read_data))
+        return set_reply(false, "Can't read init data");
+    if (0 == read_data.host_id || read_data.host_id != g_data.host_data.host_id)
+        return set_reply(false, "Invalid host id read");
 
-    g_data.host_data = std::move(data);
+    g_data.host_data = std::move(read_data);
     if (g_data.host_data.cmd != blob::HostData::Cmd_MaskEditor && g_data.host_data.cmd != blob::HostData::Cmd_PosEditor)
-        return reply(false, "Invalid mode");
+        return set_reply(false, "Invalid mode");
     g_data.mode = (blob::HostData::Cmd_MaskEditor == g_data.host_data.cmd ? Mode::MaskEditor : Mode::PosEditor);
     if (0 == g_data.host_data.host_id)
-        return reply(false, "Invalid host id");
+        return set_reply(false, "Invalid host id");
     if (!tools::path::exists(g_data.host_data.source_path))
-        return reply(false, "Source path is not exists");
+        return set_reply(false, "Source path is not exists");
     if (!tools::path::exists(g_data.host_data.dest_path))
-        return reply(false, "Dest path is not exists");
+        return set_reply(false, "Dest path is not exists");
     if (0 == g_data.host_data.node_id || 0 == g_data.host_data.workflow_id)
-        return reply(false, "Invalid node/workflow id");
+        return set_reply(false, "Invalid node/workflow id");
     if (g_data.host_data.wf_name.empty() || g_data.host_data.node_name.empty())
-        return reply(false, "Empty node/workflow name");
+        return set_reply(false, "Empty node/workflow name");
     if (blob::HostData::Cmd_MaskEditor == g_data.host_data.cmd && g_data.host_data.sam_enabled && (g_data.host_data.comfyui_host.empty() || 0 == g_data.host_data.comfyui_port))
-        return reply(false, "SAM enabled, but ComfyUI server not specified");
+        return set_reply(false, "SAM enabled, but ComfyUI server not specified");
 
-    reply(true, nullptr);
+    set_reply(true, nullptr);
+    LogS("Host initialized");
 
     while (true)
     {
         bytes_ready = get_data_ready();
         if (bytes_ready > 0)
         {
-            data = blob::HostData{};
-            if (read_pipe(bytes_ready, data))
+            read_data = blob::HostData{};
+            if (read_pipe(bytes_ready, read_data))
             {
-                switch (data.cmd)
+                switch (read_data.cmd)
                 {
                 case blob::HostData::Cmd_Raise:
                     LogS("Raise command received");
@@ -266,11 +288,11 @@ void listen_thread(std::promise<bool> promise)
                     break;
                 case blob::HostData::Cmd_Rename:
                     {
-                        LogS("Rename command received: w:" << data.wf_name << ", n:" << data.node_name);
-                        char* wf_buff = new char[data.wf_name.size() + 2];
-                        strcpy_s(wf_buff, data.wf_name.size() + 1, data.wf_name.c_str());
-                        char* node_buff = new char[data.node_name.size() + 2];
-                        strcpy_s(node_buff, data.node_name.size() + 1, data.node_name.c_str());
+                        LogS("Rename command received: w:" << read_data.wf_name << ", n:" << read_data.node_name);
+                        char* wf_buff = new char[read_data.wf_name.size() + 2];
+                        strcpy_s(wf_buff, read_data.wf_name.size() + 1, read_data.wf_name.c_str());
+                        char* node_buff = new char[read_data.node_name.size() + 2];
+                        strcpy_s(node_buff, read_data.node_name.size() + 1, read_data.node_name.c_str());
                         ::PostMessage(g_data.hwnd, USER_MSG_RENAME, cast::from_ptr<WPARAM>(wf_buff), cast::from_ptr<LPARAM>(node_buff));
                     }
                     break;
@@ -279,7 +301,7 @@ void listen_thread(std::promise<bool> promise)
                     ::PostMessage(g_data.hwnd, WM_DESTROY, 0, 0);
                     return;
                 default:
-                    LogErrorS("Invalid command received: " << data.cmd);
+                    LogErrorS("Invalid command received: " << read_data.cmd);
                 }
             }
             else
@@ -289,7 +311,11 @@ void listen_thread(std::promise<bool> promise)
         }
         else if (g_data.image_ready.load(std::memory_order_relaxed))
         {
-            write_pipe(blob::HostData::Cmd_Apply);
+            blob::HostData apply_data;
+            apply_data.host_id = g_data.host_data.host_id;
+            apply_data.cmd = blob::HostData::Cmd_Apply;
+            apply_data.settings = g_data.host_data.settings;
+            write_pipe(apply_data);
             ::PostMessage(g_data.hwnd, WM_DESTROY, 0, 0);
             return;
         }
@@ -300,10 +326,10 @@ void listen_thread(std::promise<bool> promise)
 
 void build_caption()
 {
-    const char* editor = (Mode::MaskEditor == g_data.mode ? "MaskEditor" : "3DPosEditor");
-    const auto caption = fmt::format(FMT_STRING("{} :{}. [{}]: {}"), APP_CAPTION, editor, g_data.host_data.wf_name, g_data.host_data.node_name);
+    const char* editor = (Mode::MaskEditor == g_data.mode ? APPCAPT_MASKEDITOR : APPCAPT_POSEDITOR);
+    const auto caption = fmt::format(FMT_STRING("{}. {}: {}"), editor, g_data.host_data.wf_name, g_data.host_data.node_name);
     if (g_data.hwnd != nullptr)
-        ::SetWindowText(g_data.hwnd, caption.c_str());
+        ::SetWindowTextA(g_data.hwnd, caption.c_str());
 }
 
 bool connect_pipe()
@@ -314,8 +340,14 @@ bool connect_pipe()
     std::promise<bool> promise;
     auto future = promise.get_future();
 
+#ifdef _DEBUG
+    constexpr auto pipe_timeout = 500s;
+#else
+    constexpr auto pipe_timeout = 5s;
+#endif
+
     std::thread(listen_thread, std::move(promise)).detach();
-    if (future.wait_for(5s) == std::future_status::timeout)
+    if (future.wait_for(pipe_timeout) == std::future_status::timeout)
     {
         LogS("Pipe is not ready. Exit by timeout");
         return false;
@@ -327,7 +359,6 @@ bool connect_pipe()
         return false;
     }
 
-    build_caption();
     return true;
 }
 
@@ -468,7 +499,7 @@ std::string sam_detect(const std::string& request_data)
     }
     catch (const std::exception& ex)
     {
-        LogS("Exception on SAM detect: " << ex.what())
+        LogExcepS("SAM detect: " << ex.what());
     }
     return {};
 }
@@ -545,7 +576,7 @@ std::wstring create_headers(bool image)
     headers +=
         L"Access-Control-Allow-Origin: *\r\n"
         L"Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
-        L"Access-Control-Allow-Headers: Content-Type\r\n"
+        L"Access-Control-Allow-Headers: Content-Type, X-Editor-Settings\r\n"
         L"\r\n"
     ;
     return headers;
@@ -572,15 +603,26 @@ int32_t main(int32_t, char**)
     wcex.lpszClassName = L"GraphN_Shim_Host_ME";
     ::RegisterClassExW(&wcex);
 
-    g_data.hwnd = ::CreateWindowW(L"GraphN_Shim_Host_ME", APP_CAPTION_W, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, 1280, 800, nullptr, nullptr, wcex.hInstance, nullptr);
+    const wchar_t* editor = (Mode::MaskEditor == g_data.mode ? APPCAPT_MASKEDITOR_W : APPCAPT_POSEDITOR_W);
+    g_data.hwnd = ::CreateWindowW(L"GraphN_Shim_Host_ME", editor, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, 1280, 800, nullptr, nullptr, wcex.hInstance, nullptr);
     if (nullptr == g_data.hwnd)
     {
         LogS("Failed to create app window. api code: " << LogApiERR);
         return 1;
     }
 
-    ::ShowWindow(g_data.hwnd, SW_SHOWNORMAL);
+    std::unique_ptr<HICON__, decltype(&::DestroyIcon)> hicon(nullptr, ::DestroyIcon);
+    if (Mode::MaskEditor == g_data.mode)
+        hicon.reset((HICON)::LoadImage(wcex.hInstance, MAKEINTRESOURCE(IDI_MASKEDITOR), IMAGE_ICON, 32, 32, LR_LOADTRANSPARENT));
+    else
+        hicon.reset((HICON)::LoadImage(wcex.hInstance, MAKEINTRESOURCE(IDI_POSEDITOR), IMAGE_ICON, 32, 32, LR_LOADTRANSPARENT));
+    ::SendMessage(g_data.hwnd, WM_SETICON, ICON_BIG, (LPARAM)hicon.get());
+    ::SendMessage(g_data.hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hicon.get());
+
+    ::ShowWindow(g_data.hwnd, SW_SHOWMAXIMIZED);
     ::UpdateWindow(g_data.hwnd);
+
+    build_caption();
 
     const auto send_response = [](bool image_headers, ::IStream* stream,
         ::ICoreWebView2Environment* env, ::ICoreWebView2WebResourceRequestedEventArgs* args,
@@ -601,7 +643,7 @@ int32_t main(int32_t, char**)
         return hres;
     };
 
-    const auto data_folder = fs::get_root_directory_path() / L"webview_profile";
+    const auto data_folder = fs::get_host_webprofile_path(g_data.host_data.host_id);
     const auto hres = ::CreateCoreWebView2EnvironmentWithOptions(nullptr, data_folder.c_str(), nullptr,
         ::Microsoft::WRL::Callback<::ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [send_response](HRESULT hres, ::ICoreWebView2Environment* env) -> HRESULT
@@ -821,6 +863,7 @@ int32_t main(int32_t, char**)
             }
 
             hres = g_data.webview->NavigateToString(g_data.html_data.c_str());
+            g_data.html_data.clear(); g_data.html_data.shrink_to_fit();
             if (FAILED(hres))
             {
                 LogS("ICoreWebView2::NavigateToString failed. HR: " << LogHRES(hres));
@@ -849,6 +892,8 @@ int32_t main(int32_t, char**)
         ::TranslateMessage(&msg);
         ::DispatchMessage(&msg);
     }
+
+    tools::path::remove(data_folder);
 
     return 0;
 }

@@ -46,6 +46,9 @@ mngr::AudioInfo AudioControl::get_info(const std::string& filepath, std::optiona
     if (!m_initialized)
         return {};
 
+    if (!tools::path::exists(filepath))
+        return {};
+
     ma_decoder decoder;
 
     // Initialize the decoder to read the file header

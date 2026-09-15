@@ -222,7 +222,7 @@ data::Workflow* WfsManager::create(WfData&& data, bool dump_to_db)
     return wf_ptr;
 }
 
-data::Workflow* WfsManager::access(wid wf_id) const
+data::Workflow* WfsManager::access(wid wf_id, bool allow_zero_ret /*= false*/) const
 {
     LogRAssert(wf_id != 0, "Zero wf id", nullptr);
 
@@ -256,7 +256,8 @@ data::Workflow* WfsManager::access(wid wf_id) const
     if (nullptr == wf) [[unlikely]]
         wf = search_ro();
 
-    LogRAssert(wf, "No access. Wf not found. w:" << wf_id, nullptr);
+    if (!allow_zero_ret)
+        LogRAssert(wf, "No access. Wf not found. w:" << wf_id, nullptr);
     return wf;
 }
 

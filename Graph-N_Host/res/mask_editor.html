@@ -304,7 +304,12 @@
             brushHardness: 100,
             brushOpacity: 1.0,
             maskColor: '#ffffff',
-            shape: 'circle'
+            shape: 'circle',
+			
+			confidence: 0.50,
+			samPointSize: 2,
+            samColorPos: '#0000ff',
+            samColorNeg: '#ff0000',
         };
 		
 		const originType = INJECTED_SETTINGS?.origin || 'input';		
@@ -337,11 +342,12 @@
             brushHardness: INJECTED_SETTINGS?.brushHardness || defaultSettings.brushHardness,
             brushOpacity: INJECTED_SETTINGS?.brushOpacity || defaultSettings.brushOpacity,
             maskColor: INJECTED_SETTINGS?.maskColor || defaultSettings.maskColor,
+			
+            confidence: INJECTED_SETTINGS?.confidence || defaultSettings.confidence,
+            samPointSize: INJECTED_SETTINGS?.samPointSize || defaultSettings.samPointSize,
+            samColorPos: INJECTED_SETTINGS?.samColorPos || defaultSettings.samColorPos,
+            samColorNeg: INJECTED_SETTINGS?.samColorNeg || defaultSettings.samColorNeg,
             
-            confidence: 0.50,
-            samPointSize: 2,
-            samColorPos: '#0000ff',
-            samColorNeg: '#ff0000',
             samPoints: [], 
             samHistory: [], 
             samHistoryStep: -1,
@@ -959,20 +965,16 @@
             tmpCanvas.height = maskCanvas.height;
             const tCtx = tmpCanvas.getContext('2d');
             
-            // 1. Заливаем всё белым цветом (будущая маска)
             tCtx.fillStyle = "white";
             tCtx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
 
-            // 2. Оставляем белый цвет только там, где юзер что-то нарисовал (используем альфа-канал маски)
             tCtx.globalCompositeOperation = "destination-in";
             tCtx.drawImage(maskCanvas, 0, 0);
 
-            // 3. Подкладываем черный фон под оставшийся белый рисунок
             tCtx.globalCompositeOperation = "destination-over";
             tCtx.fillStyle = "black";
             tCtx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
             
-            // Возвращаем режим наложения по умолчанию
             tCtx.globalCompositeOperation = "source-over";
 
             if (asBase64) return tmpCanvas.toDataURL("image/png");
@@ -985,7 +987,12 @@
                         maskColor: state.maskColor,
                         brushSize: state.brushSize,
                         brushHardness: state.brushHardness,
-                        brushOpacity: state.brushOpacity
+                        brushOpacity: state.brushOpacity,
+						
+						confidence: state.confidence,
+						samPointSize: state.samPointSize,
+						samColorPos: state.samColorPos,
+						samColorNeg: state.samColorNeg,
                     };
 
                     await fetch(`${API_BASE}/save_mask`, {

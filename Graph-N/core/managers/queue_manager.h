@@ -79,8 +79,8 @@ private:
     void parse_http_response(int32_t result, const std::string& payload);
     void check_ws_inbox();
     void go_next_task();
-    void load_outputs(ExecTask& task);
-    void load_output_data(uint64_t task_id, uint64_t out_id, const std::string&& binary);
+    void load_outputs(wid wf_id, ExecTask& task);
+    void load_output_data(wid wf_id, uint64_t task_id, uint64_t out_id, const std::string&& binary);
     void check_current_task_is_done();
 
     // ServerRestartHandler

@@ -130,13 +130,10 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
         node->finalize(&models_map);
         put_in_tree(manager, node.get());
 
-        auto ptr = node.get();
         if (!manager.m_nodes.try_emplace(node->get_hash(), std::move(node)).second)
-        {
-            LogInvalidJson("Duplicate of node " << ptr->name);
-        }
-        else
-            Log("Node " << node_class << " parse: end");
+            LogWarn("Node " << node_class << ": skipped as duplicate");
+        //else
+        //    Log("Node " << node_class << ": parsed");
     }
     catch (const std::exception& ex)
     {

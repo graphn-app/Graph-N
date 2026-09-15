@@ -449,8 +449,6 @@ bool exists(const std::filesystem::path& path) noexcept
 
 std::optional<std::filesystem::path> copy(const std::filesystem::path& from, const std::filesystem::path& to, bool overwrite, bool rename)
 {
-    LogVS(from, to, overwrite, rename);
-
     if (from.empty() || to.empty())
         return {};
 
@@ -493,8 +491,6 @@ std::optional<std::filesystem::path> copy(const std::filesystem::path& from, con
 
 std::optional<std::filesystem::path> move(const std::filesystem::path& from, const std::filesystem::path& to, bool overwrite, bool rename)
 {
-    LogVS(from, to, overwrite, rename);
-
     if (from.empty() || to.empty())
         return {};
 
@@ -539,8 +535,6 @@ std::optional<std::filesystem::path> move(const std::filesystem::path& from, con
 
 bool make_folder(const std::filesystem::path& dirpath)
 {
-    LogS(dirpath);
-
     if (dirpath.empty())
         return false;
 
@@ -558,8 +552,6 @@ bool make_folder(const std::filesystem::path& dirpath)
 
 bool make_file(const std::filesystem::path& filepath, bool overwrite, const char* data_to_write, size_t data_len)
 {
-    LogVS(filepath, overwrite, data_len);
-
     if (filepath.empty())
         return false;
 
@@ -624,8 +616,6 @@ std::string read_file(const std::filesystem::path& filepath, bool add_tail) noex
 {
     try
     {
-        LogS(filepath);
-
         std::error_code ec;
         const auto fsize = std::filesystem::file_size(filepath, ec);
         if (ec)
@@ -660,10 +650,11 @@ std::string read_file(const std::filesystem::path& filepath, bool add_tail) noex
 
 bool remove(const std::filesystem::path& filepath) noexcept
 {
+    if (filepath.empty() || !tools::path::exists(filepath))
+        return true;
+
     try
     {
-        LogS(filepath);
-
         std::error_code ec;
         std::filesystem::remove_all(filepath, ec);
         if (ec)
@@ -704,6 +695,12 @@ bool is_empty(const std::filesystem::path& path) noexcept
 {
     std::error_code ec;
     return std::filesystem::is_empty(path, ec);
+}
+
+uintmax_t get_size(const std::filesystem::path& path) noexcept
+{
+    std::error_code ec;
+    return std::filesystem::file_size(path, ec);
 }
 
 std::string path_to_string(const std::filesystem::path& path)
@@ -1419,20 +1416,36 @@ void scale(int32_t image_w, int32_t image_h, int32_t max_w, int32_t max_h, int32
 
 std::string get_mime_type(const std::filesystem::path& filepath)
 {
-    std::string ext = filepath.extension().string();
-    ext = tools::str::to_lower_ascii(ext);
+    const std::string ext = tools::str::to_lower_ascii(filepath.extension().string());
 
-    if (".png" == ext)
-        return "image/png";
-    if (".webp" == ext)
-        return "image/webp";
-
-    // standard JPEG MIME type
-    if (".jpg" == ext || ".jpeg" == ext || ".pjp" == ext || 
-        ".jfif" == ext || ".jpe" == ext || ".pjpeg" == ext) 
+    // images
+    if (".png" == ext)      return "image/png";
+    if (".webp" == ext)     return "image/webp";
+    if (".gif" == ext)      return "image/gif";
+    if (".bmp" == ext)      return "image/bmp";
+    if (".jpg" == ext  ||
+        ".jpeg" == ext ||
+        ".pjp" == ext  || 
+        ".jfif" == ext ||
+        ".jpe" == ext  ||
+        ".pjpeg" == ext) 
     {
-        return "image/jpeg";
+                            return "image/jpeg";
     }
+
+    // video
+    if (".mp4" == ext)      return "video/mp4";
+    if (".webm" == ext)     return "video/webm";
+    if (".mkv" == ext)      return "video/x-matroska";
+    if (".avi" == ext)      return "video/x-msvideo";
+    if (".mov" == ext)      return "video/quicktime";
+
+    // audio
+    if (".wav" == ext)      return "audio/wav";
+    if (".mp3" == ext)      return "audio/mpeg";
+    if (".flac" == ext)     return "audio/flac";
+    if (".ogg" == ext)      return "audio/ogg";
+    if (".opus" == ext)     return "audio/opus";
 
     // fallback
     return "application/octet-stream";

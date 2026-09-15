@@ -77,48 +77,48 @@ ConnectState ConnectManager::get_status(int64_t* latency /*= nullptr*/) noexcept
     return ConnectState::Disconnected;
 }
 
-uint32_t ConnectManager::send_http_get_request(const char* who_is_asking, const char* url, bool retry_on_timeout)
+uint32_t ConnectManager::send_http_get_request(HttpRequestor requestor, const char* url, bool retry_on_timeout)
 {
     auto req = std::make_shared<RequestData>();
     req->type = RequestData::Type::GetByUrl;
     req->url = url;
-    req->who_is_asking = who_is_asking;
+    req->requestor = requestor;
     req->is_object_info = req->url.find(comfyui_http::object_info) != std::string::npos;
     req->is_binary_resp = req->url.find(comfyui_http::view_input) != std::string::npos || req->url.find(comfyui_http::view) != std::string::npos;
     req->retry_on_timeout = retry_on_timeout;
     return register_http_request(req);
 }
 
-uint32_t ConnectManager::send_http_get_request(const char* who_is_asking, const char* url, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout)
+uint32_t ConnectManager::send_http_get_request(HttpRequestor requestor, const char* url, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout)
 {
     auto req = std::make_shared<RequestData>();
     req->type = RequestData::Type::GetByUrlAndParams;
     req->url = url;
     req->params = std::move(params);
     req->headers = std::move(headers);
-    req->who_is_asking = who_is_asking;
+    req->requestor = requestor;
     req->retry_on_timeout = retry_on_timeout;
     return register_http_request(req);
 }
 
-uint32_t ConnectManager::send_http_post_request(const char* who_is_asking, const char* url, std::string&& payload, bool retry_on_timeout)
+uint32_t ConnectManager::send_http_post_request(HttpRequestor requestor, const char* url, std::string&& payload, bool retry_on_timeout)
 {
     auto req = std::make_shared<RequestData>();
     req->type = RequestData::Type::PostRawPayload;
     req->url = url;
     req->post_payload = std::move(payload);
-    req->who_is_asking = who_is_asking;
+    req->requestor = requestor;
     req->retry_on_timeout = retry_on_timeout;
     return register_http_request(req);
 }
 
-uint32_t ConnectManager::send_http_post_request(const char* who_is_asking, const char* url, httplib::UploadFormDataItems&& payload_items, bool retry_on_timeout)
+uint32_t ConnectManager::send_http_post_request(HttpRequestor requestor, const char* url, httplib::UploadFormDataItems&& payload_items, bool retry_on_timeout)
 {
     auto req = std::make_shared<RequestData>();
     req->type = RequestData::Type::PostItems;
     req->url = url;
     req->post_payload_items = std::move(payload_items);
-    req->who_is_asking = who_is_asking;
+    req->requestor = requestor;
     req->retry_on_timeout = retry_on_timeout;
     return register_http_request(req);
 }
@@ -127,8 +127,78 @@ uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
 {
     req->req_id = m_last_request_id.fetch_add(1, std::memory_order_relaxed) + 1;
 
+    req->log_this_request = true;
+    const char* who_is_asking = nullptr;
+    switch (req->requestor)
+    {
+    case HttpRequestor::Queue_Output:
+        who_is_asking = "Queue/Output";
+        break;
+    case HttpRequestor::Queue_History:
+        who_is_asking = "Queue/History";
+        break;
+    case HttpRequestor::Queue_Interrupt:
+        who_is_asking = "Queue/Interrupt";
+        break;
+    case HttpRequestor::Queue_Task:
+        who_is_asking = "Queue/Task";
+        break;
+    case HttpRequestor::Sync_Init:
+        who_is_asking = "Sync/Init";
+        break;
+    case HttpRequestor::Sync_Action:
+        who_is_asking = "Sync/Action";
+        break;
+    case HttpRequestor::Models_All:
+        who_is_asking = "Models/All";
+        break;
+    case HttpRequestor::Models_Model:
+        who_is_asking = "Models/Model";
+        req->log_this_request = false;
+        break;
+    case HttpRequestor::Flow_Import_projects:
+        who_is_asking = "Flow/Import_projects";
+        break;
+    case HttpRequestor::Flow_Reparse_nodes:
+        who_is_asking = "Flow/Reparse_nodes";
+        break;
+    case HttpRequestor::QPanel_Output:
+        who_is_asking = "QPanel/Output";
+        break;
+    case HttpRequestor::QPanel_History:
+        who_is_asking = "QPanel/History";
+        break;
+    case HttpRequestor::SystemStats_Stats:
+        who_is_asking = "SystemStats/Stats";
+        req->log_this_request = false;
+        break;
+    case HttpRequestor::Stats_Prompt:
+        who_is_asking = "Stats/Prompt";
+        req->log_this_request = false;
+        break;
+    case HttpRequestor::CustomWdgt_Image:
+        who_is_asking = "CustomWdgt/Image";
+        break;
+    case HttpRequestor::CustomWdgt_Video:
+        who_is_asking = "CustomWdgt/Video";
+        break;
+    case HttpRequestor::CustomWdgt_Audio:
+        who_is_asking = "CustomWdgt/Audio";
+        break;
+    case HttpRequestor::UploadMedia:
+        who_is_asking = "UploadMedia";
+        break;
+    default:
+        LogError("Unknown requestor");
+        who_is_asking = "Unknown_requestor";
+    }
+
+    if (glog::Logger::get_log_web_response_enabled())   // user requested all web activity
+        req->log_this_request = true;
+
     const char* type = (RequestData::Type::GetByUrl == req->type || RequestData::Type::GetByUrlAndParams == req->type ? "GET" : "POST");
-    Log("HTTP-Req#" << req->req_id << ". Registered: " << type << ". Who: " << req->who_is_asking << ". Retry: " << req->retry_on_timeout << ". Url: " << req->url);
+    if (req->log_this_request)
+        Log("HTTP-Req#" << req->req_id << ". Registered: " << type << ". Who: " << who_is_asking << ". Retry: " << req->retry_on_timeout << ". Url: " << req->url);
 
     {
         const auto host = g::pOptsManager->comfyui_host_load_safe();
@@ -202,7 +272,8 @@ void ConnectManager::http_worker()
             m_http_inbox.pop();
         }
 
-        Log("HTTP-Req#" << req->req_id << ". Started");
+        if (req->log_this_request)
+            Log("HTTP-Req#" << req->req_id << ". Started");
 
         httplib::Result res;
         switch (req->type)
@@ -234,14 +305,15 @@ void ConnectManager::http_worker()
             req->status = res->status;
             req->data = std::move(res->body);
 
-            Log("HTTP-Req#" << req->req_id << ". Finished. Result: " << res->status << ". Body: " << req->data.size() << " bytes");
+            if (req->log_this_request)
+                Log("HTTP-Req#" << req->req_id << ". Finished. Result: " << res->status << ". Body: " << req->data.size() << " bytes");
             if (req->is_object_info && glog::Logger::get_log_object_info_enabled())
             {
                 const auto obj_info_path = fs::get_log_directory_path() / "object_info.json";
                 tools::path::make_file(obj_info_path, true, req->data);
                 Log("/object_info dumped into " << obj_info_path);
             }
-            else if (!req->is_object_info && !req->is_binary_resp && glog::Logger::get_log_web_response_enabled())
+            else if (!req->is_object_info && !req->is_binary_resp && glog::Logger::get_log_web_response_enabled() && req->log_this_request)
                 LogClear(req->data);
         }
         else

@@ -6,6 +6,18 @@ namespace blob
 constexpr uint64_t g_version_1 = 292734122346942481;
 constexpr uint64_t g_current_version = g_version_1;
 
+size_t HostSerializer::get_min_size()
+{
+    return serialize({})->size();
+}
+
+size_t HostSerializer::get_max_size()
+{
+    return
+        get_min_size() +
+        MAX_PATH * 2 /* image pathes */ + 500 /* wf and node names */ + 20 /*comfyui host*/ + 500 /*settings*/;
+}
+
 Blob HostSerializer::serialize(const HostData& data)
 {
 #ifndef TOOLS_DETACHED_STATE
@@ -35,14 +47,6 @@ Blob HostSerializer::serialize(const HostData& data)
     wr.push(data.settings);
 
     return wr.release();
-}
-
-Blob HostSerializer::serialize(HostData::Command cmd, uint64_t host_id)
-{
-    HostData data;
-    data.cmd = cmd;
-    data.host_id = host_id;
-    return serialize(data);
 }
 
 HostData HostSerializer::deserialize(const Blob& blob)

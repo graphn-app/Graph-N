@@ -317,12 +317,7 @@ void Pin::finalize_int()
 void Pin::finalize_float()
 {
     if (!step.is_float())
-    {
-        if (round.has_value())
-            step = round.value();
-        else
-            step = double(0.01);
-    }
+        step = round.value_or(0.01);
     if (step.get_float() == 0)
         step = double(0.01);
 
@@ -366,12 +361,7 @@ void Pin::finalize_number()
     static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
 
     if (!step.is_number())
-    {
-        if (round.has_value())
-            step = number(round.value());
-        else
-            step = number(NUMBER_STEP);
-    }
+        step = number(round.value_or(NUMBER_STEP));
 
     if (max < min)
         std::swap(min, max);
@@ -439,6 +429,7 @@ void Pin::finalize_combo()
         {
             const std::string& val = item.get_string();
             combo_items_ptr[idx] = val.c_str();
+            combo_items_str[idx] = val;
         }
         else
         {

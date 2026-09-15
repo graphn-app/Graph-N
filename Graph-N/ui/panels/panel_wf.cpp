@@ -142,7 +142,6 @@ void PanelWorkflow::handle_panel_context_menu() noexcept
     //ImGuiWindow* window = ImGui::GetCurrentWindow();
     //const bool dock_tab_hovered = (g.HoveredId == window->TabId);
     //const bool title_bar_hovered = (g.HoveredId == window->MoveId);
-    //LogV(dock_tab_hovered, title_bar_hovered);
 
     //if ((dock_tab_hovered || title_bar_hovered) && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
     //    ImGui::OpenPopup("StrictTitleContext");

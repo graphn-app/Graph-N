@@ -448,7 +448,7 @@ bool PanelWorkflow::show_node_menu()
         m_color_buff[0] = -1.0f;
 
 
-    const data::Pin* preffered_source_pin = nullptr;
+    data::Pin* preffered_source_pin = nullptr;
     bool restricted = node->obj_flags().has(NodeObjFlags::CustomWdgtRestrictCfg);
     if (!restricted)
     {
@@ -489,6 +489,9 @@ bool PanelWorkflow::show_node_menu()
                 opts.flags.copy_from_by_mask_obj(node->obj_flags(), opts.mask);
                 opts.display_source = (node->get_object()->custom_widget_source != nullptr ? node->get_object()->custom_widget_source->def_state.name : "");
                 g::pOptsManager->items_node_save(node->get_object()->get_hash(), opts);
+
+                const bool has_media_opt = node->obj_flags().has_any_by_mask_obj(g_node_obj_all_custom_widget_mask);
+                node->obj_flags().add_remove_if(NodeObjFlags::CustomWidget, has_media_opt);
             };
 
             struct CustomWidgetCfgMenu final

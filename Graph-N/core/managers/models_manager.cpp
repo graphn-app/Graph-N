@@ -39,7 +39,7 @@ void ModelsManager::load_models_th()
     {
         const std::string models_req = comfyui_http::models;
         std::string data;
-        int32_t http_res = g::pFlow->http_get_and_wait("Models/All", models_req.c_str(), {}, {}, true,
+        int32_t http_res = g::pFlow->http_get_and_wait(HttpRequestor::Models_All, models_req.c_str(), {}, {}, true,
             [stop_flag = m_stop_flag.get_token()]() noexcept { return stop_flag.stop_requested(); }, data);
 
         if (http_res != HTTP_RESP_OK) [[unlikely]]
@@ -69,7 +69,7 @@ void ModelsManager::load_models_th()
         for (auto& req : requests)
         {
             std::string model_req = models_req + "/" + req;
-            http_res = g::pFlow->http_get_and_wait("Models/Model", model_req.c_str(), {}, {}, false,
+            http_res = g::pFlow->http_get_and_wait(HttpRequestor::Models_Model, model_req.c_str(), {}, {}, false,
                 [stop_flag = m_stop_flag.get_token()]() noexcept { return stop_flag.stop_requested(); }, data);
 
             if (http_res != HTTP_RESP_OK) [[unlikely]]
@@ -107,7 +107,7 @@ void ModelsManager::load_models_th()
 
                         httplib::Params params;
                         params.emplace("filename", tools::path::path_to_string(filename.filename()));
-                        http_res = g::pFlow->http_get_and_wait("Models/Model", model_req.c_str(), std::move(params), {}, false,
+                        http_res = g::pFlow->http_get_and_wait(HttpRequestor::Models_Model, model_req.c_str(), std::move(params), {}, false,
                             [stop_flag = m_stop_flag.get_token()]() noexcept { return stop_flag.stop_requested(); }, data);
 
                         if (m_stop_flag.stop_requested()) [[unlikely]]

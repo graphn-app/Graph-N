@@ -1748,7 +1748,7 @@ void NodeDrawer::set_viewport_rect(const ImRect& rect) noexcept
 
 ImVec2 NodeDrawer::get_visible_pos(std::optional<ImVec2> add_offset) const noexcept
 {    
-    const ImVec2 add_pt = add_offset.has_value() ? add_offset.value() : ImVec2(0, 0);
+    const ImVec2 add_pt = add_offset.value_or(ImVec2(0, 0));
     if (nullptr == m_context)
         return add_pt;
 
@@ -1793,7 +1793,7 @@ bool NodeDrawer::handle_pin_renaming(const data::PinInstance* curr_pin)
 
 void NodeDrawer::handle_node_collapsing(const data::NodeInstance* node)
 {
-    g::pFlow->txt_panel_delete(m_wf->get_id(), node);
+    //g::pFlow->txt_panel_delete(m_wf->get_id(), node);
     if (m_deffered_action->active_node == node)
     {
         m_deffered_action->combo.is_active = false;

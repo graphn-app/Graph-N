@@ -165,7 +165,7 @@ void GraphN::exit_graphn()
 
 int32_t GraphN::override_exit_code() noexcept
 {
-    LogV(m_exit_code);
+    Log("Exit code: " << m_exit_code);
     return m_exit_code;
 }
 

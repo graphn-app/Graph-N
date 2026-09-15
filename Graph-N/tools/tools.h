@@ -82,6 +82,8 @@ bool is_file(const std::filesystem::path& path) noexcept;
 bool is_dir(const std::filesystem::path& path) noexcept;
 bool is_empty(const std::filesystem::path& path) noexcept;
 
+uintmax_t get_size(const std::filesystem::path& path) noexcept;
+
 std::string path_to_string(const std::filesystem::path& path);
 std::string get_extension(const std::filesystem::path& path);
 

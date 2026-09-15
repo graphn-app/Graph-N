@@ -34,15 +34,20 @@ struct HostData final
 
     std::string settings;                       // MaskEditor, PosEditor, Apply         -> send saved/updated settings
 
-    bool alive = false;                         // internal, do not serialize
+    // internal, do not serialize
+    bool alive = false;
+    bool cleanup = false;
+    bool can_upload_to_node = true;
 };
 
 class HostSerializer
 {
 public:
     static Blob serialize(const HostData& data);
-    static Blob serialize(HostData::Command cmd, uint64_t host_id);
     static HostData deserialize(const Blob& blob);
+
+    static size_t get_min_size();
+    static size_t get_max_size();
 };
 
 } // namespace blob

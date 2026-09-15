@@ -70,6 +70,7 @@ private:
         const char* hint = nullptr;
         std::string* buffer = nullptr;
         data::WorkflowAction* action = nullptr;
+        bool ro = false;
     };
     Editor* m_current = nullptr;
     std::list<Editor> m_editors;

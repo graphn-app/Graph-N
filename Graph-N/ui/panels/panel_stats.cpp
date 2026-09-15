@@ -146,7 +146,7 @@ void PanelStats::th_comfyui()
         if (accumulated_time >= check_interval)
         {
             std::string data;
-            int32_t http_res = g::pFlow->http_get_and_wait("SystemStats/Stats", comfyui_http::system_stats, {}, {}, false,
+            int32_t http_res = g::pFlow->http_get_and_wait(HttpRequestor::SystemStats_Stats, comfyui_http::system_stats, {}, {}, false,
                 []() noexcept { return g::app_global_stop_all_threads.stop_requested(); }, data);
 
             if (HTTP_RESP_OK == http_res)
@@ -220,7 +220,7 @@ void PanelStats::th_comfyui()
 
             m_queue_remaining.store(0, std::memory_order_relaxed);
 
-            http_res = g::pFlow->http_get_and_wait("Stats/Prompt", comfyui_http::prompt, {}, {}, false,
+            http_res = g::pFlow->http_get_and_wait(HttpRequestor::Stats_Prompt, comfyui_http::prompt, {}, {}, false,
                 []() noexcept { return g::app_global_stop_all_threads.stop_requested(); }, data);
 
             if (HTTP_RESP_OK == http_res)

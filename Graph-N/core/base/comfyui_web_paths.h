@@ -20,7 +20,7 @@ constexpr const char* wf_upload_        = "/api/userdata/workflows%2F{}?overwrit
 constexpr const char* history_          = "/api/history?max_items={}";                                                   // get
 constexpr const char* view_input        = "/api/view?type=input";                                                        // get
 constexpr const char* view_input_       = "/api/view?type=input&filename={}&subfolder={}";                               // get
-constexpr const char* upload_image      = "/api/upload/image";                                                           // post
+constexpr const char* upload_media      = "/api/upload/image";                                                           // post
 constexpr const char* upload_mask       = "/api/upload/mask";                                                            // post
 constexpr const char* refresh_inputs    = "/internal/files/input";                                                       // get
 

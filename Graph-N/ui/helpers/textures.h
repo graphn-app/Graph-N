@@ -15,8 +15,8 @@ public:
 
     void init_ui_ready();
 
-    int32_t load_image(const char* path, int32_t max_width, int32_t max_height, int32_t life_time);
-    int32_t load_image(std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time);
+    int32_t load_image_from_path(const std::filesystem::path& path, int32_t max_width, int32_t max_height, int32_t life_time);
+    int32_t load_image_from_buffer(std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time);
 
     // must be called from main UI thread
     ImTextureID get_image(int32_t image_id, std::optional<bool>& image_valid, float* width = nullptr, float* height = nullptr);
@@ -31,11 +31,11 @@ public:
 
     void cleanup_all();
 
-    virtual ImTextureIDPtr upload_to_gpu(const ImageData& image_data, uint32_t width, uint32_t height, bool generate_mips) = 0;
-    virtual bool update_gpu_texture(ImTextureIDPtr texture, const ImageData& image_data, uint32_t width, uint32_t height, bool generate_mips) = 0;
+    virtual ImTextureIDPtr upload_to_gpu(const byte* image_data, uint32_t width, uint32_t height, bool generate_mips) = 0;
+    virtual bool update_gpu_texture(ImTextureIDPtr texture, const byte* image_data, uint32_t width, uint32_t height, bool generate_mips) = 0;
 
 private:
-    int32_t load_image(const char* path, std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time);
+    int32_t load_image(const std::filesystem::path& path, std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time);
     void worker_thread();
     bool check_image_lifecycle(const ImageAsync* image) noexcept;
 

@@ -4,6 +4,7 @@
 #include "core/managers/db_manager.h"
 #include "core/workflow/serializer/wf_serializers.h"
 #include "core/base/comfyui_web_paths.h"
+#include "ui/custom_widgets/custom_widget.h"
 #include "ui/graph-n_flow.h"
 #include "ui/helpers/textures.h"
 
@@ -99,7 +100,7 @@ void QueueManager::interrupt_task(wid wf_id /*= 0*/)
     };
 
     Log("Interrupt task #" << task_log_id);
-    g::pFlow->http_post("Queue/Interrupt", get_alive_callback(), comfyui_http::interrupt, "", callback, true /*retry on timeout*/);
+    g::pFlow->http_post(HttpRequestor::Queue_Interrupt, get_alive_callback(), comfyui_http::interrupt, "", callback, true /*retry on timeout*/);
 }
 
 void QueueManager::drop_all() noexcept
@@ -183,14 +184,14 @@ void QueueManager::process()
             const auto log_task_id = get_log_task_id(*m_current);
             const auto callback = [this, log_task_id](int32_t result, std::string&& payload)
             {
-                Log("Task #" << log_task_id << " responded, http res " << result << ", payload sz " << payload.size())
+                Log("Task #" << log_task_id << " responded, http res " << result << ", payload sz " << payload.size());
                 parse_http_response(result, payload);
                 m_can_check_ws = true;
             };
 
             Log("Task #" << log_task_id << " posted. Wf #" << m_current->src_wf);
             m_can_check_ws = false;
-            g::pFlow->http_post("Queue/Task", get_alive_callback(), comfyui_http::prompt, j.dump(), callback);
+            g::pFlow->http_post(HttpRequestor::Queue_Task, get_alive_callback(), comfyui_http::prompt, j.dump(), callback);
             m_current->state = ExecGroup::State::Prompted;
         }
         break;
@@ -673,6 +674,15 @@ void QueueManager::check_ws_inbox()
                     return;
                 }
 
+                iid display_node = 0;
+                if (j["data"].contains("display_node"))
+                {
+                    if (j["data"]["display_node"].is_string())
+                        display_node = std::strtoul(j["data"]["display_node"].get<std::string>().c_str(), nullptr, 10);
+                    else if (j["data"]["display_node"].is_number_integer())
+                        display_node = j["data"]["display_node"].get<iid>();
+                }
+
                 const auto& joutput = j["data"]["output"];
                 for (const auto&[jtype, jarr] : joutput.items())
                 {
@@ -690,6 +700,7 @@ void QueueManager::check_ws_inbox()
                         {
                             ExecTask::Output out;
                             out.type = out_type;
+                            out.target_node = display_node;
                             if (jitem.is_object())
                             {
                                 if (jitem.contains("filename") && jitem["filename"].is_string())
@@ -709,6 +720,7 @@ void QueueManager::check_ws_inbox()
                     else if (jtype == "text" && jarr.is_array())
                     {
                         ExecTask::Output out;
+                        out.target_node = display_node;
                         out.type = ExecTask::OutputType::Text;
                         for (auto& jitem : jarr)
                         {
@@ -722,6 +734,7 @@ void QueueManager::check_ws_inbox()
                     else
                     {
                         ExecTask::Output out;
+                        out.target_node = display_node;
                         out.type = ExecTask::OutputType::Unknown;
                         out.id = base::GlobalID::random();
                         task.outputs.push_back(std::move(out));
@@ -729,7 +742,7 @@ void QueueManager::check_ws_inbox()
                     Log("Task #" << task_log_id << ": executed. Output data type: " << jtype << ". Is format valid: " << jarr.is_array());
                 }
 
-                load_outputs(task);
+                load_outputs(m_current->src_wf, task);
             }
         }
         catch (const std::exception& ex)
@@ -741,27 +754,29 @@ void QueueManager::check_ws_inbox()
     g::pFlow->check_ws_message(callback);
 }
 
-void QueueManager::load_outputs(ExecTask& task)
+void QueueManager::load_outputs(wid wf_id, ExecTask& task)
 {
     for (auto& out : task.outputs)
     {
         if (ExecTask::OutputType::Audio == out.type || ExecTask::OutputType::Gif == out.type || ExecTask::OutputType::Image == out.type)
         {
-            const auto callback = [this, task = task.task_id, id = out.id](int32_t result, std::string&& binary)
+            const auto callback = [this, task = task.task_id, id = out.id, wf_id](int32_t result, std::string&& binary)
             {
                 LogS("Task #" << task << " load output http result: " << result << ", payload sz " << binary.size());
                 if (result != HTTP_RESP_OK)
                     binary.clear();
-                load_output_data(task, id, std::move(binary));
+                load_output_data(wf_id, task, id, std::move(binary));
             };
 
             const auto request = fmt::format(comfyui_http::view_, tools::str::url_encode(out.filename), tools::str::url_encode(out.subfolder), tools::str::url_encode(out.filetype));
-            g::pFlow->http_get("Queue/Output", get_alive_callback(), request.c_str(), callback);
+            g::pFlow->http_get(HttpRequestor::Queue_Output, get_alive_callback(), request.c_str(), callback);
         }
+        else if (ExecTask::OutputType::Text == out.type && out.target_node != 0)
+            g::pFlow->custom_widgets().add_output(wf_id, out.target_node, out.type, out.text, 0);
     }
 }
 
-void QueueManager::load_output_data(uint64_t task_id, uint64_t out_id, const std::string&& binary)
+void QueueManager::load_output_data(wid wf_id, uint64_t task_id, uint64_t out_id, const std::string&& binary)
 {
     ExecTask* task = nullptr;
     if (m_current != nullptr && m_current->task.task_id == task_id)
@@ -782,9 +797,8 @@ void QueueManager::load_output_data(uint64_t task_id, uint64_t out_id, const std
             if (task != nullptr)
                 break;
         }
-
-        LogRAssert(task, "Output task " << task_id << " not found", );
     }
+    LogRAssert(task, "Output task " << task_id << " not found", );
 
     for (auto& out : task->outputs)
     {
@@ -805,7 +819,10 @@ void QueueManager::load_output_data(uint64_t task_id, uint64_t out_id, const std
 
             out.binary_path = tools::path::path_to_string(temp_filename);
             if (ExecTask::OutputType::Image == out.type)
-                out.media_id = g::pTextures->load_image(out.binary_path.c_str(), QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
+                out.media_id = g::pTextures->load_image_from_path(out.binary_path, QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
+
+            if (out.target_node != 0)
+                g::pFlow->custom_widgets().add_output(wf_id, out.target_node, out.type, out.binary_path, out.media_id);
 
             out.exists = true;
             out.ready = true;
@@ -860,7 +877,7 @@ void QueueManager::check_current_task_is_done()
     };
 
     const auto history_request = fmt::format(comfyui_http::history_, 100);
-    g::pFlow->http_get("Queue/History", get_alive_callback(), history_request.c_str(), history_callback);
+    g::pFlow->http_get(HttpRequestor::Queue_History, get_alive_callback(), history_request.c_str(), history_callback);
 }
 
 } // namespace mngr

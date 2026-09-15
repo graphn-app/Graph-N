@@ -16,8 +16,8 @@ public:
     void cleanup_all();
 
     mngr::AudioInfo get_info(const std::string& filepath, std::optional<bool>& valid);
-
     int32_t load(const std::string& filepath);
+
     void play(int32_t audio_id);
     void stop(int32_t audio_id);
     void seek(int32_t audio_id, float pos);

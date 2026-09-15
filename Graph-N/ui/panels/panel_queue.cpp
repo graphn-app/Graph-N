@@ -245,7 +245,7 @@ int32_t PanelQueue::show_tasks_num(int32_t curr) noexcept
     if (curr < 0) curr = -1;
     int32_t imgui_idx = curr + 1;
     if (ImGui::Combo("", &imgui_idx,
-        [](void* /*data*/, int idx, const char** out_text) noexcept
+        [](void* /*data*/, int32_t idx, const char** out_text) noexcept
         {
             if (0 == idx) [[unlikely]]
             {
@@ -466,19 +466,12 @@ void PanelQueue::show_favs_tasks()
         m_visible_favs = true;
     };
 
-    const auto is_favorited = [this](const mngr::ExecTask& task)
-    {
-        if (task.favorited.has_value())
-            return task.favorited.value();
-        return false;
-    };
-
     for (auto it = past.rbegin(); it != past.rend(); ++it)
     {
         auto& g = *it;
         for (auto& t : g.completed)
         {
-            if (is_favorited(t))
+            if (t.favorited.value_or(false))
             {
                 show_separator();
                 if (m_toggled_favs)
@@ -489,7 +482,7 @@ void PanelQueue::show_favs_tasks()
 
     for (auto& t : m_history_tasks)
     {
-        if (is_favorited(t))
+        if (t.favorited.value_or(false))
         {
             show_separator();
             if (m_toggled_favs)
@@ -807,7 +800,7 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
                     continue;
                 }
 
-                if (o.media_valid.has_value() && !o.media_valid.value())
+                if (!o.media_valid.value_or(true))
                 {
                     ImGui::TextUnformatted("Media: corrupted or not supported");
                     ImGui::PopID();
@@ -833,7 +826,7 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
                         };
 
                         const auto data_request = fmt::format(comfyui_http::view_, tools::str::url_encode(o.filename), tools::str::url_encode(o.subfolder), tools::str::url_encode(o.filetype));
-                        g::pFlow->http_get("QPanel/Output", get_alive_callback(), data_request.c_str(), data_callback);
+                        g::pFlow->http_get(HttpRequestor::QPanel_Output, get_alive_callback(), data_request.c_str(), data_callback);
                         o.preparing = true;
                     }
                 }
@@ -963,7 +956,7 @@ void PanelQueue::show_asset_info(const mngr::ExecTask::Output& output, size_t ou
             ImGui::PopStyleColor();
         }
 
-        if (output.media_info_valid.has_value() && output.media_info_valid.value())
+        if (output.media_info_valid.value_or(false))
         {
             ImGui::SetCursorPosX(pos);
             if (is_image)
@@ -992,7 +985,7 @@ void PanelQueue::show_image(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
     if (!g::pTextures->get_image_alive(output.media_id))
     {
         if (tools::path::exists(output.binary_path))
-            output.media_id = g::pTextures->load_image(output.binary_path.c_str(), QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
+            output.media_id = g::pTextures->load_image_from_path(output.binary_path, QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
     }
     else [[likely]]
     {
@@ -1025,13 +1018,13 @@ void PanelQueue::show_image(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
                         const auto textures = g::pTextures->get_image(out->media_id_tt, valid, &w, &h);
                         if (textures != nullptr)
                             ImGui::Image(textures, ImVec2(w, h));
-                        else if (valid.has_value() && !valid)
+                        else if (!valid.value_or(true))
                             ImGui::TextUnformatted("Can't render image data");
                     }
                     else
                     {
                         const ImGuiViewport* viewport = ImGui::GetMainViewport();
-                        out->media_id_tt = g::pTextures->load_image(out->binary_path.c_str(), cast::to_i32(viewport->WorkSize.x), cast::to_i32(viewport->WorkSize.y), QUEUE_TT_IMAGE_LIFETIME);
+                        out->media_id_tt = g::pTextures->load_image_from_path(out->binary_path, cast::to_i32(viewport->WorkSize.x), cast::to_i32(viewport->WorkSize.y), QUEUE_TT_IMAGE_LIFETIME);
                     }
                 }, ImGuiHoveredFlags_DelayNormal);
             }
@@ -1082,7 +1075,7 @@ void PanelQueue::show_audio(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
         output.audio_info = g::pAudioControl->get_info(output.binary_path, output.media_valid);
         output.media_info_valid = output.media_valid;
         output.media_id = -1;
-        if (output.media_valid.has_value() && !output.media_valid.value())
+        if (!output.media_valid.value_or(true))
             return;
     }
     else
@@ -1146,17 +1139,16 @@ void PanelQueue::show_video(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
     const bool first_appear = (0 == output.media_id);
     if (first_appear) [[unlikely]]
     {
-        output.video_info = g::pVideoControl->get_info(output.binary_path, output.media_valid);
+        output.video_info = g::pVideoControl->get_info(output.binary_path, QUEUE_IMAGE_RECT, output.media_valid);
         output.media_info_valid = output.media_valid;
-        output.video_info.thumbnail = g::pVideoControl->get_thumbnail(output.binary_path, QUEUE_IMAGE_RECT);
         output.media_id = -1;
         if (output.video_info.thumbnail.empty())
             output.media_valid = false;
-        if (output.media_valid.has_value() && !output.media_valid.value())
+        if (!output.media_valid.value_or(true))
             return;
 
         if (!output.video_info.thumbnail.empty())
-            output.video_info.thumbnail_id = g::pTextures->load_image(output.video_info.thumbnail.c_str(), QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
+            output.video_info.thumbnail_id = g::pTextures->load_image_from_path(output.video_info.thumbnail, QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
     }
     else if (output.media_id > 0)
     {
@@ -1170,13 +1162,12 @@ void PanelQueue::show_video(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
     {
         if (!g::pTextures->get_image_alive(output.video_info.thumbnail_id))
         {
-            output.video_info.thumbnail_id = g::pTextures->load_image(output.video_info.thumbnail.c_str(), QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
+            output.video_info.thumbnail_id = g::pTextures->load_image_from_path(output.video_info.thumbnail, QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
             show_stub = true;
-
         }
         else
         {
-            auto image = g::pTextures->get_image(output.video_info.thumbnail_id, output.media_valid);
+            const auto image = g::pTextures->get_image(output.video_info.thumbnail_id, output.media_valid);
             if (image)
             {
                 if (output.video_info.width > 0 && output.video_info.height > 0 && output.video_info.width != output.video_info.height)
@@ -1192,9 +1183,9 @@ void PanelQueue::show_video(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
             }
         }
     }
-    else [[likely]]
+    else
     {
-        auto frame = g::pVideoControl->get_frame(output.media_id);
+        const auto frame = g::pVideoControl->get_frame(output.media_id);
         if (frame)
         {
             if (output.video_info.width > 0 && output.video_info.height > 0 && output.video_info.width != output.video_info.height)
@@ -1360,7 +1351,7 @@ void PanelQueue::load_history()
     std::string data;
     const auto history_request = fmt::format(comfyui_http::history_, g::pOptsManager->queue_history_num_load());
 
-    const int32_t res = g::pFlow->http_get_and_wait("QPanel/History", history_request.c_str(), {}, {}, true,
+    const int32_t res = g::pFlow->http_get_and_wait(HttpRequestor::QPanel_History, history_request.c_str(), {}, {}, true,
         [stop_flag = m_load_history_stop]() noexcept { return stop_flag->load(std::memory_order_relaxed); }, data);
 
     if (res != HTTP_RESP_OK) [[unlikely]]
@@ -1699,7 +1690,7 @@ void PanelQueue::load_output_data(uint64_t task_id, uint64_t out_id, const std::
                         {
                             if (tools::path::make_file(out.binary_path, false, data) && mngr::ExecTask::OutputType::Image == out.type)
                             {
-                                out.media_id = g::pTextures->load_image(out.binary_path.c_str(), QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
+                                out.media_id = g::pTextures->load_image_from_path(out.binary_path, QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
                             }
                         }
                         out.exists = true;

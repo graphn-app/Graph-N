@@ -262,6 +262,10 @@ bool WfDeserializerFromBlob::deserialize_pin(blob::Reader& root_block, bool dumm
     m_curr_pin->state().value = block.pop_primitive();
     m_curr_pin->state().cag = block.pop_iid();
     m_curr_pin->obj_flags().add_remove_if(PinObjFlags::CagRequire, block.pop_bool());
+
+    if (PinType::COMBO == m_curr_pin->state().type && cast::to_szt(m_curr_pin->state().value.get_int()) >= m_curr_pin->get_object()->combo_items.size())
+        m_curr_pin->state().value = int64_t(0);
+
     return true;
 }
 

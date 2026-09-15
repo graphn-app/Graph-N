@@ -13,9 +13,9 @@ public:
     auto operator<=>(const number&) const noexcept = default;
 
     number& operator++() noexcept { ++n; return *this; }
-    number operator++(int) noexcept { number temp = *this; ++n; return temp; }
+    number operator++(int32_t) noexcept { number temp = *this; ++n; return temp; }
     number& operator--() noexcept { --n; return *this; }
-    number operator--(int) noexcept { number temp = *this; --n; return temp; }
+    number operator--(int32_t) noexcept { number temp = *this; --n; return temp; }
 
     number_t underlying_type() const noexcept { return n; }
     number_t* underlying_type_ref() noexcept { return &n; }

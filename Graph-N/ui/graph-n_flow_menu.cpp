@@ -309,7 +309,6 @@ void GraphN_Flow::on_menu_about() noexcept
 
 void GraphN_Flow::on_menu_panel_window(ViewDialogs wnd, bool toggle /*= false*/)
 {
-    LogV(wnd, toggle);
     if (toggle && wnd != ViewPanelsResetAll)
     {
         const bool displayed = (m_windows & wnd) > 0;
@@ -366,7 +365,6 @@ void GraphN_Flow::on_menu_activate_wf(const PanelWorkflow* wf_panel)
 {
     if (wf_panel != nullptr)
     {
-        LogV(wf_panel->get_panel_name());
         wf_activate(wf_panel->get_workflow()->get_id());
     }
     else

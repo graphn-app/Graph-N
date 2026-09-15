@@ -51,7 +51,7 @@ public:
     ImU32 m_clr_head = 0;           // color for node/group header background
     ImU32 m_clr_group_capt = 0;     // color for group name
 
-    std::string m_output_source;    // path for image/video/audio output OR text for text output
+    int32_t m_media_list_version = 0;
 };
 
 } // namespace data

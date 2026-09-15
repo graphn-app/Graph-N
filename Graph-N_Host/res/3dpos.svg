@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="5" stdDeviation="4" flood-color="#000000" flood-opacity="0.8"/>
+    </filter>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  
+  <rect width="100%" height="100%" fill="#192028"/>
+
+  <!-- 3D Gizmo Hint -->
+  <g transform="translate(35, 215)" filter="url(#shadow)">
+    <line x1="0" y1="0" x2="0" y2="-28" stroke="#c0392b" stroke-width="3" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="24" y2="14" stroke="#27ae60" stroke-width="3" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="-22" y2="12" stroke="#2980b9" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="0" cy="0" r="3" fill="#c86934"/>
+  </g>
+
+  <!-- Pose Skeleton Lines -->
+  <g stroke="#2980b9" stroke-width="5" fill="none" filter="url(#shadow)" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="128" y1="50" x2="128" y2="85" />
+    <line x1="128" y1="85" x2="128" y2="145" />
+    
+    <!-- Left Arm -->
+    <line x1="128" y1="85" x2="85" y2="105" />
+    <line x1="85" y1="105" x2="60" y2="145" />
+    <line x1="60" y1="145" x2="75" y2="185" />
+    
+    <!-- Right Arm (Raised) -->
+    <line x1="128" y1="85" x2="171" y2="105" />
+    <line x1="171" y1="105" x2="196" y2="70" />
+    <line x1="196" y1="70" x2="210" y2="30" />
+    
+    <!-- Legs -->
+    <line x1="128" y1="145" x2="98" y2="165" />
+    <line x1="98" y1="165" x2="98" y2="215" />
+    
+    <line x1="128" y1="145" x2="158" y2="165" />
+    <line x1="158" y1="165" x2="182" y2="195" />
+    <line x1="182" y1="195" x2="165" y2="235" />
+  </g>
+
+  <!-- Joints -->
+  <g fill="#c86934" filter="url(#shadow)">
+    <circle cx="128" cy="50" r="8" filter="url(#glow)"/> <!-- Head -->
+    <circle cx="128" cy="85" r="4.5"/> <!-- Neck -->
+    <circle cx="128" cy="145" r="4.5"/> <!-- Root -->
+    
+    <circle cx="85" cy="105" r="4.5"/>
+    <circle cx="60" cy="145" r="4.5"/>
+    <circle cx="75" cy="185" r="4.5"/>
+    
+    <circle cx="171" cy="105" r="4.5"/>
+    <circle cx="196" cy="70" r="4.5"/>
+    <circle cx="210" cy="30" r="4.5"/>
+    
+    <circle cx="98" cy="165" r="4.5"/>
+    <circle cx="98" cy="215" r="4.5"/>
+    
+    <circle cx="158" cy="165" r="4.5"/>
+    <circle cx="182" cy="195" r="4.5"/>
+    <circle cx="165" cy="235" r="4.5"/>
+  </g>
+</svg>

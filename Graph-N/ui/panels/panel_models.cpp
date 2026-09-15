@@ -402,7 +402,7 @@ void PanelModels::on_alloc_tt_data(int32_t idx)
     if (g::pTextures->get_image_alive(model->info.textures_id))
         return;
 
-    model->info.textures_id = g::pTextures->load_image(tools::path::path_to_string(model->info.image_path).c_str(), 300, 300, 20);
+    model->info.textures_id = g::pTextures->load_image_from_path(model->info.image_path, 300, 300, 20);
 }
 
 bool PanelModels::on_pre_tt(int32_t idx) noexcept
@@ -457,7 +457,7 @@ void PanelModels::on_show_tt(int32_t idx)
         auto textures = g::pTextures->get_image(model->info.textures_id, valid, &w, &h);
         if (textures != nullptr)
             ImGui::Image(textures, ImVec2(w, h));
-        else if (valid.has_value() && !valid)
+        else if (!valid.value_or(true))
             ImGui::TextUnformatted("Can't render image data");
     }
 }

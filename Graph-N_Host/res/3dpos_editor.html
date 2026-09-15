@@ -211,11 +211,11 @@
 		}
 
         // === STATE & HISTORY ===
-        const state = {
-            thickness: INJECTED_SETTINGS?.thickness || defaultSettings.thickness,
-            skeletonVisible: INJECTED_SETTINGS?.skeletonVisible || defaultSettings.skeletonVisible,
-            imageVisible: INJECTED_SETTINGS?.imageVisible || defaultSettings.imageVisible,
-            gridVisible: INJECTED_SETTINGS?.gridVisible || defaultSettings.gridVisible,
+		const state = {
+            thickness: INJECTED_SETTINGS?.thickness ?? defaultSettings.thickness,
+            skeletonVisible: INJECTED_SETTINGS?.skeletonVisible ?? defaultSettings.skeletonVisible,
+            imageVisible: INJECTED_SETTINGS?.imageVisible ?? defaultSettings.imageVisible,
+            gridVisible: INJECTED_SETTINGS?.gridVisible ?? defaultSettings.gridVisible,
             
             imgWidth: 768,
             imgHeight: 768,
@@ -475,6 +475,24 @@
         rngThickness.oninput = (e) => syncThickness(e.target.value);
         numThickness.oninput = (e) => syncThickness(e.target.value);
         numThickness.onchange = (e) => syncThickness(e.target.value);
+		
+		// === SYNC INITIAL STATE ===
+        function syncUI() {
+            // Apply visibility to Three.js and DOM
+            skeletonGroup.visible = state.skeletonVisible;
+            gridHelper.visible = state.gridVisible;
+            bgImage.style.display = state.imageVisible ? 'block' : 'none';
+
+            // Sync button classes
+            btnToggleSkel.classList.toggle('active', state.skeletonVisible);
+            btnToggleGrid.classList.toggle('active', state.gridVisible);
+            btnToggleImage.classList.toggle('active', state.imageVisible);
+
+            // Sync sliders
+            rngThickness.value = state.thickness;
+            numThickness.value = state.thickness;
+        }
+        syncUI();
 
         // === RENDER LOOP ===
         function animate() {
@@ -532,8 +550,10 @@
                     await fetch(`${API_BASE}/save_mask`, {
                         method: "POST",
                         body: blob,
-                        "Content-Type": "image/png",
-                        "X-Editor-Settings": JSON.stringify(currentSettings)
+                        headers: { 
+                            "Content-Type": "image/png",
+                            "X-Editor-Settings": JSON.stringify(currentSettings)
+                        }
                     });
                 } catch (e) { console.error(e); } 
                 finally { btn.innerText = "Save to node"; }

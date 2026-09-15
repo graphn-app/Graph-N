@@ -413,7 +413,7 @@ void SyncProjectsDlg::load_projects()
         m_step = Step::Ready;
     };
 
-    g::pFlow->http_get("Sync/Init", get_alive_callback(), comfyui_http::wfs_all_names, all_server_names);
+    g::pFlow->http_get(HttpRequestor::Sync_Init, get_alive_callback(), comfyui_http::wfs_all_names, all_server_names);
 }
 
 void SyncProjectsDlg::setup_actions()
@@ -605,7 +605,7 @@ void SyncProjectsDlg::sync()
             {
                 row.status = SyncStatus::InProgress;
                 const auto url = fmt::format(comfyui_http::wf_download_, tools::str::url_encode(row.name) + ".json");
-                g::pFlow->http_get("Sync/Action", get_alive_callback(), url.c_str(), download);
+                g::pFlow->http_get(HttpRequestor::Sync_Action, get_alive_callback(), url.c_str(), download);
             }
             break;
         case SyncAction::Upload:
@@ -627,7 +627,7 @@ void SyncProjectsDlg::sync()
                     auto j = data::WfSerializerToJson(g::pWfsManager->access(row.local_id)).serialize();
                     const auto project_name = (SyncAction::UploadRename == row.selected_action ? row.new_name : row.name);
                     const auto url = fmt::format(comfyui_http::wf_upload_, tools::str::url_encode(project_name) + ".json");
-                    g::pFlow->http_post("Sync/Action", get_alive_callback(), url.c_str(), j.dump(), upload);
+                    g::pFlow->http_post(HttpRequestor::Sync_Action, get_alive_callback(), url.c_str(), j.dump(), upload);
                 }
             }
             break;

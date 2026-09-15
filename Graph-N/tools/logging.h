@@ -16,10 +16,9 @@ public:
     void stop() noexcept;
 
     static bool get_log_enabled() noexcept { return m_enabled.load(std::memory_order_relaxed); }
-#ifndef TOOLS_DETACHED_STATE
-    static bool get_log_web_response_enabled() { return check_web_dump_file_mark(); }
-    static bool get_log_object_info_enabled() { return check_object_info_file_mark(); }
-#endif // TOOLS_DETACHED_STATE
+    static bool get_log_web_response_enabled() { return m_log_web_dump_file_mark_enabled; }
+    static bool get_log_object_info_enabled() { return m_log_object_info_file_mark_enabled; }
+    static bool get_log_dump_invalid_json_enabled() { return m_log_invalid_json_mark_enabled; }
 
     static void set_log_enabled(bool enable);
     static void disable_logging() noexcept { m_enabled.store(false, std::memory_order_relaxed); }
@@ -34,10 +33,6 @@ private:
     NO_COPY_MOVE(Logger);
 
     static bool check_log_file_mark();
-#ifndef TOOLS_DETACHED_STATE
-    static bool check_web_dump_file_mark();
-    static bool check_object_info_file_mark();
-#endif // TOOLS_DETACHED_STATE
 
     void log_start() noexcept;
     void log_stop() noexcept;
@@ -45,11 +40,11 @@ private:
     void working_thread();
 
 private:
-    static const char* m_log_file_mark;
-#ifndef TOOLS_DETACHED_STATE
-    static const char* m_log_web_dump_file_mark;
-    static const char* m_log_object_info_file_mark;
-#endif // TOOLS_DETACHED_STATE
+    static bool m_log_file_mark_enabled;
+    static bool m_log_web_dump_file_mark_enabled;
+    static bool m_log_object_info_file_mark_enabled;
+    static bool m_log_invalid_json_mark_enabled;
+
     static std::atomic_bool m_enabled;
 
     std::ofstream m_logfs;
@@ -182,7 +177,7 @@ struct LogGuard final
 
 #if defined (_DEBUG) && defined (_WIN32) && !defined (SKIP_DEBUG_CATCH)
 #define DEBUG_CATCH \
-    { \
+    do { \
         switch (::MessageBoxA(nullptr, \
             "Some error happened\nTo exit app - press 'Abort'\nTo attach debugger - press 'Retry'\nTo continue execution - press 'Ignore')", \
             APP_CAPTION, MB_ABORTRETRYIGNORE | MB_ICONWARNING | MB_TASKMODAL | MB_TOPMOST)) \
@@ -197,13 +192,13 @@ struct LogGuard final
         case IDIGNORE: \
             break; \
         } \
-    }
+    } while(false)
 #else
 #define DEBUG_CATCH
 #endif // _DEBUG && _WIN32 && SKIP_DEBUG_CATCH
 
 #define LogFull(ptr, message) \
-    { if (glog::Logger::get_log_enabled()) \
+    do { if (glog::Logger::get_log_enabled()) \
     { \
         try { \
             glog::LogWriter log_writer__; \
@@ -215,10 +210,10 @@ struct LogGuard final
             glog::Logger::instance().disable_logging(); \
             DEBUG_CATCH; \
         } \
-    } }
+    } }  while(false)
 
 #define LogClear(message) \
-    { if (glog::Logger::get_log_enabled()) \
+    do { if (glog::Logger::get_log_enabled()) \
     { \
         try { \
             glog::LogWriter log_writer__; \
@@ -229,13 +224,13 @@ struct LogGuard final
             glog::Logger::instance().disable_logging(); \
             DEBUG_CATCH; \
         } \
-    } }
+    } }  while(false)
 
 #define Log(message)    LogFull(this, message)
 #define LogS(message)   LogFull(nullptr, message)
 
 #define LOG_AND_CATCH(ptr, log_prefix, message, save) \
-    { \
+    do { \
         try { \
             glog::LogWriter log_writer_1__; \
             log_writer_1__ << message; \
@@ -255,10 +250,10 @@ struct LogGuard final
             DEBUG_CATCH; \
         } \
         DEBUG_CATCH; \
-    }
+    }  while(false)
 
 #define LOG_CRITICAL(ptr, log_prefix, message) \
-    { \
+    do { \
         try { \
             glog::LogWriter log_writer_1__; \
             log_writer_1__ << message; \
@@ -280,7 +275,7 @@ struct LogGuard final
             DEBUG_CATCH; \
         } \
         ::exit(1); \
-    }
+    } while(false)
 
 #define LogWarn(message)                         Log("[WARNING] " << message)
 #define LogWarnS(message)                        LogS("[WARNING] " << message)
@@ -294,31 +289,31 @@ struct LogGuard final
 #define LogRError(message, ret)                  { LOG_AND_CATCH(this, "ASSERT", message, true); return ret; }
 #define LogRErrorS(message, ret)                 { LOG_AND_CATCH(nullptr, "ASSERT", message, true); return ret; }
 
-#define LogCError(message)                       { LOG_AND_CATCH(this, "ASSERT", message, true); continue; }
-#define LogCErrorS(message)                      { LOG_AND_CATCH(nullptr, "ASSERT", message, true); continue; }
+#define LogCError(message)                       if (true) { LOG_AND_CATCH(this, "ASSERT", message, true); continue; } else (void)0
+#define LogCErrorS(message)                      if (true) { LOG_AND_CATCH(nullptr, "ASSERT", message, true); continue; } else (void)0
 
 #define LogCritical(message)                     LOG_CRITICAL(this, "CRITICAL", message)
 #define LogCriticalS(message)                    LOG_CRITICAL(nullptr, "CRITICAL", message)
 
-#define LogCriticalIf(true_cond, message)        if (!(true_cond)) [[unlikely]] { LOG_CRITICAL(this, "CRITICAL", message); }
-#define LogCriticalIfS(true_cond, message)       if (!(true_cond)) [[unlikely]] { LOG_CRITICAL(nullptr, "CRITICAL", message); }
+#define LogCriticalIf(true_cond, message)        do { if (!(true_cond)) [[unlikely]] { LOG_CRITICAL(this, "CRITICAL", message); } } while(false)
+#define LogCriticalIfS(true_cond, message)       do { if (!(true_cond)) [[unlikely]] { LOG_CRITICAL(nullptr, "CRITICAL", message); } } while(false)
 
-#define LogAssert(true_cond, message)            if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(this, "ASSERT", message, true); }
-#define LogAssertS(true_cond, message)           if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(nullptr, "ASSERT", message, true); }
+#define LogAssert(true_cond, message)            do { if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(this, "ASSERT", message, true); } } while(false)
+#define LogAssertS(true_cond, message)           do { if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(nullptr, "ASSERT", message, true); } } while(false)
 
-#define LogRAssert(true_cond, message, ret)      if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(this, "ASSERT", message, true); return ret; }
-#define LogRAssertS(true_cond, message, ret)     if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(nullptr, "ASSERT", message, true); return ret; }
+#define LogRAssert(true_cond, message, ret)      do { if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(this, "ASSERT", message, true); return ret; } } while(false)
+#define LogRAssertS(true_cond, message, ret)     do { if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(nullptr, "ASSERT", message, true); return ret; } } while(false)
 
-#define LogCAssert(true_cond, message)           if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(this, "ASSERT", message, true); continue; }
-#define LogCAssertS(true_cond, message)          if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(nullptr, "ASSERT", message, true); continue; }
+#define LogCAssert(true_cond, message)           if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(this, "ASSERT", message, true); continue; } else (void)0
+#define LogCAssertS(true_cond, message)          if (!(true_cond)) [[unlikely]] { LOG_AND_CATCH(nullptr, "ASSERT", message, true); continue; } else (void)0
 
 #ifndef TOOLS_DETACHED_STATE
 #define LogSqlDbErr(message)                     LOG_AND_CATCH(this, "SQL_ERROR", message, false)
 
-#define LogUnhandledJson(message)                Log("[JSON_UNHANDLED] " << message)
-#define LogUnhandledJsonS(message)               LogS("[JSON_UNHANDLED] " << message)
-#define LogInvalidJson(message)                  Log("[JSON_INVALID] " << message)
-#define LogInvalidJsonS(message)                 LogS("[JSON_INVALID] " << message)
+#define LogUnhandledJson(message)                while(glog::Logger::get_log_dump_invalid_json_enabled()) { Log("[JSON_UNHANDLED] " << message); break; }
+#define LogUnhandledJsonS(message)               while(glog::Logger::get_log_dump_invalid_json_enabled()) { LogS("[JSON_UNHANDLED] " << message); break; }
+#define LogInvalidJson(message)                  while(glog::Logger::get_log_dump_invalid_json_enabled()) { Log("[JSON_INVALID] " << message); break; }
+#define LogInvalidJsonS(message)                 while(glog::Logger::get_log_dump_invalid_json_enabled()) { LogS("[JSON_INVALID] " << message); break; }
 #endif // TOOLS_DETACHED_STATE
 
 #define LogIn                                    Log(" > in")
@@ -328,54 +323,54 @@ struct LogGuard final
 #define LogOutS                                  LogS(" < out")
 
 
-// Helper to convert types that fmt doesn't handle by default (like enums)
-template <typename T>
-void append_arg_to_buf(fmt::memory_buffer& out, const T& arg)
-{
-    // If it's an enum, cast to underlying integer type (mimics stringstream behavior)
-    if constexpr (std::is_enum_v<T>)
-    {
-        fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), static_cast<std::underlying_type_t<T>>(arg));
-    }
-
-    // If it's a filesystem path, convert to generic string
-    else if constexpr (std::is_same_v<T, std::filesystem::path>)
-    {
-        fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), arg.string());
-    }
-    // Standard types (int, string, float, etc.)
-    else
-    {
-        fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), arg);
-    }
-}
-
-template <typename... Args>
-std::string format_log_msg(Args&&... args)
-{
-    // Use memory_buffer for performance (avoids heap allocations for small strings)
-    fmt::memory_buffer out;
-    std::string_view sep = "";
-
-    // C++17 fold expression to iterate over arguments
-    // Appends separator only after the first element
-    const auto append = [&](auto&& arg)
-    {
-        // separator
-        if (!sep.empty())
-            fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), sep);
-
-        // use the helper to print the argument
-        append_arg_to_buf(out, arg);
-
-        sep = ", ";
-    };
-    (append(std::forward<Args>(args)), ...);
-
-    return fmt::to_string(out);
-}
-#define LogV(...)                    Log(format_log_msg(__VA_ARGS__))
-#define LogVS(...)                   LogS(format_log_msg(__VA_ARGS__))
+//// Helper to convert types that fmt doesn't handle by default (like enums)
+//template <typename T>
+//void append_arg_to_buf(fmt::memory_buffer& out, const T& arg)
+//{
+//    // If it's an enum, cast to underlying integer type (mimics stringstream behavior)
+//    if constexpr (std::is_enum_v<T>)
+//    {
+//        fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), static_cast<std::underlying_type_t<T>>(arg));
+//    }
+//
+//    // If it's a filesystem path, convert to generic string
+//    else if constexpr (std::is_same_v<T, std::filesystem::path>)
+//    {
+//        fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), arg.string());
+//    }
+//    // Standard types (int, string, float, etc.)
+//    else
+//    {
+//        fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), arg);
+//    }
+//}
+//
+//template <typename... Args>
+//std::string format_log_msg(Args&&... args)
+//{
+//    // Use memory_buffer for performance (avoids heap allocations for small strings)
+//    fmt::memory_buffer out;
+//    std::string_view sep = "";
+//
+//    // C++17 fold expression to iterate over arguments
+//    // Appends separator only after the first element
+//    const auto append = [&](auto&& arg)
+//    {
+//        // separator
+//        if (!sep.empty())
+//            fmt::format_to(std::back_inserter(out), FMT_STRING("{}"), sep);
+//
+//        // use the helper to print the argument
+//        append_arg_to_buf(out, arg);
+//
+//        sep = ", ";
+//    };
+//    (append(std::forward<Args>(args)), ...);
+//
+//    return fmt::to_string(out);
+//}
+//#define LogV(...)                    Log(format_log_msg(__VA_ARGS__))
+//#define LogVS(...)                   LogS(format_log_msg(__VA_ARGS__))
 
 #ifdef _WIN32
 #define LogApiERR                    uint32_t(::GetLastError())

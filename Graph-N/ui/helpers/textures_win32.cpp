@@ -7,7 +7,7 @@
 namespace platform
 {
 
-ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32_t width, uint32_t height, bool generate_mips)
+ImTextureIDPtr Textures_Win32::upload_to_gpu(const byte* image_data, uint32_t width, uint32_t height, bool generate_mips)
 {
     LogRAssert(image_data, "Invalid input", nullptr);
     if (nullptr == m_device)
@@ -47,7 +47,7 @@ ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32
     {
         D3D11_SUBRESOURCE_DATA init_data;
         ::ZeroMemory(&init_data, sizeof(init_data));
-        init_data.pSysMem = image_data.get();
+        init_data.pSysMem = image_data;
         init_data.SysMemPitch = desc.Width * 4;
         init_data.SysMemSlicePitch = 0;
         hr = m_device->CreateTexture2D(&desc, &init_data, &texture_ptr);
@@ -59,7 +59,7 @@ ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32
         {
             ID3D11DeviceContext* context = nullptr;
             m_device->GetImmediateContext(&context);
-            context->UpdateSubresource(texture_ptr, 0, nullptr, image_data.get(), desc.Width * 4, 0);
+            context->UpdateSubresource(texture_ptr, 0, nullptr, image_data, desc.Width * 4, 0);
             context->Release();
         }
     }
@@ -96,7 +96,7 @@ ImTextureIDPtr Textures_Win32::upload_to_gpu(const ImageData& image_data, uint32
     return textures;
 }
 
-bool Textures_Win32::update_gpu_texture(ImTextureIDPtr texture, const ImageData& image_data, uint32_t width, uint32_t /*height*/, bool generate_mips)
+bool Textures_Win32::update_gpu_texture(ImTextureIDPtr texture, const byte* image_data, uint32_t width, uint32_t /*height*/, bool generate_mips)
 {
     LogRAssert(image_data && texture, "Invalid input", false);
     if (nullptr == m_device)
@@ -123,7 +123,7 @@ bool Textures_Win32::update_gpu_texture(ImTextureIDPtr texture, const ImageData&
 
     // upload raw pixels directly to VRAM
     // pitch is width * 4 (since format is IM_COL32/RGBA - 4 bytes per pixel)
-    context->UpdateSubresource(resource, 0, nullptr, image_data.get(), width * 4, 0);
+    context->UpdateSubresource(resource, 0, nullptr, image_data, width * 4, 0);
 
     if (generate_mips)
     {

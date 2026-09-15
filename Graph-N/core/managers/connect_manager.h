@@ -22,10 +22,10 @@ public:
 private:
     void reconnect();
 
-    uint32_t send_http_get_request(const char* who_is_asking, const char* url, bool retry_on_timeout);
-    uint32_t send_http_get_request(const char* who_is_asking, const char* url, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout);
-    uint32_t send_http_post_request(const char* who_is_asking, const char* url, std::string&& payload, bool retry_on_timeout);
-    uint32_t send_http_post_request(const char* who_is_asking, const char* url, httplib::UploadFormDataItems&& payload_items, bool retry_on_timeout);
+    uint32_t send_http_get_request(HttpRequestor requestor, const char* url, bool retry_on_timeout);
+    uint32_t send_http_get_request(HttpRequestor requestor, const char* url, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout);
+    uint32_t send_http_post_request(HttpRequestor requestor, const char* url, std::string&& payload, bool retry_on_timeout);
+    uint32_t send_http_post_request(HttpRequestor requestor, const char* url, httplib::UploadFormDataItems&& payload_items, bool retry_on_timeout);
 
     bool pickup_http_response(uint32_t& req_id, int32_t& result, std::string& response);
     bool pickup_ws_message(bool& is_binary, std::string& message);
@@ -36,7 +36,8 @@ private:
         Type type = Type::None;
 
         uint32_t req_id = 0;
-        const char* who_is_asking = nullptr;
+        HttpRequestor requestor;
+        bool log_this_request = true;
 
         std::string url;
 

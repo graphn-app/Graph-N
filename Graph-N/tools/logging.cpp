@@ -7,10 +7,16 @@
 namespace glog
 {
 
-const char* Logger::m_log_file_mark = "__log_enabled__";
+constexpr const char* g_log_file_mark = "__log_enabled__";
+bool Logger::m_log_file_mark_enabled = false;
 #ifndef TOOLS_DETACHED_STATE
-const char* Logger::m_log_web_dump_file_mark = "__dump_web_response__";
-const char* Logger::m_log_object_info_file_mark = "__dump_object_info__";
+constexpr const char* g_log_web_dump_file_mark = "__dump_web_response__";
+constexpr const char* g_log_object_info_file_mark = "__dump_object_info__";
+constexpr const char* g_log_invalid_json_mark = "__dump_invalid_json__";
+
+bool Logger::m_log_web_dump_file_mark_enabled = false;
+bool Logger::m_log_object_info_file_mark_enabled = false;
+bool Logger::m_log_invalid_json_mark_enabled = false;
 #endif // TOOLS_DETACHED_STATE
 std::atomic_bool Logger::m_enabled = false;
 
@@ -75,20 +81,13 @@ bool check_log_file_mark_exists(const char* file_mark)
 
 bool Logger::check_log_file_mark()
 {
-    return check_log_file_mark_exists(m_log_file_mark);
-}
+    m_log_file_mark_enabled = check_log_file_mark_exists(g_log_file_mark);
+    m_log_web_dump_file_mark_enabled = check_log_file_mark_exists(g_log_web_dump_file_mark);
+    m_log_object_info_file_mark_enabled = check_log_file_mark_exists(g_log_object_info_file_mark);
+    m_log_invalid_json_mark_enabled = check_log_file_mark_exists(g_log_invalid_json_mark);
 
-#ifndef TOOLS_DETACHED_STATE
-bool Logger::check_web_dump_file_mark()
-{
-    return check_log_file_mark_exists(m_log_web_dump_file_mark);
+    return m_log_file_mark_enabled;
 }
-
-bool Logger::check_object_info_file_mark()
-{
-    return check_log_file_mark_exists(m_log_object_info_file_mark);
-}
-#endif // TOOLS_DETACHED_STATE
 
 void Logger::set_log_enabled(bool enable)
 {
@@ -96,7 +95,7 @@ void Logger::set_log_enabled(bool enable)
         return;
 
     auto path = fs::get_log_directory_path();
-    path /= m_log_file_mark;
+    path /= g_log_file_mark;
 
     if (enable)
     {

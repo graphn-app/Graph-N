@@ -32,7 +32,7 @@ public:
     bool is_loaded(wid wf_id) const;
     bool load(wid wf_id, blob::Blob& drawer_state);
 
-    data::Workflow* access(wid id) const;
+    data::Workflow* access(wid id, bool allow_zero_ret = false) const;
 
     wid get_active() const noexcept { return m_active; }
     void set_active(wid id);

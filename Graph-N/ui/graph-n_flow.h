@@ -82,7 +82,6 @@ enum ViewDialogs : uint64_t
     ViewSyncProjects            = 1ULL << 26,
 
     _ViewNextAvailable          = 1ULL << 28,   // UPDATE ON NEW DIALOG
-    _ViewLastAvailable          = 1ULL << 63,
 
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWfList | ViewPanelModels | /*ViewPanelTemplates | */ViewPanelOutput | ViewPanelQueue /*| ViewPanelNotes*/,
@@ -126,11 +125,13 @@ public:
     bool get_models_ready() const noexcept { return m_models_ready.load(std::memory_order_relaxed); }
     bool get_projects_ready() const noexcept { return m_projects_ready.load(std::memory_order_relaxed); }
 
-    uint32_t http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout = false);
-    uint32_t http_get(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::Params&& params, httplib::Headers&& headers, const HttpResponseCb& callback, bool retry_on_timeout = false);
-    int32_t http_get_and_wait(const char* who_is_asking, const char* request, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout, const std::function<bool()>& stop_callback, std::string& ret_data);
-    uint32_t http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);
-    uint32_t http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);    
+    // http requests
+    uint32_t http_get(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout = false);
+    uint32_t http_get(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, httplib::Params&& params, httplib::Headers&& headers, const HttpResponseCb& callback, bool retry_on_timeout = false);
+    int32_t http_get_and_wait(HttpRequestor requestor, const char* request, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout, const std::function<bool()>& stop_callback, std::string& ret_data);
+    uint32_t http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);
+    uint32_t http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);    
+
 
     // WF
     PanelWorkflow* wf_get_active_panel() const noexcept { return m_wf_focused; }

@@ -42,7 +42,7 @@ data::NodeInstance* WorkflowAction::add_node(data::Node* node, const std::string
     if (m_drawer != nullptr)
         visible_pos = ImRect(m_drawer->get_visible_pos(ImVec2(100, 100)), ImVec2(-1, -1));
 
-    const auto node_inst = m_wf->add_node(node, (pos.has_value() ? pos.value() : visible_pos), select);
+    const auto node_inst = m_wf->add_node(node, pos.value_or(visible_pos), select);
     node_inst->reset_width();
     g::pHistoryManager->push_node_action(node_inst, mngr::HistoryActionType::NodeAdd);
     return node_inst;
@@ -50,7 +50,7 @@ data::NodeInstance* WorkflowAction::add_node(data::Node* node, const std::string
 
 data::NodeInstance* WorkflowAction::add_group(std::optional<ImRect> size)
 {
-    const auto group_inst = m_wf->add_group(size.has_value() ? size.value() : ImRect(100, 100, -1, -1), "New group");
+    const auto group_inst = m_wf->add_group(size.value_or(ImRect(100, 100, -1, -1)), "New group");
     g::pHistoryManager->push_node_action(group_inst, mngr::HistoryActionType::NodeAdd);
     return group_inst;
 }

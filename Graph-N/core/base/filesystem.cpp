@@ -92,4 +92,14 @@ std::filesystem::path get_host_path()
     return path;
 }
 
+std::filesystem::path get_host_webprofile_path(uint64_t host_id)
+{
+    auto path = get_temp_directory_path();
+    if (0 == host_id)
+        path /= "webprofile_debug";
+    else
+        path /= std::to_string(host_id);
+    return path;
+}
+
 }

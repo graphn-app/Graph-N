@@ -23,7 +23,7 @@ void PanelTextEditor::free() noexcept
 
 void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint)
 {
-    LogRAssert(node && pin && buffer, "Zero ptr", );
+    LogRAssert(node && buffer, "Zero ptr", );
     clear_toolbar();
     m_current = nullptr;
     m_editing = nullptr;
@@ -36,6 +36,7 @@ void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance
             ed.buffer = buffer;
             ed.hint = hint;
             ed.action = g::pWfsManager->access(ed.wf)->action();
+            ed.ro = (pin != nullptr);
             m_current = &ed;
             break;
         }
@@ -49,12 +50,16 @@ void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance
         ed.pin = pin;
         ed.buffer = buffer;
         ed.hint = hint;
+        ed.ro = (pin != nullptr);
         ed.action = g::pWfsManager->access(ed.wf)->action();
         m_editors.push_back(ed);
         m_current = &m_editors.back();
     }
 
-    set_name(node->get_name() + " | Editor");
+    if (pin != nullptr)
+        set_name(node->get_name() + " | Editor");
+    else
+        set_name(node->get_name() + " | Viewer");
     m_need_focus = true;
     create_toolbar();
 }
@@ -65,7 +70,10 @@ void PanelTextEditor::update_node_name(wid wf, data::NodeInstance* node)
     {
         if (ed.wf == wf && ed.node == node)
         {
-            set_name(node->get_name() + " | Editor");
+            if (!ed.ro)
+                set_name(node->get_name() + " | Editor");
+            else
+                set_name(node->get_name() + " | Viewer");
         }
     }
 
@@ -208,8 +216,10 @@ void PanelTextEditor::create_toolbar()
     {
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Text;
-        if (m_current != nullptr)
+        if (m_current != nullptr && m_current->pin != nullptr)
             el.text = m_current->pin->state().name.c_str();
+        else
+            el.text = "[output]";
         el.text_bold = true;
         el.text_clr = g::pOptsManager->color_load(AppColor::TextEditorCaption2);
         add_toolbar_element(std::move(el), true);
@@ -268,8 +278,10 @@ DlgCode PanelTextEditor::show(bool& focused)
                     ImGui::SetKeyboardFocusHere();
                     m_need_focus = false;
                 }
-                ImGuiEx::InputTextMultilineWithHint("##TextEditorLabel", m_current->hint, m_current->buffer, ImVec2(-FLT_MIN, -FLT_MIN), ImGuiInputTextFlags_AllowTabInput);
-                handle_text_editing();
+                ImGuiEx::InputTextMultilineWithHint("##TextEditorLabel", m_current->hint, m_current->buffer, ImVec2(-FLT_MIN, -FLT_MIN),
+                    ImGuiInputTextFlags_AllowTabInput | (m_current->ro ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None));
+                if (m_current->pin != nullptr)
+                    handle_text_editing();
             }
             ImGui::EndChild();
             ImGui::PopID();

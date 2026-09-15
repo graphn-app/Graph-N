@@ -12,5 +12,6 @@ std::filesystem::path get_temp_filepath(const std::string& ext);
 std::filesystem::path get_backup_directory_path();
 std::filesystem::path get_crash_dump_directory_path();
 std::filesystem::path get_host_path();
+std::filesystem::path get_host_webprofile_path(uint64_t host_id);
 
 }

@@ -485,7 +485,7 @@ void GraphN_Flow::import_user_projects()
                 };
 
                 const auto url = fmt::format(comfyui_http::wf_download_, tools::str::url_encode(project.first));
-                http_get("Flow/Import_projects", []() { return true; }, url.c_str(), download_project, true /*retry on timeout*/);
+                http_get(HttpRequestor::Flow_Import_projects, []() { return true; }, url.c_str(), download_project, true /*retry on timeout*/);
             }
         }
 
@@ -496,7 +496,7 @@ void GraphN_Flow::import_user_projects()
         }
     };
 
-    http_get("Flow/Import_projects", []() { return true; }, comfyui_http::wfs_all_names, all_names, true /*retry on timeout*/);
+    http_get(HttpRequestor::Flow_Import_projects, []() { return true; }, comfyui_http::wfs_all_names, all_names, true /*retry on timeout*/);
 }
 
 void GraphN_Flow::import_files(std::list<std::filesystem::path>&& paths)
@@ -562,7 +562,7 @@ void GraphN_Flow::reparse_nodes()
         m_nodes_parser->parse(std::move(data));
     };
 
-    http_get("Flow/reparse_nodes", [](){ return true; }, comfyui_http::object_info, parser, true /*retry on timeout*/);
+    http_get(HttpRequestor::Flow_Reparse_nodes, [](){ return true; }, comfyui_http::object_info, parser, true /*retry on timeout*/);
 }
 
 void GraphN_Flow::on_dlg_closed(DlgObj dlg)
@@ -1232,26 +1232,26 @@ void GraphN_Flow::load_hotkeys()
 }
 
 uint32_t GraphN_Flow::http_get(
-    const char* who_is_asking, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
+    HttpRequestor requestor, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
-    const auto req_id = g::pConnectManager->send_http_get_request(who_is_asking, request, retry_on_timeout);
+    const auto req_id = g::pConnectManager->send_http_get_request(requestor, request, retry_on_timeout);
     m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }
 
 uint32_t GraphN_Flow::http_get(
-    const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::Params&& params, httplib::Headers&& headers,
+    HttpRequestor requestor, const StillAliveCallback& alive, const char* request, httplib::Params&& params, httplib::Headers&& headers,
     const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
-    const auto req_id = g::pConnectManager->send_http_get_request(who_is_asking, request, std::move(params), std::move(headers), retry_on_timeout);
+    const auto req_id = g::pConnectManager->send_http_get_request(requestor, request, std::move(params), std::move(headers), retry_on_timeout);
     m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }
 
 int32_t GraphN_Flow::http_get_and_wait(
-    const char* who_is_asking, const char* request, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout,
+    HttpRequestor requestor, const char* request, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout,
     const std::function<bool()>& stop_callback, std::string& ret_data)
 {
     LogRAssert(stop_callback != nullptr, "Stop callback is mandatory", HTTP_RESP_FAIL);
@@ -1288,9 +1288,9 @@ int32_t GraphN_Flow::http_get_and_wait(
 
     uint32_t req_id = 0;
     if (params.empty() && headers.empty())
-        req_id = http_get(who_is_asking, main_ui_alive, request, http_callback, retry_on_timeout);
+        req_id = http_get(requestor, main_ui_alive, request, http_callback, retry_on_timeout);
     else
-        req_id = http_get(who_is_asking, main_ui_alive, request, std::move(params), std::move(headers), http_callback, retry_on_timeout);
+        req_id = http_get(requestor, main_ui_alive, request, std::move(params), std::move(headers), http_callback, retry_on_timeout);
 
     int32_t current_status = 0;
     while ((current_status = http_status->load(std::memory_order_acquire)) == HTTP_RESP_UNDEFINED)
@@ -1319,18 +1319,18 @@ int32_t GraphN_Flow::http_get_and_wait(
     return HTTP_RESP_FAIL;
 }
 
-uint32_t GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
+uint32_t GraphN_Flow::http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
-    const auto req_id = g::pConnectManager->send_http_post_request(who_is_asking, request, std::move(payload), retry_on_timeout);
+    const auto req_id = g::pConnectManager->send_http_post_request(requestor, request, std::move(payload), retry_on_timeout);
     m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }
 
-uint32_t GraphN_Flow::http_post(const char* who_is_asking, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
+uint32_t GraphN_Flow::http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
-    const auto req_id = g::pConnectManager->send_http_post_request(who_is_asking, request, std::move(payload), retry_on_timeout);
+    const auto req_id = g::pConnectManager->send_http_post_request(requestor, request, std::move(payload), retry_on_timeout);
     m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }

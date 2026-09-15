@@ -28,6 +28,7 @@ constexpr int32_t HIDDEN_VIDEO_PLAYING = 5; // seconds
 constexpr int32_t HTTP_RESP_UNDEFINED    = 0;
 constexpr int32_t HTTP_RESP_OK           = 200;
 constexpr int32_t HTTP_RESP_FAIL         = -1;
+constexpr int32_t HTTP_RESP_IN_PROGRESS  = -2;
 constexpr int32_t HTTP_RESP_TIMEOUT      = 408;
 constexpr int32_t HTTP_RESP_BAD_REQUEST  = 400;
 constexpr int32_t HTTP_RESP_NOT_FOUND    = 404;
@@ -43,7 +44,7 @@ constexpr int32_t QUEUE_MAX_RUNS = 100; // count
 constexpr int32_t QUEUE_DEAD_TASK = 5 * 60; // seconds
 
 constexpr int32_t NODE_IMAGE_LIFETIME = 30; // seconds
-constexpr int32_t NODE_IMAGE_RECT = 512; // size
+constexpr int32_t NODE_IMAGE_RECT = 256; // size
 
 constexpr const char* TEMP_LABEL_COMPLETED      = "Completed tasks";
 
@@ -61,6 +62,28 @@ constexpr const char* CAG_PIN_NAME              = "E742ADEF-156C-45DF-90EC-AA36C
 constexpr const char* REROUTE_SPLITTED_PIN      = "32DB533B-64D6-4F95-A90A-A50B17B59CDB";
 
 using HttpResponseCb = std::function<void(int32_t, std::string&&)>; // http code, data
+
+enum class HttpRequestor
+{
+    Queue_Output,
+    Queue_History,
+    Queue_Interrupt,
+    Queue_Task,
+    Sync_Init,
+    Sync_Action,
+    Models_All,
+    Models_Model,
+    Flow_Import_projects,
+    Flow_Reparse_nodes,
+    QPanel_Output,
+    QPanel_History,
+    SystemStats_Stats,
+    Stats_Prompt,
+    CustomWdgt_Image,
+    CustomWdgt_Video,
+    CustomWdgt_Audio,
+    UploadMedia,
+};
 
 enum class DlgObj
 {
