@@ -144,7 +144,7 @@ void HotkeysManager::fix_with_defaults()
         else
         {
             new_bindings.push_back(d);
-            Log("Add new key binding, target " << cast::to_i32(d.target))
+            Log("Add new key binding, target " << cast::to_i32(d.target));
         }
     }
 

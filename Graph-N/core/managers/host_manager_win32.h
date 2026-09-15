@@ -18,17 +18,16 @@ public:
 
 private:
     using Handle = std::unique_ptr<void, decltype(&::CloseHandle)>;
-    struct Host final
+    struct HostProcess final
     {
-        Host()
+        HostProcess()
             : hjob(nullptr, ::CloseHandle)
             , hproc(nullptr, ::CloseHandle)
             , hpipe(nullptr, ::CloseHandle)
         {}
-        ~Host() noexcept = default;
+        ~HostProcess() noexcept = default;
 
-        std::atomic_bool has_new_command = false;
-        blob::HostData host_data;
+        std::vector<blob::HostData> new_commands;
 
         Handle hjob;
         Handle hproc;
@@ -37,12 +36,12 @@ private:
     };
 
 private:
-    void host_thread(Host& host);
-    void terminate_and_cleanup(const Host& host);
-    bool is_host_alive(const Host& host) const;
+    void host_thread(blob::HostData host_data);
+    uint32_t host_thread_worker(HostProcess& host_proc, const blob::HostData& host_data);
+    bool is_host_alive(const HostProcess& host_proc) const;
 
 private:
-    std::map<uint64_t, Host> m_hosts;
+    std::map<uint64_t, HostProcess> m_processes;
     std::mutex m_mutex;
 };
 

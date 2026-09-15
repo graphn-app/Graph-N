@@ -84,6 +84,7 @@ void WorkflowAction::delete_node(data::NodeInstance* node)
 
     g::pWfsManager->copy_del(node);
     g::pFlow->txt_panel_delete(m_wf->get_id(), node);
+    g::pFlow->host_handle_node_removal(m_wf->get_id(), node->get_instance_id());
 
     if (m_drawer != nullptr)
         m_drawer->delete_node(node);
@@ -270,6 +271,7 @@ void WorkflowAction::set_node_name(data::NodeInstance* node, const std::string& 
     node->set_name(new_name);
     if (node->flags().has_not(NodeInstFlags::Group))
     {
+        g::pFlow->host_handle_renaming(node->get_workflow_id(), node->get_instance_id());
         node->flags().add(NodeInstFlags::IgnoreSizeOnFrameEnd);
         node->reset_width();
     }

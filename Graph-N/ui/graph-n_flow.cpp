@@ -1422,6 +1422,77 @@ void GraphN_Flow::check_ws_message(const std::function<void(bool, std::string&)>
     }
 }
 
+namespace {
+void host_open(CustomWidget* wdgt, wid wf_id, iid node_id, mngr::HostManager::HostType type)
+{
+    auto wf = g::pWfsManager->access(wf_id);
+    LogRAssertS(wf, "Wf not found. w:" << wf_id, );
+
+    auto node = wf->get_node_by_instance(node_id);
+    LogRAssertS(wf, "Wf not found. w:" << wf_id << ", n:" << node_id, );
+
+    std::filesystem::path source_path, dest_path, server_name;
+    if (!wdgt->get_current_image_paths(node, source_path, server_name))
+        return;
+
+    dest_path = fs::get_temp_directory_path();
+    dest_path /= server_name.stem();
+    if (mngr::HostManager::HostType::MaskEditor == type)
+        dest_path += "_mask";
+    else
+        dest_path += "_3dpos";
+    dest_path += server_name.extension();
+    if (!tools::path::make_file(dest_path, true))
+    {
+        dest_path = tools::path::find_next_name(dest_path);
+        if (!tools::path::make_file(dest_path, true))
+        {
+            LogWarnS("Can't create dest image file");
+            return;
+        }
+    }
+
+    if (mngr::HostManager::HostType::MaskEditor == type)
+        node->flags().add(NodeInstFlags::MaskEditorRunning);
+    else
+        node->flags().add(NodeInstFlags::PosEditorRunning);
+
+    g::pHostManager->add_host(wf_id, node_id, type, std::move(source_path), std::move(dest_path), node->obj_flags().has(NodeObjFlags::CustomWdgtFromSource));
+}
+} // namespace
+
+void GraphN_Flow::host_open_mask_editor(wid wf_id, iid node_id)
+{
+    host_open(m_custom_widget.get(), wf_id, node_id, mngr::HostManager::HostType::MaskEditor);
+}
+
+void GraphN_Flow::host_open_3dpos_editor(wid wf_id, iid node_id)
+{
+    host_open(m_custom_widget.get(), wf_id, node_id, mngr::HostManager::HostType::PosEditor);
+}
+
+void GraphN_Flow::host_handle_node_removal(wid wf_id, iid node_id)
+{
+    g::pHostManager->kill_host(wf_id, node_id);
+}
+
+void GraphN_Flow::host_handle_wf_closure(wid wf_id)
+{
+    g::pHostManager->kill_hosts(wf_id);
+}
+
+void GraphN_Flow::host_handle_renaming(wid wf_id, iid node_id)
+{
+    auto wf = g::pWfsManager->access(wf_id);
+    if (node_id != 0)
+    {
+        auto node = wf->get_node_by_instance(node_id);
+        g::pHostManager->rename_host(wf_id, node_id, wf->get_data().name, node->get_name());
+    }
+    else
+        g::pHostManager->rename_host(wf_id, node_id, wf->get_data().name, "");
+}
+
 void GraphN_Flow::check_host_reply()
 {
     if (get_is_quit()) [[unlikely]]
@@ -1430,16 +1501,23 @@ void GraphN_Flow::check_host_reply()
     wid wf_id = 0;
     iid node_id = 0;
     bool result = false;
+    mngr::HostManager::HostType type;
     std::filesystem::path image_path;
-    if (!g::pHostManager->pickup_finished_host(wf_id, node_id, result, image_path)) [[likely]]
+    if (!g::pHostManager->pickup_finished_host(wf_id, node_id, result, image_path, type)) [[likely]]
         return;
 
-    Log("Host reply to w:" << wf_id << ", n:" << node_id << ", img:" << image_path);
-    auto wf = g::pWfsManager->access(wf_id);
-    LogRAssert(wf, "Wf not found", );
+    Log("Host reply to w:" << wf_id << ", n:" << node_id << ", res:" << result << ", img:" << image_path);
 
-    auto node = wf->get_node_by_instance(node_id);
-    LogRAssert(node, "Node not found", );
+    data::Workflow* wf = g::pWfsManager->access(wf_id, true); // can be zero if already closed
+    if (nullptr == wf)
+        return m_custom_widget->upload_edited_image(nullptr, std::move(image_path), true);
+
+    data::NodeInstance* node = wf->get_node_by_instance(node_id); // can be zero if already closed
+    if (nullptr == node)
+        return m_custom_widget->upload_edited_image(nullptr, std::move(image_path), true);
+
+    node->flags().remove(NodeInstFlags::MaskEditorRunning, NodeInstFlags::PosEditorRunning);
+    m_custom_widget->upload_edited_image(node, std::move(image_path), true);
 }
 
 void GraphN_Flow::test_hotkeys()

@@ -493,6 +493,7 @@ void PanelWfList::handle_dirty(const PanelItemState& dirty_item)
     else if (dirty_item.renamed)
     {
         g::pFlow->wf_rename(id, item.name);
+        g::pFlow->host_handle_renaming(id, 0);
     }
     else if (dirty_item.icon_clicked && !dirty_item.lreleased)
     {

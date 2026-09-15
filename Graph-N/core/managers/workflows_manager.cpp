@@ -679,6 +679,7 @@ void WfsManager::close(wid wf_id)
     auto wf = access(wf_id);
     auto& data = wf->get_data();
 
+    g::pFlow->host_handle_wf_closure(wf_id);
     if (data.temp && data.dirty)
     {
         data.temp = false;

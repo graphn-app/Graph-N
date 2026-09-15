@@ -132,6 +132,12 @@ public:
     uint32_t http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);
     uint32_t http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);    
 
+    // host manager
+    void host_open_mask_editor(wid wf_id, iid node_id);
+    void host_open_3dpos_editor(wid wf_id, iid node_id);
+    void host_handle_node_removal(wid wf_id, iid node_id);
+    void host_handle_wf_closure(wid wf_id);
+    void host_handle_renaming(wid wf_id, iid node_id);
 
     // WF
     PanelWorkflow* wf_get_active_panel() const noexcept { return m_wf_focused; }
