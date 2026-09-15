@@ -22,6 +22,7 @@ class OptionsDlgs;
 class ModalMessage;
 class ActivityBar;
 class SyncProjectsDlg;
+class CustomWidget;
 class PanelNodes;
 class PanelNodeInspector;
 class PanelStats;
@@ -200,6 +201,9 @@ public:
     void txt_panel_delete(wid wf, const data::NodeInstance* node = nullptr, const data::PinInstance* pin = nullptr) noexcept;
     void txt_panel_clear(wid wf) noexcept;
 
+    // custom widget handling
+    CustomWidget& custom_widgets() { return *m_custom_widget.get(); }
+
     // modal msg box
     void modal_begin(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def, const std::function<void(ModalDlgCtrl)>& callback);
     void modal_show();
@@ -285,6 +289,7 @@ private:
     std::atomic_bool m_projects_ready = false;
 
     std::unique_ptr<mngr::NodesParser> m_nodes_parser;
+    std::unique_ptr<CustomWidget> m_custom_widget;
 
     ImGuiID m_main_dock_id = 0;
     uint64_t m_windows = ViewNone;

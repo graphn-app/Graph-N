@@ -1,5 +1,6 @@
 #include "ui/graph-n_flow.h"
 #include "ui/base_dlg.h"
+#include "ui/custom_widgets/custom_widget.h"
 #include "ui/dialogs/options/opts_dlg.h"
 #include "ui/dialogs/modal_message.h"
 #include "ui/dialogs/sync_projects_dlg.h"
@@ -27,6 +28,7 @@
 #include "core/managers/hotkeys_manager.h"
 #include "core/managers/host_manager.h"
 #include "core/workflow/workflow.h"
+#include "core/workflow/node_instance.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/serializer/wf_serializers.h"
 #include "core/base/comfyui_web_paths.h"
@@ -71,6 +73,8 @@ bool GraphN_Flow::init()
     // Background: Dark Grey (Opaque) - Lighter than main window
     style.Colors[ImGuiCol_PopupBg] = ImColor(g::pOptsManager->color_load(AppColor::PopupBg));
     style.Colors[ImGuiCol_MenuBarBg] = ImColor(g::pOptsManager->color_load(AppColor::MenubarBg));
+
+    m_custom_widget = std::make_unique<CustomWidget>();
 
     // open windows
     m_windows = g::pOptsManager->ui_open_wnds_load();

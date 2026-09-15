@@ -8,6 +8,8 @@ struct ID3D11Device;
 namespace platform
 {
 
+class VideoControl_Win32_Gif;
+
 class VideoControl_Win32 final : public global::VideoControl
 {
 public:
@@ -17,9 +19,9 @@ public:
     void init() noexcept override;
     void cleanup() override;
 
-    mngr::VideoInfo get_info(const std::string& filepath, std::optional<bool>& valid) override;
+    mngr::VideoInfo get_info(const std::filesystem::path& filepath, uint32_t max_side_len, std::optional<bool>& valid) override;
+    int32_t load(const std::filesystem::path& filepath, uint32_t max_side_len) override;
 
-    int32_t load(const std::string& filepath, uint32_t max_side_len) override;
     void play(int32_t video_id) noexcept override;
     void stop(int32_t video_id) noexcept override;
     void seek(int32_t video_id, float pos) noexcept override;
@@ -28,13 +30,15 @@ public:
     float get_position(int32_t video_id) const noexcept override;
 
     ImTextureID get_frame(int32_t video_id, float* out_w = nullptr, float* out_h = nullptr) override;
-    std::string get_thumbnail(const std::string& filename, uint32_t max_side_len) override;
 
 private:
     void decode_thread_loop(mngr::VideoInfo info);
+    bool get_thumbnail_check_window_cache(const std::filesystem::path& filename, const std::string& dest_filename, uint32_t max_side_len);
 
 private:
-    std::unique_ptr<IMFSourceReader, std::function<void(IMFSourceReader*)>> m_reader;
+    bool m_initialized = false;
+
+    std::unique_ptr<::IMFSourceReader, std::function<void(::IMFSourceReader*)>> m_reader;
     mngr::VideoInfo m_info;
 
     bool m_has_video = false;
@@ -54,6 +58,9 @@ private:
     std::atomic<float> m_seek_target = 0.0f;
 
     ImTextureIDPtr m_texture = nullptr;
+
+    bool m_gif_playing = false;
+    std::unique_ptr<VideoControl_Win32_Gif> m_gif_player;
 };
 
 } // namespace platform

@@ -1,6 +1,7 @@
 #include "ui/helpers/video_control_win32.h"
 #ifdef _WIN32
 #include "ui/helpers/textures.h"
+#include "ui/helpers/video_control_win32_gif.h"
 
 #include <windows.h>
 #include <mfapi.h>
@@ -8,6 +9,7 @@
 #include <mfreadwrite.h>
 #include <propvarutil.h>
 #include <wrl/client.h>
+#include <shobjidl.h>
 
 #include "stb_image_write.h"
 
@@ -17,7 +19,7 @@ namespace platform
 {
 
 VideoControl_Win32::VideoControl_Win32() noexcept
-    : m_reader(nullptr, [](IMFSourceReader* p) { if (p) p->Release(); })
+    : m_reader(nullptr, [](::IMFSourceReader* p) { if (p) p->Release(); })
 {
 }
 
@@ -27,8 +29,9 @@ VideoControl_Win32::~VideoControl_Win32() noexcept
     {
         try
         {
+            m_gif_player->cleanup();
             cleanup();
-            MFShutdown();
+            ::MFShutdown();
         }
         catch (...) {}
     }
@@ -36,10 +39,11 @@ VideoControl_Win32::~VideoControl_Win32() noexcept
 
 void VideoControl_Win32::init() noexcept
 {
-    const HRESULT hr = MFStartup(MF_VERSION);
+    const HRESULT hr = ::MFStartup(MF_VERSION);
     LogRAssert(SUCCEEDED(hr), "failed to initialize media foundation, err " << LogHRES(hr), );
 
-    m_initialized = true;
+    m_gif_player = std::make_unique<VideoControl_Win32_Gif>();
+    m_initialized = m_gif_player->init();
 }
 
 void VideoControl_Win32::cleanup()
@@ -66,56 +70,6 @@ void VideoControl_Win32::cleanup()
     }
 }
 
-mngr::VideoInfo VideoControl_Win32::get_info(const std::string& filepath, std::optional<bool>& valid)
-{
-    if (!m_initialized)
-        return {};
-
-    valid = false;
-    std::filesystem::path wfilepath(filepath);
-
-    ComPtr<IMFSourceReader> reader;
-    HRESULT hr = MFCreateSourceReaderFromURL(wfilepath.c_str(), nullptr, &reader);
-    if (FAILED(hr)) [[unlikely]]
-        return {};
-
-    mngr::VideoInfo info;
-
-    PROPVARIANT var;
-    PropVariantInit(&var);
-    hr = reader->GetPresentationAttribute(cast::to_u32(MF_SOURCE_READER_MEDIASOURCE), MF_PD_DURATION, &var);
-    if (SUCCEEDED(hr))
-    {
-        info.duration_sec = cast::to_float(var.uhVal.QuadPart) / 10000000.0f;
-        PropVariantClear(&var);
-    }
-
-    ComPtr<IMFMediaType> media_type;
-    hr = reader->GetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), &media_type);
-    if (SUCCEEDED(hr))
-    {
-        UINT32 width = 0, height = 0;
-        hr = MFGetAttributeSize(media_type.Get(), MF_MT_FRAME_SIZE, &width, &height);
-        if (SUCCEEDED(hr))
-        {
-            info.width = width;
-            info.height = height;
-        }
-
-        UINT32 num = 0, den = 1;
-        hr = MFGetAttributeRatio(media_type.Get(), MF_MT_FRAME_RATE, &num, &den);
-        if (SUCCEEDED(hr) && den != 0)
-        {
-            info.fps = cast::to_float(num) / cast::to_float(den);
-        }
-
-        if (info.width > 0 && info.height > 0)
-            valid = true;
-    }
-
-    return info;
-}
-
 namespace
 {
 void scale(UINT32& size_w, UINT32& size_h, UINT32 max_size) noexcept
@@ -140,105 +94,287 @@ void scale(UINT32& size_w, UINT32& size_h, UINT32 max_size) noexcept
 }
 } // namespace
 
-int32_t VideoControl_Win32::load(const std::string& filepath, uint32_t max_side_len)
+mngr::VideoInfo VideoControl_Win32::get_info(const std::filesystem::path& filepath, uint32_t max_side_len, std::optional<bool>& valid)
 {
+    if (m_gif_player->path_is_gif(filepath))
+        return m_gif_player->get_info(filepath, valid);
+
+    valid = false;
+
+    if (!m_initialized) [[unlikely]]
+        return {};
+
+    mngr::VideoInfo info;
+    const auto dest_filename = fs::get_temp_filepath(".png");
+    if (!dest_filename.empty())
+    {
+        auto dest_filename_str = tools::path::path_to_string(dest_filename);
+        if (get_thumbnail_check_window_cache(filepath, dest_filename_str, max_side_len))
+        {
+            info.thumbnail = dest_filename_str;
+        }
+    }
+
+    HRESULT hr = S_OK;
+    const auto log_err = [&hr, &filepath, &info](const char* err) -> mngr::VideoInfo
+    {
+        LogWarnS(err << " '" << filepath << "', err " << LogHRES(hr));
+        return info;
+    };
+
+    // setup Reader with Video Processing (needed for frame extraction)
+    ComPtr<::IMFAttributes> attributes;
+    hr = ::MFCreateAttributes(&attributes, 1);
+    if (FAILED(hr)) return log_err("Failed to create attributes for");
+
+    hr = attributes->SetUINT32(MF_SOURCE_READER_ENABLE_VIDEO_PROCESSING, TRUE);
+    if (FAILED(hr)) return log_err("Failed to set attr video processing for");
+
+    ::IMFSourceReader* temp_reader_ptr = nullptr;
+    hr = ::MFCreateSourceReaderFromURL(filepath.c_str(), attributes.Get(), &temp_reader_ptr);
+    if (FAILED(hr)) return log_err("Failed to create reader from");
+    std::unique_ptr<::IMFSourceReader, void(*)(::IMFSourceReader*)> reader(temp_reader_ptr, [](::IMFSourceReader* p) { if (p) p->Release(); });
+
+    // extract Duration
+    ::PROPVARIANT var;
+    ::PropVariantInit(&var);
+    hr = reader->GetPresentationAttribute(cast::to_u32(MF_SOURCE_READER_MEDIASOURCE), MF_PD_DURATION, &var);
+    if (SUCCEEDED(hr))
+    {
+        info.duration_sec = cast::to_float(var.uhVal.QuadPart) / 10000000.0f;
+        ::PropVariantClear(&var);
+    }
+
+    // extract original Width, Height, FPS from Native Media Type
+    ComPtr<::IMFMediaType> native_type;
+    hr = reader->GetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), &native_type);
+    if (FAILED(hr)) return log_err("Failed to get native media type for");
+
+    UINT32 orig_w = 0, orig_h = 0;
+    hr = ::MFGetAttributeSize(native_type.Get(), MF_MT_FRAME_SIZE, &orig_w, &orig_h);
+    if (SUCCEEDED(hr))
+    {
+        info.width = orig_w;
+        info.height = orig_h;
+    }
+
+    UINT32 num = 0, den = 1;
+    hr = ::MFGetAttributeRatio(native_type.Get(), MF_MT_FRAME_RATE, &num, &den);
+    if (SUCCEEDED(hr) && den != 0)
+    {
+        info.fps = cast::to_float(num) / cast::to_float(den);
+    }
+
+    if (info.width > 0 && info.height > 0)
+        valid = true;
+
+    // if we already got the thumbnail from cache, we are done
+    if (!info.thumbnail.empty())
+        return info;
+
+    // 6. Otherwise, configure type and extract the first valid frame
+    if (dest_filename.empty())
+        return info; 
+
+    const auto dest_filename_str = tools::path::path_to_string(dest_filename);
+
+    UINT32 scaled_w = orig_w;
+    UINT32 scaled_h = orig_h;
+    scale(scaled_w, scaled_h, max_side_len);
+
+    ComPtr<::IMFMediaType> target_type;
+    hr = ::MFCreateMediaType(&target_type);
+    if (FAILED(hr)) return log_err("Failed to create media type for");
+
+    hr = target_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+    if (FAILED(hr)) return log_err("Failed to set major type for");
+
+    hr = target_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
+    if (FAILED(hr)) return log_err("failed to set rgb32 for");
+
+    hr = ::MFSetAttributeSize(target_type.Get(), MF_MT_FRAME_SIZE, scaled_w, scaled_h);
+    if (FAILED(hr)) return log_err("failed to set new frame size for");
+
+    hr = reader->SetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), nullptr, target_type.Get());
+    if (FAILED(hr)) return log_err("Failed to set curr media type for");
+
+    hr = reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_ALL_STREAMS), FALSE);
+    if (FAILED(hr)) return log_err("Failed to disable streams for");
+
+    hr = reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), TRUE);
+    if (FAILED(hr)) return log_err("Failed to select first video stream for");
+
+    ComPtr<::IMFSample> sample;
+    DWORD flags = 0;
+    LONGLONG timestamp = 0;
+    bool frame_extracted = false;
+    std::vector<byte> output_pixels(scaled_w * scaled_h * 4);
+
+    int32_t frames_read = 0;
+    constexpr int32_t max_frames_to_read = 180;
+    constexpr int32_t check_interval = 3;
+    constexpr uint8_t luminance_threshold = 25;
+
+    while (!frame_extracted && frames_read < max_frames_to_read)
+    {
+        hr = reader->ReadSample(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), 0, nullptr, &flags, &timestamp, &sample);
+        if (FAILED(hr) || (flags & MF_SOURCE_READERF_ENDOFSTREAM)) 
+            break;
+
+        frames_read++;
+
+        if (sample && (frames_read == 1 || (frames_read % check_interval) == 0))
+        {
+            ComPtr<::IMFMediaBuffer> buffer;
+            hr = sample->ConvertToContiguousBuffer(&buffer);
+            if (SUCCEEDED(hr))
+            {
+                BYTE* data = nullptr;
+                DWORD length = 0;
+                hr = buffer->Lock(&data, nullptr, &length);
+                if (SUCCEEDED(hr))
+                {
+                    const size_t pixels = scaled_w * scaled_h;
+                    const uint32_t* src = cast::ptrs<uint32_t>(data);
+                    uint32_t* dst = cast::ptrs<uint32_t>(output_pixels.data());
+                    uint32_t dark_pixels = 0;
+
+                    for (size_t i = 0; i < pixels; ++i)
+                    {
+                        const uint32_t pixel = src[i];
+                        dst[i] = 0xFF000000 | (pixel & 0x0000FF00) | ((pixel & 0x00FF0000) >> 16) | ((pixel & 0x000000FF) << 16);
+
+                        const uint8_t b = (pixel & 0xFF);
+                        const uint8_t g = ((pixel >> 8) & 0xFF);
+                        const uint8_t r = ((pixel >> 16) & 0xFF);
+
+                        if (r <= luminance_threshold && g <= luminance_threshold && b <= luminance_threshold)
+                            dark_pixels++;
+                    }
+
+                    buffer->Unlock();
+
+                    if (dark_pixels < (pixels * 7 / 10))
+                        frame_extracted = true;
+                }
+            }
+        }
+    }
+
+    if (!frame_extracted && 0 == frames_read)
+        return log_err("Failed to extract any frames for");
+
+    const auto write_res = stbi_write_png(dest_filename_str.c_str(), cast::to_i32(scaled_w), cast::to_i32(scaled_h), 4, output_pixels.data(), cast::to_i32(scaled_w * 4));
+    if (0 == write_res || !tools::path::exists(dest_filename))
+    {
+        hr = write_res;
+        return log_err("Failed to write stb png for");
+    }
+
+    info.thumbnail = dest_filename_str;
+    return info;
+}
+
+int32_t VideoControl_Win32::load(const std::filesystem::path& filepath, uint32_t max_side_len)
+{
+    m_gif_playing = false;
+    if (m_gif_player->path_is_gif(filepath))
+    {
+        if (!m_gif_player->load(filepath))
+            return 0;
+
+        m_gif_playing = true;
+        m_video_id = ++m_last_video_id;
+        return m_video_id;
+    }
+
     if (!m_initialized)
         return 0;
 
+    m_video_id = 0;
     cleanup();
 
     HRESULT hr = S_OK;
-    const auto log_and_reset_err = [this, &hr, &filepath](const char* err)
+    const auto log_and_reset_err = [this, &filepath](const char* err, HRESULT hres)
     {
         cleanup();
-        Log(err << " '" << filepath << "', err " << LogHRES(hr));
+        LogWarn(err << " '" << filepath << "', err " << LogHRES(hres));
         return 0;
     };
 
-    ComPtr<IMFAttributes> attributes;
-    hr = MFCreateAttributes(&attributes, /*3*/2);
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to create attributes for");
+    UINT32 final_w = 0, final_h = 0;
 
-    hr = attributes->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set attr hardware transforms for");
+    // helper to setup reader
+    const auto try_setup_reader = [&](bool use_gpu) -> HRESULT
+    {
+        ComPtr<::IMFAttributes> attributes;
+        HRESULT hr = ::MFCreateAttributes(&attributes, 3);
+        if (FAILED(hr)) return hr;
 
-    hr = attributes->SetUINT32(MF_SOURCE_READER_ENABLE_ADVANCED_VIDEO_PROCESSING, TRUE);
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set attr video processing for");
-/*
-    ComPtr<IMFDXGIDeviceManager> dxgi_manager;
-    UINT reset_token = 0;
-    hr = MFCreateDXGIDeviceManager(&reset_token, &dxgi_manager);
-    if (FAILED(hr)) return log_and_reset_err("Failed to create dxgi device manager for");
+        // always enable video processor for YUV -> RGB conversion
+        attributes->SetUINT32(MF_SOURCE_READER_ENABLE_VIDEO_PROCESSING, TRUE);
 
-    hr = dxgi_manager->ResetDevice(m_device, reset_token);
-    if (FAILED(hr)) return log_and_reset_err("Failed to reset device for");
+        if (use_gpu)
+        {
+            attributes->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
+            attributes->SetUINT32(MF_SOURCE_READER_ENABLE_ADVANCED_VIDEO_PROCESSING, TRUE);
+        }
 
-    hr = attributes->SetUnknown(MF_SOURCE_READER_D3D_MANAGER, dxgi_manager.Get());
-    if (FAILED(hr)) return log_and_reset_err("Failed to set unknown device for");
-*/
-    std::filesystem::path wfilepath(filepath);
-    IMFSourceReader* reader = nullptr;
-    hr = MFCreateSourceReaderFromURL(wfilepath.c_str(), attributes.Get(), &reader);
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to create reader from");
+        ::IMFSourceReader* temp_reader = nullptr;
+        hr = ::MFCreateSourceReaderFromURL(filepath.c_str(), attributes.Get(), &temp_reader);
+        if (FAILED(hr)) return hr;
 
-    m_reader.reset(reader);
+        std::unique_ptr<::IMFSourceReader, void(*)(::IMFSourceReader*)> safe_reader(temp_reader, [](::IMFSourceReader* p) { if (p) p->Release(); });
 
-    ComPtr<IMFMediaType> native_type;
-    hr = m_reader->GetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), &native_type);
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set first stream reader for");
+        ComPtr<::IMFMediaType> native_type;
+        hr = safe_reader->GetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), &native_type);
+        if (FAILED(hr)) return hr;
 
-    UINT32 w = 0, h = 0;
-    hr = MFGetAttributeSize(native_type.Get(), MF_MT_FRAME_SIZE, &w, &h);
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to get attr size for");
+        UINT32 w = 0, h = 0;
+        ::MFGetAttributeSize(native_type.Get(), MF_MT_FRAME_SIZE, &w, &h);
+        scale(w, h, max_side_len);
 
-    scale(w, h, max_side_len);
+        // create clean uncompressed media type
+        ComPtr<::IMFMediaType> target_type;
+        ::MFCreateMediaType(&target_type);
+        target_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+        target_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
+        ::MFSetAttributeSize(target_type.Get(), MF_MT_FRAME_SIZE, w, h);
 
-    ComPtr<IMFMediaType> target_type;
-    hr = MFCreateMediaType(&target_type);
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to create media type for");
+        hr = safe_reader->SetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), nullptr, target_type.Get());
+        if (FAILED(hr)) return hr;
 
-    hr = native_type->CopyAllItems(target_type.Get());
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("failed to copy items to target type for");
+        safe_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_ALL_STREAMS), FALSE);
+        safe_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), TRUE);
 
-    //hr = target_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
-    //if (FAILED(hr)) return log_and_reset_err("Failed to set guid: major type for");
+        final_w = w;
+        final_h = h;
+        m_reader = std::move(safe_reader);
+        return S_OK;
+    };
 
-    hr = target_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("failed to set rgb32 for");
+    // try GPU accelerated decoding first
+    hr = try_setup_reader(true);
+    if (FAILED(hr))
+    {
+        LogWarn("GPU decode setup failed for '" << filepath << "', falling back to CPU. Err: " << LogHRES(hr));
 
-    hr = MFSetAttributeSize(target_type.Get(), MF_MT_FRAME_SIZE, w, h);
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("failed to set new frame size for");
-
-    target_type->DeleteItem(MF_MT_DEFAULT_STRIDE);
-    target_type->DeleteItem(MF_MT_SAMPLE_SIZE);
-    target_type->DeleteItem(MF_MT_FIXED_SIZE_SAMPLES);
-    target_type->DeleteItem(MF_MT_MINIMUM_DISPLAY_APERTURE);
-    target_type->DeleteItem(MF_MT_PAN_SCAN_APERTURE);
-    target_type->DeleteItem(MF_MT_GEOMETRIC_APERTURE);
-
-    //hr = target_type->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive);
-    //if (FAILED(hr)) return log_and_reset_err("Failed to set attr interlace mode for");
-
-    //hr = MFSetAttributeRatio(target_type.Get(), MF_MT_PIXEL_ASPECT_RATIO, 1, 1);
-    //if (FAILED(hr)) return log_and_reset_err("Failed to set attr ratio for");
-
-    hr = m_reader->SetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), nullptr, target_type.Get());
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set curr media type for");
-
-    hr = m_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_ALL_STREAMS), FALSE);
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set stream selection: reader all for");
-
-    hr = m_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), TRUE);
-    if (FAILED(hr)) [[unlikely]] return log_and_reset_err("Failed to set stream selection: first stream for");
+        // fallback to software CPU decoding
+        hr = try_setup_reader(false);
+        if (FAILED(hr)) [[unlikely]]
+            return log_and_reset_err("Failed to setup reader (CPU fallback) for", hr);
+    }
 
     std::optional<bool> valid;
-    m_info = get_info(filepath, valid);
+    m_info = get_info(filepath, max_side_len, valid);
     if (!valid.value_or(false)) [[unlikely]]
-        return log_and_reset_err("Failed to get video info for ");
+        return log_and_reset_err("Failed to get video info for", hr);
 
-    m_info.width = w;
-    m_info.height = h;
-    m_frame_buffer.reset(new byte[h * w * 4], [](byte* p) { if (p) delete[] p; });
+    m_info.width = final_w;
+    m_info.height = final_h;
+
+    // allocate buffer for IM_COL32(RGBA) format
+    m_frame_buffer.reset(new byte[final_h * final_w * 4], [](byte* p) { if (p) delete[] p; });
 
     m_video_id = ++m_last_video_id;
     m_has_video = true;
@@ -251,7 +387,7 @@ int32_t VideoControl_Win32::load(const std::string& filepath, uint32_t max_side_
     Log("Loaded video id=" << m_video_id << " from " << filepath);
 
     seek(m_video_id, 0.0f);
-
+    m_stop_thread = std::stop_source();
     m_decode_thread = std::thread(&VideoControl_Win32::decode_thread_loop, this, m_info);
 
     return m_video_id;
@@ -260,6 +396,9 @@ int32_t VideoControl_Win32::load(const std::string& filepath, uint32_t max_side_
 void VideoControl_Win32::play(int32_t video_id) noexcept
 {
     LogRAssert(m_video_id == video_id, "Video must be loaded first", );
+    if (m_gif_playing)
+        return m_gif_player->play();
+
     if (!m_initialized || !m_has_video || m_is_playing.load(std::memory_order_relaxed))
         return;
 
@@ -274,6 +413,10 @@ void VideoControl_Win32::play(int32_t video_id) noexcept
 void VideoControl_Win32::stop(int32_t video_id) noexcept
 {
     LogRAssert(m_video_id == video_id, "Video must be loaded first", );
+    m_video_id = 0;
+    if (m_gif_playing)
+        return m_gif_player->stop();
+
     if (!m_initialized || !m_has_video)
         return;
 
@@ -283,6 +426,9 @@ void VideoControl_Win32::stop(int32_t video_id) noexcept
 void VideoControl_Win32::seek(int32_t video_id, float pos) noexcept
 {
     LogRAssert(m_video_id == video_id, "Video must be loaded first", );
+    if (m_gif_playing)
+        return m_gif_player->seek(pos);
+
     if (!m_initialized || !m_has_video)
         return;
 
@@ -296,21 +442,37 @@ void VideoControl_Win32::seek(int32_t video_id, float pos) noexcept
 
 bool VideoControl_Win32::get_is_playing(int32_t video_id) const noexcept
 {
-    if (!m_initialized || !m_has_video || m_video_id != video_id)
+    if (video_id != m_video_id)
+        return false;
+
+    if (m_gif_playing)
+        return m_gif_player->get_is_playing();
+
+    if (!m_initialized || !m_has_video)
         return false;
     return m_is_playing.load(std::memory_order_relaxed);
 }
 
 float VideoControl_Win32::get_position(int32_t video_id) const noexcept
 {
-    if (!m_initialized || !m_has_video || m_video_id != video_id)
+    if (video_id != m_video_id)
         return 0.0f;
+
+    if (m_gif_playing)
+        return m_gif_player->get_position();
+
+    if (!m_initialized || !m_has_video)
+        return 0.0f;
+
     return m_current_time.load(std::memory_order_relaxed);
 }
 
 ImTextureID VideoControl_Win32::get_frame(int32_t video_id, float* out_w /*= nullptr*/, float* out_h /*= nullptr*/)
 {
     LogRAssert(m_video_id == video_id, "Video must be loaded first", nullptr);
+    if (m_gif_playing)
+        return m_gif_player->get_frame(out_w, out_h);
+
     if (!m_initialized || !m_has_video)
         return nullptr;
 
@@ -321,11 +483,11 @@ ImTextureID VideoControl_Win32::get_frame(int32_t video_id, float* out_w /*= nul
 
         if (!m_texture) // first frame
         {
-            m_texture = g::pTextures->upload_to_gpu(m_frame_buffer, m_info.width, m_info.height, true);
+            m_texture = g::pTextures->upload_to_gpu(m_frame_buffer.get(), m_info.width, m_info.height, true);
         }
         else // next frames
         {
-            g::pTextures->update_gpu_texture(m_texture, m_frame_buffer, m_info.width, m_info.height, true);
+            g::pTextures->update_gpu_texture(m_texture, m_frame_buffer.get(), m_info.width, m_info.height, true);
         }
 
         m_frame_ready.store(false, std::memory_order_relaxed);
@@ -338,6 +500,14 @@ ImTextureID VideoControl_Win32::get_frame(int32_t video_id, float* out_w /*= nul
 
 void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
 {
+    struct ComInitRAII 
+    {
+        HRESULT hr = S_OK;
+        ComInitRAII() { hr = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED); }
+        ~ComInitRAII() { if (SUCCEEDED(hr)) ::CoUninitialize(); }
+    }
+    com_init;
+
     const int32_t frame_ms = info.fps > 0.0f ? cast::to_i32(1000.0f / info.fps) : 33;
 
     while (!m_stop_thread.stop_requested())
@@ -375,13 +545,13 @@ void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
         if (m_seek_requested.load(std::memory_order_relaxed))
         {
             const float target = m_seek_target.load(std::memory_order_relaxed);
-            PROPVARIANT var;
-            PropVariantInit(&var);
-            const HRESULT hr = InitPropVariantFromInt64(cast::to_i64(target * 10000000.0f), &var);
+            ::PROPVARIANT var;
+            ::PropVariantInit(&var);
+            const HRESULT hr = ::InitPropVariantFromInt64(cast::to_i64(target * 10000000.0f), &var);
             if (SUCCEEDED(hr))
             {
                 m_reader->SetCurrentPosition(GUID_NULL, var);
-                PropVariantClear(&var);
+                ::PropVariantClear(&var);
             }        
             m_seek_requested.store(false, std::memory_order_relaxed);
             m_frame_ready.store(false, std::memory_order_relaxed);    
@@ -391,7 +561,7 @@ void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
 
         if (m_is_playing.load(std::memory_order_relaxed) || !m_frame_ready.load(std::memory_order_relaxed))
         {
-            ComPtr<IMFSample> sample;
+            ComPtr<::IMFSample> sample;
             DWORD flags = 0;
             LONGLONG timestamp = 0;
 
@@ -412,29 +582,56 @@ void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
 
             if (sample)
             {
-                ComPtr<IMFMediaBuffer> buffer;
+                ComPtr<::IMFMediaBuffer> buffer;
                 hr = sample->ConvertToContiguousBuffer(&buffer);
                 if (SUCCEEDED(hr))
                 {
-                    BYTE* data = nullptr;
-                    DWORD length = 0;
+                    ComPtr<::IMF2DBuffer> buffer2d;
+                    BYTE* scanline0 = nullptr;
+                    LONG pitch = 0;
+                    BYTE* data1d = nullptr;
+                    DWORD length1d = 0;
+                    bool is_2d = false;
 
-                    hr = buffer->Lock(&data, nullptr, &length);
+                    // Try to get 2D buffer interface for proper stride/pitch handling
+                    if (SUCCEEDED(buffer.As(&buffer2d)))
+                    {
+                        hr = buffer2d->Lock2D(&scanline0, &pitch);
+                        is_2d = SUCCEEDED(hr);
+                    }
+
+                    // Fallback to standard 1D lock if 2D is not supported by this format
+                    if (!is_2d)
+                    {
+                        hr = buffer->Lock(&data1d, nullptr, &length1d);
+                        scanline0 = data1d;
+                        pitch = info.width * 4; // Assume tightly packed RGB32
+                    }
+
                     if (SUCCEEDED(hr))
                     {
                         std::lock_guard<std::mutex> lock(m_mutex);
+                        uint32_t* dst_buffer = cast::ptrs<uint32_t>(m_frame_buffer.get());
 
-                        const size_t pixels = info.width * info.height;
-                        const uint32_t* src = cast::ptrs<uint32_t>(data);
-                        uint32_t* dst = cast::ptrs<uint32_t>(m_frame_buffer.get());
-
-                        for (size_t i = 0; i < pixels; ++i)
+                        // Copy line by line using the reported pitch
+                        for (int32_t y = 0; y < info.height; ++y)
                         {
-                            const uint32_t pixel = src[i];
-                            dst[i] = (pixel & 0xFF00FF00) | ((pixel & 0x00FF0000) >> 16) | ((pixel & 0x000000FF) << 16);
+                            // scanline0 is BYTE*, so we offset by bytes (pitch) and then cast to uint32_t*
+                            const uint32_t* src_line = cast::ptrs<uint32_t>(scanline0 + (y * pitch));
+                            uint32_t* dst_line = dst_buffer + (y * info.width);
+
+                            for (int32_t x = 0; x < info.width; ++x)
+                            {
+                                const uint32_t pixel = src_line[x];
+                                // Swizzle BGRA to IM_COL32(RGBA) format
+                                dst_line[x] = 0xFF000000 | (pixel & 0x0000FF00) | ((pixel & 0x00FF0000) >> 16) | ((pixel & 0x000000FF) << 16);
+                            }
                         }
 
-                        buffer->Unlock();
+                        if (is_2d)
+                            buffer2d->Unlock2D();
+                        else
+                            buffer->Unlock();
 
                         m_current_time.store(cast::to_float(timestamp) / 10000000.0f, std::memory_order_relaxed);
                         m_frame_ready.store(true, std::memory_order_relaxed);
@@ -463,142 +660,57 @@ void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
     }
 }
 
-std::string VideoControl_Win32::get_thumbnail(const std::string& filename, uint32_t max_side_len)
+bool VideoControl_Win32::get_thumbnail_check_window_cache(const std::filesystem::path& filename, const std::string& dest_filename, uint32_t max_side_len)
 {
-    if (!m_initialized)
-        return {};
-
-    if (!tools::path::exists(filename)) [[unlikely]]
-        return {};
-
-    const auto dest_filename = fs::get_temp_filepath(".png");
-    if (dest_filename.empty()) [[unlikely]]
-        return {};
-
-    HRESULT hr = S_OK;
-    const auto log_err = [this, &hr, &filename](const char* err)
+    ComPtr<::IShellItemImageFactory> factory;
+    if (SUCCEEDED(::SHCreateItemFromParsingName(filename.c_str(), nullptr, IID_PPV_ARGS(&factory))))
     {
-        Log(err << " '" << filename << "', err " << LogHRES(hr));
-        return std::string();
-    };
+        HBITMAP bitmap = nullptr;
+        const SIZE size = { cast::to_i32(max_side_len), cast::to_i32(max_side_len) };
 
-    ComPtr<IMFAttributes> attributes;
-    hr = MFCreateAttributes(&attributes, 2);
-    if (FAILED(hr)) [[unlikely]] return log_err("Failed to create attributes for");
-
-    hr = attributes->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
-    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set attr hardware transforms for");
-
-    hr = attributes->SetUINT32(MF_SOURCE_READER_ENABLE_ADVANCED_VIDEO_PROCESSING, TRUE);
-    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set attr video processing for");
-
-    IMFSourceReader* reader = nullptr;
-    std::filesystem::path wfilepath(filename);
-    hr = MFCreateSourceReaderFromURL(wfilepath.c_str(), attributes.Get(), &reader);
-    if (FAILED(hr)) [[unlikely]] return log_err("Failed to create reader from");
-
-    std::unique_ptr<IMFSourceReader, void(*)(IMFSourceReader*)> temp_reader(reader, [](IMFSourceReader* p) { if (p) p->Release(); });
-
-    ComPtr<IMFMediaType> native_type;
-    hr = temp_reader->GetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), &native_type);
-    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set first stream reader for");
-
-    UINT32 w = 0, h = 0;
-    hr = MFGetAttributeSize(native_type.Get(), MF_MT_FRAME_SIZE, &w, &h);
-    if (FAILED(hr)) [[unlikely]] return log_err("Failed to get attr size for");
-
-    scale(w, h, max_side_len);
-
-    // configure reader output to uncompressed rgb32 with target dimensions
-    ComPtr<IMFMediaType> target_type;
-    hr = MFCreateMediaType(&target_type);
-    if (FAILED(hr)) [[unlikely]] return log_err("Failed to create media type for");
-
-    hr = native_type->CopyAllItems(target_type.Get());
-    if (FAILED(hr)) [[unlikely]] return log_err("failed to copy items to target type for");
-
-    //hr = target_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
-    //if (FAILED(hr)) return log_err("Failed to set guid: major type for");
-
-    hr = target_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
-    if (FAILED(hr)) [[unlikely]] return log_err("failed to set rgb32 for");
-
-    hr = MFSetAttributeSize(target_type.Get(), MF_MT_FRAME_SIZE, w, h);
-    if (FAILED(hr)) [[unlikely]] return log_err("failed to set new frame size for");
-
-    target_type->DeleteItem(MF_MT_DEFAULT_STRIDE);
-    target_type->DeleteItem(MF_MT_SAMPLE_SIZE);
-    target_type->DeleteItem(MF_MT_FIXED_SIZE_SAMPLES);
-    target_type->DeleteItem(MF_MT_MINIMUM_DISPLAY_APERTURE);
-    target_type->DeleteItem(MF_MT_PAN_SCAN_APERTURE);
-    target_type->DeleteItem(MF_MT_GEOMETRIC_APERTURE);
-
-    //hr = target_type->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive);
-    //if (FAILED(hr)) return log_err("Failed to set attr interlace mode for");
-
-    //hr = MFSetAttributeRatio(target_type.Get(), MF_MT_PIXEL_ASPECT_RATIO, 1, 1);
-    //if (FAILED(hr)) return log_err("Failed to set attr ratio for");
-
-    hr = temp_reader->SetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), nullptr, target_type.Get());
-    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set curr media type for");
-
-    hr = temp_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_ALL_STREAMS), FALSE);
-    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set stream selection: reader all for");
-
-    hr = temp_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), TRUE);
-    if (FAILED(hr)) [[unlikely]] return log_err("Failed to set stream selection: first stream for");
-
-    // synchronous loop to extract the first non-empty visual frame
-    ComPtr<IMFSample> sample;
-    DWORD flags = 0;
-    LONGLONG timestamp = 0;
-    bool frame_extracted = false;
-    std::vector<byte> output_pixels(w * h * 4);
-
-    while (!frame_extracted)
-    {
-        hr = temp_reader->ReadSample(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), 0, nullptr, &flags, &timestamp, &sample);
-        if (FAILED(hr) || (flags & MF_SOURCE_READERF_ENDOFSTREAM)) [[unlikely]]
-            return log_err("Failed to read first stream sample for");
-
-        if (sample)
+        if (SUCCEEDED(factory->GetImage(size, SIIGBF_RESIZETOFIT, &bitmap)))
         {
-            ComPtr<IMFMediaBuffer> buffer;
-            hr = sample->ConvertToContiguousBuffer(&buffer);
-            if (SUCCEEDED(hr))
-            {
-                BYTE* data = nullptr;
-                DWORD length = 0;
-                hr = buffer->Lock(&data, nullptr, &length);
-                if (SUCCEEDED(hr))
-                {
-                    const size_t pixels = w * h;
-                    const uint32_t* src = cast::ptrs<uint32_t>(data);
-                    uint32_t* dst = cast::ptrs<uint32_t>(output_pixels.data());
+            std::unique_ptr<HBITMAP__, decltype(&::DeleteObject)> hbitmap(bitmap, ::DeleteObject);
 
-                    // swizzle bgra to rgba (im_col32 format)
-                    for (size_t i = 0; i < pixels; ++i)
+            ::BITMAP bmp;
+            if (::GetObjectW(hbitmap.get(), sizeof(BITMAP), &bmp))
+            {
+                const int32_t w = bmp.bmWidth;
+                const int32_t h = bmp.bmHeight;
+
+                ::BITMAPINFOHEADER bi = {};
+                bi.biSize = sizeof(::BITMAPINFOHEADER);
+                bi.biWidth = w;
+                bi.biHeight = -h; // negative height for top-down DIB
+                bi.biPlanes = 1;
+                bi.biBitCount = 32;
+                bi.biCompression = BI_RGB;
+
+                std::unique_ptr<HDC__, void(*)(::HDC)> hdc(::GetDC(nullptr), [](::HDC hdc) { if (hdc) ::ReleaseDC(nullptr, hdc); });
+                std::vector<byte> pixels(w * h * 4);
+
+                if (::GetDIBits(hdc.get(), hbitmap.get(), 0, h, pixels.data(), cast::ptrs<::BITMAPINFO>(&bi), DIB_RGB_COLORS))
+                {
+                    const size_t num_pixels = w * h;
+                    uint32_t* ptr = cast::ptrs<uint32_t>(pixels.data());
+
+                    // swizzle BGRA to RGBA with forced opaque alpha
+                    for (size_t i = 0; i < num_pixels; ++i)
                     {
-                        const uint32_t pixel = src[i];
-                        dst[i] = (pixel & 0xFF00FF00) | ((pixel & 0x00FF0000) >> 16) | ((pixel & 0x000000FF) << 16);
+                        const uint32_t p = ptr[i];
+                        ptr[i] = 0xFF000000 | (p & 0x0000FF00) | ((p & 0x00FF0000) >> 16) | ((p & 0x000000FF) << 16);
                     }
 
-                    buffer->Unlock();
-                    frame_extracted = true;
+                    const auto write_res = stbi_write_png(dest_filename.c_str(), w, h, 4, pixels.data(), w * 4);
+                    if (write_res != 0 && tools::path::exists(dest_filename))
+                    {
+                        return true;
+                    }
                 }
             }
         }
     }
-
-    // write the raw rgba buffer to disk using stb_image_write
-    const auto write_res = stbi_write_png(tools::path::path_to_string(dest_filename).c_str(), cast::to_i32(w), cast::to_i32(h), 4, output_pixels.data(), cast::to_i32(w * 4));
-    if (0 == write_res || !tools::path::exists(dest_filename))
-    {
-        hr = write_res;
-        return log_err("Failed to write stb png for");
-    }
-
-    return tools::path::path_to_string(dest_filename);
+    return false;
 }
 
 } // namespace platform

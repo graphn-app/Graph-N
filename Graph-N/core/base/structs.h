@@ -179,6 +179,7 @@ struct VideoInfo final
     int32_t height = 0;
     std::string thumbnail;
     int32_t thumbnail_id = 0;
+    bool is_gif = false;
 };
 
 ///////////////////////////////////////////////////////////////////
@@ -236,6 +237,7 @@ struct ExecTask final
         int32_t media_id_tt = 0;
         std::string binary_path;
         uint64_t id = 0;
+        iid target_node = 0;
 
         std::optional<bool> media_valid;
         std::optional<bool> media_info_valid;

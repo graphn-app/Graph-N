@@ -1,4 +1,6 @@
 #include "ui/panels/panel_wf.h"
+#include "ui/custom_widgets/custom_widget.h"
+#include "ui/graph-n_flow.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
@@ -7,7 +9,6 @@
 #include "core/managers/nodes_manager.h"
 #include "core/managers/history_manager.h"
 #include "core/managers/hotkeys_manager.h"
-#include "ui/graph-n_flow.h"
 
 namespace ui
 {
@@ -330,6 +331,35 @@ bool PanelWorkflow::show_node_menu()
     bool close = false;
     auto node = *m_menu_objs.nodes.begin();
 
+    if (node->flags().has_any(NodeInstFlags::MaskEditorReady, NodeInstFlags::PosEditorReady))
+    {
+        if (ImGui::MenuItem("Open in Mask Editor | SAM Detector", nullptr, nullptr, node->flags().has_and_has_not(NodeInstFlags::MaskEditorReady, NodeInstFlags::PosEditorRunning)))
+        {
+            g::pFlow->host_open_mask_editor(get_workflow()->get_id(), node->get_instance_id());
+            close = true;
+        }
+        if (ImGui::MenuItem("Open in 3D Pos Editor", nullptr, nullptr, node->flags().has_and_has_not(NodeInstFlags::MaskEditorReady, NodeInstFlags::MaskEditorRunning)))
+        {
+            g::pFlow->host_open_3dpos_editor(get_workflow()->get_id(), node->get_instance_id());
+            close = true;
+        }
+        ImGui::Separator();
+    }
+    else if (node->obj_flags().has_all(NodeObjFlags::CustomWidget, NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtText))
+    {
+        if (ImGui::MenuItem("Copy output text"))
+        {
+            g::pFlow->custom_widgets().copy_text_output(node->get_workflow_id(), node->get_instance_id());
+            close = true;
+        }
+        if (ImGui::MenuItem("View output text in full-text mode", "Dbl-Click"))
+        {
+            g::pFlow->custom_widgets().view_text_output(node->get_workflow_id(), node->get_instance_id());
+            close = true;
+        }
+        ImGui::Separator();
+    }
+
     if (ImGui::MenuItem("Rename", nullptr, nullptr, node->obj_flags().has_and_has_not(NodeObjFlags::CanRename, NodeObjFlags::Dummy)))
     {
         m_drawer.rename_node(node);
@@ -563,6 +593,7 @@ bool PanelWorkflow::show_node_menu()
             ImGui::Separator();
             if (ImGui::MenuItem("Reset"))
             {
+                g::pFlow->custom_widgets().reset_widgets();
                 node->obj_flags().remove_raw(g_node_obj_all_custom_widget_mask.get_raw());
                 save_opts();
                 close = true;

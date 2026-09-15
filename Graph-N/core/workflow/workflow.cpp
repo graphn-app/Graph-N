@@ -57,8 +57,7 @@ std::unique_ptr<NodeInstance> Workflow::create_node(data::Node* node, iid node_i
     if (node != nullptr)
     {
         std::unique_ptr<NodeInstance> custom_node;
-        if (CNI_LoadImage::cni_is_same(node))              custom_node = std::make_unique<CNI_LoadImage>(node, get_id(), node_id);
-        else if (CNI_Primitive::cni_is_same(node))         custom_node = std::make_unique<CNI_Primitive>(node, get_id(), node_id);
+        if (CNI_Primitive::cni_is_same(node))         custom_node = std::make_unique<CNI_Primitive>(node, get_id(), node_id);
         else if (CNI_Reroute::cni_is_same(node))           custom_node = std::make_unique<CNI_Reroute>(node, get_id(), node_id, node_id2);
         else if (CNI_Note::cni_is_same(node))              custom_node = std::make_unique<CNI_Note>(node, get_id(), node_id);
         else if (CNI_MarkdownNote::cni_is_same(node))      custom_node = std::make_unique<CNI_MarkdownNote>(node, get_id(), node_id);
@@ -79,8 +78,7 @@ std::unique_ptr<NodeInstanceRo> Workflow::create_node_ro(data::Node* node, iid n
     if (node != nullptr)
     {
         std::unique_ptr<NodeInstanceRo> custom_node;
-        if (CNI_LoadImage::cni_is_same(node))              custom_node = std::make_unique<CNI_LoadImage>(node, get_id(), node_id);
-        else if (CNI_Primitive::cni_is_same(node))         custom_node = std::make_unique<CNI_Primitive>(node, get_id(), node_id);
+        if (CNI_Primitive::cni_is_same(node))         custom_node = std::make_unique<CNI_Primitive>(node, get_id(), node_id);
         else if (CNI_Reroute::cni_is_same(node))           custom_node = std::make_unique<CNI_Reroute>(node, get_id(), node_id, 0);
         else if (CNI_Note::cni_is_same(node))              custom_node = std::make_unique<CNI_Note>(node, get_id(), node_id);
         else if (CNI_MarkdownNote::cni_is_same(node))      custom_node = std::make_unique<CNI_MarkdownNote>(node, get_id(), node_id);

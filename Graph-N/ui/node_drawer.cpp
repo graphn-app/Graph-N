@@ -1,6 +1,7 @@
 #include "ui/node_drawer.h"
 #include "ui/helpers/imgui_ex_ne.h"
 #include "ui/graph-n_flow.h"
+#include "ui/custom_widgets/custom_widget.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/history_manager.h"
 #include "core/workflow/node.h"
@@ -551,9 +552,14 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         }
         else
             m_active_node->flags().remove(NodeInstFlags::ShowHidden);
-
-        ImGui::Dummy(ImVec2(m_active_node->w_node, 10.0f));
     }
+
+
+    if (m_active_node->obj_flags().has(NodeObjFlags::CustomWidget))
+        g::pFlow->custom_widgets().draw_custom_widget(m_active_node, m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle, m_active_node->w_widget_name + m_active_node->w_widget_value);
+
+    if (m_active_node->flags().has(NodeInstFlags::HasWidgets) && m_active_node->obj_flags().has_not(NodeObjFlags::CustomWidget))
+        ImGui::Dummy(ImVec2(m_active_node->w_node, 10.0f));
 
     m_active_node = nullptr;
 }
@@ -835,19 +841,15 @@ void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool alig
 
 void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
-    float widget_pos = 0.0f;
     if (pin->obj_flags().has(PinObjFlags::CanLink))
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
         draw_pin(pin, false, true, false);
         ImGui::SameLine(0, w::pin_r_offset);
-        widget_pos = ImGui::GetCursorPosX();
     }
     else
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle);
     draw_widget(pin, widget_name_width, widget_value_width);
-//    if (pin->obj_flags().has_not(PinObjFlags::CagPin) && m_active_node->obj_flags().has(NodeObjFlags::CustomWidget))
-//        m_active_node->cni_draw_widget(pin, widget_pos, widget_name_width + widget_value_width);
 }
 
 void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
