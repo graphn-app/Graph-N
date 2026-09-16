@@ -64,7 +64,7 @@ public:
     void set_nodes_map(std::unordered_map<std::string, std::list<hid>>&& nodes_map) noexcept { m_model_to_nodes_map = std::move(nodes_map); }
 
     const std::vector<std::unique_ptr<data::ModelItem>>& get_models() const noexcept;
-    bool has_service_components() const noexcept { return m_service_components_found; }
+    std::pair<uint32_t, uint32_t> service_components_num() const noexcept { return m_service_components; }
 
     void calc_number_inside(const std::string& filter);
 
@@ -81,7 +81,7 @@ private:
     std::thread m_th;
     std::stop_source m_stop_flag;
 
-    bool m_service_components_found = false;
+    std::pair<uint32_t, uint32_t> m_service_components;
     std::vector<std::unique_ptr<data::ModelItem>> m_model_items;
     std::unordered_map<std::string, std::list<hid>> m_model_to_nodes_map;
 };

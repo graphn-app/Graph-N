@@ -50,6 +50,7 @@ private:
     bool on_pre_tt(int32_t idx) noexcept;
     void on_show_tt(int32_t idx);
 
+    void on_view_empty(PanelToolbar::Element& el);
     void on_expand_all(PanelToolbar::Element& el);
     void on_collapse_all(PanelToolbar::Element& el);
     void on_sync(PanelToolbar::Element& el) noexcept;
@@ -62,6 +63,7 @@ private:
     std::vector<PanelListItem> m_panel_items;
     size_t m_prev_model_items_count = 0;
     mngr::StarredList m_favorited;
+    bool m_show_empty = false;
 };
 
 

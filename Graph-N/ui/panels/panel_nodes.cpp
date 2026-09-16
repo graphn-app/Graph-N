@@ -120,7 +120,7 @@ void PanelNodes::create_toolbar()
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE;
-            el.tooltip = "Toggle flat/Category view";
+            el.tooltip = "Toggle Flat/Category view";
             el.on_click = [this](PanelToolbar::Element& el) { on_view(el); };
             add_toolbar_element(std::move(el), false);
         }

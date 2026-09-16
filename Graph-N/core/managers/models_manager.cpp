@@ -13,7 +13,7 @@ void ModelsManager::free()
 {    
     m_model_items.clear(); m_model_items.shrink_to_fit();
     m_model_to_nodes_map.clear(); m_model_to_nodes_map.rehash(0);
-    m_service_components_found = false;
+    m_service_components = {};
 }
 
 void ModelsManager::stop_all_threads()
@@ -425,7 +425,7 @@ void ModelsManager::setup_model_behaviour()
         { "embeddings",             { "", false, true } },
     };
 
-    m_service_components_found = false;
+    m_service_components = {};
 
     for (auto& [root, files] : root_to_files)
     {
@@ -439,7 +439,7 @@ void ModelsManager::setup_model_behaviour()
         {
             root->service_component = it->second.service_component;
             if (root->service_component)
-                m_service_components_found = true;
+                m_service_components.first++;
 
             for (auto file : files)
             {
@@ -451,6 +451,8 @@ void ModelsManager::setup_model_behaviour()
                 }
                 file->service_component = it->second.service_component;
                 file->copy_to_cb_only = it->second.copy_to_cb_only;
+                if (file->service_component)
+                    m_service_components.second++;
             }
         }
     }

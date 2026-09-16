@@ -44,6 +44,19 @@ void PanelModels::create_toolbar()
     {
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Button;
+        el.icon = ICON_LC_EYE_OFF;
+        el.tooltip = "Toggle Show/Hide empty categories";
+        el.on_click = [this](PanelToolbar::Element& el) { on_view_empty(el); };
+        add_toolbar_element(std::move(el), false);
+    }
+    {
+        PanelToolbar::Element el;
+        el.type = PanelToolbar::Element::Type::Empty;
+        add_toolbar_element(std::move(el), false);
+    }
+    {
+        PanelToolbar::Element el;
+        el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
         el.tooltip = "Expand All";
         el.on_click = [this](PanelToolbar::Element& el) { on_expand_all(el); };
@@ -294,16 +307,19 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
                 bool expanded = false;
                 if (!show_favorited_models)
                 {
-                    PanelListItem item;
-                    item.depth = depth;
-                    item.name = model->name;
-                    item.name_p2 = std::to_string(model->models_inside);
-                    item.can_expand = true;
-                    item.expanded = (force_expand_all || expanded_models.contains(model.get()));
-                    expanded = item.expanded;
-                    item.icon = item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
-                    item.ptr = model.get();
-                    dest.push_back(std::move(item));
+                    if (model->models_inside > 0 || m_show_empty)
+                    {
+                        PanelListItem item;
+                        item.depth = depth;
+                        item.name = model->name;
+                        item.name_p2 = std::to_string(model->models_inside);
+                        item.can_expand = true;
+                        item.expanded = (force_expand_all || expanded_models.contains(model.get()));
+                        expanded = item.expanded;
+                        item.icon = item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
+                        item.ptr = model.get();
+                        dest.push_back(std::move(item));
+                    }
                 }
 
                 if (show_favorited_models || expanded)
@@ -344,11 +360,17 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
         }
     }
 
-    if (!m_panel_items.empty() || g::pModelsManager->has_service_components())
+    bool displ_cats = true;
+    if (0 == g::pModelsManager->service_components_num().first)
+        displ_cats = false;
+    else if (0 == g::pModelsManager->service_components_num().second && !m_show_empty)
+        displ_cats = false;
+
+    if (!fav.empty() || displ_cats)
         add_separator("Models");
     go_tree(models, m_panel_items, 0, true, false, false);
 
-    if (g::pModelsManager->has_service_components())
+    if (displ_cats)
     {
         add_separator("Service Components");
         go_tree(models, m_panel_items, 0, false, false, true);
@@ -468,6 +490,13 @@ void PanelModels::add_model_to_wf(data::Node* node, data::ModelItem* model)
         node = g::pNodesManager->find_node(model->def_node);
     if (node != nullptr)
         g::pFlow->wf_add_node_to_active_panel(node, model->file_name.empty() ? model->name : model->file_name);
+}
+
+void PanelModels::on_view_empty(PanelToolbar::Element& el)
+{
+    m_show_empty = !m_show_empty;
+    el.icon = m_show_empty ? ICON_LC_EYE : ICON_LC_EYE_OFF;
+    rebuild_items();
 }
 
 void PanelModels::on_expand_all(PanelToolbar::Element& /*el*/)
