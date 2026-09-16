@@ -1671,7 +1671,7 @@ ImRect NodeDrawer::calc_group_rect(const ImRect& node_rc) const noexcept
         ImVec2(node_rc.Max.x + ImGui::GetStyle().ItemSpacing.x * 4, node_rc.Max.y + ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 2));
 }
 
-ImRect NodeDrawer::fit_group_rect(const data::NodeInstance* group, const std::set<data::NodeInstance*>& nodes) const noexcept
+ImRect NodeDrawer::fit_group_rect(const data::NodeInstance* /*group*/, const std::set<data::NodeInstance*>& nodes) const noexcept
 {
     if (nodes.empty())
         return {};
@@ -1679,17 +1679,20 @@ ImRect NodeDrawer::fit_group_rect(const data::NodeInstance* group, const std::se
     auto rect = ImRect(FLT_MAX, FLT_MAX, -FLT_MIN, -FLT_MIN);
     for (auto node : nodes)
     {
-        rect.Min.x = std::min(group->m_rc.Min.x, node->m_rc.Min.x);
-        rect.Min.y = std::min(group->m_rc.Min.y, node->m_rc.Min.y);
-        rect.Max.x = std::max(group->m_rc.Max.x, node->m_rc.Min.x + node->m_rc.Max.x);
-        rect.Max.y = std::max(group->m_rc.Max.y, node->m_rc.Min.y + node->m_rc.Max.y);
+        rect.Min.x = std::min(rect.Min.x, node->m_rc.Min.x);
+        rect.Min.y = std::min(rect.Min.y, node->m_rc.Min.y);
+        rect.Max.x = std::max(rect.Max.x, node->m_rc.Min.x + node->m_rc.Max.x);
+        rect.Max.y = std::max(rect.Max.y, node->m_rc.Min.y + node->m_rc.Max.y);
     }
-
-    rect.Max.x = group->m_rc.GetWidth() + ImGui::GetStyle().ItemSpacing.x * 4;
-    rect.Max.y = group->m_rc.GetHeight() + ImGui::GetStyle().ItemSpacing.y * 4;
 
     rect.Min.x -= ImGui::GetStyle().ItemSpacing.x * 2;
     rect.Min.y -= ImGui::GetTextLineHeight() * 3 - ImGui::GetStyle().ItemSpacing.y * 4;
+
+    rect.Max.x = rect.Max.x - rect.Min.x;
+    rect.Max.y = rect.Max.y - rect.Min.y;
+
+    rect.Max.x += ImGui::GetStyle().ItemSpacing.x * 4;
+    rect.Max.y += ImGui::GetStyle().ItemSpacing.y * 4;
 
     return rect;
 }
