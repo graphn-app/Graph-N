@@ -29,9 +29,12 @@ VideoControl_Win32::~VideoControl_Win32() noexcept
     {
         try
         {
-            m_gif_player->cleanup();
+            if (m_gif_player)
+                m_gif_player->cleanup();
+            m_gif_player.reset();
             cleanup();
             ::MFShutdown();
+            m_initialized = false;
         }
         catch (...) {}
     }

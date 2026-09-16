@@ -7,7 +7,10 @@ namespace global
 
 GifPlayer::~GifPlayer() noexcept
 {
-    cleanup();
+    try {
+        cleanup();
+    }
+    catch (...) {}
 }
 
 bool GifPlayer::path_is_gif(const std::filesystem::path& filepath) const

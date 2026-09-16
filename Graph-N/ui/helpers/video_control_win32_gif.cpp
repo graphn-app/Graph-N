@@ -13,8 +13,11 @@ VideoControl_Win32_Gif::VideoControl_Win32_Gif() noexcept
 
 VideoControl_Win32_Gif::~VideoControl_Win32_Gif() noexcept
 {
-    m_factory.Reset();
-    cleanup();
+    try {
+        m_factory.Reset();
+        cleanup();
+    }
+    catch(...) {}
 }
 
 // Helper to extract WIC metadata safely
@@ -59,8 +62,7 @@ void VideoControl_Win32_Gif::cleanup()
     m_current_time = 0.0f;
     m_current_frame_idx = -1;
 
-    if (m_decoder)
-        m_decoder.Reset();
+    m_decoder.Reset();
     m_canvas.clear();
     m_backup_canvas.clear();
     m_frames_meta.clear();

@@ -14,6 +14,7 @@ public:
     virtual ~Textures() noexcept override;
 
     void init_ui_ready();
+    void cleanup();
 
     int32_t load_image_from_path(const std::filesystem::path& path, int32_t max_width, int32_t max_height, int32_t life_time);
     int32_t load_image_from_buffer(std::string&& buffer, int32_t max_width, int32_t max_height, int32_t life_time);
@@ -28,8 +29,6 @@ public:
     // Lazy1sTimer
     void on_1s_lazy_timer(int64_t total_seconds_elapsed) override;
     void on_frame(int64_t total_frames_elapsed) noexcept override { m_frames_passed = total_frames_elapsed; }
-
-    void cleanup_all();
 
     virtual ImTextureIDPtr upload_to_gpu(const byte* image_data, uint32_t width, uint32_t height, bool generate_mips) = 0;
     virtual bool update_gpu_texture(ImTextureIDPtr texture, const byte* image_data, uint32_t width, uint32_t height, bool generate_mips) = 0;

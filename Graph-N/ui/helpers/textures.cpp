@@ -50,7 +50,7 @@ Textures::~Textures() noexcept
         if (g::pGraphN != nullptr)
             g::pGraphN->unsubscribe_timers(this);
 
-        cleanup_all();
+        cleanup();
     }
     catch (...) {}
 }
@@ -361,7 +361,7 @@ void Textures::on_1s_lazy_timer(int64_t total_seconds_elapsed)
     }
 }
 
-void Textures::cleanup_all()
+void Textures::cleanup()
 {
     m_cv.notify_all();
 

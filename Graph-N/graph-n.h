@@ -88,6 +88,9 @@ private:
 
     std::unique_ptr<ui::GraphN_Flow> m_graphn_flow;
     std::vector<std::unique_ptr<mngr::Manager>> m_managers;
+    std::unique_ptr<global::Textures> m_textures;
+    std::unique_ptr<global::AudioControl> m_audio;
+    std::unique_ptr<global::VideoControl> m_video;
 
     std::list<listener::Timer*> m_timer_listeners;
     std::map<listener::ComfyUiObjectValidityListener::Step, std::list<listener::ComfyUiObjectValidityListener*>> m_comfyui_validity_listeners;

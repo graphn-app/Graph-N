@@ -1,6 +1,5 @@
 #include "graph-n.h"
 #include "ui/graph-n_flow.h"
-#include "ui/helpers/textures.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/nodes_manager.h"
@@ -11,13 +10,20 @@
 #include "core/managers/queue_manager.h"
 #include "core/managers/hotkeys_manager.h"
 #include "core/managers/host_manager.h"
+#include "ui/helpers/audio_control.h"
 #if defined _WIN32
+#include "ui/helpers/textures_win32.h"
+#include "ui/helpers/video_control_win32.h"
 #include "core/managers/comfyui_manager_win32.h"
 #include "core/managers/host_manager_win32.h"
 #elif defined __linux__
+#include "ui/helpers/textures_linux.h"
+#include "ui/helpers/video_control_linux.h"
 #include "core/managers/comfyui_manager_linux.h"
 #include "core/managers/host_manager_linux.h"
 #elif defined __APPLE__
+#include "ui/helpers/textures_apple.h"
+#include "ui/helpers/video_control_apple.h"
 #include "core/managers/comfyui_manager_apple.h"
 #include "core/managers/host_manager_apple.h"
 #endif
@@ -69,6 +75,27 @@ GraphN::~GraphN() noexcept
 bool GraphN::init_graphn()
 {
     LogIn;
+
+#ifdef _WIN32
+    m_textures = std::make_unique<platform::Textures_Win32>();
+    m_video = std::make_unique<platform::VideoControl_Win32>();
+#elif defined __linux__    
+    m_textures = std::make_unique<platform::Textures_Linux>();
+    m_video = std::make_unique<platform::VideoControl_Linux>();
+#elif defined __APPLE__
+    m_textures = std::make_unique<platform::Textures_Apple>();
+    m_video = std::make_unique<platform::VideoControl_Apple>();
+#endif
+
+    m_audio = std::make_unique<global::AudioControl>();
+    m_audio->init();
+    g::pAudioControl = m_audio.get();
+
+    g::pTextures = m_textures.get();
+
+    m_video->init();
+    g::pVideoControl = m_video.get();
+
 
     m_managers.push_back(std::make_unique<mngr::DbManager>());
     g::pDbManager = cast::ptrs<mngr::DbManager>(m_managers.back().get());
@@ -138,24 +165,43 @@ void GraphN::exit_graphn()
     LogIn;
 
     g::app_global_stop_all_threads.request_stop();
-    g::pTextures->cleanup_all();
 
     std::for_each(m_managers.rbegin(), m_managers.rend(), [](std::unique_ptr<mngr::Manager>& manager)
     {
-        manager->stop_all_threads();
-        manager->free();
+        if (manager)
+        {
+            manager->stop_all_threads();
+            manager->free();
+        }
     });
 
     if (m_graphn_flow)
         m_graphn_flow->exit();
     m_graphn_flow.reset();
-
     g::pFlow = nullptr;
-    g::pQueueManager = nullptr;
-    g::pNodesManager = nullptr;
+
     g::pOptsManager = nullptr;
     g::pDbManager = nullptr;
+    g::pNodesManager = nullptr;
     g::pConnectManager = nullptr;
+    g::pWfsManager = nullptr;
+    g::pModelsManager = nullptr;
+    g::pComfyUIManager = nullptr;
+    g::pHistoryManager = nullptr;
+    g::pQueueManager = nullptr;
+    g::pHotkeysManager = nullptr;
+    g::pHostManager = nullptr;
+
+    m_video.reset();
+    g::pVideoControl = nullptr;
+
+    m_textures.reset();
+    g::pTextures = nullptr;
+
+    m_audio.reset();
+    g::pAudioControl = nullptr;
+
+    m_managers.clear();
 
     auto temp = fs::get_temp_directory_path();
     tools::path::remove(temp);
