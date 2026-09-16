@@ -132,7 +132,7 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source, bool copy
 
 NodeInstance* Workflow::add_group_node()
 {
-    auto instance = create_node(nullptr, 0, 0);
+    auto instance = create_node(nullptr, get_new_child_id(), 0);
     instance->init_blank();
     instance->flags().add(NodeInstFlags::Group, NodeInstFlags::JsonApiDontExport);
     auto ptr = instance.get();
