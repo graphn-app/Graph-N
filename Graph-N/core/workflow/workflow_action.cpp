@@ -342,9 +342,9 @@ void WorkflowAction::set_node_pinning(data::NodeInstance* node, bool pin)
 void WorkflowAction::set_node_mode(data::NodeInstance* node, NodeInstFlags mode)
 {
     LogRAssert(node, "Zero ptr", );
-    LogRAssert(g_node_inst_all_modes_mask.has(mode), "Invalid mode passed", );
+    LogRAssert(NodeInstFlags::None == mode || g_node_inst_all_modes_mask.has(mode), "Invalid mode passed", );
 
-    if (node->flags().has(mode))
+    if (mode != NodeInstFlags::None && node->flags().has(mode))
         return;
     if (NodeInstFlags::ModeBypass == mode && node->obj_flags().has_not(NodeObjFlags::CanBypass))
         return;

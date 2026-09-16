@@ -243,7 +243,7 @@ enum class NodeInstFlags : uint64_t
     Deserialization           = 1ULL << 12,   // 4096               -  0x1000
     Pinned                    = 1ULL << 13,   // 8192               -  0x2000
     Expanded                  = 1ULL << 14,   // 16384              -  0x4000             // default
-    ModeAlways                = 1ULL << 15,   // 32768              -  0x8000             // default
+    //ModeAlways                = 1ULL << 15,   // 32768              -  0x8000             // default
     ModeOnEvent               = 1ULL << 16,   // 65536              -  0x10000
     ModeMute                  = 1ULL << 17,   // 131072             -  0x20000
     ModeOnTrigger             = 1ULL << 18,   // 262144             -  0x40000
@@ -262,7 +262,7 @@ enum class NodeInstFlags : uint64_t
 
 inline constexpr ObjectFlags<NodeInstFlags> g_node_inst_all_modes_mask
 {
-    NodeInstFlags::ModeAlways,
+    //NodeInstFlags::ModeAlways,
     NodeInstFlags::ModeOnEvent,
     NodeInstFlags::ModeMute,
     NodeInstFlags::ModeOnTrigger,

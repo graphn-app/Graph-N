@@ -529,7 +529,7 @@ void GraphN_Flow::wf_node_always()
     };
     const auto action_cb = [](data::NodeInstance* node, data::WorkflowAction* action, bool /*first*/)
     {
-        action->set_node_mode(node, NodeInstFlags::ModeAlways);
+        action->set_node_mode(node, NodeInstFlags::None);
     };
     wf_node_action_on_selected(action_name_cb, first_cb, action_cb);
 }
@@ -546,7 +546,7 @@ void GraphN_Flow::wf_node_toggle_mute()
     };
     const auto action_cb = [](data::NodeInstance* node, data::WorkflowAction* action, bool first)
     {
-        action->set_node_mode(node, first ? NodeInstFlags::ModeAlways : NodeInstFlags::ModeMute);
+        action->set_node_mode(node, first ? NodeInstFlags::None : NodeInstFlags::ModeMute);
     };
     wf_node_action_on_selected(action_name_cb, first_cb, action_cb);
 }
@@ -563,7 +563,7 @@ void GraphN_Flow::wf_node_toggle_bypass()
     };
     const auto action_cb = [](data::NodeInstance* node, data::WorkflowAction* action, bool first)
     {
-        action->set_node_mode(node, first ? NodeInstFlags::ModeAlways : NodeInstFlags::ModeBypass);
+        action->set_node_mode(node, first ? NodeInstFlags::None : NodeInstFlags::ModeBypass);
     };
     wf_node_action_on_selected(action_name_cb, first_cb, action_cb);
 }

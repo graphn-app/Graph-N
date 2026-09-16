@@ -25,7 +25,7 @@ public:
     void expand_node(bool expand) noexcept;
 
     void set_mode(NodeInstFlags mode) noexcept;
-    bool get_mode_always() const noexcept { return flags().has(NodeInstFlags::ModeAlways); }
+    bool get_mode_always() const noexcept { return flags().has_none(NodeInstFlags::ModeBypass, NodeInstFlags::ModeMute, NodeInstFlags::ModeOnEvent, NodeInstFlags::ModeOnTrigger); }
     bool get_mode_bypass() const noexcept { return flags().has(NodeInstFlags::ModeBypass); }
     bool get_mode_mute() const noexcept { return flags().has_any(NodeInstFlags::ModeMute, NodeInstFlags::ModeOnEvent, NodeInstFlags::ModeOnTrigger); }
 

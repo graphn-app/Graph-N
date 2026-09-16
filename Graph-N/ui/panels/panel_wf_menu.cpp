@@ -397,7 +397,7 @@ bool PanelWorkflow::show_node_menu()
     ImGui::Separator();
     if (ImGui::MenuItem("Always", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Always), node->get_mode_always(), node->obj_flags().has_not(NodeObjFlags::Dummy)))
     {
-        m_action->set_node_mode(node, NodeInstFlags::ModeAlways);
+        m_action->set_node_mode(node, NodeInstFlags::None);
         close = true;
     }
     if (ImGui::MenuItem("Bypass", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Bypass), node->get_mode_bypass(), node->obj_flags().has_and_has_not(NodeObjFlags::CanBypass, NodeObjFlags::Dummy)))
@@ -786,7 +786,7 @@ bool PanelWorkflow::show_multinode_menu()
         for (auto node : m_menu_objs.nodes)
         {
             if (node->obj_flags().has_not(NodeObjFlags::Dummy))
-                m_action->set_node_mode(node, NodeInstFlags::ModeAlways);
+                m_action->set_node_mode(node, NodeInstFlags::None);
         }
         m_action->multi_action_off();
         close = true;

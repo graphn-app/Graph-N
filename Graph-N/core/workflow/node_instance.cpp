@@ -364,9 +364,9 @@ void NodeInstance::expand_node(bool expand) noexcept
 
 void NodeInstance::set_mode(NodeInstFlags mode) noexcept
 {
-    LogRAssert(g_node_inst_all_modes_mask.has(mode), "Invalid mode passed", );
+    LogRAssert(NodeInstFlags::None == mode || g_node_inst_all_modes_mask.has(mode), "Invalid mode passed", );
 
-    if (flags().has(mode))
+    if (mode != NodeInstFlags::None && flags().has(mode))
         return;
     if (NodeInstFlags::ModeBypass == mode && obj_flags().has_not(NodeObjFlags::CanBypass))
         return;
@@ -377,7 +377,7 @@ void NodeInstance::set_mode(NodeInstFlags mode) noexcept
     m_saved_width = -1.0f;
 
     flags().remove(
-        NodeInstFlags::ModeAlways, 
+        //NodeInstFlags::ModeAlways, 
         NodeInstFlags::ModeOnEvent, 
         NodeInstFlags::ModeMute, 
         NodeInstFlags::ModeOnTrigger, 

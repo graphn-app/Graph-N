@@ -258,14 +258,15 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
         node_instance->set_name(j["title"]);
 
     // mode
+    node_instance->set_mode(NodeInstFlags::None);
     if (j.contains("mode") && j["mode"].is_number_integer())
     {
         switch (j["mode"].get<int32_t>())
         {
-        case 0:
-        default:
-            node_instance->set_mode(NodeInstFlags::ModeAlways);
-            break;
+        //case 0:
+        //default:
+        //    node_instance->set_mode(NodeInstFlags::ModeAlways);
+        //    break;
         case 1:
             node_instance->set_mode(NodeInstFlags::ModeOnEvent);
             break;

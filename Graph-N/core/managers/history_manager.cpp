@@ -647,7 +647,7 @@ void HistoryManager::pop_node_mode(const data::Workflow* dest_wf, const HistoryS
 
     ObjectFlags<NodeInstFlags> obj_flag;
     obj_flag.set_raw(*std::get_if<uint64_t>(do_undo ? &real_step->old_val : &real_step->new_val));
-    NodeInstFlags flag = NodeInstFlags::ModeAlways;
+    NodeInstFlags flag = NodeInstFlags::None;
     if (obj_flag.has(NodeInstFlags::ModeBypass))            flag = NodeInstFlags::ModeBypass;
     else if (obj_flag.has(NodeInstFlags::ModeMute))         flag = NodeInstFlags::ModeMute;
     else if (obj_flag.has(NodeInstFlags::ModeOnEvent))      flag = NodeInstFlags::ModeOnEvent;

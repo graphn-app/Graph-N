@@ -171,7 +171,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
     m_curr_node->m_clr_head = block.pop_clr();
     m_curr_node->m_clr_group_capt = block.pop_clr();
     const uint64_t flags = block.pop_u64() | block.pop_u64();
-    m_curr_node->flags().remove(NodeInstFlags::ModeAlways);
+    //m_curr_node->flags().remove(NodeInstFlags::ModeAlways);
     m_curr_node->flags().add_raw(flags);
 
     m_curr_node->cni_cleanup_base_object();
