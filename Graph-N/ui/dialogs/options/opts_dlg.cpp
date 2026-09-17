@@ -1,9 +1,7 @@
 #include "ui/dialogs/options/opts_dlg.h"
 #include "ui/dialogs/options/opts_right_pane.h"
 #include "ui/graph-n_flow.h"
-#include "core/base/comfyui_web_paths.h"
 #include "core/managers/settings_manager.h"
-#include "core/managers/comfyui_manager.h"
 
 namespace ui
 {
@@ -74,20 +72,6 @@ void OptionsDlgs::show_left_pane()
         "Key Bindings",
     };
 
-    const auto restart_handler = [](ModalDlgCtrl res)
-    {
-        if (ModalDlgCtrl::BtnYes == res)
-        {
-            if (g::pComfyUIManager->get_process_started())
-            {
-                g::pComfyUIManager->kill(true);
-                g::pComfyUIManager->run(true);
-            }
-            else
-                g::pFlow->http_get(HttpRequestor::RestartFromOpts, nullptr, comfyui_http::reboot, nullptr);
-        }
-    };
-
     if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::OptLeftPane)], ImVec2(m_opts_data.left_pane_w, -FLT_MIN), true))
     {
         const auto avail_h = ImGui::GetContentRegionAvail().y;
@@ -104,7 +88,7 @@ void OptionsDlgs::show_left_pane()
         ImGui::PushStyleColor(ImGuiCol_Button, g::pOptsManager->color_load(AppColor::RestartButton));
         if (ImGui::Button("Restart " APP_COMFYUI, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f)))
         {
-            g::pFlow->modal_begin("Confirm", "Are you sure you'd like to reboot the server?", ModalDlgCtrl::BtnYes | ModalDlgCtrl::BtnNo | ModalDlgCtrl::IcoWarn, ModalDlgCtrl::BtnNo, restart_handler);            
+            g::pFlow->on_menu_restart();            
         }
         ImGui::PopStyleColor();
     }

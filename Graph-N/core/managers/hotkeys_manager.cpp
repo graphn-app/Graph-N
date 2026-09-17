@@ -21,6 +21,7 @@ void HotkeysManager::save(std::vector<ui::KeyBinding>&& hotkeys)
     m_key_binding = std::move(hotkeys);
     fix_with_defaults();
     g::pOptsManager->ui_hotkeys_save(m_key_binding);
+    std::ranges::for_each(m_change_listeners, [](listener::HotkeysChangedHandler* listener) { listener->handle_hotkeys_changed(); });
 }
 
 std::vector<ui::KeyBinding> HotkeysManager::get_default_key_bindings() const
@@ -32,7 +33,7 @@ std::vector<ui::KeyBinding> HotkeysManager::get_default_key_bindings() const
     { ui::KeyBinding kb; kb.target = KeyTarget::App_TogglePanels;    kb.key = ImGuiKey::ImGuiKey_GraveAccent;                                    hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::App_FullScreen;      kb.key = ImGuiKey::ImGuiKey_F11;                                            hks.push_back(kb); }
   //{ ui::KeyBinding kb; kb.target = KeyTarget::App_Command;                                                                                     hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::App_Restart;         kb.key = ImGuiKey::ImGuiKey_R;          kb.ctrl = true; kb.shift = true;    hks.push_back(kb); }
+  //{ ui::KeyBinding kb; kb.target = KeyTarget::App_Restart;         kb.key = ImGuiKey::ImGuiKey_R;          kb.ctrl = true; kb.shift = true;    hks.push_back(kb); }
 
     { ui::KeyBinding kb; kb.target = KeyTarget::Wf_1;                kb.key = ImGuiKey::ImGuiKey_1;                                              hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Wf_2;                kb.key = ImGuiKey::ImGuiKey_2;                                              hks.push_back(kb); }
@@ -235,6 +236,14 @@ std::vector<std::pair<ImGuiKey, const char*>> HotkeysManager::get_key_names() co
     return key_names;
 }
 
+std::string HotkeysManager::get_key_binding_name_str(KeyTarget target) const
+{
+    const auto* ptr = get_key_binding_name(target);
+    if (ptr != nullptr)
+        return std::string(ptr);
+    return {};
+}
+
 const char* HotkeysManager::get_key_binding_name(KeyTarget target, const char* append_to /*= nullptr*/) const
 {
     static fmt::memory_buffer text;
@@ -393,9 +402,9 @@ bool HotkeysManager::process_hotkey() const
     //case KeyTarget::App_Command:
     //    g::pFlow->on_menu_command();
     //    return true;
-    case KeyTarget::App_Restart:
-        g::pFlow->on_menu_restart();
-        return true;
+    //case KeyTarget::App_Restart:
+    //    g::pFlow->on_menu_restart();
+    //    return true;
     case KeyTarget::App_Options:
         g::pFlow->on_menu_options();
         return true;

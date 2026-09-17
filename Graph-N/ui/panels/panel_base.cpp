@@ -508,7 +508,7 @@ void PanelToolbar::draw_toolbar()
     const float big_h = ImGui::GetTextLineHeight();
     const ImVec2 ico_size = ImGui::CalcTextSize(ICON_LC_X);
 
-    const auto tooltip = [&fg](const char* text)
+    const auto tooltip = [&fg](const char* text, const std::string& hotkey, bool tooltip_next_line, const char* separator)
     {
         if (text != nullptr && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
         {
@@ -516,6 +516,15 @@ void PanelToolbar::draw_toolbar()
             if (ImGui::BeginTooltip())
             {
                 ImGui::TextUnformatted(text);
+                if (!hotkey.empty())
+                {
+                    if (!tooltip_next_line)
+                        ImGui::SameLine();
+                    if (separator != nullptr && *separator != 0)
+                        ImGui::TextDisabled("%s%s", separator, hotkey.c_str());
+                    else
+                        ImGui::TextDisabled(hotkey.c_str());
+                }
                 ImGui::EndTooltip();
             }
         }
@@ -565,7 +574,7 @@ void PanelToolbar::draw_toolbar()
             ImGui::PopStyleColor();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip);
+                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             if (pressed && el.toggler)
                 el.toggled = !el.toggled;
@@ -605,7 +614,7 @@ void PanelToolbar::draw_toolbar()
             pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip);
+                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             //if (-FLT_MIN == regular_el_y)
             //    regular_el_y = ImGui::GetItemRectMin().y;
@@ -622,7 +631,7 @@ void PanelToolbar::draw_toolbar()
             pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip);
+                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             start_pos += avail_w * el.input_w + style.ItemSpacing.x;
 
@@ -650,7 +659,7 @@ void PanelToolbar::draw_toolbar()
             if (el.text_width > 0.0f) ImGui::PopClipRect();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip);
+                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             if (el.text_width > 0.0f)
                 start_pos += el.text_width + style.ItemSpacing.x;
@@ -667,7 +676,7 @@ void PanelToolbar::draw_toolbar()
             pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip);
+                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             start_pos += avail_w * el.input_w + style.ItemSpacing.x;
 
@@ -713,7 +722,7 @@ void PanelToolbar::draw_toolbar()
             ImGui::PopStyleColor();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip);
+                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             if (pressed && el.toggler)
                 el.toggled = !el.toggled;
@@ -756,7 +765,7 @@ void PanelToolbar::draw_toolbar()
             pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip);
+                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             //if (-FLT_MIN == regular_el_y)
             //    regular_el_y = ImGui::GetItemRectMin().y;
@@ -776,7 +785,7 @@ void PanelToolbar::draw_toolbar()
             pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip);
+                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             start_pos -= regular_btn_size.x + style.ItemSpacing.x;
 
@@ -807,7 +816,7 @@ void PanelToolbar::draw_toolbar()
             if (el.text_width > 0.0f) ImGui::PopClipRect();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip);
+                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             start_pos -= regular_btn_size.x + style.ItemSpacing.x;
         }
@@ -824,7 +833,7 @@ void PanelToolbar::draw_toolbar()
             pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
 
             if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip);
+                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             start_pos -= regular_btn_size.x + style.ItemSpacing.x;
 

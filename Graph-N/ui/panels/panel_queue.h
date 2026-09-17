@@ -1,5 +1,6 @@
 #pragma once
 #include "ui/panels/panel_base.h"
+#include "core/listeners.h"
 
 namespace ui
 {
@@ -9,6 +10,7 @@ class PanelQueue final
     , public PanelToolbar
     , public PanelEmptyWithDescr
     , public IsAlive
+    , public listener::HotkeysChangedHandler
 {
 public:
     PanelQueue();
@@ -32,6 +34,7 @@ private:
     void show_video(mngr::ExecTask::Output& output, ImVec2 rect, bool& show_stub);
     void show_asset_info(const mngr::ExecTask::Output& output, size_t out_idx);
     void create_toolbar();
+    void handle_hotkeys_changed(); // HotkeysChangedHandler
 
     void init_history();
     void load_history();

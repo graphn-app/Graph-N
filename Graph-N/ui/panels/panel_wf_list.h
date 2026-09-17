@@ -1,5 +1,6 @@
 #pragma once
 #include "ui/panels/panel_base.h"
+#include "core/listeners.h"
 
 namespace data
 {
@@ -21,6 +22,7 @@ class PanelWfList final :
     public PanelWithList,
     public PanelToolbar,
     public PanelBase<PanelWfListData>
+    , public listener::HotkeysChangedHandler
 {
 public:
     PanelWfList();
@@ -37,6 +39,7 @@ private:
     void show_wfs();
 
     void create_toolbar();
+    void handle_hotkeys_changed(); // HotkeysChangedHandler
 
     void rebuild_labels();
     void rebuild_trash();

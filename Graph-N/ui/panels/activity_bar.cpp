@@ -2,6 +2,7 @@
 #include "ui/graph-n_flow.h"
 #include "ui/helpers/font_guard.h"
 #include "core/managers/settings_manager.h"
+#include "core/managers/hotkeys_manager.h"
 #include "main.h"
 
 namespace ui
@@ -12,7 +13,10 @@ ActivityBar::~ActivityBar() noexcept = default;
 
 void ActivityBar::register_panels(const std::vector<DlgObj>& panels)
 {
-    std::for_each(panels.begin(), panels.end(), [this](DlgObj id) { m_panels.push_back({ id, Direction::None }); });
+    std::for_each(panels.begin(), panels.end(), [this](DlgObj id) { m_panels.push_back({ id, Direction::None, "" }); });
+
+    g::pHotkeysManager->add_listener(this);
+    handle_hotkeys_changed();
 
     m_clr_bg = g::pOptsManager->color_load(AppColor::ActivityBarBg);
     m_clr_inactive = g::pOptsManager->color_load(AppColor::ActivityBarInactive);
@@ -24,6 +28,41 @@ void ActivityBar::register_panels(const std::vector<DlgObj>& panels)
     m_clr_restart_inactive = g::pOptsManager->color_load(AppColor::RestartButton);
     m_clr_restart_hover = ImGuiEx::increase_brightness(m_clr_restart_inactive);
     m_clr_restart_pressed = ImGuiEx::increase_brightness(m_clr_restart_hover);
+}
+
+void ActivityBar::handle_hotkeys_changed()
+{
+    const auto set_hotkey_tooltip = [](const char* hotkey, std::string& target)
+    {
+        if (nullptr == hotkey)
+            target.clear();
+        else
+            target = std::string(" | ") + hotkey;
+    };
+
+    for (auto& pair : m_panels)
+    {
+        KeyTarget target;
+        switch (std::get<0>(pair))
+        {
+        case DlgObj::PanelNodes:            target = KeyTarget::PanelOpen_Nodes;       break;
+        case DlgObj::PanelNodeInspector:    target = KeyTarget::PanelOpen_Inspector;   break;
+        case DlgObj::PanelStats:            target = KeyTarget::PanelOpen_Stats;       break;
+        case DlgObj::PanelWfList:           target = KeyTarget::PanelOpen_Projects;    break;
+        case DlgObj::PanelTemplates:        target = KeyTarget::PanelOpen_Templates;   break;
+        case DlgObj::PanelNotes:            target = KeyTarget::PanelOpen_Notes;       break;
+        case DlgObj::PanelModels:           target = KeyTarget::PanelOpen_Models;      break;
+        case DlgObj::PanelQueue:            target = KeyTarget::PanelOpen_Queue;       break;
+        default:
+            LogCError("Unhandled panel " << cast::to_i32(std::get<0>(pair)));
+        }
+
+        set_hotkey_tooltip(g::pHotkeysManager->get_key_binding_name(target), std::get<2>(pair));
+    }
+
+    set_hotkey_tooltip(g::pHotkeysManager->get_key_binding_name(KeyTarget::App_Options), m_opts_hotkey);
+    set_hotkey_tooltip(g::pHotkeysManager->get_key_binding_name(KeyTarget::App_TogglePanels), m_toggle_hotkey);
+    set_hotkey_tooltip(g::pHotkeysManager->get_key_binding_name(KeyTarget::PanelOpen_Logs), m_logs_hotkey);
 }
 
 void ActivityBar::calc_window_sizes(bool left, bool right) noexcept
@@ -114,8 +153,9 @@ void ActivityBar::show(ActivityBarMode mode)
     const ImGuiDockNode* central_node = get_central_node(root_node);
 
     size_t l_panels = 0, r_panels = 0;
-    for (auto& [id, direction] : m_panels)
+    for (auto& [id, direction, hotkey] : m_panels)
     {
+        (void)hotkey;
         if (nullptr == central_node || !g::pFlow->is_panel_active(id)) [[unlikely]]
             direction = Direction::None;
         else
@@ -141,11 +181,11 @@ void ActivityBar::show(ActivityBarMode mode)
             ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration |
             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus))
         {
-            for (auto& [id, direction] : m_panels)
+            for (auto& [id, direction, hotkey] : m_panels)
             {
                 if (Direction::Left == direction || left_include_all)
                 {
-                    draw_panel_buttons(id, g::pFlow->is_panel_active(id));
+                    draw_panel_buttons(id, g::pFlow->is_panel_active(id), hotkey);
                     l_shown = true;
                 }
             }
@@ -169,11 +209,11 @@ void ActivityBar::show(ActivityBarMode mode)
             ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration |
             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus))
         {
-            for (auto& [id, direction] : m_panels)
+            for (auto& [id, direction, hotkey] : m_panels)
             {
                 if (Direction::Right == direction || right_include_all)
                 {
-                    draw_panel_buttons(id, g::pFlow->is_panel_active(id));
+                    draw_panel_buttons(id, g::pFlow->is_panel_active(id), hotkey);
                     r_shown = true;
                 }
             }
@@ -214,7 +254,7 @@ ActivityBar::Direction ActivityBar::get_panel_direction(DlgObj panel_obj, ImRect
     return Direction::None;
 }
 
-void ActivityBar::show_tooltip(FontGuard* fg, const char* text) noexcept
+void ActivityBar::show_tooltip(FontGuard* fg, const char* text, const std::string& hotkey) noexcept
 {
     if (text != nullptr && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
     {
@@ -222,12 +262,17 @@ void ActivityBar::show_tooltip(FontGuard* fg, const char* text) noexcept
         if (ImGui::BeginTooltip())
         {
             ImGui::TextUnformatted(text);
+            if (!hotkey.empty())
+            {
+                ImGui::SameLine();
+                ImGui::TextDisabled(hotkey.c_str());
+            }
             ImGui::EndTooltip();
         }
     }
 }
 
-void ActivityBar::draw_panel_buttons(DlgObj panel_obj, bool active)
+void ActivityBar::draw_panel_buttons(DlgObj panel_obj, bool active, const std::string& hotkey)
 {
     const auto icon = g::pFlow->get_panel_icon(panel_obj);
 
@@ -239,7 +284,7 @@ void ActivityBar::draw_panel_buttons(DlgObj panel_obj, bool active)
     ImGui::PushStyleColor(ImGuiCol_Text, 0);
     const bool pressed = ImGui::Button(icon);
     ImGui::PopStyleColor();
-    show_tooltip(&fg, g::pFlow->get_panel_name(panel_obj));
+    show_tooltip(&fg, g::pFlow->get_panel_name(panel_obj), hotkey);
 
     const auto btn_pos = ImGui::GetItemRectMin();
 
@@ -274,19 +319,43 @@ void ActivityBar::draw_additional_buttons()
 
     FontGuard fg(g::pOptsManager->ui_activity_bar_big_icons_load() ? g::pMain->get_big_icons_font() : g::pMain->get_icons_font());
 
+    // toggle panels
+    fg.push();
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.x * 3);
+
+    ImGui::PushStyleColor(ImGuiCol_Text, 0);
+    bool pressed = ImGui::Button(ICON_LC_EYE);
+    ImGui::PopStyleColor();
+    show_tooltip(&fg, "Toggle active panels", m_toggle_hotkey);
+
+    auto btn_pos = ImGui::GetItemRectMin();
+
+    ImU32 color;
+    if (pressed || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        color = m_clr_pressed;
+    else if (ImGui::IsItemHovered())
+        color = m_clr_hover;
+    else
+        color = m_clr_inactive;
+
+    fg.push();
+    ImGui::GetWindowDrawList()->AddText(btn_pos, color, ICON_LC_EYE);
+
+    if (pressed)
+        g::pFlow->on_menu_panel_toggle_active();
+
     // settings
     const auto h = ImGui::CalcTextSize(ICON_LC_X).y;
     ImGui::SetCursorPosY(ImGui::GetMainViewport()->WorkSize.y - h - ImGui::GetStyle().ItemSpacing.x * 2);
 
     fg.push();
     ImGui::PushStyleColor(ImGuiCol_Text, 0);
-    bool pressed = ImGui::Button(ICON_LC_SETTINGS);
+    pressed = ImGui::Button(ICON_LC_SETTINGS);
     ImGui::PopStyleColor();
-    show_tooltip(&fg, "Options");
+    show_tooltip(&fg, "Options", m_opts_hotkey);
 
-    auto btn_pos = ImGui::GetItemRectMin();
+    btn_pos = ImGui::GetItemRectMin();
 
-    ImU32 color;
     if (pressed || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
         color = m_clr_pressed;
     else if (ImGui::IsItemHovered())
@@ -308,7 +377,7 @@ void ActivityBar::draw_additional_buttons()
     ImGui::PushStyleColor(ImGuiCol_Text, 0);
     pressed = ImGui::Button(g::pFlow->get_panel_icon(DlgObj::PanelServerLogs));
     ImGui::PopStyleColor();
-    show_tooltip(&fg, g::pFlow->get_panel_name(DlgObj::PanelServerLogs));
+    show_tooltip(&fg, g::pFlow->get_panel_name(DlgObj::PanelServerLogs), m_logs_hotkey);
 
     btn_pos = ImGui::GetItemRectMin();
 

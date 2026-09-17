@@ -83,7 +83,7 @@ enum class HttpRequestor
     CustomWdgt_Video,
     CustomWdgt_Audio,
     UploadMedia,
-    RestartFromOpts,
+    Restart,
 };
 
 enum class DlgObj
@@ -453,7 +453,7 @@ enum class KeyTarget
     App_TogglePanels,
     App_FullScreen,
     App_Command, // skip
-    App_Restart,
+    App_Restart, // skip
     App_ReservedFirst, // skip
     App_ReservedLast = App_ReservedFirst + 8, // skip
     App_Last,

@@ -43,4 +43,13 @@ struct ServerRestartHandler
     virtual void handle_server_killed() {}
 };
 
+///////////////////////////
+
+struct HotkeysChangedHandler
+{
+    HotkeysChangedHandler() noexcept = default;
+    virtual ~HotkeysChangedHandler() noexcept = default;
+    virtual void handle_hotkeys_changed() = 0;
+};
+
 } // namespace listener

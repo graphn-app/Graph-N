@@ -1,5 +1,6 @@
 #pragma once
 #include "core/managers/manager.h"
+#include "core/listeners.h"
 
 namespace ui
 {
@@ -16,13 +17,16 @@ public:
     ~HotkeysManager() noexcept override;
 
     bool init() override;
-    void save(std::vector<ui::KeyBinding>&& hotkeys);    
+    void save(std::vector<ui::KeyBinding>&& hotkeys);
+
+    void add_listener(listener::HotkeysChangedHandler* listener) { m_change_listeners.push_back(listener); }
 
     const std::vector<ui::KeyBinding>& get_key_bindings() const noexcept { return m_key_binding; }
     std::vector<ui::KeyBinding> get_default_key_bindings() const;
 
     std::vector<std::pair<ImGuiKey, const char*>> get_key_names() const;
     const char* get_key_binding_name(KeyTarget target, const char* append_to = nullptr) const;
+    std::string get_key_binding_name_str(KeyTarget target) const;
     bool should_skip_target(KeyTarget target) const;
 
     bool process_hotkey() const;
@@ -36,6 +40,7 @@ private:
 
 private:
     std::vector<ui::KeyBinding> m_key_binding;
+    std::vector<listener::HotkeysChangedHandler*> m_change_listeners;
 };
 
 } // namespace mngr

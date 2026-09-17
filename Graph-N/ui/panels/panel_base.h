@@ -222,7 +222,12 @@ public:
 
         // button
         const char* icon = nullptr;
+
         const char* tooltip = nullptr;
+        std::string tooltip_hotkey;
+        bool tooltip_next_line = false;
+        const char* tooltip_hotkey_separator = " | ";
+
         bool toggler = false;
         bool toggled = false;
 

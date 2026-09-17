@@ -1,8 +1,10 @@
 #include "ui/graph-n_flow.h"
+#include "core/base/comfyui_web_paths.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/queue_manager.h"
 #include "core/managers/hotkeys_manager.h"
+#include "core/managers/comfyui_manager.h"
 #include "ui/panels/panel_wf.h"
 #include "main.h"
 
@@ -60,7 +62,7 @@ void GraphN_Flow::show_menu_bar()
                 on_menu_fullscreen();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Restart server##FileMenuBar", hk->get_key_binding_name(KeyTarget::App_Restart), nullptr, online))
+            if (ImGui::MenuItem("Restart server##FileMenuBar", nullptr, nullptr, online))
             {
                 on_menu_restart();
             }
@@ -157,6 +159,7 @@ void GraphN_Flow::show_menu_bar()
             {
                 on_menu_panel_toggle_active();
             }
+            ImGui::Separator();
             if (ImGui::MenuItem("Reset default layout##PanelsMenuBar"))
             {
                 on_menu_panel_window(ViewPanelsResetAll);
@@ -400,7 +403,21 @@ void GraphN_Flow::on_menu_next_project(bool next)
 
 void GraphN_Flow::on_menu_restart() noexcept
 {
-    // TODO
+    const auto restart_handler = [this](ModalDlgCtrl res)
+    {
+        if (ModalDlgCtrl::BtnYes == res)
+        {
+            if (g::pComfyUIManager->get_process_started())
+            {
+                g::pComfyUIManager->kill(true);
+                g::pComfyUIManager->run(true);
+            }
+            else
+                http_get(HttpRequestor::Restart, nullptr, comfyui_http::reboot, nullptr);
+        }
+    };
+
+    g::pFlow->modal_begin("Confirm", "Are you sure you'd like to reboot the server?", ModalDlgCtrl::BtnYes | ModalDlgCtrl::BtnNo | ModalDlgCtrl::IcoWarn, ModalDlgCtrl::BtnNo, restart_handler);
 }
 
 void GraphN_Flow::on_menu_import()

@@ -1,4 +1,5 @@
 #pragma once
+#include "core/listeners.h"
 #include "ui/base_dlg.h"
 
 namespace ui
@@ -6,7 +7,7 @@ namespace ui
 
 struct FontGuard;
 
-class ActivityBar final
+class ActivityBar final : public listener::HotkeysChangedHandler
 {
 public:
     ActivityBar() noexcept;
@@ -25,10 +26,13 @@ private:
     enum class Direction { None, Left, Right, Bottom };
     const ImGuiDockNode* get_central_node(const ImGuiDockNode* node);
     Direction get_panel_direction(DlgObj panel_obj, ImRect center_rc) noexcept;
-    void draw_panel_buttons(DlgObj panel_obj, bool active);
+    void draw_panel_buttons(DlgObj panel_obj, bool active, const std::string& hotkey);
     void draw_additional_buttons();
 
-    void show_tooltip(FontGuard* fg, const char* text) noexcept;
+    void show_tooltip(FontGuard* fg, const char* text, const std::string& hotkey) noexcept;
+
+    // HotkeysChangedHandler
+    void handle_hotkeys_changed();
 
 private:
     ImU32 m_clr_bg = 0;
@@ -42,7 +46,10 @@ private:
     ImU32 m_clr_restart_pressed = 0;
     ImU32 m_clr_restart_hover = 0;
 
-    std::vector<std::pair<DlgObj, Direction>> m_panels;
+    std::vector<std::tuple<DlgObj, Direction, std::string>> m_panels;
+    std::string m_opts_hotkey;
+    std::string m_toggle_hotkey;
+    std::string m_logs_hotkey;
     ActivityBarMode m_mode = ActivityBarMode::Smart;
     ImRect m_left_rc;
     ImRect m_right_rc;

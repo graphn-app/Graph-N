@@ -5,6 +5,7 @@
 #include "core/managers/queue_manager.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/db_manager.h"
+#include "core/managers/hotkeys_manager.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/serializer/wf_serializers.h"
@@ -45,6 +46,8 @@ void PanelQueue::init()
         m_hidden.insert(t.group_id);
         t.favorited = m_favorited.has_item(t.prompt_id);
     }
+
+    g::pHotkeysManager->add_listener(this);
 }
 
 void PanelQueue::init_history()
@@ -152,6 +155,11 @@ DlgCode PanelQueue::show(bool& focused)
     return end_panel(opened);
 }
 
+void PanelQueue::handle_hotkeys_changed()
+{
+    create_toolbar();
+}
+
 void PanelQueue::create_toolbar()
 {
     clear_toolbar();
@@ -167,6 +175,7 @@ void PanelQueue::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_PAUSE;
         el.tooltip = "Pause";
+        el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Queue_Pause);
         el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_pause(el); };
         el.on_click = [this](PanelToolbar::Element& el) noexcept { on_pause(el); };
         add_toolbar_element(std::move(el), true);
@@ -176,6 +185,7 @@ void PanelQueue::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_X;
         el.tooltip = "Terminate current task";
+        el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Queue_Interrupt);
         el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_terminate_current(el); };
         el.on_click = [this](PanelToolbar::Element& el) { on_terminate_current(el); };
         add_toolbar_element(std::move(el), true);

@@ -28,6 +28,8 @@ PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std
 
     g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::Invalidate, this);
     g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
+
+    g::pHotkeysManager->add_listener(this);
 }
 
 PanelWorkflow::~PanelWorkflow() noexcept
@@ -521,6 +523,11 @@ bool PanelWorkflow::handle_moves()
     return false;
 }
 
+void PanelWorkflow::handle_hotkeys_changed()
+{
+    create_toolbar();
+}
+
 void PanelWorkflow::create_toolbar()
 {
     clear_toolbar();
@@ -552,6 +559,7 @@ void PanelWorkflow::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_SAVE;
             el.tooltip = "Save Project";
+            el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_Save);
             el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_save(el); };
             el.on_click = [this](PanelToolbar::Element& el) { on_save(el); };
             add_toolbar_element(std::move(el), true);
@@ -575,6 +583,7 @@ void PanelWorkflow::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_UNDO_2;
             el.tooltip = "Undo";
+            el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_Undo);
             el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_undo(el); };
             el.on_click = [this](PanelToolbar::Element& el) { on_undo(el); };
             add_toolbar_element(std::move(el), true);
@@ -584,6 +593,7 @@ void PanelWorkflow::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_REDO_2;
             el.tooltip = "Redo";
+            el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_Redo);
             el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_redo(el); };
             el.on_click = [this](PanelToolbar::Element& el) { on_redo(el); };
             add_toolbar_element(std::move(el), true);
@@ -633,6 +643,10 @@ void PanelWorkflow::create_toolbar()
                 el.type = PanelToolbar::Element::Type::Button;
                 el.icon = ICON_LC_PLAY;
                 el.tooltip = "Run workflow (Shift to queue at front)";
+                el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_RunBack)
+                                    + " | " + g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_RunFront);
+                el.tooltip_next_line = true;
+                el.tooltip_hotkey_separator = nullptr;
                 el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_queue(el); };
                 el.on_click = [this](PanelToolbar::Element& el) { on_queue(el); };
                 add_toolbar_element(std::move(el), false);
@@ -642,6 +656,7 @@ void PanelWorkflow::create_toolbar()
                 el.type = PanelToolbar::Element::Type::Button;
                 el.icon = ICON_LC_X;
                 el.tooltip = "Terminate current task";
+                el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Queue_Interrupt);
                 el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_queue_interrupt(el); };
                 el.on_click = [this](PanelToolbar::Element& el) { on_queue_interrupt(el); };
                 add_toolbar_element(std::move(el), false);
@@ -659,6 +674,11 @@ void PanelWorkflow::create_toolbar()
                 PanelToolbar::Element el;
                 el.type = PanelToolbar::Element::Type::Combo;
                 el.tooltip = "Number of tasks to run";
+                el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_Runs1) +
+                                    " ... " + g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_Runs9) +
+                                    " | " + g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_RunsInf);
+                el.tooltip_next_line = true;
+                el.tooltip_hotkey_separator = nullptr;
                 m_queue_num_input_id = "##num_" + m_wf->get_uuid();
                 el.id = m_queue_num_input_id.c_str();
                 el.input_w = 150.0f;

@@ -1,6 +1,7 @@
 #include "ui/panels/panel_wf_list.h"
 #include "core/workflow/workflow.h"
 #include "core/managers/workflows_manager.h"
+#include "core/managers/hotkeys_manager.h"
 #include "ui/graph-n_flow.h"
 
 namespace ui
@@ -20,6 +21,8 @@ void PanelWfList::init()
 
     create_toolbar();
     rebuild_items();
+
+    g::pHotkeysManager->add_listener(this);
 }
 
 void PanelWfList::free() noexcept
@@ -28,6 +31,11 @@ void PanelWfList::free() noexcept
     m_wfs.clear(); m_wfs.shrink_to_fit();
     m_panel_items.clear(); m_panel_items.shrink_to_fit();
     m_new_label = 0;
+}
+
+void PanelWfList::handle_hotkeys_changed()
+{
+    create_toolbar();
 }
 
 void PanelWfList::create_toolbar()
@@ -40,6 +48,7 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_PLUS;
             el.tooltip = "New Project";
+            el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Project_CreateNew);
             el.on_click = [this](PanelToolbar::Element& el) { on_add_new_wf(el); };
             add_toolbar_element(std::move(el), false);
         }
@@ -48,6 +57,7 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_PEN_LINE;
             el.tooltip = "Rename Project";
+            el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Project_Rename);
             el.on_click = [this](PanelToolbar::Element& el) noexcept { on_rename_wf(el); };
             el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_rename_wf(el); };
             add_toolbar_element(std::move(el), false);

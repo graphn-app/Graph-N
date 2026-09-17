@@ -15,12 +15,13 @@ class WorkflowAction;
 namespace ui
 {
 
-class PanelWorkflow final :
-    public PanelToolbar,
-    public PanelEmptyWithDescr,
-    public PanelBase<PanelCommonData>,
-    public IsAlive,
-    public listener::ComfyUiObjectValidityListener
+class PanelWorkflow final
+    : public PanelToolbar
+    , public PanelEmptyWithDescr
+    , public PanelBase<PanelCommonData>
+    , public IsAlive
+    , public listener::ComfyUiObjectValidityListener
+    , public listener::HotkeysChangedHandler
 {
 public:
     PanelWorkflow(wid workflow_id, const std::string& name, const std::string& panel_id, ImGuiID dock);
@@ -87,6 +88,7 @@ private:
 
     void check_history();
     void create_toolbar();
+    void handle_hotkeys_changed(); // HotkeysChangedHandler
 
     void on_pre_save(PanelToolbar::Element& el) noexcept;
     void on_save(PanelToolbar::Element& el);

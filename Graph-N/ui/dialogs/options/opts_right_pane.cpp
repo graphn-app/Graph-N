@@ -797,17 +797,6 @@ void OptRightPane::show_activity_bar(const char*& help_text)
     {
         g::pOptsManager->ui_activity_bar_big_icons_save(false);
     }
-
-    // restart
-    //ImGui::Spacing();
-    //ImGui::AlignTextToFramePadding();
-    //ImGui::TextUnformatted("Additional");
-
-    //ImGui::SameLine();
-    //ImGui::SetCursorPosX(m_data->input_offset_x);
-    //bool b_val = g::pOptsManager->ui_activity_bar_show_restart_load();
-    //if (ImGui::Checkbox("Add 'Restart " APP_COMFYUI "' button", &b_val))
-    //    g::pOptsManager->ui_activity_bar_show_restart_save(b_val);
 }
 
 // stats
