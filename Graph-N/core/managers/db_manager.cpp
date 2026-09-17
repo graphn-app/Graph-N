@@ -1,4 +1,5 @@
 #include "core/managers/db_manager.h"
+#include "core/managers/settings_manager.h"
 #include "core/base/version.h"
 
 namespace mngr
@@ -901,13 +902,17 @@ void DbManager::backup_thread(std::filesystem::path db_path, std::unique_ptr<SQL
         if (db_path.empty())
             return;
 
+        while (!g::pOptsManager->ready())
+        {
+            std::this_thread::sleep_for(100ms);
+        }
+
         auto backup = fs::get_backup_directory_path();
         if (!tools::path::make_folder(backup))
             return;
 
         auto list = tools::path::enumerate_directory(backup, false, false, true, false);
-        constexpr int32_t to_save = 2;
-        int32_t to_delete = cast::to_i32(list.size()) - to_save;
+        int64_t to_delete = cast::to_i32(list.size()) - g::pOptsManager->app_db_backups_load();
         if (to_delete > 0)
         {
             const auto sort_callback = [](const std::filesystem::path& lhs, const std::filesystem::path& rhs)

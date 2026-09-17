@@ -27,6 +27,7 @@ bool SettingsManager::init()
     m_app_fps_limit_val =                              { "fps_limit_value",         int64_t(30) };
     m_app_autoupdate =                                 { "autoupdate",              bool(true) };
     m_app_scale =                                      { "ui_scale",                int64_t(100) };
+    m_app_db_backups =                                 { "ui_backups",              int64_t(2) };
 
     // ui
     m_ui_open_wnds =                                  { "open_windows",             int64_t(ui::ViewPanelsResetAll) };
@@ -199,6 +200,7 @@ bool SettingsManager::init()
     values.push_back(&m_app_fps_limit_val);
     values.push_back(&m_app_autoupdate);
     values.push_back(&m_app_scale);
+    values.push_back(&m_app_db_backups);
     values.push_back(&m_ui_open_wnds);
     values.push_back(&m_ui_nodes_tree_view);
     values.push_back(&m_ui_theme);
@@ -255,6 +257,8 @@ bool SettingsManager::init()
     init_options(values);
     init_items_defaults();
     init_disks();
+
+    m_ready.store(true, std::memory_order_relaxed);
     return true;
 }
 

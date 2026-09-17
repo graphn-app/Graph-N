@@ -45,6 +45,7 @@ enum
     BuffLinkThickness,
     BuffShowDetectRes,
     BuffDetectResOK,
+    BuffDbBackups,
 
     _i_count
 };
@@ -86,6 +87,7 @@ void OptRightPane::init(OptsData& data)
     m_data->buffer_i[BuffPingW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerPing);
     m_data->buffer_i[BuffPingC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerPing);
     m_data->buffer_i[BuffLinkThickness] = g::pOptsManager->wf_link_thickness_load();
+    m_data->buffer_i[BuffDbBackups] = g::pOptsManager->app_db_backups_load();
 
     m_data->input.hovered_items.resize(20);
     m_data->input.numbers = g::pOptsManager->wf_widget_input_numbers_load();
@@ -122,6 +124,7 @@ void OptRightPane::show(OptsData& /*data*/)
     case OptPane::Application:
         show_general(help_text);
         show_rendering(help_text);
+        show_diagnostics(help_text);
         break;
     case OptPane::Connection:
         show_connection(help_text);
@@ -175,25 +178,26 @@ void OptRightPane::show_rendering(const char*& help_text)
         "Disable it only if you have a weak GPU and experience stuttering, as it allows the interface to run at its own pace.\n\n"
         "Note: Disabling vsync will show artificially high FPS and increase GPU load; refer to Latency for real performance.");
 
-    // frame rate limit
-    if (g::pOptsManager->app_vsync_load())
-        ImGui::BeginDisabled();
+    // TODO
+    //// frame rate limit
+    //if (g::pOptsManager->app_vsync_load())
+    //    ImGui::BeginDisabled();
 
-    b_val = g::pOptsManager->app_fps_limit_load();
-    if (ImGui::Checkbox("Frame Rate Limit:", &b_val))
-        g::pOptsManager->app_fps_limit_save(b_val);
-    show_help_mark(help_text,
-        "Caps the maximum frame rate to save power and reduce GPU temperature.");
+    //b_val = g::pOptsManager->app_fps_limit_load();
+    //if (ImGui::Checkbox("Frame Rate Limit:", &b_val))
+    //    g::pOptsManager->app_fps_limit_save(b_val);
+    //show_help_mark(help_text,
+    //    "Caps the maximum frame rate to save power and reduce GPU temperature.");
 
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(m_data->input_offset_x);
-    ImGui::SetNextItemWidth(m_data->input_w);
-    ImGuiEx::SliderIntSmart("##FpsLimit", &m_data->buffer_i[BuffFpsLimit], 30, 240, "%u FPS");
-    if (ImGui::IsItemDeactivatedAfterEdit())
-        g::pOptsManager->app_fps_limit_val_save(m_data->buffer_i[BuffFpsLimit]);
+    //ImGui::SameLine();
+    //ImGui::SetCursorPosX(m_data->input_offset_x);
+    //ImGui::SetNextItemWidth(m_data->input_w);
+    //ImGuiEx::SliderIntSmart("##FpsLimit", &m_data->buffer_i[BuffFpsLimit], 30, 240, "%u FPS");
+    //if (ImGui::IsItemDeactivatedAfterEdit())
+    //    g::pOptsManager->app_fps_limit_val_save(m_data->buffer_i[BuffFpsLimit]);
 
-    if (g::pOptsManager->app_vsync_load())
-        ImGui::EndDisabled();
+    //if (g::pOptsManager->app_vsync_load())
+    //    ImGui::EndDisabled();
 
     // scale
     ImGui::AlignTextToFramePadding();
@@ -206,6 +210,52 @@ void OptRightPane::show_rendering(const char*& help_text)
     ImGuiEx::SliderIntSmart("##scale", &m_data->buffer_i[BuffScale], 50, 200, "%u %%", 10);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->app_scale_save(m_data->buffer_i[BuffScale]);
+}
+
+void OptRightPane::show_diagnostics(const char*& help_text)
+{
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, "Diagnostics (" APP_CAPTION " restart required)");
+    ImGui::Spacing();
+
+    // logs
+    bool log_on = glog::Logger::get_log_enabled();
+    if (ImGui::Checkbox("Enable logging", &log_on))
+        glog::Logger::set_log_enabled(log_on);
+    show_help_mark(help_text, "Writes application events and errors to the log\\ directory.\nOlder log files are automatically deleted");
+
+    if (!log_on)
+        ImGui::BeginDisabled();
+
+    bool append_log_on = glog::Logger::get_log_web_response_enabled();
+    if (ImGui::Checkbox("Log web responses", &append_log_on))
+        glog::Logger::set_log_web_response_enabled(append_log_on);
+    show_help_mark(help_text, "Includes full raw HTTP responses from the server in the log files.\nSignificantly increases log size.");
+
+    append_log_on = glog::Logger::get_log_dump_invalid_json_enabled();
+    if (ImGui::Checkbox("Log node parsing errors", &append_log_on))
+        glog::Logger::set_log_dump_invalid_json_enabled(append_log_on);
+    show_help_mark(help_text, "Records detailed errors encountered while reading or validating node definitions from the server.");
+
+    if (!log_on)
+        ImGui::EndDisabled();
+
+    append_log_on = glog::Logger::get_log_object_info_enabled();
+    if (ImGui::Checkbox("Dump node definitions", &append_log_on))
+        glog::Logger::set_log_object_info_enabled(append_log_on);
+    show_help_mark(help_text, "Saves a raw copy of the server's node data to the log\\object_info.json for manual inspection.");
+
+    ImGui::Spacing();
+
+    // DB backups
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("DB backups limit:");
+    show_help_mark(help_text, "The maximum number of database backup files to retain.\nOlder backups are automatically deleted");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(m_data->input_offset_x);
+    ImGui::SetNextItemWidth(m_data->input_w);
+    ImGuiEx::SliderIntSmart("##DBBackups", &m_data->buffer_i[BuffDbBackups], 1, 10, "%u");
+    if (ImGui::IsItemDeactivatedAfterEdit())
+        g::pOptsManager->app_db_backups_save(m_data->buffer_i[BuffDbBackups]);
 }
 
 // comfyui connection
@@ -655,8 +705,9 @@ void OptRightPane::show_canvas(const char*& help_text)
         g::pOptsManager->wf_snap_nodes_save(b_val);
     show_help_mark(help_text, "Aligns nodes to the nearest grid lines when dragging."); // \nHold Alt to temporarily invert this behavior.
 
+    // thickness
     ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Link Thickness:");
+    ImGui::TextUnformatted("Link thickness:");
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_w);

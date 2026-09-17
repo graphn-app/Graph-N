@@ -20,6 +20,7 @@ public:
 private:
     void show_general(const char*& help_text);
     void show_rendering(const char*& help_text);
+    void show_diagnostics(const char*& help_text);
     void show_connection(const char*& help_text);
     void show_local_server(const char*& help_text);
     void show_widget_input(const char*& help_text);

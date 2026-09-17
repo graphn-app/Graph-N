@@ -79,34 +79,51 @@ bool check_log_file_mark_exists(const char* file_mark)
 }
 } //namespace
 
-bool Logger::check_log_file_mark()
+void Logger::check_log_file_mark()
 {
     m_log_file_mark_enabled = check_log_file_mark_exists(g_log_file_mark);
     m_log_web_dump_file_mark_enabled = check_log_file_mark_exists(g_log_web_dump_file_mark);
     m_log_object_info_file_mark_enabled = check_log_file_mark_exists(g_log_object_info_file_mark);
     m_log_invalid_json_mark_enabled = check_log_file_mark_exists(g_log_invalid_json_mark);
-
-    return m_log_file_mark_enabled;
 }
 
-void Logger::set_log_enabled(bool enable)
+void Logger::set_log_enabled(bool enabled)
 {
-    if (get_log_enabled() == enable)
-        return;
+    set_log_enabled(enabled, g_log_file_mark);
+}
 
+void Logger::set_log_web_response_enabled(bool enabled)
+{
+    set_log_enabled(enabled, g_log_web_dump_file_mark);
+}
+
+void Logger::set_log_object_info_enabled(bool enabled)
+{
+    set_log_enabled(enabled, g_log_object_info_file_mark);
+}
+
+void Logger::set_log_dump_invalid_json_enabled(bool enabled)
+{
+    set_log_enabled(enabled, g_log_invalid_json_mark);
+}
+
+void Logger::set_log_enabled(bool enable, const char* log_mark)
+{
     auto path = fs::get_log_directory_path();
-    path /= g_log_file_mark;
+    path /= log_mark;
 
     if (enable)
     {
         tools::path::make_file_path(path, true /*overwrite*/, "");
-        instance().log_start();
+        //instance().log_start();
     }
     else
     {
-        instance().log_stop();
+        //instance().log_stop();
         tools::path::remove(path);
     }
+
+    check_log_file_mark();
 }
 
 Logger& Logger::instance() noexcept
@@ -138,14 +155,13 @@ void Logger::force_flush() noexcept
 
 void Logger::log_start() noexcept
 {
-    if (get_log_enabled())
+    check_log_file_mark();
+    if (get_log_started() || !get_log_enabled())
         return;
 
     try
     {
         m_enabled.store(false, std::memory_order_relaxed);
-        if (!check_log_file_mark())
-            return;
 
         auto path = fs::get_log_directory_path();
         path /= APP_CAPTION "_" + tools::dt::get_app_start_time().as_filename() + ".log";
@@ -213,7 +229,7 @@ void Logger::log_start() noexcept
 
 void Logger::log_stop() noexcept
 {
-    if (!get_log_enabled())
+    if (!get_log_started())
         return;
 
     try
@@ -238,7 +254,7 @@ void Logger::log_stop() noexcept
 
 void Logger::write(LogWriter& writer) noexcept
 {
-    if (!get_log_enabled())
+    if (!get_log_started())
         return;
 
     try
@@ -259,12 +275,12 @@ void Logger::write(LogWriter& writer) noexcept
 
 void Logger::working_thread()
 {
-    if (!get_log_enabled())
+    if (!get_log_started())
         return;
 
     std::queue<std::string> temp_buffer;
 
-    while (get_log_enabled() && !m_do_close.load(std::memory_order_relaxed))
+    while (get_log_started() && !m_do_close.load(std::memory_order_relaxed))
     {
         try
         {
@@ -299,7 +315,7 @@ void Logger::working_thread()
         }
         catch (const std::exception& e)
         {
-            disable_logging();
+            set_log_stopped();
             (void)e;
             SAVE_EXCEPTION(e.what());
             DEBUG_CATCH;

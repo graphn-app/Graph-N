@@ -11,6 +11,7 @@ public:
     ~SettingsManager() noexcept override;
 
     bool init() override;
+    bool ready() const noexcept { return m_ready.load(std::memory_order_relaxed); }
 
     // app
     bool app_autoupdate_load() const noexcept { return *std::get_if<bool>(&m_app_autoupdate.value); }
@@ -27,6 +28,9 @@ public:
 
     int64_t app_scale_load() const noexcept { return *std::get_if<int64_t>(&m_app_scale.value); }
     void app_scale_save(int64_t scale) { save_option(m_app_scale, int64_t(scale)); }
+
+    int64_t app_db_backups_load() const noexcept { return *std::get_if<int64_t>(&m_app_db_backups.value); }
+    void app_db_backups_save(int64_t scale) { save_option(m_app_db_backups, int64_t(scale)); }
 
     // ui
     ImU32 color_load(AppColor color) const noexcept 
@@ -228,6 +232,7 @@ private:
 private:
     std::string m_empty;
     std::mutex m_guard;
+    std::atomic_bool m_ready = false;
 
     // app
     OptionValue m_app_autoupdate; // int
@@ -235,6 +240,7 @@ private:
     OptionValue m_app_fps_limit; // int
     OptionValue m_app_fps_limit_val; // int
     OptionValue m_app_scale; // int
+    OptionValue m_app_db_backups; // int
 
     // ui
     OptionValue m_ui_open_wnds; // int

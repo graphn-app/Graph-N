@@ -15,13 +15,19 @@ public:
     static Logger& instance() noexcept;
     void stop() noexcept;
 
-    static bool get_log_enabled() noexcept { return m_enabled.load(std::memory_order_relaxed); }
-    static bool get_log_web_response_enabled() { return m_log_web_dump_file_mark_enabled; }
-    static bool get_log_object_info_enabled() { return m_log_object_info_file_mark_enabled; }
-    static bool get_log_dump_invalid_json_enabled() { return m_log_invalid_json_mark_enabled; }
+    static bool get_log_enabled() noexcept { return m_log_file_mark_enabled; }
+    static bool get_log_web_response_enabled() noexcept { return m_log_web_dump_file_mark_enabled; }
+    static bool get_log_object_info_enabled() noexcept { return m_log_object_info_file_mark_enabled; }
+    static bool get_log_dump_invalid_json_enabled() noexcept { return m_log_invalid_json_mark_enabled; }
 
-    static void set_log_enabled(bool enable);
-    static void disable_logging() noexcept { m_enabled.store(false, std::memory_order_relaxed); }
+    static bool get_log_started() noexcept { return m_enabled.load(std::memory_order_relaxed); }
+    static void set_log_stopped() noexcept { m_enabled.store(false, std::memory_order_relaxed); }
+
+    static void set_log_enabled(bool enabled);
+    static void set_log_web_response_enabled(bool enabled);
+    static void set_log_object_info_enabled(bool enabled);
+    static void set_log_dump_invalid_json_enabled(bool enabled);
+
     static void cleanup() noexcept;
 
     void force_flush() noexcept;
@@ -32,7 +38,8 @@ private:
     ~Logger() noexcept;
     NO_COPY_MOVE(Logger);
 
-    static bool check_log_file_mark();
+    static void check_log_file_mark();
+    static void set_log_enabled(bool enable, const char* log_mark);
 
     void log_start() noexcept;
     void log_stop() noexcept;
@@ -198,7 +205,7 @@ struct LogGuard final
 #endif // _DEBUG && _WIN32 && SKIP_DEBUG_CATCH
 
 #define LogFull(ptr, message) \
-    do { if (glog::Logger::get_log_enabled()) \
+    do { if (glog::Logger::get_log_started()) \
     { \
         try { \
             glog::LogWriter log_writer__; \
@@ -207,13 +214,13 @@ struct LogGuard final
             glog::Logger::instance().write(log_writer__); \
         } \
         catch (...) { \
-            glog::Logger::instance().disable_logging(); \
+            glog::Logger::set_log_stopped(); \
             DEBUG_CATCH; \
         } \
     } }  while(false)
 
 #define LogClear(message) \
-    do { if (glog::Logger::get_log_enabled()) \
+    do { if (glog::Logger::get_log_started()) \
     { \
         try { \
             glog::LogWriter log_writer__; \
@@ -221,7 +228,7 @@ struct LogGuard final
             glog::Logger::instance().write(log_writer__); \
         } \
         catch (...) { \
-            glog::Logger::instance().disable_logging(); \
+            glog::Logger::set_log_stopped(); \
             DEBUG_CATCH; \
         } \
     } }  while(false)
@@ -236,7 +243,7 @@ struct LogGuard final
             log_writer_1__ << message; \
             const std::string& buffer__ = log_writer_1__.get_buffer(); \
             if (save) { SAVE_EXCEPTION(buffer__); } \
-            if (glog::Logger::get_log_enabled()) \
+            if (glog::Logger::get_log_started()) \
             { \
                     glog::LogWriter log_writer_2__; \
                     log_writer_2__.log_line_start(ptr, __FUNCTION__, __LINE__); \
@@ -246,7 +253,7 @@ struct LogGuard final
             } \
         } \
         catch (...) { \
-            glog::Logger::instance().disable_logging(); \
+            glog::Logger::set_log_stopped(); \
             DEBUG_CATCH; \
         } \
         DEBUG_CATCH; \
@@ -259,7 +266,7 @@ struct LogGuard final
             log_writer_1__ << message; \
             const std::string& buffer__ = log_writer_1__.get_buffer(); \
             SAVE_EXCEPTION(buffer__); \
-            if (glog::Logger::get_log_enabled()) \
+            if (glog::Logger::get_log_started()) \
             { \
                     glog::LogWriter log_writer_2__; \
                     log_writer_2__.log_line_start(ptr, __FUNCTION__, __LINE__); \
@@ -271,7 +278,7 @@ struct LogGuard final
             ERROR_MESSAGE(msg__.c_str()); \
         } \
         catch (...) { \
-            glog::Logger::instance().disable_logging(); \
+            glog::Logger::set_log_stopped(); \
             DEBUG_CATCH; \
         } \
         ::exit(1); \
