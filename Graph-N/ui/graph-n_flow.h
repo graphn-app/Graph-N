@@ -118,6 +118,7 @@ public:
     const char* get_panel_icon(DlgObj panel_obj) const noexcept;
     const char* get_panel_name(DlgObj panel_obj) const noexcept;
     void toggle_panel_visibility(DlgObj panel_obj);
+    void set_panel_visibility(DlgObj panel_obj, bool show_panel);
 
     void reload_nodes();
     void set_nodes_ready() noexcept{ m_nodes_ready.store(true, std::memory_order_relaxed); }

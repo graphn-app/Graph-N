@@ -1,4 +1,5 @@
 #include "ui/panels/panel_node_inspector.h"
+#include "ui/graph-n_flow.h"
 #include "core/workflow/node.h"
 #include "core/workflow/pin.h"
 #include "core/workflow/node_instance_ro.h"
@@ -56,6 +57,7 @@ void PanelNodeInspector::add_inspecting_node(data::Node* node)
     }
 
     m_inspecting.push_back(std::move(data));
+    g::pFlow->set_panel_visibility(DlgObj::PanelNodeInspector, true);
 }
 
 void PanelNodeInspector::remove_inspecting_node(data::Node* node)

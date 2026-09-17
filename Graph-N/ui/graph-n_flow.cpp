@@ -272,6 +272,13 @@ const char* GraphN_Flow::get_panel_name(DlgObj panel_obj) const noexcept
     LogRError("Unhandled panel id " << cast::to_i32(panel_obj), nullptr);
 }
 
+void GraphN_Flow::set_panel_visibility(DlgObj panel_obj, bool show_panel)
+{
+    const bool active = is_panel_active(panel_obj);
+    if (active != show_panel)
+        toggle_panel_visibility(panel_obj);
+}
+
 void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
 {
     int32_t panel_view = 0;
