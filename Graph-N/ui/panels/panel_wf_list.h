@@ -17,11 +17,11 @@ struct PanelWfListData final : public PanelCommonData
     ImU32 clr_active_btn = 0;
 };
 
-class PanelWfList final :
-    public PanelEmptyWithDescr,
-    public PanelWithList,
-    public PanelToolbar,
-    public PanelBase<PanelWfListData>
+class PanelWfList final
+    : public PanelEmptyWithDescr
+    , public PanelWithList
+    , public PanelToolbar
+    , public PanelBase<PanelWfListData>
     , public listener::HotkeysChangedHandler
 {
 public:

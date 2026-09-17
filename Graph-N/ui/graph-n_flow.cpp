@@ -1244,9 +1244,11 @@ void GraphN_Flow::load_hotkeys()
 uint32_t GraphN_Flow::http_get(
     HttpRequestor requestor, const StillAliveCallback& alive, const char* request, const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
+    LogRAssert(request != nullptr && *request != 0, "Request can't be empty", 0);
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
     const auto req_id = g::pConnectManager->send_http_get_request(requestor, request, retry_on_timeout);
-    m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
+    if (alive != nullptr && callback != nullptr)
+        m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }
 
@@ -1254,9 +1256,11 @@ uint32_t GraphN_Flow::http_get(
     HttpRequestor requestor, const StillAliveCallback& alive, const char* request, httplib::Params&& params, httplib::Headers&& headers,
     const HttpResponseCb& callback, bool retry_on_timeout /*= false*/)
 {
+    LogRAssert(request != nullptr && *request != 0, "Request can't be empty", 0);
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
     const auto req_id = g::pConnectManager->send_http_get_request(requestor, request, std::move(params), std::move(headers), retry_on_timeout);
-    m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
+    if (alive != nullptr && callback != nullptr)
+        m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }
 
@@ -1264,6 +1268,7 @@ int32_t GraphN_Flow::http_get_and_wait(
     HttpRequestor requestor, const char* request, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout,
     const std::function<bool()>& stop_callback, std::string& ret_data)
 {
+    LogRAssert(request != nullptr && *request != 0, "Request can't be empty", 0);
     LogRAssert(stop_callback != nullptr, "Stop callback is mandatory", HTTP_RESP_FAIL);
 
     ret_data.clear();
@@ -1333,7 +1338,8 @@ uint32_t GraphN_Flow::http_post(HttpRequestor requestor, const StillAliveCallbac
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
     const auto req_id = g::pConnectManager->send_http_post_request(requestor, request, std::move(payload), retry_on_timeout);
-    m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
+    if (alive != nullptr && callback != nullptr)
+        m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }
 
@@ -1341,7 +1347,8 @@ uint32_t GraphN_Flow::http_post(HttpRequestor requestor, const StillAliveCallbac
 {
     std::unique_lock<std::mutex> lock(m_http_req_mutex);
     const auto req_id = g::pConnectManager->send_http_post_request(requestor, request, std::move(payload), retry_on_timeout);
-    m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
+    if (alive != nullptr && callback != nullptr)
+        m_http_requests[req_id] = { .alive = alive, .callback = callback, .time = ImGui::GetTime(), .retry = retry_on_timeout, .force_drop = false };
     return req_id;
 }
 

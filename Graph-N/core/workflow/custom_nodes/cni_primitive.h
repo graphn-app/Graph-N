@@ -14,8 +14,7 @@ struct CNI_DeserializedPrimitive final : public CNI_DeserializedData
     iid out_id = 0;
 };
 
-class CNI_Primitive final
-    : public CNI_BaseObj_T<CNI_Primitive>
+class CNI_Primitive final : public CNI_BaseObj_T<CNI_Primitive>
 {
 public:
     CNI_Primitive(Node* obj, wid workflow_id, iid instance_id) noexcept;

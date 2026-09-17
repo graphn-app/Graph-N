@@ -4,8 +4,7 @@
 namespace ui
 {
 
-class PanelMarkdownPreview final : 
-    public PanelBase<PanelCommonData>
+class PanelMarkdownPreview final : public PanelBase<PanelCommonData>
 {
 public:
     PanelMarkdownPreview();

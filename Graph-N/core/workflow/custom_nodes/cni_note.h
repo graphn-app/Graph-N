@@ -12,8 +12,7 @@ struct CNI_DeserializedNote final : public CNI_DeserializedData
 };
 
 template <typename T>
-class CNI_NoteBase
-    : public CNI_BaseObj_T<T>
+class CNI_NoteBase : public CNI_BaseObj_T<T>
 {
 public:
     CNI_NoteBase(Node* obj, wid workflow_id, iid instance_id) noexcept;
@@ -26,8 +25,7 @@ public:
 };
 
 
-class CNI_Note final
-    : public CNI_NoteBase<CNI_Note>
+class CNI_Note final : public CNI_NoteBase<CNI_Note>
 {
 public:
     using CNI_NoteBase<CNI_Note>::CNI_NoteBase;
@@ -38,8 +36,7 @@ public:
 };
 
 
-struct CNI_MarkdownNote final
-    : public CNI_NoteBase<CNI_MarkdownNote>
+struct CNI_MarkdownNote final : public CNI_NoteBase<CNI_MarkdownNote>
 {
 public:
     using CNI_NoteBase<CNI_MarkdownNote>::CNI_NoteBase;

@@ -22,12 +22,12 @@ struct PanelModelsData final : public PanelCommonData
     };
 };
 
-class PanelModels final : 
-    public PanelEmptyWithDescr,
-    public PanelWithList,
-    public PanelToolbar,
-    public PanelBase<PanelModelsData>,
-    public listener::ComfyUiObjectValidityListener
+class PanelModels final
+    : public PanelEmptyWithDescr
+    , public PanelWithList
+    , public PanelToolbar
+    , public PanelBase<PanelModelsData>
+    , public listener::ComfyUiObjectValidityListener
 {
 public:
     PanelModels();

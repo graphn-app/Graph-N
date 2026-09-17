@@ -295,6 +295,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
             for (auto& label : labels)
             {
+                if (!item.item_state)
+                    continue;
                 NodeLabelState* state = ((NodeLabelState*)item.item_state.get());
                 bool node_in_label = state->active_labels.contains(label.id);
                     
@@ -310,7 +312,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 ImGui::PopID();
             }
 
-            if (!item.item_state->changed)
+            const bool changed = item.item_state && item.item_state->changed;
+            if (!changed)
                 ImGui::BeginDisabled();
             if (ImGui::Button("Apply", ImVec2(-FLT_MIN, 0)))
             {
@@ -318,13 +321,13 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 ImGui::CloseCurrentPopup();
                 *new_label_buff = 0;
 
-                if (item.item_state->changed && item.item_state->ptr == item.ptr)
+                if (item.item_state && item.item_state->changed && item.item_state->ptr == item.ptr)
                 {
                     dirty = true;
                     g::pNodesManager->set_node_labels(cast::ptrs<data::NodeItem>(item.ptr), cast::ptrs<NodeLabelState>(item.item_state.get())->active_labels);
                 }
             }
-            if (!item.item_state->changed)
+            if (!changed)
                 ImGui::EndDisabled();
 
             ImGui::Spacing();

@@ -16,8 +16,7 @@ class PinInstance;
 class Link;
 class WorkflowAction;
 
-class Workflow final :
-    public listener::ComfyUiObjectValidityListener
+class Workflow final : public listener::ComfyUiObjectValidityListener
 {
 public:
     Workflow();

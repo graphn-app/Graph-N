@@ -20,10 +20,10 @@ struct PanelNodeInspectorData final : public PanelCommonData
     ImU32 clr_selected_node = 0;		// selected node text
 };
 
-class PanelNodeInspector final :
-    public PanelEmptyWithDescr,
-    public PanelBase<PanelNodeInspectorData>,
-    public listener::ComfyUiObjectValidityListener
+class PanelNodeInspector final
+    : public PanelEmptyWithDescr
+    , public PanelBase<PanelNodeInspectorData>
+    , public listener::ComfyUiObjectValidityListener
 {
 public:
     PanelNodeInspector();

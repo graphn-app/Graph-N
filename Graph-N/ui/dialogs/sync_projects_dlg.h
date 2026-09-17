@@ -5,9 +5,9 @@
 namespace ui
 {
 
-class SyncProjectsDlg final :
-    public BaseDlgWithData<DlgData>,
-    public IsAlive
+class SyncProjectsDlg final
+    : public BaseDlgWithData<DlgData>
+    , public IsAlive
 {
 public:
     SyncProjectsDlg() noexcept;

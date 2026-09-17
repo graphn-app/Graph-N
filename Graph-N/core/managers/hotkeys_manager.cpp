@@ -78,7 +78,7 @@ std::vector<ui::KeyBinding> HotkeysManager::get_default_key_bindings() const
     { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_Runs7;     kb.key = ImGuiKey::ImGuiKey_7;          kb.ctrl = true;                     hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_Runs8;     kb.key = ImGuiKey::ImGuiKey_8;          kb.ctrl = true;                     hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_Runs9;     kb.key = ImGuiKey::ImGuiKey_9;          kb.ctrl = true;                     hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_RunBack;   kb.key = ImGuiKey::ImGuiKey_Enter;                                          hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_RunBack;   kb.key = ImGuiKey::ImGuiKey_Enter;      kb.ctrl = true;                     hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_RunFront;  kb.key = ImGuiKey::ImGuiKey_Enter;      kb.shift = true;                    hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_Close;     kb.key = ImGuiKey::ImGuiKey_Escape;     kb.shift = true;                    hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_NewNode;   kb.key = ImGuiKey::ImGuiKey_Space;                                          hks.push_back(kb); }    
@@ -165,7 +165,7 @@ bool HotkeysManager::test(const std::vector<ui::KeyBinding>& hotkeys, std::set<K
         {
             const auto key = std::make_tuple(hk.alt, hk.cmd, hk.ctrl, hk.shift, hk.key);
 
-            if (ImGuiKey_Escape == hk.key && !hk.alt && !hk.cmd && !hk.ctrl && !hk.shift) // handled by ImGui
+            if ((ImGuiKey_Escape == hk.key || ImGuiKey_Enter == hk.key) && !hk.alt && !hk.cmd && !hk.ctrl && !hk.shift) // Esc handled by ImGui + deny Enter only
             {
                 dup2[key] = hk.target;
                 failed.insert(hk.target);
@@ -298,6 +298,7 @@ bool HotkeysManager::should_skip_target(KeyTarget target) const
     static std::set<KeyTarget> skip;
     if (skip.empty())
     {
+        skip.insert(KeyTarget::App_Restart);
         skip.insert(KeyTarget::App_Command);
         skip.insert(KeyTarget::PanelOpen_Templates);
         skip.insert(KeyTarget::PanelOpen_Notes);

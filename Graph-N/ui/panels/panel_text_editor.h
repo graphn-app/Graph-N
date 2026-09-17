@@ -11,9 +11,9 @@ class WorkflowAction;
 namespace ui
 {
 
-class PanelTextEditor final :
-    public PanelBase<PanelCommonData>,
-    public PanelToolbar
+class PanelTextEditor final
+    : public PanelBase<PanelCommonData>
+    , public PanelToolbar
 {
 public:
     PanelTextEditor(const char* panel_id, bool is_def = false);

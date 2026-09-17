@@ -10,8 +10,7 @@ class NodesManager;
 namespace data
 {
 
-class CNI_BaseObj
-    : public NodeInstance
+class CNI_BaseObj : public NodeInstance
 {
 public:
     using NodeInstance::NodeInstance;

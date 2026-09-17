@@ -27,8 +27,7 @@ struct CNI_DeserializedReroute final : public CNI_DeserializedData
     iid splitter_link = 0;
 };
 
-class CNI_Reroute final
-    : public CNI_BaseObj_T<CNI_Reroute>
+class CNI_Reroute final : public CNI_BaseObj_T<CNI_Reroute>
 {
 public:
     CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2) noexcept;

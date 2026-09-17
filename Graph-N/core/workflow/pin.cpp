@@ -629,7 +629,7 @@ void Pin::generate_pin_color() noexcept
     double hue = cast::to_u64(tools::str::hash_stable(def_state.type_str)) * 0.618033988749895;
     hue = std::fmod(hue, 1.0);
 
-    // fix hue (S) и brightness (V)
+    // fix hue (S) & brightness (V)
     constexpr double s = 0.75f;
     constexpr double v = 0.95f;
 

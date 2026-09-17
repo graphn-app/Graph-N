@@ -324,6 +324,8 @@ void PanelWfList::rebuild_items()
 
             for (auto& label : labels)
             {
+                if (!item.item_state)
+                    continue;
                 WfLabelState* state = ((WfLabelState*)item.item_state.get());
                 bool wf_in_label = state->active_labels.contains(label.id);
 
@@ -339,7 +341,8 @@ void PanelWfList::rebuild_items()
                 ImGui::PopID();
             }
 
-            if (!item.item_state->changed)
+            const bool changed = item.item_state && item.item_state->changed;
+            if (!changed)
                 ImGui::BeginDisabled();
             if (ImGui::Button("Apply", ImVec2(-FLT_MIN, 0)))
             {
@@ -347,13 +350,13 @@ void PanelWfList::rebuild_items()
                 ImGui::CloseCurrentPopup();
                 *new_label_buff = 0;
 
-                if (item.item_state->changed && item.item_state->ptr == item.ptr)
+                if (item.item_state && item.item_state->changed && item.item_state->ptr == item.ptr)
                 {
                     dirty = true;
                     g::pWfsManager->set_wf_labels(cast::from_ptr<wid>(item.ptr), ((WfLabelState*)item.item_state.get())->active_labels);            
                 }
             }
-            if (!item.item_state->changed)
+            if (!changed)
                 ImGui::EndDisabled();
 
             ImGui::Spacing();
@@ -361,7 +364,7 @@ void PanelWfList::rebuild_items()
             ImGui::SetNextItemWidth(-FLT_MIN);
             if (ImGui::InputText("##newlabel", new_label_buff, 30, ImGuiInputTextFlags_EnterReturnsTrue) || ImGui::IsItemDeactivatedAfterEdit())
             {
-                if (*new_label_buff != 0 && g::pWfsManager->find_label(new_label_buff) == 0)
+                if (*new_label_buff != 0 && g::pWfsManager->find_label(new_label_buff) == 0 && tools::str::to_lower_ascii(new_label_buff) != "all")
                 {
                     g::pWfsManager->create_label(new_label_buff);
                 }

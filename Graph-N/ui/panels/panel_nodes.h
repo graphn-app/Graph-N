@@ -27,12 +27,12 @@ struct PanelNodesData final : public PanelCommonData
     };
 };
 
-class PanelNodes final :
-    public PanelEmptyWithDescr,
-    public PanelWithList,
-    public PanelToolbar,
-    public PanelBase<PanelNodesData>,
-    public listener::ComfyUiObjectValidityListener
+class PanelNodes final
+    : public PanelEmptyWithDescr
+    , public PanelWithList
+    , public PanelToolbar
+    , public PanelBase<PanelNodesData>
+    , public listener::ComfyUiObjectValidityListener
 {
 public:
     PanelNodes(PanelNodeInspector* inspector);

@@ -19,7 +19,7 @@ void MainRoutine::prepare_fonts()
                                             {
                                                 0x2000, 0x206F, // General Punctuation
                                                 0x20A0, 0x20CF, // Currency Symbols
-                                                0x2100, 0x218F, // Letterlike Symbols (™ и т.д.)
+                                                0x2100, 0x218F, // Letterlike Symbols (™ etc)
                                                 0x2190, 0x21FF, // Arrows (← ↑ → ↓)
                                                 0x2200, 0x22FF, // Mathematical Operators
                                                 0x2300, 0x23FF, // Misc Technical (⌨ ⌚)

@@ -72,7 +72,7 @@ void CustomWidget::draw_widget_upload_button()
         if (warning != nullptr)
         {
             m_upload_file_path = std::move(path);
-            g::pFlow->modal_begin("File Too Large", warning, buttons, BtnNo, large_file_handler);
+            g::pFlow->modal_begin("File Too Large", warning, buttons, ModalDlgCtrl::BtnNo, large_file_handler);
         }
         else
         {

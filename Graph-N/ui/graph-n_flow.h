@@ -318,7 +318,6 @@ private:
 
     PanelWorkflow* m_wf_focused = nullptr;
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
-    //std::list<wid> m_active_wf_sequense;
     bool m_wf_imported = false;
 
     std::mutex m_http_req_mutex;
