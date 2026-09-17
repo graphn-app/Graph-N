@@ -667,7 +667,7 @@ void GraphN_Flow::txt_panel_create(wid wf, data::NodeInstance* node, data::PinIn
 
     if (nullptr == current_panel && nullptr == def_panel)
     {
-        auto ptr = std::make_unique<PanelTextEditor>(DlgObjID[cast::to_szt(DlgObj::PanelTextEditor)], true);
+        auto ptr = std::make_unique<PanelTextEditor>(DlgObj_SID[cast::to_szt(DlgObj::PanelTextEditor)], true);
         ptr->init();
         current_panel = ptr.get();
         m_all_dialogs.insert(ptr.get());
@@ -710,7 +710,7 @@ void GraphN_Flow::txt_panel_clear(wid wf) noexcept
 
 ImGuiID GraphN_Flow::find_def_txt_panel_dock() noexcept
 {
-    const auto* wnd = ImGui::FindWindowByName(DlgObjID[cast::to_szt(DlgObj::PanelTextEditor)]);
+    const auto* wnd = ImGui::FindWindowByName(DlgObj_SID[cast::to_szt(DlgObj::PanelTextEditor)]);
     if (wnd != nullptr)
         return wnd->DockId;
     return 0;
@@ -1132,7 +1132,7 @@ void GraphN_Flow::show_panels()
 
         // bottom
         ImGui::DockBuilderDockWindow(id_as_name(id, m_panel_logs->get_panel_id()), dock_id_bottom);
-        ImGui::DockBuilderDockWindow(id_as_name(id, DlgObjID[cast::to_szt(DlgObj::PanelTextEditor)]), dock_id_bottom);
+        ImGui::DockBuilderDockWindow(id_as_name(id, DlgObj_SID[cast::to_szt(DlgObj::PanelTextEditor)]), dock_id_bottom);
 
         for (auto& wf : m_panels_wf)
         {

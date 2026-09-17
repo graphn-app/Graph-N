@@ -131,7 +131,7 @@ void PanelNodeInspector::show_nodes()
     constexpr float min_descr_w = 200.0f;
     float curr_y = 0.0f;
 
-    if (ImGui::BeginChild("##inspected_nodes"))
+    if (ImGui::BeginChild(0xCCBEA0F2))
     {
         for (size_t i = 0; i < m_inspecting.size(); i++)
         {
@@ -174,7 +174,7 @@ void PanelNodeInspector::show_description(std::string* descr, const ImVec2& desc
         ImGui::PushStyleColor(ImGuiCol_Border, 0);
         ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeDescription));
 
-        ImGuiEx::InputTextMultilineWithHScroll("##NodeDescr", "##NodeDescrBlock", descr, max_w, std::min(descr_sz.y, 120.0f), descr_sz, ImGuiInputTextFlags_ReadOnly);
+        ImGuiEx::InputTextMultilineWithHScroll("##NodeDescr", 0x2B1D7565, descr, max_w, std::min(descr_sz.y, 120.0f), descr_sz, ImGuiInputTextFlags_ReadOnly);
 
         ImGui::PopStyleColor(3);
         ImGuiEx::Spacing(3);

@@ -271,7 +271,7 @@ DlgCode PanelTextEditor::show(bool& focused)
             draw_toolbar();
 
             ImGui::PushID(m_current->pin);
-            if (ImGui::BeginChild("TextEditorChild", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
+            if (ImGui::BeginChild(0x59EC86FF, ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
             {
                 if (m_need_focus)
                 {

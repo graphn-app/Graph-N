@@ -47,7 +47,7 @@ DlgCode OptionsDlgs::show(bool& /*focused*/)
     ImGui::SetNextWindowSize(ImVec2(dlg_data()->width, dlg_data()->height), ImGuiCond_Always);
 
     bool opened = true;
-    if (ImGui::Begin(DlgObjID[cast::to_szt(DlgObj::OptionsDlg)], &opened,
+    if (ImGui::Begin(DlgObj_SID[cast::to_szt(DlgObj::OptionsDlg)], &opened,
         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
     {
         show_left_pane();
@@ -72,7 +72,7 @@ void OptionsDlgs::show_left_pane()
         "Key Bindings",
     };
 
-    if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::OptLeftPane)], ImVec2(m_opts_data.left_pane_w, -FLT_MIN), true))
+    if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::OptLeftPane)], ImVec2(m_opts_data.left_pane_w, -FLT_MIN), true))
     {
         const auto avail_h = ImGui::GetContentRegionAvail().y;
 
@@ -99,11 +99,11 @@ void OptionsDlgs::show_right_pane()
 {
     ImGui::SameLine();
     ImGui::BeginGroup();
-    if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::OptRightPane)]))
+    if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::OptRightPane)]))
     {
         if (m_opts_data.show_inner_child)
         {
-            if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::OptRightPane_Sub)], ImVec2(-FLT_MIN, -FLT_MIN), true))
+            if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::OptRightPane_Sub)], ImVec2(-FLT_MIN, -FLT_MIN), true))
             {
                 try
                 {

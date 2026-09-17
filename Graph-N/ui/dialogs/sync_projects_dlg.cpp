@@ -40,7 +40,7 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
     ImGui::SetNextWindowSize(ImVec2(dlg_data()->width, dlg_data()->height), ImGuiCond_FirstUseEver);
 
     bool opened = true;
-    if (ImGui::Begin(DlgObjID[cast::to_szt(DlgObj::SyncProjects)], &opened, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking))
+    if (ImGui::Begin(DlgObj_SID[cast::to_szt(DlgObj::SyncProjects)], &opened, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking))
     {
         load_projects();
 

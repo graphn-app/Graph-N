@@ -177,7 +177,7 @@ void ActivityBar::show(ActivityBarMode mode)
         ImGui::SetNextWindowSize(m_left_rc.Max, ImGuiCond_Always);
 
         bool opened = true;
-        if (ImGui::Begin(DlgObjID[cast::to_szt(DlgObj::ActivityBarL)], &opened,
+        if (ImGui::Begin(DlgObj_SID[cast::to_szt(DlgObj::ActivityBarL)], &opened,
             ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration |
             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus))
         {
@@ -205,7 +205,7 @@ void ActivityBar::show(ActivityBarMode mode)
         ImGui::SetNextWindowSize(m_right_rc.Max, ImGuiCond_Always);
 
         bool opened = true;
-        if (ImGui::Begin(DlgObjID[cast::to_szt(DlgObj::ActivityBarR)], &opened,
+        if (ImGui::Begin(DlgObj_SID[cast::to_szt(DlgObj::ActivityBarR)], &opened,
             ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration |
             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus))
         {
@@ -235,7 +235,7 @@ void ActivityBar::show(ActivityBarMode mode)
 
 ActivityBar::Direction ActivityBar::get_panel_direction(DlgObj panel_obj, ImRect center_rc) noexcept
 {
-    const auto panel_id = DlgObjID[cast::to_szt(panel_obj)];
+    const auto panel_id = DlgObj_SID[cast::to_szt(panel_obj)];
     const ImGuiWindow* win = ImGui::FindWindowByName(panel_id);
     if (nullptr == win || nullptr == win->DockNode)
         return Direction::None;

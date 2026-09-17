@@ -160,7 +160,7 @@ bool PanelWorkflow::show_context_menu()
 {
     if (m_handle_context_menu)
     {
-        ImGui::OpenPopup(m_context_menuid.c_str());
+        ImGui::OpenPopup(m_context_menuid);
         m_handle_context_menu = false;
         m_context_menu_nodes_need_focus = true;
         m_context_menu_nodes_filter.clear();
@@ -170,7 +170,7 @@ bool PanelWorkflow::show_context_menu()
     if (m_menu_objs.align_menu_pos)
         ImGui::SetNextWindowPos(m_menu_objs.click_pos, ImGuiCond_Appearing);
 
-    if (ImGui::BeginPopup(m_context_menuid.c_str()))
+    if (ImGui::BeginPopup(m_context_menuid))
     {
         bool close = false;
         switch (m_context_menu_type)

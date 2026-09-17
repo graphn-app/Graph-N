@@ -144,7 +144,7 @@ DlgCode PanelModels::show(bool& focused)
         }
 
         ImGuiEx::Spacing(3);
-        if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::PanelModels_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+        if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::PanelModels_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0)))
         {
             if (m_prev_model_items_count != g::pModelsManager->get_models().size())
                 rebuild_items();
@@ -169,11 +169,11 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
         bool close = false;
         if (!item.continue_processing_item_handler && r_released)
         {
-            ImGui::OpenPopup(DlgObjID[cast::to_szt(DlgObj::PanelModels_ItemMenu)]);
+            ImGui::OpenPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelModels_ItemMenu)]);
             handler_processed = true;
         }
 
-        if (ImGui::BeginPopup(DlgObjID[cast::to_szt(DlgObj::PanelModels_ItemMenu)]))
+        if (ImGui::BeginPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelModels_ItemMenu)]))
         {
             handler_processed = true;
             bool separator = false;

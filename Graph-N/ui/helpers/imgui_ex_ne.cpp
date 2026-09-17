@@ -53,10 +53,10 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
 
             if (do_open)
             {
-                ImGui::OpenPopup("##{592DCC05-159B-44BC-B96C-49FE4643D127}");
+                ImGui::OpenPopup(0x592DCC05);
                 act.combo.old_value = act.active_pin->state().value.get_int();
             }
-            const bool popup_open = ImGui::BeginPopup("##{592DCC05-159B-44BC-B96C-49FE4643D127}");
+            const bool popup_open = ImGui::BeginPopup(0x592DCC05);
             if (popup_open)
             {
                 for (int32_t i = 0; i < items_count; i++)

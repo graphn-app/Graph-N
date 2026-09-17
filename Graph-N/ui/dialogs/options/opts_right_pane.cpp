@@ -922,7 +922,7 @@ void OptRightPane::show_thresholds(const char*& help_text)
 
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
-    if (ImGui::BeginChild("DrivesList", ImVec2(0, 100), true, ImGuiWindowFlags_HorizontalScrollbar)) 
+    if (ImGui::BeginChild(0xF5EEADE5, ImVec2(0, 100), true, ImGuiWindowFlags_HorizontalScrollbar)) 
     {
         for (auto& disk : g::pOptsManager->stat_disks_enabled_load())
         {
@@ -1144,7 +1144,7 @@ void OptRightPane::show_keys(const char*& help_text)
 
     const float footer_height_to_reserve = (ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing()) * 2;
 
-    if (ImGui::BeginChild("KeyBindingsOpt", ImVec2(-FLT_MIN, -footer_height_to_reserve), false))
+    if (ImGui::BeginChild(0xC0E13C59, ImVec2(-FLT_MIN, -footer_height_to_reserve), false))
     {
         bool changed = false;
 

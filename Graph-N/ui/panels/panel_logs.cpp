@@ -236,7 +236,7 @@ void PanelServerLogs::show_logs()
     const bool scroll_to_bottom = update_logs() && m_autoscroll;
 
     ImGui::Spacing();
-    if (ImGui::BeginChild("ServerLogRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
+    if (ImGui::BeginChild(0xC514DD0A, ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
     {
         ImGuiListClipper clipper;
         clipper.Begin(m_logs.empty() ? 1 : cast::to_i32(m_logs.size()) + 2);

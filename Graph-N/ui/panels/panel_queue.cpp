@@ -124,25 +124,25 @@ DlgCode PanelQueue::show(bool& focused)
             draw_toolbar();
             init_history();
 
-            if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::PanelQueue_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0), false, (m_fix_panel_scroll ? ImGuiWindowFlags_AlwaysVerticalScrollbar : 0)))
+            if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::PanelQueue_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0), false, (m_fix_panel_scroll ? ImGuiWindowFlags_AlwaysVerticalScrollbar : 0)))
             {
-                ImGui::PushID("Current");
+                ImGui::PushID(0x7DE151C9);
                 show_current_task();
                 ImGui::PopID();
 
-                ImGui::PushID("Next");
+                ImGui::PushID(0x8272C6E9);
                 show_next_tasks();
                 ImGui::PopID();
 
-                ImGui::PushID("Favs");
+                ImGui::PushID(0xDE22921B);
                 show_favs_tasks();
                 ImGui::PopID();
 
-                ImGui::PushID("Past");
+                ImGui::PushID(0x3114690E);
                 show_past_tasks();
                 ImGui::PopID();
 
-                ImGui::PushID("Loaded");
+                ImGui::PushID(0x9F5BB6CA);
                 show_history_tasks();
                 ImGui::PopID();
             }

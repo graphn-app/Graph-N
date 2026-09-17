@@ -317,7 +317,7 @@ ImVec2 CalcTextSizeForMultilineWithHScroll(const std::string& text) noexcept
 }
 
 std::pair<bool, bool> InputTextMultilineWithHScroll(
-    const char* text_label, const char* parent_block_label,
+    const char* text_label, ImGuiID parent_block_id,
     std::string* str,
     float max_widget_w, float max_widget_h,
     const ImVec2& text_sz,
@@ -332,7 +332,7 @@ std::pair<bool, bool> InputTextMultilineWithHScroll(
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
     bool edited = false, deactivated = false;
-    if (ImGui::BeginChild(parent_block_label, ImVec2(max_widget_w, child_h), true, ImGuiWindowFlags_HorizontalScrollbar))
+    if (ImGui::BeginChild(parent_block_id, ImVec2(max_widget_w, child_h), true, ImGuiWindowFlags_HorizontalScrollbar))
     {
         const float inner_w = std::max(text_sz.x, ImGui::GetContentRegionAvail().x);
         const float inner_h = std::max(text_sz.y, child_h); 
@@ -350,7 +350,7 @@ std::pair<bool, bool> InputTextMultilineWithHScroll(
 }
 
 std::pair<bool, bool> InputTextMultilineWithHintWithHScroll(
-    const char* text_label, const char* parent_block_label,
+    const char* text_label, ImGuiID parent_block_id,
     const char* hint, std::string* str,
     float max_widget_w, float max_widget_h,
     const ImVec2& text_sz,
@@ -365,7 +365,7 @@ std::pair<bool, bool> InputTextMultilineWithHintWithHScroll(
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
     bool edited = false, deactivated = false;
-    if (ImGui::BeginChild(parent_block_label, ImVec2(max_widget_w, child_h), true, ImGuiWindowFlags_HorizontalScrollbar))
+    if (ImGui::BeginChild(parent_block_id, ImVec2(max_widget_w, child_h), true, ImGuiWindowFlags_HorizontalScrollbar))
     {
         const float inner_w = std::max(text_sz.x, ImGui::GetContentRegionAvail().x);
         const float inner_h = std::max(text_sz.y, child_h); 

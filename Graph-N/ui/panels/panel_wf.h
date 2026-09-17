@@ -146,7 +146,7 @@ private:
     bool m_select_all_nodes = false;
     bool m_first_show = true;
 
-    const std::string m_context_menuid;
+    const ImGuiID m_context_menuid = 0x9F9EB9A1;
     bool m_handle_context_menu = false;
     bool m_context_menu_nodes_need_focus = false;
     bool m_display_new_node_menu = false;

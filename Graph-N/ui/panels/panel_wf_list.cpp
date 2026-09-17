@@ -243,7 +243,7 @@ DlgCode PanelWfList::show(bool& focused)
 void PanelWfList::show_wfs()
 {
     ImGuiEx::Spacing(3);
-    if (ImGui::BeginChild(DlgObjID[cast::to_szt(DlgObj::PanelWfList_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+    if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::PanelWfList_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0)))
     {
         PanelItemState state;
         if (draw_list(m_panel_items, state, (m_deleted_mode ? &m_tt_callbacks : nullptr)))
@@ -310,11 +310,11 @@ void PanelWfList::rebuild_items()
                 }
             }
 
-            ImGui::OpenPopup(DlgObjID[cast::to_szt(DlgObj::PanelWfList_LabelsMenu)]);
+            ImGui::OpenPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelWfList_LabelsMenu)]);
         }
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(ImGui::GetContentRegionAvail().x, 400));
-        if (ImGui::BeginPopup(DlgObjID[cast::to_szt(DlgObj::PanelWfList_LabelsMenu)]))
+        if (ImGui::BeginPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelWfList_LabelsMenu)]))
         {
             handler_processed = true;
             item.continue_processing_ico_handler = true;
@@ -557,12 +557,12 @@ void PanelWfList::rebuild_labels()
         bool dirty = false, close = false;
         if (!item.continue_processing_item_handler && r_released)
         {
-            ImGui::OpenPopup(DlgObjID[cast::to_szt(DlgObj::PanelWfList_LabelsMenu)]);
+            ImGui::OpenPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelWfList_LabelsMenu)]);
             handler_processed = true;
         }
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(ImGui::GetContentRegionAvail().x, 200));
-        if (ImGui::BeginPopup(DlgObjID[cast::to_szt(DlgObj::PanelWfList_LabelsMenu)]))
+        if (ImGui::BeginPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelWfList_LabelsMenu)]))
         {
             handler_processed = true;
             if (ImGui::MenuItem("Add new label"))

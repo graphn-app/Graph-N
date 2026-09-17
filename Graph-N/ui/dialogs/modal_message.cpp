@@ -7,7 +7,7 @@ namespace ui
 
 void ModalMessage::init(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def /*= ModalDlgCtrl::BtnOK*/)
 {
-    m_caption = std::move(caption) + "##" + DlgObjID[cast::to_szt(DlgObj::ModalMessage)];
+    m_caption = std::move(caption) + DlgObj_SID[cast::to_szt(DlgObj::ModalMessage)];
     m_message = std::move(message);
 
     if (buttons & ModalDlgCtrl::IcoInfo)

@@ -43,13 +43,13 @@ ImVec2 CalcTextSizeForMultilineWithHScroll(const std::string& text) noexcept;
 // return pair.first: text edited
 // return pair.second: text edition finished (edit controls deactivated)
 std::pair<bool, bool> InputTextMultilineWithHScroll(
-    const char* text_label, const char* parent_block_label,
+    const char* text_label, ImGuiID parent_block_id,
     std::string* str,
     float max_widget_w, float max_widget_h,
     const ImVec2& text_sz,
     ImGuiInputTextFlags flags = 0);
 std::pair<bool, bool> InputTextMultilineWithHintWithHScroll(
-    const char* text_label, const char* parent_block_label,
+    const char* text_label, ImGuiID parent_block_id,
     const char* hint, std::string* str,
     float max_widget_w, float max_widget_h,
     const ImVec2& text_sz,

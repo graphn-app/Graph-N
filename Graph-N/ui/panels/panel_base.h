@@ -22,7 +22,7 @@ public:
     PanelBase(DlgObj obj, const std::string& name, const std::string& id = "")
         : BaseDlgWithData<DataType>(obj)
     {
-        m_id = id.empty() ? DlgObjID[cast::to_szt(obj)] : id;
+        m_id = id.empty() ? DlgObj_SID[cast::to_szt(obj)] : id;
         if (m_id.find("###") == std::string::npos)
             m_id = "###" + m_id;
         m_icon = g::pFlow->get_panel_icon(obj);

@@ -21,7 +21,6 @@ PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std
     , m_dock(dock)
     , m_action(m_wf->action())
     , m_drawer(m_wf)
-    , m_context_menuid(panel_id + "_ContextMenu")
 {
     m_action->set_drawer(&m_drawer);
     m_wf_valid = m_wf->get_data().valid;
