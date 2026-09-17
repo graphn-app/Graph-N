@@ -19,8 +19,8 @@ public:
     PinInstance* get_input() const noexcept { return m_input; }
     PinInstance* get_output() const noexcept { return m_output; }
 
-    float get_link_thickness() const noexcept { return m_link_thickness; }
-    void set_link_thickness(float thickness) noexcept { m_link_thickness = thickness; }
+    float get_link_thickness_mult() const noexcept { return m_link_thickness_mult; }
+    void set_link_thickness_mult(float multiplicator) noexcept { m_link_thickness_mult = multiplicator; }
 
     iid get_instance_id() const noexcept { return m_iid; }
     void set_instance_id(iid id)
@@ -49,7 +49,7 @@ private:
     iid m_iid = 0;
     PinInstance* m_input = nullptr;
     PinInstance* m_output = nullptr;
-    float m_link_thickness = 0.0f;
+    float m_link_thickness_mult = 1.0f;
     EdType m_ed;
 };
 

@@ -11,7 +11,6 @@ Link::Link(wid workflow_id, iid link_id) noexcept
     : m_workflow_id(workflow_id)
     , m_iid(link_id)
 {
-    m_link_thickness = cast::to_float(g::pOptsManager->wf_link_thickness_load());
 }
 
 Link::~Link() noexcept = default;

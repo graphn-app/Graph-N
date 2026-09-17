@@ -587,7 +587,7 @@ void CNI_Reroute::split_to_parts()
     auto right_pin = m_splitted_part->m_splitted_pin;
     LogRAssert(Link::can_link(m_splitted_pin, right_pin), "Can't link splitted reroutes. w:" << get_workflow_id() << ", n1:" << get_instance_id() << ", n2:" << m_splitted_part->get_instance_id() << ", p1:" << m_splitted_pin->get_instance_id() << ", p2:" << right_pin->get_instance_id(), );
     auto link = Link::link(m_splitted_pin, right_pin);
-    link->set_link_thickness(link->get_link_thickness() * 2);
+    link->set_link_thickness_mult(1.5f);
     if (m_splitter_link_id != 0)
         link->set_instance_id(m_splitter_link_id);
     else

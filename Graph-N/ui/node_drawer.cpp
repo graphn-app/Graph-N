@@ -1247,7 +1247,7 @@ void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& link
     {
         auto in = link->get_input();
         auto out = link->get_output();
-        ed::Link(link->ed(), in->ed(), out->ed(), in->state().pin_color, link->get_link_thickness());
+        ed::Link(link->ed(), in->ed(), out->ed(), in->state().pin_color, link->get_link_thickness_mult() * g::pOptsManager->wf_link_thickness_load());
     }
 }
 
