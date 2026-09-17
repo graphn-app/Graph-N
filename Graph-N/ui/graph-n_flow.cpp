@@ -152,7 +152,7 @@ bool GraphN_Flow::init()
     g::pMain->set_dnd_callback(dnd_callback);
 
     load_hotkeys();
-    g::block_hotkeys_counter = 0;
+    g::block_hotkeys_mask = 0;
 
     LogOut;
     return true;
@@ -324,7 +324,7 @@ void GraphN_Flow::exit()
     Log("");
     dead();
     g::app_global_stop_all_threads.request_stop();
-    g::block_hotkeys_counter = 0xffff;
+    g::block_hotkeys_mask = 0xffffffff;
     prepare_to_quit();
 }
 
@@ -333,7 +333,7 @@ void GraphN_Flow::stop_all_threads() noexcept
     Log("");
     dead();
     g::app_global_stop_all_threads.request_stop();
-    g::block_hotkeys_counter = 0xffff;
+    g::block_hotkeys_mask = 0xffffffff;
 }
 
 bool GraphN_Flow::run()
@@ -379,7 +379,7 @@ void GraphN_Flow::prepare_to_quit()
 
     dead();
     g::app_global_stop_all_threads.request_stop();
-    g::block_hotkeys_counter = 0xffff;
+    g::block_hotkeys_mask = 0xffffffff;
 
     g::pConnectManager->stop_all_threads();
     g::pWfsManager->close_and_purge();
@@ -748,7 +748,6 @@ void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel) noexcept
 void GraphN_Flow::open_settings_dlg(OptPane section /*= OptPane::_none*/)
 {
     m_windows |= ViewOptions;
-    g::block_hotkeys_counter++;
     show_options_dlg();
     m_opts_dlg->select_right_pane(section);
 }
@@ -757,6 +756,8 @@ void GraphN_Flow::show_options_dlg()
 {
     if ((m_windows & ViewOptions) == 0)
         return;
+
+    g::block_hotkeys_mask |= ViewOptions;
 
     if (!m_opts_dlg) [[unlikely]]
     {
@@ -770,8 +771,8 @@ void GraphN_Flow::show_options_dlg()
     if (m_opts_dlg->show_dialog(focused) != DlgCode::Progress)
     {
         on_dlg_closed(DlgObj::OptionsDlg);
-        g::block_hotkeys_counter--;
         load_hotkeys();
+        g::block_hotkeys_mask &= ~ViewOptions;
     }
 }
 
@@ -780,9 +781,10 @@ void GraphN_Flow::show_sync_projs_dlg()
     if ((m_windows & ViewSyncProjects) == 0)
         return;
 
+    g::block_hotkeys_mask |= ViewSyncProjects;
+
     if (!m_sync_projs_dlg) [[unlikely]]
     {
-        g::block_hotkeys_counter++;
         m_sync_projs_dlg = std::make_unique<ui::SyncProjectsDlg>();
         m_sync_projs_dlg->init();
         m_all_dialogs.insert(m_sync_projs_dlg.get());
@@ -793,7 +795,7 @@ void GraphN_Flow::show_sync_projs_dlg()
     if (m_sync_projs_dlg->show_dialog(focused) != DlgCode::Progress)
     {
         on_dlg_closed(DlgObj::SyncProjects);
-        g::block_hotkeys_counter--;
+        g::block_hotkeys_mask &= ~ViewSyncProjects;
     }
 }
 
@@ -860,12 +862,10 @@ void GraphN_Flow::show_modal()
 {
     if (m_windows & ViewModal)
     {
-        g::block_hotkeys_counter++;
         modal_show();
     }
     else if (m_windows & ViewModalStop)
     {
-        g::block_hotkeys_counter--;
         modal_last_frame();
     }
 }
@@ -1185,6 +1185,7 @@ void GraphN_Flow::modal_begin(std::string&& caption, std::string&& message, int3
     m_modal_message = std::make_unique<ModalMessage>();
     m_modal_message->init(std::move(caption), std::move(message), buttons, def);
     m_windows |= ViewModal;
+    g::block_hotkeys_mask |= ViewModal;
 }
 
 void GraphN_Flow::GraphN_Flow::modal_show()
@@ -1227,6 +1228,7 @@ void GraphN_Flow::modal_last_frame()
     m_modal_message->show();
     m_windows &= ~(ViewModal | ViewModalStop);
     m_modal_message.reset();
+    g::block_hotkeys_mask &= ~ViewModal;
 }
 
 void GraphN_Flow::load_hotkeys()

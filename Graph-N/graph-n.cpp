@@ -53,7 +53,7 @@ mngr::HotkeysManager* pHotkeysManager = nullptr;
 mngr::HostManager* pHostManager = nullptr;
 
 std::stop_source app_global_stop_all_threads;
-int32_t block_hotkeys_counter = 0;
+uint32_t block_hotkeys_mask = 0xffffffff;
 
 void save_exception(std::string message, const char* file, int32_t line) noexcept
 {

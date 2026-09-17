@@ -327,7 +327,7 @@ bool HotkeysManager::should_skip_target(KeyTarget target) const
 const ui::KeyBinding* HotkeysManager::get_active_key_binding() const
 {
     const ImGuiIO& io = ImGui::GetIO();
-    if (g::block_hotkeys_counter > 0 || io.WantTextInput)
+    if (g::block_hotkeys_mask > 0 || io.WantTextInput)
         return nullptr;
 
     const auto check_key_pressed = [](const ui::KeyBinding& kb) -> bool
