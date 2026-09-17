@@ -899,6 +899,7 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedReroute>();
     RoutedPinPair pair;
     pair.type = left->state().type_str;
+    cast::strict<CNI_DeserializedReroute>(data.get())->poses.first.Min = pos;
     cast::strict<CNI_DeserializedReroute>(data.get())->pairs.push_back(pair);
 
     reroute->cni_save_deserialized_info(std::move(data));

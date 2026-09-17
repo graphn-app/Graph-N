@@ -11,6 +11,7 @@ CNI_NoteBase<T>::CNI_NoteBase(Node* obj, wid workflow_id, iid instance_id) noexc
     : CNI_BaseObj_T<T>(obj, workflow_id, instance_id)
 {
     this->flags().add(NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::BlobCustomSerialization);
+    this->obj_flags().add(NodeObjFlags::CustomWdgtRestrictCfg);
 }
 
 template <typename T>

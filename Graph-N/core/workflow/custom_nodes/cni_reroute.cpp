@@ -22,6 +22,7 @@ CNI_Reroute::CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instan
     : CNI_BaseObj_T<CNI_Reroute>(obj, workflow_id, instance_id)
 {
     flags().add(NodeInstFlags::CNI, NodeInstFlags::Reroute, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
+    obj_flags().add(NodeObjFlags::CustomWdgtRestrictCfg);
 
     static bool r_node_creation = false;
     if (r_node_creation)
@@ -133,13 +134,13 @@ void CNI_Reroute::cni_init()
             if (!deserialized_values->in_pin_types.empty())
                 m_data->m_in_pin_types = deserialized_values->in_pin_types;
 
-            set_splitted_nodes_poses(deserialized_values->poses);
             if (deserialized_values->splitted_node != 0)    m_splitted_part->set_instance_id(deserialized_values->splitted_node);
             if (deserialized_values->splitter_out != 0)     m_splitted_pin->set_instance_id(deserialized_values->splitter_out);
             if (deserialized_values->splitter_in != 0)      m_splitted_part->m_splitted_pin->set_instance_id(deserialized_values->splitter_in);
             if (deserialized_values->splitter_link != 0)    m_splitter_link_id = deserialized_values->splitter_link;
             if (deserialized_values->splitted)
                 split_to_parts();
+            set_splitted_nodes_poses(deserialized_values->poses);
 
             m_deserialized_values.reset();
         }
@@ -253,7 +254,10 @@ void CNI_Reroute::remove_pin_internal(Workflow* wf, PinInstance* pin, bool force
 {
     if (force_cleanup)
     {
+        std::erase_if(get_object()->input, [pin = pin->get_object()](const Pin* p) { return pin == p; });
+        std::erase_if(get_object()->output, [pin = pin->get_object()](const Pin* p) { return pin == p; });
         cni_remove_pin(pin->get_object());
+
         remove_pin(pin);
         m_splitted_part->remove_pin(pin);
         wf->remove_pin(pin);

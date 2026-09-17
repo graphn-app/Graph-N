@@ -25,6 +25,7 @@ CNI_Primitive::CNI_Primitive(Node* obj, wid workflow_id, iid instance_id) noexce
     : CNI_BaseObj_T<CNI_Primitive>(obj, workflow_id, instance_id)
 {
     flags().add(NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
+    obj_flags().add(NodeObjFlags::CustomWdgtRestrictCfg);
 }
 
 void CNI_Primitive::cni_init()
