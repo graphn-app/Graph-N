@@ -137,7 +137,7 @@ DbMetadata DbManager::read_db_metadata()
         meta.db_ver = db.execAndGet("PRAGMA user_version");
 
         SQLite::Statement query(db,
-            fmt::format(FMT_COMPILE(R"(
+            fmt::format(FMT_STRING(R"(
                     SELECT {}, {}, {}
                     FROM {}
                 )"),

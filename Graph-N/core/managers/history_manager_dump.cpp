@@ -36,7 +36,7 @@ std::string prim_to_str(const Primitive& p)
             if constexpr (std::is_same_v<T, std::monostate>)
                 return "null";
             else if constexpr (std::is_same_v<T, std::string>)
-                return fmt::format(FMT_COMPILE("str({} bytes)"), v.size());
+                return fmt::format(FMT_STRING("str({} bytes)"), v.size());
             else if constexpr (std::is_same_v<T, number>)
                 return fmt::format(FMT_STRING("{}"), v.underlying_type());
             else
@@ -59,9 +59,9 @@ std::string action_val_to_str(const HActionT& val)
             else if constexpr (std::is_same_v<T, Primitive>)
                 return prim_to_str(v);
             else if constexpr (std::is_same_v<T, ImRect>)
-                return fmt::format(FMT_COMPILE("[{:.0f},{:.0f} {:.0f}x{:.0f}]"), v.Min.x, v.Min.y, v.GetWidth(), v.GetHeight());
+                return fmt::format(FMT_STRING("[{:.0f},{:.0f} {:.0f}x{:.0f}]"), v.Min.x, v.Min.y, v.GetWidth(), v.GetHeight());
             else if constexpr (std::is_same_v<T, ImVec4>)
-                return fmt::format(FMT_COMPILE("({:.2f},{:.2f},{:.2f},{:.2f})"), v.x, v.y, v.z, v.w);
+                return fmt::format(FMT_STRING("({:.2f},{:.2f},{:.2f},{:.2f})"), v.x, v.y, v.z, v.w);
             else
                 return "?";
         }, val);
@@ -71,8 +71,8 @@ std::string action_val_to_str(const HActionT& val)
 void HistoryManager::LogAction(const HistoryAction& action, const char* state, int32_t pos /*= 0*/, int32_t saved_pos /*= 0*/, size_t total /*= 0*/) const
 {
     const auto& wf_data = g::pWfsManager->access(action.wf)->get_data();
-    const std::string pos_info = total > 0 ? fmt::format(FMT_COMPILE(" [Pos:{}/{}, Saved:{}]"), pos, total, saved_pos) : "";
-    Log(fmt::format(FMT_COMPILE("[Wf:{}, {}, {}] Act #{} '{}'{} | Sts:{} Cntr:{} -> {}"), 
+    const std::string pos_info = total > 0 ? fmt::format(FMT_STRING(" [Pos:{}/{}, Saved:{}]"), pos, total, saved_pos) : "";
+    Log(fmt::format(FMT_STRING("[Wf:{}, {}, {}] Act #{} '{}'{} | Sts:{} Cntr:{} -> {}"), 
         action.wf, (wf_data.dirty ? "dirty" : "stable"), (wf_data.draft ? "draft" : "saved"),
         action.id, action.name, pos_info, 
         action.steps.size(), action.counter, state));
@@ -81,7 +81,7 @@ void HistoryManager::LogAction(const HistoryAction& action, const char* state, i
 void HistoryManager::LogAction(wid wf_id, const char* state, int32_t pos /*= 0*/, int32_t saved_pos /*= 0*/, size_t total /*= 0*/) const
 {
     const auto& wf_data = g::pWfsManager->access(wf_id)->get_data();
-    Log(fmt::format(FMT_COMPILE("[Wf:{}, {}] [Pos:{}/{}, Saved:{}] -> {}"), 
+    Log(fmt::format(FMT_STRING("[Wf:{}, {}] [Pos:{}/{}, Saved:{}] -> {}"), 
         wf_id, (wf_data.dirty ? "dirty" : "stable"),
         pos, total, saved_pos,
         state));
@@ -96,18 +96,18 @@ void HistoryManager::LogStep(const HistoryStep* step, bool is_undo /*= false*/) 
     {
         const auto& v1 = is_undo ? act_oldnew->new_val : act_oldnew->old_val;
         const auto& v2 = is_undo ? act_oldnew->old_val : act_oldnew->new_val;
-        details = fmt::format(FMT_COMPILE("{} => {}"), action_val_to_str(v1), action_val_to_str(v2));
+        details = fmt::format(FMT_STRING("{} => {}"), action_val_to_str(v1), action_val_to_str(v2));
     }
     else if (auto act_link = cast::dynamic<const ActLink>(step))
     {
-        details = fmt::format(FMT_COMPILE("in:{} <-> out:{}"), act_link->pin_in, act_link->pin_out);
+        details = fmt::format(FMT_STRING("in:{} <-> out:{}"), act_link->pin_in, act_link->pin_out);
     }
     else if (auto act_blob = cast::dynamic<const ActNodeBlob>(step))
     {
-        details = fmt::format(FMT_COMPILE("type: '{}', blob size: {} bytes"), act_blob->debug_name, act_blob->node->size());
+        details = fmt::format(FMT_STRING("type: '{}', blob size: {} bytes"), act_blob->debug_name, act_blob->node->size());
     }
 
-    Log(fmt::format(FMT_COMPILE("    {} Step [{}] iid:{} | {}"), prefix, action_type_str(step->type), step->id, details));
+    Log(fmt::format(FMT_STRING("    {} Step [{}] iid:{} | {}"), prefix, action_type_str(step->type), step->id, details));
 }
 
 } // namespace mngr

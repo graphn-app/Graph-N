@@ -122,11 +122,11 @@ private:
     void build_names()
     {
         if (m_sequential_number > 0 && m_sequential_number < 10)
-            m_name_full = fmt::format(FMT_COMPILE("{} [{}]: {}{}"), m_icon, m_sequential_number, m_name, m_id);
+            m_name_full = fmt::format(FMT_STRING("{} [{}]: {}{}"), m_icon, m_sequential_number, m_name, m_id);
         else
-            m_name_full = fmt::format(FMT_COMPILE("{} {}{}"), m_icon, m_name, m_id);
-        m_name_shortened_name_full = fmt::format(FMT_COMPILE("{}{}"), m_icon, m_id);
-        m_panel_name_w = ImGui::CalcTextSize(fmt::format(FMT_COMPILE("{} {}"), m_icon, m_name).c_str()).x;
+            m_name_full = fmt::format(FMT_STRING("{} {}{}"), m_icon, m_name, m_id);
+        m_name_shortened_name_full = fmt::format(FMT_STRING("{}{}"), m_icon, m_id);
+        m_panel_name_w = ImGui::CalcTextSize(fmt::format(FMT_STRING("{} {}"), m_icon, m_name).c_str()).x;
     }
 
 private:

@@ -336,7 +336,7 @@ void LogWriter::log_line_start(const void* this_, const char* foo, int32_t line)
     if (nullptr == foo)
     {
 #ifdef _WIN32
-        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{:0>5} {:0>12X} {} ln:{}] "),
+        fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("[{:0>5} {:0>12X} {} ln:{}] "),
             ::GetThreadId(::GetCurrentThread()),
             cast::to_ptr(this_),
             tools::dt::from_current_date().as_log_line(),
@@ -350,7 +350,7 @@ void LogWriter::log_line_start(const void* this_, const char* foo, int32_t line)
     else [[likely]]
     {
 #ifdef _WIN32
-        fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("[{:0>5} {:0>12X} {} {}:{}] "),
+        fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("[{:0>5} {:0>12X} {} {}:{}] "),
             ::GetThreadId(::GetCurrentThread()),
             cast::to_ptr(this_),
             tools::dt::from_current_date().as_log_line(),
@@ -403,19 +403,19 @@ LogWriter& LogWriter::operator << (const tools::dt& dt)
 #ifndef TOOLS_DETACHED_STATE
 LogWriter& LogWriter::operator << (const ImVec2& vec2)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("x={}, y={}"), vec2.x, vec2.y);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("x={}, y={}"), vec2.x, vec2.y);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const ImVec4& vec4)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("x={}, y={}, z={}, w={}"), vec4.x, vec4.y, vec4.z, vec4.w);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("x={}, y={}, z={}, w={}"), vec4.x, vec4.y, vec4.z, vec4.w);
     return *this;
 }
 
 LogWriter& LogWriter::operator << (const ImRect& rc)
 {
-    fmt::format_to(std::back_inserter(m_buffer), FMT_COMPILE("Min.x={}, Min.y={}, Max.x={}, Max.y={}"), rc.Min.x, rc.Min.y, rc.Max.x, rc.Max.y);
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("Min.x={}, Min.y={}, Max.x={}, Max.y={}"), rc.Min.x, rc.Min.y, rc.Max.x, rc.Max.y);
     return *this;
 }
 #endif // TOOLS_DETACHED_STATE

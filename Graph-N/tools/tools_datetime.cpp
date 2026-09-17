@@ -102,7 +102,7 @@ const char* dt::month_name(int32_t length /*= 0*/) const noexcept
 std::string dt::as_log_line() const
 {
     // HH:MM:SS.mmm
-    return fmt::format(FMT_COMPILE("{:02}:{:02}:{:02}.{:03}"), m_hour, m_minute, m_second, m_millisecond);
+    return fmt::format(FMT_STRING("{:02}:{:02}:{:02}.{:03}"), m_hour, m_minute, m_second, m_millisecond);
 }
 
 std::string dt::as_filename() const
@@ -118,13 +118,13 @@ std::string dt::as_full_date(bool add_ms) const
     if (add_ms)
     {
         // YYYY/MMM/DD HH:MM:SS.mmm
-        return fmt::format(FMT_COMPILE("{:04}/{}/{:02} {:02}:{:02}:{:02}.{:03}"),
+        return fmt::format(FMT_STRING("{:04}/{}/{:02} {:02}:{:02}:{:02}.{:03}"),
             m_year, month_name(3), m_day,
             m_hour, m_minute, m_second, m_millisecond);
     }
 
     // YYYY/MMM/DD HH:MM:SS
-    return fmt::format(FMT_COMPILE("{:04}/{}/{:02} {:02}:{:02}:{:02}"),
+    return fmt::format(FMT_STRING("{:04}/{}/{:02} {:02}:{:02}:{:02}"),
         m_year, month_name(3), m_day,
         m_hour, m_minute, m_second);
 }
@@ -134,13 +134,13 @@ std::string dt::as_full_date_readable(bool add_ms) const
     if (add_ms)
     {
         // YYYY MMM D, HH:MM:SS.mmm
-        return fmt::format(FMT_COMPILE("{} {:02}, {:04}. {:02}:{:02}:{:02}.{:03}"),
+        return fmt::format(FMT_STRING("{} {:02}, {:04}. {:02}:{:02}:{:02}.{:03}"),
             month_name(3), m_day, m_year, 
             m_hour, m_minute, m_second, m_millisecond);
     }
 
     // YYYY/MMM/DD_HH:MM:SS
-    return fmt::format(FMT_COMPILE("{} {:02}, {:04}. {:02}:{:02}:{:02}"),
+    return fmt::format(FMT_STRING("{} {:02}, {:04}. {:02}:{:02}:{:02}"),
         month_name(3), m_day, m_year,
         m_hour, m_minute, m_second);
 }
