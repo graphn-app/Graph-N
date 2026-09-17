@@ -28,6 +28,7 @@ struct Node : public base::HashID
     std::string description;
     std::string category;		// full path
     std::string python_module;
+    std::string search_aliases;
 
     float w_name = 0.0f;
     float w_pin_in_max = 0.0f;

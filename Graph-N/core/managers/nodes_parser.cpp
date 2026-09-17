@@ -119,7 +119,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
     {
         Log("Node " << node_class << " parse: begin");
         auto node = std::make_unique<data::Node>(node_class);
-        parse_names(*node.get(), node_class, jnode);        // name, display name, category, description
+        parse_names(*node.get(), node_class, jnode);        // name, display name, category, description, search_aliases
 
         //BREAK_IF(node_class == "DrawArcFaceLandmarks");
 
@@ -155,6 +155,9 @@ void NodesParser::parse_names(data::Node& node, const std::string& node_class, c
 
     if (jnode.contains("description") && jnode["description"].is_string())
         node.description = jnode["description"];
+
+    if (jnode.contains("search_aliases") && jnode["search_aliases"].is_string())
+        node.search_aliases = jnode["search_aliases"];
 
     if (jnode.contains("category") && jnode["category"].is_string())
     {
@@ -942,7 +945,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
     branch->is_node = true;
     branch->name_or_category = (node->display_name.empty() ? node->name : node->display_name);
     branch->name_or_category_len = branch->name_or_category.size();
-    branch->search = tools::str::to_lower_ascii(node->name + " " + node->display_name);
+    branch->search = tools::str::to_lower_ascii(node->name + " " + node->display_name + " " + node->search_aliases);
     branch->node = node;
 
     manager.m_nodes_plain.push_back(branch);
