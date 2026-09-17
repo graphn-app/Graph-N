@@ -693,7 +693,7 @@ void PanelWorkflow::create_toolbar()
         }
     }
     
-    finalize_toolbar();
+    finalize_toolbar(false /*separator*/);
 }
 
 void PanelWorkflow::check_history()

@@ -248,16 +248,20 @@ public:
 
     void clear_toolbar() noexcept;
     void add_toolbar_element(Element&& el, bool left_aligned);
-    void finalize_toolbar() noexcept;
+    void finalize_toolbar(bool add_separator) noexcept;
     void set_use_regular_size_icons() noexcept { m_use_big_icons = false; }
     void reset_toolbar_state() noexcept { m_reset_state = true; }
+
+private:
+    void draw_background();
 
 private:
     std::vector<Element> m_elements_l;
     std::vector<Element> m_elements_r;
     ImU32 m_clr_hover = 0;
     ImU32 m_clr_pressed = 0;
-    bool m_use_big_icons = true;
+    bool m_use_big_icons = false;
+    bool m_draw_separator = false;
     bool m_reset_state = false;
 };
 

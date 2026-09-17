@@ -237,7 +237,7 @@ void PanelQueue::create_toolbar()
         add_toolbar_element(std::move(el), false);
     }
 
-    finalize_toolbar();
+    finalize_toolbar(false /*separator*/);
 }
 
 int32_t PanelQueue::show_tasks_num(int32_t curr) noexcept

@@ -142,7 +142,7 @@ void PanelWfList::create_toolbar()
             add_toolbar_element(std::move(el), false);
         }
     }
-    finalize_toolbar();
+    finalize_toolbar(true /*separator*/);
 }
 
 DlgCode PanelWfList::show(bool& focused)

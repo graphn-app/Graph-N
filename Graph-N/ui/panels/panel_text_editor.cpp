@@ -225,7 +225,7 @@ void PanelTextEditor::create_toolbar()
         add_toolbar_element(std::move(el), true);
     }
 
-    finalize_toolbar();
+    finalize_toolbar(false /*separator*/);
     set_use_regular_size_icons();
 }
 

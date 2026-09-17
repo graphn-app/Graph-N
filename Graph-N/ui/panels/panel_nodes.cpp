@@ -146,7 +146,7 @@ void PanelNodes::create_toolbar()
             add_toolbar_element(std::move(el), false);
         }  
     }
-    finalize_toolbar();
+    finalize_toolbar(false /*separator*/);
 }
 
 void PanelNodes::invalidate_comfyui_objects() noexcept

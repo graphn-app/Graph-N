@@ -441,10 +441,11 @@ void PanelToolbar::add_toolbar_element(Element&& el, bool left_aligned)
         m_elements_r.push_back(std::move(el));
 }
 
-void PanelToolbar::finalize_toolbar() noexcept
+void PanelToolbar::finalize_toolbar(bool add_separator) noexcept
 {
     m_clr_hover = g::pOptsManager->color_load(AppColor::SelectedItem);
     m_clr_pressed = ImGuiEx::increase_brightness(m_clr_hover);
+    m_draw_separator = add_separator;
 }
 
 void PanelToolbar::clear_toolbar() noexcept
@@ -453,8 +454,49 @@ void PanelToolbar::clear_toolbar() noexcept
     m_elements_r.clear();
 }
 
+void PanelToolbar::draw_background()
+{
+    const ImVec4 bg_color = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
+
+    // Define lighten factor (1.0f = original, 1.05f = +5%, 1.10f = +10%)
+    constexpr float lighten_factor = 1.5f; 
+
+    // Apply factor, clamp to 1.0f to avoid overflow, and convert to 0-255 range
+    const int r = static_cast<int>(std::fminf(bg_color.x * lighten_factor, 1.0f) * 255.0f);
+    const int g = static_cast<int>(std::fminf(bg_color.y * lighten_factor, 1.0f) * 255.0f);
+    const int b = static_cast<int>(std::fminf(bg_color.z * lighten_factor, 1.0f) * 255.0f);
+    const int a = static_cast<int>(bg_color.w * 255.0f);
+
+    // Create final color in IM_COL32(RGBA) format
+    const ImU32 color = IM_COL32(r, g, b, a);
+
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    // 1. ImDrawList requires absolute screen coordinates
+    ImVec2 p_min = ImGui::GetCursorScreenPos();
+
+    // 2. Define dimensions. Using GetFrameHeight() to match standard button heights
+    const float width = ImGui::GetContentRegionAvail().x;
+    const float height = ImGui::GetFrameHeight(); 
+
+    ImVec2 p_max = { p_min.x + width, p_min.y + height };
+
+    // 3. Background color in IM_COL32(RGBA) format
+    //const ImU32 color = IM_COL32(128, 128, 128, 128); // Semi-transparent gray
+
+    // 4. Rounding. Setting it to height / 2 creates a perfect capsule (pill) shape
+    const float rounding = height * 0.5f;
+
+    // 5. Draw the rounded rectangle
+    draw_list->AddRectFilled(p_min, p_max, color, rounding);
+}
+
 void PanelToolbar::draw_toolbar()
 {
+    FontGuard fg(m_use_big_icons ? g::pMain->get_icons_font() : g::pMain->get_regular_font());
+
+    //draw_background();
+
     const float avail_w = ImGui::GetContentRegionAvail().x;
     const auto& style = ImGui::GetStyle();
     const float regular_h = ImGui::GetTextLineHeight();
@@ -462,8 +504,6 @@ void PanelToolbar::draw_toolbar()
 
     constexpr double blinking_interval = 0.65;
     const bool blinking_item_show = fmod(ImGui::GetTime(), blinking_interval * 2) < blinking_interval;
-
-    FontGuard fg(m_use_big_icons ? g::pMain->get_icons_font() : nullptr);
 
     const float big_h = ImGui::GetTextLineHeight();
     const ImVec2 ico_size = ImGui::CalcTextSize(ICON_LC_X);
@@ -803,8 +843,10 @@ void PanelToolbar::draw_toolbar()
         ImGui::SameLine();
     }
 
-    ImGui::PopStyleColor(3);
+    ImGui::PopStyleColor(3);    
     ImGui::Spacing();
+    if (m_draw_separator)
+        ImGui::Separator();
 }
 
 } // namespace ui
