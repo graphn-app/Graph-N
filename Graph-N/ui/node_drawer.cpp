@@ -91,6 +91,54 @@ NODE
 
 */
 
+namespace
+{
+bool tooltip_suspended(const char* tooltip, ImU32 pop_color = 0)
+{
+    bool ret = false;
+    if (tooltip != nullptr && *tooltip != 0 && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+    {
+        ax::NodeEditor::Suspend(); 
+        if (ImGui::BeginTooltip())
+        {
+            if (pop_color != 0)
+                ImGui::PopStyleColor();
+            ImGui::PushTextWrapPos(300.0f);
+            ImGui::TextUnformatted(tooltip);
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+            if (pop_color != 0)
+                ImGui::PushStyleColor(ImGuiCol_Text, pop_color);
+            ret = true;
+        }
+        ax::NodeEditor::Resume(); 
+    }
+    return ret;
+}
+bool tooltip_suspended(const std::string& tooltip, ImU32 pop_color = 0)
+{
+    bool ret = false;
+    if (!tooltip.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+    {
+        ax::NodeEditor::Suspend(); 
+        if (ImGui::BeginTooltip())
+        {
+            if (pop_color != 0)
+                ImGui::PopStyleColor();
+            ImGui::PushTextWrapPos(300.0f);
+            ImGui::TextUnformatted(tooltip.c_str(), tooltip.c_str() + tooltip.size());
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+            if (pop_color != 0)
+                ImGui::PushStyleColor(ImGuiCol_Text, pop_color);
+            ret = true;
+        }
+        ax::NodeEditor::Resume(); 
+    }
+    return ret;
+}
+}
+
 namespace ui
 {
 
@@ -262,7 +310,7 @@ void NodeDrawer::post_draw_all(
     }
 
     if (m_active_tt != nullptr)
-        ImGuiEx::TooltipOnLastControl(m_active_tt, nullptr);
+        tooltip_suspended(m_active_tt);
 
     if (m_navigate_to_content)
     {
@@ -964,7 +1012,7 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
     if (linked) ImGui::EndDisabled();
     else handle_widget_active_state(pin, &backup);
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
+    tooltip_suspended(obj->tooltip);
     ImGui::PopID();
 }
 
@@ -1007,7 +1055,7 @@ void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_wid
     if (linked) ImGui::EndDisabled();
     else handle_widget_active_state(pin, &backup);
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
+    tooltip_suspended(obj->tooltip);
     ImGui::PopID();
 }
 
@@ -1057,7 +1105,7 @@ void NodeDrawer::draw_widget_number(data::PinInstance* pin, float widget_name_wi
     if (linked) ImGui::EndDisabled();
     else handle_widget_active_state(pin, &backup);
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
+    tooltip_suspended(obj->tooltip);
     ImGui::PopID();
 }
 
@@ -1094,7 +1142,7 @@ void NodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_widt
     if (linked) ImGui::EndDisabled();
     else handle_widget_active_state(pin, &backup);
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
+    tooltip_suspended(obj->tooltip);
     ImGui::PopID();
 }
 
@@ -1117,10 +1165,10 @@ void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width
 
     bool tt_mod = false;
     if (!val->empty())
-        tt_mod = ImGuiEx::TooltipOnLastControl(placeholder.c_str(), placeholder.c_str() + placeholder.size(), ImGuiHoveredFlags_DelayNone, true);
+        tt_mod = tooltip_suspended(placeholder);
 
     if (!tt_mod)
-        ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
+        tooltip_suspended(obj->tooltip);
 
     ImGui::PopID();
 }
@@ -1147,10 +1195,10 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
 
     bool tt_mod = false;
     if (!val->empty())
-        tt_mod = ImGuiEx::TooltipOnLastControl(placeholder.c_str(), placeholder.c_str() + placeholder.size(), ImGuiHoveredFlags_DelayNone, true);
+        tt_mod = tooltip_suspended(placeholder);
 
     if (!tt_mod)
-        ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
+        tooltip_suspended(obj->tooltip);
 
     ImGui::PopID();
 }
@@ -1179,7 +1227,7 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
     if (m_deffered_action->active_pin == pin && m_deffered_action->combo.is_changed)
         m_wf->action()->set_pin_val(pin, m_deffered_action->combo.old_value);
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
+    tooltip_suspended(obj->tooltip);
     ImGui::PopID();
 }
 
@@ -1212,7 +1260,7 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     if (linked) ImGui::EndDisabled();
     else handle_widget_active_state(pin);
 
-    ImGuiEx::TooltipOnLastControl(obj->tooltip.c_str(), obj->tooltip.c_str() + obj->tooltip.size());
+    tooltip_suspended(obj->tooltip);
     ImGui::PopID();
 }
 
@@ -1478,6 +1526,7 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
     }
 
     ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
+    tooltip_suspended(pin->get_object()->tooltip, m_clr_node_pin_text);
 }
 
 bool NodeDrawer::handle_node_resize() noexcept
