@@ -170,7 +170,7 @@ const WfData& WfsManager::create_temp(const blob::Blob& source, const std::strin
         auto label_id = find_label(label);
         if (0 == label_id)
         {
-            label_id = create_label(true);
+            label_id = create_label("", true);
             rename_label(label_id, label);
         }
         set_wf_labels(wf->get_id(), { label_id });
@@ -395,24 +395,12 @@ void WfsManager::remove_virtual_wf(wid wf_id)
     Log("Virtual wf removed. w:" << wf_id);
 }
 
-uint32_t WfsManager::create_label(bool auto_del /*= false*/)
+uint32_t WfsManager::create_label(const std::string& name /*= ""*/, bool auto_del /*= false*/)
 {
-    const auto id = m_labels.add_label(auto_del);
+    const auto id = m_labels.add_label(auto_del, name);
     Log("New wf label added: " << std::as_const(m_labels).get_label(id)->name << " = " << id);
     g::pOptsManager->items_wf_labels_save(m_labels);
     return id;
-}
-
-uint32_t WfsManager::find_label(const std::string& label_name) const
-{
-    const auto lower = tools::str::to_lower_ascii(label_name);
-    auto& labels = m_labels.get_label_list();
-    for (auto it = labels.begin(); it != labels.end(); ++it)
-    {
-        if (tools::str::to_lower_ascii(it->name) == lower)
-            return it->id;
-    }
-    return 0;
 }
 
 bool WfsManager::rename_label(uint32_t label_id, const std::string& new_name)

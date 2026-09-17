@@ -148,6 +148,14 @@ bool LabelsList::rename_label(uint32_t label_id, const std::string& new_name)
     return true;
 }
 
+uint32_t LabelsList::find_label(const std::string& name) const
+{
+    auto it = std::ranges::find_if(labels, [&name](const Label& label) { return tools::str::compare_no_case(name, label.name); });
+    if (it != labels.end())
+        return it->id;
+    return 0;
+}
+
 bool LabelsList::has_item(uint32_t label_id, hid item) const
 {
     const Label* plabel = get_label(label_id);

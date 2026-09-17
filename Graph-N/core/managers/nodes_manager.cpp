@@ -291,9 +291,9 @@ void NodesManager::remove_pin(data::Node* parent, const data::Pin* pin) noexcept
         LogError("Pin not found. p:" << pin->def_state.type_str);
 }
 
-uint32_t NodesManager::create_label()
+uint32_t NodesManager::create_label(const std::string& name /*= ""*/)
 {
-    const auto id = m_labels.add_label();
+    const auto id = m_labels.add_label(false, name);
     Log("New node label added: " << std::as_const(m_labels).get_label(id)->name << " = " << id);
     g::pOptsManager->items_node_labels_save(m_labels);
     return id;

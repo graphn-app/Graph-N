@@ -58,8 +58,8 @@ public:
     std::list<wid> get_wfs_in_label(uint32_t label_id) const;
     bool get_is_wf_in_label(wid wf_id, uint32_t label_id) const;
 
-    uint32_t create_label(bool auto_del = false);
-    uint32_t find_label(const std::string& label_name) const;
+    uint32_t create_label(const std::string& name = "", bool auto_del = false);
+    uint32_t find_label(const std::string& name) const  { return m_labels.find_label(name); }
     bool rename_label(uint32_t label_id, const std::string& new_name);
     void remove_label(uint32_t label_id);
 

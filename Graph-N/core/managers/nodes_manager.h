@@ -58,7 +58,8 @@ public:
     std::list<data::NodeItem*> get_nodes_in_label(uint32_t label_id) const;
     bool get_is_node_in_label(data::NodeItem* node_item, uint32_t label_id) const;
 
-    uint32_t create_label();
+    uint32_t create_label(const std::string& name = "");
+    uint32_t find_label(const std::string& name) const { return m_labels.find_label(name); }
     bool rename_label(uint32_t label_id, const std::string& new_name);
     void remove_label(uint32_t label_id);
 

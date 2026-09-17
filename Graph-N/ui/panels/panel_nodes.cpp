@@ -253,6 +253,8 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         std::set<uint32_t> active_labels;
     };
 
+    static char new_label_buff[31] = {};
+
     const auto on_icon_handler = [&labels_mode = m_labels_mode]
         (PanelListItem& item, bool /*l_clicked*/, bool /*l_dbl_clicked*/, bool l_released, bool /*r_clicked*/, bool r_released, bool& handler_processed)
     {        
@@ -260,12 +262,12 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         auto& labels = g::pNodesManager->get_labels();
         if (!item.continue_processing_ico_handler && (l_released || r_released))
         {
-            if (labels.empty())
-            {
-                item.continue_processing_ico_handler = false;
-                labels_mode = true;
-                return true;
-            }
+            //if (labels.empty())
+            //{
+            //    item.continue_processing_ico_handler = false;
+            //    labels_mode = true;
+            //    return true;
+            //}
 
             handler_processed = true;
             item.item_state = std::make_unique<NodeLabelState>();
@@ -282,13 +284,13 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             ImGui::OpenPopup(DlgObjID[cast::to_szt(DlgObj::PanelNodes_LabelsMenu)]);
         }
 
-        ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(ImGui::GetContentRegionAvail().x, 200));
+        ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(ImGui::GetContentRegionAvail().x, 400));
         if (ImGui::BeginPopup(DlgObjID[cast::to_szt(DlgObj::PanelNodes_LabelsMenu)]))
         {
             handler_processed = true;
             item.continue_processing_ico_handler = true;
 
-            ImGui::TextDisabled("Add/remove labels:");
+            ImGui::TextDisabled("Assign label(s):");
             ImGui::Separator();
 
             for (auto& label : labels)
@@ -308,13 +310,13 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 ImGui::PopID();
             }
 
-            ImGui::Separator();
             if (!item.item_state->changed)
                 ImGui::BeginDisabled();
             if (ImGui::Button("Apply", ImVec2(-FLT_MIN, 0)))
             {
                 item.continue_processing_ico_handler = false;
                 ImGui::CloseCurrentPopup();
+                *new_label_buff = 0;
 
                 if (item.item_state->changed && item.item_state->ptr == item.ptr)
                 {
@@ -324,6 +326,17 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             }
             if (!item.item_state->changed)
                 ImGui::EndDisabled();
+
+            ImGui::Spacing();
+            ImGui::TextDisabled("New label:");
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            if (ImGui::InputText("##newlabel", new_label_buff, 30, ImGuiInputTextFlags_EnterReturnsTrue) || ImGui::IsItemDeactivatedAfterEdit())
+            {
+                if (*new_label_buff != 0 && g::pNodesManager->find_label(new_label_buff) == 0)
+                {
+                    g::pNodesManager->create_label(new_label_buff);
+                }
+            }
 
             ImGui::EndPopup();
         }

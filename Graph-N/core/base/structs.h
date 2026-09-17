@@ -45,6 +45,7 @@ struct LabelsList final
     uint32_t add_label(bool auto_label= false, std::string name = "");
     bool rename_label(uint32_t label_id, const std::string& new_name);
     void remove_label(uint32_t label_id) { std::erase_if(labels, [label_id](const Label& label) { return label_id == label.id; }); }
+    uint32_t find_label(const std::string& name) const;
 
     bool has_item(uint32_t label_id, hid item) const;
     void add_item(uint32_t label_id, hid item);
