@@ -43,8 +43,6 @@ float ico_circle = 0.0f;
 float ico_eye = 0.0f;
 float ico_max = 0.0f;
 float v_spacing = 0.0f;
-std::string hidden_widgets = "Hidden widgets";
-float hidden_widgets_len;
 }
 
 namespace ui
@@ -63,7 +61,6 @@ bool GraphN_Flow::init()
     w::ico_eye = ImGui::CalcTextSize(ICON_LC_EYE).x;
     w::ico_max = std::max(w::ico_circle, w::ico_eye);
     w::v_spacing = 4.0f;
-    w::hidden_widgets_len = ImGui::CalcTextSize(w::hidden_widgets.c_str()).x;
 
     m_ui_thread_id = std::this_thread::get_id();
 

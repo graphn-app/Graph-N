@@ -562,6 +562,4 @@ extern float ico_circle;
 extern float ico_eye;
 extern float ico_max;
 extern float v_spacing;
-extern std::string hidden_widgets;
-extern float hidden_widgets_len;
 }

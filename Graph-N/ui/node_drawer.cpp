@@ -521,8 +521,13 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         for (auto pin : inputs)
         {
             auto obj = pin->get_object();
+
             if (obj->flags.has(PinObjFlags::Advanced))
+            {
                 advanced++;
+                if (pin->state().links > 0)
+                    m_active_node->flags().add(NodeInstFlags::ShowHidden);
+            }
             else if (obj->is_widget())
             {
                 ImGui::PushID(pin);

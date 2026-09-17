@@ -94,14 +94,16 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
     auto& s1 = i1->state();
     auto& s2 = i2->state();
 
-    NodeInstance* n1 = nullptr;
-    NodeInstance* n2 = nullptr;
+    NodeInstance* n1 = wf->get_node_by_instance(i1->get_parent_node());
+    NodeInstance* n2 = wf->get_node_by_instance(i2->get_parent_node());
+
+    if (p1->flags.has(PinObjFlags::Advanced))
+        n1->flags().add(NodeInstFlags::ShowHidden);
+    if (p2->flags.has(PinObjFlags::Advanced))
+        n2->flags().add(NodeInstFlags::ShowHidden);
 
     if (i1->flags().has_not(PinInstFlags::RerouteSplittingPin))
     {
-        n1 = wf->get_node_by_instance(i1->get_parent_node());
-        n2 = wf->get_node_by_instance(i2->get_parent_node());
-
         if (PinType::ANY == i1->state().type)
         {
             s2.copy_to(s1);

@@ -131,35 +131,39 @@ void PanelNodeInspector::show_nodes()
     constexpr float min_descr_w = 200.0f;
     float curr_y = 0.0f;
 
-    for (size_t i = 0; i < m_inspecting.size(); i++)
+    if (ImGui::BeginChild("##inspected_nodes"))
     {
-        auto& node = m_inspecting[i];
-        auto node_obj = node.node->get_object();
-
-        float col_w = std::max(node.ideal_size, min_descr_w);
-        col_w = std::min(col_w, avail_w);
-
-        ImGui::PushID(node_obj);
-        ImGui::BeginGroup();
-
-        ImGui::Spacing();
-        node.drawer.draw(node.node, false, col_w);
-        show_description(node.descr, node.descr_sz, col_w);
-
-        ImGui::EndGroup();
-        ImGui::PopID();
-
-        if (i + 1 < m_inspecting.size())
+        for (size_t i = 0; i < m_inspecting.size(); i++)
         {
-            const float last_group_w = ImGui::GetItemRectSize().x;
-            curr_y += last_group_w + style.ItemSpacing.x;
-            const float next_col_w = std::max(m_inspecting[i + 1].ideal_size, min_descr_w);
-            if (curr_y + style.ItemSpacing.x + next_col_w <= avail_w)
-                ImGui::SameLine();
-            else
-                curr_y = 0.0f;
+            auto& node = m_inspecting[i];
+            auto node_obj = node.node->get_object();
+
+            float col_w = std::max(node.ideal_size, min_descr_w);
+            col_w = std::min(col_w, avail_w);
+
+            ImGui::PushID(node_obj);
+            ImGui::BeginGroup();
+
+            ImGui::Spacing();
+            node.drawer.draw(node.node, false, col_w);
+            show_description(node.descr, node.descr_sz, col_w);
+
+            ImGui::EndGroup();
+            ImGui::PopID();
+
+            if (i + 1 < m_inspecting.size())
+            {
+                const float last_group_w = ImGui::GetItemRectSize().x;
+                curr_y += last_group_w + style.ItemSpacing.x;
+                const float next_col_w = std::max(m_inspecting[i + 1].ideal_size, min_descr_w);
+                if (curr_y + style.ItemSpacing.x + next_col_w <= avail_w)
+                    ImGui::SameLine();
+                else
+                    curr_y = 0.0f;
+            }
         }
     }
+    ImGui::EndChild();
 }
 
 void PanelNodeInspector::show_description(std::string* descr, const ImVec2& descr_sz, float max_w) noexcept

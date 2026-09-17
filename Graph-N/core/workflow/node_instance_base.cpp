@@ -198,6 +198,7 @@ float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon) noexcept
     m_min_possible_w = std::max(m_min_possible_w, (obj->w_widget_name_max + obj->w_widget_value_max) / 3);
     m_min_possible_w = std::max(m_min_possible_w, obj->w_pin_in_max + obj->w_pin_out_max + m_min_center_w);
     m_min_possible_w += pin_off;
+    w_separator = obj->w_widget_name_max + obj->w_widget_value_max;
 
     m_saved_width = -1.0f;
     w_node = 0.0f;

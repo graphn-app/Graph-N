@@ -521,7 +521,7 @@ void RoNodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_w
 void RoNodeDrawer::draw_widget_separator(float offset, float width) noexcept
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + offset);
-    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::NodeWidgetHiddenSep), width, w::hidden_widgets.c_str(), w::hidden_widgets.size(), w::hidden_widgets_len);
+    ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::NodeWidgetHiddenSep), width, "Hidden widgets");
 }
 
 } // namespace ui
