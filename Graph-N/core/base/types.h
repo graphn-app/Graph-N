@@ -83,6 +83,7 @@ enum class HttpRequestor
     CustomWdgt_Video,
     CustomWdgt_Audio,
     UploadMedia,
+    RestartFromOpts,
 };
 
 enum class DlgObj

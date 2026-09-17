@@ -188,6 +188,9 @@ uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
     case HttpRequestor::UploadMedia:
         who_is_asking = "UploadMedia";
         break;
+    case HttpRequestor::RestartFromOpts:
+        who_is_asking = "Opts/Reboot";
+        break;
     default:
         LogError("Unknown requestor");
         who_is_asking = "Unknown_requestor";
