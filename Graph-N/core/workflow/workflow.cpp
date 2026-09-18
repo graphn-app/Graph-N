@@ -97,6 +97,7 @@ std::unique_ptr<NodeInstanceRo> Workflow::create_node_ro(data::Node* node, iid n
 NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0, 0, 0, 0)*/, const std::string& select /*= ""*/, iid node_id /*= 0*/, iid node_id2 /*= 0*/)
 {
     const auto id = (0 == node_id ? get_new_child_id() : node_id);
+    set_last_child_id(id);
     std::unique_ptr<NodeInstance> instance;
     if (node->flags.has(NodeObjFlags::Dummy))
     {
@@ -121,6 +122,7 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source, bool copy
     LogRAssert(copy_from_source, "Zero ptr", nullptr);
     LogRAssert(copy_from_source->get_object(), "Zero object ptr", nullptr);
     const auto id = (copy_id ? copy_from_source->get_instance_id() : get_new_child_id());
+    set_last_child_id(id);
     auto instance = create_node(copy_from_source->get_object(), id, 0);
     auto ptr = instance.get();
     ptr->init(copy_from_source, copy_id);
@@ -173,6 +175,7 @@ PinInstance* Workflow::add_pin(NodeInstance* node, data::Pin* pin, iid instance_
 {
     LogRAssert(node && pin, "Zero ptr", nullptr);
     const auto id = (0 == instance_id ? get_new_child_id() : instance_id);
+    set_last_child_id(id);
     auto instance = std::make_unique<PinInstance>(node, pin, m_wf_data.id, id);
     auto ptr = instance.get();
 
@@ -207,6 +210,7 @@ PinInstance* Workflow::add_pin(NodeInstanceRo* node, data::Pin* pin)
 Link* Workflow::add_link(iid instance_id /*= 0*/)
 {
     const auto id = (0 == instance_id ? get_new_child_id() : instance_id);
+    set_last_child_id(id);
     auto link = std::make_unique<Link>(m_wf_data.id, id);
     auto ptr = link.get();
     Log("Link created. w:" << get_id() << ", l:" << link->get_instance_id());

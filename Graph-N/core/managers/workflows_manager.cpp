@@ -525,6 +525,8 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
         return;
     }
 
+    Log("Finishing copy. wsrc:" << m_copy_src->get_id() << ", wdst:" << wf_dest->get_id());
+
     ImVec2 src_pt(FLT_MAX, FLT_MAX);
     if (!m_copy_point.has_value())
     {
@@ -577,11 +579,26 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
 
         if (!dest_wf_data.virt)
             g::pHistoryManager->push_node_action(new_node, HistoryActionType::NodeAdd);
+        else
+        {
+            std::ranges::for_each(node->get_inputs(), [new_node](data::PinInstance* pin)
+            {
+                auto it = std::ranges::find_if(new_node->get_inputs(), [pin](data::PinInstance* new_pin) { return pin->get_object()->get_hash() == new_pin->get_object()->get_hash(); });
+                LogRAssertS(it != new_node->get_inputs().end(), "Copied input pin not found. psrc:" << pin->get_instance_id(), );
+                (*it)->set_instance_id(pin->get_instance_id());
+            });
+            std::ranges::for_each(node->get_outputs(), [new_node](data::PinInstance* pin)
+            {
+                auto it = std::ranges::find_if(new_node->get_outputs(), [pin](data::PinInstance* new_pin) { return pin->get_object()->get_hash() == new_pin->get_object()->get_hash(); });
+                LogRAssertS(it != new_node->get_outputs().end(), "Copied output pin not found. psrc:" << pin->get_instance_id(), );
+                (*it)->set_instance_id(pin->get_instance_id());
+            });
+        }
 
         curr_node_to_new_node[node->get_instance_id()] = new_node;
     }
 
-    const auto links = m_copy_src->get_links_no_reroutes();    
+    const auto links = m_copy_src->get_links_no_reroutes();
     for (auto link : links)
     {
         const auto* src_in_pin = link->get_input();
@@ -589,8 +606,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
 
         const auto in_it = curr_node_to_new_node.find(src_in_pin->get_parent_node());
         const auto out_it = curr_node_to_new_node.find(src_out_pin->get_parent_node());
-        if (in_it == curr_node_to_new_node.end() || out_it == curr_node_to_new_node.end())
-            continue;
+        LogRAssert(in_it != curr_node_to_new_node.end() && out_it != curr_node_to_new_node.end(), "Copied node not found. n-in:" << src_in_pin->get_parent_node() << ", n-out:" << src_out_pin->get_parent_node(), );
 
         const data::NodeInstance* dest_in_node = in_it->second;
         const data::NodeInstance* dest_out_node = out_it->second;
@@ -613,18 +629,13 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
                 break;
             }
         }
-        if (nullptr == dest_in_pin || nullptr == dest_out_pin) [[unlikely]]
-        {
-            LogError("Dest pin(s) not found. wsrc:" << m_copy_src->get_id() << ", wdst:" << wf_dest->get_id()
+        LogRAssert(dest_in_pin && dest_out_pin, "Dest pin(s) not found. wsrc:" << m_copy_src->get_id() << ", wdst:" << wf_dest->get_id()
                 << ", din:" << dest_in_node->get_instance_id() << ", sip:" << src_in_pin->get_instance_id() << ":" << (dest_in_pin != nullptr)
-                << ", don:" << dest_out_node->get_instance_id() << ", sop:" << src_out_pin->get_instance_id() << ":" << (dest_out_pin != nullptr));
-        }
-        else
-        {
-            const auto* new_link = data::Link::link(dest_in_pin, dest_out_pin);
-            if (!dest_wf_data.virt)
-                g::pHistoryManager->push_link_action(new_link, HistoryActionType::LinkAdd);
-        }
+                << ", don:" << dest_out_node->get_instance_id() << ", sop:" << src_out_pin->get_instance_id() << ":" << (dest_out_pin != nullptr), );
+
+        const auto* new_link = data::Link::link(dest_in_pin, dest_out_pin, dest_wf_data.virt ? link->get_instance_id() : 0);
+        if (!dest_wf_data.virt)
+            g::pHistoryManager->push_link_action(new_link, HistoryActionType::LinkAdd);
     }
 
     if (!dest_wf_data.virt)
@@ -638,10 +649,9 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
     }
 
     if (!dest_wf_data.virt)
-    {
         g::pFlow->wf_reload_view(wf_dest->get_id());
-        Log("Copied " << m_copied_nodes.size() << " nodes from " << m_copy_src->get_id() << " to " << wf_dest->get_id());
-    }
+
+    Log("Copied " << m_copied_nodes.size() << " nodes from " << m_copy_src->get_id() << " to " << wf_dest->get_id());
 }
 
 void WfsManager::close_and_purge()
