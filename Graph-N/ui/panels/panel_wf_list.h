@@ -67,6 +67,7 @@ private:
     bool m_labels_mode = false;
     uint32_t m_new_label = 0;
     PanelWithList::TtCallbacks m_tt_callbacks;
+    std::set<uint32_t> m_curr_labels;
 };
 
 

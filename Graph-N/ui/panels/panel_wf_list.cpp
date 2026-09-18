@@ -396,6 +396,11 @@ void PanelWfList::rebuild_items()
     }
 
     auto& labels = g::pWfsManager->get_labels();
+
+    std::ranges::for_each(labels, [this, &expanded](const mngr::Label& l) { if (!m_curr_labels.contains(l.id)) expanded.insert(l.id); });
+    m_curr_labels.clear();
+    std::ranges::for_each(labels, [this](const mngr::Label& l) { m_curr_labels.insert(l.id); });
+
     m_panel_items.clear();
     m_panel_items.reserve(m_wfs.size() * 2);
     m_active = g::pWfsManager->get_active();

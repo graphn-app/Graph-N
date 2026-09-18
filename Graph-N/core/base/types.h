@@ -47,6 +47,7 @@ constexpr int32_t NODE_IMAGE_LIFETIME = 30; // seconds
 constexpr int32_t NODE_IMAGE_RECT = 256; // size
 
 constexpr const char* TEMP_LABEL_COMPLETED      = "Completed tasks";
+constexpr const char* TEMP_LABEL_IMPORTED       = "Imported";
 
 constexpr const char* DND_FROM_NODES_LIBRARY    = "F86C637FBBC3";
 constexpr const char* DND_FROM_SYSTEM           = "770C64EA9B66";

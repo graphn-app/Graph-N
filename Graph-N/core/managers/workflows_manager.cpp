@@ -872,6 +872,12 @@ wid WfsManager::import_wf_from_json(const std::string& jdata, const std::string&
                 wf->get_data().dirty = true;
                 wf->get_data().draft = true;
                 save(wf->get_id());
+
+                auto label = find_label(TEMP_LABEL_IMPORTED);
+                if (0 == label)
+                    label = create_label(TEMP_LABEL_IMPORTED, true);
+                if (label != 0)
+                    set_wf_labels(wf->get_id(), { label });
             }
             return wf->get_id();
         }
