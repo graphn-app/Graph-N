@@ -447,6 +447,42 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, const float* new_colors
     multi_action_off();
 }
 
+void WorkflowAction::set_pin_cag(data::PinInstance* pin, ControlAfterGenerate old_cag, const Primitive& old_min, const Primitive& old_max, const Primitive& old_step)
+{
+    LogRAssert(pin, "Zero ptr", );
+    if (old_cag == pin->state().cag_val && old_min == pin->state().min && old_max == pin->state().max && old_step == pin->state().step) [[unlikely]]
+        return;
+
+    mngr::HPinCag cag;
+    cag.cag = old_cag;
+    cag.max = old_max;
+    cag.min = old_min;
+    cag.step = old_step;
+
+    multi_action_on("CAG value");
+    g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinCag, mngr::HActionT(std::move(cag)));
+    mirror_pin_value(pin);
+    multi_action_off();
+}
+
+void WorkflowAction::set_pin_multiline(data::PinInstance* pin, bool multiline)
+{
+    LogRAssert(pin, "Zero ptr", );
+    if (pin->flags().has(PinInstFlags::Multiline) == multiline)
+        return;
+    const uint64_t old_mode = pin->flags().get_by_mask(PinInstFlags::Multiline);
+    pin->flags().add(PinInstFlags::MultilineSet);
+    pin->flags().add_remove_if(PinInstFlags::Multiline, multiline);
+
+    if (!multiline)
+        g::pFlow->txt_panel_delete(pin->get_workflow_id(), nullptr, pin);
+
+    multi_action_on("Multiline");
+    g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinMultiline, mngr::HActionT(old_mode));
+    mirror_pin_value(pin);
+    multi_action_off();
+}
+
 void WorkflowAction::mirror_pin_value(data::PinInstance* pin)
 {
     LogRAssert(pin, "Zero ptr", );

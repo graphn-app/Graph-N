@@ -64,6 +64,7 @@ public:
     bool get_bg_menu_active(bool& rclick, bool& dbl_click) const noexcept;
 
     data::PinInstance* get_hovered_pin() const;
+    data::PinInstance* get_hovered_widget() const noexcept { return m_hovered_widget; }
     data::NodeInstance* get_hovered_node() const;
     data::Link* get_hovered_link() const;
     
@@ -117,6 +118,7 @@ private:
     void draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_separator(float offset, bool& opened, bool& temp_open) noexcept;
+    void draw_cag_helper(const data::PinInstance* pin) const noexcept;
 
     void handle_widget_active_state(data::PinInstance* pin, const Primitive* backup = nullptr);
     bool handle_node_resize() noexcept;
@@ -163,6 +165,7 @@ private:
     int32_t m_old_pin_val_ci = 0;
     data::PinInstance* m_editing = nullptr;
     data::PinInstance* m_was_edited = nullptr;
+    data::PinInstance* m_hovered_widget = nullptr;
 
     blob::Blob m_state;
     bool m_navigate_to_content = false;

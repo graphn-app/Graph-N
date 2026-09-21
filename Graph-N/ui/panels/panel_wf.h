@@ -121,6 +121,7 @@ private:
     bool show_multigroup_menu();
     bool show_multiobj_menu();
     bool show_pin_menu();
+    bool show_widget_menu();
     bool show_link_menu();
     bool show_multilink_menu();
     bool show_new_node_menu();
@@ -155,7 +156,7 @@ private:
     fmt::memory_buffer m_status_buffer;
     const std::map<iid, std::set<std::string>>* m_failed_nodes = nullptr;
 
-    enum class MenuType { _none, Back, BackDblClick, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink, SpawnNode };
+    enum class MenuType { _none, Back, BackDblClick, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink, SpawnNode, Widget };
     struct MenuObjects final
     {
         std::set<data::NodeInstance*> nodes;

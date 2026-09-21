@@ -87,9 +87,9 @@ void Pin::copy_int(Pin* dest) const
 {
     LogRAssert(dest, "Zero ptr", );
     dest->def = def;
-    dest->min = min;
-    dest->max = max;
-    dest->step = step;
+    dest->def_state.min = def_state.min;
+    dest->def_state.max = def_state.max;
+    dest->def_state.step = def_state.step;
     dest->w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
     dest->tooltip = tooltip;
     def_state.copy_to(dest->def_state);
@@ -100,9 +100,9 @@ void Pin::copy_float(Pin* dest) const
 {
     LogRAssert(dest, "Zero ptr", );
     dest->def = def;
-    dest->min = min;
-    dest->max = max;
-    dest->step = step;
+    dest->def_state.min = def_state.min;
+    dest->def_state.max = def_state.max;
+    dest->def_state.step = def_state.step;
     dest->w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
     dest->tooltip = tooltip;
     dest->round = round;
@@ -118,9 +118,9 @@ void Pin::copy_number(Pin* dest) const
 
     LogRAssert(dest, "Zero ptr", );
     dest->def = def;
-    dest->min = min;
-    dest->max = max;
-    dest->step = step;
+    dest->def_state.min = def_state.min;
+    dest->def_state.max = def_state.max;
+    dest->def_state.step = def_state.step;
     dest->w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
     dest->tooltip = tooltip;
     dest->round = round;
@@ -145,9 +145,9 @@ void Pin::copy_bool(Pin* dest) const
 {
     LogRAssert(dest, "Zero ptr", );
     dest->def = def;
-    dest->min = min;
-    dest->max = max;
-    dest->step = step;
+    dest->def_state.min = def_state.min;
+    dest->def_state.max = def_state.max;
+    dest->def_state.step = def_state.step;
     dest->w_value = 100.0f;
     dest->tooltip = tooltip;
     dest->label_on = label_on;
@@ -161,9 +161,9 @@ void Pin::copy_combo(Pin* dest) const
 {
     LogRAssert(dest, "Zero ptr", );
     dest->def = def;
-    dest->min = min;
-    dest->max = max;
-    dest->step = step;
+    dest->def_state.min = def_state.min;
+    dest->def_state.max = def_state.max;
+    dest->def_state.step = def_state.step;
     dest->w_value = 150.0f;
     dest->tooltip = tooltip;
     dest->flags.add_remove_if(PinObjFlags::Multiselect, flags.has(PinObjFlags::Multiselect));
@@ -286,58 +286,56 @@ void Pin::finalize_int()
     precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
 
     const bool seed = (tools::str::to_lower_ascii(def_state.name).find("seed") != std::string::npos);
-    flags.add_remove_if(PinObjFlags::CagRequire, seed);
-
-    if (seed || max < min)  // usually max = -1 and min = 0 -> unsigned int
+    if (seed || def_state.max < def_state.min)  // usually max = -1 and min = 0 -> unsigned int
     {
-        step = int64_t(1);
+        def_state.step = int64_t(1);
         def = int64_t(0);
-        min = int64_t(IM_S64_MIN_WIDGET);
-        max = int64_t(IM_S64_MAX_WIDGET);
+        def_state.min = int64_t(IM_S64_MIN_WIDGET);
+        def_state.max = int64_t(IM_S64_MAX_WIDGET);
     }
     else
     {
-        if (0 == step.get_int())
-            step = int64_t(1);
-        min = std::max(min.get_int(), IM_S64_MIN_WIDGET);
-        max = std::min(max.get_int(), IM_S64_MAX_WIDGET);
+        if (0 == def_state.step.get_int())
+            def_state.step = int64_t(1);
+        def_state.min = std::max(def_state.min.get_int(), IM_S64_MIN_WIDGET);
+        def_state.max = std::min(def_state.max.get_int(), IM_S64_MAX_WIDGET);
     }
 
-    if (min.get_int() == max.get_int())
+    if (def_state.min.get_int() == def_state.max.get_int())
     {
-        min = int64_t(IM_S64_MIN_WIDGET);
-        max = int64_t(IM_S64_MAX_WIDGET);
+        def_state.min = int64_t(IM_S64_MIN_WIDGET);
+        def_state.max = int64_t(IM_S64_MAX_WIDGET);
     }
-    if (step.get_int() == 0)
+    if (def_state.step.get_int() == 0)
     {
-        step = int64_t(1);
+        def_state.step = int64_t(1);
     }
 }
 
 void Pin::finalize_float()
 {
-    if (!step.is_float())
-        step = round.value_or(0.01);
-    if (step.get_float() == 0)
-        step = double(0.01);
+    if (!def_state.step.is_float())
+        def_state.step = round.value_or(0.01);
+    if (def_state.step.get_float() == 0)
+        def_state.step = double(0.01);
 
-    if (max < min)
-        std::swap(min, max);
+    if (def_state.max < def_state.min)
+        std::swap(def_state.min, def_state.max);
 
     if (!def.is_float()) def = double(0.0);
-    if (!min.is_float()) min = IM_DBL_MIN_WIDGET;
-    if (!max.is_float()) max = IM_DBL_MAX_WIDGET;
-    min = std::max(min.get_float(), IM_DBL_MIN_WIDGET);
-    max = std::min(max.get_float(), IM_DBL_MAX_WIDGET);
+    if (!def_state.min.is_float()) def_state.min = IM_DBL_MIN_WIDGET;
+    if (!def_state.max.is_float()) def_state.max = IM_DBL_MAX_WIDGET;
+    def_state.min = std::max(def_state.min.get_float(), IM_DBL_MIN_WIDGET);
+    def_state.max = std::min(def_state.max.get_float(), IM_DBL_MAX_WIDGET);
 
-    if (min.get_float() == max.get_float())
+    if (def_state.min.get_float() == def_state.max.get_float())
     {
-        min = double(IM_DBL_MIN_WIDGET);
-        max = double(IM_DBL_MAX_WIDGET);
+        def_state.min = double(IM_DBL_MIN_WIDGET);
+        def_state.max = double(IM_DBL_MAX_WIDGET);
     }
-    if (step.get_float() == 0.0)
+    if (def_state.step.get_float() == 0.0)
     {
-        step = double(0.1);
+        def_state.step = double(0.1);
     }
 
     if (!do_round.has_value())
@@ -360,26 +358,26 @@ void Pin::finalize_number()
 {
     static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
 
-    if (!step.is_number())
-        step = number(round.value_or(NUMBER_STEP));
+    if (!def_state.step.is_number())
+        def_state.step = number(round.value_or(NUMBER_STEP));
 
-    if (max < min)
-        std::swap(min, max);
+    if (def_state.max < def_state.min)
+        std::swap(def_state.min, def_state.max);
 
     if (!def.is_number()) def = number(NUMBER_DEFAULT);
-    if (!min.is_number()) min = number(IM_NUM_MIN_WIDGET);
-    if (!max.is_number()) max = number(IM_NUM_MAX_WIDGET);
-    min = std::max(min.get_number(), number(IM_NUM_MIN_WIDGET));
-    max = std::min(max.get_number(), number(IM_NUM_MAX_WIDGET));
+    if (!def_state.min.is_number()) def_state.min = number(IM_NUM_MIN_WIDGET);
+    if (!def_state.max.is_number()) def_state.max = number(IM_NUM_MAX_WIDGET);
+    def_state.min = std::max(def_state.min.get_number(), number(IM_NUM_MIN_WIDGET));
+    def_state.max = std::min(def_state.max.get_number(), number(IM_NUM_MAX_WIDGET));
 
-    if (min.get_number() == max.get_number())
+    if (def_state.min.get_number() == def_state.max.get_number())
     {
-        min = number(IM_NUM_MIN_WIDGET);
-        max = number(IM_NUM_MAX_WIDGET);
+        def_state.min = number(IM_NUM_MIN_WIDGET);
+        def_state.max = number(IM_NUM_MAX_WIDGET);
     }
-    if (step.get_number() == number(NUMBER_ZERO))
+    if (def_state.step.get_number() == number(NUMBER_ZERO))
     {
-        step = number(NUMBER_STEP);
+        def_state.step = number(NUMBER_STEP);
     }
 
     if (!do_round.has_value())
@@ -400,15 +398,6 @@ void Pin::finalize_number()
 
 void Pin::finalize_combo()
 {
-    if (flags.has(PinObjFlags::CagPin))
-    {
-        combo_items.clear();
-        for (size_t i = 0; i < sizeof(ControlAfterGenerateStr) / sizeof(ControlAfterGenerateStr[0]); i++)
-        {
-            combo_items.push_back(std::string(ControlAfterGenerateStr[i]));
-        }
-    }
-
     combo_items_ptr.clear();
     combo_items_str.clear();
 
@@ -416,8 +405,8 @@ void Pin::finalize_combo()
     combo_items_str.resize(combo_items.size());
     def_state.value = int64_t(0);
 
-    min = int64_t(0);
-    max = combo_items.empty() ? int64_t(0) : cast::to_i64(combo_items.size() - 1);
+    def_state.min = int64_t(0);
+    def_state.max = combo_items.empty() ? int64_t(0) : cast::to_i64(combo_items.size() - 1);
 
     for (size_t idx = 0; idx < combo_items.size(); idx++)
     {
@@ -438,10 +427,7 @@ void Pin::finalize_combo()
         }
     }
 
-    if (flags.has(PinObjFlags::CagPin))
-        def = cast::to_i64(ControlAfterGenerate::CAGRandomize);
-    else
-        def = def_state.value;
+    def = def_state.value;
 }
 
 void Pin::finalize_bool()
@@ -455,8 +441,8 @@ void Pin::finalize_color()
     precision = fmt::format(FMT_STRING("%lld"));
     precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
 
-    if (max < min)
-        std::swap(min, max);
+    if (def_state.max < def_state.min)
+        std::swap(def_state.min, def_state.max);
 }
 
 namespace {
@@ -481,10 +467,10 @@ template <typename T>
 void clamp_primitive(Pin& p, T min, T max) noexcept
 {
     clamp_primitive<T>(p, p.def_state.value, min, max);
-    clamp_primitive<T>(p, p.min, min, max);
-    clamp_primitive<T>(p, p.max, min, max);
+    clamp_primitive<T>(p, p.def_state.min, min, max);
+    clamp_primitive<T>(p, p.def_state.max, min, max);
     clamp_primitive<T>(p, p.def, min, max);
-    clamp_primitive<T>(p, p.step, min, max);
+    clamp_primitive<T>(p, p.def_state.step, min, max);
 }
 } // namespace
 
@@ -510,49 +496,49 @@ void Pin::init_defaults()
     {
         def_state.value = double(0.0f);
         def = double(0.0f);
-        min = double(IM_DBL_MIN_WIDGET);
-        max = double(IM_DBL_MAX_WIDGET);
-        step = double(0.1);
+        def_state.min = double(IM_DBL_MIN_WIDGET);
+        def_state.max = double(IM_DBL_MAX_WIDGET);
+        def_state.step = double(0.1);
     }
     if (PinType::NUMBER == def_state.type)
     {
         def_state.value = number(NUMBER_DEFAULT);
         def = number(NUMBER_DEFAULT);
-        min = number(IM_NUM_MIN_WIDGET);
-        max = number(IM_NUM_MAX_WIDGET);
-        step = number(NUMBER_STEP);
+        def_state.min = number(IM_NUM_MIN_WIDGET);
+        def_state.max = number(IM_NUM_MAX_WIDGET);
+        def_state.step = number(NUMBER_STEP);
     }
     else if (PinType::INT == def_state.type)
     {
         def_state.value = int64_t(0);
         def = int64_t(0);
-        min = int64_t(IM_S64_MIN_WIDGET);
-        max = int64_t(IM_S64_MAX_WIDGET);
-        step = int64_t(1);
+        def_state.min = int64_t(IM_S64_MIN_WIDGET);
+        def_state.max = int64_t(IM_S64_MAX_WIDGET);
+        def_state.step = int64_t(1);
     }
     else if (PinType::COLOR == def_state.type)
     {
         def_state.value = int64_t(IM_COL32_WHITE);
         def = int64_t(IM_COL32_WHITE);
-        min = int64_t(IM_COL32_BLACK);
-        max = int64_t(IM_COL32_WHITE);
-        step = int64_t(1);
+        def_state.min = int64_t(IM_COL32_BLACK);
+        def_state.max = int64_t(IM_COL32_WHITE);
+        def_state.step = int64_t(1);
     }
     else if (PinType::BOOLEAN == def_state.type)
     {
         def_state.value = bool(false);
         def = bool(false);
-        min = bool(false);
-        max = bool(true);
-        step = bool(true);
+        def_state.min = bool(false);
+        def_state.max = bool(true);
+        def_state.step = bool(true);
     }
     else if (PinType::STRING == def_state.type)
     {
         def_state.value = std::string("");
         def = std::string("");
-        min = std::string("");
-        max = std::string("");
-        step = std::string("");
+        def_state.min = std::string("");
+        def_state.max = std::string("");
+        def_state.step = std::string("");
     }
 }
 

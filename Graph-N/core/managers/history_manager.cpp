@@ -441,6 +441,24 @@ void HistoryManager::push_pin_action(const data::PinInstance* pin, HistoryAction
         step = std::make_unique<ActPinVal>();
         step->new_val = pin->state().value;
     }
+    else if (HistoryActionType::PinCag == act)
+    { 
+        history = open_action(pin->get_workflow_id(), "CAG value");
+        step = std::make_unique<ActPinCag>();
+
+        mngr::HPinCag cag;
+        cag.cag = pin->state().cag_val;
+        cag.max = pin->state().max;
+        cag.min = pin->state().min;
+        cag.step = pin->state().step;
+        step->new_val = std::move(cag);
+    }
+    else if (HistoryActionType::PinMultiline == act)
+    { 
+        history = open_action(pin->get_workflow_id(), "Multiline");
+        step = std::make_unique<ActPinMultiline>();
+        step->new_val = pin->flags().get_by_mask(PinInstFlags::Multiline);
+    }
     else
     {
         LogRError("Invalid action pushed", );
@@ -560,6 +578,12 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
         break;
     case HistoryActionType::PinVal: [[likely]]
         pop_pin_val(wf, step, do_undo);
+        break;
+    case HistoryActionType::PinCag:
+        pop_pin_cag(wf, step, do_undo);
+        break;
+    case HistoryActionType::PinMultiline:
+        pop_pin_multiline(wf, step, do_undo);
         break;
     case HistoryActionType::LinkAdd:
         pop_link_add(wf, step, do_undo);
@@ -707,6 +731,33 @@ void HistoryManager::pop_pin_val(const data::Workflow* dest_wf, const HistorySte
     LogRAssert(pin != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     pin->state().value = *std::get_if<Primitive>(do_undo ? &real_step->old_val : &real_step->new_val);
+}
+
+void HistoryManager::pop_pin_cag(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+{
+    const ActPinCag* real_step = cast::dynamic<const ActPinCag>(step);
+    auto pin = dest_wf->get_pin_by_instance(step->id);
+    LogRAssert(pin != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
+
+    const auto* cag = std::get_if<HPinCag>(do_undo ? &real_step->old_val : &real_step->new_val);
+    pin->state().cag_val = cag->cag;
+    pin->state().min = cag->min;
+    pin->state().max = cag->max;
+    pin->state().step = cag->step;
+}
+
+void HistoryManager::pop_pin_multiline(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+{
+    const ActPinMultiline* real_step = cast::dynamic<const ActPinMultiline>(step);
+    auto pin = dest_wf->get_pin_by_instance(step->id);
+    LogRAssert(pin != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
+
+    const auto flag = *std::get_if<uint64_t>(do_undo ? &real_step->old_val : &real_step->new_val);
+    ObjectFlags<PinInstFlags> obj_flag;
+    obj_flag.add_raw(flag);
+
+    pin->flags().add(PinInstFlags::MultilineSet);
+    pin->flags().add_remove_if(PinInstFlags::Multiline, obj_flag.has(PinInstFlags::Multiline));
 }
 
 void HistoryManager::pop_link_add(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)

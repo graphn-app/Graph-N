@@ -40,8 +40,6 @@ public:
     void remove_pin(const PinInstance* pin) noexcept;
     void reset_pins() noexcept;
 
-    void link_cag_pins() noexcept;
-
     virtual void on_deserialilzation_ends() {}
 
 protected:

@@ -78,25 +78,6 @@ void NodeInstanceBase::set_name(std::string name) noexcept
     w_node = 0.0f;
 }
 
-void NodeInstanceBase::link_cag_pins() noexcept
-{
-    if (has_object())
-    {
-        for (auto it = m_input.begin(); it != m_input.end(); ++it)
-        {
-            auto pin = *it;
-            if (pin->obj_flags().has(PinObjFlags::CagRequire))
-            {
-                auto cag = *++it;
-                LogCAssert(cag->obj_flags().has(PinObjFlags::CagPin), "Wrong cag pins order. w:" << get_workflow_id() << ", n:" << get_instance_id());
-
-                pin->state().cag = cag->get_instance_id();
-                cag->state().cag = pin->get_instance_id();
-            }
-        }
-    }
-}
-
 std::list<PinType> NodeInstanceBase::get_supported_pin_types(PinInstance* pin) const
 {
     LogRAssert(pin, "Zero ptr", std::list<PinType>{});

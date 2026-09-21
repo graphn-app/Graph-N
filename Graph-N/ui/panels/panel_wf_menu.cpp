@@ -54,6 +54,24 @@ bool PanelWorkflow::context_menu_handler()
         return false;
 
     {
+        const auto pin = m_drawer.get_hovered_widget();
+        if (pin != nullptr &&
+            (PinType::INT == pin->state().type || PinType::FLOAT == pin->state().type || PinType::NUMBER == pin->state().type || PinType::COMBO == pin->state().type || PinType::STRING == pin->state().type))
+        {
+            const auto parent = m_wf->get_node_by_instance(pin->get_parent_node());
+            
+            m_handle_context_menu = true;
+            m_menu_objs = {};
+            m_context_menu_type = MenuType::Widget;
+            m_menu_objs.pins.insert(pin);
+            m_menu_objs.nodes.insert(parent);
+            m_menu_objs.click_pos = m_drawer.get_mouse_pos();
+            Log("Widget menu initiated");
+            return true;
+        }
+    }
+
+    {
         const auto pin = m_drawer.get_hovered_pin();
         if (pin != nullptr)
         {
@@ -186,6 +204,9 @@ bool PanelWorkflow::show_context_menu()
             break;
         case MenuType::Node:
             close = show_node_menu();
+            break;
+        case MenuType::Widget:
+            close = show_widget_menu();
             break;
         case MenuType::Pin:
             close = show_pin_menu();
@@ -1059,6 +1080,144 @@ bool PanelWorkflow::show_multiobj_menu()
     }
     else
         m_color_buff[0] = -1.0f;
+
+    return close;
+}
+
+bool PanelWorkflow::show_widget_menu()
+{
+    LogRAssert(m_menu_objs.pins.size() == 1, "More than one pin cannot be selected", true);
+    LogRAssert(m_menu_objs.nodes.size() == 1, "More than one node cannot be selected", true);
+
+    bool close = false;
+
+    auto pin = *m_menu_objs.pins.begin();
+
+    const auto draw_cag_menu = [pin, action = m_action]()
+    {
+        bool close = false;
+        const auto cag_val = pin->state().cag_val;
+
+        ImGui::MenuItem("Control after generate:", nullptr, nullptr, false);
+        if (ImGui::MenuItem("fixed", nullptr, ControlAfterGenerate::Fixed == cag_val, true))
+        {
+            pin->state().cag_val = ControlAfterGenerate::Fixed;
+            close = true;
+        }
+        if (ImGui::MenuItem("increment", nullptr, ControlAfterGenerate::Increment == cag_val, true))
+        {        
+            pin->state().cag_val = ControlAfterGenerate::Increment;
+            close = true;
+        }
+        if (ImGui::MenuItem("decrement", nullptr, ControlAfterGenerate::Decrement == cag_val, true))
+        {        
+            pin->state().cag_val = ControlAfterGenerate::Decrement;
+            close = true;
+        }
+        if (ImGui::MenuItem("randomize", nullptr, ControlAfterGenerate::Randomize == cag_val, true))
+        {        
+            pin->state().cag_val = ControlAfterGenerate::Randomize;
+            close = true;
+        }
+
+        if (close)
+            action->set_pin_cag(pin, cag_val, pin->state().min, pin->state().max, pin->state().step);
+
+        if (ControlAfterGenerate::Fixed == pin->state().cag_val)
+            return close;
+
+        if (pin->state().min.is_null()) pin->state().min = pin->get_object()->def_state.min;
+        if (pin->state().max.is_null()) pin->state().max = pin->get_object()->def_state.max;
+        if (pin->state().step.is_null()) pin->state().step = pin->get_object()->def_state.step;
+
+        const auto handle_updated = [action, pin, old_min = pin->state().min, old_max = pin->state().max, old_step = pin->state().step]()
+        {
+            if (ImGui::IsItemDeactivatedAfterEdit())
+                action->set_pin_cag(pin, pin->state().cag_val, old_min, old_max, old_step);
+        };
+
+        switch (pin->state().type)
+        {
+        case PinType::INT:
+        case PinType::COMBO:
+            {
+                int64_t* min = pin->state().min.get_int_ref();
+                int64_t* max = pin->state().max.get_int_ref();
+                ImGuiEx::DragIntRange(0x0031501E, min, max, *min, *max, "Min: %lld", "Max: %lld");
+                handle_updated();
+                if ((ControlAfterGenerate::Increment == pin->state().cag_val || ControlAfterGenerate::Decrement == pin->state().cag_val) && PinType::INT == pin->state().type)
+                {
+                    int64_t* step = pin->state().step.get_int_ref();
+                    const int64_t step_min = 1;
+                    const int64_t step_max = *max / 2;
+                    ImGui::DragScalar("##step", ImGuiDataType_S64, step, 1.0f, &step_min, &step_max, "Step: %lld");
+                    handle_updated();
+                }
+            }
+            break;
+        case PinType::FLOAT:
+            {
+                double* min = pin->state().min.get_float_ref();
+                double* max = pin->state().max.get_float_ref();
+                ImGuiEx::DragDoubleRange(0x0040DB0D, min, max, *min, *max, "Min: %.2f", "Max: %.2f");
+                handle_updated();
+                if (ControlAfterGenerate::Increment == pin->state().cag_val || ControlAfterGenerate::Decrement == pin->state().cag_val)
+                {
+                    double* step = pin->state().step.get_float_ref();
+                    const double step_min = 0.01f;
+                    const double step_max = *max / 2;
+                    ImGui::DragScalar("##step", ImGuiDataType_Double, step, 1.0f, &step_min, &step_max, "Step: %.2f");
+                    handle_updated();
+                }
+            }
+            break;
+        case PinType::NUMBER:
+            {
+                number* min_num = pin->state().min.get_number_ref();
+                number* max_num = pin->state().max.get_number_ref();
+                double* min = min_num->underlying_type_ref();
+                double* max = max_num->underlying_type_ref();
+                ImGuiEx::DragDoubleRange(0x00F82C85, min, max, *min, *max, "Min: %.2f", "Max: %.2f");
+                handle_updated();
+                if (ControlAfterGenerate::Increment == pin->state().cag_val || ControlAfterGenerate::Decrement == pin->state().cag_val)
+                {
+                    number* step_num = pin->state().step.get_number_ref();
+                    double* step = step_num->underlying_type_ref();
+                    const double step_min = 0.01f;
+                    const double step_max = *max / 2;
+                    ImGui::DragScalar("##step", ImGuiDataType_Double, step, 1.0f, &step_min, &step_max, "Step: %.2f");
+                    handle_updated();
+                }
+            }
+            break;
+        }
+        return close;
+    };
+
+    switch (pin->state().type)
+    {
+    case PinType::INT:
+    case PinType::FLOAT:
+    case PinType::NUMBER:
+    case PinType::COMBO:
+        close = draw_cag_menu();
+        break;
+    case PinType::STRING:
+        if (pin->obj_flags().has_not(PinObjFlags::DenyMultilineSwitch))
+        {
+            if (ImGui::MenuItem("Single line", nullptr, !pin->is_multiline(), true))
+            {
+                m_action->set_pin_multiline(pin, false);
+                close = true;
+            }
+            if (ImGui::MenuItem("Multi line", nullptr, pin->is_multiline(), true))
+            {
+                m_action->set_pin_multiline(pin, true);
+                close = true;
+            }
+        }
+        break;
+    }
 
     return close;
 }

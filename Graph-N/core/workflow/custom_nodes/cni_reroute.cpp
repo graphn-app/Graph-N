@@ -405,15 +405,17 @@ void CNI_Reroute::refresh_pair_state(LinkedPair& pair)
             auto ext_obj = best_pin->get_object();
             auto int_obj = pair.input.internal->get_object();            
 
-            int_obj->min = ext_obj->min;
-            int_obj->max = ext_obj->max;
+            int_obj->def_state.min = ext_obj->def_state.min;
+            int_obj->def_state.max = ext_obj->def_state.max;
+            int_obj->def_state.step = ext_obj->def_state.step;
             int_obj->def = ext_obj->def;            
             int_obj->flags.remove(PinObjFlags::CanRename, PinObjFlags::InputCanBeWidget);
             pair.input.internal->reset_state();
 
             int_obj = pair.output.internal->get_object();
-            int_obj->min = ext_obj->min;
-            int_obj->max = ext_obj->max;
+            int_obj->def_state.min = ext_obj->def_state.min;
+            int_obj->def_state.max = ext_obj->def_state.max;
+            int_obj->def_state.step = ext_obj->def_state.step;
             int_obj->def = ext_obj->def;
             int_obj->flags.remove(PinObjFlags::CanRename, PinObjFlags::InputCanBeWidget);
             pair.output.internal->reset_state();

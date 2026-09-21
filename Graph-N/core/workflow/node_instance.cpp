@@ -48,8 +48,6 @@ void NodeInstance::init(const std::string& select)
     m_output.clear();
     add_pins(get_object()->input, m_input);
     add_pins(get_object()->output, m_output);
-
-    link_cag_pins();
 }
 
 void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
@@ -95,8 +93,6 @@ void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
 
     add_pins(copy_from_node->m_input, m_input);
     add_pins(copy_from_node->m_output, m_output);
-
-    link_cag_pins();
 }
 
 uint64_t NodeInstance::reset_state() noexcept
@@ -106,138 +102,113 @@ uint64_t NodeInstance::reset_state() noexcept
     return id;
 }
 
+template <typename T>
+T increment_t(T val, const T min, const T max, const T step)
+{
+    if (val + step > max)
+        val = min;
+    else
+        val = val + step;
+    return val;
+}
+
+template <typename T>
+T decrement_t(T val, const T min, const T max, const T step)
+{
+    if (val - step < min)
+        val = max;
+    else
+        val = val - step;
+    return val;
+}
+
 void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_action)
 {
     LogRAssert(copy_to && wf_action, "Zero ptr", );
     if (flags().has(NodeInstFlags::Group) || !has_object() || obj_flags().has(NodeObjFlags::Dummy))
         return;
 
-    auto find_pin = [this](const std::vector<PinInstance*>& input, iid pin_id) -> PinInstance*
+    auto find_pin = [copy_to, wf_action](iid pin_id) -> PinInstance*
     {
-        for (auto pin : input)
+        if (copy_to != nullptr && wf_action != nullptr)
         {
-            if (pin->get_instance_id() == pin_id)
-                return pin;
+            for (auto pin : copy_to->m_input)
+            {
+                if (pin->get_instance_id() == pin_id)
+                    return pin;
+            }
         }
         return nullptr;
     };
 
     for (auto pin : m_input)
     {
-        if (pin->obj_flags().has(PinObjFlags::CagRequire))
+        if (pin->state().cag_val != ControlAfterGenerate::Fixed)
         {
             PinInstance* pin_copy_to = nullptr;
             if (copy_to != nullptr)
-                pin_copy_to = find_pin(copy_to->m_input, pin->get_instance_id());
-
-            auto cag_pin = find_pin(m_input, pin->state().cag);
-            LogCAssert(cag_pin != nullptr, "CAG pin not found. w:" << get_workflow_id() << ", n:" << get_instance_id() << ", p:" << pin->get_instance_id() << ", cag:" << pin->state().cag);
-            LogCAssert(cag_pin->obj_flags().has(PinObjFlags::CagPin), "Linked CAG pin is not CAG. w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str);
-            LogCAssert(cag_pin->get_object()->def_state.type == PinType::COMBO, "Linked CAG pin is not COMBO. w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str);
-            LogCAssert(cag_pin->get_object()->def_state.value.is_int(), "Linked CAG pin holds wrong type. w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str);
-
-            const auto cb_idx = cag_pin->state().value.get_int();
-            LogCAssert(cb_idx >= cast::to_i64(ControlAfterGenerate::_first) && cb_idx <= cast::to_i64(ControlAfterGenerate::_last), "Linked CAG pin holds wrong value w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str << ", v:" << cb_idx);
+                pin_copy_to = find_pin(pin->get_instance_id());
 
             auto& value = pin->state().value;
-            auto pin_obj = pin->get_object();
 
-            switch (cast::to_enum<ControlAfterGenerate>(cb_idx))
+            switch (pin->state().cag_val)
             {
-            case ControlAfterGenerate::CAGFixed:
-                break;
-            case ControlAfterGenerate::CAGDecrement:
+            case ControlAfterGenerate::Increment:
                 if (value.is_int())
                 {
-                    int64_t* val = value.get_int_ref();
-                    const int64_t min = pin_obj->min.get_int();
-                    const int64_t max = pin_obj->max.get_int();
-                    if (min == *val) *val = max;
-                    else (*val)--;
+                    *value.get_int_ref() = increment_t(value.get_int(), pin->state().min.get_int(), pin->state().max.get_int(), pin->state().step.get_int());
                 }
                 else if (value.is_float())
                 {
-                    double* val = value.get_float_ref();
-                    const double min = pin_obj->min.get_float();
-                    const double max = pin_obj->max.get_float();
-                    if (min == *val) *val = max;
-                    else (*val)--;
+                    *value.get_float_ref() = increment_t(value.get_float(), pin->state().min.get_float(), pin->state().max.get_float(), pin->state().step.get_float());
                 }
                 else if (value.is_number())
                 {
-                    number* val = value.get_number_ref();
-                    const number min = pin_obj->min.get_number();
-                    const number max = pin_obj->max.get_number();
-                    if (min == *val) *val = max;
-                    else (*val)--;
+                    *value.get_number_ref() = increment_t(value.get_number(), pin->state().min.get_number(), pin->state().max.get_number(), pin->state().step.get_number());
                 }
                 break;
-            case ControlAfterGenerate::CAGIncrement:
+            case ControlAfterGenerate::Decrement:
                 if (value.is_int())
                 {
-                    int64_t* val = value.get_int_ref();
-                    const int64_t min = pin_obj->min.get_int();
-                    const int64_t max = pin_obj->max.get_int();
-                    if (*val >= max) *val = min;
-                    else (*val)++;
+                    *value.get_int_ref() = decrement_t(value.get_int(), pin->state().min.get_int(), pin->state().max.get_int(), pin->state().step.get_int());
                 }
                 else if (value.is_float())
                 {
-                    double* val = value.get_float_ref();
-                    const double min = pin_obj->min.get_float();
-                    const double max = pin_obj->max.get_float();
-                    if (*val >= max) *val = min;
-                    else (*val)++;
+                    *value.get_float_ref() = decrement_t(value.get_float(), pin->state().min.get_float(), pin->state().max.get_float(), pin->state().step.get_float());
                 }
                 else if (value.is_number())
                 {
-                    number* val = value.get_number_ref();
-                    const number min = pin_obj->min.get_number();
-                    const number max = pin_obj->max.get_number();
-                    if (*val >= max) *val = min;
-                    else (*val)++;
+                    *value.get_number_ref() = decrement_t(value.get_number(), pin->state().min.get_number(), pin->state().max.get_number(), pin->state().step.get_number());
                 }
                 break;
-            case ControlAfterGenerate::CAGRandomize:
+            case ControlAfterGenerate::Randomize:
                 if (value.is_int())
                 {
-                    int64_t* val = value.get_int_ref();
-                    const int64_t min = pin_obj->min.get_int();
-                    const int64_t max = pin_obj->max.get_int();
-                    *val = base::GlobalID::random_widget(min, max);
+                    const int64_t min = pin->state().min.get_int();
+                    const int64_t max = pin->state().max.get_int();
+                    *value.get_int_ref() = base::GlobalID::random_widget(min, max);
                 }
                 else if (value.is_float())
                 {
-                    double* val = value.get_float_ref();
-                    const int64_t min = cast::to_i64(pin_obj->min.get_float());
-                    const int64_t max = cast::to_i64(pin_obj->max.get_float());
-                    *val = cast::to_double(base::GlobalID::random_widget(min, max));
+                    const int64_t min = cast::to_i64(pin->state().min.get_float());
+                    const int64_t max = cast::to_i64(pin->state().max.get_float());
+                    *value.get_float_ref() = cast::to_double(base::GlobalID::random_widget(min, max));
                 }
                 else if (value.is_number())
                 {
-                    number* val = value.get_number_ref();
-                    const int64_t min = cast::to_i64(pin_obj->min.get_number().underlying_type());
-                    const int64_t max = cast::to_i64(pin_obj->max.get_number().underlying_type());
-                    *val = cast::to_number(base::GlobalID::random_widget(min, max));
+                    const int64_t min = cast::to_i64(pin->state().min.get_number().underlying_type());
+                    const int64_t max = cast::to_i64(pin->state().max.get_number().underlying_type());
+                    *value.get_number_ref() = cast::to_number(base::GlobalID::random_widget(min, max));
                 }
                 break;
             default:
-                LogError("Linked CAG pin holds wrong value w:" << get_workflow_id() << ", n:" << get_instance_id() << " p:" << cag_pin->get_instance_id() << ", o:" << cag_pin->get_object()->def_state.type_str << ", v:" << cb_idx);
                 continue;
             }
 
-            if (pin_copy_to != nullptr && wf_action != nullptr)
+            if (pin_copy_to != nullptr)
             {
                 auto old_val = pin_copy_to->state().value;
-                auto& value_to = pin_copy_to->state().value;
-
-                if (value.is_int())
-                    value_to = value.get_int();
-                else if (value.is_float())
-                    value_to = value.get_float();
-                else if (value.is_number())
-                    value_to = value.get_number();
-
+                pin_copy_to->state().value = value;
                 wf_action->set_pin_val(pin_copy_to, std::move(old_val));
             }
         }

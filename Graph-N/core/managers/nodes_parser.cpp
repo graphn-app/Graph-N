@@ -410,12 +410,12 @@ void NodesParser::prepare_parsers_map()
     m_parsers["min"] =
         [](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        pin.min = get_from_pin_type(node, pin, j, "min");
+        pin.def_state.min = get_from_pin_type(node, pin, j, "min");
     };
     m_parsers["max"] =
         [](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        pin.max = get_from_pin_type(node, pin, j, "max");
+        pin.def_state.max = get_from_pin_type(node, pin, j, "max");
     };
     m_parsers["multiline"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
@@ -472,7 +472,7 @@ void NodesParser::prepare_parsers_map()
     m_parsers["step"] =
         [](const data::Node& node, data::Pin& pin, const o_json& j)
     {
-        pin.step = get_from_pin_type(node, pin, j, "step");
+        pin.def_state.step = get_from_pin_type(node, pin, j, "step");
     };
     m_parsers["tooltip"] =
         [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
@@ -582,31 +582,6 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
             else [[likely]]
             {
                 input.push_back(ptr);
-                if (ptr->flags.has(PinObjFlags::CagRequire))
-                {
-                    //BREAK_IF(node.node_class == "KSampler");
-
-                    std::string name;
-                    for (int32_t hash_idx = 0; ; hash_idx++)
-                    {
-                        name = fmt::format(FMT_STRING("{}_{}"), CAG_PIN_NAME, hash_idx);
-                        const auto hash = data::Pin::make_hash(&node, name, -1);
-                        if (!manager.m_pins.contains(hash))
-                            break;
-                    }
-
-                    auto cag = std::make_unique<data::Pin>(&node, name, is_required, is_optional/*, is_hidden*/);
-                    input.push_back(cag.get());
-
-                    cag->flags.add(PinObjFlags::CagPin);
-                    cag->flags.remove(PinObjFlags::CanLink);
-                    cag->def_state.name = "control";
-                    cag->initialize("COMBO");
-                    cag->finalize();
-
-                    ptr = cag.get();
-                    manager.m_pins.emplace(ptr->get_hash(), std::move(cag));
-                }
             }
         }
     };

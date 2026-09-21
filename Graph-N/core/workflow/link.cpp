@@ -107,17 +107,17 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
         if (PinType::ANY == i1->state().type)
         {
             s2.copy_to(s1);
-            p1->max = p2->max;
-            p1->min = p2->min;
-            p1->step = p2->step;
+            i1->state().max = i2->state().max;
+            i1->state().min = i2->state().min;
+            i1->state().step = i2->state().step;
             p1->def = p2->def;
         }
         else if (PinType::ANY == i2->state().type)
         {
             s1.copy_to(s2);
-            p2->max = p1->max;
-            p2->min = p1->min;
-            p2->step = p1->step;
+            i2->state().max = i1->state().max;
+            i2->state().min = i1->state().min;
+            i2->state().step = i1->state().step;
             p2->def = p1->def;
         }
     }

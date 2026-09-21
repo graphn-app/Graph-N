@@ -23,6 +23,13 @@ public:
     void set_object(Pin* obj) override;
     void set_name(const std::string& name);
 
+    bool is_multiline() const noexcept
+    {
+        if (flags().has(PinInstFlags::MultilineSet))
+            return flags().has(PinInstFlags::Multiline);
+        return obj_flags().has(PinObjFlags::Multiline);
+    }
+
 private:
     PinState m_state;
     iid m_parent_node = 0;

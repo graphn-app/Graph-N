@@ -514,8 +514,8 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                                 obj->combo_items.push_back(v);
                                 obj->combo_items_str.push_back(v);
                                 obj->combo_items_ptr.push_back(obj->combo_items_str.begin()->c_str());
-                                obj->min = int64_t(0);
-                                obj->max = cast::to_i64(obj->combo_items.size() - 1);
+                                obj->def_state.min = int64_t(0);
+                                obj->def_state.max = cast::to_i64(obj->combo_items.size() - 1);
                                 obj->def_state.value = int64_t(0);
                                 pin->state().value = obj->def_state.value;
                             }

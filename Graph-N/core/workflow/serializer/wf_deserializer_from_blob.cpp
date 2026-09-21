@@ -170,9 +170,10 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
     m_curr_node->m_clr_group = block.pop_clr();
     m_curr_node->m_clr_head = block.pop_clr();
     m_curr_node->m_clr_group_capt = block.pop_clr();
-    const uint64_t flags = block.pop_u64() | block.pop_u64();
-    //m_curr_node->flags().remove(NodeInstFlags::ModeAlways);
-    m_curr_node->flags().add_raw(flags);
+    m_curr_node->flags().add_raw(block.pop_u64());
+    const auto obj_flags = block.pop_u64();
+    if (m_curr_node->has_object())
+        m_curr_node->obj_flags().add_raw(obj_flags);
 
     m_curr_node->cni_cleanup_base_object();
     for (auto pin : m_curr_node->get_inputs())
@@ -192,7 +193,6 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
             m_wf->remove_node(m_curr_node);
             LogRError("Dummy CNI node " << node_class, nullptr);
         }
-        m_curr_node->link_cag_pins();
         return m_curr_node;
     }
 
@@ -235,7 +235,6 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
         return nullptr;
     }
 
-    m_curr_node->link_cag_pins();
     return m_curr_node;
 }
 
@@ -260,9 +259,15 @@ bool WfDeserializerFromBlob::deserialize_pin(blob::Reader& root_block, bool dumm
     m_curr_pin->set_name(block.pop_string());
     m_curr_pin->state().type_str = block.pop_string_ptr();
     m_curr_pin->state().type = cast::to_enum<PinType>(block.pop_u32());
+
     m_curr_pin->state().value = block.pop_primitive();
-    m_curr_pin->state().cag = block.pop_iid();
-    m_curr_pin->obj_flags().add_remove_if(PinObjFlags::CagRequire, block.pop_bool());
+    m_curr_pin->state().min = block.pop_primitive();
+    m_curr_pin->state().max = block.pop_primitive();
+    m_curr_pin->state().step = block.pop_primitive();
+    m_curr_pin->state().cag_val = cast::to_enum<ControlAfterGenerate>(block.pop_u8());
+
+    m_curr_pin->flags().add_raw(block.pop_u64());
+    m_curr_pin->obj_flags().add_raw(block.pop_u64());
 
     if (PinType::COMBO == m_curr_pin->state().type && cast::to_szt(m_curr_pin->state().value.get_int()) >= m_curr_pin->get_object()->combo_items.size())
         m_curr_pin->state().value = int64_t(0);

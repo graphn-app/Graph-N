@@ -191,6 +191,7 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/)
     //m_resizing_grip_positions.resize(nodes_count);
 
     m_active_tt = nullptr;
+    m_hovered_widget = nullptr;
 
     //if (m_resizing_w.size() != nodes_count) // TODO:FIX resizing
     //{
@@ -873,7 +874,7 @@ void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, fl
         draw_widget_bool(pin, widget_name_width, widget_value_width);
         break;
     case PinType::STRING:
-        if (pin->obj_flags().has(PinObjFlags::Multiline))
+        if (pin->is_multiline())
             draw_widget_str_ml(pin, widget_name_width, widget_value_width);
         else
             draw_widget_str(pin, widget_name_width, widget_value_width);
@@ -889,12 +890,14 @@ void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, fl
 
 void NodeDrawer::handle_widget_active_state(data::PinInstance* pin, const Primitive* backup /*= nullptr*/)
 {
+    if (ImGui::IsItemHovered())
+        m_hovered_widget = pin;
     if (ImGui::IsItemActivated())
         ed::SelectNode(m_active_node->ed());
 
-    if (pin != nullptr)
+    if (backup != nullptr)
     {
-        if (PinType::STRING == pin->state().type && pin->obj_flags().has_not(PinObjFlags::Multiline))
+        if (PinType::STRING == pin->state().type && !pin->is_multiline())
         {
             if (ImGui::IsItemActivated())
                 m_old_pin_val_pr = pin->state().value;
@@ -931,9 +934,9 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
     const Primitive backup = state.value;
     int64_t* val = state.value.get_int_ref();
     LogRAssert(val, "Zero val", );
-    const int64_t step = obj->step.get_int();
-    const int64_t min = obj->min.get_int();
-    const int64_t max = obj->max.get_int();
+    const int64_t step = obj->def_state.step.get_int();
+    const int64_t min = obj->def_state.min.get_int();
+    const int64_t max = obj->def_state.max.get_int();
 
     ImGui::PushID(0xF3C4D86E);
     ImGui::PushID(pin);
@@ -941,7 +944,7 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
-    handle_widget_active_state(nullptr);
+    handle_widget_active_state(pin);
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -965,6 +968,8 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
     else handle_widget_active_state(pin, &backup);
 
     tooltip_suspended(obj->tooltip);
+    draw_cag_helper(pin);
+
     ImGui::PopID(2);
 }
 
@@ -976,16 +981,16 @@ void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_wid
     const Primitive backup = state.value;
     double* val = state.value.get_float_ref();
     LogRAssert(val, "Zero val", );
-    const double min = obj->min.get_float();
-    const double max = obj->max.get_float();
-    const double step = obj->step.get_float();
+    const double min = obj->def_state.min.get_float();
+    const double max = obj->def_state.max.get_float();
+    const double step = obj->def_state.step.get_float();
 
     ImGui::PushID(0x6322BBE5);
     ImGui::PushID(pin);
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
-    handle_widget_active_state(nullptr);
+    handle_widget_active_state(pin);
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -1009,6 +1014,8 @@ void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_wid
     else handle_widget_active_state(pin, &backup);
 
     tooltip_suspended(obj->tooltip);
+    draw_cag_helper(pin);
+
     ImGui::PopID(2);
 }
 
@@ -1027,16 +1034,16 @@ void NodeDrawer::draw_widget_number(data::PinInstance* pin, float widget_name_wi
     double* val = num_ptr->underlying_type_ref();
     LogRAssert(val, "Zero val", );
 
-    const double min = obj->min.get_number().underlying_type();
-    const double max = obj->max.get_number().underlying_type();
-    const double step = obj->step.get_number().underlying_type();
+    const double min = obj->def_state.min.get_number().underlying_type();
+    const double max = obj->def_state.max.get_number().underlying_type();
+    const double step = obj->def_state.step.get_number().underlying_type();
 
     ImGui::PushID(0x746F8133);
     ImGui::PushID(pin);
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
-    handle_widget_active_state(nullptr);
+    handle_widget_active_state(pin);
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -1060,6 +1067,8 @@ void NodeDrawer::draw_widget_number(data::PinInstance* pin, float widget_name_wi
     else handle_widget_active_state(pin, &backup);
 
     tooltip_suspended(obj->tooltip);
+    draw_cag_helper(pin);
+
     ImGui::PopID(2);
 }
 
@@ -1077,7 +1086,7 @@ void NodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_widt
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
-    handle_widget_active_state(nullptr);
+    handle_widget_active_state(pin);
     ImGui::PopStyleColor();
     ImGui::SameLine(0.0f, 0.0f);
 
@@ -1145,6 +1154,7 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
     if (linked) ImGui::BeginDisabled();
     const bool clicked = ImGuiExNe::InputTextWithHint(*m_deffered_action.get(), m_active_node, pin, "##value", placeholder.c_str(), val);
     if (linked) ImGui::EndDisabled();
+    else handle_widget_active_state(pin);
     ImGui::PopTextWrapPos();
 
     if (clicked)
@@ -1171,7 +1181,7 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
-    handle_widget_active_state(nullptr);
+    handle_widget_active_state(pin);
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -1181,11 +1191,13 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
     if (linked) ImGui::BeginDisabled();
     ImGuiExNe::Combo(*m_deffered_action.get(), m_active_node, pin, "##value", index, obj->combo_items_ptr.data(), cast::to_i64(obj->combo_items_ptr.size()));
     if (linked) ImGui::EndDisabled();
+    else handle_widget_active_state(pin);
 
     if (m_deffered_action->active_pin == pin && m_deffered_action->combo.is_changed)
         m_wf->action()->set_pin_val(pin, m_deffered_action->combo.old_value);
 
     tooltip_suspended(obj->tooltip);
+    draw_cag_helper(pin);
 
     ImGui::PopID(2);
 }
@@ -1200,7 +1212,7 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
-    handle_widget_active_state(nullptr);
+    handle_widget_active_state(pin);
     ImGui::PopStyleColor();
 
     ImGui::SameLine(0.0f, 0.0f);
@@ -1252,6 +1264,77 @@ void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_op
 
     ImGui::GetWindowDrawList()->AddText(btn_pos, color, opened || temp_open ? ICON_LC_CHEVRON_UP : ICON_LC_CHEVRON_DOWN);
     ImGui::PopFont();
+}
+
+void NodeDrawer::draw_cag_helper(const data::PinInstance* pin) const noexcept
+{
+    if (ControlAfterGenerate::Fixed == pin->state().cag_val) [[likely]]
+        return;
+
+    const char* helper = nullptr;
+    if (ControlAfterGenerate::Increment == pin->state().cag_val)
+        helper = ICON_LC_TRENDING_UP;
+    else if (ControlAfterGenerate::Decrement == pin->state().cag_val)
+        helper = ICON_LC_TRENDING_DOWN;
+    else if (ControlAfterGenerate::Randomize == pin->state().cag_val)
+        helper = ICON_LC_SHUFFLE;
+    else
+        LogRError("Invalid CAG value", );
+
+    ImGui::PushFont(g::pMain->get_small_font());
+    ImGui::SameLine(0, 0);
+    ImGui::TextUnformatted(helper);
+    ImGui::PopFont();
+
+    const auto get_value = [](const Primitive& p)
+    {
+        return
+            std::visit([](const auto& v) -> std::string
+            {
+                using T = std::decay_t<decltype(v)>;
+                if constexpr (std::is_same_v<T, int64_t>)
+                    return fmt::format(FMT_STRING("{}"), v);
+                else if constexpr (std::is_same_v<T, double>)
+                    return fmt::format(FMT_STRING("{:.2f}"), v);
+                else if constexpr (std::is_same_v<T, number>)
+                    return fmt::format(FMT_STRING("{:.2f}"), v.underlying_type());
+                else
+                    return std::string("");
+            }, p.value());
+    };
+
+    static fmt::memory_buffer tooltip;
+    const auto tooltip_handler = [pin, &get_value]()
+    {
+        tooltip.clear();
+        if (ControlAfterGenerate::Increment == pin->state().cag_val || ControlAfterGenerate::Decrement == pin->state().cag_val)
+        {
+            if (PinType::COMBO == pin->state().type)
+            {
+                fmt::format_to(std::back_inserter(tooltip),
+                    FMT_STRING("Mode: {}"),
+                    (ControlAfterGenerate::Increment == pin->state().cag_val ? "Increment" : "Decrement"));
+            }
+            else
+            {
+                fmt::format_to(std::back_inserter(tooltip),
+                    FMT_STRING("Mode: {}\nStep: {}\nLimit: {} - {}"),
+                    (ControlAfterGenerate::Increment == pin->state().cag_val ? "Increment" : "Decrement"),
+                    get_value(pin->state().step),
+                    get_value(pin->state().min), get_value(pin->state().max));
+            }
+        }
+        else
+        {
+            fmt::format_to(std::back_inserter(tooltip),
+                FMT_STRING("Mode: Randomize\nLimit: {} - {}"),
+                get_value(pin->state().min), get_value(pin->state().max));
+        }
+        tooltip.push_back(0);
+        return tooltip.data();
+    };
+
+    tooltip_suspended(tooltip_handler());
 }
 
 void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& links)

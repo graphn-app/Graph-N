@@ -56,7 +56,7 @@ void CNI_NoteBase<T>::cni_init()
 
     auto pin = g::pNodesManager->make_pin_ptr(this->get_object(), "STRING", "", -1);
     pin->placeholder = "Put note here";
-    pin->flags.add(PinObjFlags::Multiline);
+    pin->flags.add(PinObjFlags::Multiline, PinObjFlags::DenyMultilineSwitch);
     pin->flags.remove(PinObjFlags::CanRename, PinObjFlags::CanLink, PinObjFlags::CanUnlink);
     auto obj = pin.get();
     this->cni_add_pin(std::move(pin));

@@ -34,9 +34,6 @@ o_json WfSerializerToJsonApi::serialize()
 
         for (auto pin : node->get_inputs())
         {
-            if (pin->obj_flags().has(PinObjFlags::CagPin))
-                continue;
-
             if (!pin->get_object()->is_widget() && 0 == pin->state().links)
                 continue;
 

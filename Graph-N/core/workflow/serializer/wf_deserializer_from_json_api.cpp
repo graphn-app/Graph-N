@@ -237,8 +237,8 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
                             pin->combo_items.push_back(v);
                             pin->combo_items_str.push_back(v);
                             pin->combo_items_ptr.push_back(pin->combo_items_str.begin()->c_str());
-                            pin->min = int64_t(0);
-                            pin->max = cast::to_i64(pin->combo_items.size() - 1);
+                            pin->def_state.min = int64_t(0);
+                            pin->def_state.max = cast::to_i64(pin->combo_items.size() - 1);
                             pin->def_state.value = int64_t(0);
                             pin_instance->state().value = pin->def_state.value;
                         }

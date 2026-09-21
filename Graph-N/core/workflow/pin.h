@@ -24,7 +24,13 @@ struct PinState final
     float w_name = 0.0f;
 
     Primitive value;                // current value, if widget
-    iid cag = 0;                    // cag pin id if cag_require is true
+
+    ControlAfterGenerate cag_val = ControlAfterGenerate::Fixed;
+    // int, double, combo
+    Primitive min;
+    Primitive max;
+    // int, double
+    Primitive step;
 
     PinState() noexcept = default;
     ~PinState() noexcept = default;
@@ -43,7 +49,11 @@ struct PinState final
         other.name = name;
         other.w_name = w_name;
         other.value = value;
-        // links, converted, and cag are intentionally not copied
+        other.cag_val = cag_val;
+        other.min = min;
+        other.max = max;
+        other.step = step;
+        // links and converted are intentionally not copied
     }
 };
 
@@ -110,13 +120,6 @@ public:
     std::string label_on_named;
     std::string label_off;
     std::string label_off_named;
-
-    // int, double, combo
-    Primitive min;
-    Primitive max;
-
-    // int, double
-    Primitive step;
 
     // double
     std::optional<double> round;

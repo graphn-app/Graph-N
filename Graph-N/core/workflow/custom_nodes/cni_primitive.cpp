@@ -178,19 +178,19 @@ bool CNI_Primitive::cni_can_link(const PinInstance* p1, const PinInstance* p2) c
             return false;
         if (dest_u == src_u && src_u)
             return true;
-        return test_ranges(src_obj->min.get_int(), src_obj->max.get_int(), dest_obj->min.get_int(), dest_obj->max.get_int());
+        return test_ranges(src_obj->def_state.min.get_int(), src_obj->def_state.max.get_int(), dest_obj->def_state.min.get_int(), dest_obj->def_state.max.get_int());
     }
 
     if (PinType::FLOAT == dest_type && PinType::FLOAT == src_state.type)
     {
         LogRAssert(src_inputs.size() == 2, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
-        return test_ranges(src_obj->min.get_float(), src_obj->max.get_float(), dest_obj->min.get_float(), dest_obj->max.get_float());
+        return test_ranges(src_obj->def_state.min.get_float(), src_obj->def_state.max.get_float(), dest_obj->def_state.min.get_float(), dest_obj->def_state.max.get_float());
     }
 
     if (PinType::NUMBER == dest_type && PinType::NUMBER == src_state.type)
     {
         LogRAssert(src_inputs.size() == 2, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
-        return test_ranges(src_obj->min.get_number(), src_obj->max.get_number(), dest_obj->min.get_number(), dest_obj->max.get_number());
+        return test_ranges(src_obj->def_state.min.get_number(), src_obj->def_state.max.get_number(), dest_obj->def_state.min.get_number(), dest_obj->def_state.max.get_number());
     }
 
     if (PinType::COMBO == dest_type && PinType::COMBO == src_state.type)
@@ -341,6 +341,7 @@ void CNI_Primitive::update()
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
+            src_pin_inst->flags().add(PinInstFlags::Multiline, PinInstFlags::MultilineSet);
 
             if (deserialized_values != nullptr && instance->state().value.is_string() && deserialized_values->widget_value.is_string())
                 instance->state().value = deserialized_values->widget_value;
@@ -365,43 +366,6 @@ void CNI_Primitive::update()
             cni_add_pin(std::move(this_pin_obj));
         }
 
-        if (PinType::INT == src_type || PinType::FLOAT == src_type|| PinType::NUMBER == src_type || PinType::COMBO == src_type)
-        {
-            auto this_pin_obj = g::pNodesManager->make_pin_ptr(this_node_obj, "COMBO", base::GlobalID::uuid(), -1);
-            this_pin_obj->flags.add(PinObjFlags::CagPin);
-            this_pin_obj->finalize_combo();
-            this_pin_obj->flags.remove(PinObjFlags::CagRequire, PinObjFlags::CanLink);
-            this_pin_obj->def = cast::to_i64(ControlAfterGenerate::CAGFixed);
-            this_pin_obj->def_state.name = "control";
-            this_pin_obj->def_state.value = this_pin_obj->def;
-
-            auto instance = wf->add_pin(this, this_pin_obj.get());
-            this_pin_obj->def_state.copy_to(instance->state());
-
-            if (deserialized_values != nullptr)
-            {
-                if (deserialized_values->cag_value.is_int())
-                    instance->state().value = deserialized_values->cag_value;
-                else if (deserialized_values->cag_value.is_string())
-                {
-                    auto& value = deserialized_values->cag_value.get_string();
-                    for (size_t i = 0; i < this_pin_obj->combo_items.size(); i++)
-                    {
-                        if (value == this_pin_obj->combo_items[i].get_string())
-                        {
-                            instance->state().value = cast::to_i64(i);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            add_input(instance);
-            cni_add_pin(std::move(this_pin_obj));
-        }
-
-        link_cag_pins();
-
         auto& ins = get_inputs();
         auto& outs = get_outputs();
         LogRAssert(!ins.empty() && !outs.empty(), "Empty pins", );
@@ -410,10 +374,12 @@ void CNI_Primitive::update()
         auto in = ins[0];
         //in->get_object()->def_state.copy_to(out->get_object()->def_state);
         out->state().value = in->state().value;
-        out->get_object()->min = in->get_object()->min;
-        out->get_object()->max = in->get_object()->max;
-        out->get_object()->step = in->get_object()->step;
+        out->get_object()->def_state.min = in->get_object()->def_state.min;
+        out->get_object()->def_state.max = in->get_object()->def_state.max;
+        out->get_object()->def_state.step = in->get_object()->def_state.step;
+        out->get_object()->def_state.cag_val = in->get_object()->def_state.cag_val;
         out->get_object()->def = in->get_object()->def;
+        out->get_object()->def_state.copy_to(out->state());
         out->obj_flags().add(PinObjFlags::CanRename);
         if (deserialized_values != nullptr)
             out->state().name = deserialized_values->out_pin_name;
@@ -432,14 +398,14 @@ void CNI_Primitive::update()
 
         for (auto link : m_links)
         {
-            const int64_t min = link->get_object()->min.get_int();
-            const int64_t max = link->get_object()->max.get_int();
+            const int64_t min = link->get_object()->def_state.min.get_int();
+            const int64_t max = link->get_object()->def_state.max.get_int();
             this_min = std::max(this_min, min);
             this_max = std::min(this_max, max);
         }
 
-        this_pin_obj->min = this_min;
-        this_pin_obj->max = this_max;
+        this_pin_obj->def_state.min = this_min;
+        this_pin_obj->def_state.max = this_max;
 
         auto& val = inputs[0]->state().value;
         val = std::clamp(val.get_int(), this_min, this_max);
@@ -452,14 +418,14 @@ void CNI_Primitive::update()
 
         for (auto link : m_links)
         {
-            const double min = link->get_object()->min.get_float();
-            const double max = link->get_object()->max.get_float();
+            const double min = link->get_object()->def_state.min.get_float();
+            const double max = link->get_object()->def_state.max.get_float();
             this_min = std::max(this_min, min);
             this_max = std::min(this_max, max);
         }
 
-        this_pin_obj->min = this_min;
-        this_pin_obj->max = this_max;
+        this_pin_obj->def_state.min = this_min;
+        this_pin_obj->def_state.max = this_max;
 
         auto& val = inputs[0]->state().value;
         val = std::clamp(val.get_float(), this_min, this_max);
@@ -474,14 +440,14 @@ void CNI_Primitive::update()
 
         for (auto link : m_links)
         {
-            const number min = link->get_object()->min.get_number();
-            const number max = link->get_object()->max.get_number();
+            const number min = link->get_object()->def_state.min.get_number();
+            const number max = link->get_object()->def_state.max.get_number();
             this_min = std::max(this_min, min);
             this_max = std::min(this_max, max);
         }
 
-        this_pin_obj->min = this_min;
-        this_pin_obj->max = this_max;
+        this_pin_obj->def_state.min = this_min;
+        this_pin_obj->def_state.max = this_max;
 
         auto& val = inputs[0]->state().value;
         val = std::clamp(val.get_number(), this_min, this_max);
@@ -521,7 +487,18 @@ void CNI_Primitive::cni_mirror_value_to(const PinInstance* src, std::vector<PinI
 
     const auto& outputs = get_outputs();
     if (!outputs.empty() && outputs[0]->state().type == src->state().type)
+    {
         outputs[0]->state().value = src->state().value;
+        outputs[0]->state().min = src->state().min;
+        outputs[0]->state().max = src->state().max;
+        outputs[0]->state().step = src->state().step;
+        outputs[0]->state().cag_val = src->state().cag_val;
+        if (src->flags().has(PinInstFlags::MultilineSet))
+        {
+            outputs[0]->flags().add(PinInstFlags::MultilineSet);
+            outputs[0]->flags().add_remove_if(PinInstFlags::Multiline, src->flags().has(PinInstFlags::Multiline));
+        }        
+    }
 
     std::ranges::for_each(m_links, [&append_pins](PinInstance* pin) { append_pins.push_back(pin); });
 }

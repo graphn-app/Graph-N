@@ -222,7 +222,7 @@ void RoNodeDrawer::draw_pin_icon(ImU32 color) noexcept
 
 void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
-    if (m_tt_mode || pin->obj_flags().has(PinObjFlags::CagPin))
+    if (m_tt_mode)
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_ro + w::ico_max + w::pin_r_offset);
     }
@@ -243,17 +243,6 @@ void RoNodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_w
                 mngr::PinOptions pin_opt;
                 pin_opt.flags.copy_from_by_mask_obj(obj->flags, pin_opt.mask);
                 g::pOptsManager->items_pin_save(obj->get_hash(), pin_opt);
-            }
-
-            if (obj->flags.has(PinObjFlags::CagRequire))
-            {
-                const auto cag = m_wf->get_pin_by_instance(pin->state().cag);
-                cag->obj_flags().add_remove_if(PinObjFlags::Advanced, obj->flags.has(PinObjFlags::Advanced));
-                {
-                    mngr::PinOptions pin_opt;
-                    pin_opt.flags.copy_from_by_mask_obj(cag->obj_flags(), pin_opt.mask);
-                    g::pOptsManager->items_pin_save(cag->get_object()->get_hash(), pin_opt);
-                }
             }
         }
         ImGui::SameLine(0, w::pin_r_offset);
@@ -301,9 +290,9 @@ void RoNodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_wid
     int64_t* val = state.value.get_int_ref();
     LogRAssert(val, "Zero ptr", );
 
-    const int64_t step = obj->step.get_int();
-    const int64_t min = obj->min.get_int();
-    const int64_t max = obj->max.get_int();
+    const int64_t step = obj->def_state.step.get_int();
+    const int64_t min = obj->def_state.min.get_int();
+    const int64_t max = obj->def_state.max.get_int();
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -338,9 +327,9 @@ void RoNodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_w
     double* val = state.value.get_float_ref();
     LogRAssert(val, "Zero ptr", );
 
-    const double min = obj->min.get_float();
-    const double max = obj->max.get_float();
-    const double step = obj->step.get_float();
+    const double min = obj->def_state.min.get_float();
+    const double max = obj->def_state.max.get_float();
+    const double step = obj->def_state.step.get_float();
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -380,9 +369,9 @@ void RoNodeDrawer::draw_widget_number(data::PinInstance* pin, float widget_name_
     double* val = num_ptr->underlying_type_ref();
     LogRAssert(val, "Zero ptr", );
 
-    const double min = obj->min.get_number().underlying_type();
-    const double max = obj->max.get_number().underlying_type();
-    const double step = obj->step.get_number().underlying_type();
+    const double min = obj->def_state.min.get_number().underlying_type();
+    const double max = obj->def_state.max.get_number().underlying_type();
+    const double step = obj->def_state.step.get_number().underlying_type();
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);

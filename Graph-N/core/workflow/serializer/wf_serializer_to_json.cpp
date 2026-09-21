@@ -203,9 +203,6 @@ void WfSerializerToJson::serialize_pins(o_json& j)
     auto jarr = o_json::array();
     for (auto& pin : m_curr_node->get_inputs())
     {
-        if (pin->obj_flags().has(PinObjFlags::CagPin))
-            continue;
-
         jarr.push_back(serialize_pin(pin));
     }
     j["inputs"] = std::move(jarr);
@@ -245,7 +242,30 @@ void WfSerializerToJson::serialize_widgets(o_json& j)
                         jarr.push_back(color_to_string(ImU32(v)));
                     }
                     else
+                    {
                         jarr.push_back(v);
+
+                        if (pin->obj_flags().has(PinObjFlags::CagRequire))
+                        {
+                            switch (pin->state().cag_val)
+                            {
+                            case ControlAfterGenerate::Fixed:
+                                jarr.push_back("fixed");
+                                break;
+                            case ControlAfterGenerate::Increment:
+                                jarr.push_back("increment");
+                                break;
+                            case ControlAfterGenerate::Decrement:
+                                jarr.push_back("decrement");
+                                break;
+                            case ControlAfterGenerate::Randomize:
+                                jarr.push_back("randomize");
+                                break;
+                            default:
+                                LogErrorS("Invalid vag value");
+                            }
+                        }
+                    }
                 }
             }, pin->state().value.value());
         }
@@ -273,8 +293,6 @@ iid WfSerializerToJson::serialize_links()
         const auto& pins = (in ? node->get_inputs() : node->get_outputs());
         for (auto pin : pins)
         {
-            if (pin->obj_flags().has(PinObjFlags::CagPin))
-                continue;
             if (pin->get_instance_id() == pin_id)
             {
                 return index;

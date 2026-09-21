@@ -25,8 +25,6 @@ void NodeInstanceRo::init()
 
     add_pins(get_object()->input, m_input);
     add_pins(get_object()->output, m_output);
-
-    link_cag_pins();
 }
 
 } // namespace data

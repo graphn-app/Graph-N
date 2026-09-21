@@ -67,6 +67,9 @@ public:
     void set_pin_val(data::PinInstance* pin, int64_t old_idx);
     void set_pin_val(data::PinInstance* pin, const float* new_colors);
 
+    void set_pin_cag(data::PinInstance* pin, ControlAfterGenerate old_cag, const Primitive& old_min, const Primitive& old_max, const Primitive& old_step);
+    void set_pin_multiline(data::PinInstance* pin, bool multiline);
+
 private:
     void mirror_pin_value(data::PinInstance* pin);
 

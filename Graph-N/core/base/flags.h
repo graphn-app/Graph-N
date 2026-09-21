@@ -269,6 +269,18 @@ inline constexpr ObjectFlags<NodeInstFlags> g_node_inst_all_modes_mask
     NodeInstFlags::ModeBypass
 };
 
+inline constexpr ObjectFlags<NodeInstFlags> g_node_inst_seriallizable_flags
+{
+    NodeInstFlags::ModeOnEvent,
+    NodeInstFlags::ModeMute,
+    NodeInstFlags::ModeOnTrigger,
+    NodeInstFlags::ModeBypass,
+    NodeInstFlags::Group,
+    NodeInstFlags::ShowHidden,
+    NodeInstFlags::Expanded,
+    NodeInstFlags::Pinned
+};
+
 enum class NodeObjFlags : uint64_t
 {
     None                   = 0,            // 0          -  0x00
@@ -304,11 +316,23 @@ inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_all_custom_widget_mask
     NodeObjFlags::CustomWdgtFromOutput
 };
 
+inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_seriallizable_flags
+{
+};
+
 enum class PinInstFlags : uint64_t
 {
     None                      = 0,          // 0                  -  0x00
     Hidden                    = 1ULL << 0,  // 1                  -  0x01
     RerouteSplittingPin       = 1ULL << 1,  // 2                  -  0x02
+    Multiline                 = 1ULL << 2,  // 4                  -  0x04
+    MultilineSet              = 1ULL << 4,  // 8                  -  0x08
+};
+
+inline constexpr ObjectFlags<PinInstFlags> g_pin_inst_serializable_flags
+{
+    PinInstFlags::Multiline,
+    PinInstFlags::MultilineSet,
 };
 
 enum class PinObjFlags : uint64_t
@@ -332,7 +356,7 @@ enum class PinObjFlags : uint64_t
     Multiline                 = 1ULL << 15, // 32768              -  0x8000
     ClrAlphaEnabled           = 1ULL << 16, // 65536              -  0x10000               // default for inputs
     CagRequire                = 1ULL << 17, // 131072             -  0x20000
-    CagPin                    = 1ULL << 18, // 262144             -  0x40000
+    DenyMultilineSwitch       = 1ULL << 18, // 262144             -  0x40000
     OutputIsList              = 1ULL << 19, // 524288             -  0x80000
     ForceInput                = 1ULL << 20, // 1048576            -  0x100000
     DefInput                  = 1ULL << 21, // 2097152            -  0x200000             // TODO ??
@@ -344,5 +368,7 @@ enum class PinObjFlags : uint64_t
     DynamicPrompts            = 1ULL << 27, // 134217728          -  0x8000000
 };
 
-
-
+inline constexpr ObjectFlags<PinObjFlags> g_pin_obj_serializable_flags
+{
+    PinObjFlags::CagRequire,
+};

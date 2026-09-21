@@ -80,8 +80,8 @@ void WfSerializerToBlob::serialize_node()
         .push(m_curr_node->m_clr_group)
         .push(m_curr_node->m_clr_head)
         .push(m_curr_node->m_clr_group_capt)
-        .push(m_curr_node->flags().get_by_mask(NodeInstFlags::Group, NodeInstFlags::ShowHidden, NodeInstFlags::Expanded, NodeInstFlags::Pinned))
-        .push(m_curr_node->flags().get_by_mask(g_node_inst_all_modes_mask))
+        .push(m_curr_node->flags().get_by_mask(g_node_inst_seriallizable_flags))
+        .push(m_curr_node->has_object() ? m_curr_node->obj_flags().get_by_mask(g_node_obj_seriallizable_flags) : uint64_t(0))
     ;
     block.end();
 
@@ -136,8 +136,13 @@ void WfSerializerToBlob::serialize_pin()
         .push(cast::to_u32(m_curr_pin->state().type))
 
         .push(m_curr_pin->state().value)
-        .push(m_curr_pin->state().cag)
-        .push(m_curr_pin->obj_flags().has(PinObjFlags::CagRequire))
+        .push(m_curr_pin->state().min)
+        .push(m_curr_pin->state().max)
+        .push(m_curr_pin->state().step)
+        .push(cast::to_u8(m_curr_pin->state().cag_val))
+
+        .push(m_curr_pin->flags().get_by_mask(g_pin_inst_serializable_flags))
+        .push(m_curr_pin->obj_flags().get_by_mask(g_pin_obj_serializable_flags))
     ;
 }
 

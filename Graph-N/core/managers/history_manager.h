@@ -15,19 +15,27 @@ class Workflow;
 namespace mngr
 {
 
-struct HRerouteSplitted
+struct HRerouteSplitted final
 {
     std::pair<ImRect, ImRect> poses;
     bool splitted = true;
 };
+struct HPinCag final
+{
+    ControlAfterGenerate cag;
+    Primitive min;
+    Primitive max;
+    Primitive step;
+};
+
 // !! types order must remain the same due to serialization
-using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, uint64_t /*flags*/, ImRect /*pos*/, Primitive /*pin val*/, HRerouteSplitted>;
+using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, uint64_t /*flags*/, ImRect /*pos*/, Primitive /*pin val*/, HRerouteSplitted, HPinCag>;
 
 enum class HistoryActionType
 {
     _none,
     NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeExpand, NodeRerouteSplit,
-    PinRen, PinVal,
+    PinRen, PinVal, PinCag, PinMultiline,
     LinkAdd, LinkDel,
 
     _first = NodeAdd,
@@ -113,6 +121,8 @@ struct ActNodeExpand final : public ActOldNew   { ActNodeExpand() noexcept : Act
 struct ActNodeRerouteSplit final : public ActOldNew   { ActNodeRerouteSplit() noexcept : ActOldNew(HistoryActionType::NodeRerouteSplit) {} };
 struct ActPinRen final : public ActOldNew    { ActPinRen() noexcept : ActOldNew(HistoryActionType::PinRen) {} };
 struct ActPinVal final : public ActOldNew    { ActPinVal() noexcept : ActOldNew(HistoryActionType::PinVal) {} };
+struct ActPinCag final : public ActOldNew    { ActPinCag() noexcept : ActOldNew(HistoryActionType::PinCag) {} };
+struct ActPinMultiline final : public ActOldNew    { ActPinMultiline() noexcept : ActOldNew(HistoryActionType::PinMultiline) {} };
 struct ActLinkAdd final : public ActLink     { ActLinkAdd() noexcept : ActLink(HistoryActionType::LinkAdd) {} };
 struct ActLinkDel final : public ActLink     { ActLinkDel() noexcept : ActLink(HistoryActionType::LinkDel) {} };
 
@@ -187,6 +197,8 @@ private:
     void pop_node_reroute_split(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_pin_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_pin_val(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_pin_cag(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_pin_multiline(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_link_add(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_link_del(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
 

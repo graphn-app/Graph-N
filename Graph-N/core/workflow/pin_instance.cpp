@@ -10,6 +10,7 @@ PinInstance::PinInstance(NodeInstanceBase* parent_node, Pin* obj, wid workflow_i
     : Instance<Pin, PinInstFlags, PinObjFlags>(obj, workflow_id, instance_id)
     , m_parent_node(parent_node->get_instance_id())
 {
+    obj->def_state.copy_to(m_state);
 }
 
 PinInstance::~PinInstance() noexcept = default;
