@@ -123,6 +123,9 @@ private:
     bool handle_pin_renaming(const data::PinInstance* curr_pin);
     void handle_deleted() noexcept;
 
+    bool tooltip_suspended(const std::string& tooltip, ImU32 pop_color = 0) const noexcept;
+    bool tooltip_suspended(const std::function<const char*()>& tooltip, ImU32 pop_color = 0) const noexcept;
+
 private:
     data::Workflow* m_wf = nullptr;
     ax::NodeEditor::EditorContext* m_context = nullptr;

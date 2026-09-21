@@ -36,7 +36,7 @@ void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance
             ed.buffer = buffer;
             ed.hint = hint;
             ed.action = g::pWfsManager->access(ed.wf)->action();
-            ed.ro = (pin != nullptr);
+            ed.ro = (nullptr == pin);
             m_current = &ed;
             break;
         }
@@ -50,7 +50,7 @@ void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance
         ed.pin = pin;
         ed.buffer = buffer;
         ed.hint = hint;
-        ed.ro = (pin != nullptr);
+        ed.ro = (nullptr == pin);
         ed.action = g::pWfsManager->access(ed.wf)->action();
         m_editors.push_back(ed);
         m_current = &m_editors.back();

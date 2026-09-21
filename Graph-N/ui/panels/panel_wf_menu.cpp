@@ -1066,6 +1066,7 @@ bool PanelWorkflow::show_multiobj_menu()
 bool PanelWorkflow::show_pin_menu()
 {
     LogRAssert(m_menu_objs.pins.size() == 1, "More than one pin cannot be selected", true);
+    LogRAssert(m_menu_objs.nodes.size() == 1, "More than one node cannot be selected", true);
 
     bool close = false;
 

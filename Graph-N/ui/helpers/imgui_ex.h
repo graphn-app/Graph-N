@@ -63,6 +63,8 @@ bool InputDoubleSmart(const char* label_id,  double* value, double step, double 
 
 bool DragDoubleSmart(const char* label, double* value, double min, double max, const char* format) noexcept;
 bool DragIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, const char* format) noexcept;
+bool DragDoubleRange(ImGuiID id, double* v_current_min, double* v_current_max, double v_min, double v_max, const char* format_min, const char* format_max) noexcept;
+bool DragIntRange(ImGuiID id, int64_t* v_current_min, int64_t* v_current_max, int64_t v_min, int64_t v_max, const char* format_min, const char* format_max) noexcept;
 //bool DragUIntSmart(const char* label, uint64_t* value, uint64_t min, uint64_t max, const char* format) noexcept;
 
 bool SliderDoubleSmart(const char* label, double* value, double min, double max, const char* format, double step = 0) noexcept;

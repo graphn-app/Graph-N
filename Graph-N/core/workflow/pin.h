@@ -100,7 +100,7 @@ public:
     PinState def_state;
 
     // all
-    Primitive def;
+    Primitive def; // needed?
 
     // string
     std::string placeholder;

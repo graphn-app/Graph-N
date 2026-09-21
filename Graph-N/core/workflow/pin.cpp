@@ -134,7 +134,7 @@ void Pin::copy_string(Pin* dest) const
 {
     LogRAssert(dest, "Zero ptr", );
     dest->def = def;
-    dest->w_value = 300.0f;
+    dest->w_value = 200.0f;
     dest->tooltip = tooltip;
     dest->flags.add_remove_if(PinObjFlags::Multiline, flags.has(PinObjFlags::Multiline));
     dest->placeholder = placeholder;
@@ -257,7 +257,7 @@ void Pin::finalize()
             w_value = (flags.has(PinObjFlags::ClrAlphaEnabled) ? 250.0f : 200.0f);
             break;
         case PinType::STRING:
-            w_value = 300.0f;
+            w_value = 200.0f;
             def_state.w_name = 0.0f;
             break;
         case PinType::COMBO:

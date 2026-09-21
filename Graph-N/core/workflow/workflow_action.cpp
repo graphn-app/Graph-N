@@ -335,7 +335,7 @@ void WorkflowAction::set_node_pinning(data::NodeInstance* node, bool pin)
     const uint64_t old_mode = node->flags().get_by_mask(NodeInstFlags::Pinned);
     node->pin_node(pin);
     if (m_drawer != nullptr)
-        m_drawer->pin_node(node->ed(), node->flags().has(NodeInstFlags::Pinned));    
+        m_drawer->pin_node(node->ed(), node->flags().has(NodeInstFlags::Pinned));
     g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodePin, mngr::HActionT(old_mode));
 }
 

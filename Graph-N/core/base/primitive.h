@@ -14,8 +14,12 @@ public:
 
     number& operator++() noexcept { ++n; return *this; }
     number operator++(int32_t) noexcept { number temp = *this; ++n; return temp; }
+
     number& operator--() noexcept { --n; return *this; }
     number operator--(int32_t) noexcept { number temp = *this; --n; return temp; }
+
+    number& operator+(const number& other) noexcept { n += other.n; return *this; }
+    number& operator-(const number& other) noexcept { n -= other.n; return *this; }
 
     number_t underlying_type() const noexcept { return n; }
     number_t* underlying_type_ref() noexcept { return &n; }

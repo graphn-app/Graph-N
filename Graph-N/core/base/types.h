@@ -241,24 +241,19 @@ enum class PinShape
     Hexagon
 };
 
-enum class ControlAfterGenerate
+enum class ControlAfterGenerate : uint8_t
 {
     _none,
 
-    CAGFixed = _none,
-    CAGIncrement,
-    CAGDecrement,
-    CAGRandomize,
+    Fixed = _none,
+    Increment,
+    Decrement,
+    Randomize,
 
     _count,
     _first = _none,
     _last = _count - 1,
     _zero = _none
-};
-
-constexpr const char* ControlAfterGenerateStr[size_t(ControlAfterGenerate::_count)] =
-{
-    "fixed", "increment", "decrement", "randomize"
 };
 
 enum class OptPane

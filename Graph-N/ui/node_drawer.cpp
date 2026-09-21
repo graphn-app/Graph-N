@@ -91,54 +91,6 @@ NODE
 
 */
 
-namespace
-{
-bool tooltip_suspended(const char* tooltip, ImU32 pop_color = 0)
-{
-    bool ret = false;
-    if (tooltip != nullptr && *tooltip != 0 && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-    {
-        ax::NodeEditor::Suspend(); 
-        if (ImGui::BeginTooltip())
-        {
-            if (pop_color != 0)
-                ImGui::PopStyleColor();
-            ImGui::PushTextWrapPos(300.0f);
-            ImGui::TextUnformatted(tooltip);
-            ImGui::PopTextWrapPos();
-            ImGui::EndTooltip();
-            if (pop_color != 0)
-                ImGui::PushStyleColor(ImGuiCol_Text, pop_color);
-            ret = true;
-        }
-        ax::NodeEditor::Resume(); 
-    }
-    return ret;
-}
-bool tooltip_suspended(const std::string& tooltip, ImU32 pop_color = 0)
-{
-    bool ret = false;
-    if (!tooltip.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-    {
-        ax::NodeEditor::Suspend(); 
-        if (ImGui::BeginTooltip())
-        {
-            if (pop_color != 0)
-                ImGui::PopStyleColor();
-            ImGui::PushTextWrapPos(300.0f);
-            ImGui::TextUnformatted(tooltip.c_str(), tooltip.c_str() + tooltip.size());
-            ImGui::PopTextWrapPos();
-            ImGui::EndTooltip();
-            if (pop_color != 0)
-                ImGui::PushStyleColor(ImGuiCol_Text, pop_color);
-            ret = true;
-        }
-        ax::NodeEditor::Resume(); 
-    }
-    return ret;
-}
-}
-
 namespace ui
 {
 
@@ -309,8 +261,8 @@ void NodeDrawer::post_draw_all(
         m_deffered_action->ml_input.is_active = false;
     }
 
-    if (m_active_tt != nullptr)
-        tooltip_suspended(m_active_tt);
+    if (m_active_tt != nullptr && *m_active_tt != 0)
+        tooltip_suspended([this]() { return m_active_tt; });
 
     if (m_navigate_to_content)
     {
@@ -515,8 +467,6 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     }
 
     // --- PINS - OUTPUT ---
-
-    //const auto out_pins_pos = ImGui::GetCursorPosX();
 
     draw_pins = true;
     if (m_active_node->flags().has(NodeInstFlags::RerouteSplitted)) [[unlikely]]
@@ -885,11 +835,12 @@ void NodeDrawer::draw_output_pin(data::PinInstance* pin)
 
 void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin)
 {
-    ImGui::PushID(&pin->state().pin_color);
+    ImGui::PushID(0x5F329AF2);
+    ImGui::PushID(pin);
     ed::BeginPin(pin->ed(), pin->obj_flags().has(PinObjFlags::Input) ? ed::PinKind::Input : ed::PinKind::Output);
     draw_pin_shape(pin, collapsed_mode, align_to_widget, failed_pin);
     ed::EndPin();
-    ImGui::PopID();
+    ImGui::PopID(2);
 }
 
 void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -984,7 +935,8 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
     const int64_t min = obj->min.get_int();
     const int64_t max = obj->max.get_int();
 
-    ImGui::PushID(&state.value);
+    ImGui::PushID(0xF3C4D86E);
+    ImGui::PushID(pin);
 
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -1013,7 +965,7 @@ void NodeDrawer::draw_widget_int(data::PinInstance* pin, float widget_name_width
     else handle_widget_active_state(pin, &backup);
 
     tooltip_suspended(obj->tooltip);
-    ImGui::PopID();
+    ImGui::PopID(2);
 }
 
 void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -1028,7 +980,8 @@ void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_wid
     const double max = obj->max.get_float();
     const double step = obj->step.get_float();
 
-    ImGui::PushID(&state.value);
+    ImGui::PushID(0x6322BBE5);
+    ImGui::PushID(pin);
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
@@ -1056,7 +1009,7 @@ void NodeDrawer::draw_widget_float(data::PinInstance* pin, float widget_name_wid
     else handle_widget_active_state(pin, &backup);
 
     tooltip_suspended(obj->tooltip);
-    ImGui::PopID();
+    ImGui::PopID(2);
 }
 
 void NodeDrawer::draw_widget_number(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -1078,7 +1031,8 @@ void NodeDrawer::draw_widget_number(data::PinInstance* pin, float widget_name_wi
     const double max = obj->max.get_number().underlying_type();
     const double step = obj->step.get_number().underlying_type();
 
-    ImGui::PushID(&state.value);
+    ImGui::PushID(0x746F8133);
+    ImGui::PushID(pin);
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
@@ -1106,7 +1060,7 @@ void NodeDrawer::draw_widget_number(data::PinInstance* pin, float widget_name_wi
     else handle_widget_active_state(pin, &backup);
 
     tooltip_suspended(obj->tooltip);
-    ImGui::PopID();
+    ImGui::PopID(2);
 }
 
 void NodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -1118,7 +1072,8 @@ void NodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_widt
     bool* val = state.value.get_bool_ref();
     LogRAssert(val, "Zero val", );
 
-    ImGui::PushID(&state.value);
+    ImGui::PushID(0x8FF6FCC5);
+    ImGui::PushID(pin);
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
@@ -1143,7 +1098,7 @@ void NodeDrawer::draw_widget_bool(data::PinInstance* pin, float widget_name_widt
     else handle_widget_active_state(pin, &backup);
 
     tooltip_suspended(obj->tooltip);
-    ImGui::PopID();
+    ImGui::PopID(2);
 }
 
 void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -1154,7 +1109,8 @@ void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width
     std::string* val = pin->state().value.get_string_ref();
     LogRAssert(val, "Zero val", );
 
-    ImGui::PushID(&pin->state().value);
+    ImGui::PushID(0x9A5218DB);
+    ImGui::PushID(pin);
     ImGui::PushItemWidth(widget_name_width + widget_value_width);
     const auto linked = pin->state().links > 0;
     if (linked) ImGui::BeginDisabled();
@@ -1170,7 +1126,7 @@ void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width
     if (!tt_mod)
         tooltip_suspended(obj->tooltip);
 
-    ImGui::PopID();
+    ImGui::PopID(2);
 }
 
 void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width) noexcept
@@ -1181,7 +1137,8 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
     std::string* val = pin->state().value.get_string_ref();
     LogRAssert(val, "Zero val", );
 
-    ImGui::PushID(&pin->state().value);
+    ImGui::PushID(0x9AC25C3D);
+    ImGui::PushID(pin);
     ImGui::PushTextWrapPos(0.0f);
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
     const auto linked = pin->state().links > 0;
@@ -1200,7 +1157,7 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
     if (!tt_mod)
         tooltip_suspended(obj->tooltip);
 
-    ImGui::PopID();
+    ImGui::PopID(2);
 }
 
 void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -1209,7 +1166,8 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
     int64_t* index = pin->state().value.get_int_ref();
     LogRAssert(index, "Zero val", );
 
-    ImGui::PushID(&pin->state().value);
+    ImGui::PushID(0xAE809F86);
+    ImGui::PushID(pin);
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
@@ -1228,7 +1186,8 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
         m_wf->action()->set_pin_val(pin, m_deffered_action->combo.old_value);
 
     tooltip_suspended(obj->tooltip);
-    ImGui::PopID();
+
+    ImGui::PopID(2);
 }
 
 void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width)
@@ -1236,7 +1195,8 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     auto obj = pin->get_object();
     const auto& state = pin->state();
 
-    ImGui::PushID(&state.value);
+    ImGui::PushID(0xB9C9528C);
+    ImGui::PushID(pin);
     ImGui::SetNextItemWidth(widget_name_width);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGuiEx::InputText("##name", &pin->state().name, ImGuiInputTextFlags_ReadOnly);
@@ -1261,7 +1221,7 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     else handle_widget_active_state(pin);
 
     tooltip_suspended(obj->tooltip);
-    ImGui::PopID();
+    ImGui::PopID(2);
 }
 
 void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_open) noexcept
@@ -1537,6 +1497,7 @@ bool NodeDrawer::handle_node_resize() noexcept
     m_now_resizing = -1;
     const ImVec2 old_pos = ImGui::GetCursorScreenPos();
 
+    ImGui::PushID(0xE42BFB7E);
     for (int32_t idx = 0; idx < m_resizing_grip_positions.size(); idx++)
     {
         if (m_resizing_grip_positions[idx].GetHeight() <= 0)
@@ -1566,6 +1527,7 @@ bool NodeDrawer::handle_node_resize() noexcept
             }
         }
     }
+    ImGui::PopID();
 
     ImGui::SetCursorScreenPos(old_pos);
     return m_now_resizing != -1;
@@ -1898,6 +1860,52 @@ void NodeDrawer::handle_node_collapsing(const data::NodeInstance* node)
             break;
         }
     }
+}
+
+bool NodeDrawer::tooltip_suspended(const std::function<const char*()>& tooltip, ImU32 pop_color /*= 0*/) const noexcept
+{
+    bool ret = false;
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+    {
+        ax::NodeEditor::Suspend(); 
+        if (ImGui::BeginTooltip())
+        {
+            if (pop_color != 0)
+                ImGui::PopStyleColor();
+            ImGui::PushTextWrapPos(300.0f);
+            ImGui::TextUnformatted(tooltip());
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+            if (pop_color != 0)
+                ImGui::PushStyleColor(ImGuiCol_Text, pop_color);
+            ret = true;
+        }
+        ax::NodeEditor::Resume(); 
+    }
+    return ret;
+}
+
+bool NodeDrawer::tooltip_suspended(const std::string& tooltip, ImU32 pop_color /*= 0*/) const noexcept
+{
+    bool ret = false;
+    if (!tooltip.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+    {
+        ed::Suspend(); 
+        if (ImGui::BeginTooltip())
+        {
+            if (pop_color != 0)
+                ImGui::PopStyleColor();
+            ImGui::PushTextWrapPos(300.0f);
+            ImGui::TextUnformatted(tooltip.c_str(), tooltip.c_str() + tooltip.size());
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+            if (pop_color != 0)
+                ImGui::PushStyleColor(ImGuiCol_Text, pop_color);
+            ret = true;
+        }
+        ed::Resume(); 
+    }
+    return ret;
 }
 
 } // namespace ui

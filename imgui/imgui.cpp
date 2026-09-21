@@ -8408,6 +8408,16 @@ void ImGui::PopID()
     window->IDStack.pop_back();
 }
 
+void ImGui::PopID(int count)
+{
+    ImGuiWindow* window = GImGui->CurrentWindow;
+    for (int i = 0; i < count; i++)
+    {
+        IM_ASSERT(window->IDStack.Size > 1); // Too many PopID(), or could be popping in a wrong/different window?
+        window->IDStack.pop_back();
+    }
+}
+
 ImGuiID ImGui::GetID(const char* str_id)
 {
     ImGuiWindow* window = GImGui->CurrentWindow;
