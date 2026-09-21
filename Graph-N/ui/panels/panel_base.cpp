@@ -495,26 +495,22 @@ void PanelToolbar::draw_toolbar()
 {
     FontGuard fg(m_use_big_icons ? g::pMain->get_icons_font() : g::pMain->get_regular_font());
 
-    //draw_background();
-
     const float avail_w = ImGui::GetContentRegionAvail().x;
     const auto& style = ImGui::GetStyle();
-    const float regular_h = ImGui::GetTextLineHeight();
+    const float regular_h = g::pMain->get_regular_font()->FontSize;
+    const float big_h = m_use_big_icons ? g::pMain->get_icons_font()->FontSize : regular_h;
     const float regular_padding_y = style.FramePadding.y;
 
     constexpr double blinking_interval = 0.65;
     const bool blinking_item_show = fmod(ImGui::GetTime(), blinking_interval * 2) < blinking_interval;
 
-    const float big_h = ImGui::GetTextLineHeight();
-    const ImVec2 ico_size = ImGui::CalcTextSize(ICON_LC_X);
-
     const auto tooltip = [&fg](const char* text, const std::string& hotkey, bool tooltip_next_line, const char* separator)
     {
         if (text != nullptr && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
         {
-            fg.pop();
             if (ImGui::BeginTooltip())
             {
+                fg.pop();
                 ImGui::TextUnformatted(text);
                 if (!hotkey.empty())
                 {
@@ -535,8 +531,6 @@ void PanelToolbar::draw_toolbar()
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
 
     float start_pos = style.ItemSpacing.x;
-
-    ImVec2 regular_btn_size = {};
     bool pressed = false;
 
     m_reset_state = false;
@@ -549,9 +543,43 @@ void PanelToolbar::draw_toolbar()
         return reset;
     };
 
+    const auto get_actual_text_size = [&fg](Element& el) -> float
+    {
+        if (el.text_width > 0.0f)
+        {
+            ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), el.text_width, -1.0f, el.text, nullptr, &el.text_end);
+            return el.text_width;
+        }
+        el.text_end = el.text + strlen(el.text);
+        return ImGui::CalcTextSize(el.text, el.text_end).x;
+    };
+
+    const auto calc_item_layout_w = [&fg, &style, avail_w, &get_actual_text_size](Element& el) -> float
+    {
+        if (Element::Type::Button == el.type)
+        {
+            fg.pop(); 
+            const float w = ImGui::CalcTextSize(el.icon).x + style.FramePadding.x * 2.0f;
+            return w;
+        }
+        if (Element::Type::Input == el.type || Element::Type::InputHint == el.type) return avail_w * el.input_w;
+        if (Element::Type::InputInt == el.type || Element::Type::Combo == el.type) return el.input_w; // Строго в пикселях
+        if (Element::Type::Text == el.type && el.text != nullptr)
+        {
+            if (el.text_bold) ImGui::PushFont(g::pMain->get_bold_font());
+            const float w = get_actual_text_size(el);
+            if (el.text_bold) ImGui::PopFont();
+            return w;
+        }
+        return 0.0f;
+    };
+
+    // --- LEFT ELEMENTS ---
+
     for (auto it = m_elements_l.begin(); it != m_elements_l.end(); ++it)
     {
         auto& el = *it;
+
         if (Element::Type::Empty == el.type)
         {
             start_pos += style.ItemSpacing.x * 2;
@@ -563,77 +591,59 @@ void PanelToolbar::draw_toolbar()
         if (el.on_preview) el.on_preview(el);
         if (test_reset()) return;
 
+        ImGui::PushID(&el);
+
         const bool enabled = el.enabled;
         if (!enabled) ImGui::BeginDisabled();
+
+        float item_w = calc_item_layout_w(el);
 
         if (Element::Type::Button == el.type)
         {
             fg.pop();
             ImGui::PushStyleColor(ImGuiCol_Text, 0);
             pressed = ImGui::Button(el.icon);
+            item_w = ImGui::GetItemRectSize().x;
             ImGui::PopStyleColor();
 
-            if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
+            if (el.tooltip != nullptr && *el.tooltip != 0) tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
-            if (pressed && el.toggler)
-                el.toggled = !el.toggled;
+            if (pressed && el.toggler) el.toggled = !el.toggled;
 
-            if (0 == regular_btn_size.x)
-                regular_btn_size = ImGui::GetItemRect().GetSize();
-
-            if (!el.blinking || el.blinking && blinking_item_show)
+            if (!el.blinking || (el.blinking && blinking_item_show))
             {
                 const auto btn_pos = ImGui::GetItemRectMin();
-                //if (-FLT_MIN == regular_el_y)
-                //    regular_el_y = btn_pos.y;
-
                 ImU32 color;
-                if (pressed || el.toggled || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
-                    color = m_clr_pressed;
-                else if (ImGui::IsItemHovered())
-                    color = m_clr_hover;
-                else
-                    color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
+                if (pressed || el.toggled || (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))) color = m_clr_pressed;
+                else if (ImGui::IsItemHovered()) color = m_clr_hover;
+                else color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
 
                 fg.push();
                 const ImVec2 ico_pos = { btn_pos.x, (btn_pos.y + regular_padding_y) - (big_h - regular_h) };
                 ImGui::GetWindowDrawList()->AddText(ico_pos, color, el.icon);
             }
-
-            start_pos += regular_btn_size.x + style.ItemSpacing.x;
         }
         else if (Element::Type::Input == el.type || Element::Type::InputHint == el.type)
         {
             fg.pop();
-            ImGui::SetNextItemWidth(avail_w * el.input_w);
+            ImGui::SetNextItemWidth(item_w);
             if (Element::Type::Input == el.type)
                 pressed = ImGuiEx::InputText(el.id, el.buffer_str, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll | ImGuiInputTextFlags_AutoSelectAll);
             else
                 pressed = ImGuiEx::InputTextWithHint(el.id, el.hint, el.buffer_str, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll | ImGuiInputTextFlags_AutoSelectAll);
             pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
 
-            if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
-
-            //if (-FLT_MIN == regular_el_y)
-            //    regular_el_y = ImGui::GetItemRectMin().y;
-
-            start_pos += avail_w * el.input_w + style.ItemSpacing.x;
+            if (el.tooltip != nullptr && *el.tooltip != 0) tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
         }
         else if (Element::Type::InputInt == el.type)
         {
-            ImGui::PopStyleColor(3);
-
             fg.pop();
-            ImGui::SetNextItemWidth(el.input_w);
-            pressed = ImGuiEx::InputIntSmart(el.id, el.buffer_int, 1, el.int_min, el.int_max, "%d", "%d");
-            pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::PopStyleColor(3);
+            ImGui::SetNextItemWidth(item_w);
+            pressed = ImGuiEx::InputIntSmart(el.id, el.buffer_int, 1, el.int_min, el.int_max, "%d", "%d")
+                || ImGui::IsItemDeactivatedAfterEdit();
 
-            if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
-
-            start_pos += avail_w * el.input_w + style.ItemSpacing.x;
+            if (el.tooltip != nullptr && *el.tooltip != 0) tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             ImGui::PushStyleColor(ImGuiCol_Button, 0);
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
@@ -642,64 +652,54 @@ void PanelToolbar::draw_toolbar()
         else if (Element::Type::Text == el.type && el.text != nullptr)
         {
             fg.pop();
-
-            if (el.text_width > 0.0f)
-            {
-                const ImVec2 scrn_pos = ImGui::GetCursorScreenPos();
-                const ImVec2 clip_max = ImVec2(scrn_pos.x + el.text_width, scrn_pos.y + ImGui::GetTextLineHeightWithSpacing());
-                ImGui::PushClipRect(scrn_pos, clip_max, true);
-            }
+            if (el.text_bold) ImGui::PushFont(g::pMain->get_bold_font());
 
             if (el.blinking && !blinking_item_show) ImGui::PushStyleColor(ImGuiCol_Text, 0);
             else if (el.text_clr != 0) ImGui::PushStyleColor(ImGuiCol_Text, el.text_clr);
-            if (el.text_bold) ImGui::PushFont(g::pMain->get_bold_font());
-            ImGui::TextUnformatted(el.text);
+
+            ImGui::TextUnformatted(el.text, el.text_end);
+
             if (el.text_bold) ImGui::PopFont();
-            if (el.blinking && !blinking_item_show || el.text_clr != 0) ImGui::PopStyleColor();
-            if (el.text_width > 0.0f) ImGui::PopClipRect();
+            if ((el.blinking && !blinking_item_show) || el.text_clr != 0) ImGui::PopStyleColor();
 
-            if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
-
-            if (el.text_width > 0.0f)
-                start_pos += el.text_width + style.ItemSpacing.x;
-            else
-                start_pos += ImGui::GetItemRectSize().x + style.ItemSpacing.x;
+            if (el.tooltip != nullptr && *el.tooltip != 0) tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
         }
         else if (Element::Type::Combo == el.type)
         {
-            ImGui::PopStyleColor(3);
-
             fg.pop();
-            ImGui::SetNextItemWidth(el.input_w);
-            pressed = ImGui::Combo(el.id, &el.cb_item_sel, el.cb_items.data(), cast::to_i32(el.cb_items.size()));
-            pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::PopStyleColor(3);
+            ImGui::SetNextItemWidth(item_w);
+            pressed = ImGui::Combo(el.id, &el.cb_item_sel, el.cb_items.data(), cast::to_i32(el.cb_items.size()))
+                || ImGui::IsItemDeactivatedAfterEdit();
 
-            if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
-
-            start_pos += avail_w * el.input_w + style.ItemSpacing.x;
+            if (el.tooltip != nullptr && *el.tooltip != 0) tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             ImGui::PushStyleColor(ImGuiCol_Button, 0);
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
         }
 
+        start_pos += item_w + style.ItemSpacing.x;
+
         if (pressed && el.on_click) el.on_click(el);
         if (!enabled) ImGui::EndDisabled();
-        if (test_reset()) return;
+        ImGui::PopID();
 
+        if (test_reset()) return;
         if (el.on_postview) el.on_postview(el);
         if (test_reset()) return;
 
-        ImGui::SameLine();
+        ImGui::SameLine(0, 0);
     }
+
+    // --- RIGHT ELEMENTS ---
 
     start_pos = avail_w - style.ItemSpacing.x;
 
     for (auto it = m_elements_r.rbegin(); it != m_elements_r.rend(); ++it)
     {
         auto& el = *it;
+
         if (Element::Type::Empty == el.type)
         {
             start_pos -= style.ItemSpacing.x * 2;
@@ -709,13 +709,18 @@ void PanelToolbar::draw_toolbar()
         if (el.on_preview) el.on_preview(el);
         if (test_reset()) return;
 
+        ImGui::PushID(&el);
+
+        float item_w = calc_item_layout_w(el);
+        start_pos -= item_w;
+        ImGui::SetCursorPosX(start_pos);
+
         const bool enabled = el.enabled;
         if (!enabled) ImGui::BeginDisabled();
+        pressed = false;
 
         if (Element::Type::Button == el.type)
         {
-            ImGui::SetCursorPosX(start_pos);
-
             fg.pop();
             ImGui::PushStyleColor(ImGuiCol_Text, 0);
             pressed = ImGui::Button(el.icon);
@@ -724,70 +729,42 @@ void PanelToolbar::draw_toolbar()
             if (el.tooltip != nullptr && *el.tooltip != 0)
                 tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
-            if (pressed && el.toggler)
-                el.toggled = !el.toggled;
+            if (pressed && el.toggler) el.toggled = !el.toggled;
 
-            if (0 == regular_btn_size.x)
-                regular_btn_size = ImGui::GetItemRect().GetSize();
-
-            const auto btn_pos = ImGui::GetItemRectMin();
-            //if (-FLT_MIN == regular_el_y)
-            //    regular_el_y = btn_pos.y;
-
-            if (!el.blinking || el.blinking && blinking_item_show)
+            if (!el.blinking || (el.blinking && blinking_item_show))
             {
+                const auto btn_pos = ImGui::GetItemRectMin();
                 ImU32 color;
-                if (pressed || el.toggled || ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
-                    color = m_clr_pressed;
-                else if (ImGui::IsItemHovered())
-                    color = m_clr_hover;
-                else
-                    color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
+                if (pressed || el.toggled || (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))) color = m_clr_pressed;
+                else if (ImGui::IsItemHovered()) color = m_clr_hover;
+                else color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
 
                 fg.push();
                 const ImVec2 ico_pos = { btn_pos.x, (btn_pos.y + regular_padding_y) - (big_h - regular_h) };
                 ImGui::GetWindowDrawList()->AddText(ico_pos, color, el.icon);
             }
-
-            start_pos -= regular_btn_size.x + style.ItemSpacing.x;
         }
         else if (Element::Type::Input == el.type || Element::Type::InputHint == el.type)
         {
-            start_pos -= (avail_w * el.input_w);
-            ImGui::SetCursorPosX(start_pos);
-
             fg.pop();
-            ImGui::SetNextItemWidth(avail_w * el.input_w);
+            ImGui::SetNextItemWidth(item_w);
             if (Element::Type::Input == el.type)
                 pressed = ImGuiEx::InputText(el.id, el.buffer_str, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll | ImGuiInputTextFlags_AutoSelectAll);
             else
                 pressed = ImGuiEx::InputTextWithHint(el.id, el.hint, el.buffer_str, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll | ImGuiInputTextFlags_AutoSelectAll);
-            pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
+            pressed |= ImGui::IsItemDeactivatedAfterEdit();
 
-            if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
-
-            //if (-FLT_MIN == regular_el_y)
-            //    regular_el_y = ImGui::GetItemRectMin().y;
-
-            start_pos -= regular_btn_size.x + style.ItemSpacing.x;
+            if (el.tooltip != nullptr && *el.tooltip != 0) tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
         }
         else if (Element::Type::InputInt == el.type)
         {
-            ImGui::PopStyleColor(3);
-
-            start_pos -= el.input_w;
-            ImGui::SetCursorPosX(start_pos);
-
             fg.pop();
-            ImGui::SetNextItemWidth(el.input_w);
-            pressed = ImGuiEx::InputIntSmart(el.id, el.buffer_int, 1, el.int_min, el.int_max, "%d", "%d");
-            pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::PopStyleColor(3);
+            ImGui::SetNextItemWidth(item_w);
+            pressed = ImGuiEx::InputIntSmart(el.id, el.buffer_int, 1, el.int_min, el.int_max, "%d", "%d")
+                || ImGui::IsItemDeactivatedAfterEdit();
 
-            if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
-
-            start_pos -= regular_btn_size.x + style.ItemSpacing.x;
+            if (el.tooltip != nullptr && *el.tooltip != 0) tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             ImGui::PushStyleColor(ImGuiCol_Button, 0);
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
@@ -796,46 +773,27 @@ void PanelToolbar::draw_toolbar()
         else if (Element::Type::Text == el.type && el.text != nullptr)
         {
             fg.pop();
-            const auto text_w = el.text_width > 0.0f ? el.text_width : ImGui::CalcTextSize(el.text).x;
-            start_pos -= text_w - style.ItemSpacing.x;
-            ImGui::SetCursorPosX(start_pos);
-
-            if (el.text_width > 0.0f)
-            {
-                const ImVec2 scrn_pos = ImGui::GetCursorScreenPos();
-                const ImVec2 clip_max = ImVec2(scrn_pos.x + el.text_width, scrn_pos.y + ImGui::GetTextLineHeightWithSpacing());
-                ImGui::PushClipRect(scrn_pos, clip_max, true);
-            }
+            if (el.text_bold) ImGui::PushFont(g::pMain->get_bold_font());
 
             if (el.blinking && !blinking_item_show) ImGui::PushStyleColor(ImGuiCol_Text, 0);
-            if (el.text_clr != 0) ImGui::PushStyleColor(ImGuiCol_Text, el.text_clr);
-            if (el.text_bold) ImGui::PushFont(g::pMain->get_bold_font());
-            ImGui::TextUnformatted(el.text);
+            else if (el.text_clr != 0) ImGui::PushStyleColor(ImGuiCol_Text, el.text_clr);
+
+            ImGui::TextUnformatted(el.text, el.text_end);
+
+            if ((el.blinking && !blinking_item_show) || el.text_clr != 0) ImGui::PopStyleColor();
             if (el.text_bold) ImGui::PopFont();
-            if (el.blinking && !blinking_item_show || el.text_clr != 0) ImGui::PopStyleColor();
-            if (el.text_width > 0.0f) ImGui::PopClipRect();
 
-            if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
-
-            start_pos -= regular_btn_size.x + style.ItemSpacing.x;
+            if (el.tooltip != nullptr && *el.tooltip != 0) tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
         }
         else if (Element::Type::Combo == el.type)
         {
-            ImGui::PopStyleColor(3);
-
-            start_pos -= el.input_w;
-            ImGui::SetCursorPosX(start_pos);
-
             fg.pop();
-            ImGui::SetNextItemWidth(el.input_w);
-            pressed = ImGui::Combo(el.id, &el.cb_item_sel, el.cb_items.data(), cast::to_i32(el.cb_items.size()));
-            pressed = pressed || ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::PopStyleColor(3);
+            ImGui::SetNextItemWidth(item_w);
+            pressed = ImGui::Combo(el.id, &el.cb_item_sel, el.cb_items.data(), cast::to_i32(el.cb_items.size()))
+                || ImGui::IsItemDeactivatedAfterEdit();
 
-            if (el.tooltip != nullptr && *el.tooltip != 0)
-                tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
-
-            start_pos -= regular_btn_size.x + style.ItemSpacing.x;
+            if (el.tooltip != nullptr && *el.tooltip != 0) tooltip(el.tooltip, el.tooltip_hotkey, el.tooltip_next_line, el.tooltip_hotkey_separator);
 
             ImGui::PushStyleColor(ImGuiCol_Button, 0);
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
@@ -844,16 +802,21 @@ void PanelToolbar::draw_toolbar()
 
         if (pressed && el.on_click) el.on_click(el);
         if (!enabled) ImGui::EndDisabled();
-        if (test_reset()) return;
+        ImGui::PopID();
 
+        if (test_reset()) return;
         if (el.on_postview) el.on_postview(el);
         if (test_reset()) return;
 
-        ImGui::SameLine();
+        start_pos -= style.ItemSpacing.x;
+
+        ImGui::SameLine(0, 0);
     }
 
-    ImGui::PopStyleColor(3);    
-    ImGui::Spacing();
+    ImGui::PopStyleColor(3);
+
+    ImGui::NewLine();
+
     if (m_draw_separator)
         ImGui::Separator();
 }

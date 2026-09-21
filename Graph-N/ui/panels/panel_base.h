@@ -242,6 +242,7 @@ public:
 
         // text
         const char* text = nullptr;
+        const char* text_end = nullptr;     // internal. do not use
         ImU32 text_clr = 0;
         bool text_bold = false;
         float text_width = 0.0f;
