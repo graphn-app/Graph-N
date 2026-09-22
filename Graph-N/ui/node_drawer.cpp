@@ -221,6 +221,12 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/)
     m_defclr_node_bg = g::pOptsManager->color_load(AppColor::NodeBodyBg);
     m_defclr_node_header_bg = ImGuiEx::decrease_brightness(m_defclr_node_bg);
 
+
+    auto& io = ImGui::GetIO();
+    m_mouse_wheel = io.MouseWheel;
+    if (io.KeyShift) 
+        io.MouseWheel *= 0.1f; 
+
     ed::Begin(id, ImVec2(0, 0));
 }
 
@@ -272,6 +278,8 @@ void NodeDrawer::post_draw_all(
     }
 
     ed::SetCurrentEditor(nullptr);
+
+    ImGui::GetIO().MouseWheel = m_mouse_wheel;
 }
 
 void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)

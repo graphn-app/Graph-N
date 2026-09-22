@@ -169,6 +169,7 @@ private:
 
     blob::Blob m_state;
     bool m_navigate_to_content = false;
+    float m_mouse_wheel = 1.0f;
 };
 
 
