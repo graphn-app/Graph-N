@@ -39,7 +39,7 @@ public:
     void init(blob::Blob&& state);
     void free() noexcept;
 
-    void pre_draw_all(const char* id, size_t nodes_count);
+    void pre_draw_all(const char* id, size_t nodes_count, bool first_frame);
     void post_draw_all(
         const std::function<bool()>& init_menu_handler,
         const std::function<bool()>& show_menu_handler,
@@ -91,14 +91,17 @@ public:
 
     ImU32 get_default_node_color() const noexcept { return m_defclr_node_bg; }
 
-    float get_zoom() const noexcept;
-    void set_zoom(float zoom) noexcept;
+    float get_zoom() const noexcept { return m_zoom; }
+    ZoomedVisibility get_zoomed_visibility() const noexcept { return m_zoomed_visibility; }
+
     const ImRect& get_viewport_rect() const noexcept;
     void set_viewport_rect(const ImRect& rect) noexcept;
 
     ImVec2 get_visible_pos(std::optional<ImVec2> add_offset) const noexcept;
 
     const blob::Blob& get_state() const noexcept { return m_state; }
+
+    bool zoomed_allow_renaming() const noexcept { return ZoomedVisibility::Max == m_zoomed_visibility; }
 
 private:
     void draw_node_header();
@@ -128,14 +131,23 @@ private:
     bool tooltip_suspended(const std::string& tooltip, ImU32 pop_color = 0) const noexcept;
     bool tooltip_suspended(const std::function<const char*()>& tooltip, ImU32 pop_color = 0) const noexcept;
 
+    float get_zoomed_fade_alpha() const noexcept;
+    void draw_zoomed_medium_control(float width, bool multiline) const noexcept;
+    void draw_zoomed_low_box(float width, float height) const noexcept;
+
+    bool zoomed_draw_all() const noexcept { return m_first_frame || ZoomedVisibility::Max == m_zoomed_visibility || ZoomedVisibility::Fade == m_zoomed_visibility; }
+    bool zoomed_draw_fade() const noexcept { return !m_first_frame && ZoomedVisibility::Fade == m_zoomed_visibility; }
+    bool zoomed_skip_widget_content() const noexcept { return !m_first_frame && (ZoomedVisibility::Medium == m_zoomed_visibility || ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
+    bool zoomed_skip_pin_names() const noexcept { return !m_first_frame && (ZoomedVisibility::Medium == m_zoomed_visibility || ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
+    bool zoomed_skip_node_content() const noexcept { return !m_first_frame && (ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
+    bool zoomed_skip_pin_shape() const noexcept { return !m_first_frame && (ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
+    bool zoomed_skip_captions() const noexcept { return !m_first_frame && (ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
+    bool zoomed_skip_links() const noexcept { return !m_first_frame && ZoomedVisibility::None == m_zoomed_visibility; }
+
 private:
     data::Workflow* m_wf = nullptr;
     ax::NodeEditor::EditorContext* m_context = nullptr;
-
-    ImRect m_view_rect;
-    bool m_view_set = true;
-    float m_zoom = 1.0f;
-    bool m_zoom_set = true;
+    bool m_first_frame = true;
 
     data::NodeInstance* m_active_node = nullptr;
     const char* m_active_tt = nullptr;
@@ -169,7 +181,13 @@ private:
 
     blob::Blob m_state;
     bool m_navigate_to_content = false;
+
+    ImRect m_view_rect;
+    bool m_view_set = true;
+    float m_zoom = 0.0f;
+    bool m_zoom_set = true;
     float m_mouse_wheel = 1.0f;
+    ZoomedVisibility m_zoomed_visibility = ZoomedVisibility::Max;
 };
 
 

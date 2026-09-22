@@ -159,12 +159,12 @@ void PanelWorkflow::handle_panel_context_menu() noexcept
     //}
 }
 
-void PanelWorkflow::set_wf_view(std::optional<ImRect> wf_rc, std::optional<float> wf_zoom)
+void PanelWorkflow::set_wf_view(std::optional<ImRect> wf_rc, std::optional<float> /*wf_zoom*/)
 {
     if (wf_rc.has_value())
         m_drawer.set_viewport_rect(wf_rc.value());
-    if (wf_zoom.has_value())
-        m_drawer.set_zoom(wf_zoom.value());
+    //if (wf_zoom.has_value())
+    //    m_drawer.set_zoom(wf_zoom.value());
 }
 
 bool PanelWorkflow::can_run() const noexcept
@@ -301,7 +301,7 @@ void PanelWorkflow::draw_wf()
     io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
     auto& nodes = m_wf->get_nodes_all();
-    m_drawer.pre_draw_all(get_panel_id(), nodes.size());
+    m_drawer.pre_draw_all(get_panel_id(), nodes.size(), m_first_show);
 
     if (m_select_new_nodes)
         m_drawer.clear_selection();
@@ -381,7 +381,6 @@ void PanelWorkflow::draw_wf()
         g::pHistoryManager->set_ignore_actions_on(m_wf->get_id());
         std::map<data::NodeInstance*, std::set<data::NodeInstance*>> items;
         fit(items);
-        m_first_show = false;
         g::pHistoryManager->set_ignore_actions_off(m_wf->get_id());
     }
 
@@ -393,6 +392,7 @@ void PanelWorkflow::draw_wf()
     );
 
     ImGui::GetIO().ConfigFlags = old_flags;
+    m_first_show = false;
 
     handle_dnd();
 }

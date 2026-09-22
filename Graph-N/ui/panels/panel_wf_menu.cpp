@@ -381,7 +381,7 @@ bool PanelWorkflow::show_node_menu()
         ImGui::Separator();
     }
 
-    if (ImGui::MenuItem("Rename", nullptr, nullptr, node->obj_flags().has_and_has_not(NodeObjFlags::CanRename, NodeObjFlags::Dummy)))
+    if (ImGui::MenuItem("Rename", nullptr, nullptr, m_drawer.zoomed_allow_renaming() && node->obj_flags().has_and_has_not(NodeObjFlags::CanRename, NodeObjFlags::Dummy)))
     {
         m_drawer.rename_node(node);
         close = true;
@@ -633,7 +633,7 @@ bool PanelWorkflow::show_group_menu()
     auto group = m_menu_objs.groups.begin()->first;
     auto& nodes = m_menu_objs.groups.begin()->second;
 
-    if (ImGui::MenuItem("Rename"))
+    if (ImGui::MenuItem("Rename", nullptr, nullptr, m_drawer.zoomed_allow_renaming()))
     {
         m_drawer.rename_node(group);
         close = true;
@@ -1233,7 +1233,7 @@ bool PanelWorkflow::show_pin_menu()
     const bool linked = (pin->state().links > 0);
     const bool is_widget = pin->get_object()->is_widget();
     const bool name_eq = (pin->state().name == pin->get_object()->def_state.name);
-    const bool can_rename = pin->obj_flags().has(PinObjFlags::CanRename);
+    const bool can_rename = m_drawer.zoomed_allow_renaming() && pin->obj_flags().has(PinObjFlags::CanRename);
 
     if (ImGui::MenuItem("Unlink", nullptr, nullptr, linked && pin->obj_flags().has(PinObjFlags::CanUnlink)))
     {

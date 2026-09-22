@@ -52,6 +52,10 @@ public:
     ImU32 m_clr_group_capt = 0;     // color for group name
 
     int32_t m_media_list_version = 0;
+
+    float m_last_pins_h = 0.0f;
+    float m_last_custom_widgets_h = 0.0f;
+    float m_last_all_widgets_h = 0.0f;
 };
 
 } // namespace data

@@ -593,6 +593,20 @@ enum class KeyTarget
     _last = Node_Last
 };
 
+enum class ZoomedVisibility : uint8_t
+{
+    None,             // no node content, no links
+    Low,              // no node caption, no images, no videos, no pins, one big rect instead of widgets
+    Medium,           // no texts, empty frame, no pin names
+    Fade,             // apply alpha fading
+    Max,              // full content
+};
+constexpr float ZOOMED_MAX = 1.7f;
+constexpr float ZOOMED_FADE = 2.0f;
+constexpr float ZOOMED_MEDIUM = 2.3f;
+constexpr float ZOOMED_LOW = 3.0f;
+constexpr float ZOOMED_NONE = 5.0f;
+
 namespace w
 {
 extern float pin_l_offset_ro;

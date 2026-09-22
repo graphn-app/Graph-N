@@ -185,13 +185,14 @@ data::PinInstance* NodeDrawer::get_ml_widget_active() const noexcept
     return m_deffered_action->active_pin;
 }
 
-void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/)
+void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/, bool first_frame)
 {
     //m_resizing_grip_positions.clear(); // TODO:FIX resizing
     //m_resizing_grip_positions.resize(nodes_count);
 
     m_active_tt = nullptr;
     m_hovered_widget = nullptr;
+    m_first_frame = first_frame;
 
     //if (m_resizing_w.size() != nodes_count) // TODO:FIX resizing
     //{
@@ -228,6 +229,13 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/)
         io.MouseWheel *= 0.1f; 
 
     ed::Begin(id, ImVec2(0, 0));
+
+    m_zoom = ed::GetCurrentZoom();
+    if (m_zoom <= ZOOMED_MAX) [[likely]]    m_zoomed_visibility = ZoomedVisibility::Max;
+    else if (m_zoom <= ZOOMED_FADE)         m_zoomed_visibility = ZoomedVisibility::Fade;
+    else if (m_zoom <= ZOOMED_MEDIUM)       m_zoomed_visibility = ZoomedVisibility::Medium;
+    else if (m_zoom <= ZOOMED_LOW)          m_zoomed_visibility = ZoomedVisibility::Low;
+    else                                    m_zoomed_visibility = ZoomedVisibility::None;
 }
 
 void NodeDrawer::post_draw_all(
@@ -429,8 +437,15 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         return;
     }
 
+    if (zoomed_skip_links()) [[unlikely]]
+    {
+        ImGui::Dummy(ImVec2(node_w, m_active_node->m_last_all_widgets_h));
+        m_active_node = nullptr;
+        return;
+    }
+
     ImGui::Dummy(ImVec2(m_active_node->w_node, ImGui::GetTextLineHeight() * 0.5f));
-    const auto pin_y = ImGui::GetCursorPosY();
+    auto y_off = ImGui::GetCursorPosY();
 
     // --- PINS - INPUT ---
 
@@ -470,7 +485,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     if (!m_active_node->get_outputs().empty())
     {
-        ImGui::SetCursorPosY(pin_y);
+        ImGui::SetCursorPosY(y_off);
         if (m_active_node->w_center > 0.0f)
             ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::ico_max + w::pin_r_offset + m_active_node->w_pin_in + m_active_node->w_center);
     }
@@ -513,6 +528,10 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     if (m_active_node->flags().has_not(NodeInstFlags::HasWidgets))
         ImGui::SetCursorPosY(std::max(last_in_off_y, ImGui::GetCursorPosY()));
     ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing * 2));
+
+    if (zoomed_draw_all()) [[likely]]
+        m_active_node->m_last_pins_h = ImGui::GetCursorPosY() - y_off;
+    y_off = ImGui::GetCursorPosY();
 
     // TODO:FIX resizing
    // m_resizing_grip_positions[node_idx].Min.y -= ImGui::GetCursorPos().y - m_curr_node_top_offset + ImGui::GetTextLineHeight();
@@ -566,13 +585,32 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
             m_active_node->flags().remove(NodeInstFlags::ShowHidden);
     }
 
-
     if (m_active_node->obj_flags().has(NodeObjFlags::CustomWidget))
-        g::pFlow->custom_widgets().draw_custom_widget(m_active_node, m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle, m_active_node->w_widget_name + m_active_node->w_widget_value);
+    {
+        if (zoomed_skip_widget_content()) [[unlikely]]
+        {
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle);
+            draw_zoomed_low_box(m_active_node->w_widget_name + m_active_node->w_widget_value, m_active_node->m_last_custom_widgets_h);
+        }
+        else
+        {
+            if (zoomed_draw_fade())
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, get_zoomed_fade_alpha());
+
+            const auto y = ImGui::GetCursorPosY();
+            g::pFlow->custom_widgets().draw_custom_widget(m_active_node, m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle, m_active_node->w_widget_name + m_active_node->w_widget_value);
+            m_active_node->m_last_custom_widgets_h = ImGui::GetCursorPosY() - y;
+
+            if (zoomed_draw_fade())
+                ImGui::PopStyleVar();
+        }
+    }
 
     if (m_active_node->flags().has(NodeInstFlags::HasWidgets) && m_active_node->obj_flags().has_not(NodeObjFlags::CustomWidget))
         ImGui::Dummy(ImVec2(m_active_node->w_node, 10.0f));
 
+    if (zoomed_draw_all()) [[likely]]
+        m_active_node->m_last_all_widgets_h = ImGui::GetCursorPosY() - y_off;
     m_active_node = nullptr;
 }
 
@@ -609,7 +647,7 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
             ImDrawFlags_RoundCornersBottom
         );
 
-        if (m_active_node != m_renaming_node)
+        if (m_active_node != m_renaming_node && !zoomed_skip_captions()) [[likely]]
         {
             ImGui::SetCursorPosX(text_lt.x);
             ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->m_clr_group_capt);
@@ -621,7 +659,7 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
             //ImGui::TextUnformatted(pbeg, pend);
 
             ImGui::PopStyleColor();
-            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+            if (zoomed_allow_renaming() && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             {
                 m_renaming_node = m_active_node;
                 m_renaming_buff = m_active_node->get_name();
@@ -680,54 +718,60 @@ void NodeDrawer::draw_node_header()
     const float collapsed_pin_y = ImGui::GetCursorPosY();
     if (m_active_node->flags().has_not(NodeInstFlags::Expanded) && !m_active_node->get_inputs().empty())
     {
-        draw_collapsed_pins(true);
+        if (zoomed_skip_pin_shape()) [[unlikely]]
+            ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
+        else
+            draw_collapsed_pins(true);
         ImGui::SameLine();
     }
 
     if (m_active_node != m_renaming_node)
     {
-        ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_name_off);
-        ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->obj_flags().has(NodeObjFlags::Dummy) ? g::pOptsManager->color_load(AppColor::DummyNode) : m_clr_node_header_text);
-//#ifdef _DEBUG
-//        ImGui::TextUnformatted((m_active_node->get_name() + "[" + std::to_string(m_active_node->get_instance_id()) + "]").c_str());
-//#else
-        ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
-//#endif
-        ImGui::PopStyleColor();
-
-        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+        if (!zoomed_skip_captions()) [[likely]]
         {
-            if (m_active_node->has_object() && m_active_node->obj_flags().has(NodeObjFlags::CanRename))
+            ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_name_off);
+            ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->obj_flags().has(NodeObjFlags::Dummy) ? g::pOptsManager->color_load(AppColor::DummyNode) : m_clr_node_header_text);
+            ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
+            ImGui::PopStyleColor();
+
+            if (zoomed_allow_renaming() && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             {
-                m_renaming_node = m_active_node;
-                m_renaming_buff = m_active_node->get_name();
-                m_need_renaming_focus = true;
+                if (m_active_node->has_object() && m_active_node->obj_flags().has(NodeObjFlags::CanRename))
+                {
+                    m_renaming_node = m_active_node;
+                    m_renaming_buff = m_active_node->get_name();
+                    m_need_renaming_focus = true;
+                }
+            }
+
+            if (m_active_node->flags().has(NodeInstFlags::Pinned))
+            {
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
+                ImGui::TextUnformatted(" " ICON_LC_PIN);
+                ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered()) m_active_tt = "Node is pinned to the canvas.";
+            }
+            if (m_active_node->get_mode_bypass())
+            {
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
+                ImGui::TextUnformatted(" " ICON_LC_SKIP_FORWARD);
+                ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered()) m_active_tt = "Node is bypassed. Inputs pass through to outputs.";
+            }
+            else if (!m_active_node->get_mode_always())
+            {
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
+                ImGui::TextUnformatted(" " ICON_LC_VOLUME_X);
+                ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered()) m_active_tt = "Node is muted. It will not be processed.";
             }
         }
-
-        if (m_active_node->flags().has(NodeInstFlags::Pinned))
+        else
         {
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
-            ImGui::TextUnformatted(" " ICON_LC_PIN);
-            ImGui::PopStyleColor();
-            if (ImGui::IsItemHovered()) m_active_tt = "Node is pinned to the canvas.";
-        }
-        if (m_active_node->get_mode_bypass())
-        {
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
-            ImGui::TextUnformatted(" " ICON_LC_SKIP_FORWARD);
-            ImGui::PopStyleColor();
-            if (ImGui::IsItemHovered()) m_active_tt = "Node is bypassed. Inputs pass through to outputs.";
-        }
-        else if (!m_active_node->get_mode_always())
-        {
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
-            ImGui::TextUnformatted(" " ICON_LC_VOLUME_X);
-            ImGui::PopStyleColor();
-            if (ImGui::IsItemHovered()) m_active_tt = "Node is muted. It will not be processed.";
+            ImGui::Dummy({});
         }
     }
     else if (m_renaming_node == m_active_node)
@@ -774,7 +818,13 @@ void NodeDrawer::draw_node_header()
         if (!m_active_node->get_outputs().empty())
         {                
             ImGui::SetCursorPosY(collapsed_pin_y);
-            draw_collapsed_pins(false);
+            if (zoomed_skip_pin_shape()) [[unlikely]]
+            {
+                ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
+                ImGui::SameLine();
+            }
+            else
+                draw_collapsed_pins(false);
         }
         else
         {
@@ -831,13 +881,23 @@ void NodeDrawer::draw_input_pin(data::PinInstance* pin, bool failed_pin)
     draw_pin(pin, false, false, failed_pin);
     ImGui::SameLine(0.0f, w::pin_r_offset);
     if (!handle_pin_renaming(pin))
-        ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
+    {
+        if (zoomed_skip_pin_names()) [[unlikely]]
+            ImGui::Dummy(ImVec2(pin->state().w_name, 0.0f));
+        else
+            ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
+    }
 }
 
 void NodeDrawer::draw_output_pin(data::PinInstance* pin)
 {
     if (!handle_pin_renaming(pin))
-        ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
+    {
+        if (zoomed_skip_pin_names()) [[unlikely]]
+            ImGui::Dummy(ImVec2(pin->state().w_name, 0.0f));
+        else
+            ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
+    }
     ImGui::SameLine(0, w::pin_r_offset);
     draw_pin(pin, false, false, false);
 }
@@ -847,7 +907,10 @@ void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool alig
     ImGui::PushID(0x5F329AF2);
     ImGui::PushID(pin);
     ed::BeginPin(pin->ed(), pin->obj_flags().has(PinObjFlags::Input) ? ed::PinKind::Input : ed::PinKind::Output);
-    draw_pin_shape(pin, collapsed_mode, align_to_widget, failed_pin);
+    if (zoomed_skip_pin_shape())
+        ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
+    else
+        draw_pin_shape(pin, collapsed_mode, align_to_widget, failed_pin);
     ed::EndPin();
     ImGui::PopID(2);
 }
@@ -867,6 +930,15 @@ void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_wid
 
 void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
+    if (zoomed_skip_widget_content()) [[unlikely]]
+    {
+        draw_zoomed_medium_control(widget_name_width + widget_value_width, PinType::STRING == pin->state().type && pin->is_multiline());
+        return;
+    }
+
+    if (zoomed_draw_fade())
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, get_zoomed_fade_alpha());
+
     switch (pin->state().type)
     {
     case PinType::INT:
@@ -894,6 +966,9 @@ void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, fl
         draw_widget_color(pin, widget_name_width, widget_value_width);
         break;
     }
+
+    if (zoomed_draw_fade())
+        ImGui::PopStyleVar();
 }
 
 void NodeDrawer::handle_widget_active_state(data::PinInstance* pin, const Primitive* backup /*= nullptr*/)
@@ -1347,6 +1422,9 @@ void NodeDrawer::draw_cag_helper(const data::PinInstance* pin) const noexcept
 
 void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& links)
 {
+    if (zoomed_skip_links()) [[unlikely]]
+        return;
+
     for (auto& link : links)
     {
         auto in = link->get_input();
@@ -1836,17 +1914,6 @@ void NodeDrawer::delete_link(data::Link* link)
         ed::SetCurrentEditor(nullptr);    
 }
 
-float NodeDrawer::get_zoom() const noexcept
-{
-    return ed::GetCurrentZoom();
-}
-
-void NodeDrawer::set_zoom(float zoom) noexcept
-{
-    m_zoom = zoom;
-    m_zoom_set = false;
-}
-
 const ImRect& NodeDrawer::get_viewport_rect() const noexcept
 {
     return ed::GetCurrentView();
@@ -1951,6 +2018,28 @@ void NodeDrawer::handle_node_collapsing(const data::NodeInstance* node)
             break;
         }
     }
+}
+
+float NodeDrawer::get_zoomed_fade_alpha() const noexcept
+{
+    const float fade_range = ZOOMED_FADE - ZOOMED_MAX;
+    float alpha = 1.0f - ((m_zoom - ZOOMED_MAX) / fade_range);
+    alpha = std::clamp(alpha, 0.0f, 1.0f);
+    return std::max(0.2f, alpha);
+}
+
+void NodeDrawer::draw_zoomed_medium_control(float width, bool multiline) const noexcept
+{
+    const float frame_height = (multiline ? ImGui::GetFrameHeight() * WIDGET_STRING_ML_H : ImGui::GetFrameHeight());
+    draw_zoomed_low_box(width, frame_height);
+}
+
+void NodeDrawer::draw_zoomed_low_box(float width, float height) const noexcept
+{
+    const ImVec2 p_min = ImGui::GetCursorScreenPos();
+    const ImVec2 p_max = ImVec2(p_min.x + width, p_min.y + height);
+    ImGui::RenderFrame(p_min, p_max, ImGui::GetColorU32(ImGuiCol_FrameBg), true, ImGui::GetStyle().FrameRounding);
+    ImGui::Dummy(ImVec2(width, height));
 }
 
 bool NodeDrawer::tooltip_suspended(const std::function<const char*()>& tooltip, ImU32 pop_color /*= 0*/) const noexcept
