@@ -193,6 +193,12 @@ bool MainRoutine_Win32::render_frame(bool done)
         ::PostQuitMessage(1);
         LogCritical("Device lost on Present: " << LogHRES(hr));
     }
+    if (DXGI_STATUS_OCCLUDED == hr)
+    {
+        // window is fully covered by other windows.
+        // sleep to release CPU and GPU resources.
+        ::Sleep(10); 
+    }
 
     m_is_rendering = false; // unlock
     return ret;

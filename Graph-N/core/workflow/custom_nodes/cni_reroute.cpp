@@ -485,7 +485,7 @@ void CNI_Reroute::cni_pin_linked(PinInstance* p1, PinInstance* p2)
 
     LogRAssert(p1 && p2, "Zero ptr", );
     LogRAssert(cni_can_link(p1, p2),
-        "Check CNI_primitive can link before entablish connection. w:" << get_workflow_id() << ", n: " << get_instance_id() << ", p1:" << p1->get_instance_id() << ", p2:" << p2->get_instance_id(), );
+        "Check CNI_Reroute can link before entablish connection. w:" << get_workflow_id() << ", n: " << get_instance_id() << ", p1:" << p1->get_instance_id() << ", p2:" << p2->get_instance_id(), );
 
     const PinInstance* external_pin = nullptr;
     LinkedPair* pair = nullptr;

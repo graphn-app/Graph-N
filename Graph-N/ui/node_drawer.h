@@ -135,14 +135,17 @@ private:
     void draw_zoomed_medium_control(float width, bool multiline) const noexcept;
     void draw_zoomed_low_box(float width, float height) const noexcept;
 
-    bool zoomed_draw_all() const noexcept { return m_first_frame || ZoomedVisibility::Max == m_zoomed_visibility || ZoomedVisibility::Fade == m_zoomed_visibility; }
-    bool zoomed_draw_fade() const noexcept { return !m_first_frame && ZoomedVisibility::Fade == m_zoomed_visibility; }
-    bool zoomed_skip_widget_content() const noexcept { return !m_first_frame && (ZoomedVisibility::Medium == m_zoomed_visibility || ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
-    bool zoomed_skip_pin_names() const noexcept { return !m_first_frame && (ZoomedVisibility::Medium == m_zoomed_visibility || ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
-    bool zoomed_skip_node_content() const noexcept { return !m_first_frame && (ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
-    bool zoomed_skip_pin_shape() const noexcept { return !m_first_frame && (ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
-    bool zoomed_skip_captions() const noexcept { return !m_first_frame && (ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
-    bool zoomed_skip_links() const noexcept { return !m_first_frame && ZoomedVisibility::None == m_zoomed_visibility; }
+    bool zoomed_draw_all() const noexcept { return ZoomedVisibility::Max == m_zoomed_visibility || ZoomedVisibility::Fade == m_zoomed_visibility; }
+    bool zoomed_draw_fade() const noexcept { return ZoomedVisibility::Fade == m_zoomed_visibility; }
+    bool zoomed_skip_widget_content() const noexcept { return (ZoomedVisibility::Medium == m_zoomed_visibility || ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
+    bool zoomed_skip_pin_names() const noexcept { return (ZoomedVisibility::Medium == m_zoomed_visibility || ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
+    bool zoomed_skip_pin_shape() const noexcept { return (ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
+    bool zoomed_skip_captions() const noexcept { return (ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
+    bool zoomed_skip_links() const noexcept { return ZoomedVisibility::None == m_zoomed_visibility; }
+
+    void calc_canvas_area();
+    void cull_node() noexcept;
+    void draw_meaningful_pins_only();
 
 private:
     data::Workflow* m_wf = nullptr;
@@ -188,7 +191,11 @@ private:
     bool m_zoom_set = true;
     float m_mouse_wheel = 1.0f;
     ZoomedVisibility m_zoomed_visibility = ZoomedVisibility::Max;
-};
 
+    ImRect m_canvas_area;
+    ImVec2 m_max_node_size;
+    bool m_node_culled = false;
+    ZoomedVisibility m_cached_zoomed_visibility = ZoomedVisibility::Max;
+};
 
 } // namespace ui

@@ -193,6 +193,7 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/, bool first
     m_active_tt = nullptr;
     m_hovered_widget = nullptr;
     m_first_frame = first_frame;
+    m_max_node_size = {};
 
     //if (m_resizing_w.size() != nodes_count) // TODO:FIX resizing
     //{
@@ -206,6 +207,7 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/, bool first
     ed::SetCurrentEditor(m_context);
     ed::EnableShortcuts(false);
 
+    calc_canvas_area();
     handle_deleted();
 
     //if (!m_view_set)
@@ -222,7 +224,6 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/, bool first
     m_defclr_node_bg = g::pOptsManager->color_load(AppColor::NodeBodyBg);
     m_defclr_node_header_bg = ImGuiEx::decrease_brightness(m_defclr_node_bg);
 
-
     auto& io = ImGui::GetIO();
     m_mouse_wheel = io.MouseWheel;
     if (io.KeyShift) 
@@ -231,7 +232,7 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/, bool first
     ed::Begin(id, ImVec2(0, 0));
 
     m_zoom = ed::GetCurrentZoom();
-    if (m_zoom <= ZOOMED_MAX) [[likely]]    m_zoomed_visibility = ZoomedVisibility::Max;
+    if (m_first_frame || m_zoom <= ZOOMED_MAX) [[likely]] m_zoomed_visibility = ZoomedVisibility::Max;
     else if (m_zoom <= ZOOMED_FADE)         m_zoomed_visibility = ZoomedVisibility::Fade;
     else if (m_zoom <= ZOOMED_MEDIUM)       m_zoomed_visibility = ZoomedVisibility::Medium;
     else if (m_zoom <= ZOOMED_LOW)          m_zoomed_visibility = ZoomedVisibility::Low;
@@ -294,8 +295,9 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
 {
     LogRAssert(node, "Zero ptr", );
     LogRAssert(nullptr == m_active_node, "Active node must be zero ptr", );
+    m_active_node = node;
 
-    if (node->flags().has(NodeInstFlags::Group))
+    if (m_active_node->flags().has(NodeInstFlags::Group))
     {
         ed::PushStyleColor(ed::StyleColor_GroupBg, ImVec4(0, 0, 0, 0));
         ed::PushStyleColor(ed::StyleColor_GroupBorder, ImVec4(0, 0, 0, 0));
@@ -303,7 +305,7 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
     }
     else
     {
-        if (node->obj_flags().has(NodeObjFlags::Dummy) || execution_failed)
+        if (m_active_node->obj_flags().has(NodeObjFlags::Dummy) || execution_failed)
         {
             const auto clr = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::DummyNode));
             ed::PushStyleColor(ed::StyleColor_NodeBorder, clr);
@@ -312,42 +314,43 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
             ed::PushStyleColor(ed::StyleColor_NodeSelRect, clr);
             ed::PushStyleColor(ed::StyleColor_NodeSelRectBorder, clr);
         }
-        ed::PushStyleColor(ed::StyleColor_NodeBg, node->m_clr_node);
+        ed::PushStyleColor(ed::StyleColor_NodeBg, m_active_node->m_clr_node);
     }
 
-    if (node->get_mode_mute())
+    if (m_active_node->get_mode_mute())
     {
         ed::PushStyleColor(ed::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBorderMuted)));
         ed::PushStyleColor(ed::StyleColor_NodeBg, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBgMuted)));
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * m_mode_alpha);
     }
-    else if (node->get_mode_bypass())
+    else if (m_active_node->get_mode_bypass())
     {
         ed::PushStyleColor(ed::StyleColor_NodeBorder, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBorderBypassed)));
         ed::PushStyleColor(ed::StyleColor_NodeBg, ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::NodeBgBypassed)));
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * m_mode_alpha);
     }
 
-    if (node->flags().has_not(NodeInstFlags::PosSet))
+    if (m_active_node->flags().has_not(NodeInstFlags::PosSet))
     {
-        ed::SetNodePosition(node->ed(), node->m_rc.Min);
-        node->flags().add(NodeInstFlags::PosSet);
+        ed::SetNodePosition(m_active_node->ed(), m_active_node->m_rc.Min);
+        m_active_node->flags().add(NodeInstFlags::PosSet);
     }
-    if (node->flags().has_and_has_not(NodeInstFlags::Group, NodeInstFlags::SizeSet))
+    if (m_active_node->flags().has_and_has_not(NodeInstFlags::Group, NodeInstFlags::SizeSet))
     {
-        ed::SetGroupSize(node->ed(), node->m_rc.Max);
-        node->flags().add(NodeInstFlags::SizeSet);
-    }
-
-    ed::BeginNode(node->ed());
-
-    if (node->flags().has_not(NodeInstFlags::PinnedSet))
-    {
-        ed::SetNodeDraggable(node->ed(), node->flags().has_not(NodeInstFlags::Pinned));
-        node->flags().add(NodeInstFlags::PinnedSet);
+        ed::SetGroupSize(m_active_node->ed(), m_active_node->m_rc.Max);
+        m_active_node->flags().add(NodeInstFlags::SizeSet);
     }
 
-    const bool deferred_node_active = m_deffered_action->active_node == node;
+    ed::BeginNode(m_active_node->ed());
+    cull_node();
+
+    if (m_active_node->flags().has_not(NodeInstFlags::PinnedSet))
+    {
+        ed::SetNodeDraggable(m_active_node->ed(), m_active_node->flags().has_not(NodeInstFlags::Pinned));
+        m_active_node->flags().add(NodeInstFlags::PinnedSet);
+    }
+
+    const bool deferred_node_active = m_deffered_action->active_node == m_active_node;
     if (deferred_node_active)
     {
         if (ed::HasSelectionChanged())
@@ -358,33 +361,39 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
 void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed) noexcept
 {
     LogRAssert(node, "Zero ptr", );
-    LogRAssert(nullptr == m_active_node, "Active node must be zero ptr", );
+    LogRAssert(node == m_active_node, "Invalid node ptr", );
+
     ed::EndNode();
 
-    node->m_rc.Min = ed::GetNodePosition(node->ed());
+    if (m_node_culled)
+        m_zoomed_visibility = m_cached_zoomed_visibility;
 
-    if (node->flags().has_not(NodeInstFlags::IgnoreSizeOnFrameEnd))
-        node->m_rc.Max = ed::GetNodeSize(node->ed());
-    node->flags().remove(NodeInstFlags::IgnoreSizeOnFrameEnd);
+    m_active_node->m_rc.Min = ed::GetNodePosition(m_active_node->ed());
 
-    if (node->flags().has(NodeInstFlags::Group))
+    if (m_active_node->flags().has_not(NodeInstFlags::IgnoreSizeOnFrameEnd))
+        m_active_node->m_rc.Max = ed::GetNodeSize(m_active_node->ed());
+    m_active_node->flags().remove(NodeInstFlags::IgnoreSizeOnFrameEnd);
+
+    if (m_active_node->flags().has(NodeInstFlags::Group))
         ed::PopStyleColor(3);
-    else if (node->obj_flags().has(NodeObjFlags::Dummy) || execution_failed)
+    else if (m_active_node->obj_flags().has(NodeObjFlags::Dummy) || execution_failed)
         ed::PopStyleColor(6);
     else
         ed::PopStyleColor();
 
-    if (!node->get_mode_always())
+    if (!m_active_node->get_mode_always())
     {
         ed::PopStyleColor(2);
         ImGui::PopStyleVar();
     }
+
+    m_active_node = nullptr;
 }
 
 void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node_idx*/, const std::set<std::string>* failed_pins)
 {
     LogRAssert(node, "Zero ptr", );
-    m_active_node = node;
+    LogRAssert(m_active_node == node, "Invalid node ptr", );
 
     ImVec2 node_size/*, node_pos*/;
 
@@ -401,6 +410,9 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
             node_w = node_size.x - ed::GetStyle().NodePadding.x - ed::GetStyle().NodePadding.z;
         }
     }
+
+    m_max_node_size.x = std::max(m_max_node_size.x, node_size.x);
+    m_max_node_size.y = std::max(m_max_node_size.y, node_size.y);
 
     if (m_active_node->flags().has_not(NodeInstFlags::SizeSet) && m_active_node->m_rc.Max.x > 0)
     {
@@ -432,15 +444,12 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     //ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing));
     draw_node_header();
     if (m_active_node->flags().has_not(NodeInstFlags::Expanded))
-    {
-        m_active_node = nullptr;
         return;
-    }
 
     if (zoomed_skip_links()) [[unlikely]]
     {
+        draw_meaningful_pins_only();
         ImGui::Dummy(ImVec2(node_w, m_active_node->m_last_all_widgets_h));
-        m_active_node = nullptr;
         return;
     }
 
@@ -611,12 +620,18 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     if (zoomed_draw_all()) [[likely]]
         m_active_node->m_last_all_widgets_h = ImGui::GetCursorPosY() - y_off;
-    m_active_node = nullptr;
 }
 
 void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
 {
-    m_active_node = node;
+    if (m_node_culled)
+    {
+        ed::Group(m_active_node->m_rc.Max);
+        return;
+    }
+
+    LogRAssert(node, "Zero ptr", );
+    LogRAssert(m_active_node == node, "Invalid group ptr", );
 
     m_curr_node_left_offset = ImGui::GetCursorScreenPos().x;
     m_curr_node_top_offset = ImGui::GetCursorScreenPos().y;
@@ -693,7 +708,6 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
     }
 
     ed::Group(m_active_node->m_rc.Max);
-    m_active_node = nullptr;
 }
 
 void NodeDrawer::draw_node_header()
@@ -718,10 +732,7 @@ void NodeDrawer::draw_node_header()
     const float collapsed_pin_y = ImGui::GetCursorPosY();
     if (m_active_node->flags().has_not(NodeInstFlags::Expanded) && !m_active_node->get_inputs().empty())
     {
-        if (zoomed_skip_pin_shape()) [[unlikely]]
-            ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
-        else
-            draw_collapsed_pins(true);
+        draw_collapsed_pins(true);
         ImGui::SameLine();
     }
 
@@ -818,13 +829,7 @@ void NodeDrawer::draw_node_header()
         if (!m_active_node->get_outputs().empty())
         {                
             ImGui::SetCursorPosY(collapsed_pin_y);
-            if (zoomed_skip_pin_shape()) [[unlikely]]
-            {
-                ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
-                ImGui::SameLine();
-            }
-            else
-                draw_collapsed_pins(false);
+            draw_collapsed_pins(false);
         }
         else
         {
@@ -2040,6 +2045,96 @@ void NodeDrawer::draw_zoomed_low_box(float width, float height) const noexcept
     const ImVec2 p_max = ImVec2(p_min.x + width, p_min.y + height);
     ImGui::RenderFrame(p_min, p_max, ImGui::GetColorU32(ImGuiCol_FrameBg), true, ImGui::GetStyle().FrameRounding);
     ImGui::Dummy(ImVec2(width, height));
+}
+
+void NodeDrawer::calc_canvas_area()
+{
+    if (m_first_frame) [[unlikely]]
+        return;
+
+    constexpr float padding = 50.0f;
+    m_canvas_area = get_viewport_rect();
+    m_canvas_area.Min.x -= m_max_node_size.x + padding;
+    m_canvas_area.Min.y -= m_max_node_size.y + padding;
+    m_canvas_area.Max.x += m_max_node_size.x + padding;
+    m_canvas_area.Max.y += m_max_node_size.y + padding;
+}
+
+void NodeDrawer::cull_node() noexcept
+{
+    m_node_culled = false;
+    if (m_first_frame) [[unlikely]]
+        return;
+
+    const ImVec2 pos = ed::GetNodePosition(m_active_node->ed());
+    const ImVec2 size = ed::GetNodeSize(m_active_node->ed());
+    m_node_culled = !(
+            (pos.x < m_canvas_area.Max.x) && (pos.x + size.x > m_canvas_area.Min.x) &&
+            (pos.y < m_canvas_area.Max.y) && (pos.y + size.y > m_canvas_area.Min.y)
+        );
+
+    if (m_node_culled)
+    {
+        m_cached_zoomed_visibility = m_zoomed_visibility;
+        m_zoomed_visibility = ZoomedVisibility::None;
+    }
+}
+
+void NodeDrawer::draw_meaningful_pins_only()
+{
+    const auto start_y = ImGui::GetCursorPosY();
+
+    bool draw_pins = true;
+    if (m_active_node->flags().has(NodeInstFlags::RerouteSplitted)) [[unlikely]]
+    {
+        const auto reroute_pin = cast::strict<data::CNI_Reroute>(m_active_node)->get_splitter_input();
+        if (reroute_pin != nullptr && reroute_pin->state().links > 0)
+        {
+            ed::BeginPin(reroute_pin->ed(), ed::PinKind::Input);
+            ImGui::Dummy(ImVec2(8.0f, 8.0f));
+            ed::EndPin();
+            draw_pins = false;
+        }
+    }
+    if (draw_pins) [[likely]]
+    {
+        for (auto pin : m_active_node->get_inputs())
+        {
+            if (pin->state().links > 0)
+            {
+                ed::BeginPin(pin->ed(), ed::PinKind::Input);
+                ImGui::Dummy(ImVec2(8.0f, 8.0f));
+                ed::EndPin();
+            }
+        }
+    }
+
+    ImGui::SetCursorPosY(start_y);
+
+    draw_pins = true;
+    if (m_active_node->flags().has(NodeInstFlags::RerouteSplitted)) [[unlikely]]
+    {
+        const auto reroute_pin = cast::strict<data::CNI_Reroute>(m_active_node)->get_splitter_output();
+        if (reroute_pin != nullptr && reroute_pin->state().links > 0)
+        {
+            ed::BeginPin(reroute_pin->ed(), ed::PinKind::Output);
+            ImGui::Dummy(ImVec2(8.0f, 8.0f));
+            ed::EndPin();
+            draw_pins = false;
+        }
+    }
+    if (draw_pins) [[likely]]
+    {
+        for (auto pin : m_active_node->get_outputs())
+        {
+            if (pin->state().links > 0)
+            {
+                ed::BeginPin(pin->ed(), ed::PinKind::Output);
+                ImGui::Dummy(ImVec2(8.0f, 8.0f));
+                ed::EndPin();
+            }
+        }
+    }
 }
 
 bool NodeDrawer::tooltip_suspended(const std::function<const char*()>& tooltip, ImU32 pop_color /*= 0*/) const noexcept
