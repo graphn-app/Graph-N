@@ -120,7 +120,7 @@ bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinI
     if (window->SkipItems) [[unlikely]]
         return false;
 
-    const float height = (ImGui::GetTextLineHeight() * 4) + (style.FramePadding.y * 2.0f);
+    const float height = (ImGui::GetTextLineHeight() * WIDGET_STRING_ML_H) + (style.FramePadding.y * 2.0f);
     const float width = ImGui::CalcItemWidth();
     const ImVec2 size(0 == width ? 1.0f : width, height);
 

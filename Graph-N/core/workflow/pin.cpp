@@ -134,7 +134,7 @@ void Pin::copy_string(Pin* dest) const
 {
     LogRAssert(dest, "Zero ptr", );
     dest->def = def;
-    dest->w_value = 200.0f;
+    dest->w_value = WIDGET_STRING_W;
     dest->tooltip = tooltip;
     dest->flags.add_remove_if(PinObjFlags::Multiline, flags.has(PinObjFlags::Multiline));
     dest->placeholder = placeholder;
@@ -148,7 +148,7 @@ void Pin::copy_bool(Pin* dest) const
     dest->def_state.min = def_state.min;
     dest->def_state.max = def_state.max;
     dest->def_state.step = def_state.step;
-    dest->w_value = 100.0f;
+    dest->w_value = WIDGET_BOOL_W;
     dest->tooltip = tooltip;
     dest->label_on = label_on;
     dest->label_on_named = label_on_named;
@@ -164,7 +164,7 @@ void Pin::copy_combo(Pin* dest) const
     dest->def_state.min = def_state.min;
     dest->def_state.max = def_state.max;
     dest->def_state.step = def_state.step;
-    dest->w_value = 150.0f;
+    dest->w_value = WIDGET_COMBO_W;
     dest->tooltip = tooltip;
     dest->flags.add_remove_if(PinObjFlags::Multiselect, flags.has(PinObjFlags::Multiselect));
     dest->combo_items = combo_items;
@@ -251,17 +251,17 @@ void Pin::finalize()
         case PinType::INT:
         case PinType::FLOAT:
         case PinType::NUMBER:
-            w_value = ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
+            w_value = WIDGET_NUM_W; // ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
             break;
         case PinType::COLOR:
-            w_value = (flags.has(PinObjFlags::ClrAlphaEnabled) ? 250.0f : 200.0f);
+            w_value = (flags.has(PinObjFlags::ClrAlphaEnabled) ? WIDGET_COLOR_RGBA_W : WIDGET_COLOR_RGB_W);
             break;
         case PinType::STRING:
-            w_value = 200.0f;
+            w_value = WIDGET_STRING_W;
             def_state.w_name = 0.0f;
             break;
         case PinType::COMBO:
-            w_value = 150.0f;
+            w_value = WIDGET_COMBO_W;
             //for (auto& item : combo_items)
             //{
             //    const auto w = ImGui::CalcTextSize(any_to_string(item).c_str()).x;
@@ -272,7 +272,7 @@ void Pin::finalize()
             break;
         case PinType::BOOLEAN:
         default:
-            w_value = 100.0f;
+            w_value = WIDGET_BOOL_W;
             break;
         }
     }

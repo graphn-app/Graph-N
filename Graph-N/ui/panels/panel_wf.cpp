@@ -224,7 +224,7 @@ void PanelWorkflow::copy_nodes(const std::set<data::NodeInstance*>& nodes, std::
     g::pWfsManager->copy_begin(m_wf, src_point);
     for (auto node : nodes)
     {
-        if (node->obj_flags().has_not(NodeObjFlags::Dummy))
+        if (node->flags().has(NodeInstFlags::Group) || node->obj_flags().has_not(NodeObjFlags::Dummy))
         {
             if (node->flags().has(NodeInstFlags::RerouteSplitted_R))
                 g::pWfsManager->copy_add(cast::strict<data::CNI_Reroute>(node)->get_splitted_base());

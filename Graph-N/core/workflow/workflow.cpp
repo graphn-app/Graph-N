@@ -132,6 +132,17 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source, bool copy
     return ptr;
 }
 
+NodeInstanceRo* Workflow::add_node_ro(data::Node* node)
+{
+    const auto id = get_new_child_id();
+    auto instance = create_node_ro(node, id);
+    auto ptr = instance.get();
+    ptr->init();
+    m_nodes_ro.push_back(std::move(instance));
+    test_duplicates();
+    return ptr;
+}
+
 NodeInstance* Workflow::add_group_node()
 {
     auto instance = create_node(nullptr, get_new_child_id(), 0);
@@ -144,20 +155,10 @@ NodeInstance* Workflow::add_group_node()
     return ptr;
 }
 
-NodeInstanceRo* Workflow::add_node_ro(data::Node* node)
+NodeInstance* Workflow::add_group(const ImRect& rc, const std::string& name /*= ""*/, iid node_id /*= 0*/)
 {
-    const auto id = get_new_child_id();
-    auto instance = create_node_ro(node, id);
-    auto ptr = instance.get();
-    ptr->init();
-    m_nodes_ro.push_back(std::move(instance));
-    test_duplicates();
-    return ptr;
-}
-
-NodeInstance* Workflow::add_group(const ImRect& rc, const std::string& name /*= ""*/)
-{
-    const auto id = get_new_child_id();
+    const auto id = (0 == node_id ? get_new_child_id() : node_id);
+    set_last_child_id(id);
     auto instance = create_node(nullptr, id, 0);
     instance->m_rc.Min = rc.Min;
     instance->m_rc.Max = ImVec2(-1 == rc.Max.x ? 200 : rc.Max.x, -1 == rc.Max.y ? 200 : rc.Max.y);

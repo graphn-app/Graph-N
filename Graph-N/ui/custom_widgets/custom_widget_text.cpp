@@ -12,10 +12,9 @@ void CustomWidget::draw_text_widget_from_output(OutputData& out)
 
     ImGui::SetCursorPosX(m_start_pos);
 
-    constexpr float max_height = 200.0f;
     const ImVec2 text_size = ImGui::CalcTextSize(out.item.text_info.c_str(), nullptr, false, m_widget_width);
-    const bool is_truncated = text_size.y > max_height;
-    const float final_height = std::min(text_size.y, max_height);
+    const bool is_truncated = text_size.y > WIDGET_OUT_TEXT_MAX_H;
+    const float final_height = std::min(text_size.y, WIDGET_OUT_TEXT_MAX_H);
     const ImVec2 start_pos = ImGui::GetCursorScreenPos();
 
     ImGui::Dummy(ImVec2(m_widget_width, final_height));

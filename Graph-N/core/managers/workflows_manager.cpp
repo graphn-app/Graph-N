@@ -566,6 +566,12 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
     {
         LogCAssert(node->flags().has_not(NodeInstFlags::RerouteSplitted_R), "Splitted node shouldn't be copied explicitly");
 
+        if (node->flags().has(NodeInstFlags::Group))
+        {
+            wf_dest->add_group(node->m_rc, node->get_name());
+            continue;
+        }
+
         auto new_node = wf_dest->add_node(node, dest_wf_data.virt);
         new_node->flags().add(NodeInstFlags::Deserialization);
         new_node->m_rc.Min.x = node->m_rc.Min.x - src_pt.x;
