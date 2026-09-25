@@ -229,7 +229,7 @@ enum class NodeInstFlags : uint64_t
 {
     None                      = 0,            // 0                  -  0x00
     Group                     = 1ULL << 0,    // 1                  -  0x01
-    CanDelete                 = 1ULL << 1,    // 2                  -  0x02               // default
+    CanBeDeleted              = 1ULL << 1,    // 2                  -  0x02               // default
     CNI                       = 1ULL << 2,    // 4                  -  0x04
     Reroute                   = 1ULL << 3,    // 8                  -  0x08
     RerouteSplitted           = 1ULL << 4,    // 16                 -  0x10

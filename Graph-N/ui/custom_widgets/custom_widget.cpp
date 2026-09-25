@@ -198,6 +198,9 @@ bool CustomWidget::check_source_and_get_pin(Widget& widget, int64_t& index, data
         widget.items.resize(widget.names.size());
 
     source_pin = m_node->get_object()->custom_widget_source;
+    if (nullptr == source_pin || source_pin->combo_items_str.empty())
+        return false;
+
     data::PinInstance* source_pin_inst = nullptr;
     for (auto& input : m_node->get_inputs())
     {

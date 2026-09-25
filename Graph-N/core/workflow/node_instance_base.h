@@ -13,7 +13,7 @@ public:
     NodeInstanceBase(Node* obj, wid workflow_id, iid instance_id)
         : CNI_Base(obj, workflow_id, instance_id)
     {
-        flags().add(NodeInstFlags::CanDelete, NodeInstFlags::Expanded/*, NodeInstFlags::ModeAlways*/);
+        flags().add(NodeInstFlags::CanBeDeleted);
     }
     ~NodeInstanceBase() noexcept override;
 

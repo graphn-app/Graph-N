@@ -351,7 +351,7 @@ std::vector<Link*> Workflow::get_links_no_reroutes() const
 void Workflow::remove_node(NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
-    if (node->flags().has_not(NodeInstFlags::CanDelete))
+    if (node->flags().has_not(NodeInstFlags::CanBeDeleted))
         return;
 
     std::unordered_set<uint64_t> ids;
@@ -420,7 +420,7 @@ void Workflow::invalidate_current() noexcept
 void Workflow::remove_node(NodeInstanceRo* node)
 {
     LogRAssert(node, "Zero ptr", );
-    if (node->flags().has_not(NodeInstFlags::CanDelete))
+    if (node->flags().has_not(NodeInstFlags::CanBeDeleted))
         return;
 
     const auto n_it = std::ranges::find_if(m_nodes_ro,

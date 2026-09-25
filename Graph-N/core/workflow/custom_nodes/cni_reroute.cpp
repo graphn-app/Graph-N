@@ -33,7 +33,7 @@ CNI_Reroute::CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instan
     if (flags().has(NodeInstFlags::RerouteSplitted_R))
     {
         flags().add(NodeInstFlags::Hidden);
-        flags().remove(NodeInstFlags::CanDelete);
+        flags().remove(NodeInstFlags::CanBeDeleted);
         m_data = nullptr; // lets crash, this shouldn't be used
     }
     else
@@ -56,7 +56,7 @@ CNI_Reroute::~CNI_Reroute() noexcept
         if (flags().has(NodeInstFlags::RerouteSplitted_R))
         {
             m_splitted_part->m_splitted_part = nullptr;
-            LogAssert(flags().has(NodeInstFlags::CanDelete), "Splitted R part should not be removed prior to L part");
+            LogAssert(flags().has(NodeInstFlags::CanBeDeleted), "Splitted R part should not be removed prior to L part");
         }
         else
         {
@@ -76,7 +76,7 @@ CNI_Reroute::~CNI_Reroute() noexcept
         if (flags().has_not(NodeInstFlags::RerouteSplitted_R) && m_splitted_part != nullptr)
         {
             m_splitted_part->reset_pins();
-            m_splitted_part->flags().add(NodeInstFlags::CanDelete);
+            m_splitted_part->flags().add(NodeInstFlags::CanBeDeleted);
             wf->remove_node(m_splitted_part);
         }
     }

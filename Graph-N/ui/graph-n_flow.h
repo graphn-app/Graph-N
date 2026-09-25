@@ -261,7 +261,7 @@ private:
     void on_menu_export_json_all(bool api);
     void on_menu_sync_projects();
     void on_menu_about() noexcept;
-    void on_menu_close_all_projects();
+    void on_menu_close_all_projects(bool keep_active);
 
     // WF & WF panels
     PanelWorkflow* wf_panel_find(wid id) const noexcept;

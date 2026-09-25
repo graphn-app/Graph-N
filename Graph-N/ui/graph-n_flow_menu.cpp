@@ -112,7 +112,11 @@ void GraphN_Flow::show_menu_bar()
             ImGui::Separator();
             if (ImGui::MenuItem("Close all Projects##WfMenuBar", nullptr, nullptr, !m_panels_wf.empty()))
             {
-                on_menu_close_all_projects();
+                on_menu_close_all_projects(false);
+            }
+            if (ImGui::MenuItem("Close all but active Project##WfMenuBar", nullptr, nullptr, !m_panels_wf.empty()))
+            {
+                on_menu_close_all_projects(true);
             }
             ImGui::EndMenu();
         }
@@ -381,12 +385,18 @@ void GraphN_Flow::on_menu_wf_rename() noexcept
     wf_rename();
 }
 
-void GraphN_Flow::on_menu_close_all_projects()
+void GraphN_Flow::on_menu_close_all_projects(bool keep_active)
 {
+    const auto active = (keep_active ? wf_get_active_panel() : nullptr);
     for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); )
     {
-        wf_panel_close(it->get());
-        it = m_panels_wf.begin();
+        if (it->get() != active)
+        {
+            wf_panel_close(it->get());
+            it = m_panels_wf.begin();
+        }
+        else
+            ++it;
     }
 }
 
