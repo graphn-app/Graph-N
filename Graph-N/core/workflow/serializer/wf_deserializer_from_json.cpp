@@ -291,14 +291,13 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
     }
 
     // pinned, collapsed
-    node_instance->flags().add(NodeInstFlags::Expanded);
-    node_instance->flags().remove(NodeInstFlags::Pinned);
+    node_instance->flags().remove(NodeInstFlags::Pinned, NodeInstFlags::Collapsed);
     if (j.contains("flags") && j["flags"].is_object())
     {
         for (const auto& [jname, jvalue] : j["flags"].items())
         {
             if (jname == "collapsed" && jvalue.is_boolean() && jvalue.get<bool>() == true)
-                node_instance->flags().remove(NodeInstFlags::Expanded);
+                node_instance->flags().add(NodeInstFlags::Collapsed);
             else if (jname == "pinned" && jvalue.is_boolean() && jvalue.get<bool>() == true)
                 node_instance->flags().add(NodeInstFlags::Pinned);
         }

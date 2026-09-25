@@ -52,7 +52,7 @@ public:
     bool set_node_rect(data::NodeInstance* node, const ImRect& rect);
     void reset_node_size(data::NodeInstance* node);
 
-    void set_node_expanded(data::NodeInstance* node, bool expanded);
+    void set_node_collapsed(data::NodeInstance* node, bool collapsed);
     void set_node_pinning(data::NodeInstance* node, bool pin);
     void set_node_mode(data::NodeInstance* node, NodeInstFlags mode);
 

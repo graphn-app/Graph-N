@@ -34,7 +34,7 @@ using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, uint64_t 
 enum class HistoryActionType
 {
     _none,
-    NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeExpand, NodeRerouteSplit,
+    NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeCollapse, NodeRerouteSplit,
     PinRen, PinVal, PinCag, PinMultiline,
     LinkAdd, LinkDel,
 
@@ -117,7 +117,7 @@ struct ActNodeRect final : public ActOldNew  { ActNodeRect() noexcept : ActOldNe
 struct ActNodePin final : public ActOldNew   { ActNodePin() noexcept : ActOldNew(HistoryActionType::NodePin) {} };
 struct ActNodeMode final : public ActOldNew  { ActNodeMode() noexcept : ActOldNew(HistoryActionType::NodeMode) {} };
 struct ActNodeClr final : public ActOldNew   { ActNodeClr() noexcept : ActOldNew(HistoryActionType::NodeClr) {} };
-struct ActNodeExpand final : public ActOldNew   { ActNodeExpand() noexcept : ActOldNew(HistoryActionType::NodeExpand) {} };
+struct ActNodeCollapse final : public ActOldNew   { ActNodeCollapse() noexcept : ActOldNew(HistoryActionType::NodeCollapse) {} };
 struct ActNodeRerouteSplit final : public ActOldNew   { ActNodeRerouteSplit() noexcept : ActOldNew(HistoryActionType::NodeRerouteSplit) {} };
 struct ActPinRen final : public ActOldNew    { ActPinRen() noexcept : ActOldNew(HistoryActionType::PinRen) {} };
 struct ActPinVal final : public ActOldNew    { ActPinVal() noexcept : ActOldNew(HistoryActionType::PinVal) {} };
@@ -189,7 +189,7 @@ private:
     void pop_node_add(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_del(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_clr(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
-    void pop_node_expand(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_node_collapse(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_mode(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_pin(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);

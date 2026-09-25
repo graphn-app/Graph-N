@@ -315,16 +315,16 @@ void WorkflowAction::reset_node_size(data::NodeInstance* node)
     g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeRect, mngr::HActionT(old_rc));
 }
 
-void WorkflowAction::set_node_expanded(data::NodeInstance* node, bool expanded)
+void WorkflowAction::set_node_collapsed(data::NodeInstance* node, bool collapsed)
 {
     LogRAssert(node, "Zero ptr", );
-    if (node->flags().has(NodeInstFlags::Expanded) == expanded)
+    if (node->flags().has(NodeInstFlags::Collapsed) == collapsed)
         return;
-    if (m_drawer != nullptr && !expanded)
+    if (m_drawer != nullptr && collapsed)
         m_drawer->handle_node_collapsing(node);
-    const uint64_t old_mode = node->flags().get_by_mask(NodeInstFlags::Expanded);
-    node->expand_node(expanded);
-    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeExpand, mngr::HActionT(old_mode));
+    const uint64_t old_mode = node->flags().get_by_mask(NodeInstFlags::Collapsed);
+    node->collapse_node(collapsed);
+    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeCollapse, mngr::HActionT(old_mode));
 }
 
 void WorkflowAction::set_node_pinning(data::NodeInstance* node, bool pin)

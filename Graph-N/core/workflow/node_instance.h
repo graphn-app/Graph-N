@@ -22,7 +22,7 @@ public:
     void set_name(std::string name) noexcept override;
 
     void pin_node(bool pin) noexcept;
-    void expand_node(bool expand) noexcept;
+    void collapse_node(bool collapse) noexcept;
 
     void set_mode(NodeInstFlags mode) noexcept;
     bool get_mode_always() const noexcept { return flags().has_none(NodeInstFlags::ModeBypass, NodeInstFlags::ModeMute, NodeInstFlags::ModeOnEvent, NodeInstFlags::ModeOnTrigger); }
@@ -42,7 +42,7 @@ public:
 protected:
     float get_additional_name_width() const noexcept override;
     float get_additional_node_width() const noexcept override;
-    bool do_need_calc_node_widths() const noexcept override { return flags().has_and_has_not(NodeInstFlags::Expanded, NodeInstFlags::Group); }
+    bool do_need_calc_node_widths() const noexcept override { return flags().has_none(NodeInstFlags::Collapsed, NodeInstFlags::Group); }
 
 public:
     ImRect m_rc = {};               // Min.x/y: pos for all; Max.x/y: size for group, width for node

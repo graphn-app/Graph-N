@@ -65,7 +65,7 @@ void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
 
     flags().copy_from_by_mask_flags(copy_from_node->flags(),
         NodeInstFlags::Group,
-        NodeInstFlags::Expanded,
+        NodeInstFlags::Collapsed,
         NodeInstFlags::Pinned
     );
     flags().copy_from_by_mask_obj(copy_from_node->flags(), g_node_inst_all_modes_mask);
@@ -324,11 +324,11 @@ void NodeInstance::pin_node(bool pin) noexcept
     flags().remove(NodeInstFlags::PinnedSet);
 }
 
-void NodeInstance::expand_node(bool expand) noexcept
+void NodeInstance::collapse_node(bool collapse) noexcept
 {
-    if (flags().has(NodeInstFlags::Expanded) == expand)
+    if (flags().has(NodeInstFlags::Collapsed) == collapse)
         return;
-    flags().add_remove_if(NodeInstFlags::Expanded, expand);
+    flags().add_remove_if(NodeInstFlags::Collapsed, collapse);
     w_name = -1.0f;
     m_saved_width = -1.0f;
 }
@@ -416,7 +416,7 @@ float NodeInstance::get_additional_name_width() const noexcept
 
 float NodeInstance::get_additional_node_width() const noexcept
 {
-    if (flags().has_not(NodeInstFlags::Expanded))
+    if (flags().has(NodeInstFlags::Collapsed))
     {
         return (m_input.empty() ? 0 : w::pin_l_offset_rw + w::ico_circle + w::pin_r_offset + ImGui::GetStyle().ItemSpacing.x) +
             (m_output.empty() ? 0 : w::pin_l_offset_rw + w::ico_circle + w::pin_r_offset + ImGui::GetStyle().ItemSpacing.x);

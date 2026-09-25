@@ -378,10 +378,10 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
         step = std::make_unique<ActNodeClr>();
         step->new_val = (node->flags().has(NodeInstFlags::Group) ? node->m_clr_group : ImGui::ColorConvertFloat4ToU32(node->m_clr_node));
         break;
-    case HistoryActionType::NodeExpand:
-        history = open_action(node->get_workflow_id(), node->flags().has(NodeInstFlags::Expanded) ? "Expand" : "Collapse");
-        step = std::make_unique<ActNodeExpand>();
-        step->new_val = node->flags().get_by_mask(NodeInstFlags::Expanded);
+    case HistoryActionType::NodeCollapse:
+        history = open_action(node->get_workflow_id(), node->flags().has(NodeInstFlags::Collapsed) ? "Collapse" : "Expand");
+        step = std::make_unique<ActNodeCollapse>();
+        step->new_val = node->flags().get_by_mask(NodeInstFlags::Collapsed);
         break;
     case HistoryActionType::NodeMode:
         history = open_action(node->get_workflow_id(), "Set mode");
@@ -555,8 +555,8 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
     case HistoryActionType::NodeClr:
         pop_node_clr(wf, step, do_undo);
         break;
-    case HistoryActionType::NodeExpand:
-        pop_node_expand(wf, step, do_undo);
+    case HistoryActionType::NodeCollapse:
+        pop_node_collapse(wf, step, do_undo);
         break;
     case HistoryActionType::NodeMode:
         pop_node_mode(wf, step, do_undo);
@@ -643,15 +643,15 @@ void HistoryManager::pop_node_clr(const data::Workflow* dest_wf, const HistorySt
     dest_wf->action()->set_node_color(node, *std::get_if<ImU32>(do_undo ? &real_step->old_val : &real_step->new_val));
 }
 
-void HistoryManager::pop_node_expand(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_node_collapse(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
-    const ActNodeExpand* real_step = cast::dynamic<const ActNodeExpand>(step);
+    const ActNodeCollapse* real_step = cast::dynamic<const ActNodeCollapse>(step);
     auto node = dest_wf->get_node_by_instance(step->id);
     LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     ObjectFlags<NodeInstFlags> obj_flag;
     obj_flag.set_raw(*std::get_if<uint64_t>(do_undo ? &real_step->old_val : &real_step->new_val));
-    dest_wf->action()->set_node_expanded(node, obj_flag.has(NodeInstFlags::Expanded));
+    dest_wf->action()->set_node_collapsed(node, obj_flag.has(NodeInstFlags::Collapsed));
 }
 
 void HistoryManager::pop_node_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)

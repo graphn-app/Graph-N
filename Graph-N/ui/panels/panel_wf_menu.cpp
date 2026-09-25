@@ -76,7 +76,7 @@ bool PanelWorkflow::context_menu_handler()
         if (pin != nullptr)
         {
             const auto parent = m_wf->get_node_by_instance(pin->get_parent_node());
-            if (parent->flags().has(NodeInstFlags::Expanded) && parent->obj_flags().has_not(NodeObjFlags::Dummy))
+            if (parent->flags().has_not(NodeInstFlags::Collapsed) && parent->obj_flags().has_not(NodeObjFlags::Dummy))
             {
                 m_handle_context_menu = true;
                 m_menu_objs = {};
@@ -405,9 +405,9 @@ bool PanelWorkflow::show_node_menu()
         m_action->set_node_pinning(node, node->flags().has_not(NodeInstFlags::Pinned));
         close = true;
     }
-    if (ImGui::MenuItem(node->flags().has(NodeInstFlags::Expanded) ? "Collapse" : "Expand", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Collapse)))
+    if (ImGui::MenuItem(node->flags().has(NodeInstFlags::Collapsed) ? "Expand" : "Collapse", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Collapse)))
     {
-        m_action->set_node_expanded(node, node->flags().has_not(NodeInstFlags::Expanded));
+        m_action->set_node_collapsed(node, node->flags().has_not(NodeInstFlags::Collapsed));
         close = true;
     }
     if (ImGui::MenuItem("Group", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Group)))
@@ -788,7 +788,7 @@ bool PanelWorkflow::show_multinode_menu()
     {
         for (auto node : m_menu_objs.nodes)
         {
-            m_action->set_node_expanded(node, true);
+            m_action->set_node_collapsed(node, false);
         }
         close = true;
     }
@@ -796,7 +796,7 @@ bool PanelWorkflow::show_multinode_menu()
     {
         for (auto node : m_menu_objs.nodes)
         {
-            m_action->set_node_expanded(node, false);
+            m_action->set_node_collapsed(node, true);
         }
         close = true;
     }

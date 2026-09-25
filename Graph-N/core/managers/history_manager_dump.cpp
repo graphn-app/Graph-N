@@ -17,7 +17,7 @@ const char* action_type_str(HistoryActionType t)
     case HistoryActionType::NodePin: return "NodePin";
     case HistoryActionType::NodeMode: return "NodeMode";
     case HistoryActionType::NodeClr: return "NodeClr";
-    case HistoryActionType::NodeExpand: return "NodeExpand";
+    case HistoryActionType::NodeCollapse: return "NodeCollapse";
     case HistoryActionType::PinRen:  return "PinRen";
     case HistoryActionType::PinVal:  return "PinVal";
     case HistoryActionType::PinCag:  return "PinCag";

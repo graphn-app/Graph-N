@@ -445,7 +445,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     //ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing));
     draw_node_header();
-    if (m_active_node->flags().has_not(NodeInstFlags::Expanded))
+    if (m_active_node->flags().has(NodeInstFlags::Collapsed))
         return;
 
     if (zoomed_skip_links()) [[unlikely]]
@@ -720,19 +720,19 @@ void NodeDrawer::draw_node_header()
         const auto& style = ed::GetStyle();
 
         //const ImU32 bg_color = (m_active_node->m_clr_custom ? m_active_node->m_clr_head : m_defclr_node_header_bg);
-        const float header_h = ImGui::GetTextLineHeight() * 1.5f - (m_active_node->flags().has(NodeInstFlags::Expanded) ? 0 : style.NodeBorderWidth);
+        const float header_h = ImGui::GetTextLineHeight() * 1.5f - (m_active_node->flags().has(NodeInstFlags::Collapsed) ? style.NodeBorderWidth : 0);
 
         draw_list->AddRectFilled(
             ImVec2(m_curr_node_left_offset - style.NodePadding.x + style.NodeBorderWidth, m_curr_node_top_offset - style.NodePadding.y + style.NodeBorderWidth),
             ImVec2(m_curr_node_left_offset + style.NodePadding.x + m_active_node->w_node - style.NodeBorderWidth, m_curr_node_top_offset + header_h),
             m_active_node->m_clr_head,
             style.NodeRounding,
-            (m_active_node->flags().has(NodeInstFlags::Expanded) ? ImDrawFlags_RoundCornersTop : ImDrawFlags_RoundCornersAll)
+            (m_active_node->flags().has(NodeInstFlags::Collapsed) ? ImDrawFlags_RoundCornersAll : ImDrawFlags_RoundCornersTop)
         );
     }
 
     const float collapsed_pin_y = ImGui::GetCursorPosY();
-    if (m_active_node->flags().has_not(NodeInstFlags::Expanded) && !m_active_node->get_inputs().empty())
+    if (m_active_node->flags().has(NodeInstFlags::Collapsed) && !m_active_node->get_inputs().empty())
     {
         draw_collapsed_pins(true);
         ImGui::SameLine();
@@ -794,7 +794,7 @@ void NodeDrawer::draw_node_header()
             ImGui::SetKeyboardFocusHere();
             m_need_renaming_focus = false;
         }
-        if (m_active_node->flags().has(NodeInstFlags::Expanded))
+        if (m_active_node->flags().has_not(NodeInstFlags::Collapsed))
         {
             ImGui::SetCursorPosX(m_curr_node_left_offset + ImGui::GetStyle().ItemSpacing.x * 2);
             ImGui::SetNextItemWidth(m_active_node->w_node - ImGui::GetStyle().ItemSpacing.x * 4);
@@ -824,7 +824,7 @@ void NodeDrawer::draw_node_header()
         }
     }
 
-    if (m_active_node->flags().has_not(NodeInstFlags::Expanded))
+    if (m_active_node->flags().has(NodeInstFlags::Collapsed))
     {
         ImGui::BeginDisabled();
         ImGui::SameLine();
@@ -1457,11 +1457,11 @@ void NodeDrawer::query_new_item(
             if (allow)
             {
                 auto linked_node = m_wf->get_node_by_instance(p1->get_parent_node());
-                allow = linked_node->flags().has(NodeInstFlags::Expanded) && linked_node->obj_flags().has_not(NodeObjFlags::Dummy);
+                allow = linked_node->flags().has_not(NodeInstFlags::Collapsed) && linked_node->obj_flags().has_not(NodeObjFlags::Dummy);
                 if (allow)
                 {
                     linked_node = m_wf->get_node_by_instance(p2->get_parent_node());
-                    allow = linked_node->flags().has(NodeInstFlags::Expanded) && linked_node->obj_flags().has_not(NodeObjFlags::Dummy);
+                    allow = linked_node->flags().has_not(NodeInstFlags::Collapsed) && linked_node->obj_flags().has_not(NodeObjFlags::Dummy);
                 }
             }
             if (allow && data::Link::can_link(p1, p2))

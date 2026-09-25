@@ -499,11 +499,11 @@ void GraphN_Flow::wf_node_toggle_collapse()
     };
     const auto first_cb = [](data::NodeInstance* node) noexcept
     {
-        return node->flags().has(NodeInstFlags::Expanded);
+        return node->flags().has_not(NodeInstFlags::Collapsed);
     };
     const auto action_cb = [](data::NodeInstance* node, data::WorkflowAction* action, bool first)
     {
-        action->set_node_expanded(node, !first);
+        action->set_node_collapsed(node, first);
     };
     wf_node_action_on_selected(action_name_cb, first_cb, action_cb);
 }
@@ -708,4 +708,3 @@ void GraphN_Flow::wf_node_unlink()
 }
 
 }
-

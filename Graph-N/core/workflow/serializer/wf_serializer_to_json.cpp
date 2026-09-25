@@ -106,7 +106,7 @@ iid WfSerializerToJson::serialize_nodes()
         if (m_curr_node->get_name() != m_curr_node->get_name_original())
             jn["title"] = m_curr_node->get_name();
 
-        if (m_curr_node->flags().has_not(NodeInstFlags::Expanded))
+        if (m_curr_node->flags().has(NodeInstFlags::Collapsed))
             jn["flags"]["collapsed"] = true;
         if (m_curr_node->flags().has(NodeInstFlags::Pinned))
             jn["flags"]["pinned"] = true;
