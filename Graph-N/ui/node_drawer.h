@@ -63,6 +63,7 @@ public:
     ImVec2 get_mouse_pos(const ImVec2* convert_pos = nullptr) const noexcept;
     bool get_bg_menu_active(bool& rclick, bool& dbl_click) const noexcept;
 
+    bool get_canvas_hovered() const noexcept { return m_canvas_hovered; }
     data::PinInstance* get_hovered_pin() const;
     data::PinInstance* get_hovered_widget() const noexcept { return m_hovered_widget; }
     data::NodeInstance* get_hovered_node() const;
@@ -98,6 +99,7 @@ public:
     void set_viewport_rect(const ImRect& rect) noexcept;
 
     ImVec2 get_visible_pos(std::optional<ImVec2> add_offset) const noexcept;
+    ImVec2 screen_to_canvas(ImVec2 point) const noexcept;
 
     const blob::Blob& get_state() const noexcept { return m_state; }
 
@@ -154,6 +156,8 @@ private:
 
     data::NodeInstance* m_active_node = nullptr;
     const char* m_active_tt = nullptr;
+
+    bool m_canvas_hovered = false;
 
     ImU32 m_defclr_node_bg = 0;
     ImU32 m_defclr_node_header_bg = 0;

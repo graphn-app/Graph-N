@@ -115,7 +115,7 @@ const WfData& WfsManager::create_copy(wid source)
         if (node->flags().has_not(NodeInstFlags::RerouteSplitted_R))
             copy_add(node);
     }
-    copy_end(wf, ImVec2(0, 0));
+    copy_end(wf, ImVec2(0, 0), false);
     copy_begin(nullptr, {});
 
     return wf->get_data();
@@ -139,7 +139,7 @@ std::shared_ptr<data::Workflow> WfsManager::create_copy_virtual(const data::Work
     {
         copy_add(node);
     }
-    copy_end(wf.get(), ImVec2(0, 0));
+    copy_end(wf.get(), ImVec2(0, 0), false);
     copy_begin(nullptr, {});
 
     return wf;
@@ -514,7 +514,7 @@ void WfsManager::copy_del(data::NodeInstance* node)
     }
 }
 
-void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_point)
+void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool center_dest_point)
 {
     LogRAssert(m_copy_src, "Copy wasn't initiated", );
     LogRAssert(wf_dest, "Zero ptr", );
@@ -543,18 +543,24 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
         Log("Copy source point set to " << src_pt.x << "/" << src_pt.y);
     }
 
-    ImVec2 dest_pt;
-    if (!dest_point.has_value())
+    if (center_dest_point)
     {
-        dest_pt.x = dest_pt.y = 0;
-        Log("Copy dest point autoset to 0/0");
-    }
-    else
-    {
-        dest_pt = dest_point.value();
-        Log("Copy dest point set to " << dest_pt.x << "/" << dest_pt.y);
-    }
+        ImVec2 src_max(-FLT_MAX, -FLT_MAX);
+        for (auto node : m_copied_nodes)
+        {
+            const float node_right = node->m_rc.Min.x + node->m_rc.Max.x;
+            const float node_bottom = node->m_rc.Min.y + node->m_rc.Max.y;
 
+            src_max.x = std::max(src_max.x, node_right);
+            src_max.y = std::max(src_max.y, node_bottom);
+        }
+
+        if (src_max.x != -FLT_MAX)
+        {
+            dest_point.x -= (src_max.x - src_pt.x) * 0.5f;
+            dest_point.y -= (src_max.y - src_pt.y) * 0.5f;
+        }
+    }
 
     const auto& dest_wf_data = wf_dest->get_data();
     if (!dest_wf_data.virt)
@@ -575,9 +581,9 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
         auto new_node = wf_dest->add_node(node, dest_wf_data.virt);
         new_node->flags().add(NodeInstFlags::Deserialization);
         new_node->m_rc.Min.x = node->m_rc.Min.x - src_pt.x;
-        new_node->m_rc.Min.x = dest_pt.x + new_node->m_rc.Min.x;
+        new_node->m_rc.Min.x = dest_point.x + new_node->m_rc.Min.x;
         new_node->m_rc.Min.y = node->m_rc.Min.y - src_pt.y;
-        new_node->m_rc.Min.y = dest_pt.y + new_node->m_rc.Min.y;
+        new_node->m_rc.Min.y = dest_point.y + new_node->m_rc.Min.y;
         new_node->m_rc.Max = node->m_rc.Max;
 
         if (node->flags().has(NodeInstFlags::RerouteSplitted))
@@ -612,7 +618,8 @@ void WfsManager::copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_po
 
         const auto in_it = curr_node_to_new_node.find(src_in_pin->get_parent_node());
         const auto out_it = curr_node_to_new_node.find(src_out_pin->get_parent_node());
-        LogRAssert(in_it != curr_node_to_new_node.end() && out_it != curr_node_to_new_node.end(), "Copied node not found. n-in:" << src_in_pin->get_parent_node() << ", n-out:" << src_out_pin->get_parent_node(), );
+        if (in_it == curr_node_to_new_node.end() || out_it == curr_node_to_new_node.end())
+            continue;
 
         const data::NodeInstance* dest_in_node = in_it->second;
         const data::NodeInstance* dest_out_node = out_it->second;

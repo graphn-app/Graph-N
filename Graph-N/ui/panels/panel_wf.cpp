@@ -236,7 +236,29 @@ void PanelWorkflow::copy_nodes(const std::set<data::NodeInstance*>& nodes, std::
 
 void PanelWorkflow::paste_copied(std::optional<ImVec2> paste_at)
 {
-    g::pWfsManager->copy_end(m_wf, paste_at);
+    bool center_point = false;
+    if (!paste_at.has_value())
+    {
+        ImVec2 point;
+        const ImVec2 mouse_screen_pos = ImGui::GetMousePos();
+        if (m_drawer.get_canvas_hovered())
+        {
+            point = m_drawer.screen_to_canvas(mouse_screen_pos);
+            Log("Copy dest point autoset to mouse pos: " << point.x << "/" << point.y);
+        }
+        else
+        {
+            center_point = true;
+            const ImRect& view_rect = m_drawer.get_viewport_rect();
+            point.x = view_rect.Min.x + (view_rect.Max.x - view_rect.Min.x) * 0.5f;
+            point.y = view_rect.Min.y + (view_rect.Max.y - view_rect.Min.y) * 0.5f;
+            Log("Copy dest point autoset to point: " << point.x << "/" << point.y);
+        }
+
+        paste_at = point;
+    }
+
+    g::pWfsManager->copy_end(m_wf, paste_at.value(), center_point);
 }
 
 void PanelWorkflow::save() const

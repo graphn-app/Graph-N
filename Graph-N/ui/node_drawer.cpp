@@ -231,6 +231,8 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/, bool first
 
     ed::Begin(id, ImVec2(0, 0));
 
+    m_canvas_hovered = ImGui::IsWindowHovered();
+
     m_zoom = ed::GetCurrentZoom();
     if (m_first_frame || m_zoom <= ZOOMED_MAX) [[likely]] m_zoomed_visibility = ZoomedVisibility::Max;
     else if (m_zoom <= ZOOMED_FADE)         m_zoomed_visibility = ZoomedVisibility::Fade;
@@ -1944,6 +1946,20 @@ ImVec2 NodeDrawer::get_visible_pos(std::optional<ImVec2> add_offset) const noexc
 
     ed::SetCurrentEditor(prev_context);
     return target_screen_pos;
+}
+
+ImVec2 NodeDrawer::screen_to_canvas(ImVec2 point) const noexcept
+{
+    if (nullptr == m_context)
+        return point;
+
+    auto prev_context = ed::GetCurrentEditor();
+    ed::SetCurrentEditor(m_context);
+
+    const ImVec2 converted = ed::ScreenToCanvas(point);
+
+    ed::SetCurrentEditor(prev_context);
+    return converted;
 }
 
 bool NodeDrawer::handle_pin_renaming(const data::PinInstance* curr_pin)

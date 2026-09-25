@@ -68,7 +68,7 @@ public:
     void copy_begin(const data::Workflow* wf_src, std::optional<ImVec2> src_point);
     void copy_add(data::NodeInstance* node);
     void copy_del(data::NodeInstance* node);
-    void copy_end(data::Workflow* wf_dest, std::optional<ImVec2> dest_point);
+    void copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool center_dest_point);
     bool copy_has_data() const noexcept { return !m_copied_nodes.empty(); }
 
     void close_and_purge();
