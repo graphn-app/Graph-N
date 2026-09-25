@@ -481,7 +481,14 @@ void CNI_Reroute::cleanup_pairs(bool keep_linked)
 void CNI_Reroute::cni_pin_linked(PinInstance* p1, PinInstance* p2)
 {
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
-    LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", );
+
+    if (flags().has_not(NodeInstFlags::RerouteSplitted_R))
+        return;
+    if (p1->flags().has(PinInstFlags::RerouteSplittingPin) || p2->flags().has(PinInstFlags::RerouteSplittingPin))
+    {
+        LogRAssert(p1->flags().has(PinInstFlags::RerouteSplittingPin) && p2->flags().has(PinInstFlags::RerouteSplittingPin), "Both pins must be splitting pins", );
+        return;
+    }
 
     LogRAssert(p1 && p2, "Zero ptr", );
     LogRAssert(cni_can_link(p1, p2),
