@@ -482,7 +482,7 @@ void CNI_Reroute::cni_pin_linked(PinInstance* p1, PinInstance* p2)
 {
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), );
 
-    if (flags().has_not(NodeInstFlags::RerouteSplitted_R))
+    if (flags().has(NodeInstFlags::RerouteSplitted_R))
         return;
     if (p1->flags().has(PinInstFlags::RerouteSplittingPin) || p2->flags().has(PinInstFlags::RerouteSplittingPin))
     {
