@@ -76,7 +76,7 @@ void PanelNodeInspector::reset_inspecting_nodes() noexcept
 {
     Log("Remove all nodes");
     m_wf->clear();
-    m_inspecting.clear(); m_inspecting.shrink_to_fit();
+    m_inspecting.clear();
 }
 
 bool PanelNodeInspector::is_node_inspecting(const data::Node* node) const noexcept

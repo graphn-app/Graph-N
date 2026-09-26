@@ -161,41 +161,38 @@ public:
 class PanelWithList
 {
 public:
-    PanelWithList() noexcept = default;
-    ~PanelWithList() noexcept = default;
-
-    NO_COPY_MOVE(PanelWithList);
-
-    struct TtCallbacks final
+    struct TtCallbacks 
     {
-        std::function<void(int32_t)> on_alloc_tt_data = nullptr;
-        std::function<void(int32_t)> on_release_tt_data = nullptr;
-        std::function<void(int32_t)> on_show_tt = nullptr;
-        std::function<bool(int32_t)> on_pre_tt = nullptr;
-        std::function<void(int32_t)> on_post_tt = nullptr;
+        std::function<void(int32_t)> on_alloc_tt_data;      // allocate tooltip data
+        std::function<void(int32_t)> on_release_tt_data;    // release tooltiop data
+        std::function<bool(int32_t)> on_pre_tt;             // prepare before tooltip
+        std::function<void(int32_t)> on_show_tt;            // show tooltip
+        std::function<void(int32_t)> on_post_tt;            // cleanup after tooltip
     };
 
-    struct DndCallbacks final
+    struct DndCallbacks 
     {
-        std::function<bool(int32_t)> on_dnd_allow = nullptr;
-        std::function<void(int32_t)> on_dnd_show = nullptr;
-        const char* dnd_id = nullptr;
+        const char* dnd_id = nullptr;                       // drag&drop identifier
+        std::function<bool(int32_t)> on_dnd_allow;          // do need to start drag&drop
+        std::function<void(int32_t)> on_dnd_show;           // process drag&drop
     };
 
-    // returns true if dirty
-    // draw_boudnded_rect applicable only for expandable items
-    bool draw_list(std::vector<PanelListItem>& items, PanelItemState& dirty_item, 
+    bool draw_list(const std::vector<PanelListItem>& items, PanelItemEvent& out_event, 
         const TtCallbacks* tt_callbacks = nullptr, const DndCallbacks* dnd_callbacks = nullptr);
+    void begin_rename(int32_t index, const std::string& current_name);
 
-private:
+protected:
     void go_tooltip(int32_t tt_index, const TtCallbacks* tt_callbacks);
     bool release_tooltip(int32_t tt_index, const TtCallbacks* tt_callbacks);
 
 private:
     int32_t m_hovered_item = -1;
-    std::vector<int32_t> m_selected_items;
-    float m_tt_life_timer = 0.0f;
     int32_t m_tt_index = -1;
+    float m_tt_life_timer = 0.0f;
+
+    int32_t m_renaming_idx = -1;
+    std::string m_rename_buf;
+    bool m_need_rename_focus = false;
 };
 
 class PanelToolbar

@@ -44,7 +44,8 @@ private:
     DlgCode show(bool& focused) override;
 
     void create_toolbar();
-    void handle_dirty(const PanelItemState& dirty_item);
+    void handle_dirty(const PanelItemEvent& ev);
+    void draw_popups();
 
     void on_alloc_tt_data(int32_t idx);
     bool on_pre_tt(int32_t idx) noexcept;
@@ -53,8 +54,6 @@ private:
     void on_view_empty(PanelToolbar::Element& el);
     void on_expand_all(PanelToolbar::Element& el);
     void on_collapse_all(PanelToolbar::Element& el);
-    void on_sync(PanelToolbar::Element& el) noexcept;
-    void on_pre_sync(PanelToolbar::Element& el) noexcept;
 
     void add_model_to_wf(data::Node* node, data::ModelItem* model);
 
@@ -64,6 +63,8 @@ private:
     size_t m_prev_model_items_count = 0;
     mngr::StarredList m_favorited;
     bool m_show_empty = false;
+
+    void* m_active_popup_ptr = nullptr;
 };
 
 

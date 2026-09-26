@@ -32,7 +32,7 @@ public:
     void free() noexcept override;
 
     void rebuild_items();
-    void rename_project() noexcept;
+    void rename_project(wid id) noexcept;
 
 private:
     DlgCode show(bool& focused) override;
@@ -43,9 +43,10 @@ private:
 
     void rebuild_labels();
     void rebuild_trash();
-    void handle_dirty(const PanelItemState& dirty_item);
-    void handle_dirty_labels(const PanelItemState& dirty_item);
-    void handle_dirty_trash(const PanelItemState& dirty_item);
+    void handle_dirty(const PanelItemEvent& ev);
+    void handle_dirty_labels(const PanelItemEvent& ev);
+    void handle_dirty_trash(const PanelItemEvent& ev);
+    void draw_popups();
 
     void on_add_new_wf(PanelToolbar::Element& el);
     void on_rename_wf(PanelToolbar::Element& el) noexcept;
@@ -68,6 +69,12 @@ private:
     uint32_t m_new_label = 0;
     PanelWithList::TtCallbacks m_tt_callbacks;
     std::set<uint32_t> m_curr_labels;
+
+    void* m_active_popup_ptr = nullptr;
+    std::set<uint32_t> m_active_popup_labels;
+    char m_new_label_buff[31] = {};
+    uint32_t m_active_popup_label_id = 0;
+    wid m_active_wf_for_menu = 0;
 };
 
 

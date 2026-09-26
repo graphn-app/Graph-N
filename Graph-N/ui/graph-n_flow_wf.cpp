@@ -164,7 +164,9 @@ void GraphN_Flow::wf_reload()
 
 void GraphN_Flow::wf_rename() noexcept
 {
-    m_panel_wf_list->rename_project();
+    const auto active = wf_get_active();
+    if (active != 0)
+        m_panel_wf_list->rename_project(active);
 }
 
 wid GraphN_Flow::wf_get_active() const noexcept

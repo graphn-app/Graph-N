@@ -70,22 +70,6 @@ void PanelModels::create_toolbar()
         el.on_click = [this](PanelToolbar::Element& el) { on_collapse_all(el); };
         add_toolbar_element(std::move(el), false);
     }
-/*
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Empty;
-        add_toolbar_element(std::move(el), false);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_FOLDER_SYNC;
-        el.tooltip = "Refresh Models List";
-        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_sync(el); };
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_sync(el); };
-        add_toolbar_element(std::move(el), false);
-    }
-*/   
     {
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Empty;
@@ -149,9 +133,10 @@ DlgCode PanelModels::show(bool& focused)
             if (m_prev_model_items_count != g::pModelsManager->get_models().size())
                 rebuild_items();
 
-            PanelItemState state;
-            if (draw_list(m_panel_items, state, &m_tt_callbacks))
-                handle_dirty(state);
+            PanelItemEvent ev;
+            if (draw_list(m_panel_items, ev, &m_tt_callbacks))
+                handle_dirty(ev);
+            draw_popups();
         }
         ImGui::EndChild();
 
@@ -161,102 +146,12 @@ DlgCode PanelModels::show(bool& focused)
 
 void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
 {
-    const auto on_item_handler = [this]
-        (PanelListItem& item, bool /*l_clicked*/, bool /*l_dbl_clicked*/, bool /*l_released*/, bool /*r_clicked*/, bool r_released, bool& handler_processed)
-    {
-        auto model = cast::ptrs<data::ModelItem>(item.ptr);
-        constexpr bool dirty = false;
-        bool close = false;
-        if (!item.continue_processing_item_handler && r_released)
-        {
-            ImGui::OpenPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelModels_ItemMenu)]);
-            handler_processed = true;
-        }
-
-        if (ImGui::BeginPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelModels_ItemMenu)]))
-        {
-            handler_processed = true;
-            bool separator = false;
-            if (!model->info.tags.empty())
-            {
-                separator = true;
-                if (ImGui::MenuItem("Copy Tags to Clipboard"))
-                {
-                    close = true;
-                    ImGui::SetClipboardText(model->info.tags.c_str());
-                }
-            }
-            if (!model->info.trigger_phrase.empty())
-            {
-                separator = true;
-                if (ImGui::MenuItem("Copy Trigger phrase to Clipboard"))
-                {
-                    close = true;
-                    ImGui::SetClipboardText(model->info.trigger_phrase.c_str());
-                }
-            }
-            if (model->copy_to_cb_only)
-            {
-                separator = true;
-                if (ImGui::MenuItem("Copy name to Clipboard"))
-                {
-                    close = true;
-                    ImGui::SetClipboardText(model->name.c_str());
-                }
-            }
-            if (separator)
-                ImGui::Separator();
-
-            data::Node* node = nullptr;
-            data::Node* open = nullptr;
-
-            if (model->def_node != 0)
-            {
-                if (!model->def_node_installed)
-                    ImGui::BeginDisabled();
-                ImGui::PushFont(g::pMain->get_bold_font());
-                if (ImGui::MenuItem(model->def_node_name.c_str()))
-                {
-                    close = true;
-                    open = g::pNodesManager->find_node(model->def_node);
-                }
-                ImGui::PopFont();
-                if (!model->def_node_installed)
-                    ImGui::EndDisabled();
-            }
-            for (auto node_id : model->nodes)
-            {
-                if (node_id == model->def_node)
-                    continue;
-                node = g::pNodesManager->find_node(node_id);
-                if (node != nullptr && ImGui::MenuItem(node->name.c_str()))
-                {
-                    close = true;
-                    open = node;
-                }
-            }
-
-            if (open != nullptr)
-                add_model_to_wf(open, model);
-
-            item.continue_processing_item_handler = !close;
-            if (close)
-                ImGui::CloseCurrentPopup();
-            ImGui::EndPopup();
-            return dirty;
-        }
-        else
-            item.continue_processing_item_handler = false;
-
-        return dirty;
-    };
-
     std::set<data::ModelItem*> expanded_models;
     for (auto& item : m_panel_items)
     {
         if (item.expanded)
         {
-            expanded_models.insert((data::ModelItem*)item.ptr);
+            expanded_models.insert((data::ModelItem*)item.ext_data.ptr);
         }
     }
 
@@ -273,7 +168,7 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
     };
 
     std::function<void(const std::vector<std::unique_ptr<data::ModelItem>>&, std::vector<PanelListItem>&, int32_t, bool, bool, bool)> go_tree;
-    go_tree = [this, &go_tree, &expanded_models, &on_item_handler, force_expand_all, 
+    go_tree = [this, &go_tree, &expanded_models, force_expand_all, 
         is_filter_empty = dlg_data()->buffer[PanelModelsData::BuffFilter].empty()]
         (const std::vector<std::unique_ptr<data::ModelItem>>& models, std::vector<PanelListItem>& dest, int32_t depth,
             bool show_main_models, bool show_favorited_models, bool show_service_components)
@@ -290,7 +185,7 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
                     if (show_model && show_service_components && !model->service_component)
                         show_model = false;
                     if (show_model)
-                        show_model = is_filter_empty || !is_filter_empty && model->models_inside > 0;
+                        show_model = is_filter_empty || (!is_filter_empty && model->models_inside > 0);
                 }
                 else
                 {
@@ -312,12 +207,12 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
                         PanelListItem item;
                         item.depth = depth;
                         item.name = model->name;
-                        item.name_p2 = std::to_string(model->models_inside);
+                        item.name_label = std::to_string(model->models_inside);
                         item.can_expand = true;
                         item.expanded = (force_expand_all || expanded_models.contains(model.get()));
                         expanded = item.expanded;
                         item.icon = item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
-                        item.ptr = model.get();
+                        item.ext_data.ptr = model.get();
                         dest.push_back(std::move(item));
                     }
                 }
@@ -331,15 +226,12 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
                 item.depth = depth;
                 item.name = model->name;
                 item.icon = ICON_LC_STAR;
-                item.icon_active = m_favorited.has_item(model->hash);
+                item.icon_favorited = m_favorited.has_item(model->hash);
                 if (!model->service_component)
                 {
-                    if (!model->copy_to_cb_only)
-                        item.can_lclick = true;
                     item.icon_can_click = true;
-                    item.on_item_handler = on_item_handler;
                 }
-                item.ptr = model.get();
+                item.ext_data.ptr = model.get();
                 dest.push_back(std::move(item));
             }
         }
@@ -377,47 +269,132 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
     }
 }
 
-void PanelModels::handle_dirty(const PanelItemState& dirty_item)
+void PanelModels::handle_dirty(const PanelItemEvent& event)
 {
-    LogRAssert(dirty_item.index < m_panel_items.size(), "Index out of bounds", );
+    LogRAssert(event.index < m_panel_items.size(), "Index out of bounds", );
 
-#ifdef _DEBUG
-    Log("Dirty: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
-#endif
-
-    if (dirty_item.expanded)
+    if (event.expand_toggled)
     {
+        m_panel_items[event.index].expanded = !m_panel_items[event.index].expanded;
         rebuild_items();
         return;
     }
-    if (dirty_item.icon_clicked && !dirty_item.lreleased)
+
+    auto& panel_item = m_panel_items[event.index];
+    data::ModelItem* model_item = cast::ptrs<data::ModelItem>(panel_item.ext_data.ptr);
+
+    if (event.icon_clicked && event.l_clicked)
     {
-        auto* model = cast::ptrs<data::ModelItem>(m_panel_items[dirty_item.index].ptr);
-        m_favorited.toggle_item(model->hash);
+        m_favorited.toggle_item(model_item->hash);
         g::pOptsManager->items_model_favs_save(m_favorited);
         rebuild_items();
         return;
     }
 
-    auto& panel_item = m_panel_items[dirty_item.index];
-    data::ModelItem* model_item = cast::ptrs<data::ModelItem>(panel_item.ptr);
+    if (event.r_released)
+    {
+        m_active_popup_ptr = model_item;
+        ImGui::OpenPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelModels_ItemMenu)]);
+        return;
+    }
 
-    if (dirty_item.lclicked)
+    if (event.l_clicked)
     {
         add_model_to_wf(nullptr, model_item);
     }
-    else if (!dirty_item.lreleased)
+}
+
+void PanelModels::draw_popups()
+{
+    if (ImGui::BeginPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelModels_ItemMenu)], ImGuiWindowFlags_NoMove))
     {
-        LogError("Unhandled dirty state");
+        auto* model = cast::ptrs<data::ModelItem>(m_active_popup_ptr);
+        if (!model) 
+        {
+            ImGui::EndPopup();
+            return;
+        }
+
+        bool close = false;
+        bool separator = false;
+
+        if (!model->info.tags.empty())
+        {
+            separator = true;
+            if (ImGui::MenuItem("Copy Tags to Clipboard"))
+            {
+                close = true;
+                ImGui::SetClipboardText(model->info.tags.c_str());
+            }
+        }
+        if (!model->info.trigger_phrase.empty())
+        {
+            separator = true;
+            if (ImGui::MenuItem("Copy Trigger phrase to Clipboard"))
+            {
+                close = true;
+                ImGui::SetClipboardText(model->info.trigger_phrase.c_str());
+            }
+        }
+        if (model->copy_to_cb_only)
+        {
+            separator = true;
+            if (ImGui::MenuItem("Copy name to Clipboard"))
+            {
+                close = true;
+                ImGui::SetClipboardText(model->name.c_str());
+            }
+        }
+
+        if (separator)
+            ImGui::Separator();
+        bool has_menu_items = separator;
+
+        data::Node* open_node = nullptr;
+
+        if (model->def_node != 0)
+        {
+            if (!model->def_node_installed) ImGui::BeginDisabled();
+            ImGui::PushFont(g::pMain->get_bold_font());
+            if (ImGui::MenuItem(model->def_node_name.c_str()))
+            {
+                close = true;
+                open_node = g::pNodesManager->find_node(model->def_node);
+            }
+            ImGui::PopFont();
+            if (!model->def_node_installed) ImGui::EndDisabled();
+            has_menu_items = true;
+        }
+
+        for (auto node_id : model->nodes)
+        {
+            if (node_id == model->def_node)
+                continue;
+            data::Node* node = g::pNodesManager->find_node(node_id);
+            if (node != nullptr && ImGui::MenuItem(node->name.c_str()))
+            {
+                close = true;
+                open_node = node;
+            }
+            has_menu_items = true;
+        }
+
+        if (open_node != nullptr)
+            add_model_to_wf(open_node, model);
+
+        if (close || !has_menu_items)
+            ImGui::CloseCurrentPopup();
+
+        ImGui::EndPopup();
     }
 }
 
 void PanelModels::on_alloc_tt_data(int32_t idx)
 {
-    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ptr)
+    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ext_data.ptr)
         return;
 
-    auto* model = cast::ptrs<data::ModelItem>(m_panel_items[idx].ptr);
+    auto* model = cast::ptrs<data::ModelItem>(m_panel_items[idx].ext_data.ptr);
     if (model->info.empty())
         return;
 
@@ -429,10 +406,10 @@ void PanelModels::on_alloc_tt_data(int32_t idx)
 
 bool PanelModels::on_pre_tt(int32_t idx) noexcept
 {
-    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ptr)
+    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ext_data.ptr)
         return false;
 
-    auto* model = cast::ptrs<data::ModelItem>(m_panel_items[idx].ptr);
+    auto* model = cast::ptrs<data::ModelItem>(m_panel_items[idx].ext_data.ptr);
     if (model->info.empty())
         return false;
 
@@ -441,10 +418,10 @@ bool PanelModels::on_pre_tt(int32_t idx) noexcept
 
 void PanelModels::on_show_tt(int32_t idx)
 {
-    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ptr)
+    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ext_data.ptr)
         return;
 
-    auto* model = cast::ptrs<data::ModelItem>(m_panel_items[idx].ptr);
+    auto* model = cast::ptrs<data::ModelItem>(m_panel_items[idx].ext_data.ptr);
 
     FontGuard fg(g::pMain->get_bold_font());
     ImGui::TextUnformatted(model->name.c_str(), model->name.c_str() + model->name.size());
@@ -453,6 +430,7 @@ void PanelModels::on_show_tt(int32_t idx)
     ImGui::TextWrapped(model->info.descr.c_str(), model->info.descr.c_str() + model->info.descr.size());
     ImGui::Separator();
     ImGui::TextUnformatted(model->info.info.c_str(), model->info.info.c_str() + model->info.info.size());
+
     if (!model->info.tags.empty() || !model->info.trigger_phrase.empty())
     {
         ImGui::Separator();
@@ -511,17 +489,6 @@ void PanelModels::on_collapse_all(PanelToolbar::Element& /*el*/)
         item.expanded = false;
     }
     rebuild_items();
-}
-
-void PanelModels::on_sync(PanelToolbar::Element& /*el*/) noexcept
-{
-    //TODO
-    //g::pFlow->reconnect();
-}
-
-void PanelModels::on_pre_sync(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = g::pFlow->get_online();    
 }
 
 } // namespace ui

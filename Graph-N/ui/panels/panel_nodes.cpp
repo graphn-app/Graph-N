@@ -124,22 +124,6 @@ void PanelNodes::create_toolbar()
             el.on_click = [this](PanelToolbar::Element& el) { on_view(el); };
             add_toolbar_element(std::move(el), false);
         }
-/*
-        {
-            PanelToolbar::Element el;
-            el.type = PanelToolbar::Element::Type::Empty;
-            add_toolbar_element(std::move(el), false);
-        }
-        {
-            PanelToolbar::Element el;
-            el.type = PanelToolbar::Element::Type::Button;
-            el.icon = ICON_LC_FOLDER_SYNC;
-            el.tooltip = "Refresh node list";
-            el.on_click = [this](PanelToolbar::Element& el) { on_sync(el); };
-            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_sync(el); };
-            add_toolbar_element(std::move(el), false);
-        }
-*/
         {
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Empty;
@@ -216,24 +200,29 @@ DlgCode PanelNodes::show(bool& focused)
         }
 
         draw_toolbar();
-        ImGui::Spacing();
 
-        ImGui::SetNextItemWidth(-FLT_MIN);
-        if (ImGuiEx::InputTextWithHint("##filternodes", "filter nodes", &dlg_data()->buffer[PanelNodesData::BuffFilter],
-            ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
+        if (!m_labels_mode)
         {
-            dlg_data()->buffer[PanelNodesData::BuffFilterLowered] = tools::str::to_lower_ascii(dlg_data()->buffer[PanelNodesData::BuffFilter]);
-            Log("Filter by: " << dlg_data()->buffer[PanelNodesData::BuffFilterLowered]);
-            g::pNodesManager->calc_number_inside(tools::str::trim_this(dlg_data()->buffer[PanelNodesData::BuffFilterLowered]), {}, {});
-            rebuild_items(true);
+            ImGui::Spacing();
+
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            if (ImGuiEx::InputTextWithHint("##filternodes", "filter nodes", &dlg_data()->buffer[PanelNodesData::BuffFilter],
+                ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
+            {
+                dlg_data()->buffer[PanelNodesData::BuffFilterLowered] = tools::str::to_lower_ascii(dlg_data()->buffer[PanelNodesData::BuffFilter]);
+                Log("Filter by: " << dlg_data()->buffer[PanelNodesData::BuffFilterLowered]);
+                g::pNodesManager->calc_number_inside(tools::str::trim_this(dlg_data()->buffer[PanelNodesData::BuffFilterLowered]), {}, {});
+                rebuild_items(true);
+            }
         }
 
         ImGuiEx::Spacing(3);
         if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0)))
         {
-            PanelItemState state;
-            if (draw_list(m_panel_items, state, &m_tt_callbacks, &m_dnd_callbacks))
-                handle_dirty(state);
+            PanelItemEvent ev;
+            if (draw_list(m_panel_items, ev, &m_tt_callbacks, &m_dnd_callbacks))
+                handle_dirty(ev);
+            draw_popups();
         }
         ImGui::EndChild();
     }
@@ -248,109 +237,6 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         return;
     }
 
-    struct NodeLabelState final : public PanelListItem::State
-    {
-        std::set<uint32_t> active_labels;
-    };
-
-    static char new_label_buff[31] = {};
-
-    const auto on_icon_handler = [&labels_mode = m_labels_mode]
-        (PanelListItem& item, bool /*l_clicked*/, bool /*l_dbl_clicked*/, bool l_released, bool /*r_clicked*/, bool r_released, bool& handler_processed)
-    {        
-        bool dirty = false;
-        auto& labels = g::pNodesManager->get_labels();
-        if (!item.continue_processing_ico_handler && (l_released || r_released))
-        {
-            //if (labels.empty())
-            //{
-            //    item.continue_processing_ico_handler = false;
-            //    labels_mode = true;
-            //    return true;
-            //}
-
-            handler_processed = true;
-            item.item_state = std::make_unique<NodeLabelState>();
-            item.item_state->ptr = item.ptr;
-            NodeLabelState* state = cast::ptrs<NodeLabelState>(item.item_state.get());
-            for (auto& label : labels)
-            {
-                if (g::pNodesManager->get_is_node_in_label(cast::ptrs<data::NodeItem>(item.ptr), label.id))
-                {
-                    state->active_labels.insert(label.id);
-                }
-            }
-
-            ImGui::OpenPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_LabelsMenu)]);
-        }
-
-        ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(ImGui::GetContentRegionAvail().x, 400));
-        if (ImGui::BeginPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_LabelsMenu)]))
-        {
-            handler_processed = true;
-            item.continue_processing_ico_handler = true;
-
-            ImGui::TextDisabled("Assign label(s):");
-            ImGui::Separator();
-
-            for (auto& label : labels)
-            {
-                if (!item.item_state)
-                    continue;
-                NodeLabelState* state = ((NodeLabelState*)item.item_state.get());
-                bool node_in_label = state->active_labels.contains(label.id);
-                    
-                ImGui::PushID(label.id);
-                if (ImGui::Checkbox(label.name.c_str(), &node_in_label))
-                {
-                    item.item_state->changed = true;
-                    if (node_in_label)
-                        state->active_labels.insert(label.id);
-                    else
-                        state->active_labels.erase(label.id);
-                }
-                ImGui::PopID();
-            }
-
-            const bool changed = item.item_state && item.item_state->changed;
-            if (!changed)
-                ImGui::BeginDisabled();
-            if (ImGui::Button("Apply", ImVec2(-FLT_MIN, 0)))
-            {
-                item.continue_processing_ico_handler = false;
-                ImGui::CloseCurrentPopup();
-                *new_label_buff = 0;
-
-                if (item.item_state && item.item_state->changed && item.item_state->ptr == item.ptr)
-                {
-                    dirty = true;
-                    g::pNodesManager->set_node_labels(cast::ptrs<data::NodeItem>(item.ptr), cast::ptrs<NodeLabelState>(item.item_state.get())->active_labels);
-                }
-            }
-            if (!changed)
-                ImGui::EndDisabled();
-
-            ImGui::Spacing();
-            ImGui::TextDisabled("New label:");
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            if (ImGui::InputText("##newlabel", new_label_buff, 30, ImGuiInputTextFlags_EnterReturnsTrue) || ImGui::IsItemDeactivatedAfterEdit())
-            {
-                if (*new_label_buff != 0 && g::pNodesManager->find_label(new_label_buff) == 0)
-                {
-                    g::pNodesManager->create_label(new_label_buff);
-                }
-            }
-
-            ImGui::EndPopup();
-        }
-        else
-            item.continue_processing_ico_handler = false;
-
-        if (!item.continue_processing_ico_handler)
-            item.item_state.reset();
-        return dirty;
-    };
-
     g::pNodesManager->calc_number_inside(tools::str::trim_this(dlg_data()->buffer[PanelNodesData::BuffFilterLowered]), {}, {});
 
     std::set<data::NodeItem*> expanded_nodes;
@@ -359,10 +245,10 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
     {
         if (item.expanded)
         {
-            if (item.label != 0)
-                expanded_labels.insert(item.label);
+            if (item.ext_data.label != 0)
+                expanded_labels.insert(item.ext_data.label);
             else
-                expanded_nodes.insert(cast::ptrs<data::NodeItem>(item.ptr));
+                expanded_nodes.insert(cast::ptrs<data::NodeItem>(item.ext_data.ptr));
         }
     }
 
@@ -394,15 +280,14 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
 
         PanelListItem label_item;
         label_item.name = label.name;
-        label_item.name_p2 = std::to_string(nodes_count);
+        label_item.name_label = std::to_string(nodes_count);
         label_item.can_expand = true;
         label_item.expanded = (force_expand_all || expanded_labels.contains(label.id));
-        const bool label_expanded = label_item.expanded;
         label_item.icon = label_item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
-        label_item.label = label.id;
+        label_item.ext_data.label = label.id;
         m_panel_items.push_back(std::move(label_item));
 
-        if (label_expanded)
+        if (label_item.expanded)
         {
             for (auto node_item : nodes_in_label)
             {
@@ -413,11 +298,10 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                     item.name = node_item->name_or_category;
                     item.icon = ICON_LC_TAG;
                     item.icon_tooltip = "Manage node labels";
-                    item.on_icon_handler = on_icon_handler;
-                    item.can_lclick = item.can_rclick = item.icon_can_click = true;
+                    item.icon_can_click = true;
                     item.selected = m_inspector->is_node_inspecting(node_item->node);
-                    item.ptr = node_item;
-                    item.dnd_data = node_item->node->get_hash();
+                    item.ext_data.ptr = node_item;
+                    item.ext_data.dnd_data = node_item->node->get_hash();
                     m_panel_items.push_back(std::move(item));
                 }
             }
@@ -430,7 +314,7 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             add_separator("Categories");
 
         std::function<void(const std::vector<data::NodeItem*>&, int32_t)> go_tree;
-        go_tree = [&go_tree, &on_icon_handler, &labels, &panel_items = m_panel_items, &expanded_nodes, force_expand_all, &inspector = m_inspector,
+        go_tree = [&go_tree, &panel_items = m_panel_items, &expanded_nodes, force_expand_all, &inspector = m_inspector,
             is_filter_empty = dlg_data()->buffer[PanelNodesData::BuffFilter].empty()]
             (const std::vector<data::NodeItem*>& nodes, int32_t depth)
         {
@@ -438,47 +322,38 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
             {
                 bool show_node = !node->filtered;
                 if (show_node && !node->is_node)
-                    show_node = is_filter_empty || !is_filter_empty && node->nodes_inside > 0;
+                    show_node = is_filter_empty || (!is_filter_empty && node->nodes_inside > 0);
 
                 if (!show_node)
                     continue;
 
+                PanelListItem item;
+                item.depth = depth;
+                item.name = node->name_or_category;
+                item.ext_data.ptr = node;
+
                 if (!node->is_node)
                 {
-                    PanelListItem item;
-                    item.depth = depth;
-                    item.name = node->name_or_category;
-                    item.name_p2 = std::to_string(node->nodes_inside);
+                    item.name_label = std::to_string(node->nodes_inside);
                     item.can_expand = true;
                     item.expanded = (force_expand_all || expanded_nodes.contains(node));
                     item.icon = item.expanded ? ICON_LC_FOLDER_OPEN : ICON_LC_FOLDER;
-                    const bool item_expanded = item.expanded;
-                    item.ptr = node;
-#ifdef TEST
-                    item.can_rclick = true;
-#endif
-                    panel_items.push_back(std::move(item));
+                    panel_items.push_back(item);
 
-                    if (item_expanded)
+                    if (item.expanded)
                         go_tree(node->children, depth + 1);
                 }
                 else
                 {
-                    PanelListItem item;
-                    item.depth = depth;
                     item.selected = inspector->is_node_inspecting(node->node);
-                    item.name = node->name_or_category;
                     item.icon = ICON_LC_TAG;
                     item.icon_tooltip = "Manage node labels";
-                    item.on_icon_handler = on_icon_handler;
-                    item.can_lclick = item.can_rclick = item.icon_can_click = true;
-                    item.ptr = node;
-                    item.dnd_data = node->node->get_hash();
+                    item.icon_can_click = true;
+                    item.ext_data.dnd_data = node->node->get_hash();
                     panel_items.push_back(std::move(item));
                 }
             }
         };
-
         go_tree(g::pNodesManager->get_nodes_tree(), 0);
     }
     else
@@ -486,91 +361,70 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         if (!labels.empty())
             add_separator("Plain view");
 
-        auto& plain = g::pNodesManager->get_nodes_plain();
-
-        for (auto node_item : plain)
+        for (auto node_item : g::pNodesManager->get_nodes_plain())
         {
             if (node_item->is_node && !node_item->filtered)
             {
                 PanelListItem item;
                 item.name = node_item->name_or_category;
-                item.can_lclick = item.can_rclick = item.icon_can_click = true;
-                item.on_icon_handler = on_icon_handler;
+                item.icon_can_click = true;
                 item.icon = ICON_LC_TAG;
                 item.icon_tooltip = "Manage node labels";
                 item.selected = m_inspector->is_node_inspecting(node_item->node);
-                item.ptr = node_item;
-                item.dnd_data = node_item->node->get_hash();
+                item.ext_data.ptr = node_item;
+                item.ext_data.dnd_data = node_item->node->get_hash();
                 m_panel_items.push_back(std::move(item));
             }
         }
     }
 }
 
-void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
+void PanelNodes::handle_dirty(const PanelItemEvent& event)
 {
-    LogRAssert(dirty_item.index < m_panel_items.size(), "Index out of bounds", );
+    LogRAssert(event.index < m_panel_items.size(), "Index out of bounds", );
 
-    if (dirty_item.expanded)
+    if (m_labels_mode)
     {
+        handle_dirty_labels(event);
+        return;
+    }
+
+    auto& panel_item = m_panel_items[event.index];
+
+    if (event.expand_toggled)
+    {
+        panel_item.expanded = !panel_item.expanded;
         rebuild_items();
         return;
     }
 
-    if (m_labels_mode) [[unlikely]]
-    {
-        handle_dirty_labels(dirty_item);
+    data::NodeItem* node_item = cast::ptrs<data::NodeItem>(panel_item.ext_data.ptr);
+    if (nullptr == node_item || !node_item->is_node)
         return;
-    }
 
-#ifdef _DEBUG
-    Log("Dirty: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
-#endif
-
-    auto& panel_item = m_panel_items[dirty_item.index];
-    data::NodeItem* node_item = cast::ptrs<data::NodeItem>(panel_item.ptr);
-    LogRAssert(node_item && node_item->is_node, "Null dirty item or dirty item is folder", );
-
-    if (dirty_item.icon_clicked && !dirty_item.lreleased)
+    if (event.icon_clicked && event.l_released)
     {
-        rebuild_items();
-    }
-    else if (dirty_item.rclicked)
-    {
-#ifdef TEST
-        if (panel_item.can_expand && !node_item->is_node)
+        m_active_popup_ptr = panel_item.ext_data.ptr;
+        m_active_popup_labels.clear();
+        *m_new_label_buff = 0;
+
+        auto& labels = g::pNodesManager->get_labels();
+        for (auto& label : labels)
         {
-            m_inspector->reset_inspecting_nodes();
-            for (auto& unsel_panel_item : m_panel_items)
-            {
-                unsel_panel_item.selected = false;
-            }
-            for (auto child : node_item->children)
-            {
-                if (child->is_node)
-                {
-                    m_inspector->add_inspecting_node(child->node);
-                    for (auto& sel_panel_item : m_panel_items)
-                    {
-                        if (sel_panel_item.ptr == child)
-                        {
-                            sel_panel_item.selected = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            return;
+            if (g::pNodesManager->get_is_node_in_label(node_item, label.id))
+                m_active_popup_labels.insert(label.id);
         }
-#endif
 
+        ImGui::OpenPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_ItemInLabels)]);
+        return;
+    }
+
+    if (event.r_released)
+    {
         if (ImGui::IsKeyDown(ImGuiMod_Ctrl) || ImGui::IsKeyDown(ImGuiMod_Shift))
         {
-            if (panel_item.selected)
-                m_inspector->remove_inspecting_node(node_item->node);
-            else
-                m_inspector->add_inspecting_node(node_item->node);
-            panel_item.selected = !panel_item.selected;
+            m_inspector->add_inspecting_node(node_item->node);
+            panel_item.selected = true;
         }
         else
         {
@@ -582,99 +436,16 @@ void PanelNodes::handle_dirty(const PanelItemState& dirty_item)
             m_inspector->add_inspecting_node(node_item->node);
             panel_item.selected = true;
         }
-
-        if (panel_item.icon_active && g::pOptsManager->ui_nodes_pane_tree_view_load())
-        {
-            int32_t handled_items = 2;
-            for (auto& item : m_panel_items)
-            {
-                if (panel_item.ptr == item.ptr)
-                {
-                    item.selected = panel_item.selected;
-                    if (--handled_items <= 0)
-                        break;
-                }
-            }
-        }
+        rebuild_items();
     }
-    else if (dirty_item.lreleased)
+    else if (event.l_released)
     {
         add_node_to_wf(node_item);
-    }
-    else if (!dirty_item.lclicked && !dirty_item.rreleased)
-    {
-        LogError("Unhandled dirty state");
     }
 }
 
 void PanelNodes::rebuild_labels()
 {
-    const auto on_hover_handler = []
-        (PanelListItem& item, bool& handler_processed)
-    {
-        bool dirty = false;
-        if (ImGui::IsKeyPressed(ImGuiKey_Delete))
-        {
-            g::pNodesManager->remove_label(item.label);
-            dirty = true;
-            handler_processed = true;
-        }
-        else if (ImGui::IsKeyPressed(ImGuiKey_F2))
-        {
-            item.name_backup = item.name;
-            item.renaming = true;
-            item.need_focus = true;
-            handler_processed = true;
-        }
-
-        return dirty;
-    };
-
-    const auto on_item_handler = [&new_label_id = m_new_label]
-        (PanelListItem& item, bool /*l_clicked*/, bool /*l_dbl_clicked*/, bool /*l_released*/, bool /*r_clicked*/, bool r_released, bool& handler_processed)
-    {
-        bool dirty = false, close = false;
-        if (!item.continue_processing_item_handler && r_released)
-        {
-            ImGui::OpenPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_LabelsMenu)]);
-            handler_processed = true;
-        }
-
-        ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(ImGui::GetContentRegionAvail().x, 200));
-        if (ImGui::BeginPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_LabelsMenu)]))
-        {
-            handler_processed = true;
-            if (ImGui::MenuItem("Add new label"))
-            {
-                new_label_id = g::pNodesManager->create_label();
-                close = dirty = true;
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Rename label"))
-            {
-                item.name_backup = item.name;
-                item.renaming = true;
-                item.need_focus = true;
-                close = true;
-            }
-            if (ImGui::MenuItem("Delete label"))
-            {
-                g::pNodesManager->remove_label(item.label);
-                close = dirty = true;
-            }
-
-            item.continue_processing_item_handler = !close;
-            if (close)
-                ImGui::CloseCurrentPopup();
-            ImGui::EndPopup();
-            return dirty;
-        }
-        else
-            item.continue_processing_item_handler = false;
-
-        return dirty;
-    };
-
     auto& labels = g::pNodesManager->get_labels();
 
     m_panel_items.clear();
@@ -683,60 +454,127 @@ void PanelNodes::rebuild_labels()
     for (auto& label : labels)
     {
         PanelListItem item;
-        item.can_dblclick = true;
         item.name = label.name;
-        item.label = label.id;
-        item.on_item_handler = on_item_handler;
-        item.on_hover_handler = on_hover_handler;
+        item.ext_data.label = label.id;
+
         if (m_new_label == label.id)
         {
-            item.renaming = true;
-            item.need_focus = true;
-            item.name_backup = item.name;
+            begin_rename(cast::to_i32(m_panel_items.size()), item.name);
             m_new_label = 0;
         }
         m_panel_items.push_back(std::move(item));
     }
 }
 
-void PanelNodes::handle_dirty_labels(const PanelItemState& dirty_item)
+void PanelNodes::handle_dirty_labels(const PanelItemEvent& event)
 {
-#ifdef _DEBUG
-    Log("Dirty label: idx=" << dirty_item.index << ", rc=" << dirty_item.rclicked << " lc=" << dirty_item.lclicked << ", ico=" << dirty_item.icon_clicked << ", xp=" << dirty_item.expanded);
-#endif
+    auto& panel_item = m_panel_items[event.index];
 
-    if (dirty_item.dblclicked)
+    if (event.rename_completed)
     {
-        LogRAssert(dirty_item.index < m_panel_items.size(), "Index out of bounds", );
-
-        auto& panel_item = m_panel_items[dirty_item.index];
-        panel_item.renaming = true;
-        panel_item.need_focus = true;
-        panel_item.name_backup = panel_item.name;
-    }
-    else if (dirty_item.item_clicked || dirty_item.item_handled)
-    {
+        if (g::pNodesManager->rename_label(panel_item.ext_data.label, event.new_name))
+            panel_item.name = event.new_name;
         rebuild_items();
     }
-    else if (dirty_item.renamed)
+    else if (event.r_released)
     {
-        auto& panel_item = m_panel_items[dirty_item.index];
-        if (!g::pNodesManager->rename_label(panel_item.label, panel_item.name))
-            panel_item.name = panel_item.name_backup;
-        panel_item.name_backup = {};
-        rebuild_items();
+        m_active_popup_label_id = panel_item.ext_data.label; 
+        ImGui::OpenPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_LabelMenu)]);
+    }
+    else if (event.l_released)
+    {
+        begin_rename(event.index, panel_item.name);
+    }
+}
+
+void PanelNodes::draw_popups()
+{
+    ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(300, 400));
+    if (m_labels_mode && ImGui::BeginPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_LabelMenu)], ImGuiWindowFlags_NoMove))
+    {
+        bool close = false;
+        uint32_t current_label_id = m_active_popup_label_id;
+
+        if (ImGui::MenuItem("Add new label"))
+        {
+            m_new_label = g::pNodesManager->create_label();
+            close = true;
+            rebuild_items();
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Rename label"))
+        {
+            for (int i = 0; i < m_panel_items.size(); i++)
+            {
+                if (m_panel_items[i].ext_data.label == current_label_id)
+                {
+                    begin_rename(i, m_panel_items[i].name);
+                    break;
+                }
+            }
+            close = true;
+        }
+        if (ImGui::MenuItem("Delete label"))
+        {
+            g::pNodesManager->remove_label(current_label_id);
+            close = true;
+            rebuild_items();
+        }
+
+        if (close)
+            ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+    else if (!m_labels_mode && ImGui::BeginPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_ItemInLabels)], ImGuiWindowFlags_NoMove))
+    {
+        ImGui::TextDisabled("Assign label(s):");
+
+        bool changed = false;
+        auto& labels = g::pNodesManager->get_labels();
+
+        for (auto& label : labels)
+        {
+            bool in_label = m_active_popup_labels.contains(label.id);
+            ImGui::PushID(label.id);
+            if (ImGui::Checkbox(label.name.c_str(), &in_label))
+            {
+                changed = true;
+                if (in_label) m_active_popup_labels.insert(label.id);
+                else          m_active_popup_labels.erase(label.id);
+
+                g::pNodesManager->set_node_labels(cast::ptrs<data::NodeItem>(m_active_popup_ptr), m_active_popup_labels);
+                rebuild_items();
+            }
+            ImGui::PopID();
+        }
+
+        ImGui::Spacing();
+        ImGui::TextDisabled("New label:");
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::InputText("##newlabel", m_new_label_buff, 30, ImGuiInputTextFlags_EnterReturnsTrue) || ImGui::IsItemDeactivatedAfterEdit())
+        {
+            if (*m_new_label_buff != 0 && g::pNodesManager->find_label(m_new_label_buff) == 0)
+            {
+                uint32_t new_id = g::pNodesManager->create_label(m_new_label_buff);
+                m_active_popup_labels.insert(new_id);
+                g::pNodesManager->set_node_labels(cast::ptrs<data::NodeItem>(m_active_popup_ptr), m_active_popup_labels);
+                *m_new_label_buff = 0;
+                rebuild_items();
+            }
+        }
+        ImGui::EndPopup();
     }
 }
 
 void PanelNodes::on_alloc_tt_data(int32_t idx)
 {
-    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ptr)
+    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ext_data.ptr)
         return;
 
     if (m_tt_node != nullptr)
         m_wf->remove_node(m_tt_node);
     m_tt_idx = idx;
-    m_tt_node = m_wf->add_node_ro(cast::ptrs<data::NodeItem>(m_panel_items[idx].ptr)->node);
+    m_tt_node = m_wf->add_node_ro(cast::ptrs<data::NodeItem>(m_panel_items[idx].ext_data.ptr)->node);
     m_tt_width = m_tt_node->calc_node_width(true, false);
 }
 
@@ -748,17 +586,17 @@ void PanelNodes::on_release_tt_data(int32_t /*idx*/)
     m_tt_idx = -1;
 }
 
-void PanelNodes::on_show_tt(int32_t idx)
-{
-    if (m_tt_node && idx == m_tt_idx)
-        m_tt_node_drawer.draw(m_tt_node, true, m_tt_width);
-}
-
 bool PanelNodes::on_pre_tt(int32_t /*idx*/) noexcept
 {
     ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
     return true;
+}
+
+void PanelNodes::on_show_tt(int32_t idx)
+{
+    if (m_tt_node && idx == m_tt_idx)
+        m_tt_node_drawer.draw(m_tt_node, true, m_tt_width);
 }
 
 void PanelNodes::on_post_tt(int32_t /*idx*/) noexcept
@@ -768,17 +606,17 @@ void PanelNodes::on_post_tt(int32_t /*idx*/) noexcept
 
 bool PanelNodes::on_dnd_allow(int32_t idx) noexcept
 {
-    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ptr)
+    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ext_data.ptr)
         return false;
     return true;
 }
 
 void PanelNodes::on_dnd_show(int32_t idx) noexcept
 {
-    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ptr)
+    if (m_panel_items[idx].can_expand || nullptr == m_panel_items[idx].ext_data.ptr)
         return;
 
-    const auto node_item = cast::ptrs<data::NodeItem>(m_panel_items[idx].ptr);
+    const auto node_item = cast::ptrs<data::NodeItem>(m_panel_items[idx].ext_data.ptr);
     ImGui::TextUnformatted(node_item->name_or_category.c_str(), node_item->name_or_category.c_str() + node_item->name_or_category.size());
 }
 
@@ -832,16 +670,6 @@ void PanelNodes::on_view(PanelToolbar::Element& el)
         el.icon = ICON_LC_FOLDER_TREE;
     else
         el.icon = ICON_LC_LIST_TREE;
-}
-
-void PanelNodes::on_sync(PanelToolbar::Element& /*el*/)
-{
-    g::pFlow->reload_nodes();
-}
-
-void PanelNodes::on_pre_sync(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = g::pFlow->get_online();    
 }
 
 } // namespace ui

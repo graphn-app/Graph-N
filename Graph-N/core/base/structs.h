@@ -266,77 +266,49 @@ struct ExecTask final
 namespace ui
 {
 ///////////////////////////////////////////////////////////////////
-///////      ui::PanelListItem            /////////////////////////
+///////      ui::PanelListItem / ui::PanelItemState      //////////
 ///////////////////////////////////////////////////////////////////
+
+struct PanelListItemExternalData final
+{
+    void* ptr = nullptr;
+    uint32_t label = 0;
+    uint64_t dnd_data = 0;
+};
 
 struct PanelListItem final
 {
     int32_t depth = 0;
+    bool is_separator = false;      // draw separator only
+    bool is_empty = false;          // draw empty line
+    bool selected = false;          // select item
+    bool expanded = false;          // expand item
+    bool can_expand = false;        // is expanding allowed
 
-    bool is_separator = false;
-    bool is_empty = false;
+    bool icon_favorited = false;    // item is favorited
+    bool icon_can_click = false;    // is icon can be clicked
 
-    bool selected = false;
+    std::string name;               // separator name, item name
+    std::string name_label;         // small label next to the name, applied only for expandable items
+    const char* icon = nullptr;     // icon to show
+    const char* icon_tooltip = nullptr; // tooltip for the icon
 
-    std::string name;
-    std::string name_p2;
-    std::string name_backup;
-    bool renaming = false;
-    bool need_focus = false;
-
-    const char* icon = nullptr;
-    const char* icon_tooltip = nullptr;
-
-    bool can_expand = false;    // exclusive ability
-    bool expanded = false;
-
-    bool icon_active = false;
-    bool icon_can_click = false;
-
-    std::function<bool(PanelListItem&, bool&)> on_hover_handler = nullptr;
-
-    std::function<bool(PanelListItem&, bool, bool, bool, bool, bool, bool&)> on_icon_handler = nullptr;
-    bool continue_processing_ico_handler = false;
-
-    bool can_rclick = false;
-    bool can_lclick = false;
-    bool can_dblclick = false;
-
-    std::function<bool(PanelListItem&, bool, bool, bool, bool, bool, bool&)> on_item_handler = nullptr;
-    bool continue_processing_item_handler = false;
-
-    uint32_t label = 0;
-    void* ptr = nullptr;
-    uint64_t dnd_data = 0;
-
-    struct State
-    {
-        bool changed = false;
-        void* ptr = nullptr;
-
-        State() noexcept = default;
-        virtual ~State() noexcept = default;
-    };
-    std::unique_ptr<State> item_state;
+    PanelListItemExternalData ext_data; // some data that caller might use
 };
 
-///////////////////////////////////////////////////////////////////
-///////      ui::PanelItemState           /////////////////////////
-///////////////////////////////////////////////////////////////////
-
-struct PanelItemState final
+struct PanelItemEvent final
 {
-    size_t index = 0;
-    bool rclicked = false;
-    bool rreleased = false;
-    bool lclicked = false;
-    bool lreleased = false;
-    bool dblclicked = false;
-    bool renamed = false;
-    bool item_clicked = false;
-    bool item_handled = false;
-    bool icon_clicked = false;
-    bool expanded = false;
+    int32_t index = -1;                 // item index
+    bool l_clicked = false;             // item left clicked
+    bool l_released = false;            // item left button released
+    bool r_clicked = false;             // item right clicked
+    bool r_released = false;            // item right button released
+    bool icon_clicked = false;          // item's icon left clicked
+    bool item_clicked = false;          // item clicked
+    bool expand_toggled = false;        // item expanded/collapsed
+
+    bool rename_completed = false;      // rename finished
+    std::string new_name;               // new name is here
 };
 
 ///////////////////////////////////////////////////////////////////

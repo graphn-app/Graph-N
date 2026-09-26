@@ -53,9 +53,9 @@ private:
 
     void rebuild_items(bool force_expand_all = false);
     void rebuild_labels();
-
-    void handle_dirty(const PanelItemState& dirty_item);
-    void handle_dirty_labels(const PanelItemState& dirty_item);
+    void draw_popups();
+    void handle_dirty(const PanelItemEvent& ev);
+    void handle_dirty_labels(const PanelItemEvent& ev);
 
     void on_alloc_tt_data(int32_t idx);
     void on_release_tt_data(int32_t idx);
@@ -71,9 +71,7 @@ private:
     void on_expand_all(PanelToolbar::Element& el);
     void on_collapse_all(PanelToolbar::Element& el);
     void on_view(PanelToolbar::Element& el);
-    void on_sync(PanelToolbar::Element& el);
     void on_pre_expand_collapse(PanelToolbar::Element& el) noexcept;
-    void on_pre_sync(PanelToolbar::Element& el) noexcept;
 
 private:
     PanelNodeInspector* m_inspector = nullptr;
@@ -87,6 +85,11 @@ private:
     std::vector<PanelListItem> m_panel_items;
     bool m_labels_mode = false;
     uint32_t m_new_label = 0;
+
+    void* m_active_popup_ptr = nullptr;
+    std::set<uint32_t> m_active_popup_labels;
+    char m_new_label_buff[31] = {};
+    uint32_t m_active_popup_label_id = 0;
 };
 
 
