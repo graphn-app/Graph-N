@@ -35,7 +35,12 @@ int32_t do_main(std::atomic_bool& request_focus)
         if (!g::pGraphN->init_graphn())
             return 1;
 
-        global::MainRoutine::flow_callback callback = [](bool DoExit)
+        const global::MainRoutine::cleanup_callback cleanup_callback = []()
+        {
+            g::pGraphN->cleanup_frame();
+        };
+
+        const global::MainRoutine::flow_callback flow_callback = [](bool DoExit)
         {
             const bool res = g::pGraphN->flow();
             if (!res || DoExit)
@@ -46,7 +51,7 @@ int32_t do_main(std::atomic_bool& request_focus)
             return res;
         };
 
-        ret = main_app->run(callback, request_focus);
+        ret = main_app->run(flow_callback, cleanup_callback, request_focus);
         if (0 == ret)
             ret = g::pGraphN->override_exit_code();
         LogS("App exit code: " << ret);

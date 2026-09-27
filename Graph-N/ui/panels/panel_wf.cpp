@@ -24,17 +24,11 @@ PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std
 {
     m_action->set_drawer(&m_drawer);
     m_wf_valid = m_wf->get_data().valid;
-
-    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::Invalidate, this);
-    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
-
-    g::pHotkeysManager->add_listener(this);
 }
 
 PanelWorkflow::~PanelWorkflow() noexcept
 {
-    if (g::pGraphN != nullptr)
-        g::pGraphN->unsubscribe_comfyui_validity_state(this);
+    free();
 }
 
 void PanelWorkflow::stop_all_threads() noexcept
@@ -49,11 +43,15 @@ void PanelWorkflow::free() noexcept
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_comfyui_validity_state(this);
 
-    m_wf->get_data().activated = false;
-    m_wf->clear();
-    m_wf = nullptr;
-    m_action->set_drawer(nullptr);
-    m_drawer.free();
+    if (m_wf != nullptr)
+    {
+        m_wf->get_data().activated = false;
+        m_wf->clear();
+        m_wf = nullptr;
+        if (m_action != nullptr)
+            m_action->set_drawer(nullptr);
+        m_drawer.free();
+    }
 }
 
 void PanelWorkflow::init()
@@ -64,11 +62,24 @@ void PanelWorkflow::init()
     g::pWfsManager->load(m_wf->get_id(), drawer_state);
     m_drawer.init(std::move(drawer_state));
 
+    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::Invalidate, this);
+    g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
+    g::pHotkeysManager->add_listener(this);
+
     m_wf->reset();
     m_wf->get_data().activated = true;
     m_wf_valid = m_wf->get_data().valid;
     create_toolbar();
     alive();
+}
+
+void PanelWorkflow::cleanup_frame()
+{
+    if (!m_pending_cleanups.empty())
+    {
+        delete_nodes(std::move(m_pending_cleanups), true);
+        m_pending_cleanups = {};
+    }
 }
 
 void PanelWorkflow::invalidate_comfyui_objects() noexcept
@@ -196,9 +207,14 @@ void PanelWorkflow::group_nodes(const std::set<data::NodeInstance*>& nodes)
     m_action->multi_action_off();
 }
 
-void PanelWorkflow::delete_nodes(const std::set<data::NodeInstance*>& nodes)
+void PanelWorkflow::delete_nodes(std::set<data::NodeInstance*>&& nodes, bool process_pending_deletion)
 {
-    m_drawer.clear_selection();
+    if (!process_pending_deletion)
+    {
+        m_drawer.clear_selection();
+        m_pending_cleanups.merge(std::move(nodes));
+        return;
+    }
 
     m_action->multi_action_on("Remove");
     std::set<data::NodeInstance*> nodes_upd;

@@ -76,7 +76,7 @@ o_json WfSerializerToJson::serialize()
     if (virt_wf)
     {
         m_wf = nullptr;
-        g::pWfsManager->remove_virtual_wf(virt_wf->get_id());
+        g::pWfsManager->erase_wf(virt_wf->get_id());
     }
 
     return std::move(m_json);

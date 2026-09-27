@@ -256,7 +256,7 @@ void QueueManager::go_next_task()
         {
             Log("Dropped all tasks due to error");
             m_current->tasks_num = 0;
-            g::pWfsManager->remove_virtual_wf(m_current->wf->get_id());
+            g::pWfsManager->erase_wf(m_current->wf->get_id());
             t.search_data.clear();
             t.search_data.shrink_to_fit();
 
@@ -272,7 +272,7 @@ void QueueManager::go_next_task()
         if (0 == m_current->tasks_num || --m_current->tasks_num == 0)
         {
             Log("Finished all tasks for wf " << m_current_group.src_wf);
-            g::pWfsManager->remove_virtual_wf(m_current->wf->get_id());
+            g::pWfsManager->erase_wf(m_current->wf->get_id());
             m_current = nullptr;            
             m_current_group = {};
             return;

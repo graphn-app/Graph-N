@@ -28,7 +28,7 @@ private:
         MainRoutine overrides
     */
     bool init() override;
-    int32_t run(flow_callback& callback, std::atomic_bool& request_focus) override;
+    int32_t run(const flow_callback& run_cb, const cleanup_callback& cleanup_cb, std::atomic_bool& request_focus) override;
     void free() override;
 
     void wnd_restore() noexcept override;
@@ -71,7 +71,8 @@ private:
     bool m_ini_config_exists = false;
 
     // Graph-N
-    flow_callback* m_callback = nullptr;
+    const cleanup_callback* m_cleanup_callback = nullptr;
+    const flow_callback* m_run_callback = nullptr;
 
     // fps
     double m_frame_render_time = 0;

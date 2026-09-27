@@ -31,6 +31,7 @@ public:
 
     void stop_all_threads() noexcept override;
     void free() noexcept override;
+    void cleanup_frame();
 
     data::Workflow* get_workflow() const noexcept { return m_wf; }
     data::WorkflowAction* get_action() const noexcept { return m_action; }
@@ -66,7 +67,7 @@ public:
     void redo() const;
 
     void group_nodes(const std::set<data::NodeInstance*>& nodes);
-    void delete_nodes(const std::set<data::NodeInstance*>& nodes);
+    void delete_nodes(std::set<data::NodeInstance*>&& nodes, bool process_pending_deletion);
     void copy_nodes(const std::set<data::NodeInstance*>& nodes, std::optional<ImVec2> src_point);
     void paste_copied(std::optional<ImVec2> paste_at);
 
@@ -183,6 +184,8 @@ private:
 
     int32_t m_curr_dummy_node = 0;
     bool m_invalidation_state = false;
+
+    std::set<data::NodeInstance*> m_pending_cleanups;
 };
 
 

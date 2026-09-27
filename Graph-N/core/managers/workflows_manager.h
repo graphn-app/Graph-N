@@ -24,6 +24,8 @@ public:
     void free() override;
     void stop_all_threads() noexcept override;
 
+    void cleanup_frame();
+
     const WfData& create(bool generate_name, bool dump_to_db, bool ro);
     const WfData& create_copy(wid source);
     std::shared_ptr<data::Workflow> create_copy_virtual(const data::Workflow* source);
@@ -52,8 +54,6 @@ public:
     bool is_deleted(wid id) const;
     void erase_wf(wid id);
 
-    void remove_virtual_wf(wid id);
-
     const std::list<Label>& get_labels() const noexcept { return m_labels.get_label_list(); }
     std::list<wid> get_wfs_in_label(uint32_t label_id) const;
     bool get_is_wf_in_label(wid wf_id, uint32_t label_id) const;
@@ -72,7 +72,7 @@ public:
     bool copy_has_data() const noexcept { return !m_copied_nodes.empty(); }
 
     void close_and_purge();
-    void close(wid wf_id);
+    void close(wid wf_id, bool process_pending_deletion);
     void save(wid wf_id);
     void revert(wid wf_id, blob::Blob& drawer_state);
     void dump(wid wf_id) const;
@@ -103,6 +103,13 @@ private:
     std::set<data::NodeInstance*> m_copied_nodes;
 
     int64_t m_dump_counter = 0;
+
+    struct PendingCleanup final
+    {
+        std::vector<wid> erase_wfs;
+        std::vector<wid> close_wfs;
+    }
+    m_pending_cleanups;
 };
 
 } // namespace mngr

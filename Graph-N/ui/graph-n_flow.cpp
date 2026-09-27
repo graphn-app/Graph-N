@@ -323,23 +323,6 @@ void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
     g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
-void GraphN_Flow::exit()
-{
-    Log("");
-    dead();
-    g::app_global_stop_all_threads.request_stop();
-    g::block_hotkeys_mask = 0xffffffff;
-    prepare_to_quit();
-}
-
-void GraphN_Flow::stop_all_threads() noexcept
-{
-    Log("");
-    dead();
-    g::app_global_stop_all_threads.request_stop();
-    g::block_hotkeys_mask = 0xffffffff;
-}
-
 bool GraphN_Flow::run()
 {
     show_menu_bar();
@@ -377,6 +360,80 @@ bool GraphN_Flow::run()
     return true;
 }
 
+void GraphN_Flow::cleanup_frame()
+{
+    if (m_pending_cleanups.opts_dlg)
+    {
+        m_opts_dlg->free();
+        m_all_dialogs.erase(m_opts_dlg.get());
+        m_opts_dlg.reset();
+    }
+
+    if (m_pending_cleanups.sync_projs_dlg)
+    {
+        m_sync_projs_dlg->free();
+        m_all_dialogs.erase(m_sync_projs_dlg.get());
+        m_sync_projs_dlg.reset();
+    }
+
+    if (m_pending_cleanups.modal_dlg)
+    {
+        m_modal_message.reset();
+    }
+
+    for (auto panel : m_pending_cleanups.text_editors)
+    {
+        panel->free();
+        std::erase_if(m_panels_text_editor, [panel](const std::unique_ptr<PanelTextEditor>& ptr) { return ptr.get() == panel; });
+        m_all_dialogs.erase(panel);
+    }
+
+    for (auto& wf_panel : m_panels_wf)
+    {
+        wf_panel->cleanup_frame();
+    }
+
+    const bool reassign_sequential_numbers = !m_pending_cleanups.wf_panels.empty();
+    for (auto panel : m_pending_cleanups.wf_panels)
+    {
+        const wid panel_wf = panel->get_workflow()->get_id();
+        txt_panel_clear(panel_wf);
+        g::pHistoryManager->cleanup(panel_wf);
+        g::pWfsManager->close(panel_wf, false);
+
+        panel->free();
+        m_all_dialogs.erase(panel);
+        std::erase_if(m_panels_wf, [panel](const std::unique_ptr<PanelWorkflow>& ptr) { return ptr.get() == panel; });
+    }
+    if (reassign_sequential_numbers)
+    {
+        if (m_panels_wf.empty())
+        {
+            for (auto& ptr : m_panels_text_editor)
+            {
+                ptr->reset();
+            }
+            m_panels_text_editor.clear();
+            m_windows &= ~ViewPanelTextEditor;
+        }
+
+        std::list<std::pair<std::string, bool>> active_wfs;
+        for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
+        {
+            auto& panel = *it;
+            active_wfs.push_back({ panel->get_workflow()->get_uuid(), m_wf_focused == panel.get() });
+        }
+        g::pOptsManager->wf_active_save(active_wfs);
+        on_dlg_closed(DlgObj::PanelWf);
+
+        wf_assign_sequential_numbers();
+    }
+
+    g::pWfsManager->cleanup_frame();
+
+    m_pending_cleanups = {};
+}
+
 void GraphN_Flow::prepare_to_quit()
 {
     LogIn;
@@ -386,25 +443,38 @@ void GraphN_Flow::prepare_to_quit()
     g::block_hotkeys_mask = 0xffffffff;
 
     g::pConnectManager->stop_all_threads();
-    g::pWfsManager->close_and_purge();
+
+    if (m_nodes_parser)
+        m_nodes_parser->stop();
 
     for (auto& dlg : m_all_dialogs)
     {
         if (dlg)
         {
             dlg->stop_all_threads();
+        }
+    }
+    m_wf_focused = nullptr;
+
+    LogOut;
+}
+
+void GraphN_Flow::quit()
+{
+    LogIn;
+
+    for (auto& dlg : m_all_dialogs)
+    {
+        if (dlg)
+        {
             dlg->free();
         }
     }
+
+    m_nodes_parser.reset();
     m_all_dialogs.clear();
     m_panels_wf.clear();
-    m_wf_focused = nullptr;
-
-    stop_all_threads();
-
-    if (m_nodes_parser)
-        m_nodes_parser->stop();
-    m_nodes_parser.reset();
+    g::pWfsManager->close_and_purge();
 
     LogOut;
 }
@@ -579,14 +649,12 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
     {
     case DlgObj::OptionsDlg:
         m_windows &= ~ViewOptions;
-        m_all_dialogs.erase(m_opts_dlg.get());
-        m_opts_dlg.reset();
+        m_pending_cleanups.opts_dlg = true;
         Log("Options dlg closed");
         break;
     case DlgObj::SyncProjects:
         m_windows &= ~ViewSyncProjects;
-        m_all_dialogs.erase(m_sync_projs_dlg.get());
-        m_sync_projs_dlg.reset();
+        m_pending_cleanups.sync_projs_dlg = true;
         Log("Sync projs dlg closed");
         break;
     case DlgObj::PanelNodes:
@@ -724,16 +792,6 @@ void GraphN_Flow::activate_txt_panels(wid wf)
     }
 }
 
-void GraphN_Flow::destroy_txt_panels() noexcept
-{
-    for (auto& ptr : m_panels_text_editor)
-    {
-        ptr->reset();
-    }
-    m_panels_text_editor.clear();
-    m_windows &= ~ViewPanelTextEditor;
-}
-
 void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel) noexcept
 {
     LogRAssert(panel, "Zero ptr", );
@@ -741,9 +799,8 @@ void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel) noexcept
     {
         if (it->get() == panel)
         {
+            m_pending_cleanups.text_editors.push_back(panel);
             panel->reset();
-            m_panels_text_editor.erase(it);
-            m_all_dialogs.erase(panel);
             break;
         }
     }
@@ -1231,8 +1288,8 @@ void GraphN_Flow::modal_last_frame()
     m_modal_message->stop();
     m_modal_message->show();
     m_windows &= ~(ViewModal | ViewModalStop);
-    m_modal_message.reset();
     g::block_hotkeys_mask &= ~ViewModal;
+    m_pending_cleanups.modal_dlg = true;
 }
 
 void GraphN_Flow::load_hotkeys()

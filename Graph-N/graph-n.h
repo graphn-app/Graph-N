@@ -53,6 +53,7 @@ public:
     void exit_graphn();
 
     bool flow();
+    void cleanup_frame();
     int32_t override_exit_code() noexcept;
 
     void subscribe_timers(listener::Timer* listener);

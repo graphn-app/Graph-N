@@ -388,15 +388,12 @@ void GraphN_Flow::on_menu_wf_rename() noexcept
 void GraphN_Flow::on_menu_close_all_projects(bool keep_active)
 {
     const auto active = (keep_active ? wf_get_active_panel() : nullptr);
-    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); )
+    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
     {
         if (it->get() != active)
         {
             wf_panel_close(it->get());
-            it = m_panels_wf.begin();
         }
-        else
-            ++it;
     }
 }
 

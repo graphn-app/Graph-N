@@ -434,7 +434,7 @@ bool PanelWorkflow::show_node_menu()
     ImGui::Separator();
     if (ImGui::MenuItem("Remove", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Remove)))
     {
-        delete_nodes({ node });
+        delete_nodes({ node }, false);
         close = true;
         create_toolbar();
         return close;
@@ -657,7 +657,7 @@ bool PanelWorkflow::show_group_menu()
     ImGui::Separator();
     if (ImGui::MenuItem(nodes.empty() ? "Remove" : "Remove group", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Remove)))
     {
-        delete_nodes({ group });
+        delete_nodes({ group }, false);
         close = true;
     }
     if (!nodes.empty())
@@ -674,7 +674,7 @@ bool PanelWorkflow::show_group_menu()
                 objs.insert(node);
             }
             objs.insert(group);
-            delete_nodes(objs);
+            delete_nodes(std::move(objs), false);
 
             close = true;
             create_toolbar();
@@ -752,7 +752,7 @@ bool PanelWorkflow::show_multinode_menu()
     ImGui::Separator();
     if (ImGui::MenuItem("Remove", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Remove)))
     {
-        delete_nodes(m_menu_objs.nodes);
+        delete_nodes(std::move(m_menu_objs.nodes), false);
         close = true;
         create_toolbar();
         return close;
@@ -903,7 +903,7 @@ bool PanelWorkflow::show_multigroup_menu()
         {
             objs.insert(pair.first);
         }
-        delete_nodes(objs);
+        delete_nodes(std::move(objs), false);
         close = true;
     }
     if (nodes_inside > 0)
@@ -916,7 +916,7 @@ bool PanelWorkflow::show_multigroup_menu()
                 objs.insert(group);
                 objs.insert(nodes.begin(), nodes.end());
             }
-            delete_nodes(objs);
+            delete_nodes(std::move(objs), false);
             close = true;
             create_toolbar();
             return close;
@@ -1019,7 +1019,7 @@ bool PanelWorkflow::show_multiobj_menu()
         {
             objs.insert(group.first);
         }
-        delete_nodes(objs);
+        delete_nodes(std::move(objs), false);
         close = true;
         create_toolbar();
         return close;

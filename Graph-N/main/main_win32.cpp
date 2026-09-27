@@ -101,10 +101,13 @@ bool MainRoutine_Win32::init()
     return true;
 }
 
-int32_t MainRoutine_Win32::run(flow_callback& callback, std::atomic_bool& request_focus)
+int32_t MainRoutine_Win32::run(const flow_callback& run_cb, const cleanup_callback& cleanup_cb, std::atomic_bool& request_focus)
 {
+    LogCriticalIf(run_cb && cleanup_cb, "Empty callbacks");
+    m_run_callback = &run_cb;
+    m_cleanup_callback = &cleanup_cb;
+
     // Main loop
-    m_callback = &callback;
     bool done = false;
     while (!done)
     {
@@ -134,7 +137,8 @@ int32_t MainRoutine_Win32::run(flow_callback& callback, std::atomic_bool& reques
         }
     }
 
-    m_callback = nullptr;
+    m_run_callback = nullptr;
+    m_cleanup_callback = nullptr;
     return 0;
 }
 
@@ -155,9 +159,10 @@ bool MainRoutine_Win32::render_frame(bool done)
         ::PostQuitMessage(1);
         LogCritical("Render target is null");
     }
+    
+    (*m_cleanup_callback)(); // cleanup last frame - prepare for the next one
 
     m_is_rendering = true; // lock re-entrancy
-
     const auto start_tick = std::chrono::high_resolution_clock::now();
 
     // Start the Dear ImGui frame
@@ -165,11 +170,7 @@ bool MainRoutine_Win32::render_frame(bool done)
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    bool ret = true;
-    if (m_callback) [[likely]]
-    {
-        ret = (*m_callback)(done);  // main Graph-N flow
-    }
+    const bool ret_value = (*m_run_callback)(done);  // main Graph-N flow
 
     // rendering
     ImGui::Render();
@@ -201,7 +202,7 @@ bool MainRoutine_Win32::render_frame(bool done)
     }
 
     m_is_rendering = false; // unlock
-    return ret;
+    return ret_value;
 }
 
 void MainRoutine_Win32::free()

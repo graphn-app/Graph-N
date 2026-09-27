@@ -175,11 +175,6 @@ void GraphN::exit_graphn()
         }
     });
 
-    if (m_graphn_flow)
-        m_graphn_flow->exit();
-    m_graphn_flow.reset();
-    g::pFlow = nullptr;
-
     g::pOptsManager = nullptr;
     g::pDbManager = nullptr;
     g::pNodesManager = nullptr;
@@ -296,6 +291,21 @@ void GraphN::handle_new_frame(int64_t frames_elapsed)
     }
 }
 
+void GraphN::cleanup_frame()
+{
+    if (m_graphn_flow != nullptr)
+    {
+        if (Flow::DoExit == m_flow_step) [[unlikely]]
+        {
+            m_graphn_flow->quit();
+            m_graphn_flow.reset();
+            g::pFlow = nullptr;
+        }
+        else
+            m_graphn_flow->cleanup_frame();
+    }
+}
+
 bool GraphN::flow()
 {
     bool result = false;
@@ -316,17 +326,17 @@ bool GraphN::flow()
             result = run_graphn();
             break;
         case Flow::PrepareToExit:
-            if (m_graphn_flow)
-                m_graphn_flow->exit();
             m_flow_step = Flow::DoExit;
-            Log("Next step: DoExit");
+            m_graphn_flow->prepare_to_quit();
+            Log("Next step: Exit");
             result = true;
             break;
         case Flow::DoExit:
+            Log("Exit");
             result = false;
             break;
         default:
-            LogRError("Unhandler flow step " << cast::to_u64(m_flow_step), false);
+            LogRError("Unhandled flow step " << cast::to_u16(m_flow_step), false);
         }
 
         handle_new_frame(ImGui::GetFrameCount());

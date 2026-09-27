@@ -83,6 +83,32 @@ void WfsManager::free()
     m_wfs_ro.clear();
 }
 
+void WfsManager::cleanup_frame()
+{
+    for (auto wf_id : m_pending_cleanups.erase_wfs)
+    {
+        if (std::erase_if(m_wfs_virt, [wf_id](const std::shared_ptr<data::Workflow>& ptr) { return ptr->get_id() == wf_id; }) == 0)
+        {
+            if (std::erase_if(m_wfs_ro, [wf_id](const std::unique_ptr<data::Workflow>& ptr) { return ptr->get_id() == wf_id; }) == 0)
+            {
+                if (m_wfs.erase(wf_id) > 0)
+                    Log("Wf removed. w:" << wf_id);
+            }
+            else
+                Log("RO wf removed. w:" << wf_id);
+        }
+        else
+            Log("Virtual wf removed. w:" << wf_id);
+    }
+
+    for (auto wf_id : m_pending_cleanups.close_wfs)
+    {
+        close(wf_id, true);
+    }
+
+    m_pending_cleanups = {};
+}
+
 const WfData& WfsManager::create(bool generate_name, bool dump_to_db, bool ro)
 {
     WfData data;
@@ -353,46 +379,7 @@ bool WfsManager::is_deleted(wid wf_id) const
 void WfsManager::erase_wf(wid wf_id)
 {
     LogRAssert(wf_id != 0, "Zero wf id", );
-
-    const auto delete_rw = [this, wf_id]()
-    {
-        const auto it = m_wfs.find(wf_id);
-        if (it == m_wfs.end())
-            return false;
-        m_wfs.erase(it);
-        return true;
-    };
-
-    const auto delete_virt = [this, wf_id]()
-    {
-        const auto it = std::ranges::find_if(m_wfs_virt, [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
-        if (it == m_wfs_virt.end())
-            return false;
-        m_wfs_virt.erase(it);
-        return true;
-    };
-
-    const auto delete_ro = [this, wf_id]()
-    {
-        const auto it = std::ranges::find_if(m_wfs_ro, [wf_id](const std::unique_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
-        if (it == m_wfs_ro.end())
-            return false;
-        m_wfs_ro.erase(it);
-        return true;
-    };
-
-    LogAssert(delete_rw() || delete_virt() || delete_ro(), "Wf not found. w:" << wf_id);
-    Log("Wf erased. w:" << wf_id);
-}
-
-void WfsManager::remove_virtual_wf(wid wf_id)
-{
-    LogRAssert(wf_id != 0, "Zero wf id", );
-    const auto it = std::ranges::find_if(m_wfs_virt, [wf_id](const std::shared_ptr<data::Workflow>& ptr) noexcept { return ptr->get_id() == wf_id; });
-    if (it == m_wfs_virt.end())
-        return;
-    m_wfs_virt.erase(it);
-    Log("Virtual wf removed. w:" << wf_id);
+    m_pending_cleanups.erase_wfs.push_back(wf_id);
 }
 
 uint32_t WfsManager::create_label(const std::string& name /*= ""*/, bool auto_del /*= false*/)
@@ -681,13 +668,19 @@ void WfsManager::close_and_purge()
             Log("Wf " << data.uuid << "###" << data.name << " (" << id << ") marked to pending delete");
         }
         else
-            close(id);
+            close(id, false);
     }
 }
 
-void WfsManager::close(wid wf_id)
+void WfsManager::close(wid wf_id, bool process_pending_deletion)
 {
     LogRAssert(wf_id != 0, "Zero wf id", );
+    if (!process_pending_deletion)
+    {
+        m_pending_cleanups.close_wfs.push_back(wf_id);
+        return;
+    }
+
     auto wf = access(wf_id);
     auto& data = wf->get_data();
 

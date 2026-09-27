@@ -1,6 +1,6 @@
 #pragma once
-#include "core/managers/connect_manager.h"
 #include "core/alive.h"
+#include "core/managers/connect_manager.h"
 
 namespace mngr
 {
@@ -98,7 +98,10 @@ public:
 
     bool init();
     bool run();
-    void exit();
+    void prepare_to_quit();
+    void quit();
+
+    void cleanup_frame();
 
     static bool get_is_quit() noexcept { return g::app_global_stop_all_threads.stop_requested(); }
     bool get_online() const noexcept { return g::pConnectManager->get_status() == ConnectState::Connected; }
@@ -215,9 +218,6 @@ public:
     void check_ws_message(const std::function<void(bool, std::string&)>& callback);
 
 private:
-    void stop_all_threads() noexcept;
-    void prepare_to_quit();
-
     void check_connection();
     void check_http_reply();
     void check_host_reply();
@@ -279,7 +279,6 @@ private:
     // text editor panel internal
     ImGuiID find_def_txt_panel_dock() noexcept;
     void activate_txt_panels(wid wf);
-    void destroy_txt_panels() noexcept;
     void destroy_txt_panel(PanelTextEditor* panel) noexcept;
 
 private:
@@ -330,5 +329,15 @@ private:
         bool force_drop = false;
     };
     std::unordered_map<uint32_t, HttpRequestInfo> m_http_requests;
+
+    struct PendingCleanup final
+    {
+        bool opts_dlg = false;
+        bool sync_projs_dlg = false;
+        bool modal_dlg = false;
+        std::vector<PanelTextEditor*> text_editors;
+        std::vector<PanelWorkflow*> wf_panels;
+    }
+    m_pending_cleanups;
 };
 }

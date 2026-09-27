@@ -21,8 +21,9 @@ public:
 
     virtual double get_frame_render_time() const = 0;
 
+    using cleanup_callback = std::function<void()>;
     using flow_callback = std::function<bool(bool DoExit)>;
-    virtual int32_t run(flow_callback& callback, std::atomic_bool& request_focus) = 0;
+    virtual int32_t run(const flow_callback& run_cb, const cleanup_callback& cleanup_cb, std::atomic_bool& request_focus) = 0;
 
     void set_dnd_callback(const DragAndDropCallback& callback) { m_dnd_callback = callback; }
 

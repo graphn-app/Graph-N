@@ -300,35 +300,7 @@ void GraphN_Flow::wf_panel_close(PanelWorkflow* wf_panel)
     }
 
     wf_panel->stop_all_threads();
-    m_all_dialogs.erase(wf_panel);
-
-    const wid panel_wf = wf_panel->get_workflow()->get_id();
-    txt_panel_clear(panel_wf);
-    g::pHistoryManager->cleanup(panel_wf);
-    g::pWfsManager->close(panel_wf);
-
-    if (m_panels_wf.empty())
-        destroy_txt_panels();
-    wf_panel->free();
-
-    std::list<std::pair<std::string, bool>> active_wfs;
-    for (auto it = m_panels_wf.begin(); it != m_panels_wf.end();)
-    {
-        auto& panel = *it;
-        if (panel.get() == wf_panel)
-        {
-            it = m_panels_wf.erase(it);
-        }
-        else
-        {
-            active_wfs.push_back({ panel->get_workflow()->get_uuid(), m_wf_focused == panel.get() });
-            ++it;
-        }
-    }
-
-    g::pOptsManager->wf_active_save(active_wfs);
-    wf_assign_sequential_numbers();
-    on_dlg_closed(DlgObj::PanelWf);
+    m_pending_cleanups.wf_panels.push_back(wf_panel);
 }
 
 void GraphN_Flow::wf_panel_rename(PanelWorkflow* wf_panel, const std::string& new_name)
@@ -574,8 +546,7 @@ void GraphN_Flow::wf_node_remove()
 {
     if (m_wf_focused != nullptr)
     {
-        std::set<data::NodeInstance*> nodes = m_wf_focused->get_selected_nodes(true);
-        m_wf_focused->delete_nodes(nodes);
+        m_wf_focused->delete_nodes(m_wf_focused->get_selected_nodes(true), false);
     }
 }
 
