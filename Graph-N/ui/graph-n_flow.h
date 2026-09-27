@@ -261,6 +261,7 @@ private:
     void on_menu_export_json(bool api);
     void on_menu_export_json_all(bool api);
     void on_menu_sync_projects();
+    void on_menu_update() noexcept;
     void on_menu_about() noexcept;
 
     // WF & WF panels

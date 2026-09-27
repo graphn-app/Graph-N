@@ -26,11 +26,11 @@ void GraphN_Flow::show_menu_bar()
 
         if (ImGui::BeginMenu("File##MainMenuBar")) [[unlikely]]
         {
-            if (ImGui::MenuItem("Import Project from file...##FileMenuBar", hk->get_key_binding_name(KeyTarget::App_Import), nullptr, nodes_ready))
+            if (ImGui::MenuItem(ICON_LC_FOLDER_INPUT " Import Project from file...##FileMenuBar", hk->get_key_binding_name(KeyTarget::App_Import), nullptr, nodes_ready))
             {
                 on_menu_import();
             }
-            if (ImGui::BeginMenu("Export...##MainMenuBar"))
+            if (ImGui::BeginMenu(ICON_LC_FOLDER_OUTPUT " Export...##MainMenuBar"))
             {
                 if (ImGui::MenuItem("Export Project to json...##FileMenuBar", nullptr, nullptr, active_wf))
                 {
@@ -52,22 +52,22 @@ void GraphN_Flow::show_menu_bar()
                 ImGui::EndMenu();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Options##FileMenuBar", hk->get_key_binding_name(KeyTarget::App_Options)))
+            if (ImGui::MenuItem(ICON_LC_SETTINGS " Options##FileMenuBar", hk->get_key_binding_name(KeyTarget::App_Options)))
             {
                 on_menu_options();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Toggle full screen mode##FileMenuBar", hk->get_key_binding_name(KeyTarget::App_FullScreen)))
+            if (ImGui::MenuItem(ICON_LC_FULLSCREEN " Toggle full screen mode##FileMenuBar", hk->get_key_binding_name(KeyTarget::App_FullScreen)))
             {
                 on_menu_fullscreen();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Restart server##FileMenuBar", nullptr, nullptr, online))
+            if (ImGui::MenuItem(ICON_LC_CIRCLE_POWER " Restart server##FileMenuBar", nullptr, nullptr, online))
             {
                 on_menu_restart();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Quit " APP_CAPTION "##FileMenuBar", hk->get_key_binding_name(KeyTarget::App_Quit)))
+            if (ImGui::MenuItem(ICON_LC_POWER " Quit " APP_CAPTION "##FileMenuBar", hk->get_key_binding_name(KeyTarget::App_Quit)))
             {
                 on_menu_quit();
             }
@@ -75,27 +75,27 @@ void GraphN_Flow::show_menu_bar()
         }
         if (ImGui::BeginMenu("Projects##MainMenuBar")) [[unlikely]]
         {
-            if (ImGui::MenuItem("Add new Project##WfMenuBar", hk->get_key_binding_name(KeyTarget::Project_CreateNew), nullptr, nodes_ready))
+            if (ImGui::MenuItem(ICON_LC_PLUS " Add new Project##WfMenuBar", hk->get_key_binding_name(KeyTarget::Project_CreateNew), nullptr, nodes_ready))
             {
                 on_menu_activate_wf(nullptr);
             }
-            if (ImGui::MenuItem("Rename active Project##WfMenuBar", hk->get_key_binding_name(KeyTarget::Project_Rename), nullptr, nodes_ready))
+            if (ImGui::MenuItem(ICON_LC_PENCIL " Rename active Project##WfMenuBar", hk->get_key_binding_name(KeyTarget::Project_Rename), nullptr, nodes_ready))
             {
                 on_menu_wf_rename();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Sync and manage Projects...##WfMenuBar"))
+            if (ImGui::MenuItem(ICON_LC_CLOUD_CHECK " Sync and manage Projects...##WfMenuBar"))
             {
                 on_menu_sync_projects();
             }
             if (!m_panels_wf.empty())
             {
                 ImGui::Separator();
-                if (ImGui::MenuItem("Switch to the next Project##WfMenuBar", hk->get_key_binding_name(KeyTarget::Wf_Next)))
+                if (ImGui::MenuItem(ICON_LC_CHEVRON_RIGHT " Switch to the next Project##WfMenuBar", hk->get_key_binding_name(KeyTarget::Wf_Next)))
                 {
                     on_menu_next_project(true);
                 }
-                if (ImGui::MenuItem("Switch to the previous Project##WfMenuBar", hk->get_key_binding_name(KeyTarget::Wf_Prev)))
+                if (ImGui::MenuItem(ICON_LC_CHEVRON_LEFT " Switch to the previous Project##WfMenuBar", hk->get_key_binding_name(KeyTarget::Wf_Prev)))
                 {
                     on_menu_next_project(false);
                 }
@@ -110,11 +110,11 @@ void GraphN_Flow::show_menu_bar()
                 }
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Close all Projects##WfMenuBar", nullptr, nullptr, !m_panels_wf.empty()))
+            if (ImGui::MenuItem(ICON_LC_COPY_MINUS " Close all Projects##WfMenuBar", nullptr, nullptr, !m_panels_wf.empty()))
             {
                 on_menu_close_all_projects(false);
             }
-            if (ImGui::MenuItem("Close all but active Project##WfMenuBar", nullptr, nullptr, !m_panels_wf.empty()))
+            if (ImGui::MenuItem(ICON_LC_COPY_CHECK " Close all but active Project##WfMenuBar", nullptr, nullptr, !m_panels_wf.empty()))
             {
                 on_menu_close_all_projects(true);
             }
@@ -122,49 +122,49 @@ void GraphN_Flow::show_menu_bar()
         }
         if (ImGui::BeginMenu("Panels##MainMenuBar")) [[unlikely]]
         {
-            if (ImGui::MenuItem("Nodes Library##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Nodes), (m_windows & ViewPanelNodes)))
+            if (ImGui::MenuItem(ICON_LC_BOOK_OPEN " Nodes Library##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Nodes), (m_windows & ViewPanelNodes)))
             {
                 on_menu_panel_window(ViewPanelNodes);
             }
-            if (ImGui::MenuItem("Models Library##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Models), (m_windows & ViewPanelModels)))
+            if (ImGui::MenuItem(ICON_LC_COMPONENT " Models Library##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Models), (m_windows & ViewPanelModels)))
             {
                 on_menu_panel_window(ViewPanelModels);
             }
-            if (ImGui::MenuItem("Node Inspector##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Inspector), (m_windows & ViewPanelNodeInpector)))
+            if (ImGui::MenuItem(ICON_LC_TANGENT " Node Inspector##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Inspector), (m_windows & ViewPanelNodeInpector)))
             {
                 on_menu_panel_window(ViewPanelNodeInpector);
             }
-            if (ImGui::MenuItem("My Projects##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Projects), (m_windows & ViewPanelWfList)))
+            if (ImGui::MenuItem(ICON_LC_LIBRARY " My Projects##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Projects), (m_windows & ViewPanelWfList)))
             {
                 on_menu_panel_window(ViewPanelWfList);
             }
-            if (ImGui::MenuItem("Stats##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Stats), (m_windows & ViewPanelStats)))
+            if (ImGui::MenuItem(ICON_LC_CHART_LINE " Stats##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Stats), (m_windows & ViewPanelStats)))
             {
                 on_menu_panel_window(ViewPanelStats);
             }
-            if (ImGui::MenuItem("Queue##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Queue), (m_windows & ViewPanelQueue)))
+            if (ImGui::MenuItem(ICON_LC_FOOTPRINTS " Queue##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Queue), (m_windows & ViewPanelQueue)))
             {
                 on_menu_panel_window(ViewPanelQueue);
             }
-            //if (ImGui::MenuItem("Notes##PanelsMenuBar", nullptr, (m_windows & ViewPanelNotes)))
+            //if (ImGui::MenuItem(ICON_LC_SCROLL_TEXT " Notes##PanelsMenuBar", nullptr, (m_windows & ViewPanelNotes)))
             //{
             //    on_menu_panel_window(ViewPanelNotes);
             //}
-            //if (ImGui::MenuItem("Templates##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Templates), (m_windows & ViewPanelTemplates)))
+            //if (ImGui::MenuItem(ICON_LC_LAYOUT_TEMPLATE " Templates##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Templates), (m_windows & ViewPanelTemplates)))
             //{
             //    on_menu_panel_window(ViewPanelTemplates);
             //}
-            if (ImGui::MenuItem("Server Log##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Logs), (m_windows & ViewPanelOutput)))
+            if (ImGui::MenuItem(ICON_LC_TERMINAL " Server Log##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Logs), (m_windows & ViewPanelOutput)))
             {
                 on_menu_panel_window(ViewPanelOutput);
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Show/hide active panels##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::App_TogglePanels)))
+            if (ImGui::MenuItem(ICON_LC_EYE " Show/hide active panels##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::App_TogglePanels)))
             {
                 on_menu_panel_toggle_active();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Reset default layout##PanelsMenuBar"))
+            if (ImGui::MenuItem(ICON_LC_ROTATE_CCW " Reset default layout##PanelsMenuBar"))
             {
                 on_menu_panel_window(ViewPanelsResetAll);
             }
@@ -172,36 +172,36 @@ void GraphN_Flow::show_menu_bar()
         }
         if (ImGui::BeginMenu("Workspace##Workspace")) [[unlikely]]
         {
-            if (ImGui::MenuItem("Save workflow##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Save), nullptr, wf_save(true)))
+            if (ImGui::MenuItem(ICON_LC_SAVE " Save workflow##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Save), nullptr, wf_save(true)))
             {
                 wf_save(false);
             }
-            if (ImGui::MenuItem("Undo##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Undo), nullptr, wf_undo(true)))
+            if (ImGui::MenuItem(ICON_LC_UNDO_2 " Undo##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Undo), nullptr, wf_undo(true)))
             {
                 wf_undo(false);
             }
-            if (ImGui::MenuItem("Redo##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Redo), nullptr, wf_redo(true)))
+            if (ImGui::MenuItem(ICON_LC_REDO_2 " Redo##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Redo), nullptr, wf_redo(true)))
             {
                 wf_redo(false);
             }
-            if (ImGui::MenuItem("Paste##Workspace", hk->get_key_binding_name(KeyTarget::Node_Paste), nullptr, wf_node_paste(true)))
+            if (ImGui::MenuItem(ICON_LC_CLIPBOARD " Paste##Workspace", hk->get_key_binding_name(KeyTarget::Node_Paste), nullptr, wf_node_paste(true)))
             {
                 wf_node_paste(false);
             }
-            if (ImGui::MenuItem("Select all nodes##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_SelAll), nullptr, m_wf_focused != nullptr))
+            if (ImGui::MenuItem(ICON_LC_SQUARE_DASHED_MOUSE_POINTER " Select all nodes##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_SelAll), nullptr, m_wf_focused != nullptr))
             {
                 wf_node_select_all();
             }
-            if (ImGui::MenuItem("Focus##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Focus), nullptr, m_wf_focused != nullptr))
+            if (ImGui::MenuItem(ICON_LC_FOCUS " Focus##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Focus), nullptr, m_wf_focused != nullptr))
             {
                 wf_focus();
             }
-            if (ImGui::MenuItem("New node##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_NewNode), nullptr, m_wf_focused != nullptr))
+            if (ImGui::MenuItem(ICON_LC_PLUS " New node##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_NewNode), nullptr, m_wf_focused != nullptr))
             {
                 wf_new_node();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Close workflow##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Close), nullptr, m_wf_focused != nullptr))
+            if (ImGui::MenuItem(ICON_LC_X " Close workflow##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Close), nullptr, m_wf_focused != nullptr))
             {
                 wf_panel_close(m_wf_focused);
             }
@@ -209,20 +209,20 @@ void GraphN_Flow::show_menu_bar()
         }
         if (ImGui::BeginMenu("Queue##Queue")) [[unlikely]]
         {
-            if (ImGui::MenuItem("Queue prompt##PanelsQueue", hk->get_key_binding_name(KeyTarget::Workspace_RunBack), nullptr, wf_can_run()))
+            if (ImGui::MenuItem(ICON_LC_PLAY " Queue prompt##PanelsQueue", hk->get_key_binding_name(KeyTarget::Workspace_RunBack), nullptr, wf_can_run()))
             {
                 wf_run(false);
             }
-            if (ImGui::MenuItem("Queue prompt (front)##PanelsQueue", hk->get_key_binding_name(KeyTarget::Workspace_RunFront), nullptr, wf_can_run()))
+            if (ImGui::MenuItem(ICON_LC_PLAY " Queue prompt (front)##PanelsQueue", hk->get_key_binding_name(KeyTarget::Workspace_RunFront), nullptr, wf_can_run()))
             {
                 wf_run(true);
             }
             const bool paused = g::pQueueManager->is_paused();
-            if (ImGui::MenuItem(paused ? "Continue queue##PanelsQueue" : "Pause queue##PanelsQueue", hk->get_key_binding_name(KeyTarget::Queue_Pause)))
+            if (ImGui::MenuItem(paused ? ICON_LC_PLAY " Continue queue##PanelsQueue" : ICON_LC_PAUSE " Pause queue##PanelsQueue", hk->get_key_binding_name(KeyTarget::Queue_Pause)))
             {
                 on_menu_queue_pause();
             }
-            if (ImGui::MenuItem("Interrupt##PanelsQueue", hk->get_key_binding_name(KeyTarget::Queue_Interrupt), nullptr, g::pQueueManager->get_current_group() != nullptr))
+            if (ImGui::MenuItem(ICON_LC_X " Interrupt##PanelsQueue", hk->get_key_binding_name(KeyTarget::Queue_Interrupt), nullptr, g::pQueueManager->get_current_group() != nullptr))
             {
                 on_menu_queue_interrupt();
             }
@@ -282,7 +282,11 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::Separator();
 #endif
-            if (ImGui::MenuItem("About " APP_CAPTION "##HelpMenuBar"))
+            if (ImGui::MenuItem(ICON_LC_HARD_DRIVE_DOWNLOAD " Check for updates##HelpMenuBar"))
+            {
+                on_menu_update();
+            }
+            if (ImGui::MenuItem(ICON_LC_INFO " About " APP_CAPTION "##HelpMenuBar"))
             {
                 on_menu_about();
             }
@@ -307,6 +311,11 @@ void GraphN_Flow::on_menu_options()
 void GraphN_Flow::on_menu_quit() noexcept
 {
     g::pGraphN->handle_wnd_on_close();
+}
+
+void GraphN_Flow::on_menu_update() noexcept
+{
+    //TODO
 }
 
 void GraphN_Flow::on_menu_about() noexcept
