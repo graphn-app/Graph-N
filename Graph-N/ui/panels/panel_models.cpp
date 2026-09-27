@@ -226,7 +226,7 @@ void PanelModels::rebuild_items(bool force_expand_all /*= false*/)
                 item.depth = depth;
                 item.name = model->name;
                 item.icon = ICON_LC_STAR;
-                item.icon_favorited = m_favorited.has_item(model->hash);
+                item.icon_always = m_favorited.has_item(model->hash);
                 if (!model->service_component)
                 {
                     item.icon_can_click = true;

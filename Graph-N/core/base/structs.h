@@ -283,14 +283,14 @@ struct PanelListItem final
     bool is_empty = false;          // draw empty line
     bool selected = false;          // select item
     bool expanded = false;          // expand item
-    bool can_expand = false;        // is expanding allowed
 
-    bool icon_favorited = false;    // item is favorited
+    bool can_expand = false;        // is expanding allowed
+    bool icon_always = false;       // always draw icon
     bool icon_can_click = false;    // is icon can be clicked
 
     std::string name;               // separator name, item name
     std::string name_label;         // small label next to the name, applied only for expandable items
-    const char* icon = nullptr;     // icon to show
+    const char* icon = nullptr;     // icon to show if can_expand or icon_always
     const char* icon_tooltip = nullptr; // tooltip for the icon
 
     PanelListItemExternalData ext_data; // some data that caller might use

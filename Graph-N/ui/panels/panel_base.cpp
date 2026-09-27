@@ -185,11 +185,11 @@ bool PanelWithList::draw_list(const std::vector<PanelListItem>& items, PanelItem
                 if (is_selected)
                     ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
 
-                if (item.icon != nullptr && ((item.icon_can_click && idx == m_hovered_item) || item.icon_favorited))
+                if (item.icon != nullptr && ((item.icon_can_click && idx == m_hovered_item) || item.icon_always))
                 {
-                    if (item.icon_favorited) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::Starred));
+                    if (item.icon_always) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::Starred));
                     ImGui::TextUnformatted(item.icon);
-                    if (item.icon_favorited) ImGui::PopStyleColor();
+                    if (item.icon_always) ImGui::PopStyleColor();
 
                     if (!dnd && item.icon_tooltip != nullptr)
                     {

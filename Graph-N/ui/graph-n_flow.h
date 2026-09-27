@@ -158,7 +158,7 @@ public:
     void wf_locate_node(wid id, data::NodeInstance* node);
     void wf_reload();
     void wf_rename() noexcept;
-    wid wf_get_active() const noexcept;
+    wid wf_get_active(std::set<wid>* all_opened = nullptr) const noexcept;
     bool wf_can_run() const noexcept;
     void wf_run(bool add_front) const;
     void wf_num_of_runs(int32_t num) const noexcept;
@@ -196,6 +196,7 @@ public:
     void on_menu_panel_window(ViewDialogs wnd, bool toggle = false);   
     void on_menu_activate_wf(const PanelWorkflow* wf_panel);
     void on_menu_wf_rename() noexcept;
+    void on_menu_close_all_projects(bool keep_active);
     void on_menu_queue_pause() noexcept;
     void on_menu_queue_interrupt();
 
@@ -261,7 +262,6 @@ private:
     void on_menu_export_json_all(bool api);
     void on_menu_sync_projects();
     void on_menu_about() noexcept;
-    void on_menu_close_all_projects(bool keep_active);
 
     // WF & WF panels
     PanelWorkflow* wf_panel_find(wid id) const noexcept;

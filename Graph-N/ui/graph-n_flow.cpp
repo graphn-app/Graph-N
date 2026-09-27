@@ -427,6 +427,7 @@ void GraphN_Flow::cleanup_frame()
         on_dlg_closed(DlgObj::PanelWf);
 
         wf_assign_sequential_numbers();
+        m_panel_wf_list->rebuild_items();
     }
 
     g::pWfsManager->cleanup_frame();
