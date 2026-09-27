@@ -39,6 +39,8 @@ Workflow::~Workflow() noexcept
 {
     if (g::pGraphN != nullptr && !m_wf_data.ro)
         g::pGraphN->unsubscribe_comfyui_validity_state(this);
+
+    clear();
 }
 
 void Workflow::init()
@@ -408,7 +410,7 @@ void Workflow::invalidate_current() noexcept
         m_wf_data.valid = true;
         for (auto& ptr : m_nodes)
         {
-            if (ptr->flags().has_not(NodeInstFlags::Group) && ptr->obj_flags().has(NodeObjFlags::Dummy))
+            if (ptr->has_object() && ptr->obj_flags().has(NodeObjFlags::Dummy))
             {
                 m_wf_data.valid = false;
                 break;

@@ -121,7 +121,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
         auto node = std::make_unique<data::Node>(node_class);
         parse_names(*node.get(), node_class, jnode);        // name, display name, category, description, search_aliases
 
-        //BREAK_IF(node_class == "DrawArcFaceLandmarks");
+        //BREAK_IF(node_class == "ControlNetPreprocessorSelector");
 
         parse_input(manager, *node.get(), jnode);        // input, input_order
         parse_output(manager, *node.get(), jnode);        // output, output_is_list, output_name, output_node, output_tooltips
@@ -513,6 +513,8 @@ void NodesParser::parse_input(NodesManager& manager, data::Node& node, const o_j
             auto pin = std::make_unique<data::Pin>(&node, jpin, is_required, is_optional/*, is_hidden*/);
             pin->def_state.name = jpin;
 
+            //BREAK_IF(pin->def_state.name.find("rope") != -1);
+
             //Log("Node: " << node.name << ", Pin: " << pin_name);
 
             if (jinfo.is_array())
@@ -706,6 +708,7 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
                     continue;
                 }
 
+                pin->finalize();
                 auto ptr = pin.get();
                 node.output.push_back(pin.get());
                 if (!manager.m_pins.emplace(pin->get_hash(), std::move(pin)).second) [[unlikely]]

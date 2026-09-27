@@ -576,7 +576,7 @@ bool WfDeserializerFromJson::deserialize_subgraph(const o_json& j)
         node->m_rc.Min.y = sg_rc.Min.y + node->m_rc.Min.y;
 
         m_node_ids[jid] = node->get_instance_id();
-        if (node->obj_flags().has(NodeObjFlags::Dummy))
+        if (node->has_object() && node->obj_flags().has(NodeObjFlags::Dummy))
             m_wf->get_data().valid = false;
     }
 

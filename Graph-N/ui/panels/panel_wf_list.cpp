@@ -278,7 +278,7 @@ void PanelWfList::rebuild_items()
     std::ranges::sort(m_wfs, sort_callback);
 
     std::set<wid> all_opened_wfs;
-    g::pFlow->wf_get_active(&all_opened_wfs);
+    m_active = g::pFlow->wf_get_active(&all_opened_wfs);
 
     const auto get_wf_name = [&wfs = m_wfs](wid id)
     {

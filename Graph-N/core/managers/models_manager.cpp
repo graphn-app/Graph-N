@@ -132,7 +132,7 @@ void ModelsManager::load_models_th()
 
         rebuild_models(models);
 
-        while (!g::pFlow->get_nodes_ready() && !m_stop_flag.stop_requested())
+        while (!m_stop_flag.stop_requested() && !g::pFlow->get_nodes_ready())
         {
             std::this_thread::sleep_for(100ms);
         }

@@ -277,7 +277,7 @@ void WfDeserializerFromJsonApi::link_api_nodes(const std::list<ApiNode>& api_nod
             {
                 const auto* node = m_wf->get_node_by_instance(api_node.node_iid);
                 LogRAssert(node != nullptr, "Can't find deserialized API node " << api_node.node_iid, nullptr);
-                if (node->obj_flags().has(NodeObjFlags::Dummy))
+                if (node->has_object() && node->obj_flags().has(NodeObjFlags::Dummy))
                     return nullptr;
 
                 auto& outputs = node->get_outputs();

@@ -396,6 +396,9 @@ void GraphN_Flow::cleanup_frame()
     const bool reassign_sequential_numbers = !m_pending_cleanups.wf_panels.empty();
     for (auto panel : m_pending_cleanups.wf_panels)
     {
+        if (m_wf_focused == panel)
+            m_wf_focused = nullptr;
+
         const wid panel_wf = panel->get_workflow()->get_id();
         txt_panel_clear(panel_wf);
         g::pHistoryManager->cleanup(panel_wf);
@@ -407,6 +410,8 @@ void GraphN_Flow::cleanup_frame()
     }
     if (reassign_sequential_numbers)
     {
+        g::pWfsManager->set_active(wf_get_active());
+
         if (m_panels_wf.empty())
         {
             for (auto& ptr : m_panels_text_editor)
@@ -443,8 +448,6 @@ void GraphN_Flow::prepare_to_quit()
     g::app_global_stop_all_threads.request_stop();
     g::block_hotkeys_mask = 0xffffffff;
 
-    g::pConnectManager->stop_all_threads();
-
     if (m_nodes_parser)
         m_nodes_parser->stop();
 
@@ -455,7 +458,15 @@ void GraphN_Flow::prepare_to_quit()
             dlg->stop_all_threads();
         }
     }
-    m_wf_focused = nullptr;
+
+    g::pConnectManager->stop_all_threads();
+    g::pModelsManager->stop_all_threads();
+    g::pComfyUIManager->stop_all_threads();
+    g::pHostManager->stop_all_threads();
+    g::pQueueManager->stop_all_threads();
+    g::pWfsManager->close_and_purge();
+    g::pWfsManager->stop_all_threads();
+    g::pDbManager->stop_all_threads();
 
     LogOut;
 }
@@ -471,11 +482,11 @@ void GraphN_Flow::quit()
             dlg->free();
         }
     }
+    m_wf_focused = nullptr;
 
     m_nodes_parser.reset();
     m_all_dialogs.clear();
     m_panels_wf.clear();
-    g::pWfsManager->close_and_purge();
 
     LogOut;
 }

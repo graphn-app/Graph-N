@@ -1022,7 +1022,7 @@ void PanelWorkflow::on_show_dummy_node(PanelToolbar::Element& el)
     int32_t idx = 0;
     for (auto& node : m_wf->get_nodes_all())
     {
-        if (node->obj_flags().has(NodeObjFlags::Dummy))
+        if (node->has_object() && node->obj_flags().has(NodeObjFlags::Dummy))
         {
             if (m_curr_dummy_node == idx++)
             {

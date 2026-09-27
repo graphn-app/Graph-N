@@ -220,20 +220,20 @@ void Pin::finalize()
             LogInvalidJson("Unknown pin visibility");
             LogErrorS("Unknown pin visibility");
         }
-
-        if (PinType::FLOAT == def_state.type)
-            finalize_float();
-        else if (PinType::NUMBER == def_state.type)
-            finalize_number();
-        else if (PinType::INT == def_state.type)
-            finalize_int();
-        else if (PinType::BOOLEAN == def_state.type)
-            finalize_bool();
-        else if (PinType::COLOR == def_state.type && def.is_string())
-            finalize_color();
-        else if (PinType::COMBO == def_state.type)
-            finalize_combo();
     }
+
+    if (PinType::FLOAT == def_state.type)
+        finalize_float();
+    else if (PinType::NUMBER == def_state.type)
+        finalize_number();
+    else if (PinType::INT == def_state.type)
+        finalize_int();
+    else if (PinType::BOOLEAN == def_state.type)
+        finalize_bool();
+    else if (PinType::COLOR == def_state.type && def.is_string())
+        finalize_color();
+    else if (PinType::COMBO == def_state.type)
+        finalize_combo();
 
     //if (!is_widget(def_state) && advanced)
     //{
