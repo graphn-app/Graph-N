@@ -2159,7 +2159,7 @@ bool NodeDrawer::tooltip_suspended(const std::function<const char*()>& tooltip, 
     bool ret = false;
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
     {
-        ax::NodeEditor::Suspend(); 
+        ed::Suspend(); 
         if (ImGui::BeginTooltip())
         {
             if (pop_color != 0)
@@ -2172,7 +2172,7 @@ bool NodeDrawer::tooltip_suspended(const std::function<const char*()>& tooltip, 
                 ImGui::PushStyleColor(ImGuiCol_Text, pop_color);
             ret = true;
         }
-        ax::NodeEditor::Resume(); 
+        ed::Resume(); 
     }
     return ret;
 }

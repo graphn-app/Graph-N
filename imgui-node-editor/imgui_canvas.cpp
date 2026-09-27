@@ -535,12 +535,12 @@ void ImGuiEx::Canvas::LeaveLocalSpace()
     }
 
     // Remove sentinel draw command if present
-    if (m_DrawListCommadBufferSize > 0)
+    for (int i = 0; i < m_DrawList->CmdBuffer.Size; ++i)
     {
-        if (m_DrawList->CmdBuffer.size() > m_DrawListCommadBufferSize && m_DrawList->CmdBuffer[m_DrawListCommadBufferSize].UserCallback == ImDrawCallback_ImCanvas)
-            m_DrawList->CmdBuffer.erase(m_DrawList->CmdBuffer.Data + m_DrawListCommadBufferSize);
-        else if (m_DrawList->CmdBuffer.size() >= m_DrawListCommadBufferSize && m_DrawList->CmdBuffer[m_DrawListCommadBufferSize - 1].UserCallback == ImDrawCallback_ImCanvas)
-            m_DrawList->CmdBuffer.erase(m_DrawList->CmdBuffer.Data + m_DrawListCommadBufferSize - 1);
+        if (m_DrawList->CmdBuffer[i].UserCallback == ImDrawCallback_ImCanvas)
+        {
+            m_DrawList->CmdBuffer[i].UserCallback = nullptr;
+        }
     }
 
     auto& fringeScale = ImFringeScaleRef(m_DrawList);
