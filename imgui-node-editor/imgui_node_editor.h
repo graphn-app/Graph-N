@@ -328,6 +328,7 @@ IMGUI_NODE_EDITOR_API void PinPivotAlignment(const ImVec2& alignment);
 IMGUI_NODE_EDITOR_API void EndPin();
 IMGUI_NODE_EDITOR_API void Group(const ImVec2& size);
 IMGUI_NODE_EDITOR_API void EndNode();
+IMGUI_NODE_EDITOR_API void PinAllowDrag(EdType& edPin, bool allow);
 
 IMGUI_NODE_EDITOR_API bool BeginGroupHint(NodeId nodeId);
 IMGUI_NODE_EDITOR_API ImVec2 GetGroupMin();

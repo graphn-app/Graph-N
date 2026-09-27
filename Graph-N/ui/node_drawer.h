@@ -111,7 +111,7 @@ private:
     void draw_input_pin(data::PinInstance* pin, bool failed_pin);
     void draw_input_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_output_pin(data::PinInstance* pin);
-    void draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin);
+    void draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin, bool can_drag);
     void draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin);
     void draw_widget(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_int(data::PinInstance* pin, float widget_name_width, float widget_value_width);

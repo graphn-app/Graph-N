@@ -205,6 +205,13 @@ void ax::NodeEditor::EndNode()
     s_Editor->GetNodeBuilder().End();
 }
 
+void ax::NodeEditor::PinAllowDrag(EdType& edPin, bool allow)
+{
+    IM_ASSERT(edPin.has_object());
+    auto pin = edPin.get_pin();
+    pin->m_AllowDrag = allow;
+}
+
 bool ax::NodeEditor::BeginGroupHint(NodeId nodeId)
 {
     return s_Editor->GetHintBuilder().Begin(nodeId);

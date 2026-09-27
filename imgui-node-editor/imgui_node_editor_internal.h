@@ -308,6 +308,7 @@ struct Pin final: Object
     bool    m_SnapLinkToDir;
     bool    m_HasConnection;
     bool    m_HadConnection;
+    bool    m_AllowDrag;
 
     Pin(EditorContext* editor, PinId id, PinKind kind)
         : Object(editor)
@@ -329,6 +330,7 @@ struct Pin final: Object
         , m_SnapLinkToDir(true)
         , m_HasConnection(false)
         , m_HadConnection(false)
+        , m_AllowDrag(true)
     {
     }
 

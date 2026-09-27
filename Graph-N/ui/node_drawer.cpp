@@ -862,7 +862,7 @@ void NodeDrawer::draw_collapsed_pins(bool input)
     if (reroute_splitted_pin != nullptr) [[unlikely]]
     {
         ImGui::SetCursorPosX(pos_x);
-        draw_pin(reroute_splitted_pin, true, true, false);
+        draw_pin(reroute_splitted_pin, true, true, false, false);
         ImGui::SameLine();
     }
     else
@@ -876,7 +876,7 @@ void NodeDrawer::draw_collapsed_pins(bool input)
         for (auto pin : *pins)
         {
             ImGui::SetCursorPosX(pos_x);
-            draw_pin(pin, true, true, false);
+            draw_pin(pin, true, true, false, false);
             ImGui::SameLine();
         }
     }
@@ -885,7 +885,7 @@ void NodeDrawer::draw_collapsed_pins(bool input)
 void NodeDrawer::draw_input_pin(data::PinInstance* pin, bool failed_pin)
 {
     ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
-    draw_pin(pin, false, false, failed_pin);
+    draw_pin(pin, false, false, failed_pin, true);
     ImGui::SameLine(0.0f, w::pin_r_offset);
     if (!handle_pin_renaming(pin))
     {
@@ -906,14 +906,15 @@ void NodeDrawer::draw_output_pin(data::PinInstance* pin)
             ImGui::TextUnformatted(pin->state().name.c_str(), pin->state().name.c_str() + pin->state().name.size());
     }
     ImGui::SameLine(0, w::pin_r_offset);
-    draw_pin(pin, false, false, false);
+    draw_pin(pin, false, false, false, true);
 }
 
-void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin)
+void NodeDrawer::draw_pin(data::PinInstance* pin, bool collapsed_mode, bool align_to_widget, bool failed_pin, bool can_drag)
 {
     ImGui::PushID(0x5F329AF2);
     ImGui::PushID(pin);
     ed::BeginPin(pin->ed(), pin->obj_flags().has(PinObjFlags::Input) ? ed::PinKind::Input : ed::PinKind::Output);
+    ed::PinAllowDrag(pin->ed(), can_drag);
     if (zoomed_skip_pin_shape())
         ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
     else
@@ -927,7 +928,7 @@ void NodeDrawer::draw_input_widget(data::PinInstance* pin, float widget_name_wid
     if (pin->obj_flags().has(PinObjFlags::CanLink))
     {
         ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw);
-        draw_pin(pin, false, true, false);
+        draw_pin(pin, false, true, false, true);
         ImGui::SameLine(0, w::pin_r_offset);
     }
     else
