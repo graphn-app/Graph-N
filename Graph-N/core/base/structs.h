@@ -214,7 +214,7 @@ struct ExecTask final
     std::string err_full;
     std::map<iid, std::set<std::string>> err_nodes;        // list of failed nodes: <node_id/<input_name>>
 
-    enum class OutputType { Unknown, Gif, Audio, Image, Text };
+    enum class OutputType : uint8_t { Unknown, Gif, Audio, Image, Text };
     struct Output final
     {
         Output() noexcept = default;

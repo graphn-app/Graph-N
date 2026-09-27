@@ -13,7 +13,7 @@ namespace ui
 
 struct PanelModelsData final : public PanelCommonData
 {
-    enum Buffer
+    enum Buffer : uint8_t
     {
         BuffFilter,
         BuffFilterLowered,

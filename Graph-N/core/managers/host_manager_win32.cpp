@@ -61,7 +61,7 @@ bool HostManager_Win32::is_host_alive(const HostProcess& host_proc) const
     return (::WaitForSingleObject(host_proc.hproc.get(), 0) == WAIT_TIMEOUT);
 }
 
-enum HostStatus
+enum HostStatus : uint8_t
 {
     HostStatus_StartFailed      = 0x01,
     HostStatus_Terminate        = 0x02,

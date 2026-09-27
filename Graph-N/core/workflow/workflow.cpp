@@ -606,7 +606,7 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
         }
 
         bool node_can_merge = true;
-        enum Step { Check, Relink, Finish };
+        enum Step : uint8_t { Check, Relink, Finish };
 
         for (int32_t step = Step::Check; node_can_merge && step < Step::Finish; step++)
         {

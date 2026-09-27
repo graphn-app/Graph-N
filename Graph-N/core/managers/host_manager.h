@@ -8,7 +8,7 @@ namespace mngr
 class HostManager : public Manager
 {
 public:
-    enum class HostType { MaskEditor, PosEditor };
+    enum class HostType : uint8_t { MaskEditor, PosEditor };
 
     HostManager() noexcept;
     ~HostManager() noexcept override;

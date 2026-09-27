@@ -20,9 +20,9 @@ private:
 
 private:
 
-    enum class Step       { Disconnected, Loading, LoadFailed, Ready, Sync };
-    enum class SyncStatus { None, InProgress, Success, Error, Skipped };
-    enum class SyncAction { Skip, Upload, UploadReplace, UploadRename, Download, DownloadReplace, DownloadRename, DeleteLocal, Undelete };
+    enum class Step : uint8_t       { Disconnected, Loading, LoadFailed, Ready, Sync };
+    enum class SyncStatus : uint8_t { None, InProgress, Success, Error, Skipped };
+    enum class SyncAction : uint8_t { Skip, Upload, UploadReplace, UploadRename, Download, DownloadReplace, DownloadRename, DeleteLocal, Undelete };
 
     struct SyncRow final
     {

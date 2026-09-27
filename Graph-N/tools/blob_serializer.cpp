@@ -6,7 +6,7 @@ namespace blob
 //////////////////////////////
 
 #ifndef TOOLS_DETACHED_STATE
-enum PrimitiveType
+enum PrimitiveType : uint8_t
 {
     pt_none,
     pt_i64,

@@ -31,7 +31,7 @@ struct HPinCag final
 // !! types order must remain the same due to serialization
 using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, uint64_t /*flags*/, ImRect /*pos*/, Primitive /*pin val*/, HRerouteSplitted, HPinCag>;
 
-enum class HistoryActionType
+enum class HistoryActionType : uint8_t
 {
     _none,
     NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeCollapse, NodeRerouteSplit,

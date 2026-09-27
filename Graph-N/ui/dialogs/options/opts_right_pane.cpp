@@ -7,7 +7,7 @@
 namespace ui
 {
 
-enum
+enum : uint8_t
 {
     BuffHost,
     BuffMainpy,
@@ -21,7 +21,7 @@ enum
     _s_count
 };
 
-enum
+enum : uint8_t
 {
     BuffFpsLimit,
     BuffScale,

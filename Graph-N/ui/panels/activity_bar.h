@@ -23,7 +23,7 @@ private:
     void calc_window_sizes(bool left, bool right) noexcept;
     void recalc_viewport_size(bool left, bool right) noexcept;
 
-    enum class Direction { None, Left, Right, Bottom };
+    enum class Direction : uint8_t { None, Left, Right, Bottom };
     const ImGuiDockNode* get_central_node(const ImGuiDockNode* node);
     Direction get_panel_direction(DlgObj panel_obj, ImRect center_rc) noexcept;
     void draw_panel_buttons(DlgObj panel_obj, bool active, const std::string& hotkey);

@@ -20,7 +20,7 @@ struct ExecGroup final
     ExecTask task;                          // current task
     int32_t nodes_count = 0;                // nodes in wf
 
-    enum class State { None, Created, Prompted, Executing, Finished };
+    enum class State : uint8_t { None, Created, Prompted, Executing, Finished };
     State state = State::None;
 
     std::list<ExecTask> completed;          // list of completed tasks

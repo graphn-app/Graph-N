@@ -47,7 +47,7 @@ public:
     void history_search(const std::string& prompt, std::list<std::string>& wfs);
 
 private:
-    enum class WriteType
+    enum class WriteType : uint8_t
     {
         AppOption, Item, WfMeta, WfBlob, WfPurge, HistoryAdd, HistoryDel
     };

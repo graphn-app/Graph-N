@@ -207,7 +207,7 @@ public:
 
     struct Element final
     {
-        enum class Type { Empty, Button, Input, InputHint, Text, InputInt, Combo };
+        enum class Type : uint8_t { Empty, Button, Input, InputHint, Text, InputInt, Combo };
         Type type = Type::Button;
 
         bool enabled = true;

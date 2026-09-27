@@ -5,7 +5,7 @@ namespace blob
 
 struct HostData final
 {
-    enum Command
+    enum Command : uint8_t
     {
         Cmd_None,
         Cmd_Ready,          // host -> server. Host is ready to receive commands

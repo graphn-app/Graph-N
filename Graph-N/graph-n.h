@@ -38,7 +38,7 @@ public:
 
     NO_COPY_MOVE(GraphN);
 
-    enum class Flow
+    enum class Flow : uint8_t
     {
         _none,
         Init,

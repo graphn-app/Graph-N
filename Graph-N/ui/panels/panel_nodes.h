@@ -18,7 +18,7 @@ class PanelNodeInspector;
 
 struct PanelNodesData final : public PanelCommonData
 {
-    enum Buffer
+    enum Buffer : uint8_t
     {
         BuffFilter,
         BuffFilterLowered,

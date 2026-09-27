@@ -73,7 +73,7 @@ constexpr const char* REROUTE_SPLITTED_PIN      = "32DB533B-64D6-4F95-A90A-A50B1
 
 using HttpResponseCb = std::function<void(int32_t, std::string&&)>; // http code, data
 
-enum class HttpRequestor
+enum class HttpRequestor : uint8_t
 {
     Queue_Output,
     Queue_History,
@@ -96,7 +96,7 @@ enum class HttpRequestor
     Restart,
 };
 
-enum class DlgObj
+enum class DlgObj : uint8_t
 {
     OptionsDlg,
     OptLeftPane,
@@ -213,7 +213,7 @@ constexpr ImGuiID DlgObj_IID[static_cast<size_t>(DlgObj::_count)] =
     0x84C3F1E0,                     // ModalMessage
 };
 
-enum class PinType
+enum class PinType : uint16_t
 {
     INT,
     FLOAT,
@@ -249,7 +249,7 @@ enum class PinType
     _last = CUSTOM
 };
 
-enum class PinShape
+enum class PinShape : uint8_t
 {
     Circle,
     SemiCircle,
@@ -274,7 +274,7 @@ enum class ControlAfterGenerate : uint8_t
     _zero = _none
 };
 
-enum class OptPane
+enum class OptPane : uint8_t
 {
     _none,
 
@@ -290,7 +290,7 @@ enum class OptPane
     _last = KeyBindings
 };
 
-enum ModalDlgCtrl
+enum ModalDlgCtrl : uint8_t
 {
     _btn_none   = 0,
 
@@ -311,13 +311,13 @@ enum ModalDlgCtrl
 };
 
 // update LogWriter with new elements!
-enum class DlgCode
+enum class DlgCode : uint8_t
 {
     Progress,
     Cancel,
 };
 
-enum class WidgetInput
+enum class WidgetInput : uint8_t
 {
     _none,
 
@@ -334,7 +334,7 @@ enum class WidgetInput
 };
 
 
-enum class MetricLimit
+enum class MetricLimit : uint8_t
 {
     LocalRAM,
     LocalDisk,
@@ -347,7 +347,7 @@ enum class MetricLimit
     _count
 };
 
-enum class ActivityBarMode
+enum class ActivityBarMode : uint8_t
 {
     _none,
 
@@ -360,7 +360,7 @@ enum class ActivityBarMode
     _last = Right
 };
 
-enum class AppColor
+enum class AppColor : uint16_t
 {
     DisconnectedMenuBarBg,
     DisconnectedMenuBarText,
@@ -458,7 +458,7 @@ enum class AppColor
     _count
 };
 
-enum class TaskResult
+enum class TaskResult : uint8_t
 {
     None,
     InProgress,
@@ -468,7 +468,7 @@ enum class TaskResult
     Lost
 };
 
-enum class DbItemOptionType
+enum class DbItemOptionType : uint8_t
 {
     Pins,
     Nodes,
@@ -482,7 +482,7 @@ enum class DbItemOptionType
     _last = _count - 1
 };
 
-enum class ConnectState
+enum class ConnectState : uint8_t
 {
     Disconnected,
     Connecting,
@@ -491,7 +491,7 @@ enum class ConnectState
 
 // keep order in sync with the 'texts' array in OptRightPane::show_keys
 // check ui_hotkey_is_skipped
-enum class KeyTarget 
+enum class KeyTarget : uint16_t
 {
     _none,
 

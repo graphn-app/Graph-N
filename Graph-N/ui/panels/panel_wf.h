@@ -157,7 +157,7 @@ private:
     fmt::memory_buffer m_status_buffer;
     const std::map<iid, std::set<std::string>>* m_failed_nodes = nullptr;
 
-    enum class MenuType { _none, Back, BackDblClick, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink, SpawnNode, Widget };
+    enum class MenuType : uint8_t { _none, Back, BackDblClick, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink, SpawnNode, Widget };
     struct MenuObjects final
     {
         std::set<data::NodeInstance*> nodes;

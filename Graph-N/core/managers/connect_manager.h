@@ -32,7 +32,7 @@ private:
 
     struct RequestData final
     {
-        enum class Type { None, GetByUrl, GetByUrlAndParams, PostRawPayload, PostItems };
+        enum class Type : uint8_t { None, GetByUrl, GetByUrlAndParams, PostRawPayload, PostItems };
         Type type = Type::None;
 
         uint32_t req_id = 0;
