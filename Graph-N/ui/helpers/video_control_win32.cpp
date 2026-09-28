@@ -387,16 +387,15 @@ int32_t VideoControl_Win32::load(const std::filesystem::path& filepath, uint32_t
     m_frame_ready.store(false, std::memory_order_relaxed);
     m_last_frame_request.store(std::chrono::steady_clock::now(), std::memory_order_relaxed);
 
-    Log("Loaded video id=" << m_video_id << " from " << filepath);
-
     seek(m_video_id, 0.0f);
     m_stop_thread = std::stop_source();
     m_decode_thread = std::thread(&VideoControl_Win32::decode_thread_loop, this, m_info);
 
+    Log("Video #" << m_video_id << " loaded from " << filepath);
     return m_video_id;
 }
 
-void VideoControl_Win32::play(int32_t video_id) noexcept
+void VideoControl_Win32::play_impl(int32_t video_id) noexcept
 {
     LogRAssert(m_video_id == video_id, "Video must be loaded first", );
     if (m_gif_playing)
@@ -410,10 +409,11 @@ void VideoControl_Win32::play(int32_t video_id) noexcept
         seek(video_id, 0.0f);
 
     m_is_playing.store(true, std::memory_order_relaxed);
+    Log("Video #" << m_video_id << ": start playing");
     m_cv.notify_all();
 }
 
-void VideoControl_Win32::stop(int32_t video_id) noexcept
+void VideoControl_Win32::stop_impl(int32_t video_id) noexcept
 {
     LogRAssert(m_video_id == video_id, "Video must be loaded first", );
     m_video_id = 0;
@@ -424,6 +424,7 @@ void VideoControl_Win32::stop(int32_t video_id) noexcept
         return;
 
     m_is_playing.store(false, std::memory_order_relaxed);
+    Log("Video #" << video_id << ": stop playing");
 }
 
 void VideoControl_Win32::seek(int32_t video_id, float pos) noexcept
@@ -440,6 +441,7 @@ void VideoControl_Win32::seek(int32_t video_id, float pos) noexcept
 
     m_seek_target.store(pos, std::memory_order_relaxed);
     m_seek_requested.store(true, std::memory_order_relaxed);
+    Log("Video #" << m_video_id << ": seek to " << pos);
     m_cv.notify_all();
 }
 
@@ -470,7 +472,7 @@ float VideoControl_Win32::get_position(int32_t video_id) const noexcept
     return m_current_time.load(std::memory_order_relaxed);
 }
 
-ImTextureID VideoControl_Win32::get_frame(int32_t video_id, float* out_w /*= nullptr*/, float* out_h /*= nullptr*/)
+ImTextureID VideoControl_Win32::get_frame_impl(int32_t video_id, float* out_w /*= nullptr*/, float* out_h /*= nullptr*/)
 {
     LogRAssert(m_video_id == video_id, "Video must be loaded first", nullptr);
     if (m_gif_playing)

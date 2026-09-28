@@ -93,7 +93,7 @@ bool GraphN::init_graphn()
 
     g::pTextures = m_textures.get();
 
-    m_video->init();
+    m_video->init_all();
     g::pVideoControl = m_video.get();
 
 

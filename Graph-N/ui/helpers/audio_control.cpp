@@ -15,16 +15,20 @@ void AudioControl::init()
     const auto res = ma_engine_init(nullptr, &m_engine);
     LogRAssert(MA_SUCCESS == res, "Failed to initialize audio engine, err " << res, );
 
+    g::pGraphN->subscribe_timers(this);
     m_initialized = true;
+    Log("Audio engine initialized");
 }
 
 void AudioControl::cleanup_all()
 {
     if (m_initialized)
     {
+        g::pGraphN->unsubscribe_timers(this);
         cleanup();
         ma_engine_uninit(&m_engine);
         m_initialized = false;
+        Log("Audio engine deinitialized");
     }
 }
 
@@ -39,6 +43,12 @@ void AudioControl::cleanup()
         m_is_playing.store(false, std::memory_order_relaxed);
         m_audio_id = 0;
     }
+}
+
+void AudioControl::on_1s_lazy_timer(int64_t /*total_seconds_elapsed*/)
+{
+    if (m_audio_id != 0 && m_last_requested > 0.0 && ImGui::GetTime() - m_last_requested >= PLAYING_AUDIO_LIFETIME)
+        stop(m_audio_id);
 }
 
 mngr::AudioInfo AudioControl::get_info(const std::string& filepath, std::optional<bool>& valid)
@@ -122,7 +132,7 @@ int32_t AudioControl::load(const std::string& filepath)
     m_duration_sec = cast::to_float(length_pcm) / cast::to_float(m_sample_rate);
     m_has_sound = true;
     m_is_playing.store(false, std::memory_order_relaxed);
-    Log("Loaded audio '" << filepath << "', id=" << m_audio_id);
+    Log("Audio #" << m_audio_id << ": loaded from " << filepath);
     return m_audio_id;
 }
 
@@ -138,6 +148,8 @@ void AudioControl::play(int32_t audio_id)
 
     ma_sound_start(&m_sound);
     m_is_playing.store(true, std::memory_order_relaxed);
+    m_last_requested = ImGui::GetTime();
+    Log("Audio #" << m_audio_id << ": start playing");
 }
 
 void AudioControl::stop(int32_t audio_id)
@@ -148,6 +160,8 @@ void AudioControl::stop(int32_t audio_id)
 
     ma_sound_stop(&m_sound);
     m_is_playing.store(false, std::memory_order_relaxed);
+    m_last_requested = 0.0;
+    Log("Audio #" << m_audio_id << ": stop playing");
 }
 
 void AudioControl::seek(int32_t audio_id, float pos)
@@ -161,6 +175,14 @@ void AudioControl::seek(int32_t audio_id, float pos)
     const ma_uint64 target_pcm = cast::to<ma_uint64>(pos * m_sample_rate);
     //const ma_uint64 total_pcm = cast::to<ma_uint64>(m_duration_sec * m_sample_rate);
     ma_sound_seek_to_pcm_frame(&m_sound, target_pcm);
+    Log("Audio #" << m_audio_id << ": seek to " << pos);
+}
+
+bool AudioControl::get_is_playing(int32_t audio_id) noexcept
+{
+    if (m_audio_id == audio_id)
+        m_last_requested = ImGui::GetTime();
+    return m_audio_id == audio_id && m_is_playing.load(std::memory_order_relaxed);
 }
 
 float AudioControl::get_position(int32_t audio_id) const

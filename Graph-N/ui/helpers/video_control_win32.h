@@ -16,28 +16,27 @@ public:
     VideoControl_Win32() noexcept;
     ~VideoControl_Win32() noexcept override;
 
+protected:
     void init() noexcept override;
     void cleanup() override;
 
     mngr::VideoInfo get_info(const std::filesystem::path& filepath, uint32_t max_side_len, std::optional<bool>& valid) override;
     int32_t load(const std::filesystem::path& filepath, uint32_t max_side_len) override;
 
-    void play(int32_t video_id) noexcept override;
-    void stop(int32_t video_id) noexcept override;
+    void play_impl(int32_t video_id) noexcept override;
+    void stop_impl(int32_t video_id) noexcept override;
     void seek(int32_t video_id, float pos) noexcept override;
 
     bool get_is_playing(int32_t video_id) const noexcept override;
     float get_position(int32_t video_id) const noexcept override;
 
-    ImTextureID get_frame(int32_t video_id, float* out_w = nullptr, float* out_h = nullptr) override;
+    ImTextureID get_frame_impl(int32_t video_id, float* out_w = nullptr, float* out_h = nullptr) override;
 
 private:
     void decode_thread_loop(mngr::VideoInfo info);
     bool get_thumbnail_check_window_cache(const std::filesystem::path& filename, const std::string& dest_filename, uint32_t max_side_len);
 
 private:
-    bool m_initialized = false;
-
     std::unique_ptr<::IMFSourceReader, std::function<void(::IMFSourceReader*)>> m_reader;
     mngr::VideoInfo m_info;
 

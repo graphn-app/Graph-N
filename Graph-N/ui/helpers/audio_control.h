@@ -1,10 +1,11 @@
 #pragma once
+#include "core/listeners.h"
 #include "miniaudio.h"
 
 namespace global
 {
 
-class AudioControl final
+class AudioControl final : public listener::Timer
 {
 public:
     AudioControl() noexcept = default;
@@ -23,12 +24,15 @@ public:
     void seek(int32_t audio_id, float pos);
 
     int32_t get_current() const noexcept { return m_audio_id; }
-    bool get_is_playing(int32_t audio_id) const noexcept { return m_audio_id == audio_id && m_is_playing.load(std::memory_order_relaxed); }
+    bool get_is_playing(int32_t audio_id) noexcept;
     float get_position(int32_t audio_id) const;
 
 private:
     void cleanup();
     static void end_callback(void* user_data, ma_sound* sound) noexcept;
+
+    // Timer
+    void on_1s_lazy_timer(int64_t total_seconds_elapsed) override;
 
 private:
     ma_engine m_engine = {};
@@ -44,6 +48,8 @@ private:
 
     float m_duration_sec = 0.0f;
     uint32_t m_sample_rate = 0;
+
+    double m_last_requested = 0.0;
 };
 
 } // namespace global

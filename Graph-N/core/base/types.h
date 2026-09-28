@@ -46,6 +46,9 @@ constexpr int32_t QUEUE_DEAD_TASK = 5 * 60; // seconds
 constexpr int32_t NODE_IMAGE_LIFETIME = 30; // seconds
 constexpr int32_t NODE_IMAGE_RECT = 256; // size
 
+constexpr double PLAYING_AUDIO_LIFETIME = 5.0; // seconds
+constexpr double PLAYING_VIDEO_LIFETIME = 5.0; // seconds
+
 constexpr float WIDGET_STRING_W = 200.0f;
 constexpr float WIDGET_STRING_ML_H = 4.0f;
 constexpr float WIDGET_COMBO_W = 150.0f;
