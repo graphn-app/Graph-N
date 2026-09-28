@@ -70,6 +70,7 @@ public:
     void copy_del(data::NodeInstance* node);
     void copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool center_dest_point);
     bool copy_has_data() const noexcept { return !m_copied_nodes.empty(); }
+    void copy_reset();
 
     void close_and_purge();
     void close(wid wf_id, bool process_pending_deletion);

@@ -190,7 +190,6 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/, bool first
     //m_resizing_grip_positions.clear(); // TODO:FIX resizing
     //m_resizing_grip_positions.resize(nodes_count);
 
-    m_active_tt = nullptr;
     m_hovered_widget = nullptr;
     m_first_frame = first_frame;
     m_max_node_size = {};
@@ -278,9 +277,6 @@ void NodeDrawer::post_draw_all(
             m_deffered_action->ml_input.hint);
         m_deffered_action->ml_input.is_active = false;
     }
-
-    if (m_active_tt != nullptr && *m_active_tt != 0)
-        tooltip_suspended([this]() { return m_active_tt; });
 
     if (m_navigate_to_content)
     {
@@ -763,7 +759,8 @@ void NodeDrawer::draw_node_header()
                 ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
                 ImGui::TextUnformatted(" " ICON_LC_PIN);
                 ImGui::PopStyleColor();
-                if (ImGui::IsItemHovered()) m_active_tt = "Node is pinned to the canvas.";
+                if (ImGui::IsItemHovered())
+                    tooltip_suspended([this]() { return "Node is pinned to the canvas."; });
             }
             if (m_active_node->get_mode_bypass())
             {
@@ -771,7 +768,8 @@ void NodeDrawer::draw_node_header()
                 ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
                 ImGui::TextUnformatted(" " ICON_LC_SKIP_FORWARD);
                 ImGui::PopStyleColor();
-                if (ImGui::IsItemHovered()) m_active_tt = "Node is bypassed. Inputs pass through to outputs.";
+                if (ImGui::IsItemHovered())
+                    tooltip_suspended([this]() { return "Node is bypassed. Inputs pass through to outputs."; });
             }
             else if (!m_active_node->get_mode_always())
             {
@@ -779,7 +777,8 @@ void NodeDrawer::draw_node_header()
                 ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
                 ImGui::TextUnformatted(" " ICON_LC_VOLUME_X);
                 ImGui::PopStyleColor();
-                if (ImGui::IsItemHovered()) m_active_tt = "Node is muted. It will not be processed.";
+                if (ImGui::IsItemHovered())
+                    tooltip_suspended([this]() { return "Node is muted. It will not be processed."; });
             }
         }
         else
@@ -1472,7 +1471,8 @@ void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& link
     {
         auto in = link->get_input();
         auto out = link->get_output();
-        ed::Link(link->ed(), in->ed(), out->ed(), in->state().pin_color, link->get_link_thickness_mult() * g::pOptsManager->wf_link_thickness_load());
+        if (in->ed().has_object() && out->ed().has_object())
+            ed::Link(link->ed(), in->ed(), out->ed(), in->state().pin_color, link->get_link_thickness_mult() * g::pOptsManager->wf_link_thickness_load());
     }
 }
 
@@ -1870,9 +1870,9 @@ std::set<data::NodeInstance*> NodeDrawer::get_nodes_in_group(const data::NodeIns
     return ret;
 }
 
-void NodeDrawer::pin_node(const EdType& node, bool pin) const noexcept
+void NodeDrawer::pin_node(data::NodeInstance* node) const noexcept
 {
-    ed::SetNodeDraggable(node, !pin);
+    node->flags().remove(NodeInstFlags::PinnedSet);
 }
 
 void NodeDrawer::rename_node(data::NodeInstance* node) noexcept
@@ -1899,12 +1899,12 @@ ImRect NodeDrawer::calc_group_rect(const ImRect& node_rc) const noexcept
         ImVec2(node_rc.Max.x + ImGui::GetStyle().ItemSpacing.x * 4, node_rc.Max.y + ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 2));
 }
 
-ImRect NodeDrawer::fit_group_rect(const data::NodeInstance* /*group*/, const std::set<data::NodeInstance*>& nodes) const noexcept
+ImRect NodeDrawer::get_group_rect(const std::set<data::NodeInstance*>& nodes) const noexcept
 {
     if (nodes.empty())
         return {};
 
-    auto rect = ImRect(FLT_MAX, FLT_MAX, -FLT_MIN, -FLT_MIN);
+    auto rect = ImRect(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
     for (auto node : nodes)
     {
         rect.Min.x = std::min(rect.Min.x, node->m_rc.Min.x);
@@ -1916,6 +1916,7 @@ ImRect NodeDrawer::fit_group_rect(const data::NodeInstance* /*group*/, const std
     rect.Min.x -= ImGui::GetStyle().ItemSpacing.x * 2;
     rect.Min.y -= ImGui::GetTextLineHeight() * 3 - ImGui::GetStyle().ItemSpacing.y * 4;
 
+    // this should be width/height, not coordinates
     rect.Max.x = rect.Max.x - rect.Min.x;
     rect.Max.y = rect.Max.y - rect.Min.y;
 

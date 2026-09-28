@@ -203,7 +203,7 @@ void PanelWorkflow::group_nodes(const std::set<data::NodeInstance*>& nodes)
 {
     m_action->multi_action_on("Add group");
     auto group = m_action->add_group(std::nullopt);
-    m_action->set_node_rect(group, m_drawer.fit_group_rect(group, nodes));
+    m_action->set_node_rect(group, m_drawer.get_group_rect(nodes));
     m_action->multi_action_off();
 }
 
@@ -476,7 +476,7 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
         {
             if (node != it->first && node->flags().has(NodeInstFlags::Group) && items.find(node) != items.end())
             {
-                if (m_action->set_node_rect(node, m_drawer.fit_group_rect(node, m_drawer.get_nodes_in_group(node, m_wf->get_nodes_all()))))
+                if (m_action->set_node_rect(node, m_drawer.get_group_rect(m_drawer.get_nodes_in_group(node, m_wf->get_nodes_all()))))
                     add_y.insert(it->first);
                 items.erase(node);
             }
@@ -485,7 +485,7 @@ void PanelWorkflow::fit(std::map<data::NodeInstance*, std::set<data::NodeInstanc
 
     for (auto& [group, nodes] : items)
     {
-        m_action->set_node_rect(group, m_drawer.fit_group_rect(group, nodes));
+        m_action->set_node_rect(group, m_drawer.get_group_rect(nodes));
         if (add_y.find(group) != add_y.end())
             group->m_rc.Max.y += ImGui::GetTextLineHeight();
     }

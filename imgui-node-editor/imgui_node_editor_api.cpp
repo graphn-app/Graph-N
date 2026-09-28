@@ -207,7 +207,11 @@ void ax::NodeEditor::EndNode()
 
 void ax::NodeEditor::PinAllowDrag(EdType& edPin, bool allow)
 {
-    IM_ASSERT(edPin.has_object());
+    if (!edPin.has_object())
+    {
+        IM_ASSERT(false);
+        return;
+    }
     auto pin = edPin.get_pin();
     pin->m_AllowDrag = allow;
 }
@@ -252,8 +256,11 @@ ImDrawList* ax::NodeEditor::GetNodeBackgroundDrawList(NodeId nodeId)
 
 void ax::NodeEditor::Link(EdType& edLink, const EdType& edStartPin, const EdType& edEndPin, ImU32 color, float thickness)
 {
-    IM_ASSERT(edStartPin.has_object());
-    IM_ASSERT(edEndPin.has_object());
+    if (!edStartPin.has_object() || !edEndPin.has_object())
+    {
+        IM_ASSERT(false);
+        return;
+    }    
 
     if (edLink.has_object())
         s_Editor->DoLink(edLink.get_link(), edStartPin.get_pin(), edEndPin.get_pin(), color, thickness);
@@ -482,19 +489,31 @@ void ax::NodeEditor::SetGroupSize(EdType& edNode, const ImVec2& size)
 
 ImVec2 ax::NodeEditor::GetNodePosition(const EdType& edNode)
 {
-    IM_ASSERT(edNode.has_object());
+    if (!edNode.has_object())
+    {
+        IM_ASSERT(false);
+        return {};
+    }
     return s_Editor->GetNodePosition(edNode.get_node());
 }
 
 ImVec2 ax::NodeEditor::GetNodeSize(const EdType& edNode)
 {
-    IM_ASSERT(edNode.has_object());
+    if (!edNode.has_object())
+    {
+        IM_ASSERT(false);
+        return {};
+    }
     return s_Editor->GetNodeSize(edNode.get_node());
 }
 
 void ax::NodeEditor::CenterNodeOnScreen(const EdType& edNode)
 {
-    IM_ASSERT(edNode.has_object());
+    if (!edNode.has_object())
+    {
+        IM_ASSERT(false);
+        return;
+    }
     ax::NodeEditor::Detail::Node* pnode = edNode.get_node();
     pnode->CenterOnScreenInNextFrame();
 }
@@ -604,13 +623,21 @@ std::set<uint64_t> ax::NodeEditor::GetSelectedLinks()
 
 bool ax::NodeEditor::IsNodeSelected(const EdType& edNode)
 {
-    IM_ASSERT(edNode.has_object());
+    if (!edNode.has_object())
+    {
+        IM_ASSERT(false);
+        return false;
+    }
     return s_Editor->IsSelected(edNode.get_object());
 }
 
 bool ax::NodeEditor::IsLinkSelected(const EdType& edLink)
 {
-    IM_ASSERT(edLink.has_object());
+    if (!edLink.has_object())
+    {
+        IM_ASSERT(false);
+        return false;
+    }
     return s_Editor->IsSelected(edLink.get_object());
 }
 
@@ -621,7 +648,11 @@ void ax::NodeEditor::ClearSelection()
 
 void ax::NodeEditor::SelectNode(const EdType& edNode, bool append)
 {
-    IM_ASSERT(edNode.has_object());
+    if (!edNode.has_object())
+    {
+        IM_ASSERT(false);
+        return;
+    }
     if (append)
         s_Editor->SelectObject(edNode.get_object());
     else
@@ -630,7 +661,11 @@ void ax::NodeEditor::SelectNode(const EdType& edNode, bool append)
 
 void ax::NodeEditor::SelectLink(const EdType& edLink, bool append)
 {
-    IM_ASSERT(edLink.has_object());
+    if (!edLink.has_object())
+    {
+        IM_ASSERT(false);
+        return;
+    }
     if (append)
         s_Editor->SelectObject(edLink.get_object());
     else
@@ -639,19 +674,31 @@ void ax::NodeEditor::SelectLink(const EdType& edLink, bool append)
 
 void ax::NodeEditor::DeselectNode(const EdType& edNode)
 {
-    IM_ASSERT(edNode.has_object());
+    if (!edNode.has_object())
+    {
+        IM_ASSERT(false);
+        return;
+    }
     s_Editor->DeselectObject(edNode.get_object());
 }
 
 void ax::NodeEditor::DeselectLink(const EdType& edLink)
 {
-    IM_ASSERT(edLink.has_object());
+    if (!edLink.has_object())
+    {
+        IM_ASSERT(false);
+        return;
+    }
     s_Editor->DeselectObject(edLink.get_object());
 }
 
 void ax::NodeEditor::SetNodeDraggable(const EdType& edNode, bool canDrag)
 {
-    IM_ASSERT(edNode.has_object());
+    if (!edNode.has_object())
+    {
+        IM_ASSERT(false);
+        return;
+    }
     ax::NodeEditor::Detail::Node* pnode = edNode.get_node();
     pnode->m_Draggable = canDrag;
 }
@@ -866,14 +913,17 @@ ImGuiMouseButton ax::NodeEditor::GetBackgroundDoubleClickButtonIndex()
 
 bool ax::NodeEditor::GetLinkPins(const EdType& edLink, PinId* startPinId, PinId* endPinId)
 {
-    IM_ASSERT(edLink.has_object());
-    const ax::NodeEditor::Detail::Link* link = edLink.get_link();
+    if (!edLink.has_object())
+    {
+        IM_ASSERT(false);
+        return false;
+    }
 
+    const ax::NodeEditor::Detail::Link* link = edLink.get_link();
     if (startPinId)
         *startPinId = link->m_StartPin->m_ID;
     if (endPinId)
         *endPinId = link->m_EndPin->m_ID;
-
     return true;
 }
 

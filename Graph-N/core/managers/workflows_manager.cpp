@@ -78,6 +78,7 @@ bool WfsManager::init()
 
 void WfsManager::free()
 {
+    copy_reset();
     m_active = 0;
     m_wfs.clear(); m_wfs.rehash(0);
     m_wfs_ro.clear();
@@ -501,12 +502,17 @@ void WfsManager::copy_del(data::NodeInstance* node)
     }
 }
 
+void WfsManager::copy_reset()
+{
+    m_copy_src = nullptr;
+    m_copied_nodes.clear();
+    m_copy_point = {};
+}
+
 void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool center_dest_point)
 {
-    LogRAssert(m_copy_src, "Copy wasn't initiated", );
     LogRAssert(wf_dest, "Zero ptr", );
-
-    if (m_copied_nodes.empty()) [[unlikely]]
+    if (m_copied_nodes.empty() || nullptr == m_copy_src)
     {
         Log("No nodes to copy");
         return;
@@ -559,19 +565,22 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
     {
         LogCAssert(node->flags().has_not(NodeInstFlags::RerouteSplitted_R), "Splitted node shouldn't be copied explicitly");
 
+        ImRect dest_rect;
+        dest_rect.Min.x = node->m_rc.Min.x - src_pt.x;
+        dest_rect.Min.x = dest_point.x + dest_rect.Min.x;
+        dest_rect.Min.y = node->m_rc.Min.y - src_pt.y;
+        dest_rect.Min.y = dest_point.y + dest_rect.Min.y;
+        dest_rect.Max = node->m_rc.Max;
+
         if (node->flags().has(NodeInstFlags::Group))
         {
-            wf_dest->add_group(node->m_rc, node->get_name());
+            wf_dest->add_group(dest_rect, node->get_name());
             continue;
         }
 
         auto new_node = wf_dest->add_node(node, dest_wf_data.virt);
         new_node->flags().add(NodeInstFlags::Deserialization);
-        new_node->m_rc.Min.x = node->m_rc.Min.x - src_pt.x;
-        new_node->m_rc.Min.x = dest_point.x + new_node->m_rc.Min.x;
-        new_node->m_rc.Min.y = node->m_rc.Min.y - src_pt.y;
-        new_node->m_rc.Min.y = dest_point.y + new_node->m_rc.Min.y;
-        new_node->m_rc.Max = node->m_rc.Max;
+        new_node->m_rc = dest_rect;
 
         if (node->flags().has(NodeInstFlags::RerouteSplitted))
             cast::strict<data::CNI_Reroute>(new_node)->adjust_r_pose();
@@ -656,6 +665,8 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
 
 void WfsManager::close_and_purge()
 {
+    copy_reset();
+
     for (auto& [id, wf] : m_wfs)
     {
         auto& data = wf->get_data();
@@ -675,28 +686,31 @@ void WfsManager::close_and_purge()
 void WfsManager::close(wid wf_id, bool process_pending_deletion)
 {
     LogRAssert(wf_id != 0, "Zero wf id", );
-    if (!process_pending_deletion)
-    {
-        m_pending_cleanups.close_wfs.push_back(wf_id);
-        return;
-    }
-
     auto wf = access(wf_id);
     auto& data = wf->get_data();
 
-    g::pFlow->host_handle_wf_closure(wf_id);
-    g::pFlow->custom_widgets().cleanup_outputs(wf_id);
+    if (m_copy_src == wf)
+        copy_reset();
 
-    if (data.temp && data.dirty)
+    if (!process_pending_deletion)
     {
-        data.temp = false;
-        g::pDbManager->wf_update_meta(data);
-    }
+        g::pFlow->host_handle_wf_closure(wf_id);
+        g::pFlow->custom_widgets().cleanup_outputs(wf_id);
 
-    if (data.dirty && !data.temp)
-        dump(wf_id);
-    else if (data.temp)
-        delete_wf(wf_id);
+        if (data.temp && data.dirty)
+        {
+            data.temp = false;
+            g::pDbManager->wf_update_meta(data);
+        }
+
+        if (data.dirty && !data.temp)
+            dump(wf_id);
+        else if (data.temp)
+            delete_wf(wf_id);
+
+        m_pending_cleanups.close_wfs.push_back(wf_id);
+        return;
+    }
 
     const auto links = wf->get_links_no_reroutes();
     for (auto link : links)

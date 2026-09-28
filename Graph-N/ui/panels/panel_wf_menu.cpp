@@ -647,7 +647,7 @@ bool PanelWorkflow::show_group_menu()
     {
         if (ImGui::MenuItem("Fit"))
         {
-            m_action->set_node_rect(group, m_drawer.fit_group_rect(group, nodes));
+            m_action->set_node_rect(group, m_drawer.get_group_rect(nodes));
             close = true;
         }
         if (ImGui::MenuItem("Select nodes"))
@@ -945,7 +945,7 @@ bool PanelWorkflow::show_multigroup_menu()
             m_action->multi_action_on("Fit");
             for (const auto&[group, nodes] : m_menu_objs.groups)
             {
-                m_action->set_node_rect(group, m_drawer.fit_group_rect(group, nodes));
+                m_action->set_node_rect(group, m_drawer.get_group_rect(nodes));
             }
             m_action->multi_action_off();
             close = true;

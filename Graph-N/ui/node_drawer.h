@@ -80,9 +80,9 @@ public:
 
     std::set<data::NodeInstance*> get_nodes_in_group(const data::NodeInstance* group, const std::vector<std::unique_ptr<data::NodeInstance>>& all_nodes) const;
     ImRect calc_group_rect(const ImRect& node_rc) const noexcept;
-    ImRect fit_group_rect(const data::NodeInstance* group, const std::set<data::NodeInstance*>& nodes) const noexcept;
+    ImRect get_group_rect(const std::set<data::NodeInstance*>& nodes) const noexcept;
 
-    void pin_node(const EdType& node, bool pin) const noexcept;
+    void pin_node(data::NodeInstance* node) const noexcept;
     void rename_node(data::NodeInstance* node) noexcept;
     void rename_pin(data::PinInstance* pin) noexcept;
     void handle_node_collapsing(const data::NodeInstance* node);
@@ -153,10 +153,7 @@ private:
     data::Workflow* m_wf = nullptr;
     ax::NodeEditor::EditorContext* m_context = nullptr;
     bool m_first_frame = true;
-
     data::NodeInstance* m_active_node = nullptr;
-    const char* m_active_tt = nullptr;
-
     bool m_canvas_hovered = false;
 
     ImU32 m_defclr_node_bg = 0;
