@@ -950,7 +950,10 @@ void NodeDrawer::draw_widget(data::PinInstance* pin, float widget_name_width, fl
     switch (pin->state().type)
     {
     case PinType::INT:
-        draw_widget_int(pin, widget_name_width, widget_value_width);
+        if (pin->obj_flags().has(PinObjFlags::DisplAsColor))
+            draw_widget_color(pin, widget_name_width, WIDGET_COLOR_RGB_W);
+        else
+            draw_widget_int(pin, widget_name_width, widget_value_width);
         break;
     case PinType::FLOAT:
         draw_widget_float(pin, widget_name_width, widget_value_width);
@@ -1296,7 +1299,7 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
 void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
-    const auto& state = pin->state();
+    auto& state = pin->state();
 
     ImGui::PushID(0xB9C9528C);
     ImGui::PushID(pin);
@@ -1306,22 +1309,54 @@ void NodeDrawer::draw_widget_color(data::PinInstance* pin, float widget_name_wid
     handle_widget_active_state(pin);
     ImGui::PopStyleColor();
 
-    ImGui::SameLine(0.0f, 0.0f);
-    ImGui::SetNextItemWidth(widget_value_width);
+    const auto linked = pin->state().links > 0;
+    if (linked) ImGui::BeginDisabled();
 
+    const Primitive backup = state.value;
     const ImVec4 vec4 = ImGui::ColorConvertU32ToFloat4(cast::to_u32(state.value.get_int()));
     float colors[4];
     vec4.to_arr(colors);
-    const auto linked = pin->state().links > 0;
-    if (linked) ImGui::BeginDisabled();
-    if (ImGui::ColorEdit4("##value", colors,
-        ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop |
-        ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoTooltip | (obj->flags.has(PinObjFlags::ClrAlphaEnabled) ? 0 : ImGuiColorEditFlags_NoAlpha)))
+
+    int64_t* value = state.value.get_int_ref();
+
+    ImGui::SameLine(0.0f, 0.0f);
+
+    if (pin->flags().has(PinInstFlags::ColorRaw))
     {
-        m_wf->action()->set_pin_val(pin, colors);
+        ImGui::ColorButton("##color_val", colors, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop, ImVec2(ImGui::GetFrameHeight(), 0));
+
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(widget_value_width - ImGui::GetFrameHeight() - ImGui::GetStyle().ItemSpacing.x);
+        const int64_t step = obj->def_state.step.get_int();
+        const int64_t min = obj->def_state.min.get_int();
+        const int64_t max = obj->def_state.max.get_int();
+        ImGuiEx::InputIntSmart("##value", value, step, min, max, obj->precision, obj->precision);
     }
+    else
+    {
+        const bool alpha = obj->flags.has(PinObjFlags::ClrAlphaEnabled);
+        int32_t flags = ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoTooltip;
+        if (pin->flags().has(PinInstFlags::ColorHSV))           flags |= ImGuiColorEditFlags_DisplayHSV;
+        else if (pin->flags().has(PinInstFlags::ColorHex))      flags |= ImGuiColorEditFlags_DisplayHex;
+        else [[likely]]                                         flags |= ImGuiColorEditFlags_DisplayRGB;
+        if (pin->flags().has(PinInstFlags::ColorFloat))         flags |= ImGuiColorEditFlags_Float;
+        else  [[likely]]                                        flags |= ImGuiColorEditFlags_Uint8;
+
+        ImGui::SetNextItemWidth(widget_value_width);
+        if (alpha &&
+            ImGui::ColorEdit4("##value", colors, flags | ImGuiColorEditFlags_AlphaPreview))
+        {
+            *value = data::Pin::colors_to_int(ImVec4(colors));
+        }
+        else if (!alpha &&
+            ImGui::ColorEdit3("##value", colors, flags | ImGuiColorEditFlags_NoAlpha)) [[likely]]
+        {
+            *value = data::Pin::colors_to_int(ImVec4(colors));
+        }
+    }
+
     if (linked) ImGui::EndDisabled();
-    else handle_widget_active_state(pin);
+    else handle_widget_active_state(pin, &backup);
 
     tooltip_suspended(obj->tooltip);
     ImGui::PopID(2);

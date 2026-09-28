@@ -69,6 +69,7 @@ public:
 
     void set_pin_cag(data::PinInstance* pin, ControlAfterGenerate old_cag, const Primitive& old_min, const Primitive& old_max, const Primitive& old_step);
     void set_pin_multiline(data::PinInstance* pin, bool multiline);
+    void set_pin_color_config(data::PinInstance* pin, ObjectFlags<PinInstFlags> old_flags);
 
 private:
     void mirror_pin_value(data::PinInstance* pin);

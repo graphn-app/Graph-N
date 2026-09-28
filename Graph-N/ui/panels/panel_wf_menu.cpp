@@ -56,7 +56,12 @@ bool PanelWorkflow::context_menu_handler()
     {
         const auto pin = m_drawer.get_hovered_widget();
         if (pin != nullptr &&
-            (PinType::INT == pin->state().type || PinType::FLOAT == pin->state().type || PinType::NUMBER == pin->state().type || PinType::COMBO == pin->state().type || PinType::STRING == pin->state().type))
+            (PinType::INT == pin->state().type ||
+            PinType::FLOAT == pin->state().type ||
+            PinType::NUMBER == pin->state().type ||
+            PinType::COMBO == pin->state().type ||
+            PinType::STRING == pin->state().type ||
+            PinType::COLOR == pin->state().type))
         {
             const auto parent = m_wf->get_node_by_instance(pin->get_parent_node());
             
@@ -1194,13 +1199,76 @@ bool PanelWorkflow::show_widget_menu()
         return close;
     };
 
+    const auto draw_color_menu = [pin, action = m_action]()
+    {
+        bool close = false;
+        const bool hsv = pin->flags().has(PinInstFlags::ColorHSV);
+        const bool hex = pin->flags().has(PinInstFlags::ColorHex);
+        const bool raw = pin->flags().has(PinInstFlags::ColorRaw);
+        const bool rgb = !hsv && !hex && !raw;
+        if (raw || hex)
+            pin->flags().remove(PinInstFlags::ColorFloat);
+        const bool dec = pin->flags().has(PinInstFlags::ColorFloat);
+        const bool int_ = !dec;
+
+        const auto handle_updated = [pin, action, flags = pin->flags()]()
+        {
+            action->set_pin_color_config(pin, flags);
+        };
+
+        if (ImGui::MenuItem("Palette: RBG(A)", nullptr, rgb, true))
+        {
+            pin->flags().remove(PinInstFlags::ColorHSV, PinInstFlags::ColorHex, PinInstFlags::ColorRaw);
+            handle_updated();
+            close = true;
+        }
+        if (ImGui::MenuItem("Palette: HSV(A)", nullptr, hsv, true))
+        {
+            pin->flags().remove(PinInstFlags::ColorHSV, PinInstFlags::ColorHex, PinInstFlags::ColorRaw);
+            pin->flags().add(PinInstFlags::ColorHSV);
+            handle_updated();
+            close = true;
+        }
+        if (ImGui::MenuItem("Palette: HEX", nullptr, hex, true))
+        {
+            pin->flags().remove(PinInstFlags::ColorHSV, PinInstFlags::ColorHex, PinInstFlags::ColorRaw);
+            pin->flags().add(PinInstFlags::ColorHex);
+            handle_updated();
+            close = true;
+        }
+        if (ImGui::MenuItem("Palette: raw input", nullptr, raw, true))
+        {
+            pin->flags().remove(PinInstFlags::ColorHSV, PinInstFlags::ColorHex, PinInstFlags::ColorRaw);
+            pin->flags().add(PinInstFlags::ColorRaw);
+            handle_updated();
+            close = true;
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Input format: integer", nullptr, int_, true))
+        {
+            pin->flags().remove(PinInstFlags::ColorFloat);
+            handle_updated();
+            close = true;
+        }
+        if (ImGui::MenuItem("Input format: decimal", nullptr, dec, rgb || hsv))
+        {
+            pin->flags().add(PinInstFlags::ColorFloat);
+            handle_updated();
+            close = true;
+        }
+        return close;
+    };
+
     switch (pin->state().type)
     {
     case PinType::INT:
     case PinType::FLOAT:
     case PinType::NUMBER:
     case PinType::COMBO:
-        close = draw_cag_menu();
+        if (pin->obj_flags().has(PinObjFlags::DisplAsColor))
+            close = draw_color_menu();
+        else
+            close = draw_cag_menu();
         break;
     case PinType::STRING:
         if (pin->obj_flags().has_not(PinObjFlags::DenyMultilineSwitch))
@@ -1217,6 +1285,9 @@ bool PanelWorkflow::show_widget_menu()
             }
         }
         break;
+    case PinType::COLOR:
+        close = draw_color_menu();
+    break;
     }
 
     return close;

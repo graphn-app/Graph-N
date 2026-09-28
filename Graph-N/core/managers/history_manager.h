@@ -35,7 +35,7 @@ enum class HistoryActionType : uint8_t
 {
     _none,
     NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeCollapse, NodeRerouteSplit,
-    PinRen, PinVal, PinCag, PinMultiline,
+    PinRen, PinVal, PinCag, PinMultiline, PinColorConfig,
     LinkAdd, LinkDel,
 
     _first = NodeAdd,
@@ -123,6 +123,7 @@ struct ActPinRen final : public ActOldNew    { ActPinRen() noexcept : ActOldNew(
 struct ActPinVal final : public ActOldNew    { ActPinVal() noexcept : ActOldNew(HistoryActionType::PinVal) {} };
 struct ActPinCag final : public ActOldNew    { ActPinCag() noexcept : ActOldNew(HistoryActionType::PinCag) {} };
 struct ActPinMultiline final : public ActOldNew    { ActPinMultiline() noexcept : ActOldNew(HistoryActionType::PinMultiline) {} };
+struct ActPinClrCfg final : public ActOldNew    { ActPinClrCfg() noexcept : ActOldNew(HistoryActionType::PinColorConfig) {} };
 struct ActLinkAdd final : public ActLink     { ActLinkAdd() noexcept : ActLink(HistoryActionType::LinkAdd) {} };
 struct ActLinkDel final : public ActLink     { ActLinkDel() noexcept : ActLink(HistoryActionType::LinkDel) {} };
 
@@ -199,6 +200,7 @@ private:
     void pop_pin_val(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_pin_cag(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_pin_multiline(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_pin_clr_cfg(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_link_add(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_link_del(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
 

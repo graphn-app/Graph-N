@@ -51,8 +51,8 @@ constexpr float WIDGET_STRING_ML_H = 4.0f;
 constexpr float WIDGET_COMBO_W = 150.0f;
 constexpr float WIDGET_BOOL_W = 100.0f;
 constexpr float WIDGET_NUM_W = 150.0f;
-constexpr float WIDGET_COLOR_RGB_W = 170.0f;
-constexpr float WIDGET_COLOR_RGBA_W = 200.0f;
+constexpr float WIDGET_COLOR_RGB_W = 240.0f;
+constexpr float WIDGET_COLOR_RGBA_W = 270.0f;
 constexpr float WIDGET_OUT_TEXT_MAX_H = 200.0f;
 
 constexpr const char* TEMP_LABEL_COMPLETED      = "Completed tasks";

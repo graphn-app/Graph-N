@@ -44,7 +44,7 @@ Pin::Pin(Node* node, const std::string& pin_name, bool is_required, bool is_opti
     : base::HashID(node->node_class + "_IN_" + pin_name)
     , parent_node(node)
 {
-    flags.set(PinObjFlags::Input, PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::CanRename, PinObjFlags::InputCanBeWidget, PinObjFlags::ClrAlphaEnabled);
+    flags.set(PinObjFlags::Input, PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::CanRename, PinObjFlags::InputCanBeWidget);
     flags.add_remove_if(PinObjFlags::Required, is_required);
     flags.add_remove_if(PinObjFlags::Optional, is_optional);
     node->flags.add(NodeObjFlags::HasInput);
@@ -252,6 +252,8 @@ void Pin::finalize()
         case PinType::FLOAT:
         case PinType::NUMBER:
             w_value = WIDGET_NUM_W; // ImGui::CalcTextSize("12345678901234567890").x + ImGui::GetStyle().ItemSpacing.x * 2 + (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2) * 2;
+            if (flags.has(PinObjFlags::DisplAsColor))
+                w_value = (flags.has(PinObjFlags::ClrAlphaEnabled) ? WIDGET_COLOR_RGBA_W : WIDGET_COLOR_RGB_W);
             break;
         case PinType::COLOR:
             w_value = (flags.has(PinObjFlags::ClrAlphaEnabled) ? WIDGET_COLOR_RGBA_W : WIDGET_COLOR_RGB_W);
@@ -440,6 +442,18 @@ void Pin::finalize_color()
 {
     precision = fmt::format(FMT_STRING("%lld"));
     precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
+
+    if (!def_state.min.is_int() || !def_state.max.is_int() || !def_state.step.is_int() || !def_state.value.is_int())
+    {
+        def_state.min = def_state.min.is_int() ? def_state.min : int64_t(0);
+        def_state.max = def_state.max.is_int() ? def_state.max : int64_t(0xffffff);
+        def_state.step = def_state.step.is_int() ? def_state.step : int64_t(0);
+        def_state.value = def_state.value.is_int() ? def_state.value : int64_t(0);
+    }
+
+    def_state.max = std::max(def_state.max.get_int(), int64_t(0xffffffff));
+    if (def_state.max.get_int() > int64_t(0xffffff))
+        flags.add(PinObjFlags::ClrAlphaEnabled);
 
     if (def_state.max < def_state.min)
         std::swap(def_state.min, def_state.max);

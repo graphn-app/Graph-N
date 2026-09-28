@@ -22,6 +22,7 @@ const char* action_type_str(HistoryActionType t)
     case HistoryActionType::PinVal:  return "PinVal";
     case HistoryActionType::PinCag:  return "PinCag";
     case HistoryActionType::PinMultiline:  return "PinMultiline";
+    case HistoryActionType::PinColorConfig:  return "PinColorConfig";
     case HistoryActionType::LinkAdd: return "LinkAdd";
     case HistoryActionType::LinkDel: return "LinkDel";
     case HistoryActionType::NodeRerouteSplit: return "RerouteSplit";

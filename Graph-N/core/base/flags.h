@@ -325,13 +325,21 @@ enum class PinInstFlags : uint64_t
     Hidden                    = 1ULL << 0,  // 1                  -  0x01
     RerouteSplittingPin       = 1ULL << 1,  // 2                  -  0x02
     Multiline                 = 1ULL << 2,  // 4                  -  0x04
-    MultilineSet              = 1ULL << 4,  // 8                  -  0x08
+    MultilineSet              = 1ULL << 3,  // 8                  -  0x08
+    ColorHSV                  = 1ULL << 4,  // 16                 -  0x10
+    ColorHex                  = 1ULL << 5,  // 32                 -  0x20
+    ColorRaw                  = 1ULL << 6,  // 64                 -  0x40
+    ColorFloat                = 1ULL << 7,  // 128                -  0x80
 };
 
 inline constexpr ObjectFlags<PinInstFlags> g_pin_inst_serializable_flags
 {
     PinInstFlags::Multiline,
     PinInstFlags::MultilineSet,
+    PinInstFlags::ColorHSV,
+    PinInstFlags::ColorHex,
+    PinInstFlags::ColorRaw,
+    PinInstFlags::ColorFloat,
 };
 
 enum class PinObjFlags : uint64_t

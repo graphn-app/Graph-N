@@ -483,6 +483,17 @@ void WorkflowAction::set_pin_multiline(data::PinInstance* pin, bool multiline)
     multi_action_off();
 }
 
+void WorkflowAction::set_pin_color_config(data::PinInstance* pin, ObjectFlags<PinInstFlags> old_flags)
+{
+    LogRAssert(pin, "Zero ptr", );
+    auto new_flags_raw = pin->flags().get_by_mask(PinInstFlags::ColorHSV, PinInstFlags::ColorHex, PinInstFlags::ColorRaw, PinInstFlags::ColorFloat);
+    auto old_flags_raw = old_flags.get_by_mask(PinInstFlags::ColorHSV, PinInstFlags::ColorHex, PinInstFlags::ColorRaw, PinInstFlags::ColorFloat);
+    if (new_flags_raw == old_flags_raw)
+        return;
+
+    g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinColorConfig, mngr::HActionT(old_flags_raw));
+}
+
 void WorkflowAction::mirror_pin_value(data::PinInstance* pin)
 {
     LogRAssert(pin, "Zero ptr", );
