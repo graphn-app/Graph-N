@@ -137,7 +137,7 @@ void WorkflowAction::hard_reset() noexcept
 {
     g::pFlow->txt_panel_clear(m_wf->get_id());
     if (m_drawer != nullptr)
-        m_drawer->free();
+        m_drawer->stop_and_cleanup();
 }
 
 void WorkflowAction::reinit(blob::Blob&& state)

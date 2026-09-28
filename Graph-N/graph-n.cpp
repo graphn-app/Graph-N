@@ -93,7 +93,7 @@ bool GraphN::init_graphn()
 
     g::pTextures = m_textures.get();
 
-    m_video->init_all();
+    m_video->init();
     g::pVideoControl = m_video.get();
 
 
@@ -143,11 +143,11 @@ bool GraphN::init_graphn()
     g::pHostManager = cast::ptrs<mngr::HostManager>(m_managers.back().get());
 
     bool success = true;
-    std::for_each(m_managers.begin(), m_managers.end(), [&success](std::unique_ptr<mngr::Manager>& manager)
+    for (auto& manager : m_managers)
     {
         if (success && !manager->init())
             success = false;
-    });
+    }
     LogCriticalIf(success, "Failed to initialize managers");
 
     Log("Managers ready");
@@ -160,20 +160,45 @@ bool GraphN::init_graphn()
     return true;
 }
 
+void GraphN::prepare_to_quit()
+{
+    LogIn;
+    g::app_global_stop_all_threads.request_stop();
+    m_graphn_flow->prepare_to_quit();
+
+    g::pConnectManager->stop_and_cleanup();
+    g::pWfsManager->stop_and_cleanup();
+
+    for (auto& manager : m_managers)
+    {
+        if (manager &&
+            manager.get() != g::pDbManager &&
+            manager.get() != g::pConnectManager &&
+            manager.get() != g::pWfsManager)
+        {
+            manager->stop_and_cleanup();
+        }
+    }
+    g::pDbManager->stop_and_cleanup();
+
+    m_video->stop_and_cleanup();
+    m_textures->stop_and_cleanup();
+    m_audio->stop_and_cleanup();
+    LogOut;
+}
+
 void GraphN::exit_graphn()
 {
     LogIn;
 
-    g::app_global_stop_all_threads.request_stop();
+    m_video.reset();
+    g::pVideoControl = nullptr;
 
-    std::for_each(m_managers.rbegin(), m_managers.rend(), [](std::unique_ptr<mngr::Manager>& manager)
-    {
-        if (manager)
-        {
-            manager->stop_all_threads();
-            manager->free();
-        }
-    });
+    m_textures.reset();
+    g::pTextures = nullptr;
+
+    m_audio.reset();
+    g::pAudioControl = nullptr;
 
     g::pOptsManager = nullptr;
     g::pDbManager = nullptr;
@@ -186,16 +211,6 @@ void GraphN::exit_graphn()
     g::pQueueManager = nullptr;
     g::pHotkeysManager = nullptr;
     g::pHostManager = nullptr;
-
-    m_video.reset();
-    g::pVideoControl = nullptr;
-
-    m_textures.reset();
-    g::pTextures = nullptr;
-
-    m_audio.reset();
-    g::pAudioControl = nullptr;
-
     m_managers.clear();
 
     auto temp = fs::get_temp_directory_path();
@@ -327,7 +342,7 @@ bool GraphN::flow()
             break;
         case Flow::PrepareToExit:
             m_flow_step = Flow::DoExit;
-            m_graphn_flow->prepare_to_quit();
+            prepare_to_quit();
             Log("Next step: Exit");
             result = true;
             break;

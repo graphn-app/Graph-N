@@ -364,14 +364,14 @@ void GraphN_Flow::cleanup_frame()
 {
     if (m_pending_cleanups.opts_dlg)
     {
-        m_opts_dlg->free();
+        m_opts_dlg->stop_and_cleanup();
         m_all_dialogs.erase(m_opts_dlg.get());
         m_opts_dlg.reset();
     }
 
     if (m_pending_cleanups.sync_projs_dlg)
     {
-        m_sync_projs_dlg->free();
+        m_sync_projs_dlg->stop_and_cleanup();
         m_all_dialogs.erase(m_sync_projs_dlg.get());
         m_sync_projs_dlg.reset();
     }
@@ -383,7 +383,7 @@ void GraphN_Flow::cleanup_frame()
 
     for (auto panel : m_pending_cleanups.text_editors)
     {
-        panel->free();
+        panel->stop_and_cleanup();
         std::erase_if(m_panels_text_editor, [panel](const std::unique_ptr<PanelTextEditor>& ptr) { return ptr.get() == panel; });
         m_all_dialogs.erase(panel);
     }
@@ -404,7 +404,7 @@ void GraphN_Flow::cleanup_frame()
         g::pHistoryManager->cleanup(panel_wf);
         g::pWfsManager->close(panel_wf, false);
 
-        panel->free();
+        panel->stop_and_cleanup();
         m_all_dialogs.erase(panel);
         std::erase_if(m_panels_wf, [panel](const std::unique_ptr<PanelWorkflow>& ptr) { return ptr.get() == panel; });
     }
@@ -445,28 +445,18 @@ void GraphN_Flow::prepare_to_quit()
     LogIn;
 
     dead();
-    g::app_global_stop_all_threads.request_stop();
     g::block_hotkeys_mask = 0xffffffff;
 
     if (m_nodes_parser)
-        m_nodes_parser->stop();
+        m_nodes_parser->stop_and_cleanup();
+    m_custom_widget->reset_widgets();
 
-    for (auto& dlg : m_all_dialogs)
+    for (auto dlg : m_all_dialogs)
     {
         if (dlg)
-        {
-            dlg->stop_all_threads();
-        }
+            dlg->stop_and_cleanup();
     }
-
-    g::pConnectManager->stop_all_threads();
-    g::pModelsManager->stop_all_threads();
-    g::pComfyUIManager->stop_all_threads();
-    g::pHostManager->stop_all_threads();
-    g::pQueueManager->stop_all_threads();
-    g::pWfsManager->close_and_purge();
-    g::pWfsManager->stop_all_threads();
-    g::pDbManager->stop_all_threads();
+    m_wf_focused = nullptr;
 
     LogOut;
 }
@@ -475,18 +465,33 @@ void GraphN_Flow::quit()
 {
     LogIn;
 
-    for (auto& dlg : m_all_dialogs)
+
     {
-        if (dlg)
-        {
-            dlg->free();
-        }
+        std::unique_lock<std::mutex> lock(m_http_req_mutex);
+        m_http_requests.clear();
     }
-    m_wf_focused = nullptr;
+    m_pending_cleanups = {};
 
     m_nodes_parser.reset();
+    m_custom_widget.reset();
     m_all_dialogs.clear();
+
+    m_activity_bar.reset();
+    m_panel_nodes.reset();
+    m_panel_node_inspector.reset();
+    //m_panel_templates.reset();
+    //m_panel_notes.reset();
+    m_panel_stats.reset();
+    m_panel_logs.reset();
+    m_panel_models.reset();
+    m_panel_wf_list.reset();
+    m_panel_queue.reset();
+    m_panels_text_editor.clear();
     m_panels_wf.clear();
+
+    m_opts_dlg.reset();
+    m_sync_projs_dlg.reset();
+    m_modal_message.reset();
 
     LogOut;
 }
@@ -508,6 +513,7 @@ void GraphN_Flow::check_connection()
     const auto status = g::pConnectManager->get_status();
     if (ConnectState::Disconnected == status)
     {
+        g::pQueueManager->interrupt_task();
         m_wf_imported = false;
         m_projects_ready.store(false, std::memory_order_relaxed);
         reconnect();
@@ -1424,6 +1430,13 @@ void GraphN_Flow::check_http_reply()
     if (get_is_quit()) [[unlikely]]
         return;
 
+    bool drop_all = false;
+    if (!get_online())
+    {
+        g::pConnectManager->drop_all_messages();
+        drop_all = true;
+    }
+
     constexpr auto max_processing_time = 0.003; // max 3ms per frame
     const auto start_time = ImGui::GetTime();
 
@@ -1454,25 +1467,27 @@ void GraphN_Flow::check_http_reply()
 
     static double last_dead_http_check = ImGui::GetTime();
     const double now = ImGui::GetTime();
-    if (now - last_dead_http_check > HTTP_REQUEST_LIFETIME / 2.0) [[unlikely]]
+    if (drop_all || now - last_dead_http_check > HTTP_REQUEST_LIFETIME / 2.0) [[unlikely]]
     {
         std::unique_lock<std::mutex> lock(m_http_req_mutex);
         for (auto it = m_http_requests.begin(); it != m_http_requests.end(); )
         {
-            if (it->second.force_drop)
+            if (!drop_all && it->second.force_drop)
             {
                 it = m_http_requests.erase(it);
                 continue;
             }
-            if (it->second.retry)
+            if (!drop_all && it->second.retry)
             {
                 ++it;
                 continue;
             }
 
-            if (now - it->second.time > HTTP_REQUEST_LIFETIME)
+            if (drop_all || now - it->second.time > HTTP_REQUEST_LIFETIME)
             {
-                Log("HTTP-Req#" << it->first << ". Force timeout after " << HTTP_REQUEST_LIFETIME << " seconds");
+                if (drop_all)   Log("HTTP-Req#" << it->first << ". Force timeout as server disconnected");
+                else            Log("HTTP-Req#" << it->first << ". Force timeout after " << HTTP_REQUEST_LIFETIME << " seconds");
+
                 const auto alive = it->second.alive;
                 const auto callback = it->second.callback;
                 if (alive && callback && alive())
@@ -1491,6 +1506,12 @@ void GraphN_Flow::check_ws_message(const std::function<void(bool, std::string&)>
 {
     if (get_is_quit()) [[unlikely]]
         return;
+
+    if (!get_online())
+    {
+        g::pConnectManager->drop_all_messages();
+        return;
+    }
 
     constexpr auto max_processing_time = 0.003; // max 3ms per frame
     const auto start_time = ImGui::GetTime();

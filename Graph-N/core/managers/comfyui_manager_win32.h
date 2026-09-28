@@ -14,7 +14,7 @@ public:
     ~ComfyUIManager_Win32() noexcept override;
 
     bool init() override;
-    void stop_all_threads() override;
+    void stop_and_cleanup() override;
 
     uint32_t check_existing_process() const override;
     bool get_process_started() const noexcept override { return m_procid != 0; }

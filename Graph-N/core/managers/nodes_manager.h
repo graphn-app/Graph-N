@@ -34,7 +34,7 @@ public:
     ~NodesManager() noexcept override = default;
 
     bool init() override;
-    void free() override;
+    void stop_and_cleanup() override;
 
     const std::vector<data::NodeItem*>& get_nodes_tree() const noexcept { return m_nodes_tree; }
     const std::vector<data::NodeItem*>& get_nodes_plain() const noexcept { return m_nodes_plain; }

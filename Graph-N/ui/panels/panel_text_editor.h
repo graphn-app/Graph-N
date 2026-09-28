@@ -19,7 +19,7 @@ public:
     PanelTextEditor(const char* panel_id, bool is_def = false);
     ~PanelTextEditor() noexcept override;
 
-    void free() noexcept override;
+    void stop_and_cleanup() noexcept override;
 
     bool is_pinned() const noexcept { return m_pinned; }
     bool is_default() const noexcept { return m_default; }

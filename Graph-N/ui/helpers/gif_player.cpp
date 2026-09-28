@@ -5,13 +5,7 @@
 namespace global
 {
 
-GifPlayer::~GifPlayer() noexcept
-{
-    try {
-        cleanup();
-    }
-    catch (...) {}
-}
+GifPlayer::~GifPlayer() noexcept = default;
 
 bool GifPlayer::path_is_gif(const std::filesystem::path& filepath) const
 {
@@ -19,7 +13,7 @@ bool GifPlayer::path_is_gif(const std::filesystem::path& filepath) const
     return ext == ".gif";
 }
 
-void GifPlayer::cleanup()
+void GifPlayer::stop_and_cleanup()
 {
     m_is_playing = false;
     m_current_time = 0.0f;
@@ -83,7 +77,7 @@ mngr::VideoInfo GifPlayer::get_info(const std::filesystem::path& filepath, std::
 
 bool GifPlayer::load(const std::filesystem::path& filepath)
 {
-    cleanup();
+    stop_and_cleanup();
     m_info.is_gif = true;
 
     const auto file_buffer = tools::path::read_file(filepath, false);
@@ -128,7 +122,7 @@ void GifPlayer::play() noexcept
 
 void GifPlayer::stop()
 {
-    cleanup(); // full memory release on stop
+    stop_and_cleanup(); // full memory release on stop
 }
 
 void GifPlayer::seek(float pos)

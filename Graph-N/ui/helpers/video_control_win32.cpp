@@ -25,31 +25,38 @@ VideoControl_Win32::VideoControl_Win32() noexcept
 
 VideoControl_Win32::~VideoControl_Win32() noexcept
 {
+}
+
+void VideoControl_Win32::stop_and_cleanup()
+{
     if (m_initialized)
     {
         try
         {
             if (m_gif_player)
-                m_gif_player->cleanup();
+                m_gif_player->stop_and_cleanup();
             m_gif_player.reset();
-            cleanup();
+            cleanup_current();
             ::MFShutdown();
-            m_initialized = false;
         }
         catch (...) {}
     }
+
+    VideoControl::stop_and_cleanup();
 }
 
-void VideoControl_Win32::init() noexcept
+void VideoControl_Win32::init()
 {
     const HRESULT hr = ::MFStartup(MF_VERSION);
     LogRAssert(SUCCEEDED(hr), "failed to initialize media foundation, err " << LogHRES(hr), );
 
     m_gif_player = std::make_unique<VideoControl_Win32_Gif>();
     m_initialized = m_gif_player->init();
+
+    VideoControl::init();
 }
 
-void VideoControl_Win32::cleanup()
+void VideoControl_Win32::cleanup_current()
 {
     if (!m_initialized)
         return;
@@ -295,12 +302,12 @@ int32_t VideoControl_Win32::load(const std::filesystem::path& filepath, uint32_t
         return 0;
 
     m_video_id = 0;
-    cleanup();
+    cleanup_current();
 
     HRESULT hr = S_OK;
     const auto log_and_reset_err = [this, &filepath](const char* err, HRESULT hres)
     {
-        cleanup();
+        cleanup_current();
         LogWarn(err << " '" << filepath << "', err " << LogHRES(hres));
         return 0;
     };

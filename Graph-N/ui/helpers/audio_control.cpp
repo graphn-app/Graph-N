@@ -3,12 +3,7 @@
 namespace global
 {
 
-AudioControl::~AudioControl() noexcept
-{
-    try {
-        cleanup_all();
-    } catch (...) {}
-}
+AudioControl::~AudioControl() noexcept = default;
 
 void AudioControl::init()
 {
@@ -20,19 +15,19 @@ void AudioControl::init()
     Log("Audio engine initialized");
 }
 
-void AudioControl::cleanup_all()
+void AudioControl::stop_and_cleanup()
 {
     if (m_initialized)
     {
         g::pGraphN->unsubscribe_timers(this);
-        cleanup();
+        cleanup_current();
         ma_engine_uninit(&m_engine);
         m_initialized = false;
         Log("Audio engine deinitialized");
     }
 }
 
-void AudioControl::cleanup()
+void AudioControl::cleanup_current()
 {
     if (m_has_sound)
     {
@@ -106,7 +101,7 @@ int32_t AudioControl::load(const std::string& filepath)
     if (!m_initialized)
         return 0;
 
-    cleanup();
+    cleanup_current();
 
     // initialize sound without starting it
     ma_result result = ma_sound_init_from_file(&m_engine, filepath.c_str(), 0, nullptr, nullptr, &m_sound);

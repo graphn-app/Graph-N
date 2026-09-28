@@ -11,6 +11,7 @@ public:
     ~ComfyUIManager() noexcept override;
 
     void run(bool force_start);
+
     const std::filesystem::path& get_log_filepath() const noexcept { return m_log_filepath; }
 
     virtual uint32_t check_existing_process() const = 0;

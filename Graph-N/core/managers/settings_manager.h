@@ -11,7 +11,7 @@ public:
     ~SettingsManager() noexcept override;
 
     bool init() override;
-    bool ready() const noexcept { return m_ready.load(std::memory_order_relaxed); }
+    bool get_ready() const noexcept { return m_ready.load(std::memory_order_relaxed); }
 
     // app
     bool app_autoupdate_load() const noexcept { return *std::get_if<bool>(&m_app_autoupdate.value); }

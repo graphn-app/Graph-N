@@ -21,8 +21,7 @@ public:
     ~WfsManager() noexcept override;
 
     bool init() override;
-    void free() override;
-    void stop_all_threads() noexcept override;
+    void stop_and_cleanup() override;
 
     void cleanup_frame();
 

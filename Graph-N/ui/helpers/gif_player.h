@@ -11,9 +11,9 @@ private:
 
     NO_COPY_MOVE(GifPlayer);
 
-    bool path_is_gif(const std::filesystem::path& filepath) const;
+    void stop_and_cleanup();
 
-    void cleanup();
+    bool path_is_gif(const std::filesystem::path& filepath) const;
 
     mngr::VideoInfo get_info(const std::filesystem::path& filepath, std::optional<bool>& valid);
     bool load(const std::filesystem::path& filepath);

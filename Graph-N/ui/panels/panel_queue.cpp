@@ -86,7 +86,7 @@ void PanelQueue::init_history()
     }
 }
 
-void PanelQueue::stop_all_threads() noexcept
+void PanelQueue::stop_and_cleanup() noexcept
 {
     m_do_reload_history = false;
     *m_load_history_stop = true;

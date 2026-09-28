@@ -7,7 +7,7 @@ namespace mngr
 HostManager_Linux::HostManager_Linux() noexcept = default;
 HostManager_Linux::~HostManager_Linux() noexcept = default;
 
-void HostManager_Linux::stop_all_threads()
+void HostManager_Linux::stop_and_cleanup()
 {
 #error Not implemented
 }

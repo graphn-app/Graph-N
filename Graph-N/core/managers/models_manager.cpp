@@ -9,26 +9,20 @@ namespace mngr
 
 ModelsManager::~ModelsManager() noexcept = default;
 
-void ModelsManager::free()
+void ModelsManager::stop_and_cleanup()
 {    
+    m_stop_flag.request_stop();
+    if (m_th.joinable())
+        m_th.join();
+
     m_model_items.clear(); m_model_items.shrink_to_fit();
     m_model_to_nodes_map.clear(); m_model_to_nodes_map.rehash(0);
     m_service_components = {};
 }
 
-void ModelsManager::stop_all_threads()
-{
-    m_stop_flag.request_stop();
-
-    if (m_th.joinable())
-        m_th.join();
-}
-
 void ModelsManager::load_models()
 {
-    stop_all_threads();
-    free();
-
+    stop_and_cleanup();
     m_stop_flag = std::stop_source();
     m_th = std::thread(&ModelsManager::load_models_th, this);
 }

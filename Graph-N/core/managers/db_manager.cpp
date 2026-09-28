@@ -112,7 +112,7 @@ ________________________________________________________________________________
 DbManager::DbManager() = default;
 DbManager::~DbManager() = default;
 
-void DbManager::stop_all_threads()
+void DbManager::stop_and_cleanup()
 {
     m_stop_flag.request_stop();
     m_cv.notify_all();
@@ -902,7 +902,7 @@ void DbManager::backup_thread(std::filesystem::path db_path, std::unique_ptr<SQL
         if (db_path.empty())
             return;
 
-        while (!g::pOptsManager->ready())
+        while (!g::pOptsManager->get_ready())
         {
             std::this_thread::sleep_for(100ms);
         }

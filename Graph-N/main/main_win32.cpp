@@ -205,7 +205,7 @@ bool MainRoutine_Win32::render_frame(bool done)
     return ret_value;
 }
 
-void MainRoutine_Win32::free()
+void MainRoutine_Win32::stop_and_cleanup()
 {
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();

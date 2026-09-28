@@ -26,17 +26,9 @@ PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std
     m_wf_valid = m_wf->get_data().valid;
 }
 
-PanelWorkflow::~PanelWorkflow() noexcept
-{
-    free();
-}
+PanelWorkflow::~PanelWorkflow() noexcept = default;
 
-void PanelWorkflow::stop_all_threads() noexcept
-{
-    dead();
-}
-
-void PanelWorkflow::free() noexcept
+void PanelWorkflow::stop_and_cleanup() noexcept
 {
     dead();
 
@@ -50,7 +42,7 @@ void PanelWorkflow::free() noexcept
         m_wf = nullptr;
         if (m_action != nullptr)
             m_action->set_drawer(nullptr);
-        m_drawer.free();
+        m_drawer.stop_and_cleanup();
     }
 }
 

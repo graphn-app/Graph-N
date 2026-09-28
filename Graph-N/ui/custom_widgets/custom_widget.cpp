@@ -317,7 +317,6 @@ const char* CustomWidget::format_timeline(float duration, float pos)
 
 void CustomWidget::reset_widgets()
 {
-    g::pHostManager->kill_all();
     m_images = {};
     m_videos = {};
     m_audios = {};

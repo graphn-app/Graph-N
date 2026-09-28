@@ -25,7 +25,7 @@ void PanelWfList::init()
     g::pHotkeysManager->add_listener(this);
 }
 
-void PanelWfList::free() noexcept
+void PanelWfList::stop_and_cleanup() noexcept
 {
     m_active = 0;
     m_wfs.clear(); m_wfs.shrink_to_fit();

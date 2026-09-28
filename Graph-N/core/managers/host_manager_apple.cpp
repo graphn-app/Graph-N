@@ -7,7 +7,7 @@ namespace mngr
 HostManager_Apple::HostManager_Apple() noexcept = default;
 HostManager_Apple::~HostManager_Apple() noexcept = default;
 
-void HostManager_Apple::stop_all_threads()
+void HostManager_Apple::stop_and_cleanup()
 {
 #error Not implemented
 }

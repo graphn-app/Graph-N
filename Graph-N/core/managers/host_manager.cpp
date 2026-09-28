@@ -15,8 +15,9 @@ HostManager::HostManager() noexcept
 
 HostManager::~HostManager() noexcept = default;
 
-void HostManager::stop_all_threads()
+void HostManager::stop_and_cleanup()
 {
+    kill_all();
     m_replies_exists.store(false, std::memory_order_relaxed);
     m_do_cleanups.store(false, std::memory_order_relaxed);
     std::lock_guard<std::mutex> lock(m_mutex);

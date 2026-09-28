@@ -295,6 +295,7 @@ private:
     ImGuiID m_main_dock_id = 0;
     uint64_t m_windows = ViewNone;
     uint64_t m_windows_toggled = ViewNone;
+
     std::set<BaseDlg*> m_all_dialogs;
 
     std::unique_ptr<ModalMessage> m_modal_message;

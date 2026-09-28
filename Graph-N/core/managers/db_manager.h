@@ -20,7 +20,7 @@ public:
     static DbMetadata read_db_metadata();
 
     bool init() override;
-    void stop_all_threads() override;
+    void stop_and_cleanup() override;
 
     bool get_is_first_run() const noexcept { return m_first_run; }
     void begin_transaction();

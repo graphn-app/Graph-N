@@ -28,9 +28,7 @@ public:
     ~PanelWorkflow() noexcept override;
 
     void init() override;    
-
-    void stop_all_threads() noexcept override;
-    void free() noexcept override;
+    void stop_and_cleanup() noexcept override;
     void cleanup_frame();
 
     data::Workflow* get_workflow() const noexcept { return m_wf; }

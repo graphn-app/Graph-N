@@ -23,7 +23,7 @@ public:
     bool path_is_gif(const std::filesystem::path& filepath) const noexcept;
 
     bool init() noexcept;
-    void cleanup();
+    void stop_and_cleanup();
 
     mngr::VideoInfo get_info(const std::filesystem::path& filepath, std::optional<bool>& valid);
     bool load(const std::filesystem::path& filepath);

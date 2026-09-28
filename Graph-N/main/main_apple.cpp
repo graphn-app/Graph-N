@@ -14,7 +14,7 @@ int32_t MainRoutine_Apple::run(flow_callback& /*callback*/, std::atomic_bool& /*
 #error Not implemented
 }
 
-void MainRoutine_Apple::free()
+void MainRoutine_Apple::stop_and_cleanup()
 {
 #error Not implemented
 }

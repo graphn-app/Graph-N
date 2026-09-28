@@ -49,10 +49,25 @@ Textures::~Textures() noexcept
     {
         if (g::pGraphN != nullptr)
             g::pGraphN->unsubscribe_timers(this);
-
-        cleanup();
     }
     catch (...) {}
+}
+
+void Textures::stop_and_cleanup()
+{
+    m_cv.notify_all();
+
+    for (auto& worker : m_workers)
+    {
+        if (worker.joinable())
+            worker.join();
+    }
+    m_workers.clear(); m_workers.shrink_to_fit();
+
+    std::unique_lock<std::mutex> lock(m_mutex);
+    std::queue<std::shared_ptr<ImageAsync>> empty_queue;
+    std::swap(m_waiting, empty_queue);
+    m_images.clear();
 }
 
 void Textures::init_ui_ready()
@@ -359,23 +374,6 @@ void Textures::on_1s_lazy_timer(int64_t total_seconds_elapsed)
             }
         }
     }
-}
-
-void Textures::cleanup()
-{
-    m_cv.notify_all();
-
-    for (auto& worker : m_workers)
-    {
-        if (worker.joinable())
-            worker.join();
-    }
-    m_workers.clear(); m_workers.shrink_to_fit();
-
-    std::unique_lock<std::mutex> lock(m_mutex);
-    std::queue<std::shared_ptr<ImageAsync>> empty_queue;
-    std::swap(m_waiting, empty_queue);
-    m_images.clear();
 }
 
 } // namespace global

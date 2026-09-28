@@ -56,9 +56,7 @@ public:
     ModelsManager() noexcept = default;
     ~ModelsManager() noexcept override;
 
-    void free() override;
-
-    void stop_all_threads() override;
+    void stop_and_cleanup() override;
 
     void load_models();
     void set_nodes_map(std::unordered_map<std::string, std::list<hid>>&& nodes_map) noexcept { m_model_to_nodes_map = std::move(nodes_map); }

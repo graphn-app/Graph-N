@@ -22,13 +22,11 @@ bool ComfyUIManager_Win32::init()
     return true;
 }
 
-void ComfyUIManager_Win32::stop_all_threads()
+void ComfyUIManager_Win32::stop_and_cleanup()
 {
-    m_kill_server_flag = true;
-
     if (!g::pOptsManager->comfyui_kill_server_load() && !m_console_hidden) // ignore user option if console was hidden
         enable_autokill(false);
-    kill(false);
+    kill(true);
 }
 
 void ComfyUIManager_Win32::run_server()

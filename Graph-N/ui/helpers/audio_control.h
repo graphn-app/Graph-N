@@ -14,7 +14,7 @@ public:
     NO_COPY_MOVE(AudioControl);
 
     void init();
-    void cleanup_all();
+    void stop_and_cleanup();
 
     mngr::AudioInfo get_info(const std::string& filepath, std::optional<bool>& valid);
     int32_t load(const std::string& filepath);
@@ -28,7 +28,7 @@ public:
     float get_position(int32_t audio_id) const;
 
 private:
-    void cleanup();
+    void cleanup_current();
     static void end_callback(void* user_data, ma_sound* sound) noexcept;
 
     // Timer

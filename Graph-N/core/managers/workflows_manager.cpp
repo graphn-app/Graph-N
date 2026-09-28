@@ -17,8 +17,10 @@ namespace mngr
 WfsManager::WfsManager() noexcept = default;
 WfsManager::~WfsManager() noexcept = default;
 
-void WfsManager::stop_all_threads() noexcept
+void WfsManager::stop_and_cleanup()
 {
+    copy_reset();
+
     for (auto& [wf_id, wf] : m_wfs)
     {
         if (wf->get_data().pending_delete)
@@ -38,6 +40,10 @@ void WfsManager::stop_all_threads() noexcept
 
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_timers(this);
+
+    m_active = 0;
+    m_wfs.clear();
+    m_wfs_ro.clear();
 }
 
 bool WfsManager::init()
@@ -74,14 +80,6 @@ bool WfsManager::init()
 
     g::pGraphN->subscribe_timers(this);    
     return true;
-}
-
-void WfsManager::free()
-{
-    copy_reset();
-    m_active = 0;
-    m_wfs.clear(); m_wfs.rehash(0);
-    m_wfs_ro.clear();
 }
 
 void WfsManager::cleanup_frame()

@@ -15,7 +15,7 @@ public:
     ~ConnectManager() noexcept override;
 
     bool init() override;
-    void stop_all_threads() override;
+    void stop_and_cleanup() override;
 
     ConnectState get_status(int64_t* latency = nullptr) noexcept;
 
@@ -29,6 +29,7 @@ private:
 
     bool pickup_http_response(uint32_t& req_id, int32_t& result, std::string& response);
     bool pickup_ws_message(bool& is_binary, std::string& message);
+    void drop_all_messages();
 
     struct RequestData final
     {

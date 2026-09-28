@@ -13,7 +13,7 @@ ActivityBar::~ActivityBar() noexcept = default;
 
 void ActivityBar::register_panels(const std::vector<DlgObj>& panels)
 {
-    std::for_each(panels.begin(), panels.end(), [this](DlgObj id) { m_panels.push_back({ id, Direction::None, "" }); });
+    std::ranges::for_each(panels, [this](DlgObj id) { m_panels.push_back({ id, Direction::None, "" }); });
 
     g::pHotkeysManager->add_listener(this);
     handle_hotkeys_changed();

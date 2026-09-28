@@ -17,7 +17,7 @@ public:
     ~PanelQueue() noexcept override;
 
     void init() override;
-    void stop_all_threads() noexcept override;
+    void stop_and_cleanup() noexcept override;
 
 private:
     DlgCode show(bool& focused) override;

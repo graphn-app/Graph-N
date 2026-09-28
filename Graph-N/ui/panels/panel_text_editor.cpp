@@ -16,7 +16,7 @@ PanelTextEditor::PanelTextEditor(const char* panel_id, bool is_def /*= false*/)
 
 PanelTextEditor::~PanelTextEditor() noexcept = default;
 
-void PanelTextEditor::free() noexcept
+void PanelTextEditor::stop_and_cleanup() noexcept
 {
     reset();
 }

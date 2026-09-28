@@ -79,6 +79,7 @@ private:
     bool start_server();
     bool connect() noexcept;
     bool run_graphn();
+    void prepare_to_quit();
 
 private:
     Flow m_flow_step = Flow::_none;

@@ -37,7 +37,7 @@ public:
     NO_COPY_MOVE(NodeDrawer);
 
     void init(blob::Blob&& state);
-    void free() noexcept;
+    void stop_and_cleanup() noexcept;
 
     void pre_draw_all(const char* id, size_t nodes_count, bool first_frame);
     void post_draw_all(

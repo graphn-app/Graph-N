@@ -22,7 +22,7 @@ int32_t do_main(std::atomic_bool& request_focus)
 
     if (!main_app->init())
     {
-        main_app->free();
+        main_app->stop_and_cleanup();
         return 1;
     }
 
@@ -40,10 +40,10 @@ int32_t do_main(std::atomic_bool& request_focus)
             g::pGraphN->cleanup_frame();
         };
 
-        const global::MainRoutine::flow_callback flow_callback = [](bool DoExit)
+        const global::MainRoutine::flow_callback flow_callback = [](bool do_exit)
         {
             const bool res = g::pGraphN->flow();
-            if (!res || DoExit)
+            if (!res || do_exit)
             {
                 if (g::pGraphN != nullptr)
                     g::pGraphN->exit_graphn();
@@ -59,7 +59,7 @@ int32_t do_main(std::atomic_bool& request_focus)
     
     g::pGraphN = nullptr;
     g::pMain = nullptr;
-    main_app->free();
+    main_app->stop_and_cleanup();
     return ret;
 }
 

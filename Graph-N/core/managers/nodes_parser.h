@@ -14,7 +14,7 @@ public:
     NO_COPY_MOVE(NodesParser);
 
     void parse(std::string&& data);
-    void stop();
+    void stop_and_cleanup();
 
     bool is_parse_failed() const noexcept { return m_parse_failed.load(std::memory_order_relaxed); };
     bool is_parse_finished() const noexcept { return m_parse_finished.load(std::memory_order_relaxed); };

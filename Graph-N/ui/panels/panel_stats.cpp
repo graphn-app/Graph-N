@@ -47,7 +47,7 @@ void PanelStats::init_disks()
     }
 }
 
-void PanelStats::stop_all_threads()
+void PanelStats::stop_and_cleanup()
 {
     m_pause = false;
     if (m_th_api.joinable())  m_th_api.join();

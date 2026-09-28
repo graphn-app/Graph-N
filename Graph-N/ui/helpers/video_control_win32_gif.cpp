@@ -15,7 +15,6 @@ VideoControl_Win32_Gif::~VideoControl_Win32_Gif() noexcept
 {
     try {
         m_factory.Reset();
-        cleanup();
     }
     catch(...) {}
 }
@@ -56,7 +55,7 @@ bool VideoControl_Win32_Gif::init() noexcept
     return true;
 }
 
-void VideoControl_Win32_Gif::cleanup()
+void VideoControl_Win32_Gif::stop_and_cleanup()
 {
     m_is_playing = false;
     m_current_time = 0.0f;
@@ -138,7 +137,7 @@ mngr::VideoInfo VideoControl_Win32_Gif::get_info(const std::filesystem::path& fi
 
 bool VideoControl_Win32_Gif::load(const std::filesystem::path& filepath) 
 {
-    cleanup();
+    stop_and_cleanup();
     if (!m_initialized)
         return false;
 
@@ -210,7 +209,7 @@ void VideoControl_Win32_Gif::play()
 
 void VideoControl_Win32_Gif::stop() 
 {
-    cleanup();
+    stop_and_cleanup();
 }
 
 void VideoControl_Win32_Gif::seek(float pos) 

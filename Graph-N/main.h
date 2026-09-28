@@ -14,7 +14,7 @@ public:
     NO_COPY_MOVE(MainRoutine);
 
     virtual bool init() = 0;
-    virtual void free() = 0;
+    virtual void stop_and_cleanup() = 0;
 
     void set_vsync_enabled(bool enable) noexcept { m_vsync = enable; }
     bool get_vsync_enabled() noexcept { return m_vsync; }

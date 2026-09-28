@@ -8,7 +8,7 @@ namespace mngr
 ComfyUIManager_Apple::ComfyUIManager_Apple() noexcept = default;
 ComfyUIManager_Apple::~ComfyUIManager_Apple() noexcept = default;
 
-void ComfyUIManager_Apple::stop_all_threads()
+void ComfyUIManager_Apple::stop_and_cleanup()
 {
 }
 
@@ -18,10 +18,6 @@ bool ComfyUIManager_Apple::init()
         return false;
 
     return true;
-}
-
-void ComfyUIManager_Apple::free()
-{
 }
 
 void ComfyUIManager_Apple::run_server()

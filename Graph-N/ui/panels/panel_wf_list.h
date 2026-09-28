@@ -29,7 +29,7 @@ public:
     ~PanelWfList() noexcept override;
 
     void init() override;
-    void free() noexcept override;
+    void stop_and_cleanup() noexcept override;
 
     void rebuild_items();
     void rename_project(wid id) noexcept;

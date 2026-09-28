@@ -9,6 +9,7 @@
 #include "core/managers/nodes_manager.h"
 #include "core/managers/history_manager.h"
 #include "core/managers/hotkeys_manager.h"
+#include "core/managers/host_manager.h"
 
 namespace ui
 {
@@ -630,6 +631,7 @@ bool PanelWorkflow::show_node_menu()
             if (ImGui::MenuItem("Reset"))
             {
                 g::pFlow->custom_widgets().reset_widgets();
+                g::pHostManager->kill_all();
                 node->obj_flags().remove_raw(g_node_obj_all_custom_widget_mask.get_raw());
                 save_opts();
                 close = true;

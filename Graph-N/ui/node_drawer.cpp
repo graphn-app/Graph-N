@@ -144,7 +144,7 @@ void NodeDrawer::init(blob::Blob&& state)
     m_context = ed::CreateEditor(&config);
 }
 
-void NodeDrawer::free() noexcept
+void NodeDrawer::stop_and_cleanup() noexcept
 {
     m_deffered_action.reset();
     m_state->clear();

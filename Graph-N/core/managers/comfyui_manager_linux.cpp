@@ -8,7 +8,7 @@ namespace mngr
 ComfyUIManager_Linux::ComfyUIManager_Linux() noexcept = default;
 ComfyUIManager_Linux::~ComfyUIManager_Linux() noexcept = default;
 
-void ComfyUIManager_Linux::stop_all_threads()
+void ComfyUIManager_Linux::stop_and_cleanup()
 {
 }
 
@@ -18,10 +18,6 @@ bool ComfyUIManager_Linux::init()
         return false;
 
     return true;
-}
-
-void ComfyUIManager_Linux::free()
-{
 }
 
 void ComfyUIManager_Linux::run_server()

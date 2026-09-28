@@ -16,7 +16,7 @@ bool NodesManager::init()
     return true;
 }
 
-void NodesManager::free()
+void NodesManager::stop_and_cleanup()
 {
     m_nodes.clear(); m_nodes.rehash(0);
     m_pins.clear(); m_pins.rehash(0);
@@ -27,7 +27,7 @@ void NodesManager::free()
 
 void NodesManager::init_from_copy(NodesManager& copy)
 {
-    free();
+    stop_and_cleanup();
     m_nodes = std::move(copy.m_nodes);
     m_pins = std::move(copy.m_pins);
     m_node_items = std::move(copy.m_node_items);

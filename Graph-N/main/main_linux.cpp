@@ -14,7 +14,7 @@ int32_t MainRoutine_Linux::run(flow_callback& /*callback*/, std::atomic_bool& /*
 #error Not implemented
 }
 
-void MainRoutine_Linux::free()
+void MainRoutine_Linux::stop_and_cleanup()
 {
 #error Not implemented
 }

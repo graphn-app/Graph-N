@@ -50,8 +50,7 @@ public:
     }
 
     virtual void init() {}
-    virtual void free() {}
-    virtual void stop_all_threads() {}
+    virtual void stop_and_cleanup() {}
 
 protected:
     virtual DlgCode show(bool& focused) = 0;

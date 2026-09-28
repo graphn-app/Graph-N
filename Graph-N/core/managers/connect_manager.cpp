@@ -7,13 +7,7 @@ namespace mngr
 {
 
 ConnectManager::ConnectManager() noexcept = default;
-
-ConnectManager::~ConnectManager() noexcept
-{
-    try {
-        stop_all_threads();
-    } catch (...) {}
-}
+ConnectManager::~ConnectManager() noexcept = default;
 
 bool ConnectManager::init()
 {
@@ -24,7 +18,7 @@ bool ConnectManager::init()
     return true;
 }
 
-void ConnectManager::stop_all_threads()
+void ConnectManager::stop_and_cleanup()
 {
     LogIn;
 
@@ -39,6 +33,7 @@ void ConnectManager::stop_all_threads()
         m_http_thread.join();
 
     drop_ws_connection();
+    drop_all_messages();
 
     LogOut;
 }
@@ -416,6 +411,23 @@ bool ConnectManager::pickup_ws_message(bool& is_binary, std::string& message)
     message = std::move(msg.second);
     m_ws_pickup.pop_front();
     return true;
+}
+
+void ConnectManager::drop_all_messages()
+{
+    {
+        std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
+        std::queue<std::shared_ptr<RequestData>> temp;
+        m_http_pickup.swap(temp);
+        m_http_pickup_empty.store(true, std::memory_order_release);
+    }
+    {
+        std::unique_lock<std::mutex> lock(m_http_inbox_mutex);
+        std::queue<std::shared_ptr<RequestData>> temp;
+        m_http_inbox.swap(temp);
+    }
+
+    m_ws_pickup.clear();
 }
 
 } // namespace mngr

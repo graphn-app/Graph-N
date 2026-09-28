@@ -29,7 +29,7 @@ private:
     */
     bool init() override;
     int32_t run(const flow_callback& run_cb, const cleanup_callback& cleanup_cb, std::atomic_bool& request_focus) override;
-    void free() override;
+    void stop_and_cleanup() override;
 
     void wnd_restore() noexcept override;
     void wnd_minimize() noexcept override;

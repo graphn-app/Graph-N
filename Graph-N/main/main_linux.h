@@ -20,7 +20,7 @@ private:
 
     bool init() override;
     int32_t run(flow_callback& callback, std::atomic_bool& request_focus) override;
-    void free() override;
+    void stop_and_cleanup() override;
 
     void wnd_restore() override;
     void wnd_minimize() override;

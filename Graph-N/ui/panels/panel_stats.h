@@ -14,7 +14,7 @@ public:
     ~PanelStats() noexcept override;
 
     void init() override;
-    void stop_all_threads() override;
+    void stop_and_cleanup() override;
 
 private:
     DlgCode show(bool& focused) override;

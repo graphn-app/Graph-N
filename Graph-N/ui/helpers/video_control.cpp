@@ -3,16 +3,10 @@
 namespace global
 {
 
-VideoControl::~VideoControl() noexcept
-{
-    try {
-        cleanup_all();
-    } catch (...) {}
-}
+VideoControl::~VideoControl() noexcept = default;
 
-void VideoControl::init_all()
+void VideoControl::init()
 {
-    init();
     if (!m_initialized)
         return;
 
@@ -20,10 +14,9 @@ void VideoControl::init_all()
     Log("Video engine initialized");
 }
 
-void VideoControl::cleanup_all()
+void VideoControl::stop_and_cleanup()
 {
     g::pGraphN->unsubscribe_timers(this);
-    cleanup();
     m_initialized = false;
     Log("Video engine deinitialized");
 }

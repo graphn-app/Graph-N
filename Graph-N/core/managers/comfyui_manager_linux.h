@@ -12,8 +12,7 @@ public:
     ~ComfyUIManager_Linux() noexcept override;
 
     bool init() override;
-    void free() override;
-    void stop_all_threads() override;
+    void stop_and_cleanup() override;
 
 protected:
     void run_server() override;

@@ -16,9 +16,11 @@ public:
     VideoControl_Win32() noexcept;
     ~VideoControl_Win32() noexcept override;
 
+    void init() override;
+    void stop_and_cleanup() override;
+
 protected:
-    void init() noexcept override;
-    void cleanup() override;
+    void cleanup_current() override;
 
     mngr::VideoInfo get_info(const std::filesystem::path& filepath, uint32_t max_side_len, std::optional<bool>& valid) override;
     int32_t load(const std::filesystem::path& filepath, uint32_t max_side_len) override;

@@ -12,7 +12,7 @@ public:
     ~HostManager_Linux() noexcept override;
 
     bool init() override;
-    void stop_all_threads() override;
+    void stop_and_cleanup() override;
 
     void run_host(const blob::HostData& host) override;
     void kill_host(uint64_t id) override;

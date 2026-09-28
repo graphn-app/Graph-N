@@ -48,7 +48,7 @@ void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
 void NodesParser::parse(std::string&& data)
 {
     Log("To parse: " << data.size() << " bytes");
-    stop();
+    stop_and_cleanup();
     m_parse_finished.store(false, std::memory_order_relaxed);
     m_parse_failed.store(false, std::memory_order_relaxed);
     m_stop_thread_flag = std::stop_source();
@@ -62,10 +62,9 @@ void NodesParser::parse(std::string&& data)
     m_thread = std::thread(std::move(task));
 }
 
-void NodesParser::stop()
+void NodesParser::stop_and_cleanup()
 {
     m_stop_thread_flag.request_stop();
-
     if (m_thread.joinable())
         m_thread.join();
 }

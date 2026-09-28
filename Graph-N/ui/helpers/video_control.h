@@ -12,8 +12,8 @@ public:
 
     NO_COPY_MOVE(VideoControl);
 
-    void init_all();
-    void cleanup_all();
+    virtual void init();
+    virtual void stop_and_cleanup();
 
     virtual mngr::VideoInfo get_info(const std::filesystem::path& filepath, uint32_t max_side_len, std::optional<bool>& valid) = 0;
     virtual int32_t load(const std::filesystem::path& filepath, uint32_t max_side_len) = 0;
@@ -30,8 +30,7 @@ public:
     ImTextureID get_frame(int32_t video_id, float* out_w = nullptr, float* out_h = nullptr);
 
 protected:
-    virtual void init() = 0;
-    virtual void cleanup() = 0;
+    virtual void cleanup_current() = 0;
     virtual void play_impl(int32_t video_id) = 0;
     virtual void stop_impl(int32_t video_id) = 0;
     virtual ImTextureID get_frame_impl(int32_t video_id, float* out_w, float* out_h) = 0;

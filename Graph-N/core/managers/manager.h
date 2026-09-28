@@ -12,8 +12,7 @@ public:
     NO_COPY_MOVE(Manager);
 
     virtual bool init() { return true; };
-    virtual void free() {};
-    virtual void stop_all_threads() {}
+    virtual void stop_and_cleanup() {}
 };
 
 inline Manager::~Manager() noexcept = default;

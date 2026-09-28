@@ -13,7 +13,7 @@ public:
     HostManager() noexcept;
     ~HostManager() noexcept override;
 
-    void stop_all_threads() override;
+    void stop_and_cleanup() override;
 
     void add_host(wid wf_id, iid node_id, HostType type, std::filesystem::path&& source_path, std::filesystem::path&& dest_path, bool can_upload_to_node);
     void kill_hosts(wid wf_id);
