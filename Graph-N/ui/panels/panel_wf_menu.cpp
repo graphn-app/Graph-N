@@ -386,6 +386,16 @@ bool PanelWorkflow::show_node_menu()
         ImGui::Separator();
     }
 
+    if (node->obj_flags().has(NodeObjFlags::CustomWidget))
+    { 
+        if (ImGui::MenuItem("Open in default app", nullptr, nullptr, g::pFlow->custom_widgets().check_open_def_app(node, true)))
+        {
+            g::pFlow->custom_widgets().check_open_def_app(node, false);
+            close = true;
+        }
+        ImGui::Separator();
+    }
+
     if (ImGui::MenuItem("Rename", nullptr, nullptr, m_drawer.zoomed_allow_renaming() && node->obj_flags().has_and_has_not(NodeObjFlags::CanRename, NodeObjFlags::Dummy)))
     {
         m_drawer.rename_node(node);

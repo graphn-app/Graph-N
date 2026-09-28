@@ -382,4 +382,52 @@ void CustomWidget::cleanup_outputs(wid wf_id, iid node_id)
     );
 }
 
+bool CustomWidget::check_open_def_app(data::NodeInstance* node, bool check_only)
+{
+    const auto flags = node->obj_flags();
+    if (flags.has_not(NodeObjFlags::CustomWidget))
+        return false;
+
+    if (flags.has(NodeObjFlags::CustomWdgtFromOutput))
+    {
+        const auto it = m_outputs.find(std::make_pair(node->get_workflow_id(), node->get_instance_id()));
+        if (it != m_outputs.end())
+        {
+            auto& out = it->second;
+            if (check_only)
+                return !out.item.temp_path.empty();
+            return tools::path::open_file(out.item.temp_path);
+        }
+        return false;
+    }
+
+    if (flags.has(NodeObjFlags::CustomWdgtFromSource) && flags.has_any(NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtAudio))
+    {
+        int64_t index = 0;
+        data::Pin* source_pin_obj = nullptr;
+        Widget* widget = nullptr;
+
+        if (flags.has(NodeObjFlags::CustomWdgtImage))
+            widget = &m_images;
+        else if (flags.has(NodeObjFlags::CustomWdgtVideo))
+            widget = &m_videos;
+        else if (flags.has(NodeObjFlags::CustomWdgtAudio))
+            widget = &m_audios;
+        else
+            return false;
+
+        m_node = node;
+        const bool result = check_source_and_get_pin(*widget, index, source_pin_obj);
+        m_node = nullptr;
+        if (!result)
+            return false;
+
+        if (check_only)
+            return !widget->items[index].temp_path.empty();
+        return tools::path::open_file(widget->items[index].temp_path);
+    }
+
+    return false;
+}
+
 } // namespace ui

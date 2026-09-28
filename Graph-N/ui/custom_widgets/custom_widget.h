@@ -28,6 +28,8 @@ public:
     void copy_text_output(wid wf_id, iid node_id);
     void view_text_output(wid wf_id, iid node_id);
 
+    bool check_open_def_app(data::NodeInstance* node, bool check_only);
+
 private:
     struct OutputData;
     void draw_image_widget_from_output(OutputData& out);
