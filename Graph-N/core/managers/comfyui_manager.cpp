@@ -16,7 +16,7 @@ void ComfyUIManager::run(bool force_start)
         !tools::path::exists(g::pOptsManager->comfyui_main_py_load()) || !g::pOptsManager->comfyui_main_py_load().is_absolute() ||
         !tools::path::exists(g::pOptsManager->comfyui_workdir_load()) || !g::pOptsManager->comfyui_workdir_load().is_absolute())
     {
-        g::pFlow->handle_comfyui_runserver_error(0, "Can't start ComfyUI server", "Invalid config");
+        g::pFlow->handle_comfyui_runserver_error(0, "Can't start " APP_COMFYUI " server", "Invalid config");
         return;
     }
 

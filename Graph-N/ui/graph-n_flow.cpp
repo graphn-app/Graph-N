@@ -1045,12 +1045,10 @@ void GraphN_Flow::show_panel_wf()
     }
 }
 
-void GraphN_Flow::handle_comfyui_runserver_error(int32_t error, const std::string& title, const std::string& description) noexcept
+void GraphN_Flow::handle_comfyui_runserver_error(int32_t error, std::string&& title, std::string&& description) noexcept
 {
-    (void)error;
-    (void)title;
-    (void)description;
-    // TODO
+    description = fmt::format("{}\nAPI error: {}", description, error);
+    modal_begin(std::move(title), std::move(description), ModalDlgCtrl::BtnOK | ModalDlgCtrl::IcoErr, ModalDlgCtrl::BtnOK, nullptr);
 }
 
 void GraphN_Flow::show_menu_bar_net_status()

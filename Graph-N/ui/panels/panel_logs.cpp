@@ -40,7 +40,7 @@ DlgCode PanelServerLogs::show(bool& focused)
                 ICON_LC_INFO " Server Log.",
                 {},
                 {
-                    "Real-time stream of the ComfyUI console output.",
+                    "Real-time stream of the " APP_COMFYUI " console output.",
                     "Useful for debugging generation errors and monitoring model loading status.",
                     "Logs capturing is disabled or Server is not running.",
                     "Enable in Settings > " APP_COMFYUI

@@ -109,7 +109,7 @@ public:
     ImGuiID get_main_dockspace_id() noexcept { return m_main_dock_id; }
 
     void reconnect();
-    void handle_comfyui_runserver_error(int32_t error, const std::string& title, const std::string& description) noexcept;
+    void handle_comfyui_runserver_error(int32_t error, std::string&& title, std::string&& description) noexcept;
 
     void open_settings_dlg(OptPane section = OptPane::_count);
     void show_logs_panel(bool show) noexcept;

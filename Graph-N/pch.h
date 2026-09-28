@@ -83,6 +83,7 @@
 #define APP_CAPTION_LOW		"graph-n"
 #define APP_CAPTION_W		L"Graph-N"
 #define APP_COMFYUI			"ComfyUI"
+#define APP_COMFYUI_W		L"ComfyUI"
 
 #define NO_COPY_MOVE(ClassName) \
     ClassName(const ClassName&) = delete; \

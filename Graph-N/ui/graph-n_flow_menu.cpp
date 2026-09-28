@@ -445,7 +445,7 @@ void GraphN_Flow::on_menu_import()
             import_files(std::move(paths));
         }
     };
-    tools::path::select_files_open({{ L"ComfyUI Workflows (*.json, *.png, *.webp)", L"*.json;*.png;*.webp" }}, callback);
+    tools::path::select_files_open({{ APP_COMFYUI_W L" Workflows (*.json, *.png, *.webp)", L"*.json;*.png;*.webp" }}, callback);
 }
 
 void GraphN_Flow::on_menu_export_json(bool api)

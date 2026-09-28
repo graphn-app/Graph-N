@@ -352,7 +352,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     ImGui::TextUnformatted("Working directory:");
     show_help_mark(help_text,
         "The root directory for execution context.\n"
-        "Usually the folder containing the 'ComfyUI' directory or the 'python_embeded' folder.");
+        "Usually the folder containing the '" APP_COMFYUI "' directory or the 'python_embeded' folder.");
     ImGui::SameLine();
     ImGui::SetCursorPosX(m_data->input_offset_x);
     ImGui::SetNextItemWidth(m_data->input_with_browse_w);
@@ -409,7 +409,7 @@ void OptRightPane::show_local_server(const char*& help_text)
 
     // main.py args
     ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("ComfyUI args:");
+    ImGui::TextUnformatted(APP_COMFYUI " args:");
     show_help_mark(help_text,
         "Additional command-line arguments passed to the server (e.g., --lowvram, --cpu, --preview-method auto).");
     ImGui::SameLine();
@@ -889,7 +889,7 @@ void OptRightPane::show_thresholds(const char*& help_text)
     ImGui::TextUnformatted("Ping:");
     show_help_mark(help_text,
         "Network round-trip time + Server processing time.\n"
-        "Note: High values on localhost usually indicate the ComfyUI backend is blocked by heavy computations (Python GIL), not network issues.");
+        "Note: High values on localhost usually indicate the " APP_COMFYUI " backend is blocked by heavy computations (Python GIL), not network issues.");
     changed = show_thresholds("##pingWarning", "##PingCritical", m_data->buffer_i[BuffPingW], m_data->buffer_i[BuffPingC], false, false, 1.0f, 500.0f, "%.0f ms");
     if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::ServerPing, m_data->buffer_i[BuffPingW]);
     if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::ServerPing, m_data->buffer_i[BuffPingC]);
@@ -1042,7 +1042,7 @@ void OptRightPane::show_keys(const char*& help_text)
         "Toggle active panels", "Hide or restore currently opened side panels",
         "Full screen",      "Toggle full screen mode",
         "Command palette",  "Open quick search for commands and actions",
-        "Restart ComfyUI",  "Restart the ComfyUI server backend",
+        "Restart " APP_COMFYUI,  "Restart the ComfyUI server backend",
         "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // reserved
         "", "", // last
 

@@ -81,8 +81,8 @@ bool ComfyUIManager_Win32::create_job(bool auto_kill)
     Handle hjob(::CreateJobObject(nullptr, nullptr), ::CloseHandle);
     if (!hjob)
     {
-        LogWarn("Failed to create job, err: " << LogApiERR << ". " << APP_COMFYUI << " will not be killed om app exit");
-        g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed om app exit");
+        LogWarn("Failed to create job, err: " << LogApiERR << ". " << APP_COMFYUI << " will not be killed on app exit");
+        g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed on app exit");
         return false;
     }
 
@@ -91,8 +91,8 @@ bool ComfyUIManager_Win32::create_job(bool auto_kill)
 
     if (!::SetInformationJobObject(hjob.get(), JobObjectExtendedLimitInformation, &jeli, sizeof(jeli))) 
     {
-        LogWarn("Failed to set information on job, err: " << LogApiERR << ". " << APP_COMFYUI << " will not be killed om app exit");
-        g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed om app exit");
+        LogWarn("Failed to set information on job, err: " << LogApiERR << ". " << APP_COMFYUI << " will not be killed n app exit");
+        g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed on app exit");
         return false;
     }
 
@@ -104,18 +104,18 @@ bool ComfyUIManager_Win32::apply_job(HANDLE hproc)
 {
     if (!::AssignProcessToJobObject(m_hjob.get(), hproc))
     {
-        LogWarn("Failed to assign process to job, err: " << LogApiERR << ". " << APP_COMFYUI " will not be killed om app exit");
+        LogWarn("Failed to assign process to job, err: " << LogApiERR << ". " << APP_COMFYUI " will not be killed on app exit");
         m_hjob.reset();
-        g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed om app exit");
+        g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed on app exit");
         return false;
     }
 
     BOOL result;
     if (!::IsProcessInJob(hproc, m_hjob.get(), &result) || !result)
     {
-        LogWarn("Process assigned to job, but verification failed, err: " << LogApiERR << ". " << APP_COMFYUI " will not be killed om app exit");
+        LogWarn("Process assigned to job, but verification failed, err: " << LogApiERR << ". " << APP_COMFYUI " will not be killed on app exit");
         m_hjob.reset();
-        g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed om app exit");
+        g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, APP_COMFYUI " will not be killed on app exit");
         return false;
     }
     
@@ -141,11 +141,11 @@ void ComfyUIManager_Win32::prepare(STARTUPINFOW& si, bool& capture_log, bool hid
             }
             else
             {
-                LogWarn("Can't set pipe handle information, err: " << LogApiERR << ". Capture will be disabled");
+                LogWarn("Can't set pipe handle information, err: " << LogApiERR << ". Output capture will be disabled");
                 ::CloseHandle(hrd);
                 ::CloseHandle(hwr);
                 capture_log = false;
-                g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, "Capture will be disabled");
+                g::pFlow->handle_comfyui_runserver_error(::GetLastError(), "Run " APP_COMFYUI, "Output capture will be disabled");
             }
         }
         else
