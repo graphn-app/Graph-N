@@ -109,7 +109,7 @@ std::wstring build_commandline_arg(const std::wstring& arg);
 std::string build_commandline_arg(const std::string& arg);
 #endif // _WIN32
 
-void open_file(const std::filesystem::path& path);
+bool open_file(const std::filesystem::path& path);
 
 std::string& clear_filename(std::string& filename);
 

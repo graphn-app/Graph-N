@@ -1112,18 +1112,20 @@ std::string build_commandline_arg(const std::string& arg)
 }
 #endif // #ifdef _WIN32
 
-void open_file(const std::filesystem::path& path)
+bool open_file(const std::filesystem::path& path)
 {
+    if (!tools::path::exists(path))
+        return false;
 #ifdef _WIN32
     const auto res = cast::from_ptr<int32_t>(ShellExecuteW(nullptr, L"open", path.wstring().c_str(), nullptr, nullptr, SW_SHOWNORMAL));
     if (res <= 32)
     {
         LogWarnS("Can't run file '" << path << "', error " << LogApiERR);
+        return false;
     }
-    else
-    {
-        LogS("File run " << path);
-    }
+    return true;
+#else
+    return false;
 #endif // #ifdef _WIN32
 }
 
