@@ -51,17 +51,23 @@ void NodesManager::init_from_copy(NodesManager& copy)
     }
 }
 
-void NodesManager::calc_number_inside(const std::string& filter, const std::list<PinType>& in_types, const std::list<PinType>& out_types)
+void NodesManager::calc_number_inside(
+    const std::string& filter, const std::list<std::pair<PinType, std::string>>& in_types, const std::list<std::pair<PinType, std::string>>& out_types)
 {
-    const auto pin_filter = [](const std::vector<data::Pin*>& pins, const std::list<PinType>& type_filter)
+    const auto pin_filter = [](const std::vector<data::Pin*>& pins, const std::list<std::pair<PinType, std::string>>& type_filter)
     {
         for (auto pin : pins)
         {
-            if (PinType::ANY == pin->def_state.type && type_filter.front() == PinType::ANY)
+            if (PinType::ANY == pin->def_state.type && type_filter.front().first == PinType::ANY)
                 continue;
-            if (type_filter.front() == PinType::ANY)
+            if (type_filter.front().first == PinType::ANY)
                 return true;
-            const auto it = std::ranges::find_if(type_filter, [type = pin->def_state.type](PinType filter) { return filter == type; });
+            const auto it = std::ranges::find_if(type_filter, [&type = pin->def_state](const std::pair<PinType, std::string>& filter)
+            {
+                if (PinType::CUSTOM == type.type)
+                    return filter.second == type.type_str;
+                return filter.first == type.type;
+            });
             if (it != type_filter.end())
                 return true;
         }

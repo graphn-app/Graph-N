@@ -32,7 +32,7 @@ public:
     const std::vector<PinInstance*>& get_inputs() const noexcept { return m_input; }
     const std::vector<PinInstance*>& get_outputs() const noexcept { return m_output; }
 
-    virtual std::list<PinType> get_supported_pin_types(PinInstance* pin) const;
+    virtual std::list<std::pair<PinType, std::string>> get_supported_pin_types(PinInstance* pin) const;
 
     void add_input(PinInstance* pin);
     void add_output(PinInstance* pin);

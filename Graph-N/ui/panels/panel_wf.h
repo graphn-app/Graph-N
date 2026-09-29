@@ -125,7 +125,7 @@ private:
     bool show_multilink_menu();
     bool show_new_node_menu();
     bool show_colors_menu(bool& close, bool& reset, bool show_alpha, const ImVec4& init);
-    data::Node* show_nodes_menu(const std::list<PinType>& in_pins, const std::list<PinType>& out_pins);
+    data::Node* show_nodes_menu(const std::list<std::pair<PinType, std::string>>& in_pins, const std::list<std::pair<PinType, std::string>>& out_pins);
 
     void fit(std::map<data::NodeInstance*, std::set<data::NodeInstance*>>& items);
 

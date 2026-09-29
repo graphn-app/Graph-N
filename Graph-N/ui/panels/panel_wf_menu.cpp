@@ -1394,8 +1394,8 @@ bool PanelWorkflow::show_new_node_menu()
     bool close = false;
 
     const bool is_input = pin_inst->obj_flags().has(PinObjFlags::Input);
-    const auto input_filter = is_input ? std::list<PinType>{ PinType::_none } : node_inst->get_supported_pin_types(pin_inst);
-    const auto output_filter = is_input ? node_inst->get_supported_pin_types(pin_inst) : std::list<PinType>{ PinType::_none };
+    const auto input_filter = is_input ? std::list<std::pair<PinType, std::string>>{{ PinType::_none, "" }} : node_inst->get_supported_pin_types(pin_inst);
+    const auto output_filter = is_input ? node_inst->get_supported_pin_types(pin_inst) : std::list<std::pair<PinType, std::string>>{{ PinType::_none, "" }};
     const auto node = show_nodes_menu(input_filter, output_filter);
     if (node != nullptr)
     {
@@ -1405,7 +1405,7 @@ bool PanelWorkflow::show_new_node_menu()
         const auto* inst = m_action->add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
         const auto& oppo = is_input ? inst->get_outputs() : inst->get_inputs();
         const auto& filter = is_input ? output_filter : input_filter;
-        if (PinType::ANY == filter.front() && !oppo.empty())
+        if (PinType::ANY == filter.front().first && !oppo.empty())
         {
             if (pin_inst->state().links > 0 && is_input)
                 m_action->unlink(pin_inst);
@@ -1416,7 +1416,13 @@ bool PanelWorkflow::show_new_node_menu()
         {
             for (auto pin : oppo)
             {
-                if (std::ranges::find_if(filter, [type = pin->state().type](PinType filter) { return filter == type; }) != filter.end())
+                if (std::ranges::find_if(filter, [&type = pin->state()](const std::pair<PinType, std::string>& filter)
+                {
+                    if (PinType::CUSTOM == filter.first)
+                        return filter.second == type.type_str;
+                    return filter.first == type.type;
+                })
+                    != filter.end())
                 {
                     if (pin_inst->state().links > 0 && is_input)
                         m_action->unlink(pin_inst);
@@ -1501,7 +1507,7 @@ bool PanelWorkflow::show_colors_menu(bool& close, bool& reset, bool show_alpha, 
     return ret;
 }
 
-data::Node* PanelWorkflow::show_nodes_menu(const std::list<PinType>& in_pins, const std::list<PinType>& out_pins)
+data::Node* PanelWorkflow::show_nodes_menu(const std::list<std::pair<PinType, std::string>>& in_pins, const std::list<std::pair<PinType, std::string>>& out_pins)
 {
     if (m_context_menu_nodes_need_focus)
     {

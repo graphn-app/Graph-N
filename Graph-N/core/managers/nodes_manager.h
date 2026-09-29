@@ -40,7 +40,7 @@ public:
     const std::vector<data::NodeItem*>& get_nodes_plain() const noexcept { return m_nodes_plain; }
     size_t get_node_items_total() const noexcept { return m_node_items.size(); }
 
-    void calc_number_inside(const std::string& filter, const std::list<PinType>& in_pins, const std::list<PinType>& out_pins);
+    void calc_number_inside(const std::string& filter, const std::list<std::pair<PinType, std::string>>& in_pins, const std::list<std::pair<PinType, std::string>>& out_pins);
 
     data::Node* find_node(hid hash) const;
     data::Pin* find_pin(hid hash) const;

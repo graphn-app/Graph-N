@@ -34,7 +34,7 @@ public:
 
     void cni_mirror_value_to(const PinInstance* src, std::vector<PinInstance*>& append_pins) const override;
 
-    std::list<PinType> get_supported_pin_types(PinInstance* pin) const override;
+    std::list<std::pair<PinType, std::string>> get_supported_pin_types(PinInstance* pin) const override;
 
     void on_deserialilzation_ends() override;
 

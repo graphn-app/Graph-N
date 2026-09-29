@@ -503,16 +503,16 @@ void CNI_Primitive::cni_mirror_value_to(const PinInstance* src, std::vector<PinI
     std::ranges::for_each(m_links, [&append_pins](PinInstance* pin) { append_pins.push_back(pin); });
 }
 
-std::list<PinType> CNI_Primitive::get_supported_pin_types(PinInstance* pin) const
+std::list<std::pair<PinType, std::string>> CNI_Primitive::get_supported_pin_types(PinInstance* pin) const
 {
-    LogRAssert(pin, "Zero ptr", std::list<PinType>{});
+    LogRAssert(pin, "Zero ptr", {});
     if (pin->obj_flags().has(PinObjFlags::Input))
-        return { PinType::_none };
+        return {{ PinType::_none, "" }};
 
     if (PinType::ANY == pin->state().type)
-        return { PinType::INT, PinType::FLOAT, PinType::NUMBER, PinType::BOOLEAN, PinType::STRING, PinType::COMBO };
+        return { { PinType::INT, "" }, { PinType::FLOAT, "" }, { PinType::NUMBER, "" }, { PinType::BOOLEAN, "" }, { PinType::STRING, "" }, { PinType::COMBO, "" } };
 
-    return { pin->state().type };
+    return {{ pin->state().type, pin->state().type_str }};
 }
 
 void CNI_Primitive::cni_pin_unlinked(const PinInstance* p1, const PinInstance* p2)

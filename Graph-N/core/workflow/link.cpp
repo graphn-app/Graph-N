@@ -65,7 +65,13 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
     if (PinType::ANY == i1->state().type || PinType::ANY == i2->state().type)
         return true;
 
-    return (s1.type == s2.type); // same pin type
+    if (s1.type == s2.type)
+    {
+        if (PinType::CUSTOM == s1.type)
+            return s1.type_str == s2.type_str;
+        return true;
+    }
+    return false;
 }
 
 Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
