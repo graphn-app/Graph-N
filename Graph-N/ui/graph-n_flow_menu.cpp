@@ -325,17 +325,30 @@ void GraphN_Flow::on_menu_about() noexcept
 
 void GraphN_Flow::on_menu_panel_window(ViewDialogs wnd, bool toggle /*= false*/)
 {
+    bool appear = false;
     if (toggle && wnd != ViewPanelsResetAll)
     {
-        const bool displayed = (m_windows & wnd) > 0;
-        if (displayed) m_windows &= ~wnd;
-        else m_windows |= wnd;
+        if ((m_windows & wnd) > 0)
+            m_windows &= ~wnd;
+        else
+        {
+            m_windows |= wnd;
+            appear = true;
+        }
     }
     else
+    {
+        appear = true;
         m_windows |= wnd;
+    }
 
+    m_panel_appeared = 0;
     if (wnd != ViewPanelsResetAll)
+    {
         g::pOptsManager->ui_open_wnds_save(m_windows);
+        if (appear)
+            m_panel_appeared = wnd;
+    }
 }
 
 void GraphN_Flow::on_menu_panel_toggle_active() noexcept

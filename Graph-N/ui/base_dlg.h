@@ -40,13 +40,19 @@ public:
 
     DlgCode show_dialog(bool& focused)
     {
-        if (m_close_called)
+        if (m_close_called) [[unlikely]]
             return DlgCode::Cancel;
-        return show(focused);
+        const auto ret = show(focused);
+        m_appeared = false;
+        return ret;
     }
     void close_dialog() noexcept
     {
         m_close_called = true;
+    }
+    void on_appear() noexcept 
+    {
+        m_appeared = true;
     }
 
     virtual void init() {}
@@ -92,6 +98,9 @@ protected:
 
         return exit_code;
     }
+
+protected:
+    bool m_appeared = false;
 
 private:
     DlgObj m_obj;

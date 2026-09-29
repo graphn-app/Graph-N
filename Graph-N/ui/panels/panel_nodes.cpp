@@ -201,9 +201,12 @@ DlgCode PanelNodes::show(bool& focused)
 
         draw_toolbar();
 
-        if (!m_labels_mode)
+        if (!m_labels_mode) [[likely]]
         {
             ImGui::Spacing();
+
+            if (m_appeared)
+                ImGui::SetKeyboardFocusHere();
 
             ImGui::SetNextItemWidth(-FLT_MIN);
             if (ImGuiEx::InputTextWithHint("##filternodes", "filter nodes", &dlg_data()->buffer[PanelNodesData::BuffFilter],
@@ -217,7 +220,7 @@ DlgCode PanelNodes::show(bool& focused)
         }
 
         ImGuiEx::Spacing(3);
-        if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+        if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0))) [[likely]]
         {
             PanelItemEvent ev;
             if (draw_list(m_panel_items, ev, &m_tt_callbacks, &m_dnd_callbacks))

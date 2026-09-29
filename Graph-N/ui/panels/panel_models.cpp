@@ -117,9 +117,12 @@ DlgCode PanelModels::show(bool& focused)
         draw_toolbar();
         ImGui::Spacing();
 
+        if (m_appeared)
+            ImGui::SetKeyboardFocusHere();
+
         ImGui::SetNextItemWidth(-FLT_MIN);
         if (ImGuiEx::InputTextWithHint("##filtermodels", "filter models", &dlg_data()->buffer[PanelModelsData::BuffFilter],
-            ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
+            ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll)) [[unlikely]]
         {
             dlg_data()->buffer[PanelModelsData::BuffFilterLowered] = tools::str::to_lower_ascii(dlg_data()->buffer[PanelModelsData::BuffFilter]);
             Log("Filter by: " << dlg_data()->buffer[PanelModelsData::BuffFilterLowered]);
@@ -128,7 +131,7 @@ DlgCode PanelModels::show(bool& focused)
         }
 
         ImGuiEx::Spacing(3);
-        if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::PanelModels_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+        if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::PanelModels_ItemsList)], ImVec2(ImGui::GetContentRegionAvail().x, 0))) [[likely]]
         {
             if (m_prev_model_items_count != g::pModelsManager->get_models().size())
                 rebuild_items();

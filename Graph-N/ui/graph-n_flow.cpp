@@ -319,14 +319,17 @@ void GraphN_Flow::toggle_panel_visibility(DlgObj panel_obj)
     if ((m_windows & panel_view) != 0)
         m_windows &= ~panel_view;
     else
+    {
         m_windows |= panel_view;
+        m_panel_appeared = panel_view;
+    }
     g::pOptsManager->ui_open_wnds_save(m_windows);
 }
 
 bool GraphN_Flow::run()
 {
     show_menu_bar();
-    test_hotkeys();
+    g::pHotkeysManager->process_hotkey();
 
     if ((m_windows & ViewActivityBarL) || (m_windows & ViewActivityBarR))
         show_activity_bar();
@@ -953,6 +956,37 @@ void GraphN_Flow::show_panel(BaseDlg* panel, DlgObj obj)
 {
     LogRAssert(panel, "Zero ptr", );
     bool focused = false;
+
+    if (m_panel_appeared != ViewNone) [[unlikely]]
+    {
+        DlgObj appeared = DlgObj::_count;
+        switch (m_panel_appeared)
+        {
+        case ViewPanelNodes:
+            appeared = DlgObj::PanelNodes;
+            break;
+        case ViewPanelNodeInpector:
+            appeared = DlgObj::PanelNodeInspector;
+            break;
+        case ViewPanelStats:
+            appeared = DlgObj::PanelStats;
+            break;
+        case ViewPanelWfList:
+            appeared = DlgObj::PanelWfList;
+            break;
+        case ViewPanelModels:
+            appeared = DlgObj::PanelModels;
+            break;
+        case ViewPanelOutput:
+            appeared = DlgObj::PanelServerLogs;
+            break;
+        }
+
+        if (appeared != DlgObj::_count)
+            panel->on_appear();
+        m_panel_appeared = ViewNone;
+    }
+
     if (panel->show_dialog(focused) != DlgCode::Progress)
     {
         on_dlg_closed(obj);
@@ -1623,11 +1657,6 @@ void GraphN_Flow::check_host_reply()
 
     node->flags().remove(NodeInstFlags::MaskEditorRunning, NodeInstFlags::PosEditorRunning);
     m_custom_widget->upload_edited_image(node, std::move(image_path), true);
-}
-
-void GraphN_Flow::test_hotkeys()
-{
-    g::pHotkeysManager->process_hotkey();
 }
 
 }

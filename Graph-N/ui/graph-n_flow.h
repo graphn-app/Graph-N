@@ -241,8 +241,6 @@ private:
     void show_debug_windows() noexcept;
     void show_modal();
 
-    void test_hotkeys();
-
     void show_panel(BaseDlg* panel, DlgObj obj);
     void show_panel_nodes();
     void show_panel_node_inspector();
@@ -295,6 +293,7 @@ private:
     ImGuiID m_main_dock_id = 0;
     uint64_t m_windows = ViewNone;
     uint64_t m_windows_toggled = ViewNone;
+    uint64_t m_panel_appeared = ViewNone;
 
     std::set<BaseDlg*> m_all_dialogs;
 
