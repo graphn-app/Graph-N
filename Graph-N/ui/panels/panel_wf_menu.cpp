@@ -25,6 +25,7 @@ bool PanelWorkflow::context_menu_handler()
         m_handle_context_menu = true;
         m_menu_objs = {};
         m_context_menu_type = MenuType::BackDblClick;
+        m_menu_objs.caption = fmt::format(FMT_STRING("New node | Dbl Click | {}"), g::pHotkeysManager->get_key_binding_name(KeyTarget::Workspace_NewNode));
         if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_RootWindow | ImGuiHoveredFlags_ChildWindows))
         {
             const ImVec2 win_pos = ImGui::GetWindowPos();
@@ -36,7 +37,7 @@ bool PanelWorkflow::context_menu_handler()
         else
             m_menu_objs.click_pos = m_drawer.get_mouse_pos();
 
-        Log("Bg menu initiated: new node");
+        Log("Menu: " << m_menu_objs.caption);
         return true;
     }
 
@@ -45,9 +46,18 @@ bool PanelWorkflow::context_menu_handler()
     {
         m_handle_context_menu = true;
         m_menu_objs = {};
-        m_context_menu_type = rclick ? MenuType::Back : (dbl_click ? MenuType::BackDblClick : MenuType::_none);
+        if (rclick)
+        {
+            m_context_menu_type = MenuType::Back;
+            m_menu_objs.caption = fmt::format(FMT_STRING("Workflow: {}"), m_wf->get_data().name);
+        }
+        else
+        {
+            m_context_menu_type = dbl_click ? MenuType::BackDblClick : MenuType::_none;
+            m_menu_objs.caption = fmt::format(FMT_STRING("New node | Dbl Click | {}"), g::pHotkeysManager->get_key_binding_name(KeyTarget::Workspace_NewNode));
+        }
         m_menu_objs.click_pos = m_drawer.get_mouse_pos();
-        Log("Bg menu initiated");
+        Log("Menu: " << m_menu_objs.caption);
         return true;
     }
 
@@ -69,10 +79,11 @@ bool PanelWorkflow::context_menu_handler()
             m_handle_context_menu = true;
             m_menu_objs = {};
             m_context_menu_type = MenuType::Widget;
+            m_menu_objs.caption = fmt::format(FMT_STRING("Widget: {}"), pin->state().name);
             m_menu_objs.pins.insert(pin);
             m_menu_objs.nodes.insert(parent);
             m_menu_objs.click_pos = m_drawer.get_mouse_pos();
-            Log("Widget menu initiated");
+            Log("Menu: " << m_menu_objs.caption);
             return true;
         }
     }
@@ -87,10 +98,11 @@ bool PanelWorkflow::context_menu_handler()
                 m_handle_context_menu = true;
                 m_menu_objs = {};
                 m_context_menu_type = MenuType::Pin;
+                m_menu_objs.caption = fmt::format(FMT_STRING("Pin: {}"), pin->state().name);
                 m_menu_objs.pins.insert(pin);
                 m_menu_objs.nodes.insert(parent);
                 m_menu_objs.click_pos = m_drawer.get_mouse_pos();
-                Log("Pin menu initiated");
+                Log("Menu: " << m_menu_objs.caption);
                 return true;
             }
         }
@@ -109,14 +121,16 @@ bool PanelWorkflow::context_menu_handler()
             {
                 m_drawer.select_link(link->ed(), false);
                 m_context_menu_type = MenuType::Link;
+                m_menu_objs.caption = fmt::format(FMT_STRING("Link: {} -> {}"), link->get_output()->state().name, link->get_input()->state().name);
                 m_menu_objs.links.insert(link);
-                Log("Link menu initiated");
+                Log("Menu: " << m_menu_objs.caption);
             }
             else
             {
                 m_context_menu_type = MenuType::Multilink;
+                m_menu_objs.caption = fmt::format(FMT_STRING("Links: {}"), links.size());
                 m_menu_objs.links = std::move(links);
-                Log("Multilink menu initiated");
+                Log("Menu: " << m_menu_objs.caption);
             }
             return true;
         }
@@ -141,7 +155,9 @@ bool PanelWorkflow::context_menu_handler()
                 else
                     m_menu_objs.nodes.insert(node);
                 m_context_menu_type = node->flags().has(NodeInstFlags::Group) ? MenuType::Group : MenuType::Node;
-                Log((node->flags().has(NodeInstFlags::Group) ? "Group" : "Node") << " menu initialized");
+                m_menu_objs.caption = fmt::format(FMT_STRING("{}: {}"),
+                    (MenuType::Group == m_context_menu_type ? "Group" : "Node"),
+                    (MenuType::Group == m_context_menu_type ? node->get_name() : node->get_object()->node_class));
             }
             else
             {
@@ -159,20 +175,37 @@ bool PanelWorkflow::context_menu_handler()
 
                 if (!m_menu_objs.groups.empty() && m_menu_objs.nodes.empty())
                 {
-                    m_context_menu_type = m_menu_objs.groups.size() == 1 ? MenuType::Group : MenuType::Multigroup;
-                    Log("Multigroup menu initiated");
+                    if (m_menu_objs.groups.size() == 1)
+                    {
+                        m_context_menu_type = MenuType::Group;
+                        m_menu_objs.caption = fmt::format(FMT_STRING("Group: {}"), m_menu_objs.groups.begin()->first->get_name());
+                    }
+                    else
+                    {
+                        m_context_menu_type =MenuType::Multigroup;
+                        m_menu_objs.caption = fmt::format(FMT_STRING("Groups: {}"), m_menu_objs.groups.size());
+                    }
                 }
                 else if (m_menu_objs.groups.empty() && !m_menu_objs.nodes.empty())
                 {
-                    m_context_menu_type = m_menu_objs.nodes.size() == 1 ? MenuType::Node : MenuType::Multinode;
-                    Log("Multinode menu initiated");
+                    if (m_menu_objs.nodes.size() == 1)
+                    {
+                        m_context_menu_type = MenuType::Node;
+                        m_menu_objs.caption = fmt::format(FMT_STRING("Node: {}"), (*m_menu_objs.nodes.begin())->get_object()->node_class);
+                    }
+                    else
+                    {
+                        m_context_menu_type = MenuType::Multinode;
+                        m_menu_objs.caption = fmt::format(FMT_STRING("Nodes: {}"), m_menu_objs.nodes.size());
+                    }
                 }
                 else
                 {
                     m_context_menu_type = MenuType::Multiobj;
-                    Log("Multiobj menu initiated");
+                    m_menu_objs.caption = fmt::format(FMT_STRING("Groups: {}, Nodes: {}"), m_menu_objs.groups.size(), m_menu_objs.nodes.size());
                 }
             }
+            Log("Menu: " << m_menu_objs.caption);
             return true;
         }
     }
@@ -253,7 +286,7 @@ bool PanelWorkflow::show_canvas_menu()
 {    
     bool close = false;
     
-    ImGui::MenuItem(m_wf->get_data().name.c_str(), nullptr, nullptr, false);
+    ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
     ImGui::Separator();
     if (ImGui::BeginMenu("Add node##allnodes"))
     {
@@ -344,6 +377,8 @@ bool PanelWorkflow::show_canvas_menu()
 bool PanelWorkflow::show_canvas_nodes_menu()
 {
     bool close = false;
+    ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
+    ImGui::Separator();
     auto node = show_nodes_menu({}, {});
     if (node != nullptr)
     {
@@ -358,6 +393,8 @@ bool PanelWorkflow::show_node_menu()
     bool close = false;
     auto node = *m_menu_objs.nodes.begin();
 
+    ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
+    ImGui::Separator();
     if (node->flags().has_any(NodeInstFlags::MaskEditorReady, NodeInstFlags::PosEditorReady))
     {
         if (ImGui::MenuItem("Open in Mask Editor | SAM Detector", nullptr, nullptr, node->flags().has_and_has_not(NodeInstFlags::MaskEditorReady, NodeInstFlags::PosEditorRunning)))
@@ -650,6 +687,8 @@ bool PanelWorkflow::show_group_menu()
     auto group = m_menu_objs.groups.begin()->first;
     auto& nodes = m_menu_objs.groups.begin()->second;
 
+    ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
+    ImGui::Separator();
     if (ImGui::MenuItem("Rename", nullptr, nullptr, m_drawer.zoomed_allow_renaming()))
     {
         m_drawer.rename_node(group);
@@ -753,6 +792,8 @@ bool PanelWorkflow::show_group_menu()
 bool PanelWorkflow::show_multinode_menu()
 {
     bool close = false;
+    ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
+    ImGui::Separator();
     //if (ImGui::MenuItem("Fit"))   // TODO:FIX resizing
     //{
     //    for (auto node : m_menu_objs.nodes)
@@ -913,6 +954,8 @@ bool PanelWorkflow::show_multigroup_menu()
     }
 
     bool close = false;
+    ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
+    ImGui::Separator();
     if (ImGui::MenuItem("Remove", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Remove)))
     {
         std::set<data::NodeInstance*> objs;
@@ -1009,6 +1052,8 @@ bool PanelWorkflow::show_multigroup_menu()
 bool PanelWorkflow::show_multiobj_menu()
 {
     bool close = false;
+    ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
+    ImGui::Separator();
     if (ImGui::MenuItem("Group", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Group)))
     {
         std::set<data::NodeInstance*> objs;
@@ -1110,12 +1155,13 @@ bool PanelWorkflow::show_widget_menu()
 
     auto pin = *m_menu_objs.pins.begin();
 
-    const auto draw_cag_menu = [pin, action = m_action]()
+    const auto draw_cag_menu = [pin, action = m_action, &caption = m_menu_objs.caption]()
     {
         bool close = false;
         const auto cag_val = pin->state().cag_val;
 
-        ImGui::MenuItem("Control after generate:", nullptr, nullptr, false);
+        ImGui::MenuItem(caption.c_str(), nullptr, nullptr, false);
+        ImGui::Separator();
         if (ImGui::MenuItem("fixed", nullptr, ControlAfterGenerate::Fixed == cag_val, true))
         {
             pin->state().cag_val = ControlAfterGenerate::Fixed;
@@ -1211,7 +1257,7 @@ bool PanelWorkflow::show_widget_menu()
         return close;
     };
 
-    const auto draw_color_menu = [pin, action = m_action]()
+    const auto draw_color_menu = [pin, action = m_action, &caption = m_menu_objs.caption]()
     {
         bool close = false;
         const bool hsv = pin->flags().has(PinInstFlags::ColorHSV);
@@ -1228,6 +1274,8 @@ bool PanelWorkflow::show_widget_menu()
             action->set_pin_color_config(pin, flags);
         };
 
+        ImGui::MenuItem(caption.c_str(), nullptr, nullptr, false);
+        ImGui::Separator();
         if (ImGui::MenuItem("Palette: RBG(A)", nullptr, rgb, true))
         {
             pin->flags().remove(PinInstFlags::ColorHSV, PinInstFlags::ColorHex, PinInstFlags::ColorRaw);
@@ -1285,6 +1333,8 @@ bool PanelWorkflow::show_widget_menu()
     case PinType::STRING:
         if (pin->obj_flags().has_not(PinObjFlags::DenyMultilineSwitch))
         {
+            ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
+            ImGui::Separator();
             if (ImGui::MenuItem("Single line", nullptr, !pin->is_multiline(), true))
             {
                 m_action->set_pin_multiline(pin, false);
@@ -1318,6 +1368,8 @@ bool PanelWorkflow::show_pin_menu()
     const bool name_eq = (pin->state().name == pin->get_object()->def_state.name);
     const bool can_rename = m_drawer.zoomed_allow_renaming() && pin->obj_flags().has(PinObjFlags::CanRename);
 
+    ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
+    ImGui::Separator();
     if (ImGui::MenuItem("Unlink", nullptr, nullptr, linked && pin->obj_flags().has(PinObjFlags::CanUnlink)))
     {
         m_action->unlink(pin); // pin might be destroyed here
@@ -1344,6 +1396,8 @@ bool PanelWorkflow::show_link_menu()
     const auto link = *m_menu_objs.links.begin();
     const bool can_unlink = (link->get_input()->obj_flags().has(PinObjFlags::CanUnlink) && link->get_output()->obj_flags().has(PinObjFlags::CanUnlink));
 
+    ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
+    ImGui::Separator();
     if (ImGui::MenuItem("Unlink", nullptr, nullptr, can_unlink))
     {
         m_action->unlink(link);
@@ -1366,6 +1420,8 @@ bool PanelWorkflow::show_multilink_menu()
 {
     bool close = false;
 
+    ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
+    ImGui::Separator();
     if (ImGui::MenuItem("Unlink all"))
     {
         m_action->multi_action_on("Unlink");

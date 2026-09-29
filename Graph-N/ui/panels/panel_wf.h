@@ -158,6 +158,7 @@ private:
     enum class MenuType : uint8_t { _none, Back, BackDblClick, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink, SpawnNode, Widget };
     struct MenuObjects final
     {
+        std::string caption;
         std::set<data::NodeInstance*> nodes;
         std::map<data::NodeInstance*, std::set<data::NodeInstance*>> groups;
         std::set<data::Link*> links;
