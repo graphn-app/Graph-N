@@ -1649,14 +1649,15 @@ void GraphN_Flow::check_host_reply()
 
     data::Workflow* wf = g::pWfsManager->access(wf_id, true); // can be zero if already closed
     if (nullptr == wf)
-        return m_custom_widget->upload_edited_image(nullptr, std::move(image_path), true);
+        return;
 
     data::NodeInstance* node = wf->get_node_by_instance(node_id); // can be zero if already closed
     if (nullptr == node)
-        return m_custom_widget->upload_edited_image(nullptr, std::move(image_path), true);
+        return;
 
     node->flags().remove(NodeInstFlags::MaskEditorRunning, NodeInstFlags::PosEditorRunning);
-    m_custom_widget->upload_edited_image(node, std::move(image_path), true);
+    if (result)
+        m_custom_widget->upload_edited_image(node, std::move(image_path), true);
 }
 
 }

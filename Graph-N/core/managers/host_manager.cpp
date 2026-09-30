@@ -18,11 +18,18 @@ HostManager::~HostManager() noexcept = default;
 void HostManager::stop_and_cleanup()
 {
     kill_all();
+    for (auto& [id, th] : m_threads)
+    {
+        if (th.joinable())
+            th.join();
+    }
+    m_threads.clear();
+
     m_replies_exists.store(false, std::memory_order_relaxed);
     m_do_cleanups.store(false, std::memory_order_relaxed);
+
     std::lock_guard<std::mutex> lock(m_mutex);
     m_hosts.clear();
-
     decltype(m_hosts_finished) empty;
     empty.swap(m_hosts_finished);
 }
@@ -110,7 +117,9 @@ void HostManager::add_host(wid wf_id, iid node_id, HostType type, std::filesyste
     
     std::lock_guard<std::mutex> lock(m_mutex);
     m_hosts.push_back(std::move(host));
-    run_host(m_hosts.back());
+
+    auto& ref = m_hosts.back();
+    m_threads[ref.host_id] = run_host(ref);
 }
 
 std::tuple<bool, bool, uint64_t> HostManager::check_opened(wid wf_id, iid node_id)
@@ -124,6 +133,7 @@ std::tuple<bool, bool, uint64_t> HostManager::check_opened(wid wf_id, iid node_i
 
 void HostManager::kill_all()
 {
+    bool has_data = false;
     std::lock_guard<std::mutex> lock(m_mutex);
     for (auto& host : m_hosts)
     {
@@ -132,13 +142,21 @@ void HostManager::kill_all()
             kill_host(host.host_id);
             host.alive = false;
             host.cleanup = true;
+            m_hosts_finished.push(std::make_pair(host, false));
+
+            has_data = true;
         }
     }
-    m_do_cleanups.store(true, std::memory_order_relaxed);
+    if (has_data)
+    {
+        m_replies_exists.store(true, std::memory_order_relaxed);
+        m_do_cleanups.store(true, std::memory_order_relaxed);
+    }
 }
 
 void HostManager::kill_hosts(wid wf_id)
 {
+    bool has_data = false;
     std::lock_guard<std::mutex> lock(m_mutex);
     for (auto& host : m_hosts)
     {
@@ -147,8 +165,16 @@ void HostManager::kill_hosts(wid wf_id)
             kill_host(host.host_id);
             host.alive = false;
             host.cleanup = true;
-            m_do_cleanups.store(true, std::memory_order_relaxed);
+            m_hosts_finished.push(std::make_pair(host, false));
+
+            has_data = true;
         }
+    }
+
+    if (has_data)
+    {
+        m_do_cleanups.store(true, std::memory_order_relaxed);
+        m_replies_exists.store(true, std::memory_order_relaxed);
     }
 }
 
@@ -162,6 +188,9 @@ void HostManager::kill_host(wid wf_id, iid node_id)
     host->alive = false;
     host->cleanup = true;
     m_do_cleanups.store(true, std::memory_order_relaxed);
+
+    m_hosts_finished.push(std::make_pair(*host, false));
+    m_replies_exists.store(true, std::memory_order_relaxed);
 }
 
 void HostManager::rename_host(wid wf_id, iid node_id, const std::string& new_wf_name, const std::string& new_node_name)
@@ -211,6 +240,9 @@ void HostManager::on_host_started(uint64_t id, bool success)
                 host.alive = false;
                 host.cleanup = true;
                 m_do_cleanups.store(true, std::memory_order_relaxed);
+
+                m_hosts_finished.push(std::make_pair(host, false));
+                m_replies_exists.store(true, std::memory_order_relaxed);
                 break;
             }
         }
@@ -247,10 +279,26 @@ void HostManager::on_host_finished_job(uint64_t id, bool success)
 
 bool HostManager::pickup_finished_host(wid& wf_id, iid& node_id, bool& result, std::filesystem::path& dest_image, HostType& type)
 {
+    std::list<std::pair<wid, iid>> failed;
     if (m_do_cleanups.load(std::memory_order_relaxed)) [[unlikely]]
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        std::erase_if(m_hosts, [](const blob::HostData& host) { return host.cleanup; });
+        std::erase_if(m_hosts, [this](const blob::HostData& host)
+        {
+            if (host.cleanup)
+            {
+                auto it = m_threads.find(host.host_id);
+                if (it != m_threads.end())
+                {
+                    auto& th = it->second;
+                    if (th.joinable())
+                        th.detach();
+                    m_threads.erase(it);
+                }
+                return true;
+            }
+            return false;
+        });
         m_do_cleanups.store(false, std::memory_order_relaxed);
     }
 

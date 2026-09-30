@@ -24,7 +24,7 @@ public:
     bool pickup_finished_host(wid& wf_id, iid& node_id, bool& result, std::filesystem::path& dest_image, HostType& type);
 
 protected:
-    virtual void run_host(const blob::HostData& host) = 0;
+    virtual std::thread run_host(const blob::HostData& host) = 0;
     virtual void kill_host(uint64_t id) = 0;
     virtual void rename_host(uint64_t id, const std::string& new_wf_name, const std::string& new_node_name) = 0;
     virtual void raise_host(uint64_t id) = 0;
@@ -45,6 +45,7 @@ private:
     std::atomic_bool m_replies_exists = false;
     std::atomic_bool m_do_cleanups = false;
     std::thread::id m_ui_thread_id;
+    std::map<uint64_t, std::thread> m_threads;
 };
 
 } // namespace mngr

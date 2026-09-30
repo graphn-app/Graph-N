@@ -8,11 +8,11 @@ namespace mngr
 HostManager_Win32::HostManager_Win32() noexcept = default;
 HostManager_Win32::~HostManager_Win32() noexcept = default;
 
-void HostManager_Win32::run_host(const blob::HostData& host)
+std::thread HostManager_Win32::run_host(const blob::HostData& host)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_processes[host.host_id];
-    std::thread(&HostManager_Win32::host_thread, this, host).detach();
+    m_processes[host.host_id] = std::make_shared<HostProcess>();
+    return std::thread(&HostManager_Win32::host_thread, this, host);
 }
 
 void HostManager_Win32::kill_host(uint64_t id)
@@ -23,7 +23,7 @@ void HostManager_Win32::kill_host(uint64_t id)
     blob::HostData new_command;
     new_command.host_id = id;
     new_command.cmd = blob::HostData::Cmd_Terminate;
-    it->second.new_commands.push_back(new_command);
+    it->second->new_commands.push_back(new_command);
     Log("Host #" << id << ": store 'kill' cmd");
 }
 
@@ -37,7 +37,7 @@ void HostManager_Win32::rename_host(uint64_t id, const std::string& new_wf_name,
     new_command.cmd = blob::HostData::Cmd_Rename;
     new_command.wf_name = new_wf_name;
     new_command.node_name = new_node_name;
-    it->second.new_commands.push_back(std::move(new_command));
+    it->second->new_commands.push_back(std::move(new_command));
     Log("Host #" << id << ": store 'rename' cmd");
 }
 
@@ -49,7 +49,7 @@ void HostManager_Win32::raise_host(uint64_t id)
     blob::HostData new_command;
     new_command.host_id = id;
     new_command.cmd = blob::HostData::Cmd_Raise;
-    it->second.new_commands.push_back(new_command);
+    it->second->new_commands.push_back(new_command);
     Log("Host #" << id << ": store 'raise' cmd");
 }
 
@@ -72,7 +72,7 @@ enum HostStatus : uint8_t
 
 void HostManager_Win32::host_thread(blob::HostData host_data)
 {
-    HostProcess* host_proc = nullptr;
+    std::shared_ptr<HostProcess> host_proc;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         const auto it = m_processes.find(host_data.host_id);
@@ -82,19 +82,19 @@ void HostManager_Win32::host_thread(blob::HostData host_data)
             LogError("Host #" << host_data.host_id << " not found");
             return;
         }
-        host_proc = &(it->second);
+        host_proc = it->second;
     }
 
-    const auto status = host_thread_worker(*host_proc, host_data);
-
-    if ((status & HostStatus_StartFailed) != 0)
+    uint32_t status = HostStatus_StartFailed | HostStatus_Terminate;
+    try
     {
-        on_host_started(host_data.host_id, false);
+        status = host_thread_worker(host_proc, host_data);
     }
-    else if ((status & (HostStatus_FinishedOk | HostStatus_FinishedFail)) != 0)
+    catch (const std::exception& e)
     {
-        on_host_finished_job(host_data.host_id, (status & HostStatus_FinishedOk) != 0);
+        LogExcep("Host #" << host_data.host_id << " thread ex: " << e.what());
     }
+    catch (...) {}
 
     if (host_proc->hproc)
     {
@@ -109,12 +109,19 @@ void HostManager_Win32::host_thread(blob::HostData host_data)
         }
     }
 
-    std::lock_guard<std::mutex> lock(m_mutex);
-    const auto id = host_data.host_id;
-    m_processes.erase(id);
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        const auto id = host_data.host_id;
+        m_processes.erase(id);
+    }
+
+    if ((status & HostStatus_StartFailed) != 0)
+        on_host_started(host_data.host_id, false);
+    else if ((status & (HostStatus_FinishedOk | HostStatus_FinishedFail)) != 0)
+        on_host_finished_job(host_data.host_id, (status & HostStatus_FinishedOk) != 0);
 }
 
-uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blob::HostData& host_data)
+uint32_t HostManager_Win32::host_thread_worker(std::shared_ptr<HostProcess> host_proc, const blob::HostData& host_data)
 {
     const auto notify_start_failed = [&host_data](const char* message) -> uint32_t
     {
@@ -135,11 +142,11 @@ uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blo
     const HANDLE hjob = ::CreateJobObjectW(nullptr, nullptr);
     if (nullptr == hjob)
         return notify_start_failed("Failed to create job");
-    host_proc.hjob.reset(hjob);
+    host_proc->hjob.reset(hjob);
 
     ::JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = {};
     jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-    if (!::SetInformationJobObject(host_proc.hjob.get(), JobObjectExtendedLimitInformation, &jeli, sizeof(jeli))) 
+    if (!::SetInformationJobObject(host_proc->hjob.get(), JobObjectExtendedLimitInformation, &jeli, sizeof(jeli))) 
         return notify_start_failed("Failed to set information on job");
 
     ::PROCESS_INFORMATION pi = {};
@@ -157,7 +164,7 @@ uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blo
         1, std::max(max_size, DWORD(4096)), std::max(max_size, DWORD(4096)), 0, nullptr);
     if (INVALID_HANDLE_VALUE == hpipe)
         return notify_start_failed("Can't create IPC pipe");
-    host_proc.hpipe.reset(hpipe);
+    host_proc->hpipe.reset(hpipe);
 
 #ifdef _DEBUG
     const auto command_line = fmt::format(FMT_STRING(L" -catch -pipe {} -id {}"), pipe_unique, host_data.host_id);
@@ -171,14 +178,14 @@ uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blo
         return notify_start_failed("Failed to create host process");
 
     Handle hthread(pi.hThread, ::CloseHandle);
-    host_proc.hproc.reset(pi.hProcess);
-    host_proc.proc_id = pi.dwProcessId;
+    host_proc->hproc.reset(pi.hProcess);
+    host_proc->proc_id = pi.dwProcessId;
 
-    if (!::AssignProcessToJobObject(host_proc.hjob.get(), host_proc.hproc.get()))
+    if (!::AssignProcessToJobObject(host_proc->hjob.get(), host_proc->hproc.get()))
         return notify_start_failed("Failed to assign process to job");
 
     BOOL job_result;
-    if (!::IsProcessInJob(host_proc.hproc.get(), host_proc.hjob.get(), &job_result) || !job_result)
+    if (!::IsProcessInJob(host_proc->hproc.get(), host_proc->hjob.get(), &job_result) || !job_result)
         return notify_start_failed("Process assigned to job, but verification failed");
 
     if (g::app_global_stop_all_threads.stop_requested())
@@ -194,15 +201,15 @@ uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blo
     Log("Starting " << host_path << " " << command_line);
 
 #ifdef _DEBUG
-    constexpr DWORD pipe_timeout = 1000000;
-    constexpr auto wait_client_ready = 500s;
+    constexpr DWORD pipe_timeout = 5000;
+    constexpr auto wait_client_ready = 5s;
 #else
-    constexpr DWORD pipe_timeout = 10000;
+    constexpr DWORD pipe_timeout = 5000;
     constexpr auto wait_client_ready = 5s;
 #endif
 
     uint32_t result = 0;
-    if (!::ConnectNamedPipe(host_proc.hpipe.get(), &ov))
+    if (!::ConnectNamedPipe(host_proc->hpipe.get(), &ov))
     {
         const auto apierr = ::GetLastError();
         if (apierr == ERROR_IO_PENDING)
@@ -227,11 +234,11 @@ uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blo
         bool result = false;
         const auto blob = blob::HostSerializer::serialize(data);
 
-        if (!::WriteFile(host_proc.hpipe.get(), blob->data(), cast::to<DWORD>(blob->size()), &bytes_written, &write_ov))
+        if (!::WriteFile(host_proc->hpipe.get(), blob->data(), cast::to<DWORD>(blob->size()), &bytes_written, &write_ov))
         {
             if (::GetLastError() == ERROR_IO_PENDING)
             {
-                if (::GetOverlappedResult(host_proc.hpipe.get(), &write_ov, &bytes_written, TRUE))
+                if (::GetOverlappedResult(host_proc->hpipe.get(), &write_ov, &bytes_written, TRUE))
                     result = true;
                 else
                     LogWarnS("Host #" << data.host_id << ": can't write to pipe - overlapped result failed. err: " << LogApiERR);
@@ -249,7 +256,7 @@ uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blo
     const auto get_data_ready = [min_size, &host_proc, id = host_data.host_id]() -> DWORD
     {
         DWORD bytes_avail = 0;
-        const BOOL peek_status = ::PeekNamedPipe(host_proc.hpipe.get(), nullptr, 0, nullptr, nullptr, &bytes_avail);
+        const BOOL peek_status = ::PeekNamedPipe(host_proc->hpipe.get(), nullptr, 0, nullptr, nullptr, &bytes_avail);
         if (peek_status && bytes_avail >= min_size)
         {
             LogS("Host #" << id << ": message avail (" << bytes_avail << "b)");
@@ -266,13 +273,13 @@ uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blo
         read_ov.hEvent = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
         bool success = false;
-        if (::ReadFile(host_proc.hpipe.get(), buffer.data(), data_size, &bytes_read, &read_ov))
+        if (::ReadFile(host_proc->hpipe.get(), buffer.data(), data_size, &bytes_read, &read_ov))
         {
             success = true;
         }
         else if (::GetLastError() == ERROR_IO_PENDING)
         {
-            if (::GetOverlappedResult(host_proc.hpipe.get(), &read_ov, &bytes_read, TRUE))
+            if (::GetOverlappedResult(host_proc->hpipe.get(), &read_ov, &bytes_read, TRUE))
                 success = true;
             else
                 LogWarnS("Host #" << id << ": readfile overlapped result err: " << LogApiERR);
@@ -301,7 +308,7 @@ uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blo
         if (g::app_global_stop_all_threads.stop_requested())
             return exit_on_global_stop();
 
-        if (!is_host_alive(host_proc))
+        if (!is_host_alive(*host_proc))
             return notify_start_failed("Client process died");
 
         if (std::chrono::steady_clock::now() - start_time > wait_client_ready)
@@ -332,11 +339,11 @@ uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blo
 
         result = 0;
         const auto blob = blob::HostSerializer::serialize(host_data);
-        if (!::WriteFile(host_proc.hpipe.get(), blob->data(), cast::to<DWORD>(blob->size()), &bytes_written, &write_ov))
+        if (!::WriteFile(host_proc->hpipe.get(), blob->data(), cast::to<DWORD>(blob->size()), &bytes_written, &write_ov))
         {
             if (::GetLastError() == ERROR_IO_PENDING)
             {
-                if (!::GetOverlappedResult(host_proc.hpipe.get(), &write_ov, &bytes_written, TRUE))
+                if (!::GetOverlappedResult(host_proc->hpipe.get(), &write_ov, &bytes_written, TRUE))
                     result = notify_start_failed("Failed to send initial config to client");
             }
             else
@@ -357,7 +364,7 @@ uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blo
         if (g::app_global_stop_all_threads.stop_requested())
             return exit_on_global_stop();
 
-        if (!is_host_alive(host_proc))
+        if (!is_host_alive(*host_proc))
         {
             Log("Host #" << host_data.host_id << ": process died");
             return HostStatus_Terminate | HostStatus_FinishedFail;
@@ -365,8 +372,8 @@ uint32_t HostManager_Win32::host_thread_worker(HostProcess& host_proc, const blo
 
         {
             std::lock_guard<std::mutex> lock(m_mutex);
-            if (!host_proc.new_commands.empty())
-                std::swap(host_proc.new_commands, new_commands);
+            if (!host_proc->new_commands.empty())
+                std::swap(host_proc->new_commands, new_commands);
         }
         for (auto& command : new_commands)
         {

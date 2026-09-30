@@ -11,12 +11,12 @@ public:
     HostManager_Win32() noexcept;
     ~HostManager_Win32() noexcept override;
 
-    void run_host(const blob::HostData& host) override;
+private:
+    std::thread run_host(const blob::HostData& host) override;
     void kill_host(uint64_t id) override;
     void rename_host(uint64_t id, const std::string& new_wf_name, const std::string& new_node_name) override;
     void raise_host(uint64_t id) override;
 
-private:
     using Handle = std::unique_ptr<void, decltype(&::CloseHandle)>;
     struct HostProcess final
     {
@@ -35,13 +35,12 @@ private:
         Handle hpipe;
     };
 
-private:
     void host_thread(blob::HostData host_data);
-    uint32_t host_thread_worker(HostProcess& host_proc, const blob::HostData& host_data);
+    uint32_t host_thread_worker(std::shared_ptr<HostProcess> host_proc, const blob::HostData& host_data);
     bool is_host_alive(const HostProcess& host_proc) const;
 
 private:
-    std::map<uint64_t, HostProcess> m_processes;
+    std::map<uint64_t, std::shared_ptr<HostProcess>> m_processes;
     std::mutex m_mutex;
 };
 
