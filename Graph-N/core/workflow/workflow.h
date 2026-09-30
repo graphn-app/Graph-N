@@ -80,8 +80,8 @@ public:
 
     void prepare_for_api();
 
-    void reset() noexcept;
-    void clear() noexcept;
+    void reset_wf() noexcept;
+    void clear_wf() noexcept;
 
     void increment(const Workflow* copy_to);
     std::string collect_search_data() const;

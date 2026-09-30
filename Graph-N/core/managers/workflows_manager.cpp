@@ -25,6 +25,8 @@ void WfsManager::stop_and_cleanup()
     {
         if (wf->get_data().pending_delete)
             m_labels.remove_item_for_all(wf_id);
+        else
+            close(wf->get_id(), false);
     }
     std::set<uint32_t> cleanup;
     for (auto& label : m_labels.get_label_list())
@@ -710,19 +712,7 @@ void WfsManager::close(wid wf_id, bool process_pending_deletion)
         return;
     }
 
-    const auto links = wf->get_links_no_reroutes();
-    for (auto link : links)
-    {        
-        wf->remove_link(link);
-    }
-
-    const auto nodes = wf->get_nodes_no_reroutes();
-    for (auto node : nodes)
-    {
-        node->cni_cleanup_base_object();
-        wf->remove_node(node);
-    }
-
+    wf->clear_wf();
     Log("Wf closed. w:" << wf_id);
 }
 
@@ -781,6 +771,7 @@ void WfsManager::revert(wid wf_id, blob::Blob& drawer_state)
         Log("Wf " << wf_id << " reverted via hard reset, res: " << (res ? "ok" : "fail"));
     }
 
+    wf->invalidate_current();
     data.dirty = false;
     data.draft = false;
     data.saved_exist = true;

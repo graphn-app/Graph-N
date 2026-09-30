@@ -33,7 +33,7 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
     try
     {
         m_wf->action()->hard_reset();
-        m_wf->clear(); 
+        m_wf->clear_wf(); 
 
         blob::Reader root = m_reader.pop_block();
 

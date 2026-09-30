@@ -75,7 +75,7 @@ void PanelNodeInspector::remove_inspecting_node(data::Node* node)
 void PanelNodeInspector::reset_inspecting_nodes() noexcept
 {
     Log("Remove all nodes");
-    m_wf->clear();
+    m_wf->clear_wf();
     m_inspecting.clear();
 }
 

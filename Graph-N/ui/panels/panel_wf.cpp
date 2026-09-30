@@ -37,8 +37,7 @@ void PanelWorkflow::stop_and_cleanup() noexcept
 
     if (m_wf != nullptr)
     {
-        m_wf->get_data().activated = false;
-        m_wf->clear();
+        m_wf->get_data().activated = false;        
         m_wf = nullptr;
         if (m_action != nullptr)
             m_action->set_drawer(nullptr);
@@ -58,7 +57,6 @@ void PanelWorkflow::init()
     g::pGraphN->subscribe_comfyui_validity_state(listener::ComfyUiObjectValidityListener::Step::ResolvePanels, this);
     g::pHotkeysManager->add_listener(this);
 
-    m_wf->reset();
     m_wf->get_data().activated = true;
     m_wf_valid = m_wf->get_data().valid;
     create_toolbar();
@@ -854,9 +852,8 @@ void PanelWorkflow::on_revert(PanelToolbar::Element& /*el*/)
 {
     blob::Blob drawer_state;
     g::pWfsManager->revert(m_wf->get_id(), drawer_state);
-    m_drawer.init(std::move(drawer_state));
-    m_wf->reset();
-    m_wf->invalidate_current();
+    if (!drawer_state->empty())
+        m_drawer.init(std::move(drawer_state));
 }
 
 void PanelWorkflow::on_pre_undo(PanelToolbar::Element& el) noexcept

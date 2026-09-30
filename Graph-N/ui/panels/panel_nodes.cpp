@@ -135,7 +135,6 @@ void PanelNodes::create_toolbar()
 
 void PanelNodes::invalidate_comfyui_objects() noexcept
 {
-    m_wf->clear();
     m_panel_items.clear();
 }
 

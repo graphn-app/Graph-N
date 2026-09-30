@@ -40,7 +40,7 @@ Workflow::~Workflow() noexcept
     if (g::pGraphN != nullptr && !m_wf_data.ro)
         g::pGraphN->unsubscribe_comfyui_validity_state(this);
 
-    clear();
+    clear_wf();
 }
 
 void Workflow::init()
@@ -932,7 +932,7 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
     m_action->multi_action_off();
 }
 
-void Workflow::reset() noexcept
+void Workflow::reset_wf() noexcept
 {
     for (auto& node : m_nodes)
     {
@@ -953,7 +953,7 @@ void Workflow::reset() noexcept
     }
 }
 
-void Workflow::clear() noexcept
+void Workflow::clear_wf() noexcept
 {
     auto links = get_links_no_reroutes();
     for (auto link : links)
@@ -964,6 +964,7 @@ void Workflow::clear() noexcept
     auto nodes = get_nodes_no_reroutes();
     for (auto node : nodes)
     {
+        node->cni_cleanup_base_object();
         remove_node(node);
     }
 
@@ -996,13 +997,13 @@ void Workflow::invalidate_comfyui_objects()
 {
     if (m_wf_data.ro || !m_wf_data.activated)
     {
-        clear();
+        clear_wf();
         return;
     }
 
     m_invalidation_state = true;
     g::pWfsManager->dump(m_wf_data.id);
-    clear();
+    clear_wf();
 }
 
 void Workflow::resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::Step /*step*/)

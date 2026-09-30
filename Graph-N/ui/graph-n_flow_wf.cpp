@@ -307,7 +307,6 @@ void GraphN_Flow::wf_panel_close(PanelWorkflow* wf_panel)
             m_wf_focused = nullptr;
     }
 
-    wf_panel->stop_and_cleanup();
     m_pending_cleanups.wf_panels.push_back(wf_panel);
 }
 

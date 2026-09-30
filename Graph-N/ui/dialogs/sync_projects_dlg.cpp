@@ -354,9 +354,9 @@ void SyncProjectsDlg::load_projects()
     auto wfs = g::pWfsManager->get_wfs();
     for (auto wf : wfs)
     {
+        LogCAssert(wf->id != 0, "Invalid wf id");
         SyncRow row;
         row.local_id = wf->id;
-        if (0 == row.local_id) __debugbreak();
         row.name = wf->name;
         row.exists_local = true;
         row.exists_server = false;
@@ -520,8 +520,10 @@ void SyncProjectsDlg::sync()
         {
             if (row.exists_local)
             {
-                if (0 == row.local_id) __debugbreak();
-                g::pFlow->wf_delete(row.local_id);
+                if(row.local_id != 0)
+                    g::pFlow->wf_delete(row.local_id);
+                else
+                    LogError("Invalid wf id");
             }
         }
 
@@ -539,8 +541,10 @@ void SyncProjectsDlg::sync()
         {
             if ((SyncAction::Download == row.selected_action || SyncAction::DownloadReplace == row.selected_action) && row.exists_local)
             {
-                if (0 == row.local_id) __debugbreak();
-                g::pFlow->wf_restore(row.local_id);
+                if (row.local_id != 0)
+                    g::pFlow->wf_restore(row.local_id);
+                else
+                    LogError("Invalid wf id");
             }
             row.status = SyncStatus::Error;
         }
@@ -553,8 +557,10 @@ void SyncProjectsDlg::sync()
         row.selected_action = SyncAction::Skip;
         if (row.cleanup_wf)
         {
-            if (0 == row.local_id) __debugbreak();
-            g::pWfsManager->access(row.local_id)->clear();
+            if (0 == row.local_id)
+                LogError("Invalid wf id");
+            else
+                g::pWfsManager->access(row.local_id)->clear_wf();
         }
         row.cleanup_wf = false;
         if (HTTP_RESP_OK == result)
@@ -582,21 +588,29 @@ void SyncProjectsDlg::sync()
         case SyncAction::DeleteLocal:
             {
                 m_current_row++;
-                if (0 == row.local_id) __debugbreak();
-                g::pFlow->wf_delete(row.local_id);
-                row.deleted = true;
-                row.status = SyncStatus::Success;
-                row.selected_action = SyncAction::Skip;
+                if (0 == row.local_id) 
+                    LogError("Invalid wf id");
+                else
+                {
+                    g::pFlow->wf_delete(row.local_id);
+                    row.deleted = true;
+                    row.status = SyncStatus::Success;
+                    row.selected_action = SyncAction::Skip;
+                }
             }
             break;
         case SyncAction::Undelete:
             {
                 m_current_row++;
-                if (0 == row.local_id) __debugbreak();
-                g::pFlow->wf_restore(row.local_id);
-                row.deleted = false;
-                row.status = SyncStatus::Success;
-                row.selected_action = SyncAction::Skip;
+                if (0 == row.local_id) 
+                    LogError("Invalid wf id");
+                else
+                {
+                    g::pFlow->wf_restore(row.local_id);
+                    row.deleted = false;
+                    row.status = SyncStatus::Success;
+                    row.selected_action = SyncAction::Skip;
+                }
             }
             break;
         case SyncAction::Download:
@@ -613,21 +627,29 @@ void SyncProjectsDlg::sync()
         case SyncAction::UploadReplace:
             {
                 row.status = SyncStatus::InProgress;
-                if (0 == row.local_id) __debugbreak();
-                const bool loaded = g::pWfsManager->is_loaded(row.local_id);
-                blob::Blob dummy;
-                if (!loaded && !g::pWfsManager->load(row.local_id, dummy))
-                {
-                    row.status = SyncStatus::Error;
-                }
+                if (0 == row.local_id) 
+                    LogError("Invalid wf id");
                 else
                 {
-                    row.cleanup_wf = !loaded;
-                    if (0 == row.local_id) __debugbreak();
-                    auto j = data::WfSerializerToJson(g::pWfsManager->access(row.local_id)).serialize();
-                    const auto project_name = (SyncAction::UploadRename == row.selected_action ? row.new_name : row.name);
-                    const auto url = fmt::format(comfyui_http::wf_upload_, tools::str::url_encode(project_name) + ".json");
-                    g::pFlow->http_post(HttpRequestor::Sync_Action, get_alive_callback(), url.c_str(), j.dump(), upload);
+                    const bool loaded = g::pWfsManager->is_loaded(row.local_id);
+                    blob::Blob dummy;
+                    if (!loaded && !g::pWfsManager->load(row.local_id, dummy))
+                    {
+                        row.status = SyncStatus::Error;
+                    }
+                    else
+                    {
+                        row.cleanup_wf = !loaded;
+                        if (0 == row.local_id) 
+                            LogError("Invalid wf id");
+                        else
+                        {
+                            auto j = data::WfSerializerToJson(g::pWfsManager->access(row.local_id)).serialize();
+                            const auto project_name = (SyncAction::UploadRename == row.selected_action ? row.new_name : row.name);
+                            const auto url = fmt::format(comfyui_http::wf_upload_, tools::str::url_encode(project_name) + ".json");
+                            g::pFlow->http_post(HttpRequestor::Sync_Action, get_alive_callback(), url.c_str(), j.dump(), upload);
+                        }
+                    }
                 }
             }
             break;
