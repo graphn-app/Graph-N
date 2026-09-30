@@ -190,7 +190,7 @@ void CustomWidget::check_media_list_version(Widget& widget)
     }
 }
 
-bool CustomWidget::check_source_and_get_pin(Widget& widget, int64_t& index, data::Pin*& source_pin)
+bool CustomWidget::check_source_and_get_pin(Widget& widget, int64_t& index, data::Pin*& source_pin, bool skip_media_validation /*= false*/)
 {
     check_media_list_version(widget);
 
@@ -233,6 +233,9 @@ bool CustomWidget::check_source_and_get_pin(Widget& widget, int64_t& index, data
         widget.names.push_back(str);
         index = cast::to_i64(widget.names.size() - 1);
     }
+
+    if (skip_media_validation) [[unlikely]]
+        return true;
 
     if (!widget.items[index].media_valid.value_or(true) || !widget.items[index].media_can_play.value_or(true))
     {
@@ -416,7 +419,7 @@ bool CustomWidget::check_open_def_app(data::NodeInstance* node, bool check_only)
             return false;
 
         m_node = node;
-        const bool result = check_source_and_get_pin(*widget, index, source_pin_obj);
+        const bool result = check_source_and_get_pin(*widget, index, source_pin_obj, true);
         m_node = nullptr;
         if (!result)
             return false;

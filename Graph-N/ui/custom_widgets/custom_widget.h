@@ -46,7 +46,7 @@ private:
     void check_media_list_version(Widget& widget);
     void draw_widget_message(const char* const lines[], size_t count);
     void draw_load_result_message(int32_t load_result);
-    bool check_source_and_get_pin(Widget& widget, int64_t& index, data::Pin*& source_pin);
+    bool check_source_and_get_pin(Widget& widget, int64_t& index, data::Pin*& source_pin, bool skip_media_validation = false);
     void download_media(HttpRequestor requestor, Widget& widget, int64_t index);
     const char* format_timeline(float duration, float pos);
 
