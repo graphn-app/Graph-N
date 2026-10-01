@@ -204,13 +204,13 @@ void QueueManager::process()
 
 void QueueManager::go_next_task()
 {
-    const auto make_wf = [](ExecTask& task, const std::shared_ptr<data::Workflow>& wf, wid src_id)
+    const auto make_wf = [](ExecTask& task, data::Workflow* wf, wid src_id)
     {
-        task.json = data::WfSerializerToJson(wf.get()).serialize();
-        task.api = data::WfSerializerToJsonApi(wf.get()).serialize();
-        task.flow = data::WfSerializerToBlob(wf.get()).serialize({}).release();
+        task.json = data::WfSerializerToJson(wf).serialize();
+        task.api = data::WfSerializerToJsonApi(wf).serialize();
+        task.flow = data::WfSerializerToBlob(wf).serialize({}).release();
         task.search_data = wf->collect_search_data();
-        wf->increment(0 == src_id ? nullptr : g::pWfsManager->access(src_id));
+        wf->increment(0 == src_id ? nullptr : g::pWfsManager->access(src_id, true));
     };
 
     if (nullptr == m_current)
@@ -227,7 +227,7 @@ void QueueManager::go_next_task()
         m_current_group.task.task_id = base::GlobalID::random();
         m_current_group.task.active = true;
         m_current_group.state = ExecGroup::State::Created;
-        make_wf(m_current_group.task, m_current_group.wf, m_current_group.src_wf);
+        make_wf(m_current_group.task, m_current_group.wf.get(), m_current_group.src_wf);
         m_failed_wfs[m_current_group.src_wf] = nullptr;
         Log("Started new task #" << get_log_task_id(m_current_group) << " from wf " << m_current_group.src_wf);
         return;
@@ -289,7 +289,7 @@ void QueueManager::go_next_task()
         m_current_group.task.task_id = base::GlobalID::random();
         m_current_group.task.active = true;
         m_current_group.state = ExecGroup::State::Created;
-        make_wf(m_current_group.task, m_current_group.wf, m_current_group.src_wf);
+        make_wf(m_current_group.task, m_current_group.wf.get(), m_current_group.src_wf);
         m_failed_wfs[m_current_group.src_wf] = nullptr;
         Log("Created new task for wf " << m_current_group.src_wf << ": #" << get_log_task_id(m_current_group));
         return;

@@ -21,6 +21,7 @@ PanelWorkflow::PanelWorkflow(wid workflow_id, const std::string& name, const std
     , m_dock(dock)
     , m_action(m_wf->action())
     , m_drawer(m_wf)
+    , m_context_menuid(cast::to_u32(base::GlobalID::random_widget(0xff, 0xfffffff)))
 {
     m_action->set_drawer(&m_drawer);
     m_wf_valid = m_wf->get_data().valid;
@@ -170,7 +171,7 @@ void PanelWorkflow::set_wf_view(std::optional<ImRect> wf_rc, std::optional<float
 
 bool PanelWorkflow::can_run() const noexcept
 {
-    return !m_wf->get_data().critical_failure && m_wf->get_data().valid && !m_invalidation_state;
+    return g::pFlow->get_nodes_ready() && !m_wf->get_data().critical_failure && m_wf->get_data().valid && !m_invalidation_state;
 }
 
 void PanelWorkflow::run(bool add_front)
@@ -851,8 +852,9 @@ void PanelWorkflow::on_pre_revert(PanelToolbar::Element& el) noexcept
 void PanelWorkflow::on_revert(PanelToolbar::Element& /*el*/)
 {
     blob::Blob drawer_state;
-    g::pWfsManager->revert(m_wf->get_id(), drawer_state);
-    if (!drawer_state->empty())
+    bool restore_drawer = false;
+    g::pWfsManager->revert(m_wf->get_id(), drawer_state, restore_drawer);
+    if (restore_drawer)
         m_drawer.init(std::move(drawer_state));
 }
 
@@ -957,7 +959,7 @@ void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
 
 void PanelWorkflow::on_pre_queue(PanelToolbar::Element& el) noexcept
 {
-    el.enabled = !m_invalidation_state;
+    el.enabled = can_run();
 }
 
 void PanelWorkflow::on_queue(PanelToolbar::Element& /*el*/)

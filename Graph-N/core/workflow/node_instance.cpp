@@ -124,7 +124,6 @@ T decrement_t(T val, const T min, const T max, const T step)
 
 void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_action)
 {
-    LogRAssert(copy_to && wf_action, "Zero ptr", );
     if (flags().has(NodeInstFlags::Group) || !has_object() || obj_flags().has(NodeObjFlags::Dummy))
         return;
 

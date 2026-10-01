@@ -285,12 +285,11 @@ void Pin::finalize_int()
     precision = fmt::format(FMT_STRING("%lld"));
     precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
 
-    const bool seed = (tools::str::to_lower_ascii(def_state.name).find("seed") != std::string::npos);
-    if (seed || def_state.max < def_state.min)  // usually max = -1 and min = 0 -> unsigned int
+    if (flags.has(PinObjFlags::CagRequire) || def_state.max < def_state.min)  // usually max = -1 and min = 0 -> unsigned int
     {
         def_state.step = int64_t(1);
         def = int64_t(0);
-        def_state.min = int64_t(IM_S64_MIN_WIDGET);
+        def_state.min = int64_t(0);
         def_state.max = int64_t(IM_S64_MAX_WIDGET);
     }
     else
@@ -333,6 +332,8 @@ void Pin::finalize_float()
         def_state.min = double(IM_DBL_MIN_WIDGET);
         def_state.max = double(IM_DBL_MAX_WIDGET);
     }
+    if (flags.has(PinObjFlags::CagRequire))
+        def_state.min = double(0.0);
     if (def_state.step.get_float() == 0.0)
     {
         def_state.step = double(0.1);

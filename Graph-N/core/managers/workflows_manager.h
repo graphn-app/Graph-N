@@ -74,7 +74,7 @@ public:
     void close_and_purge();
     void close(wid wf_id, bool process_pending_deletion);
     void save(wid wf_id);
-    void revert(wid wf_id, blob::Blob& drawer_state);
+    void revert(wid wf_id, blob::Blob& drawer_state, bool& restore_drawer);
     void dump(wid wf_id) const;
 
     wid import_wf(const std::filesystem::path& from);

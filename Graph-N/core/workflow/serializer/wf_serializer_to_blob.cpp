@@ -81,7 +81,7 @@ void WfSerializerToBlob::serialize_node()
         .push(m_curr_node->m_clr_head)
         .push(m_curr_node->m_clr_group_capt)
         .push(m_curr_node->flags().get_by_mask(g_node_inst_seriallizable_flags))
-        .push(m_curr_node->has_object() ? m_curr_node->obj_flags().get_by_mask(g_node_obj_seriallizable_flags) : uint64_t(0))
+        .push(m_curr_node->has_object() ? m_curr_node->obj_flags().get_by_mask(g_node_obj_serializable_flags) : uint64_t(0))
     ;
     block.end();
 

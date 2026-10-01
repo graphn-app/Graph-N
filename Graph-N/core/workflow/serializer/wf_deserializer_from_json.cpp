@@ -436,6 +436,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
             }
 
             size_t widget_index = 0;
+            bool next_cag = false;
             for (const auto& jvalue : j["widgets_values"])
             {
                 if (widget_index >= widgets.size())
@@ -457,6 +458,24 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                 }
 
                 auto pin = widgets[widget_index++];
+                if (!next_cag && pin->obj_flags().has(PinObjFlags::CagRequire))
+                {
+                    next_cag = true;
+                    widget_index--;
+                }
+                else if (next_cag)
+                {
+                    next_cag = false;
+                    if (pval.is_string())
+                    {
+                        const auto* cag_val = pval.get_string_ref();
+                        if (*cag_val == "fixed")    pin->state().cag_val = ControlAfterGenerate::Fixed;
+                        else if (*cag_val == "increment")    pin->state().cag_val = ControlAfterGenerate::Increment;
+                        else if (*cag_val == "decrement")    pin->state().cag_val = ControlAfterGenerate::Decrement;
+                        else if (*cag_val == "randomize")    pin->state().cag_val = ControlAfterGenerate::Randomize;                        
+                    }
+                    continue;
+                }
 
                 std::visit([pin](const auto& v)
                 {

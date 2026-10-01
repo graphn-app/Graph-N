@@ -17,6 +17,18 @@ namespace mngr
 WfsManager::WfsManager() noexcept = default;
 WfsManager::~WfsManager() noexcept = default;
 
+namespace
+{
+template <typename T>
+void clear_wf_list(const T& list)
+{
+    for (auto& wf : list)
+    {
+        wf->clear_wf();
+    }
+};
+}
+
 void WfsManager::stop_and_cleanup()
 {
     copy_reset();
@@ -27,6 +39,7 @@ void WfsManager::stop_and_cleanup()
             m_labels.remove_item_for_all(wf_id);
         else
             close(wf->get_id(), false);
+        wf->clear_wf();
     }
     std::set<uint32_t> cleanup;
     for (auto& label : m_labels.get_label_list())
@@ -39,6 +52,9 @@ void WfsManager::stop_and_cleanup()
         m_labels.remove_label(label_id);
     }
     g::pOptsManager->items_wf_labels_save(m_labels);
+
+    clear_wf_list(m_wfs_ro);
+    clear_wf_list(m_wfs_virt);
 
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_timers(this);
@@ -759,11 +775,12 @@ void WfsManager::save(wid wf_id)
     Log("Wf saved. w:" << wf_id);
 }
 
-void WfsManager::revert(wid wf_id, blob::Blob& drawer_state)
+void WfsManager::revert(wid wf_id, blob::Blob& drawer_state, bool& restore_drawer)
 {
     LogRAssert(wf_id != 0, "Zero wf id", );
     auto wf = access(wf_id);
     auto& data = wf->get_data();
+    restore_drawer = false;
 
     const bool can_rollback = g::pHistoryManager->can_rollback(wf_id);
     if (!can_rollback && !data.saved_exist)
@@ -784,6 +801,7 @@ void WfsManager::revert(wid wf_id, blob::Blob& drawer_state)
         const bool res = data::WfDeserializerFromBlob(wf, blob).deserialize(drawer_state);
         g::pHistoryManager->cleanup(wf_id);
         g::pHistoryManager->set_rollback_pos(wf->get_id());
+        restore_drawer = true;
         Log("Wf " << wf_id << " reverted via hard reset, res: " << (res ? "ok" : "fail"));
     }
 

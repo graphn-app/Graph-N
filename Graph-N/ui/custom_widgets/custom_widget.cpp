@@ -192,14 +192,14 @@ void CustomWidget::check_media_list_version(Widget& widget)
 
 bool CustomWidget::check_source_and_get_pin(Widget& widget, int64_t& index, data::Pin*& source_pin, bool skip_media_validation /*= false*/)
 {
+    source_pin = m_node->get_object()->custom_widget_source;
+    if (nullptr == source_pin || source_pin->combo_items_str.empty())
+        return false;
+
     check_media_list_version(widget);
 
     if (widget.items.size() < widget.names.size())
         widget.items.resize(widget.names.size());
-
-    source_pin = m_node->get_object()->custom_widget_source;
-    if (nullptr == source_pin || source_pin->combo_items_str.empty())
-        return false;
 
     data::PinInstance* source_pin_inst = nullptr;
     for (auto& input : m_node->get_inputs())
@@ -334,8 +334,6 @@ void CustomWidget::add_output(wid wf_id, iid node_id, mngr::ExecTask::OutputType
     if (nullptr == node)   // zero node is not an error, it could be removed
         return;
 
-    node->obj_flags().add(NodeObjFlags::CustomWidget, NodeObjFlags::CustomWdgtFromOutput);
-    node->reset_width();
 
     OutputData out;
     out.item.media_id = preloaded_media_id;
@@ -360,6 +358,10 @@ void CustomWidget::add_output(wid wf_id, iid node_id, mngr::ExecTask::OutputType
     default:
         LogRError("Unknwon output type", );
     }
+
+    node->obj_flags().remove(NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtText);
+    node->obj_flags().add(NodeObjFlags::CustomWdgtRestrictCfg, NodeObjFlags::CustomWidget, NodeObjFlags::CustomWdgtFromOutput, out.media_type);
+    node->reset_width();
 
     m_outputs[std::make_pair(wf_id, node_id)] = std::move(out);
 }

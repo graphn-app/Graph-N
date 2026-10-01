@@ -316,8 +316,17 @@ inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_all_custom_widget_mask
     NodeObjFlags::CustomWdgtFromOutput
 };
 
-inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_seriallizable_flags
+inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_serializable_flags
 {
+    NodeObjFlags::CustomWidget,
+    NodeObjFlags::CustomWdgtAudio,
+    NodeObjFlags::CustomWdgtVideo,
+    NodeObjFlags::CustomWdgtImage,
+    NodeObjFlags::CustomWdgtText,
+    NodeObjFlags::CustomWdgtRestrictCfg,
+    NodeObjFlags::CustomWdgtUploadButton,
+    NodeObjFlags::CustomWdgtFromSource,
+    NodeObjFlags::CustomWdgtFromOutput,
 };
 
 enum class PinInstFlags : uint64_t
