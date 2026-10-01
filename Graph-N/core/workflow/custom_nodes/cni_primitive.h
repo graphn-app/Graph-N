@@ -38,6 +38,11 @@ public:
 
     void on_deserialilzation_ends() override;
 
+#ifdef _DEBUG
+    const std::vector<PinInstance*>& get_linked_outs() const noexcept { return m_links; }
+    bool is_linked() const noexcept { return m_linked; }
+#endif
+
 private:
     void update();
 

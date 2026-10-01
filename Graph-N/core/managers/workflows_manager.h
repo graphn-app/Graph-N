@@ -81,6 +81,11 @@ public:
     wid import_wf_from_json(const std::string& jdata, const std::string& name, tools::dt use_time = {}, bool virt = false);
     void export_wf(wid wf_id, bool api, const std::filesystem::path& to);
 
+#ifdef _DEBUG
+    const std::list<std::unique_ptr<data::Workflow>>& get_wfs_ro() const noexcept { return m_wfs_ro; }
+    const std::list<std::shared_ptr<data::Workflow>>& get_wfs_virt() const noexcept { return m_wfs_virt; }
+#endif
+
 private:
     data::Workflow* create(WfData&& data, bool dump_to_db);
     bool is_auto_label(uint32_t label_id) const;

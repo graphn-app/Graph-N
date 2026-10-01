@@ -135,6 +135,7 @@ enum class DlgObj : uint8_t
     PanelMarkdownPreview,
 
     ModalMessage,
+    PanelDebugWf,
 
     _count
 };
@@ -176,6 +177,7 @@ constexpr const char* DlgObj_SID[static_cast<size_t>(DlgObj::_count)] =
     "###D92D3506-6C6B-4613-BAB2-AEF2B33E81CE",                     // PanelMarkdownPreview
 
     "###84C3F1E0-4342-4A1B-9464-A011057E9FE1",                     // ModalMessage
+    "###AF8A388B-E45E-4E33-B1B5-21DDA1E608C3",                     // PanelDebugWf
 };
 
 constexpr ImGuiID DlgObj_IID[static_cast<size_t>(DlgObj::_count)] = 
@@ -214,6 +216,7 @@ constexpr ImGuiID DlgObj_IID[static_cast<size_t>(DlgObj::_count)] =
     0xD92D3506,                     // PanelMarkdownPreview
 
     0x84C3F1E0,                     // ModalMessage
+    0xAF8A388B,                     // PanelDebugWf
 };
 
 enum class PinType : uint16_t

@@ -35,6 +35,9 @@ class PanelModels;
 class PanelQueue;
 class PanelTextEditor;
 class PanelMarkdownPreview;
+#ifdef _DEBUG
+class DebugWfView;
+#endif
 
 
 enum ViewDialogs : uint64_t
@@ -71,6 +74,7 @@ enum ViewDialogs : uint64_t
     ViewStyleEditor             = 1ULL << 19,
     ViewStyleSelector           = 1ULL << 20,
     ViewFontSelector            = 1ULL << 21,
+    ViewWfDebug                 = 1ULL << 28,
 
     // top windows
     ViewModal                   = 1ULL << 22,
@@ -82,11 +86,11 @@ enum ViewDialogs : uint64_t
 
     ViewSyncProjects            = 1ULL << 26,
 
-    _ViewNextAvailable          = 1ULL << 28,   // UPDATE ON NEW DIALOG
+    _ViewNextAvailable          = 1ULL << 29,   // UPDATE ON NEW DIALOG
 
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWfList | ViewPanelModels | /*ViewPanelTemplates | */ViewPanelOutput | ViewPanelQueue /*| ViewPanelNotes*/,
-    ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector,
+    ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector | ViewWfDebug,
     ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewSyncProjects | ViewAllMenuBar | ViewPanelWf,
 };
 
@@ -240,6 +244,7 @@ private:
     void show_activity_bar();
     void show_debug_windows() noexcept;
     void show_modal();
+    void show_wf_debug_dlg();
 
     void show_panel(BaseDlg* panel, DlgObj obj);
     void show_panel_nodes();
@@ -319,6 +324,10 @@ private:
     PanelWorkflow* m_wf_focused = nullptr;
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
     bool m_wf_imported = false;
+
+#ifdef _DEBUG
+    std::list<std::unique_ptr<DebugWfView>> m_wf_debug_panels;
+#endif
 
     std::mutex m_http_req_mutex;
     struct HttpRequestInfo final

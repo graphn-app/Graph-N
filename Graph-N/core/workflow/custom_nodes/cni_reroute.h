@@ -27,6 +27,34 @@ struct CNI_DeserializedReroute final : public CNI_DeserializedData
     iid splitter_link = 0;
 };
 
+struct LinkedIn final
+{
+    const PinInstance* external = nullptr;
+    PinInstance* internal = nullptr;
+};
+
+struct LinkedOut final
+{
+    std::list<const PinInstance*> external;
+    PinInstance* internal = nullptr;
+};
+
+struct LinkedPair final
+{
+    bool linked = false;
+    bool ever_linked = false;
+    PinType type = PinType::_none;
+    LinkedIn input;
+    LinkedOut output;
+};
+
+struct RerouteData
+{
+    std::list<LinkedPair> m_pairs;
+    std::map<PinType, int32_t> m_in_pin_types;
+    int32_t m_next_out_index = 1;
+};
+
 class CNI_Reroute final : public CNI_BaseObj_T<CNI_Reroute>
 {
 public:
@@ -93,8 +121,11 @@ public:
     void set_splitted_nodes_poses(const std::pair<ImRect, ImRect>& poses) noexcept;
     void adjust_r_pose();
 
+#ifdef _DEBUG
+    const RerouteData& get_reroute_data() const noexcept { return *m_data; }
+#endif
+
 private:
-    struct LinkedPair;
     void get_pins_from_link(const PinInstance* p1, const PinInstance* p2, const PinInstance*& external, const LinkedPair*& pair) const noexcept;
     void get_pins_from_link(const PinInstance* p1, const PinInstance* p2, const PinInstance*& external, LinkedPair*& pair) noexcept;
     void cleanup_pairs(bool keep_linked);
@@ -105,31 +136,6 @@ private:
     std::string create_pin_name(const std::string& type_str);
 
 private:
-    struct LinkedIn final
-    {
-        const PinInstance* external = nullptr;
-        PinInstance* internal = nullptr;
-    };
-    struct LinkedOut final
-    {
-        std::list<const PinInstance*> external;
-        PinInstance* internal = nullptr;
-    };
-    struct LinkedPair final
-    {
-        bool linked = false;
-        bool ever_linked = false;
-        PinType type = PinType::_none;
-        LinkedIn input;
-        LinkedOut output;
-    };
-
-    struct RerouteData
-    {
-        std::list<LinkedPair> m_pairs;
-        std::map<PinType, int32_t> m_in_pin_types;
-        int32_t m_next_out_index = 1;
-    };
     std::shared_ptr<RerouteData> m_data; // cleanup
 
     CNI_Reroute* m_splitted_part = nullptr;

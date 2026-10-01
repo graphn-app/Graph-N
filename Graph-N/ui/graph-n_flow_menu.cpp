@@ -6,6 +6,9 @@
 #include "core/managers/hotkeys_manager.h"
 #include "core/managers/comfyui_manager.h"
 #include "ui/panels/panel_wf.h"
+#ifdef _DEBUG
+#include "ui/dialogs/debug_wf_view.h"
+#endif
 #include "main.h"
 
 namespace ui
@@ -231,6 +234,46 @@ void GraphN_Flow::show_menu_bar()
         if (ImGui::BeginMenu("Help##MainMenuBar")) [[unlikely]]
         {
 #ifdef _DEBUG
+            if (ImGui::BeginMenu("Debug workflows##MainMenuBar")) [[unlikely]]
+            {
+                for (auto& panel : m_panels_wf)
+                {
+                    if (ImGui::MenuItem(panel->get_panel_name_full()))
+                    {
+                        auto dlg = std::make_unique<DebugWfView>();
+                        dlg->init(panel->get_workflow());
+                        m_wf_debug_panels.push_back(std::move(dlg));
+                        m_windows |= ViewWfDebug;
+                    }
+                }
+                ImGui::Separator();
+                ImGui::MenuItem("Virtual", nullptr, nullptr, false);
+                auto& virt = g::pWfsManager->get_wfs_virt();
+                for (auto& wf : virt)
+                {
+                    if (ImGui::MenuItem(wf->get_data().uuid.c_str()))
+                    {
+                        auto dlg = std::make_unique<DebugWfView>();
+                        dlg->init(wf.get());
+                        m_wf_debug_panels.push_back(std::move(dlg));
+                        m_windows |= ViewWfDebug;
+                    }
+                }
+                ImGui::Separator();
+                ImGui::MenuItem("Read only", nullptr, nullptr, false);
+                auto& ro = g::pWfsManager->get_wfs_ro();
+                for (auto& wf : ro)
+                {                    
+                    if (ImGui::MenuItem(wf->get_data().uuid.c_str()))
+                    {
+                        auto dlg = std::make_unique<DebugWfView>();
+                        dlg->init(wf.get());
+                        m_wf_debug_panels.push_back(std::move(dlg));
+                        m_windows |= ViewWfDebug;
+                    }
+                }
+                ImGui::EndMenu();
+            }
             if (ImGui::MenuItem("Debug metrics##HelpMenuBar", nullptr, (m_windows & ViewDebugMetrics)))
             {
                 if (m_windows & ViewDebugMetrics)

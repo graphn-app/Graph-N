@@ -96,6 +96,7 @@ public:
 
 #ifdef _DEBUG
     void test_duplicates() const;
+    const std::vector<std::unique_ptr<PinInstance>>& get_all_pins() const noexcept { return m_pins; }
 #else
     void test_duplicates() const {}
 #endif

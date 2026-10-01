@@ -4,6 +4,9 @@
 #include "ui/dialogs/options/opts_dlg.h"
 #include "ui/dialogs/modal_message.h"
 #include "ui/dialogs/sync_projects_dlg.h"
+#ifdef _DEBUG
+#include "ui/dialogs/debug_wf_view.h"
+#endif
 #include "ui/panels/activity_bar.h"
 #include "ui/panels/panel_nodes.h"
 #include "ui/panels/panel_node_inspector.h"
@@ -237,6 +240,8 @@ const char* GraphN_Flow::get_panel_icon(DlgObj panel_obj) const noexcept
     //    return ICON_LC_HEADING_1;
     //case DlgObj::PanelNotes:
     //    return ICON_LC_SCROLL_TEXT;
+    case DlgObj::PanelDebugWf:
+        return ICON_LC_BUG;
     }
     LogRError("Unhandled panel id " << cast::to_i32(panel_obj), "");
 }
@@ -340,11 +345,11 @@ bool GraphN_Flow::run()
     if ((m_windows & ViewSyncProjects) > 0)
         show_sync_projs_dlg();
 
+    show_panels();
+
 #ifdef _DEBUG
     show_debug_windows();
 #endif
-
-    show_panels();
 
     if ((m_windows & ViewModal) > 0 || (m_windows & ViewModalStop) > 0)
         show_modal();
@@ -730,6 +735,11 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
         m_windows &= ~ViewActivityBarR;
         Log("Right activity bar closed");
         break;
+    case DlgObj::PanelDebugWf:
+        if (m_wf_debug_panels.empty())
+            m_windows &= ~ViewWfDebug;
+        Log("Wf debug dlgs closed");
+        break;
     default:
         LogRError("Unknown dialog is trying to be closed " << cast::to_u64(dlg), );
     }
@@ -937,6 +947,10 @@ void GraphN_Flow::show_debug_windows() noexcept
     {
         ImGui::ShowFontSelector("DebugFontSelector");
     }
+    if (m_windows & ViewWfDebug)
+    {
+        show_wf_debug_dlg();
+    }
 #endif
 }
 
@@ -1083,6 +1097,23 @@ void GraphN_Flow::show_panel_wf()
                 wf_activate(panel->get_workflow()->get_id());
         }
     }
+}
+
+void GraphN_Flow::show_wf_debug_dlg()
+{
+#ifdef _DEBUG
+    for (auto it = m_wf_debug_panels.begin(); it != m_wf_debug_panels.end(); )
+    {
+        auto& dlg = *it;
+        if (dlg->show() != DlgCode::Progress)
+        {
+            it = m_wf_debug_panels.erase(it);
+            on_dlg_closed(DlgObj::PanelDebugWf);
+        }
+        else
+            ++it;
+    }
+#endif
 }
 
 void GraphN_Flow::handle_comfyui_runserver_error(int32_t error, std::string&& title, std::string&& description) noexcept

@@ -59,11 +59,8 @@ o_json WfSerializerToJson::serialize()
 
     serialize_groups();
 
-    if (virt_wf)
-    {
-        m_wf = nullptr;
-        g::pWfsManager->erase_wf(virt_wf->get_id());
-    }
+    m_wf = nullptr;
+    g::pWfsManager->erase_wf(virt_wf->get_id());
 
     return std::move(m_json);
 }
