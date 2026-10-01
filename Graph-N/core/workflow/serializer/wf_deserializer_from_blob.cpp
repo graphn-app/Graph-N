@@ -62,7 +62,7 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
             deserialize_link(block);
         }
 
-        const auto nodes = m_wf->get_nodes_no_reroutes();
+        const auto nodes = m_wf->get_nodes_no_reroutes_r();
         for (auto node : nodes)
         {
             node->flags().remove(NodeInstFlags::Deserialization);

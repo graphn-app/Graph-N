@@ -31,7 +31,7 @@ blob::Writer WfSerializerToBlob::serialize(const blob::Blob& drawer_state)
     block.end();
 
     block.begin();
-    const auto nodes = m_wf->get_nodes_no_reroutes();
+    const auto nodes = m_wf->get_nodes_no_reroutes_r();
     m_writer.push(cast::to_u32(nodes.size()));
     for (auto node : nodes)
     {

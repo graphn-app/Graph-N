@@ -86,14 +86,29 @@ bool WfsManager::init()
 
 void WfsManager::cleanup_frame()
 {
+    const auto clear_if = [](data::Workflow* wf, wid id)
+    {
+        if (wf->get_id() == id)
+        {
+            wf->clear_wf();
+            return true;
+        }
+        return false;
+    };
+
     for (auto wf_id : m_pending_cleanups.erase_wfs)
     {
-        if (std::erase_if(m_wfs_virt, [wf_id](const std::shared_ptr<data::Workflow>& ptr) { return ptr->get_id() == wf_id; }) == 0)
+        if (std::erase_if(m_wfs_virt, [wf_id, clear_if](const std::shared_ptr<data::Workflow>& ptr) { return clear_if(ptr.get(), wf_id); }) == 0)
         {
-            if (std::erase_if(m_wfs_ro, [wf_id](const std::unique_ptr<data::Workflow>& ptr) { return ptr->get_id() == wf_id; }) == 0)
+            if (std::erase_if(m_wfs_ro, [wf_id, clear_if](const std::unique_ptr<data::Workflow>& ptr) { return clear_if(ptr.get(), wf_id); }) == 0)
             {
-                if (m_wfs.erase(wf_id) > 0)
+                const auto it = m_wfs.find(wf_id);
+                if (it != m_wfs.end())
+                {
+                    it->second->clear_wf();
+                    m_wfs.erase(it);
                     Log("Wf removed. w:" << wf_id);
+                }
             }
             else
                 Log("RO wf removed. w:" << wf_id);
@@ -136,7 +151,7 @@ const WfData& WfsManager::create_copy(wid source)
     auto wf = create(std::move(data), true);
 
     copy_begin(src_wf, ImVec2(0, 0));
-    const auto nodes = src_wf->get_nodes_no_reroutes();
+    const auto nodes = src_wf->get_nodes_no_reroutes_r();
     for (auto node : nodes)
     {
         if (node->flags().has_not(NodeInstFlags::RerouteSplitted_R))
@@ -161,7 +176,7 @@ std::shared_ptr<data::Workflow> WfsManager::create_copy_virtual(const data::Work
     wf->init();
 
     copy_begin(src_wf, ImVec2(0, 0));
-    const auto nodes = src_wf->get_nodes_no_reroutes();
+    const auto nodes = src_wf->get_nodes_no_reroutes_r();
     for (auto node : nodes)
     {
         copy_add(node);
@@ -560,6 +575,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
         g::pHistoryManager->multi_action_begin(wf_dest->get_id(), "Paste");
 
     std::map<iid, data::NodeInstance*> curr_node_to_new_node;
+    wf_dest->set_last_child_id(m_copy_src->get_last_child_id());
 
     for (auto node : m_copied_nodes)
     {
@@ -574,7 +590,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
 
         if (node->flags().has(NodeInstFlags::Group))
         {
-            wf_dest->add_group(dest_rect, node->get_name());
+            wf_dest->add_group(dest_rect, node->get_name(), node->get_instance_id());
             continue;
         }
 
@@ -650,7 +666,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
     if (!dest_wf_data.virt)
         g::pHistoryManager->multi_action_end(wf_dest->get_id());
 
-    const auto dest_nodes = wf_dest->get_nodes_no_reroutes();
+    const auto dest_nodes = wf_dest->get_nodes_no_reroutes_r();
     for (auto node : dest_nodes)
     {
         node->flags().remove(NodeInstFlags::Deserialization);

@@ -312,7 +312,7 @@ std::list<Link*> Workflow::get_links_by_pin(const PinInstance* pin) const
     return ret;
 }
 
-std::vector<NodeInstance*> Workflow::get_nodes_no_reroutes() const
+std::vector<NodeInstance*> Workflow::get_nodes_no_reroutes_r() const
 {
     std::vector<NodeInstance*> nodes;
     nodes.reserve(m_nodes.size());
@@ -861,7 +861,7 @@ void Workflow::bypass_node(data::NodeInstance* node)
 
 void Workflow::prepare_for_api()
 {
-    const auto nodes = get_nodes_no_reroutes();
+    const auto nodes = get_nodes_no_reroutes_r();
     for (auto node : nodes)
     {
         bool remove = (node->flags().has(NodeInstFlags::Group) || node->get_mode_mute());
@@ -961,7 +961,7 @@ void Workflow::clear_wf() noexcept
         remove_link(link);
     }
 
-    auto nodes = get_nodes_no_reroutes();
+    auto nodes = get_nodes_no_reroutes_r();
     for (auto node : nodes)
     {
         node->cni_cleanup_base_object();

@@ -30,35 +30,21 @@ o_json WfSerializerToJson::serialize()
 {
     LogRAssert(m_wf, "Zero ptr", o_json{});
 
-    std::shared_ptr<Workflow> virt_wf;
-    auto& test_nodes = m_wf->get_nodes_all();
-    bool has_reroutes = false;
+    std::shared_ptr<Workflow> virt_wf = g::pWfsManager->create_copy_virtual(m_wf);
+    m_wf = virt_wf.get();
 
-    for (auto& node : test_nodes)
+    auto& all_nodes = m_wf->get_nodes_all();
+    std::set<NodeInstance*> reroutes;
+
+    for (auto& node : all_nodes)
     {
-        if (node->flags().has(NodeInstFlags::Reroute))
+        if (node->flags().has_and_has_not(NodeInstFlags::Reroute, NodeInstFlags::RerouteSplitted_R))
         {
-            has_reroutes = true;
-            break;
+            reroutes.insert(node.get());
         }
     }
-
-    if (has_reroutes)
-    {
-        virt_wf = g::pWfsManager->create_copy_virtual(m_wf);
-        m_wf = virt_wf.get();
-
-        const auto nodes_copy = m_wf->get_nodes_no_reroutes();
-        for (auto node : nodes_copy)
-        {
-            if (node->flags().has(NodeInstFlags::Reroute))
-            {
-                if (node->flags().has(NodeInstFlags::RerouteSplitted))
-                    virt_wf->merge_reroute_parts(node, true);
-                virt_wf->split_reroute_to_parts({ node });
-            }
-        }
-    }
+    if (!reroutes.empty())
+        cast::remove_const(m_wf)->separate_reroutes(reroutes);
 
     m_json = o_json();
     m_json["id"] = m_wf->get_uuid();
@@ -88,7 +74,7 @@ iid WfSerializerToJson::serialize_nodes()
     int32_t order = 0;
 
     auto jarr = o_json::array();
-    const auto nodes = m_wf->get_nodes_no_reroutes();
+    const auto nodes = m_wf->get_nodes_no_reroutes_r();
     for (auto node : nodes)
     {
         if (node->flags().has(NodeInstFlags::Group))

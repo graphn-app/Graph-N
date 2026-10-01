@@ -52,7 +52,7 @@ public:
     Link* get_link_by_instance(iid id) const noexcept;
     std::list<Link*> get_links_by_pin(const PinInstance* pin) const;
 
-    std::vector<NodeInstance*> get_nodes_no_reroutes() const;
+    std::vector<NodeInstance*> get_nodes_no_reroutes_r() const;
     const std::vector<std::unique_ptr<NodeInstance>>& get_nodes_all() const noexcept { return m_nodes; }
 
     std::vector<NodeInstanceRo*> get_nodes_ro() const;
