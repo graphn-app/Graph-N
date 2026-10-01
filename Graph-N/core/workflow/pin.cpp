@@ -42,7 +42,6 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
 
 Pin::Pin(Node* node, const std::string& pin_name, bool is_required, bool is_optional/*, bool is_hidden*/)
     : base::HashID(node->node_class + "_IN_" + pin_name)
-    , parent_node(node)
 {
     flags.set(PinObjFlags::Input, PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::CanRename, PinObjFlags::InputCanBeWidget);
     flags.add_remove_if(PinObjFlags::Required, is_required);
@@ -52,7 +51,6 @@ Pin::Pin(Node* node, const std::string& pin_name, bool is_required, bool is_opti
 
 Pin::Pin(Node* node, int32_t pin_index)
     : base::HashID(node->node_class + "_OUT_" + std::to_string(pin_index))
-    , parent_node(node)
     , out_index(pin_index)
 {
     flags.set(PinObjFlags::Output, PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::CanRename);

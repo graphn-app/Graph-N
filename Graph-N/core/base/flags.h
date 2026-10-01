@@ -257,6 +257,7 @@ enum class NodeInstFlags : uint64_t
     PosEditorReady            = 1ULL << 27,   // 134217728          -  0x8000000
     MaskEditorRunning         = 1ULL << 28,   // 268435456          -  0x10000000
     PosEditorRunning          = 1ULL << 29,   // 536870912          -  0x20000000
+    PrimitiveNode             = 1ULL << 30,   // 1073741824         -  0x40000000
 };
 
 inline constexpr ObjectFlags<NodeInstFlags> g_node_inst_all_modes_mask

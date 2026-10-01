@@ -513,7 +513,7 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
 {
     nodes = filter_reroutes(nodes);
 
-    m_action->multi_action_on("Split");
+    m_action->multi_action_on("Separate");
     for (auto node : nodes)
     {
         LogCAssert(node->flags().has(NodeInstFlags::Reroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());

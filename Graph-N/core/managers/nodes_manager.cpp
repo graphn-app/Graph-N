@@ -236,7 +236,6 @@ std::unique_ptr<data::Pin> NodesManager::make_pin_ptr(data::Node* parent, const 
         pin = std::make_unique<data::Pin>(parent, name, true, false/*, false*/);
         parent->input.push_back(pin.get());
     }
-    pin->parent_node = parent;
     pin->initialize(type);
     pin->finalize();
     pin->def_state.name = name;

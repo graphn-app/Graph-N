@@ -88,17 +88,6 @@ protected:
         return in_progress ? DlgCode::Progress : DlgCode::Cancel;
     }
 
-    DlgCode cleanup_and_exit_popup(bool end_dlg, bool pop_styles, DlgCode exit_code) noexcept
-    {
-        if (end_dlg)
-            ImGui::EndPopup();
-
-        if (pop_styles)
-            ImGuiEx::PopDlgTitleStyles();
-
-        return exit_code;
-    }
-
 protected:
     bool m_appeared = false;
 

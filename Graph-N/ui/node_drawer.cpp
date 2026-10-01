@@ -1535,7 +1535,8 @@ void NodeDrawer::query_new_item(
             m_querying_pin = m_wf->ed_get_pin(pin);
             if (ed::AcceptNewItem())
             {
-                if (m_querying_pin != nullptr && m_querying_pin->get_object()->parent_node->flags.has_not(NodeObjFlags::Dummy) && m_querying_pin->flags().has_not(PinInstFlags::RerouteSplittingPin))
+                const auto parent = m_wf->get_node_by_instance(m_querying_pin->get_parent_node());
+                if (m_querying_pin != nullptr && parent->obj_flags().has_not(NodeObjFlags::Dummy) && m_querying_pin->flags().has_not(PinInstFlags::RerouteSplittingPin))
                     new_node_handler(m_querying_pin, ed::ScreenToCanvas(ImGui::GetMousePos()));
                 m_querying_pin = nullptr;
             }

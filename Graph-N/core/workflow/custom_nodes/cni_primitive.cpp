@@ -24,7 +24,7 @@ std::unique_ptr<Node> CNI_Primitive::cni_create_object()
 CNI_Primitive::CNI_Primitive(Node* obj, wid workflow_id, iid instance_id) noexcept
     : CNI_BaseObj_T<CNI_Primitive>(obj, workflow_id, instance_id)
 {
-    flags().add(NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
+    flags().add(NodeInstFlags::PrimitiveNode, NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
     obj_flags().add(NodeObjFlags::CustomWdgtRestrictCfg);
 }
 

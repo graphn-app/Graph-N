@@ -97,7 +97,6 @@ public:
     static PinShape get_shape(PinType type) noexcept;
 
 public:
-    const Node* parent_node = nullptr;
     ObjectFlags<PinObjFlags> flags;
 
     int32_t out_index = -1;
