@@ -230,6 +230,7 @@ struct ExecTask final
 
         OutputType type = OutputType::Unknown;
         std::string filename;
+        std::string server_filename;
         std::string filetype;
         std::string subfolder;
         std::string format;

@@ -1094,22 +1094,22 @@ void NodesParser::apply_options(NodesManager& manager)
 
         if (display_output_images.contains(hash))
         {
-            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton);
+            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton, NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtText);
             node->flags.add(NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtRestrictCfg);
         }
         else if (display_output_videos.contains(hash))
         {
-            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton);
+            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton, NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtText);
             node->flags.add(NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtRestrictCfg);
         }
         else if (display_output_audios.contains(hash))
         {
-            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton);
+            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton, NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtText);
             node->flags.add(NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtRestrictCfg);
         }
         else if (display_output_texts.contains(hash))
         {
-            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton);
+            node->flags.remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton, NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtText);
             node->flags.add(NodeObjFlags::CustomWdgtText, NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtRestrictCfg);
         }
         else if (!opt.display_source.empty() && node->flags.has_not(NodeObjFlags::CustomWdgtRestrictCfg))

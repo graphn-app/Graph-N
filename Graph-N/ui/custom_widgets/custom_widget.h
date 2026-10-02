@@ -22,7 +22,7 @@ public:
 
     bool get_current_image_paths(data::NodeInstance* node, std::filesystem::path& path, std::filesystem::path& server_name) const;
 
-    void add_output(wid wf_id, iid node_id, mngr::ExecTask::OutputType type, const std::string& data, int32_t preloaded_media_id);
+    void add_output(wid wf_id, iid node_id, mngr::ExecTask::OutputType type, const std::string& data, const std::string& server_filename, int32_t preloaded_media_id);
     void cleanup_outputs(wid wf_id);
     void cleanup_outputs(wid wf_id, iid node_id);
     void copy_text_output(wid wf_id, iid node_id);
@@ -65,6 +65,7 @@ private:
     struct WidgetItem final
     {
         std::filesystem::path temp_path;
+        std::filesystem::path server_name;
         int32_t media_id = 0;
         bool requested = false;
         std::string or_size;

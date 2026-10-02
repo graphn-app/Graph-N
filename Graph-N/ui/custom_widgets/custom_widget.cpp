@@ -170,7 +170,7 @@ void CustomWidget::check_media_list_version(Widget& widget)
         return;
     m_node->m_media_list_version = widget.list_version;
 
-    if (widget.upload_target == m_node->get_instance_id() && !widget.uploaded_media.empty())
+    if ((0 == widget.upload_target || widget.upload_target == m_node->get_instance_id()) && !widget.uploaded_media.empty())
     {
         const auto pin = m_node->get_object()->custom_widget_source;
         for (auto& input : m_node->get_inputs())
@@ -180,7 +180,8 @@ void CustomWidget::check_media_list_version(Widget& widget)
                 auto& pin_list = pin->combo_items;
                 pin_list.push_back(widget.uploaded_media);
                 pin->finalize_combo();
-                input->state().value = cast::to_i64(pin_list.size() - 1);
+                if (widget.upload_target != 0)
+                    input->state().value = cast::to_i64(pin_list.size() - 1);
                 break;
             }
         }
@@ -325,7 +326,8 @@ void CustomWidget::reset_widgets()
     m_audios = {};
 }
 
-void CustomWidget::add_output(wid wf_id, iid node_id, mngr::ExecTask::OutputType type, const std::string& data, int32_t preloaded_media_id)
+void CustomWidget::add_output(
+    wid wf_id, iid node_id, mngr::ExecTask::OutputType type, const std::string& data, const std::string& server_filename, int32_t preloaded_media_id)
 {
     auto wf = g::pWfsManager->access(wf_id, true);
     if (nullptr == wf)   // zero wf is not an error, it could be closed already
@@ -359,7 +361,8 @@ void CustomWidget::add_output(wid wf_id, iid node_id, mngr::ExecTask::OutputType
         LogRError("Unknwon output type", );
     }
 
-    node->obj_flags().remove(NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtText);
+    out.item.server_name = server_filename;
+    node->obj_flags().remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton, NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtText);
     node->obj_flags().add(NodeObjFlags::CustomWdgtRestrictCfg, NodeObjFlags::CustomWidget, NodeObjFlags::CustomWdgtFromOutput, out.media_type);
     node->reset_width();
 

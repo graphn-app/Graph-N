@@ -651,7 +651,7 @@ void GraphN_Flow::reparse_nodes()
             return;
         }
 
-#if 1
+#if 0
         auto path = fs::get_root_directory_path() / "object_info.json";
         data = tools::path::read_file(path, false);
 #endif

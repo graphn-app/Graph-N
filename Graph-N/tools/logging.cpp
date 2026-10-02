@@ -7,17 +7,16 @@
 namespace glog
 {
 
-constexpr const char* g_log_file_mark = "__log_enabled__";
 bool Logger::m_log_file_mark_enabled = false;
-#ifndef TOOLS_DETACHED_STATE
+bool Logger::m_log_web_dump_file_mark_enabled = false;
+bool Logger::m_log_object_info_file_mark_enabled = false;
+bool Logger::m_log_invalid_json_mark_enabled = false;
+
+constexpr const char* g_log_file_mark = "__log_enabled__";
 constexpr const char* g_log_web_dump_file_mark = "__dump_web_response__";
 constexpr const char* g_log_object_info_file_mark = "__dump_object_info__";
 constexpr const char* g_log_invalid_json_mark = "__dump_invalid_json__";
 
-bool Logger::m_log_web_dump_file_mark_enabled = false;
-bool Logger::m_log_object_info_file_mark_enabled = false;
-bool Logger::m_log_invalid_json_mark_enabled = false;
-#endif // TOOLS_DETACHED_STATE
 std::atomic_bool Logger::m_enabled = false;
 
 /////////////////////////////////////////////////////////////////
@@ -235,7 +234,7 @@ void Logger::log_stop() noexcept
     try
     {
         LogWriter writer;
-        writer << "Log ended: " << tools::dt::from_current_date().as_log_line() << "\n\n";
+        writer << "\nLog ended: " << tools::dt::from_current_date().as_log_line() << "\n\n";
         write(writer);
 
         m_do_close.store(true, std::memory_order_relaxed);
@@ -333,6 +332,10 @@ LogWriter::LogWriter()
 
 void LogWriter::log_line_start(const void* this_, const char* foo, int32_t line)
 {
+#ifdef CLEAR_LOG_MODE
+    (void)this_; (void)foo; (void)line;
+    fmt::format_to(std::back_inserter(m_buffer), ">> ");
+#else // CLEAR_LOG_MODE
     if (nullptr == foo)
     {
 #ifdef _WIN32
@@ -361,6 +364,7 @@ void LogWriter::log_line_start(const void* this_, const char* foo, int32_t line)
 #error Not implemented
 #endif
     }
+#endif // CLEAR_LOG_MODE
 }
 
 LogWriter& LogWriter::operator << (const char* str)

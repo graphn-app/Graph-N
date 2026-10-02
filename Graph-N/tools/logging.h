@@ -390,4 +390,3 @@ struct LogGuard final
 #define LogHEX(h)                    glog::LogHex(h)
 #define LogHRES(h)                   glog::LogHRes(uint32_t(h))
 #define LogPTR(p)                    glog::LogPtr(p)
-

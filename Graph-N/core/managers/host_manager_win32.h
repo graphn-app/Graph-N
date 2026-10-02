@@ -14,6 +14,7 @@ public:
 private:
     std::thread run_host(const blob::HostData& host) override;
     void kill_host(uint64_t id) override;
+    void shutdown_host(uint64_t id) override;
     void rename_host(uint64_t id, const std::string& new_wf_name, const std::string& new_node_name) override;
     void raise_host(uint64_t id) override;
 

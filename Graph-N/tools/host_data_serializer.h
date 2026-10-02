@@ -12,6 +12,7 @@ struct HostData final
         Cmd_MaskEditor,     // server -> host. Open MaskEditor
         Cmd_PosEditor,      // server -> host. Open 3dPosEditor
         Cmd_Terminate,      // server -> host. Terminate editor
+        Cmd_Shutdown,       // server -> host. Terminate editor
         Cmd_Rename,         // server -> host. Node renamed
         Cmd_Raise,          // server -> host. Bring host window to foreground
         Cmd_Apply,          // host -> server. Dest image saved

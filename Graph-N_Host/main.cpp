@@ -149,6 +149,7 @@ void listen_thread(std::promise<bool> promise)
     const HANDLE hpipe = ::CreateFileW(pipe_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
     if (INVALID_HANDLE_VALUE == hpipe)
         return set_reply(false, "Can't open pipe");
+    LogS("Pipe open: " << pipe_name);
 
     g_data.hpipe.reset(hpipe);
     DWORD mode = PIPE_READMODE_MESSAGE;
@@ -168,7 +169,10 @@ void listen_thread(std::promise<bool> promise)
             if (::GetLastError() == ERROR_IO_PENDING)
             {
                 if (::GetOverlappedResult(g_data.hpipe.get(), &write_ov, &bytes_written, TRUE))
+                {
+                    LogS("Pipe: sent " << bytes_written << " bytes");
                     result = true;
+                }
                 else
                     LogWarnS("Can't write to pipe - overlapped result failed. err: " << LogApiERR);
             }
@@ -176,7 +180,10 @@ void listen_thread(std::promise<bool> promise)
                 LogWarnS("Can't write to pipe. err: " << LogApiERR);
         }
         else
+        {
+            LogS("Pipe: sent " << bytes_written << " bytes");
             result = true;
+        }
 
         ::CloseHandle(write_ov.hEvent);
         return result;
@@ -189,7 +196,7 @@ void listen_thread(std::promise<bool> promise)
         const BOOL peek_status = ::PeekNamedPipe(g_data.hpipe.get(), nullptr, 0, nullptr, nullptr, &bytes_avail);
         if (peek_status && bytes_avail >= min_size)
         {
-            LogS("Message avail (" << bytes_avail << "b)");
+            LogS("Message ready: " << bytes_avail << " bytes");
             return bytes_avail;
         }
         return 0;
@@ -205,12 +212,16 @@ void listen_thread(std::promise<bool> promise)
         bool success = false;
         if (::ReadFile(g_data.hpipe.get(), buffer.data(), data_size, &bytes_read, &read_ov))
         {
+            LogS("Pipe: read " << bytes_read << " bytes");
             success = true;
         }
         else if (::GetLastError() == ERROR_IO_PENDING)
         {
             if (::GetOverlappedResult(g_data.hpipe.get(), &read_ov, &bytes_read, TRUE))
+            {
+                LogS("Pipe: read " << bytes_read << " bytes");
                 success = true;
+            }
             else
                 LogWarnS("Readfile overlapped result err : " << LogApiERR);
         }
@@ -234,6 +245,7 @@ void listen_thread(std::promise<bool> promise)
         blob::HostData ready_data;
         ready_data.host_id = g_data.host_data.host_id;
         ready_data.cmd = blob::HostData::Cmd_Ready;
+        LogS("Send: ready");
         if (!write_pipe(ready_data))
             return set_reply(false, "Can't write init data");
     }
@@ -256,18 +268,23 @@ void listen_thread(std::promise<bool> promise)
     if (g_data.host_data.cmd != blob::HostData::Cmd_MaskEditor && g_data.host_data.cmd != blob::HostData::Cmd_PosEditor)
         return set_reply(false, "Invalid mode");
     g_data.mode = (blob::HostData::Cmd_MaskEditor == g_data.host_data.cmd ? Mode::MaskEditor : Mode::PosEditor);
+    LogS("Mode: " << (Mode::MaskEditor == g_data.mode ? "Massk editor" : "3dpos editor"));
     if (0 == g_data.host_data.host_id)
         return set_reply(false, "Invalid host id");
     if (!tools::path::exists(g_data.host_data.source_path))
         return set_reply(false, "Source path is not exists");
+    LogS("Source: " << g_data.host_data.source_path);
     if (!tools::path::exists(g_data.host_data.dest_path))
         return set_reply(false, "Dest path is not exists");
+    LogS("Dest: " << g_data.host_data.dest_path);
     if (0 == g_data.host_data.node_id || 0 == g_data.host_data.workflow_id)
-        return set_reply(false, "Invalid node/workflow id");
+        return set_reply(false, "Invalid node/workflow id");    
     if (g_data.host_data.wf_name.empty() || g_data.host_data.node_name.empty())
         return set_reply(false, "Empty node/workflow name");
+    LogS("Workflow. " << g_data.host_data.workflow_id << ":" << g_data.host_data.wf_name << ", Node. " << g_data.host_data.node_id << ":" << g_data.host_data.node_name);
     if (blob::HostData::Cmd_MaskEditor == g_data.host_data.cmd && g_data.host_data.sam_enabled && (g_data.host_data.comfyui_host.empty() || 0 == g_data.host_data.comfyui_port))
         return set_reply(false, "SAM enabled, but ComfyUI server not specified");
+    LogS("SAM enabled: " << g_data.host_data.sam_enabled << ", ComfyUI at: " << g_data.host_data.comfyui_host << ":" << g_data.host_data.comfyui_port);
 
     set_reply(true, nullptr);
     LogS("Host initialized");
@@ -300,6 +317,10 @@ void listen_thread(std::promise<bool> promise)
                     LogS("Terminate command received");
                     ::PostMessage(g_data.hwnd, WM_DESTROY, 0, 0);
                     return;
+                case blob::HostData::Cmd_Shutdown:
+                    LogS("Shutdown command received");
+                    ::PostMessage(g_data.hwnd, WM_DESTROY, 0, 0);
+                    return;
                 default:
                     LogErrorS("Invalid command received: " << read_data.cmd);
                 }
@@ -315,9 +336,8 @@ void listen_thread(std::promise<bool> promise)
             apply_data.host_id = g_data.host_data.host_id;
             apply_data.cmd = blob::HostData::Cmd_Apply;
             apply_data.settings = g_data.host_data.settings;
+            LogS("Send: apply");
             write_pipe(apply_data);
-            ::PostMessage(g_data.hwnd, WM_DESTROY, 0, 0);
-            return;
         }
 
         std::this_thread::sleep_for(100ms);
@@ -330,6 +350,7 @@ void build_caption()
     const auto caption = fmt::format(FMT_STRING("{}. {}: {}"), editor, g_data.host_data.wf_name, g_data.host_data.node_name);
     if (g_data.hwnd != nullptr)
         ::SetWindowTextA(g_data.hwnd, caption.c_str());
+    LogS("Caption rebuilt: " << caption);
 }
 
 bool connect_pipe()
@@ -378,6 +399,7 @@ bool load_html()
         LogS("Failed to read HTML file: " << path);
         return false;
     }
+    LogS("HTML loaded from: " << path);
 
     if (g_data.host_data.settings.empty())
         tools::str::replace_this(html, "/*APP_SETTINGS_TOKEN*/", "null");
@@ -402,6 +424,7 @@ bool load_source_image()
         return false;
     }
 
+    LogS("Image loaded from: " << g_data.host_data.source_path);
     g_data.src_data = std::move(image);
     return true;
 }
@@ -420,6 +443,7 @@ bool save_dest_image() noexcept
         return false;
     }
 
+    LogS("Image saved to: " << g_data.host_data.dest_path);
     return true;
 }
 
@@ -469,6 +493,7 @@ std::string sam_detect(const std::string& request_data)
 
         const nlohmann::json request_json = json::parse(request_data);
         auto& points = request_json["points"];
+        std::stringstream pt_str_pos, pt_str_neg;
         for (auto& pt : points)
         {
             const float x = pt["x"];
@@ -476,12 +501,23 @@ std::string sam_detect(const std::string& request_data)
             const int32_t pos = pt["label"];
 
             if (1 == pos)
+            {
                 pos_points.push_back({ x, y });
+                if (!pt_str_pos.str().empty())
+                    pt_str_pos << ", ";
+                pt_str_pos << x << "/" << y;
+            }
             else
+            {
                 neg_points.push_back({ x, y });
+                if (!pt_str_neg.str().empty())
+                    pt_str_neg << ", ";
+                pt_str_neg << x << "/" << y;
+            }
         }
-        const float threshold = request_json["threshold"];
+        LogS("SAM points. Pos: " << pt_str_pos.str() << ", Neg: " << pt_str_neg.str());
 
+        const float threshold = request_json["threshold"];
         const nlohmann::json detect_payload =
         {
             { "positive_points", pos_points },
@@ -637,6 +673,8 @@ int32_t main(int32_t, char**)
             hres = args->put_Response(resp.Get());
             if (FAILED(hres))
                 LogS("ICoreWebView2WebResourceRequestedEventArgs::put_Response(" << details << ") failed. HR: " << LogHRES(hres));
+            else
+                LogS("Respond sent: " << status_code << ", " << reason << ", " << details);
         }
         else
             LogS("ICoreWebView2Environment::CreateWebResourceResponse(" << details << ") failed. HR: " << LogHRES(hres));
@@ -644,229 +682,246 @@ int32_t main(int32_t, char**)
     };
 
     const auto data_folder = fs::get_host_webprofile_path(g_data.host_data.host_id);
-    const auto hres = ::CreateCoreWebView2EnvironmentWithOptions(nullptr, data_folder.c_str(), nullptr,
-        ::Microsoft::WRL::Callback<::ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-            [send_response](HRESULT hres, ::ICoreWebView2Environment* env) -> HRESULT
     {
-        if (nullptr == env || FAILED(hres))
+        const auto hres = ::CreateCoreWebView2EnvironmentWithOptions(nullptr, data_folder.c_str(), nullptr,
+            ::Microsoft::WRL::Callback<::ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+                [send_response](HRESULT hres, ::ICoreWebView2Environment* env) -> HRESULT
         {
-            LogS("CreateCoreWebView2EnvironmentWithOptions failed. HR: " << LogHRES(hres));
-            return hres;
-        }
-        hres = env->CreateCoreWebView2Controller(g_data.hwnd, Microsoft::WRL::Callback<::ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-            [env, send_response](HRESULT hres, ::ICoreWebView2Controller* controller) -> HRESULT
-        {
-            if (nullptr == controller || FAILED(hres))
+            if (nullptr == env || FAILED(hres))
             {
-                LogS("ICoreWebView2Environment::CreateCoreWebView2Controller failed. HR: " << LogHRES(hres));
+                LogS("CreateCoreWebView2EnvironmentWithOptions failed. HR: " << LogHRES(hres));
                 return hres;
             }
-            g_data.webview_controller = controller;
-            hres = g_data.webview_controller->get_CoreWebView2(&g_data.webview);
-            if (FAILED(hres))
+            hres = env->CreateCoreWebView2Controller(g_data.hwnd, Microsoft::WRL::Callback<::ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+                [env, send_response](HRESULT hres, ::ICoreWebView2Controller* controller) -> HRESULT
             {
-                LogS("ICoreWebView2Controller::get_CoreWebView2 failed. HR: " << LogHRES(hres));
-                return hres;
-            }
-
-            ::RECT bounds = {};
-            ::GetClientRect(g_data.hwnd, &bounds);
-            g_data.webview_controller->put_Bounds(bounds);
-
-            hres = g_data.webview->AddWebResourceRequestedFilter(L"http://app.local/*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
-            if (FAILED(hres))
-            {
-                LogS("ICoreWebView2::AddWebResourceRequestedFilter failed. HR: " << LogHRES(hres));
-                return hres;
-            }
-
-            hres = g_data.webview->add_WebResourceRequested(::Microsoft::WRL::Callback<::ICoreWebView2WebResourceRequestedEventHandler>(
-                [env, send_response](::ICoreWebView2*, ::ICoreWebView2WebResourceRequestedEventArgs* args) -> HRESULT
-            {
-                if (nullptr == args)
+                if (nullptr == controller || FAILED(hres))
                 {
-                    LogS("ICoreWebView2::add_WebResourceRequested failed: zero args");
-                    return E_INVALIDARG;
+                    LogS("ICoreWebView2Environment::CreateCoreWebView2Controller failed. HR: " << LogHRES(hres));
+                    return hres;
                 }
-                ::Microsoft::WRL::ComPtr<::ICoreWebView2WebResourceRequest> req;
-                auto hres = args->get_Request(&req);
+                g_data.webview_controller = controller;
+                hres = g_data.webview_controller->get_CoreWebView2(&g_data.webview);
                 if (FAILED(hres))
                 {
-                    LogS("ICoreWebView2WebResourceRequestedEventArgs::get_Request failed. HR: " << LogHRES(hres));
+                    LogS("ICoreWebView2Controller::get_CoreWebView2 failed. HR: " << LogHRES(hres));
                     return hres;
                 }
 
-                LPWSTR puri;
-                hres = req->get_Uri(&puri);
+                ::RECT bounds = {};
+                ::GetClientRect(g_data.hwnd, &bounds);
+                hres = g_data.webview_controller->put_Bounds(bounds);
+                LogS("Bounds set: " << int32_t(bounds.left) << "/" << int32_t(bounds.top) << ", " << int32_t(bounds.right) << "/" << int32_t(bounds.bottom) << ", res: " << LogHRES(hres));
+
+                hres = g_data.webview->AddWebResourceRequestedFilter(L"http://app.local/*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
                 if (FAILED(hres))
                 {
-                    LogS("ICoreWebView2WebResourceRequest::get_Uri failed. HR: " << LogHRES(hres));
+                    LogS("ICoreWebView2::AddWebResourceRequestedFilter failed. HR: " << LogHRES(hres));
                     return hres;
                 }
 
-
-                std::wstring uri = puri;
-                ::CoTaskMemFree(puri);
-
-                if (uri.starts_with(L"http://app.local/input.png"))
+                hres = g_data.webview->add_WebResourceRequested(::Microsoft::WRL::Callback<::ICoreWebView2WebResourceRequestedEventHandler>(
+                    [env, send_response](::ICoreWebView2*, ::ICoreWebView2WebResourceRequestedEventArgs* args) -> HRESULT
                 {
-                    ::Microsoft::WRL::ComPtr<::IStream> stream;
-                    stream.Attach(::SHCreateMemStream(cast::ptrs<byte>(g_data.src_data.data()), cast::to<UINT>(g_data.src_data.size())));
-                    if (stream)
-                        hres = send_response(true, stream.Get(), env, args, 200, L"OK", "input.png");
-                    else
+                    if (nullptr == args)
                     {
-                        LogS("Failed to attach stream (input.png)");
-                        hres = E_FAIL;
+                        LogS("ICoreWebView2::add_WebResourceRequested failed: zero args");
+                        return E_INVALIDARG;
                     }
-                    return hres;
-                }
+                    ::Microsoft::WRL::ComPtr<::ICoreWebView2WebResourceRequest> req;
+                    auto hres = args->get_Request(&req);
+                    if (FAILED(hres))
+                    {
+                        LogS("ICoreWebView2WebResourceRequestedEventArgs::get_Request failed. HR: " << LogHRES(hres));
+                        return hres;
+                    }
 
-                if (uri.starts_with(L"http://app.local/mask.png"))
-                {
-                    if (g_data.mask_data.empty())
-                        hres = send_response(false, nullptr, env, args, 404, L"Not found", "mask.png 404");
-                    else
+                    LPWSTR puri;
+                    hres = req->get_Uri(&puri);
+                    if (FAILED(hres))
+                    {
+                        LogS("ICoreWebView2WebResourceRequest::get_Uri failed. HR: " << LogHRES(hres));
+                        return hres;
+                    }
+
+
+                    std::wstring uri = puri;
+                    ::CoTaskMemFree(puri);
+
+                    LogS("URL requested: " << uri);
+                    if (uri.starts_with(L"http://app.local/input.png"))
                     {
                         ::Microsoft::WRL::ComPtr<::IStream> stream;
-                        stream.Attach(::SHCreateMemStream(cast::ptrs<byte>(g_data.mask_data.data()), cast::to<UINT>(g_data.mask_data.size())));
+                        stream.Attach(::SHCreateMemStream(cast::ptrs<byte>(g_data.src_data.data()), cast::to<UINT>(g_data.src_data.size())));
                         if (stream)
-                            hres = send_response(true, stream.Get(), env, args, 200, L"OK", "mask.png 200");
+                            hres = send_response(true, stream.Get(), env, args, 200, L"OK", "input.png");
                         else
                         {
-                            LogS("Failed to attach stream (mask.png 200)");
+                            LogS("Failed to attach stream (input.png)");
                             hres = E_FAIL;
                         }
-                    }
-                    return hres;
-                }
-                if (uri.starts_with(L"http://app.local/sam"))
-                {
-                    hres = send_response(false, nullptr, env, args, g_data.host_data.sam_enabled ? 200 : 404, L"OK", "SAM");
-                    return hres;
-                }
-
-                LPWSTR pmethod = nullptr;
-                hres = req->get_Method(&pmethod);
-                if (FAILED(hres))
-                {
-                    LogS("ICoreWebView2WebResourceRequest::get_Method failed. HR: " << LogHRES(hres));
-                    return hres;
-                }
-
-                const std::wstring method = pmethod;
-                ::CoTaskMemFree(pmethod);
-
-                if (L"OPTIONS" == method)
-                {
-                    hres = send_response(false, nullptr, env, args, 200, L"OK", "OPTIONS");
-                    return hres;
-                }
-
-                if (uri.starts_with(L"http://app.local/save_mask") && L"POST" == method)
-                {
-                    ::Microsoft::WRL::ComPtr<::ICoreWebView2HttpRequestHeaders> headers;
-                    g_data.host_data.settings.clear();
-                    if (SUCCEEDED(req->get_Headers(&headers)) && headers)
-                    {
-                        LPWSTR header_value = nullptr;
-                        if (SUCCEEDED(headers->GetHeader(L"X-Editor-Settings", &header_value)) && header_value)
-                        {
-                            std::wstring wsettings(header_value);
-                            ::CoTaskMemFree(header_value);
-                            g_data.host_data.settings = tools::str::wide_to_utf8(wsettings);
-                        }
+                        return hres;
                     }
 
-                    ::Microsoft::WRL::ComPtr<::IStream> content_stream;
-                    hres = req->get_Content(&content_stream);
-                    if (SUCCEEDED(hres) && content_stream)
+                    if (uri.starts_with(L"http://app.local/mask.png"))
                     {
-                        g_data.dest_data = read_stream(content_stream.Get());
-                        if (!g_data.dest_data.empty())
+                        if (g_data.mask_data.empty())
+                            hres = send_response(false, nullptr, env, args, 404, L"Not found", "mask.png 404");
+                        else
                         {
-                            if (save_dest_image())
+                            ::Microsoft::WRL::ComPtr<::IStream> stream;
+                            stream.Attach(::SHCreateMemStream(cast::ptrs<byte>(g_data.mask_data.data()), cast::to<UINT>(g_data.mask_data.size())));
+                            if (stream)
+                                hres = send_response(true, stream.Get(), env, args, 200, L"OK", "mask.png 200");
+                            else
                             {
-                                hres = send_response(false, nullptr, env, args, 200, L"OK", "save_mask");
-                                g_data.image_ready.store(true, std::memory_order_relaxed);
+                                LogS("Failed to attach stream (mask.png 200)");
+                                hres = E_FAIL;
+                            }
+                        }
+                        return hres;
+                    }
+                    if (uri.starts_with(L"http://app.local/sam"))
+                    {
+                        hres = send_response(false, nullptr, env, args, g_data.host_data.sam_enabled ? 200 : 404, L"OK", "SAM");
+                        return hres;
+                    }
+
+                    LPWSTR pmethod = nullptr;
+                    hres = req->get_Method(&pmethod);
+                    if (FAILED(hres))
+                    {
+                        LogS("ICoreWebView2WebResourceRequest::get_Method failed. HR: " << LogHRES(hres));
+                        return hres;
+                    }
+
+                    const std::wstring method = pmethod;
+                    ::CoTaskMemFree(pmethod);
+
+                    LogS("Method requested: " << method);
+                    if (L"OPTIONS" == method)
+                    {
+                        hres = send_response(false, nullptr, env, args, 200, L"OK", "OPTIONS");
+                        return hres;
+                    }
+
+                    if (uri.starts_with(L"http://app.local/save_mask") && L"POST" == method)
+                    {
+                        ::Microsoft::WRL::ComPtr<::ICoreWebView2HttpRequestHeaders> headers;
+                        g_data.host_data.settings.clear();
+                        if (SUCCEEDED(req->get_Headers(&headers)) && headers)
+                        {
+                            LPWSTR header_value = nullptr;
+                            if (SUCCEEDED(headers->GetHeader(L"X-Editor-Settings", &header_value)) && header_value)
+                            {
+                                std::wstring wsettings(header_value);
+                                ::CoTaskMemFree(header_value);
+                                g_data.host_data.settings = tools::str::wide_to_utf8(wsettings);
+                                LogS("Settings loaded: " << g_data.host_data.settings);
+                            }
+                        }
+
+                        ::Microsoft::WRL::ComPtr<::IStream> content_stream;
+                        hres = req->get_Content(&content_stream);
+                        if (SUCCEEDED(hres) && content_stream)
+                        {
+                            g_data.dest_data = read_stream(content_stream.Get());
+                            if (!g_data.dest_data.empty())
+                            {
+                                LogS("Content received: " << g_data.dest_data.size() << " bytes");
+                                if (save_dest_image())
+                                {
+                                    hres = send_response(false, nullptr, env, args, 200, L"OK", "save_mask");
+                                    g_data.image_ready.store(true, std::memory_order_relaxed);
+                                    return hres;
+                                }
+
+                                hres = send_response(false, nullptr, env, args, 500, L"Fail", "save_mask");
                                 return hres;
                             }
-
-                            hres = send_response(false, nullptr, env, args, 500, L"Fail", "save_mask");
-                            return hres;
                         }
-                    }
-                    else
-                    {
-                        LogS("ICoreWebView2WebResourceRequest::get_Content(save_mask) failed. HR: " << LogHRES(hres));
+                        else
+                        {
+                            LogS("ICoreWebView2WebResourceRequest::get_Content(save_mask) failed. HR: " << LogHRES(hres));
+                        }
+
+                        hres = send_response(false, nullptr, env, args, 500, L"Fail", "save_mask");
+                        return hres;
                     }
 
-                    hres = send_response(false, nullptr, env, args, 500, L"Fail", "save_mask");
+                    if (uri.starts_with(L"http://app.local/detect") && L"POST" == method)
+                    {
+                        ::Microsoft::WRL::ComPtr<::IStream> content_stream;
+                        hres = req->get_Content(&content_stream);
+                        if (SUCCEEDED(hres) && content_stream)
+                        {
+                            const auto json = read_stream(content_stream.Get());
+                            if (!json.empty())
+                            {
+                                ::Microsoft::WRL::ComPtr<::ICoreWebView2Deferral> deferral;
+                                if (SUCCEEDED(args->GetDeferral(&deferral)))
+                                {
+                                    auto args_copy = ::Microsoft::WRL::ComPtr<::ICoreWebView2WebResourceRequestedEventArgs>(args);
+                                    auto env_copy = ::Microsoft::WRL::ComPtr<::ICoreWebView2Environment>(env);
+
+                                    std::thread([json, args_copy, env_copy, deferral, send_response]()
+                                    {
+                                        auto mask_data = sam_detect(json);
+                                        auto* ui_task = new std::function<void()>([args_copy, env_copy, deferral, send_response, mask_data = std::move(mask_data)]() mutable
+                                        {
+                                            if (!mask_data.empty())
+                                            {
+                                                g_data.mask_data = std::move(mask_data);
+                                                LogS("Mask: " << g_data.mask_data.size() << " bytes");
+                                                ::Microsoft::WRL::ComPtr<::IStream> stream;
+                                                stream.Attach(::SHCreateMemStream(cast::ptrs<byte>(g_data.mask_data.data()), cast::to<UINT>(g_data.mask_data.size())));
+                                                if (stream)
+                                                    send_response(true, stream.Get(), env_copy.Get(), args_copy.Get(), 200, L"OK", "detect");
+                                                else
+                                                    send_response(false, nullptr, env_copy.Get(), args_copy.Get(), 500, L"Fail", "!detect_stream");
+                                            }
+                                            else
+                                            {
+                                                send_response(false, nullptr, env_copy.Get(), args_copy.Get(), 500, L"Fail", "!detect");
+                                            }
+
+                                            deferral->Complete();
+                                        });
+
+                                        ::PostMessage(g_data.hwnd, USER_MSG_INVOKE, 0, cast::from_ptr<LPARAM>(ui_task));
+                                    }).detach();
+
+                                    return S_OK;
+                                }
+                            }
+                        }
+
+                        return send_response(false, nullptr, env, args, 500, L"Fail", "detect_fallback");
+                    }
+
+                    return hres;
+                }).Get(), nullptr);
+
+                if (FAILED(hres))
+                {
+                    LogS("ICoreWebView2::add_WebResourceRequested failed. HR: " << LogHRES(hres));
                     return hres;
                 }
 
-                if (uri.starts_with(L"http://app.local/detect") && L"POST" == method)
+                LogS("Navigating to html: " << g_data.html_data.size() << " bytes");
+                hres = g_data.webview->NavigateToString(g_data.html_data.c_str());
+                g_data.html_data.clear(); g_data.html_data.shrink_to_fit();
+                if (FAILED(hres))
                 {
-                    ::Microsoft::WRL::ComPtr<::IStream> content_stream;
-                    hres = req->get_Content(&content_stream);
-                    if (SUCCEEDED(hres) && content_stream)
-                    {
-                        const auto json = read_stream(content_stream.Get());
-                        if (!json.empty())
-                        {
-                            ::Microsoft::WRL::ComPtr<::ICoreWebView2Deferral> deferral;
-                            if (SUCCEEDED(args->GetDeferral(&deferral)))
-                            {
-                                auto args_copy = ::Microsoft::WRL::ComPtr<::ICoreWebView2WebResourceRequestedEventArgs>(args);
-                                auto env_copy = ::Microsoft::WRL::ComPtr<::ICoreWebView2Environment>(env);
-
-                                std::thread([json, args_copy, env_copy, deferral, send_response]()
-                                {
-                                    auto mask_data = sam_detect(json);
-                                    auto* ui_task = new std::function<void()>([args_copy, env_copy, deferral, send_response, mask_data = std::move(mask_data)]() mutable
-                                    {                                        
-                                        if (!mask_data.empty())
-                                        {
-                                            g_data.mask_data = std::move(mask_data);
-                                            ::Microsoft::WRL::ComPtr<::IStream> stream;
-                                            stream.Attach(::SHCreateMemStream(cast::ptrs<byte>(g_data.mask_data.data()), cast::to<UINT>(g_data.mask_data.size())));
-                                            if (stream)
-                                                send_response(true, stream.Get(), env_copy.Get(), args_copy.Get(), 200, L"OK", "detect");
-                                            else
-                                                send_response(false, nullptr, env_copy.Get(), args_copy.Get(), 500, L"Fail", "!detect_stream");
-                                        }
-                                        else
-                                        {
-                                            send_response(false, nullptr, env_copy.Get(), args_copy.Get(), 500, L"Fail", "!detect");
-                                        }
-
-                                        deferral->Complete();
-                                    });
-
-                                    ::PostMessage(g_data.hwnd, USER_MSG_INVOKE, 0, cast::from_ptr<LPARAM>(ui_task));
-                                }).detach();
-
-                                return S_OK;
-                            }
-                        }
-                    }
-
-                    return send_response(false, nullptr, env, args, 500, L"Fail", "detect_fallback");
+                    LogS("ICoreWebView2::NavigateToString failed. HR: " << LogHRES(hres));
+                    return hres;
                 }
-
                 return hres;
-            }).Get(), nullptr);
+
+            }).Get());
             if (FAILED(hres))
             {
-                LogS("ICoreWebView2::add_WebResourceRequested failed. HR: " << LogHRES(hres));
-                return hres;
-            }
-
-            hres = g_data.webview->NavigateToString(g_data.html_data.c_str());
-            g_data.html_data.clear(); g_data.html_data.shrink_to_fit();
-            if (FAILED(hres))
-            {
-                LogS("ICoreWebView2::NavigateToString failed. HR: " << LogHRES(hres));
+                LogS("ICoreWebView2Environment::CreateCoreWebView2Controller failed. HR: " << LogHRES(hres));
                 return hres;
             }
             return hres;
@@ -874,16 +929,9 @@ int32_t main(int32_t, char**)
         }).Get());
         if (FAILED(hres))
         {
-            LogS("ICoreWebView2Environment::CreateCoreWebView2Controller failed. HR: " << LogHRES(hres));
-            return hres;
+            LogS("CreateCoreWebView2EnvironmentWithOptions failed. HR: " << LogHRES(hres));
+            return 1;
         }
-        return hres;
-
-    }).Get());
-    if (FAILED(hres))
-    {
-        LogS("CreateCoreWebView2EnvironmentWithOptions failed. HR: " << LogHRES(hres));
-        return 1;
     }
 
     ::MSG msg;

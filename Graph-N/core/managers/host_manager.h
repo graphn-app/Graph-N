@@ -25,9 +25,10 @@ public:
 
 protected:
     virtual std::thread run_host(const blob::HostData& host) = 0;
-    virtual void kill_host(uint64_t id) = 0;
-    virtual void rename_host(uint64_t id, const std::string& new_wf_name, const std::string& new_node_name) = 0;
-    virtual void raise_host(uint64_t id) = 0;
+    virtual void kill_host(uint64_t id) = 0; // abnormal termination, must send blob::HostData::Cmd_Terminate
+    virtual void shutdown_host(uint64_t id) = 0; // shutdown on success, must send blob::HostData::Cmd_Shutdown
+    virtual void rename_host(uint64_t id, const std::string& new_wf_name, const std::string& new_node_name) = 0; // must send blob::HostData::Cmd_Rename
+    virtual void raise_host(uint64_t id) = 0; // must send blob::HostData::Cmd_Raise
 
     std::tuple<bool, bool, uint64_t> check_opened(wid wf_id, iid node_id);
     void cleanup();

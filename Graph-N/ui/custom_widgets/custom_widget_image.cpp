@@ -122,7 +122,18 @@ bool CustomWidget::get_current_image_paths(data::NodeInstance* node, std::filesy
         {
             path = m_images.items[index].temp_path;
             server_name = source_pin_obj->combo_items_ptr[index];
-            return true;
+            return tools::path::exists(path);
+        }
+        return false;
+    }
+    else if(node->obj_flags().has_all(NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtImage))
+    {
+        const auto it = m_outputs.find(std::make_pair(node->get_workflow_id(), node->get_instance_id()));
+        if (it != m_outputs.end())
+        {
+            path = it->second.item.temp_path;
+            server_name = (it->second.item.server_name.empty() ? path : it->second.item.server_name);
+            return tools::path::exists(path);
         }
         return false;
     }

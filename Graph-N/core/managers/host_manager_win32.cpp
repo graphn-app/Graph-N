@@ -27,6 +27,18 @@ void HostManager_Win32::kill_host(uint64_t id)
     Log("Host #" << id << ": store 'kill' cmd");
 }
 
+void HostManager_Win32::shutdown_host(uint64_t id)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto it = m_processes.find(id);
+    LogRAssert(it != m_processes.end(), "Host #" << id << ": can't shutdown - host not found", );
+    blob::HostData new_command;
+    new_command.host_id = id;
+    new_command.cmd = blob::HostData::Cmd_Shutdown;
+    it->second->new_commands.push_back(new_command);
+    Log("Host #" << id << ": store 'shutdown' cmd");
+}
+
 void HostManager_Win32::rename_host(uint64_t id, const std::string& new_wf_name, const std::string& new_node_name)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -98,8 +110,14 @@ void HostManager_Win32::host_thread(blob::HostData host_data)
 
     if (host_proc->hproc)
     {
+#ifdef _DEBUG
+        constexpr DWORD wait_timeout = 500000;
+#else
+        constexpr DWORD wait_timeout = 20000;
+#endif
+
         if ((status & HostStatus_TerminateDelayed) != 0)
-            ::WaitForSingleObject(host_proc->hproc.get(), 5000);
+            ::WaitForSingleObject(host_proc->hproc.get(), wait_timeout);
 
         if ((status & (HostStatus_TerminateDelayed | HostStatus_Terminate)) != 0 &&
             is_host_alive(*host_proc))
@@ -201,8 +219,8 @@ uint32_t HostManager_Win32::host_thread_worker(std::shared_ptr<HostProcess> host
     Log("Starting " << host_path << " " << command_line);
 
 #ifdef _DEBUG
-    constexpr DWORD pipe_timeout = 5000;
-    constexpr auto wait_client_ready = 5s;
+    constexpr DWORD pipe_timeout = 500000;
+    constexpr auto wait_client_ready = 500s;
 #else
     constexpr DWORD pipe_timeout = 5000;
     constexpr auto wait_client_ready = 5s;
@@ -384,6 +402,8 @@ uint32_t HostManager_Win32::host_thread_worker(std::shared_ptr<HostProcess> host
             }
             if (blob::HostData::Command::Cmd_Terminate == command.cmd)
                 return HostStatus_TerminateDelayed | HostStatus_FinishedFail;
+            if (blob::HostData::Command::Cmd_Shutdown == command.cmd)
+                return HostStatus_TerminateDelayed | HostStatus_FinishedOk;
         }
         new_commands.clear();
 
@@ -397,10 +417,10 @@ uint32_t HostManager_Win32::host_thread_worker(std::shared_ptr<HostProcess> host
                 {
                     if (!response.settings.empty())
                         g::pOptsManager->ui_host_settings_save(response.settings);
-                    return HostStatus_TerminateDelayed | HostStatus_FinishedOk;
+                    shutdown_host(host_data.host_id);
                 }
-
-                LogWarn("Host #" << host_data.host_id << ": unknown host command: " << cast::to_u32(response.cmd));                
+                else
+                    LogWarn("Host #" << host_data.host_id << ": unknown host command: " << cast::to_u32(response.cmd));                
             }
             else
             {

@@ -361,7 +361,8 @@ target_compile_definitions(Graph-N_Host PRIVATE
     _WIN32_WINNT=0x0A00
     WIN32_LEAN_AND_MEAN
     NOMINMAX
-	TOOLS_DETACHED_STATE 
+	TOOLS_DETACHED_STATE
+	CLEAR_LOG_MODE
 )
 
 target_precompile_headers(Graph-N_Host PRIVATE "Graph-N_Host/pch.h")
