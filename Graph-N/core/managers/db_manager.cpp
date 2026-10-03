@@ -656,6 +656,15 @@ void DbManager::wf_update_blob(const std::string& uuid, blob::Blob&& blob, bool 
 
 void DbManager::history_add(ExecTask& task)
 {
+#ifdef _DEBUG
+    static std::set<std::string> all_p;
+    const auto all = history_load_all();
+    for (auto& pt : all)
+    {
+        BREAK_IF(task.prompt_id == pt.prompt_id);
+    }
+#endif
+
     HistoryData h;
     h.blob = task.flow.copy();
     h.prompt_id = task.prompt_id;

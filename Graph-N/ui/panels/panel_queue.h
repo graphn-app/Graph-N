@@ -19,15 +19,25 @@ public:
     void init() override;
     void stop_and_cleanup() noexcept override;
 
+    bool get_favorited_visible() const noexcept { return m_view_favs; }
+    bool get_completed_visible() const noexcept { return m_view_completed; }
+    bool get_history_visible() const noexcept { return m_view_history; }
+
+    void toggle_favorited_visible() noexcept { m_view_favs = !m_view_favs; }
+    void toggle_completed_visible() noexcept { m_view_completed = !m_view_completed; }
+    void toggle_history_visible() noexcept { m_view_history = !m_view_history; }
+
+    void force_reload_history() noexcept { m_force_reload_history = true; }
+
 private:
     DlgCode show(bool& focused) override;
     void show_current_task();
     void show_external_task();
     void show_next_tasks();
     void show_favs_tasks();
-    void show_past_tasks();
+    void show_completed_tasks();
     void show_history_tasks();
-    void show_past_task(uint64_t group_id, mngr::ExecTask* task, const std::string& wf_name = "");
+    void show_completed_task(uint64_t group_id, mngr::ExecTask* task, const std::string& wf_name = "");
     int32_t show_tasks_num(int32_t curr) noexcept;
     void show_image(mngr::ExecTask::Output& output, ImVec2 rect, bool& show_stub);
     void show_audio(mngr::ExecTask::Output& output, ImVec2 rect, bool& show_stub);
@@ -41,20 +51,6 @@ private:
     void pickup_parsed_history();
     void load_output_data(uint64_t task_id, uint64_t out_id, const std::string&& data);
 
-    void on_pre_pause(PanelToolbar::Element& el) noexcept;
-    void on_pause(PanelToolbar::Element& el) noexcept;
-    void on_pre_terminate_current(PanelToolbar::Element& el) noexcept;
-    void on_terminate_current(PanelToolbar::Element& el);
-    void on_pre_remove_all(PanelToolbar::Element& el) noexcept;
-    void on_remove_all(PanelToolbar::Element& el) noexcept;
-    void on_pre_toggle_favorited(PanelToolbar::Element& el) noexcept;
-    void on_toggle_favorited(PanelToolbar::Element& el) noexcept;
-    void on_pre_toggle_past(PanelToolbar::Element& el) noexcept;
-    void on_toggle_past(PanelToolbar::Element& el) noexcept;
-    void on_pre_toggle_history(PanelToolbar::Element& el) noexcept;
-    void on_toggle_history(PanelToolbar::Element& el);
-    void on_reload_history(PanelToolbar::Element& el) noexcept;
-
 private:
     float m_curr_pos_x = 0.0f;
     float m_curr_pos2_x = 0.0f;
@@ -62,11 +58,14 @@ private:
     bool m_visible_curr = false;
     bool m_visible_pend = false;
     bool m_visible_favs = false;
-    bool m_visible_past = false;
+    bool m_visible_completed = false;
 
-    bool m_toggled_favs = true;
-    bool m_toggled_past = true;
-    bool m_toggled_history = false;
+    bool m_view_favs = true;
+    bool m_view_completed = true;
+    bool m_view_history = true;
+
+    bool m_collapse_all_tasks = false;
+    bool m_collapse_all_outputs = false;
 
     mngr::StarredList m_favorited;
     std::set<uint64_t> m_hidden;
@@ -78,7 +77,7 @@ private:
 
     std::atomic_bool m_history_loading_active = false;
     std::shared_ptr<std::atomic_bool> m_load_history_stop;
-    std::atomic_bool m_do_reload_history = true;
+    bool m_do_reload_history = true;
     bool m_ready_pickup_history = false;
     bool m_final_history_pickup_done = false;
     bool m_force_reload_history = false;

@@ -6,6 +6,7 @@
 #include "core/managers/hotkeys_manager.h"
 #include "core/managers/comfyui_manager.h"
 #include "ui/panels/panel_wf.h"
+#include "ui/panels/panel_queue.h"
 #ifdef _DEBUG
 #include "ui/dialogs/debug_wf_view.h"
 #endif
@@ -228,6 +229,24 @@ void GraphN_Flow::show_menu_bar()
             if (ImGui::MenuItem(ICON_LC_X " Interrupt##PanelsQueue", hk->get_key_binding_name(KeyTarget::Queue_Interrupt), nullptr, g::pQueueManager->get_current_group() != nullptr))
             {
                 on_menu_queue_interrupt();
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem(ICON_LC_STAR " Favorited tasks##PanelsQueue", nullptr, m_panel_queue->get_favorited_visible()))
+            {
+                m_panel_queue->toggle_favorited_visible();
+            }
+            if (ImGui::MenuItem(ICON_LC_HISTORY " Completed tasks##PanelsQueue", nullptr, m_panel_queue->get_completed_visible()))
+            {
+                m_panel_queue->toggle_completed_visible();
+            }
+            if (ImGui::MenuItem(ICON_LC_CLIPBOARD_CLOCK " Past tasks##PanelsQueue", nullptr, m_panel_queue->get_history_visible()))
+            {
+                m_panel_queue->toggle_history_visible();
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem(ICON_LC_CLOUD_DOWNLOAD " Reload history tasks##PanelsQueue"))
+            {
+                m_panel_queue->force_reload_history();
             }
             ImGui::EndMenu();
         }

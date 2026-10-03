@@ -55,16 +55,16 @@ void PanelQueue::init_history()
     if (!g::pFlow->get_online() || m_force_reload_history)
     {
         m_force_reload_history = false;
-        m_do_reload_history.store(true, std::memory_order_relaxed);
+        m_do_reload_history = true;
         m_load_history_stop->store(true, std::memory_order_relaxed);
         m_final_history_pickup_done = m_ready_pickup_history = false;
     }
-    else if (m_do_reload_history.load(std::memory_order_relaxed))
+    else if (m_do_reload_history)
     {
         if (m_history_loading_active.load(std::memory_order_relaxed))
             return;
 
-        m_do_reload_history.store(false, std::memory_order_relaxed);
+        m_do_reload_history = false;
         m_load_history_stop->store(false, std::memory_order_relaxed);
 
         std::erase_if(m_history_tasks,
@@ -139,7 +139,7 @@ DlgCode PanelQueue::show(bool& focused)
                 ImGui::PopID();
 
                 ImGui::PushID(0x3114690E);
-                show_past_tasks();
+                show_completed_tasks();
                 ImGui::PopID();
 
                 ImGui::PushID(0x9F5BB6CA);
@@ -151,6 +151,8 @@ DlgCode PanelQueue::show(bool& focused)
             ImGui::EndChild();
         }
     }
+
+    m_collapse_all_tasks = m_collapse_all_outputs = false;
 
     return end_panel(opened);
 }
@@ -176,8 +178,13 @@ void PanelQueue::create_toolbar()
         el.icon = ICON_LC_PAUSE;
         el.tooltip = "Pause";
         el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Queue_Pause);
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_pause(el); };
-        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_pause(el); };
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept
+        {
+            el.tooltip = g::pQueueManager->is_paused() ? "Resume" : "Pause";
+            el.icon = g::pQueueManager->is_paused() ? ICON_LC_PLAY : ICON_LC_PAUSE;
+            el.blinking = g::pQueueManager->is_paused();
+        };
+        el.on_click = [this](PanelToolbar::Element& /*el*/) noexcept { g::pQueueManager->toggle_pause(); };
         add_toolbar_element(std::move(el), true);
     }
     {
@@ -186,8 +193,8 @@ void PanelQueue::create_toolbar()
         el.icon = ICON_LC_X;
         el.tooltip = "Terminate current task";
         el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Queue_Interrupt);
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_terminate_current(el); };
-        el.on_click = [this](PanelToolbar::Element& el) { on_terminate_current(el); };
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { el.enabled = g::pQueueManager->get_current_group() != nullptr; };
+        el.on_click = [this](PanelToolbar::Element& /*el*/) { g::pQueueManager->interrupt_task(); };
         add_toolbar_element(std::move(el), true);
     }
     {
@@ -195,30 +202,15 @@ void PanelQueue::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_SQUARE;
         el.tooltip = "Drop all tasks";
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_remove_all(el); };
-        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_remove_all(el); };
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept
+        {
+            el.enabled = g::pQueueManager->get_current_group() != nullptr || !g::pQueueManager->get_next_tasks().empty();
+        };
+        el.on_click = [this](PanelToolbar::Element& /*el*/) noexcept { g::pQueueManager->drop_all(); };
         add_toolbar_element(std::move(el), true);
     }
 
     // right
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_STAR;
-        el.tooltip = "Hide favorited";
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_toggle_favorited(el); };
-        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_toggle_favorited(el); };
-        add_toolbar_element(std::move(el), false);
-    }
-    {
-        PanelToolbar::Element el;
-        el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_HISTORY;
-        el.tooltip = "Hide completed";
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_toggle_past(el); };
-        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_toggle_past(el); };
-        add_toolbar_element(std::move(el), false);
-    }
     {
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Empty;
@@ -227,18 +219,25 @@ void PanelQueue::create_toolbar()
     {
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
-        el.tooltip = "Expand all history";
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_toggle_history(el); };
-        el.on_click = [this](PanelToolbar::Element& el) { on_toggle_history(el); };
+        el.icon = ICON_LC_CHEVRONS_DOWN_UP;
+        el.tooltip = "Collapse all outputs";
+        el.on_click = [this](PanelToolbar::Element& /*el*/)
+        {
+            for (auto& task : m_history_tasks) { m_hidden.insert(task.task_id); }
+            m_collapse_all_outputs = true;
+        };
         add_toolbar_element(std::move(el), false);
     }
     {
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_CLOUD_DOWNLOAD;
-        el.tooltip = "Reload history";
-        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_reload_history(el); };
+        el.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
+        el.tooltip = "Collapse all tasks";
+        el.on_click = [this](PanelToolbar::Element& /*el*/)
+        {
+            for (auto& task : m_history_tasks) { m_hidden.insert(task.group_id); }
+            m_collapse_all_tasks = true;
+        };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -484,8 +483,8 @@ void PanelQueue::show_favs_tasks()
             if (t.favorited.value_or(false))
             {
                 show_separator();
-                if (m_toggled_favs)
-                    show_past_task(g.group_id, &t, g.wf_name);
+                if (m_view_favs)
+                    show_completed_task(g.group_id, &t, g.wf_name);
             }
         }
     }
@@ -495,15 +494,15 @@ void PanelQueue::show_favs_tasks()
         if (t.favorited.value_or(false))
         {
             show_separator();
-            if (m_toggled_favs)
-                show_past_task(0, &t, t.time_start_s);
+            if (m_view_favs)
+                show_completed_task(0, &t, t.time_start_s);
         }
     }
 }
 
-void PanelQueue::show_past_tasks()
+void PanelQueue::show_completed_tasks()
 {
-    m_visible_past = false;
+    m_visible_completed = false;
     auto& past = g::pQueueManager->get_past_tasks();
     if (past.empty())
         return;
@@ -511,9 +510,9 @@ void PanelQueue::show_past_tasks()
     ImGuiEx::Spacing(m_visible_curr || m_visible_pend || m_visible_favs ? 4 : 2);
     ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), 0.0f, "Completed");
     ImGuiEx::Spacing(1);
-    m_visible_past = true;
+    m_visible_completed = true;
 
-    if (!m_toggled_past)
+    if (!m_view_completed)
         return;
 
     const float indent_w = ImGui::CalcTextSize(g::pFlow->get_panel_icon(DlgObj::PanelWf)).x;
@@ -537,7 +536,12 @@ void PanelQueue::show_past_tasks()
         ImGui::TextUnformatted(g::pFlow->get_panel_icon(DlgObj::PanelWf));
         ImGui::SameLine();
 
-        bool hidden = m_hidden.contains(g.group_id);
+        bool hidden = m_collapse_all_tasks;
+        if (m_collapse_all_tasks)
+            m_hidden.insert(g.group_id);
+        else
+            hidden = m_hidden.contains(g.group_id);
+
         if (ImGuiEx::UrlButton(g.wf_name.c_str(), hidden ? "Show details" : "Hide details", IM_COL32_WHITE, g::pOptsManager->color_load(AppColor::SelectedItem), false))
         {
             if (hidden) m_hidden.erase(g.group_id);
@@ -560,7 +564,7 @@ void PanelQueue::show_past_tasks()
             if (count++ > m_current_completed_displays)
                 break;
 
-            show_past_task(g.group_id, &t);
+            show_completed_task(g.group_id, &t);
         }
 
         ImGui::Unindent(indent_w);
@@ -581,10 +585,10 @@ void PanelQueue::show_past_tasks()
 void PanelQueue::show_history_tasks()
 {
     pickup_parsed_history();
-    if (m_history_tasks.empty())
+    if (m_history_tasks.empty() || !m_view_history)
         return;
 
-    ImGuiEx::Spacing(m_visible_curr || m_visible_pend || m_visible_favs || m_visible_past ? 4 : 2);
+    ImGuiEx::Spacing(m_visible_curr || m_visible_pend || m_visible_favs || m_visible_completed ? 4 : 2);
     ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::OptSeparator), 0.0f, "History");
     ImGuiEx::Spacing(1);
 
@@ -621,7 +625,7 @@ void PanelQueue::show_history_tasks()
         }
 
         ImGui::Indent(indent_w);
-        show_past_task(0, &task);
+        show_completed_task(0, &task);
         ImGui::Unindent(indent_w);
         ImGui::PopID();
     }
@@ -636,7 +640,7 @@ void PanelQueue::show_history_tasks()
     }
 }
 
-void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const std::string& wf_name /*= ""*/)
+void PanelQueue::show_completed_task(uint64_t group_id, mngr::ExecTask* task, const std::string& wf_name /*= ""*/)
 {
     const auto align_and_set_pos2 = [this]() noexcept
     {
@@ -722,7 +726,11 @@ void PanelQueue::show_past_task(uint64_t group_id, mngr::ExecTask* task, const s
     else
         ImGui::TextUnformatted("Failed");
 
-    bool hidden = m_hidden.contains(task->task_id);
+    bool hidden = m_collapse_all_outputs;
+    if (m_collapse_all_outputs)
+        m_hidden.insert(task->task_id);
+    else
+        hidden = m_hidden.contains(task->task_id);
 
     const float window_width = ImGui::GetWindowWidth();
     const float padding_x = ImGui::GetStyle().WindowPadding.x;
@@ -1257,91 +1265,6 @@ void PanelQueue::show_video(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
         g::pVideoControl->seek(output.media_id, video_pos);
     }
     ImGui::PopItemWidth();
-}
-
-void PanelQueue::on_pre_pause(PanelToolbar::Element& el) noexcept
-{
-    el.tooltip = g::pQueueManager->is_paused() ? "Resume" : "Pause";
-    el.icon = g::pQueueManager->is_paused() ? ICON_LC_PLAY : ICON_LC_PAUSE;
-    el.blinking = g::pQueueManager->is_paused();
-}
-
-void PanelQueue::on_pause(PanelToolbar::Element& /*el*/) noexcept
-{
-    g::pQueueManager->toggle_pause();
-}
-
-void PanelQueue::on_pre_terminate_current(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = g::pQueueManager->get_current_group() != nullptr;
-}
-
-void PanelQueue::on_terminate_current(PanelToolbar::Element& /*el*/)
-{
-    g::pQueueManager->interrupt_task();
-}
-
-void PanelQueue::on_pre_remove_all(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = g::pQueueManager->get_current_group() != nullptr || !g::pQueueManager->get_next_tasks().empty();
-}
-
-void PanelQueue::on_remove_all(PanelToolbar::Element& /*el*/) noexcept
-{
-    g::pQueueManager->drop_all();
-}
-
-void PanelQueue::on_pre_toggle_favorited(PanelToolbar::Element& el) noexcept
-{
-    el.tooltip = (m_toggled_favs ? "Hide favorited" : "Show favorited");
-}
-
-void PanelQueue::on_toggle_favorited(PanelToolbar::Element& /*el*/) noexcept
-{
-    m_toggled_favs = !m_toggled_favs;
-}
-
-void PanelQueue::on_pre_toggle_past(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = !g::pQueueManager->get_past_tasks().empty();
-    el.tooltip = (m_toggled_past ? "Hide completed" : "Show completed");
-}
-
-void PanelQueue::on_toggle_past(PanelToolbar::Element& /*el*/) noexcept
-{
-    m_toggled_past = !m_toggled_past;
-}
-
-void PanelQueue::on_pre_toggle_history(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = !m_history_tasks.empty();
-    el.tooltip = (m_toggled_history ? "Collapse all history" : "Expand all history");
-}
-
-void PanelQueue::on_toggle_history(PanelToolbar::Element& /*el*/)
-{
-    if (!m_toggled_history)
-    {
-        for (auto& task : m_history_tasks)
-        {
-            m_hidden.erase(task.group_id);
-            m_hidden.erase(task.task_id);
-        }
-    }
-    else
-    {
-        for (auto& task : m_history_tasks)
-        {
-            m_hidden.insert(task.group_id);
-        }
-    }
-
-    m_toggled_history = !m_toggled_history;
-}
-
-void PanelQueue::on_reload_history(PanelToolbar::Element& /*el*/) noexcept
-{
-    m_force_reload_history = true;
 }
 
 namespace
