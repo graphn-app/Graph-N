@@ -297,8 +297,8 @@ private:
     const char* m_items_history_favs_id;
     bool m_item_pin_opts_preloaded = false;
     bool m_item_node_opts_preloaded = false;
-    std::map<hid, PinOptions> m_item_pin_opts;
-    std::map<hid, NodeOptions> m_item_node_opts;
+    std::unordered_map<hid, PinOptions> m_item_pin_opts;
+    std::unordered_map<hid, NodeOptions> m_item_node_opts;
 
     // stats
     std::vector<OptionValue> m_stat_limits_warn;

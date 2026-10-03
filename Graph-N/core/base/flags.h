@@ -231,7 +231,7 @@ enum class NodeInstFlags : uint64_t
     Group                     = 1ULL << 0,    // 1                  -  0x01
     CanBeDeleted              = 1ULL << 1,    // 2                  -  0x02               // default
     CNI                       = 1ULL << 2,    // 4                  -  0x04
-    Reroute                   = 1ULL << 3,    // 8                  -  0x08
+    __AVAILABLE__1            = 1ULL << 3,    // 8                  -  0x08
     RerouteSplitted           = 1ULL << 4,    // 16                 -  0x10
     RerouteSplitted_R         = 1ULL << 5,    // 32                 -  0x20
     Hidden                    = 1ULL << 6,    // 64                 -  0x40
@@ -257,7 +257,6 @@ enum class NodeInstFlags : uint64_t
     PosEditorReady            = 1ULL << 27,   // 134217728          -  0x8000000
     MaskEditorRunning         = 1ULL << 28,   // 268435456          -  0x10000000
     PosEditorRunning          = 1ULL << 29,   // 536870912          -  0x20000000
-    PrimitiveNode             = 1ULL << 30,   // 1073741824         -  0x40000000
 };
 
 inline constexpr ObjectFlags<NodeInstFlags> g_node_inst_all_modes_mask
@@ -283,26 +282,31 @@ inline constexpr ObjectFlags<NodeInstFlags> g_node_inst_seriallizable_flags
 
 enum class NodeObjFlags : uint64_t
 {
-    None                   = 0,            // 0          -  0x00
-    HasInput               = 1ULL << 0,    // 1          -  0x01
-    HasOutput              = 1ULL << 1,    // 2          -  0x02
-    OutputNode             = 1ULL << 2,    // 4          -  0x04
-    Dummy                  = 1ULL << 3,    // 8          -  0x08
-    CanBypass              = 1ULL << 4,    // 16         -  0x10               // default
-    CanMute                = 1ULL << 5,    // 32         -  0x20               // default
-    CanRename              = 1ULL << 6,    // 64         -  0x40               // default
-    Experimental           = 1ULL << 7,    // 128        -  0x80
-    Deprecated             = 1ULL << 8,    // 256        -  0x100
-    ApiNode                = 1ULL << 9,    // 512        -  0x200
-    CustomWidget           = 1ULL << 10,   // 1024       -  0x400              // this flag is must if any of CustomWdgt** is set
-    CustomWdgtAudio        = 1ULL << 11,   // 2048       -  0x800
-    CustomWdgtVideo        = 1ULL << 12,   // 4096       -  0x1000
-    CustomWdgtImage        = 1ULL << 13,   // 8192       -  0x2000
-    CustomWdgtText         = 1ULL << 14,   // 16384      -  0x4000
-    CustomWdgtRestrictCfg  = 1ULL << 15,   // 32768      -  0x8000             // disables custom widget config in menu
-    CustomWdgtUploadButton = 1ULL << 16,   // 65536      -  0x10000            // displays 'Upload' button
-    CustomWdgtFromSource   = 1ULL << 17,   // 131072     -  0x20000            // displays media from input source
-    CustomWdgtFromOutput   = 1ULL << 18,   // 262144     -  0x40000            // displays media/text from output
+    None                        = 0,            // 0          -  0x00
+    HasInput                    = 1ULL << 0,    // 1          -  0x01
+    HasOutput                   = 1ULL << 1,    // 2          -  0x02
+    OutputNode                  = 1ULL << 2,    // 4          -  0x04
+    Dummy                       = 1ULL << 3,    // 8          -  0x08
+    CanBypass                   = 1ULL << 4,    // 16         -  0x10               // default
+    CanMute                     = 1ULL << 5,    // 32         -  0x20               // default
+    CanRename                   = 1ULL << 6,    // 64         -  0x40               // default
+    Experimental                = 1ULL << 7,    // 128        -  0x80
+    Deprecated                  = 1ULL << 8,    // 256        -  0x100
+    ApiNode                     = 1ULL << 9,    // 512        -  0x200
+    CustomWidget                = 1ULL << 10,   // 1024       -  0x400              // this flag is must if any of CustomWdgt** is set
+    CustomWdgtAudio             = 1ULL << 11,   // 2048       -  0x800
+    CustomWdgtVideo             = 1ULL << 12,   // 4096       -  0x1000
+    CustomWdgtImage             = 1ULL << 13,   // 8192       -  0x2000
+    CustomWdgtText              = 1ULL << 14,   // 16384      -  0x4000
+    CustomWdgtRestrictCfg       = 1ULL << 15,   // 32768      -  0x8000             // disables custom widget config in menu
+    CustomWdgtUploadButton      = 1ULL << 16,   // 65536      -  0x10000            // displays 'Upload' button
+    CustomWdgtFromSource        = 1ULL << 17,   // 131072     -  0x20000            // displays media from input source
+    CustomWdgtFromOutput        = 1ULL << 18,   // 262144     -  0x40000            // displays media/text from output
+    DevOnly                     = 1ULL << 19,   // 524288     -  0x80000
+    SpecNote                    = 1ULL << 20,   // 1048576    -  0x100000
+    SpecMdNote                  = 1ULL << 21,   // 2097152    -  0x200000
+    SpecPrimitive               = 1ULL << 22,   // 4194304    -  0x400000
+    SpecReroute                 = 1ULL << 23,   // 8388608    -  0x800000
 };
 
 inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_all_custom_widget_mask

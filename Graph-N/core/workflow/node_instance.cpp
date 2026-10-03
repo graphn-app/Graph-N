@@ -127,9 +127,9 @@ void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_act
     if (flags().has(NodeInstFlags::Group) || !has_object() || obj_flags().has(NodeObjFlags::Dummy))
         return;
 
-    auto find_pin = [copy_to, wf_action](iid pin_id) -> PinInstance*
+    auto find_pin = [copy_to](iid pin_id) -> PinInstance*
     {
-        if (copy_to != nullptr && wf_action != nullptr)
+        if (copy_to != nullptr)
         {
             for (auto pin : copy_to->m_input)
             {

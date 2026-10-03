@@ -424,7 +424,7 @@ enum class AppColor : uint16_t
     TabInactive,
     TabHovered,
     DummyNode,
-    NoteNode,
+    NodeNote,
 
     Pin_Int,
     Pin_Float,

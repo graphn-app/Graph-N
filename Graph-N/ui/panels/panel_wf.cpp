@@ -211,7 +211,7 @@ void PanelWorkflow::delete_nodes(std::set<data::NodeInstance*>&& nodes, bool pro
     std::set<data::NodeInstance*> nodes_upd;
     for (auto node : nodes)
     {
-        if (node->flags().has(NodeInstFlags::Reroute))
+        if (node->has_object() && node->obj_flags().has(NodeObjFlags::SpecReroute))
         {
             if (node->flags().has(NodeInstFlags::RerouteSplitted_R))
                 node = cast::strict<data::CNI_Reroute>(node)->get_splitted_base();
@@ -405,13 +405,13 @@ void PanelWorkflow::draw_wf()
             }
     );
 
-    if (m_first_show) [[unlikely]]
-    {
-        g::pHistoryManager->set_ignore_actions_on(m_wf->get_id());
-        std::map<data::NodeInstance*, std::set<data::NodeInstance*>> items;
-        fit(items);
-        g::pHistoryManager->set_ignore_actions_off(m_wf->get_id());
-    }
+    //if (m_first_show) [[unlikely]]
+    //{
+    //    g::pHistoryManager->set_ignore_actions_on(m_wf->get_id());
+    //    std::map<data::NodeInstance*, std::set<data::NodeInstance*>> items;
+    //    fit(items);
+    //    g::pHistoryManager->set_ignore_actions_off(m_wf->get_id());
+    //}
 
     m_drawer.post_draw_all(
         [this]() { return context_menu_handler(); },
@@ -588,8 +588,8 @@ void PanelWorkflow::create_toolbar()
             el.icon = ICON_LC_SAVE;
             el.tooltip = "Save Project";
             el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_Save);
-            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_save(el); };
-            el.on_click = [this](PanelToolbar::Element& el) { on_save(el); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { el.enabled = can_save(); };
+            el.on_click = [this](PanelToolbar::Element& /*el*/) { save(); };
             add_toolbar_element(std::move(el), true);
         }
         {
@@ -597,7 +597,11 @@ void PanelWorkflow::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_HISTORY;
             el.tooltip = "Revert to saved";
-            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_revert(el); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept
+            {
+                el.enabled = m_can_revert && !m_invalidation_state;
+                el.tooltip = m_tt_revert;
+            };
             el.on_click = [this](PanelToolbar::Element& el) { on_revert(el); };
             add_toolbar_element(std::move(el), true);
         }
@@ -612,8 +616,12 @@ void PanelWorkflow::create_toolbar()
             el.icon = ICON_LC_UNDO_2;
             el.tooltip = "Undo";
             el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_Undo);
-            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_undo(el); };
-            el.on_click = [this](PanelToolbar::Element& el) { on_undo(el); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept
+            {
+                el.enabled = can_undo();
+                el.tooltip = m_undo_name;
+            };
+            el.on_click = [this](PanelToolbar::Element& /*el*/) { undo(); };
             add_toolbar_element(std::move(el), true);
         }
         {
@@ -622,8 +630,12 @@ void PanelWorkflow::create_toolbar()
             el.icon = ICON_LC_REDO_2;
             el.tooltip = "Redo";
             el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_Redo);
-            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_redo(el); };
-            el.on_click = [this](PanelToolbar::Element& el) { on_redo(el); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept
+            {
+                el.enabled = can_redo();
+                el.tooltip = m_redo_name;
+            };
+            el.on_click = [this](PanelToolbar::Element& /*el*/) { redo(); };
             add_toolbar_element(std::move(el), true);
         }
         {
@@ -636,7 +648,11 @@ void PanelWorkflow::create_toolbar()
             el.type = PanelToolbar::Element::Type::Text;
             el.text = "Saved";
             el.text_clr = g::pOptsManager->color_load(AppColor::ActivityBarInactive);
-            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_project_status(el); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept
+            {
+                el.text = m_history_status;
+                el.tooltip = m_tt_history_status;
+            };
             add_toolbar_element(std::move(el), true);
         }
         {
@@ -675,8 +691,8 @@ void PanelWorkflow::create_toolbar()
                                     + " | " + g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Workspace_RunFront);
                 el.tooltip_next_line = true;
                 el.tooltip_hotkey_separator = nullptr;
-                el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_queue(el); };
-                el.on_click = [this](PanelToolbar::Element& el) { on_queue(el); };
+                el.on_preview = [this](PanelToolbar::Element& el) noexcept { el.enabled = can_run(); };
+                el.on_click = [this](PanelToolbar::Element& /*el*/) { run(ImGui::IsKeyDown(ImGuiMod_Shift)); };
                 add_toolbar_element(std::move(el), false);
             }
             {
@@ -685,8 +701,12 @@ void PanelWorkflow::create_toolbar()
                 el.icon = ICON_LC_X;
                 el.tooltip = "Terminate current task";
                 el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Queue_Interrupt);
-                el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_queue_interrupt(el); };
-                el.on_click = [this](PanelToolbar::Element& el) { on_queue_interrupt(el); };
+                el.on_preview = [this](PanelToolbar::Element& el) noexcept
+                {
+                    const auto g = g::pQueueManager->get_current_group();
+                    el.enabled = g != nullptr && g->src_wf == m_wf->get_id();
+                };
+                el.on_click = [this](PanelToolbar::Element& /*el*/) { g::pQueueManager->interrupt_task(m_wf->get_id()); };
                 add_toolbar_element(std::move(el), false);
             }
             {
@@ -694,8 +714,12 @@ void PanelWorkflow::create_toolbar()
                 el.type = PanelToolbar::Element::Type::Button;
                 el.icon = ICON_LC_SQUARE;
                 el.tooltip = "Cancel all tasks for this workflow";
-                el.on_preview = [this](PanelToolbar::Element& el) { on_pre_queue_drop_all(el); };
-                el.on_click = [this](PanelToolbar::Element& el) { on_queue_drop_all(el); };
+                el.on_preview = [this](PanelToolbar::Element& el)
+                {
+                    const auto g = g::pQueueManager->get_current_group();
+                    el.enabled = (g != nullptr && g->src_wf == m_wf->get_id()) || g::pQueueManager->get_is_queued(m_wf->get_id());
+                };
+                el.on_click = [this](PanelToolbar::Element& /*el*/) { g::pQueueManager->drop_wf_tasks(m_wf->get_id()); };
                 add_toolbar_element(std::move(el), false);
             }
             {
@@ -712,8 +736,16 @@ void PanelWorkflow::create_toolbar()
                 el.input_w = 150.0f;
                 el.cb_items = { "Infinite", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "15", "20" };
                 el.cb_item_sel = 1;
-                el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_tasks_num(el); };
-                el.on_click = [this](PanelToolbar::Element& el) { on_tasks_num(el); };
+                el.on_preview = [this](PanelToolbar::Element& el) noexcept
+                {
+                    if (-1 == m_tasks_num || 0 == m_tasks_num)  el.cb_item_sel = 0;
+                    else                                        el.cb_item_sel = m_tasks_num;
+                };
+                el.on_click = [this](PanelToolbar::Element& el)
+                {
+                    if (0 == el.cb_item_sel)    m_tasks_num = -1;
+                    else                        m_tasks_num = std::strtol(el.cb_items[el.cb_item_sel], nullptr, 10);
+                };
                 add_toolbar_element(std::move(el), false);
             }
         }
@@ -833,22 +865,6 @@ void PanelWorkflow::check_history()
     }
 }
 
-void PanelWorkflow::on_pre_save(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = can_save();
-}
-
-void PanelWorkflow::on_save(PanelToolbar::Element& /*el*/)
-{
-    save();    
-}
-
-void PanelWorkflow::on_pre_revert(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = m_can_revert && !m_invalidation_state;
-    el.tooltip = m_tt_revert;
-}
-
 void PanelWorkflow::on_revert(PanelToolbar::Element& /*el*/)
 {
     blob::Blob drawer_state;
@@ -856,34 +872,6 @@ void PanelWorkflow::on_revert(PanelToolbar::Element& /*el*/)
     g::pWfsManager->revert(m_wf->get_id(), drawer_state, restore_drawer);
     if (restore_drawer)
         m_drawer.init(std::move(drawer_state));
-}
-
-void PanelWorkflow::on_pre_undo(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = can_undo();
-    el.tooltip = m_undo_name;
-}
-
-void PanelWorkflow::on_undo(PanelToolbar::Element& /*el*/)
-{
-    undo();
-}
-
-void PanelWorkflow::on_pre_redo(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = can_redo();
-    el.tooltip = m_redo_name;
-}
-
-void PanelWorkflow::on_redo(PanelToolbar::Element& /*el*/)
-{
-    redo();
-}
-
-void PanelWorkflow::on_pre_project_status(PanelToolbar::Element& el) noexcept
-{
-    el.text = m_history_status;
-    el.tooltip = m_tt_history_status;
 }
 
 void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
@@ -955,54 +943,6 @@ void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
     {
         el.text = "Queued";
     }
-}
-
-void PanelWorkflow::on_pre_queue(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = can_run();
-}
-
-void PanelWorkflow::on_queue(PanelToolbar::Element& /*el*/)
-{
-    run(ImGui::IsKeyDown(ImGuiMod_Shift));
-}
-
-void PanelWorkflow::on_pre_queue_interrupt(PanelToolbar::Element& el) noexcept
-{
-    auto g = g::pQueueManager->get_current_group();
-    el.enabled = g != nullptr && g->src_wf == m_wf->get_id();
-}
-
-void PanelWorkflow::on_queue_interrupt(PanelToolbar::Element& /*el*/)
-{
-    g::pQueueManager->interrupt_task(m_wf->get_id());
-}
-
-void PanelWorkflow::on_pre_queue_drop_all(PanelToolbar::Element& el)
-{
-    auto g = g::pQueueManager->get_current_group();
-    el.enabled = (g != nullptr && g->src_wf == m_wf->get_id()) || g::pQueueManager->get_is_queued(m_wf->get_id());
-}
-
-void PanelWorkflow::on_queue_drop_all(PanelToolbar::Element& /*el*/)
-{
-    g::pQueueManager->drop_wf_tasks(m_wf->get_id());
-}
-
-void PanelWorkflow::on_tasks_num(PanelToolbar::Element& el)
-{
-    if (0 == el.cb_item_sel)
-        m_tasks_num = -1;
-    else
-        m_tasks_num = std::strtol(el.cb_items[el.cb_item_sel], nullptr, 10);
-}
-
-void PanelWorkflow::on_pre_tasks_num(PanelToolbar::Element& el) noexcept
-{
-    if (-1 == m_tasks_num || 0 == m_tasks_num)
-        el.cb_item_sel = 0;
-    else
-        el.cb_item_sel = m_tasks_num;
 }
 
 void PanelWorkflow::on_show_dummy_node(PanelToolbar::Element& el)

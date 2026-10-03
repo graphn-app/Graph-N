@@ -47,11 +47,13 @@ public:
     {
         if (dirty == m_dirty)
             return;
-        if (m_dirty)
-            m_name.pop_back();
-        else
-            m_name.push_back('*');
+
         m_dirty = dirty;
+        const bool dirty_mark_set = m_name.ends_with("*");
+
+        if      (!m_dirty && dirty_mark_set)    m_name.pop_back();
+        else if (m_dirty && !dirty_mark_set)    m_name.push_back('*');
+
         build_names();
         Log("Panel: " << m_id << " changed status to: " << (dirty ? "dirty" : "clean"));
     }

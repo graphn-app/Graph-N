@@ -185,8 +185,16 @@ void PanelTextEditor::create_toolbar()
         el.icon = ICON_LC_PIN;
         el.tooltip = "Pin this editor to keep it open";
         el.toggler = true;
-        el.on_click = [this](PanelToolbar::Element& el) { on_pin(el); };
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_pin(el); };
+        el.on_click = [this](PanelToolbar::Element& /*el*/)
+        {
+            if (m_pinned)   unpin();
+            else            pin();
+        };
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept
+        {
+            el.icon = (m_pinned ? ICON_LC_PIN_OFF : ICON_LC_PIN);
+            el.tooltip = (!m_pinned ? "Pin this editor to keep it open" : "Unpin editor");
+        };
         add_toolbar_element(std::move(el), true);
     }
     {
@@ -194,7 +202,10 @@ void PanelTextEditor::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_SEARCH;
         el.tooltip = "Locate node on graph";
-        el.on_click = [this](PanelToolbar::Element& el) { on_locate(el); };
+        el.on_click = [this](PanelToolbar::Element& /*el*/)
+        {
+            if (m_current != nullptr) g::pFlow->wf_locate_node(m_current->wf, m_current->node);
+        };
         add_toolbar_element(std::move(el), true);
     }
     {
@@ -227,26 +238,6 @@ void PanelTextEditor::create_toolbar()
 
     finalize_toolbar(false /*separator*/);
     set_use_regular_size_icons();
-}
-
-void PanelTextEditor::on_pre_pin(PanelToolbar::Element& el) noexcept
-{
-    el.icon = (m_pinned ? ICON_LC_PIN_OFF : ICON_LC_PIN);
-    el.tooltip = (!m_pinned ? "Pin this editor to keep it open" : "Unpin editor");
-}
-
-void PanelTextEditor::on_pin(PanelToolbar::Element& /*el*/)
-{
-    if (m_pinned)
-        unpin();
-    else
-        pin();
-}
-
-void PanelTextEditor::on_locate(PanelToolbar::Element& /*el*/)
-{
-    if (m_current != nullptr)
-        g::pFlow->wf_locate_node(m_current->wf, m_current->node);
 }
 
 DlgCode PanelTextEditor::show(bool& focused)

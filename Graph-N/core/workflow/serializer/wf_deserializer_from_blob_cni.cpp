@@ -62,7 +62,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_primitive(blob::Reade
 
 NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_reroute(blob::Reader& root_block)
 {
-    LogRAssert(m_curr_node->flags().has(NodeInstFlags::Reroute), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
+    LogRAssert(m_curr_node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
 
     auto block = root_block.pop_block();
     const auto count = block.pop_u32();

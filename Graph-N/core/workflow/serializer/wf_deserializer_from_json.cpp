@@ -287,7 +287,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
     {
         const auto color = parse_color(j["bgcolor"]);
         if (color != 0)
-            node_instance->set_node_color(ImGui::ColorConvertU32ToFloat4(color));
+            node_instance->set_node_color(color);
     }
 
     // pinned, collapsed
@@ -646,7 +646,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_group(const o_json& j)
     {
         const auto color = parse_color(j["color"]);
         if (color != 0)
-            node->set_group_color(ImGui::ColorConvertU32ToFloat4(color));
+            node->set_group_color(color);
     }
     else
         node->reset_to_default_colors();

@@ -170,7 +170,7 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::TabInactive)] =                       { "color_tab_inactive",  int64_t(IM_COL32(17, 26, 38, 255)) };
     m_ui_colors[cast::to_szt(AppColor::TabHovered)] =                        { "color_tab_hovered",  int64_t(IM_COL32(0, 150, 150, 255)) };
     m_ui_colors[cast::to_szt(AppColor::DummyNode)] =                         { "color_dummy_node",  int64_t(IM_COL32(255, 0, 0, 255)) };
-    m_ui_colors[cast::to_szt(AppColor::NoteNode)] =                          { "color_note_node",  int64_t(IM_COL32(30, 47, 64, 212)) };
+    m_ui_colors[cast::to_szt(AppColor::NodeNote)] =                          { "color_note_node",  int64_t(IM_COL32(30, 47, 64, 212)) };
 
     // stats
     m_stat_limits_warn.resize(cast::to_szt(MetricLimit::_count));
@@ -725,9 +725,9 @@ void SettingsManager::init_items_defaults()
 }
 
 template<typename T>
-void items_load_all(std::map<hid, T>& opts, DbItemOptionType type)
+void items_load_all(std::unordered_map<hid, T>& opts, DbItemOptionType type)
 {
-    auto vals = g::pDbManager->item_option_load_all(type);
+    const auto vals = g::pDbManager->item_option_load_all(type);
     for (auto& val : vals)
     {
         opts[val.first].deserialize(val.second.sval);

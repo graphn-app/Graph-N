@@ -146,8 +146,6 @@ DlgCode PanelQueue::show(bool& focused)
                 show_history_tasks();
                 ImGui::PopID();
             }
-
-            ImGuiEx::toast_show(m_toast);
             ImGui::EndChild();
         }
     }
@@ -178,13 +176,13 @@ void PanelQueue::create_toolbar()
         el.icon = ICON_LC_PAUSE;
         el.tooltip = "Pause";
         el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Queue_Pause);
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept
+        el.on_preview = [](PanelToolbar::Element& el) noexcept
         {
             el.tooltip = g::pQueueManager->is_paused() ? "Resume" : "Pause";
             el.icon = g::pQueueManager->is_paused() ? ICON_LC_PLAY : ICON_LC_PAUSE;
             el.blinking = g::pQueueManager->is_paused();
         };
-        el.on_click = [this](PanelToolbar::Element& /*el*/) noexcept { g::pQueueManager->toggle_pause(); };
+        el.on_click = [](PanelToolbar::Element& /*el*/) noexcept { g::pQueueManager->toggle_pause(); };
         add_toolbar_element(std::move(el), true);
     }
     {
@@ -193,8 +191,8 @@ void PanelQueue::create_toolbar()
         el.icon = ICON_LC_X;
         el.tooltip = "Terminate current task";
         el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Queue_Interrupt);
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept { el.enabled = g::pQueueManager->get_current_group() != nullptr; };
-        el.on_click = [this](PanelToolbar::Element& /*el*/) { g::pQueueManager->interrupt_task(); };
+        el.on_preview = [](PanelToolbar::Element& el) noexcept { el.enabled = g::pQueueManager->get_current_group() != nullptr; };
+        el.on_click = [](PanelToolbar::Element& /*el*/) { g::pQueueManager->interrupt_task(); };
         add_toolbar_element(std::move(el), true);
     }
     {
@@ -202,11 +200,11 @@ void PanelQueue::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_SQUARE;
         el.tooltip = "Drop all tasks";
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept
+        el.on_preview = [](PanelToolbar::Element& el) noexcept
         {
             el.enabled = g::pQueueManager->get_current_group() != nullptr || !g::pQueueManager->get_next_tasks().empty();
         };
-        el.on_click = [this](PanelToolbar::Element& /*el*/) noexcept { g::pQueueManager->drop_all(); };
+        el.on_click = [](PanelToolbar::Element& /*el*/) noexcept { g::pQueueManager->drop_all(); };
         add_toolbar_element(std::move(el), true);
     }
 
@@ -219,7 +217,7 @@ void PanelQueue::create_toolbar()
     {
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_CHEVRONS_DOWN_UP;
+        el.icon = ICON_LC_IMAGE_UP;
         el.tooltip = "Collapse all outputs";
         el.on_click = [this](PanelToolbar::Element& /*el*/)
         {
@@ -921,7 +919,7 @@ void PanelQueue::show_asset_info(const mngr::ExecTask::Output& output, size_t ou
                 g::pOptsManager->color_load(AppColor::SelectedItem), false))
             {
                 ImGui::SetClipboardText(output.text.c_str());
-                m_toast = ImGuiEx::toast_prepare("Copied", g::pOptsManager->color_load(AppColor::SelectedItem));
+                g::pFlow->set_toast(ImGuiEx::toast_prepare("Copied", g::pOptsManager->color_load(AppColor::SelectedItem)));
             }
         }
         else

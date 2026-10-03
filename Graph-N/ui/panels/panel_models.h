@@ -51,10 +51,6 @@ private:
     bool on_pre_tt(int32_t idx) noexcept;
     void on_show_tt(int32_t idx);
 
-    void on_view_empty(PanelToolbar::Element& el);
-    void on_expand_all(PanelToolbar::Element& el);
-    void on_collapse_all(PanelToolbar::Element& el);
-
     void add_model_to_wf(data::Node* node, data::ModelItem* model);
 
 private:

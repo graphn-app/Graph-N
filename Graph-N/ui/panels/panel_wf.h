@@ -89,25 +89,8 @@ private:
     void create_toolbar();
     void handle_hotkeys_changed(); // HotkeysChangedHandler
 
-    void on_pre_save(PanelToolbar::Element& el) noexcept;
-    void on_save(PanelToolbar::Element& el);
-    void on_pre_revert(PanelToolbar::Element& el) noexcept;
     void on_revert(PanelToolbar::Element& el);
-    void on_pre_undo(PanelToolbar::Element& el) noexcept;
-    void on_undo(PanelToolbar::Element& el);
-    void on_pre_redo(PanelToolbar::Element& el) noexcept;
-    void on_redo(PanelToolbar::Element& el);
-    void on_pre_project_status(PanelToolbar::Element& el) noexcept;
-
     void on_pre_queue_status(PanelToolbar::Element& el); 
-    void on_pre_queue(PanelToolbar::Element& el) noexcept;
-    void on_queue(PanelToolbar::Element& el);
-    void on_pre_queue_interrupt(PanelToolbar::Element& el) noexcept;
-    void on_queue_interrupt(PanelToolbar::Element& el);
-    void on_pre_queue_drop_all(PanelToolbar::Element& el);
-    void on_queue_drop_all(PanelToolbar::Element& el);
-    void on_pre_tasks_num(PanelToolbar::Element& el) noexcept;
-    void on_tasks_num(PanelToolbar::Element& el);
     void on_show_dummy_node(PanelToolbar::Element& el);
 
     bool context_menu_handler();

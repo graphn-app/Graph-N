@@ -48,16 +48,8 @@ private:
     void handle_dirty_trash(const PanelItemEvent& ev);
     void draw_popups();
 
-    void on_add_new_wf(PanelToolbar::Element& el);
-    void on_rename_wf(PanelToolbar::Element& el) noexcept;
-    void on_pre_rename_wf(PanelToolbar::Element& el) noexcept;
-    void on_copy_wf(PanelToolbar::Element& el);
-    void on_pre_copy_wf(PanelToolbar::Element& el) noexcept;
-    void on_delete_wf(PanelToolbar::Element& el);
-    void on_pre_delete_wf(PanelToolbar::Element& el) noexcept;
     void on_deleted_mode(PanelToolbar::Element& el);
     void on_labels_mode(PanelToolbar::Element& el);
-    void on_add_label(PanelToolbar::Element& el);
     void on_show_tt(int32_t idx) noexcept;
 
 private:

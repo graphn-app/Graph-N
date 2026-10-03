@@ -25,11 +25,8 @@ private:
     void search_for_address(size_t from, size_t to);
 
     void create_toolbar();
-    void on_pre_search(PanelToolbar::Element& el) noexcept;
     void on_search_up(PanelToolbar::Element& el);
     void on_search_down(PanelToolbar::Element& el);
-    void on_autoscroll(PanelToolbar::Element& el) noexcept;
-    void on_clear(PanelToolbar::Element& el) noexcept;
 
 private:
     std::deque<std::string> m_logs;    
@@ -39,7 +36,6 @@ private:
     std::string m_search;
     int32_t m_found_index = -1;
     bool m_scroll_to_found = false;
-    ImGuiEx::Toast m_toast;
     std::string m_host;
     int64_t m_port = 0;
 };

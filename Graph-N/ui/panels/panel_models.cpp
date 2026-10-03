@@ -46,7 +46,12 @@ void PanelModels::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_EYE_OFF;
         el.tooltip = "Toggle Show/Hide empty categories";
-        el.on_click = [this](PanelToolbar::Element& el) { on_view_empty(el); };
+        el.on_click = [this](PanelToolbar::Element& el)
+        {
+            m_show_empty = !m_show_empty;
+            el.icon = m_show_empty ? ICON_LC_EYE : ICON_LC_EYE_OFF;
+            rebuild_items();
+        };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -59,7 +64,7 @@ void PanelModels::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
         el.tooltip = "Expand All";
-        el.on_click = [this](PanelToolbar::Element& el) { on_expand_all(el); };
+        el.on_click = [this](PanelToolbar::Element& /*el*/) { rebuild_items(true); };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -67,7 +72,11 @@ void PanelModels::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
         el.tooltip = "Collapse All";
-        el.on_click = [this](PanelToolbar::Element& el) { on_collapse_all(el); };
+        el.on_click = [this](PanelToolbar::Element& /*el*/)
+        {
+            for (auto& item : m_panel_items) { item.expanded = false; }
+            rebuild_items();
+        };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -471,27 +480,6 @@ void PanelModels::add_model_to_wf(data::Node* node, data::ModelItem* model)
         node = g::pNodesManager->find_node(model->def_node);
     if (node != nullptr)
         g::pFlow->wf_add_node_to_active_panel(node, model->file_name.empty() ? model->name : model->file_name);
-}
-
-void PanelModels::on_view_empty(PanelToolbar::Element& el)
-{
-    m_show_empty = !m_show_empty;
-    el.icon = m_show_empty ? ICON_LC_EYE : ICON_LC_EYE_OFF;
-    rebuild_items();
-}
-
-void PanelModels::on_expand_all(PanelToolbar::Element& /*el*/)
-{
-    rebuild_items(true);
-}
-
-void PanelModels::on_collapse_all(PanelToolbar::Element& /*el*/)
-{
-    for (auto& item : m_panel_items)
-    {
-        item.expanded = false;
-    }
-    rebuild_items();
 }
 
 } // namespace ui

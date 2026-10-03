@@ -81,7 +81,7 @@ void PanelServerLogs::create_toolbar()
         el.icon = ICON_LC_CHEVRON_UP;
         el.tooltip = "Search up";
         el.on_click = [this](PanelToolbar::Element& el) { on_search_up(el); };
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_search(el); };
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { el.enabled = !m_search.empty(); };
         add_toolbar_element(std::move(el), true);
     }
     {
@@ -90,7 +90,7 @@ void PanelServerLogs::create_toolbar()
         el.icon = ICON_LC_CHEVRON_DOWN;
         el.tooltip = "Search down";
         el.on_click = [this](PanelToolbar::Element& el) { on_search_down(el); };
-        el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_search(el); };
+        el.on_preview = [this](PanelToolbar::Element& el) noexcept { el.enabled = !m_search.empty(); };
         add_toolbar_element(std::move(el), true);
     }
 
@@ -102,7 +102,7 @@ void PanelServerLogs::create_toolbar()
         el.tooltip = "Toggle autoscroll";
         el.toggler = true;
         el.toggled = m_autoscroll;
-        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_autoscroll(el); };
+        el.on_click = [this](PanelToolbar::Element& /*el*/) noexcept { m_autoscroll = !m_autoscroll; };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -110,7 +110,12 @@ void PanelServerLogs::create_toolbar()
         el.type = PanelToolbar::Element::Type::Button;
         el.icon = ICON_LC_X;
         el.tooltip = "Clear logs";
-        el.on_click = [this](PanelToolbar::Element& el) noexcept { on_clear(el); };
+        el.on_click = [this](PanelToolbar::Element& /*el*/) noexcept
+        {
+            decltype(m_logs) empty;
+            empty.swap(m_logs);
+            m_found_index = -1;
+        };
         add_toolbar_element(std::move(el), false);
     }
     {
@@ -120,11 +125,6 @@ void PanelServerLogs::create_toolbar()
     }
 
     finalize_toolbar(false /*separator*/);
-}
-
-void PanelServerLogs::on_pre_search(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = !m_search.empty();
 }
 
 void PanelServerLogs::on_search_up(PanelToolbar::Element& /*el*/)
@@ -170,18 +170,6 @@ void PanelServerLogs::on_search_down(PanelToolbar::Element& /*el*/)
         }
     }
 
-    m_found_index = -1;
-}
-
-void PanelServerLogs::on_autoscroll(PanelToolbar::Element& /*el*/) noexcept
-{
-    m_autoscroll = !m_autoscroll;
-}
-
-void PanelServerLogs::on_clear(PanelToolbar::Element& /*el*/) noexcept
-{
-    decltype(m_logs) empty;
-    empty.swap(m_logs);
     m_found_index = -1;
 }
 
@@ -274,7 +262,7 @@ void PanelServerLogs::show_logs()
                 if (ImGui::Selectable(line_text.c_str(), false) || ImGui::IsItemClicked(ImGuiMouseButton_Right))
                 {
                     ImGui::SetClipboardText(line_text.c_str());
-                    m_toast = ImGuiEx::toast_prepare("Line copied", g::pOptsManager->color_load(AppColor::SelectedItem));
+                    g::pFlow->set_toast(ImGuiEx::toast_prepare("Line copied", g::pOptsManager->color_load(AppColor::SelectedItem)));
                 }
                 ImGui::PopID();
 
@@ -293,8 +281,6 @@ void PanelServerLogs::show_logs()
         {
             ImGui::SetScrollHereY(1.0f);
         }
-
-        ImGuiEx::toast_show(m_toast);
     }
     ImGui::EndChild();
 }

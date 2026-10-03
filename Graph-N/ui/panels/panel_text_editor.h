@@ -41,16 +41,9 @@ public:
 
 private:
     DlgCode show(bool& focused) override;
-
     void create_toolbar();
-
     void pin();
     void unpin() noexcept;
-
-    void on_pre_pin(PanelToolbar::Element& el) noexcept;
-    void on_pin(PanelToolbar::Element& el);
-    void on_locate(PanelToolbar::Element& el);
-
     void handle_text_editing();
 
 private:

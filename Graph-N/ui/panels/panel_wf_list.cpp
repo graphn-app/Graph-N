@@ -49,7 +49,7 @@ void PanelWfList::create_toolbar()
             el.icon = ICON_LC_PLUS;
             el.tooltip = "New Project";
             el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Project_CreateNew);
-            el.on_click = [this](PanelToolbar::Element& el) { on_add_new_wf(el); };
+            el.on_click = [](PanelToolbar::Element& /*el*/) { g::pFlow->wf_create(); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -58,8 +58,8 @@ void PanelWfList::create_toolbar()
             el.icon = ICON_LC_PEN_LINE;
             el.tooltip = "Rename Project";
             el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Project_Rename);
-            el.on_click = [this](PanelToolbar::Element& el) noexcept { on_rename_wf(el); };
-            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_rename_wf(el); };
+            el.on_click = [this](PanelToolbar::Element& /*el*/) noexcept { rename_project(m_active); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { el.enabled = (m_active != 0); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -67,8 +67,8 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_COPY;
             el.tooltip = "Duplicate Project";
-            el.on_click = [this](PanelToolbar::Element& el) { on_copy_wf(el); };
-            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_copy_wf(el); };
+            el.on_click = [this](PanelToolbar::Element& /*el*/) { g::pFlow->wf_create_copy_from(m_active, std::nullopt, std::nullopt); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { el.enabled = (m_active != 0); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -76,8 +76,8 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_TRASH;
             el.tooltip = "Remove to Trash";
-            el.on_click = [this](PanelToolbar::Element& el) { on_delete_wf(el); };
-            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_delete_wf(el); };
+            el.on_click = [this](PanelToolbar::Element& /*el*/) { g::pFlow->wf_delete(m_active); };
+            el.on_preview = [this](PanelToolbar::Element& el) noexcept { el.enabled = (m_active != 0); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -143,7 +143,11 @@ void PanelWfList::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_PLUS;
             el.tooltip = "Add new label";
-            el.on_click = [this](PanelToolbar::Element& el) { on_add_label(el); };
+            el.on_click = [this](PanelToolbar::Element& /*el*/)
+            {
+                m_new_label = g::pWfsManager->create_label();
+                rebuild_items();
+            };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -652,11 +656,6 @@ void PanelWfList::on_show_tt(int32_t /*idx*/) noexcept
     }
 }
 
-void PanelWfList::on_add_new_wf(PanelToolbar::Element& /*el*/)
-{
-    g::pFlow->wf_create();
-}
-
 void PanelWfList::rename_project(wid wf_id) noexcept
 {
     if (!g::pFlow->get_nodes_ready())
@@ -673,36 +672,6 @@ void PanelWfList::rename_project(wid wf_id) noexcept
     }
 }
 
-void PanelWfList::on_rename_wf(PanelToolbar::Element& /*el*/) noexcept
-{
-    rename_project(m_active);
-}
-
-void PanelWfList::on_pre_rename_wf(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = (m_active != 0);
-}
-
-void PanelWfList::on_copy_wf(PanelToolbar::Element& /*el*/)
-{
-    g::pFlow->wf_create_copy_from(m_active, std::nullopt, std::nullopt);
-}
-
-void PanelWfList::on_pre_copy_wf(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = (m_active != 0);
-}
-
-void PanelWfList::on_delete_wf(PanelToolbar::Element& /*el*/)
-{
-    g::pFlow->wf_delete(m_active);
-}
-
-void PanelWfList::on_pre_delete_wf(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = (m_active != 0);
-}
-
 void PanelWfList::on_deleted_mode(PanelToolbar::Element& /*el*/)
 {
     m_deleted_mode = !m_deleted_mode;
@@ -717,12 +686,6 @@ void PanelWfList::on_labels_mode(PanelToolbar::Element& /*el*/)
     create_toolbar();
     rebuild_items();
     reset_toolbar_state();
-}
-
-void PanelWfList::on_add_label(PanelToolbar::Element& /*el*/)
-{
-    m_new_label = g::pWfsManager->create_label();
-    rebuild_items();
 }
 
 } // namespace ui

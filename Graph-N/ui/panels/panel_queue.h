@@ -88,8 +88,6 @@ private:
     size_t m_current_completed_displays = 15;
     const size_t m_history_display_limit = 50;
     size_t m_current_history_displays = 50;
-
-    ImGuiEx::Toast m_toast;
 };
 
 

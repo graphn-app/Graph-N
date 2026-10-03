@@ -28,7 +28,7 @@ struct FlagDef
 constexpr FlagDef<NodeInstFlags> g_node_inst_flags[] =
 {
     DEF_FLAG(NodeInstFlags, Group), DEF_FLAG(NodeInstFlags, CanBeDeleted), DEF_FLAG(NodeInstFlags, CNI),
-    DEF_FLAG(NodeInstFlags, Reroute), DEF_FLAG(NodeInstFlags, RerouteSplitted), DEF_FLAG(NodeInstFlags, RerouteSplitted_R),
+    DEF_FLAG(NodeInstFlags, RerouteSplitted), DEF_FLAG(NodeInstFlags, RerouteSplitted_R),
     DEF_FLAG(NodeInstFlags, Hidden), DEF_FLAG(NodeInstFlags, PosSet), DEF_FLAG(NodeInstFlags, SizeSet),
     DEF_FLAG(NodeInstFlags, IgnoreSizeOnFrameEnd), DEF_FLAG(NodeInstFlags, PinnedSet), DEF_FLAG(NodeInstFlags, ShowHidden),
     DEF_FLAG(NodeInstFlags, Deserialization), DEF_FLAG(NodeInstFlags, Pinned), DEF_FLAG(NodeInstFlags, Collapsed),
@@ -36,7 +36,7 @@ constexpr FlagDef<NodeInstFlags> g_node_inst_flags[] =
     DEF_FLAG(NodeInstFlags, ModeBypass), DEF_FLAG(NodeInstFlags, HasInPins), DEF_FLAG(NodeInstFlags, HasOutPins),
     DEF_FLAG(NodeInstFlags, HasWidgets), DEF_FLAG(NodeInstFlags, JsonApiDontExport), DEF_FLAG(NodeInstFlags, JsonCustomSerialization),
     DEF_FLAG(NodeInstFlags, BlobCustomSerialization), DEF_FLAG(NodeInstFlags, MaskEditorReady), DEF_FLAG(NodeInstFlags, PosEditorReady),
-    DEF_FLAG(NodeInstFlags, MaskEditorRunning), DEF_FLAG(NodeInstFlags, PosEditorRunning), DEF_FLAG(NodeInstFlags, PrimitiveNode)
+    DEF_FLAG(NodeInstFlags, MaskEditorRunning), DEF_FLAG(NodeInstFlags, PosEditorRunning)
 };
 
 constexpr FlagDef<PinInstFlags> g_pin_inst_flags[] =
@@ -49,6 +49,7 @@ constexpr FlagDef<PinInstFlags> g_pin_inst_flags[] =
 constexpr FlagDef<NodeObjFlags> g_node_obj_flags[] =
 {
     DEF_FLAG(NodeObjFlags, HasInput), DEF_FLAG(NodeObjFlags, HasOutput), DEF_FLAG(NodeObjFlags, OutputNode),
+    DEF_FLAG(NodeObjFlags, SpecReroute), DEF_FLAG(NodeObjFlags, SpecPrimitive), DEF_FLAG(NodeObjFlags, SpecNote), DEF_FLAG(NodeObjFlags, SpecMdNote), 
     DEF_FLAG(NodeObjFlags, Dummy), DEF_FLAG(NodeObjFlags, CanBypass), DEF_FLAG(NodeObjFlags, CanMute),
     DEF_FLAG(NodeObjFlags, CanRename), DEF_FLAG(NodeObjFlags, Experimental), DEF_FLAG(NodeObjFlags, Deprecated),
     DEF_FLAG(NodeObjFlags, ApiNode), DEF_FLAG(NodeObjFlags, CustomWidget), DEF_FLAG(NodeObjFlags, CustomWdgtAudio),
@@ -338,14 +339,14 @@ void DebugWfView::draw_nodes_list()
             ImGui::Text("Ed ID: %llu", (unsigned long long)node->ed().id());
             ImGui::Text("Rect: (%.1f, %.1f) - (%.1f, %.1f)", node->m_rc.Min.x, node->m_rc.Min.y, node->m_rc.Max.x, node->m_rc.Max.y);
 
-            draw_color_square("Node", ImGui::ColorConvertFloat4ToU32(node->m_clr_node));
+            draw_color_square("Node", node->m_clr_node);
             draw_color_square("Header", node->m_clr_head);
 
             DrawFlagsEditor("Node inst flags", const_cast<ObjectFlags<NodeInstFlags>&>(node->flags()), g_node_inst_flags);
             if (node_obj)
                 DrawFlagsEditor("Node obj flags", const_cast<ObjectFlags<NodeObjFlags>&>(node_obj->flags), g_node_obj_flags);
 
-            if (node->flags().has(NodeInstFlags::Reroute))
+            if (node->has_object() && node->obj_flags().has(NodeObjFlags::SpecReroute))
             {
                 if (ImGui::TreeNode("Reroute data"))
                 {
@@ -359,7 +360,7 @@ void DebugWfView::draw_nodes_list()
                 }
             }
 
-            if (node->flags().has(NodeInstFlags::PrimitiveNode))
+            if (node->has_object() && node->obj_flags().has(NodeObjFlags::SpecReroute))
             {
                 if (ImGui::TreeNode("Primitive data"))
                 {

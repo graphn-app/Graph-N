@@ -499,7 +499,7 @@ bool PanelWorkflow::show_node_menu()
     }
     ImGui::Separator();
 
-    if (node->flags().has(NodeInstFlags::Reroute))
+    if (node->has_object() && node->obj_flags().has(NodeObjFlags::SpecReroute))
     {
         if (ImGui::MenuItem("Separate Reroute", nullptr, nullptr, node->obj_flags().has_not(NodeObjFlags::Dummy) && node->get_inputs().size() > 2))
         {
@@ -897,7 +897,7 @@ bool PanelWorkflow::show_multinode_menu()
     bool all_reroutes = true;
     for (auto node : m_menu_objs.nodes)
     {
-        if (node->flags().has_not(NodeInstFlags::Reroute))
+        if (node->obj_flags().has_not(NodeObjFlags::SpecReroute))
         {
             all_reroutes = false;
             break;
@@ -921,7 +921,7 @@ bool PanelWorkflow::show_multinode_menu()
     if (ImGui::BeginMenu("Color"))
     {
         bool reset = false;
-        if (show_colors_menu(close, reset, true, (*m_menu_objs.nodes.begin())->m_clr_node))
+        if (show_colors_menu(close, reset, true, ImGui::ColorConvertU32ToFloat4((*m_menu_objs.nodes.begin())->m_clr_node)))
         {
             m_action->multi_action_on("Set color");
             const auto color = ImGui::ColorConvertFloat4ToU32(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));

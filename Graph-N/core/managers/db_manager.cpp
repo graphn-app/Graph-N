@@ -657,6 +657,7 @@ void DbManager::wf_update_blob(const std::string& uuid, blob::Blob&& blob, bool 
 void DbManager::history_add(ExecTask& task)
 {
 #ifdef _DEBUG
+    // sometimes here is duplicate prompt ids. how?
     static std::set<std::string> all_p;
     const auto all = history_load_all();
     for (auto& pt : all)

@@ -354,6 +354,9 @@ bool GraphN_Flow::run()
     if ((m_windows & ViewModal) > 0 || (m_windows & ViewModalStop) > 0)
         show_modal();
 
+    if (!m_toast.expired)
+        ImGuiEx::toast_show(m_toast);
+
     check_connection();
 
     static bool wf_panels_initialized = false;

@@ -166,7 +166,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
 
     m_curr_node->set_name(std::move(node_name));
     m_curr_node->m_rc = block.pop_rect();
-    m_curr_node->m_clr_node = block.pop_vec4();
+    m_curr_node->m_clr_node = block.pop_clr();
     m_curr_node->m_clr_group = block.pop_clr();
     m_curr_node->m_clr_head = block.pop_clr();
     m_curr_node->m_clr_group_capt = block.pop_clr();

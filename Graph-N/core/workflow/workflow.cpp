@@ -516,7 +516,7 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
     m_action->multi_action_on("Separate");
     for (auto node : nodes)
     {
-        LogCAssert(node->flags().has(NodeInstFlags::Reroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
+        LogCAssert(node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
         LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
 
         if (node->flags().has(NodeInstFlags::RerouteSplitted))
@@ -560,7 +560,7 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
             }
 
             const auto* new_node = m_action->add_node(node->get_object(), "", rect);
-            LogCAssert(new_node->flags().has(NodeInstFlags::Reroute), "New node is not reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", t:" << typeid(new_node).name());
+            LogCAssert(new_node->obj_flags().has(NodeObjFlags::SpecReroute), "New node is not reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", t:" << typeid(new_node).name());
             LogCAssert(new_node->get_inputs().size() == new_node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz1:" << new_node->get_inputs().size() << ", sz2:" << new_node->get_outputs().size());
             LogCAssert(new_node->get_inputs().size() == 1, "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz:" << new_node->get_inputs().size());
 
@@ -596,7 +596,7 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
     data::NodeInstance* dest_node = nullptr;
     for (auto node : nodes)
     {
-        LogCAssert(node->flags().has(NodeInstFlags::Reroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
+        LogCAssert(node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
         LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
 
         if (nullptr == dest_node)
@@ -693,7 +693,7 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
 void Workflow::collapse_reroute(data::NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
-    LogRAssert(node->flags().has(NodeInstFlags::Reroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name(), );
+    LogRAssert(node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name(), );
     LogRAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size(), );
 
     node = filter_reroute(node);
@@ -865,8 +865,7 @@ void Workflow::prepare_for_api()
     for (auto node : nodes)
     {
         bool remove = (node->flags().has(NodeInstFlags::Group) || node->get_mode_mute());
-
-        if (!remove && node->flags().has(NodeInstFlags::Reroute))
+        if (!remove && node->obj_flags().has(NodeObjFlags::SpecReroute))
         {
             if (node->flags().has(NodeInstFlags::RerouteSplitted))
                 merge_reroute_parts(node, true);
@@ -901,7 +900,7 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
 
     auto* reroute = m_action->add_node(reroute_obj, "", ImRect(pos.x, pos.y, 0, 0));
     LogRAssert(reroute != nullptr, "Reroute node not created", );
-    LogRAssert(reroute->flags().has(NodeInstFlags::Reroute), "Node is not reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", t:" << typeid(reroute).name(), );
+    LogRAssert(reroute->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not reroute. w:" << get_id() << ", n:" << reroute->get_instance_id() << ", t:" << typeid(reroute).name(), );
 
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedReroute>();
     RoutedPinPair pair;
@@ -1020,12 +1019,16 @@ void Workflow::resolve_comfyui_objects(listener::ComfyUiObjectValidityListener::
 
 void Workflow::increment(const Workflow* copy_to)
 {
+    auto copy_to_action = (nullptr == copy_to ? nullptr : copy_to->action());
+    if (copy_to_action != nullptr)
+        copy_to_action->multi_action_on("Control after generate value");
     for (auto& node : m_nodes)
     {
         const auto* copy_to_node = (nullptr == copy_to ? nullptr : copy_to->get_node_by_instance(node->get_instance_id()));
-        auto copy_to_action = (nullptr == copy_to ? nullptr : copy_to->action());
         node->increment(copy_to_node, copy_to_action);
     }
+    if (copy_to_action != nullptr)
+        copy_to_action->multi_action_off();
 }
 
 std::string Workflow::collect_search_data() const

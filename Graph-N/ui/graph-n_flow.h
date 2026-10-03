@@ -121,6 +121,8 @@ public:
     void load_activity_bar_mode() noexcept;
     void load_hotkeys();
 
+    void set_toast(ImGuiEx::Toast&& toast) noexcept { m_toast = std::move(toast); }
+
     bool is_panel_active(DlgObj panel_obj) const noexcept;
     const char* get_panel_icon(DlgObj panel_obj) const noexcept;
     const char* get_panel_name(DlgObj panel_obj) const noexcept;
@@ -294,6 +296,8 @@ private:
 
     std::unique_ptr<mngr::NodesParser> m_nodes_parser;
     std::unique_ptr<CustomWidget> m_custom_widget;
+
+    ImGuiEx::Toast m_toast;
 
     ImGuiID m_main_dock_id = 0;
     uint64_t m_windows = ViewNone;

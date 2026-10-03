@@ -376,7 +376,7 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
     case HistoryActionType::NodeClr:
         history = open_action(node->get_workflow_id(), "Set color");
         step = std::make_unique<ActNodeClr>();
-        step->new_val = (node->flags().has(NodeInstFlags::Group) ? node->m_clr_group : ImGui::ColorConvertFloat4ToU32(node->m_clr_node));
+        step->new_val = (node->flags().has(NodeInstFlags::Group) ? node->m_clr_group : node->m_clr_node);
         break;
     case HistoryActionType::NodeCollapse:
         history = open_action(node->get_workflow_id(), node->flags().has(NodeInstFlags::Collapsed) ? "Collapse" : "Expand");
@@ -711,7 +711,7 @@ void HistoryManager::pop_node_reroute_split(const data::Workflow* dest_wf, const
     const ActNodeRerouteSplit* real_step = cast::dynamic<const ActNodeRerouteSplit>(step);
     auto node = dest_wf->get_node_by_instance(step->id);    
     LogRAssert(node, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
-    LogRAssert(node->flags().has(NodeInstFlags::Reroute), "Node is not CNI Reroute. w:" << dest_wf->get_id() << ", n:" << step->id, );
+    LogRAssert(node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not CNI Reroute. w:" << dest_wf->get_id() << ", n:" << step->id, );
 
     const HRerouteSplitted* data = std::get_if<HRerouteSplitted>(do_undo ? &real_step->old_val : &real_step->new_val);
     if (data->splitted)

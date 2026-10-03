@@ -46,7 +46,7 @@ protected:
 
 public:
     ImRect m_rc = {};               // Min.x/y: pos for all; Max.x/y: size for group, width for node
-    ImVec4 m_clr_node = {};         // color for node backgroud
+    ImU32 m_clr_node = 0;           // color for node backgroud
     ImU32 m_clr_group = 0;          // color for group backgroud
     ImU32 m_clr_head = 0;           // color for node/group header background
     ImU32 m_clr_group_capt = 0;     // color for group name

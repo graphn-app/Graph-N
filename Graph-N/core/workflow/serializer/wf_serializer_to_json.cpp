@@ -38,7 +38,7 @@ o_json WfSerializerToJson::serialize()
 
     for (auto& node : all_nodes)
     {
-        if (node->flags().has_and_has_not(NodeInstFlags::Reroute, NodeInstFlags::RerouteSplitted_R))
+        if (node->flags().has_not(NodeInstFlags::RerouteSplitted_R))
         {
             reroutes.insert(node.get());
         }

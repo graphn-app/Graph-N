@@ -853,7 +853,16 @@ void NodesParser::parse_others(data::Node& node, const o_json& jnode)
     node.flags.add_remove_if(NodeObjFlags::Experimental, get_bool("experimental"));
     node.flags.add_remove_if(NodeObjFlags::Deprecated, get_bool("deprecated"));
     node.flags.add_remove_if(NodeObjFlags::ApiNode, get_bool("api_node"));
+    node.flags.add_remove_if(NodeObjFlags::DevOnly, get_bool("dev_only"));
     get_string("python_module", node.python_module);
+
+    constexpr std::string_view custom_module = "custom_nodes.";
+    if (node.python_module.starts_with(custom_module))
+    {
+        node.python_module = node.python_module.substr(custom_module.size());
+        node.python_module_custom_node = true;
+    }
+    node.python_module_hash = base::HashID::make_hash(node.python_module);
 
     if (m_known_attributes.empty())
     {

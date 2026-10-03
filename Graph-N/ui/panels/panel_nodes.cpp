@@ -74,7 +74,11 @@ void PanelNodes::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_PLUS;
             el.tooltip = "Add new label";
-            el.on_click = [this](PanelToolbar::Element& el) { on_new_label(el); };
+            el.on_click = [this](PanelToolbar::Element& /*el*/)
+            {
+                m_new_label = g::pNodesManager->create_label();
+                rebuild_items();
+            };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -103,8 +107,8 @@ void PanelNodes::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
             el.tooltip = "Expand all";
-            el.on_click = [this](PanelToolbar::Element& el) { on_expand_all(el); };
-            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_expand_collapse(el); };
+            el.on_click = [this](PanelToolbar::Element& /*el*/) { rebuild_items(true); };
+            el.on_preview = [](PanelToolbar::Element& el) noexcept { el.enabled = g::pOptsManager->ui_nodes_pane_tree_view_load(); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -112,8 +116,12 @@ void PanelNodes::create_toolbar()
             el.type = PanelToolbar::Element::Type::Button;
             el.icon = ICON_LC_LIST_CHEVRONS_DOWN_UP;
             el.tooltip = "Collapse all";
-            el.on_click = [this](PanelToolbar::Element& el) { on_collapse_all(el); };
-            el.on_preview = [this](PanelToolbar::Element& el) noexcept { on_pre_expand_collapse(el); };
+            el.on_click = [this](PanelToolbar::Element& /*el*/)
+            {
+                for (auto& item : m_panel_items) { item.expanded = false; }
+                rebuild_items();
+            };
+            el.on_preview = [](PanelToolbar::Element& el) noexcept { el.enabled = g::pOptsManager->ui_nodes_pane_tree_view_load(); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -627,37 +635,12 @@ void PanelNodes::add_node_to_wf(data::NodeItem* node_item)
     g::pFlow->wf_add_node_to_active_panel(node_item->node);
 }
 
-void PanelNodes::on_new_label(PanelToolbar::Element& /*el*/)
-{
-    m_new_label = g::pNodesManager->create_label();
-    rebuild_items();
-}
-
-void PanelNodes::on_expand_all(PanelToolbar::Element& /*el*/)
-{
-    rebuild_items(true);
-}
-
-void PanelNodes::on_collapse_all(PanelToolbar::Element& /*el*/)
-{
-    for (auto& item : m_panel_items)
-    {
-        item.expanded = false;
-    }
-    rebuild_items();
-}
-
 void PanelNodes::on_labels_mode(PanelToolbar::Element& /*el*/)
 {
     m_labels_mode = !m_labels_mode;
     create_toolbar();
     rebuild_items();
     reset_toolbar_state();
-}
-
-void PanelNodes::on_pre_expand_collapse(PanelToolbar::Element& el) noexcept
-{
-    el.enabled = g::pOptsManager->ui_nodes_pane_tree_view_load();
 }
 
 void PanelNodes::on_view(PanelToolbar::Element& el)

@@ -67,11 +67,7 @@ private:
     void on_dnd_show(int32_t idx) noexcept;
 
     void on_labels_mode(PanelToolbar::Element& el);
-    void on_new_label(PanelToolbar::Element& el);
-    void on_expand_all(PanelToolbar::Element& el);
-    void on_collapse_all(PanelToolbar::Element& el);
     void on_view(PanelToolbar::Element& el);
-    void on_pre_expand_collapse(PanelToolbar::Element& el) noexcept;
 
 private:
     PanelNodeInspector* m_inspector = nullptr;

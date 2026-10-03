@@ -16,7 +16,10 @@ std::unique_ptr<Node> CNI_Primitive::cni_create_object()
     node->name = node->display_name = "Primitive";
     node->category = "utils";
     node->description = "Primitive values like numbers, strings, and booleans.";
+    node->python_module = "nodes";
+    node->python_module_hash = base::HashID::make_hash(node->python_module);
     node->flags.remove(NodeObjFlags::CanBypass);
+    node->flags.add(NodeObjFlags::SpecPrimitive, NodeObjFlags::CustomWdgtRestrictCfg);
     node->finalize(nullptr);
     return node;
 }
@@ -24,8 +27,7 @@ std::unique_ptr<Node> CNI_Primitive::cni_create_object()
 CNI_Primitive::CNI_Primitive(Node* obj, wid workflow_id, iid instance_id) noexcept
     : CNI_BaseObj_T<CNI_Primitive>(obj, workflow_id, instance_id)
 {
-    flags().add(NodeInstFlags::PrimitiveNode, NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
-    obj_flags().add(NodeObjFlags::CustomWdgtRestrictCfg);
+    flags().add(NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
 }
 
 void CNI_Primitive::cni_init()

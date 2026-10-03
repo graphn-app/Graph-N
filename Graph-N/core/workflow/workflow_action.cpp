@@ -59,7 +59,7 @@ data::NodeInstance* WorkflowAction::add_group(std::optional<ImRect> size)
 void WorkflowAction::split_reroute(data::NodeInstance* reroute_node)
 {
     LogRAssert(reroute_node, "Zero ptr", );
-    LogRAssert(reroute_node->flags().has(NodeInstFlags::Reroute), "Node is not reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
+    LogRAssert(reroute_node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
     LogRAssert(reroute_node->flags().has_not(NodeInstFlags::RerouteSplitted), "Reroute already splitted. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id(), );
 
     const mngr::HRerouteSplitted data = { cast::strict<data::CNI_Reroute>(reroute_node)->get_splitted_nodes_poses(), reroute_node->flags().has(NodeInstFlags::RerouteSplitted) };
@@ -70,7 +70,7 @@ void WorkflowAction::split_reroute(data::NodeInstance* reroute_node)
 void WorkflowAction::merge_reroute(data::NodeInstance* reroute_node, bool to_left)
 {
     LogRAssert(reroute_node, "Zero ptr", );
-    LogRAssert(reroute_node->flags().has_all(NodeInstFlags::Reroute, NodeInstFlags::RerouteSplitted), "Node is not splitted reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
+    LogRAssert(reroute_node->flags().has(NodeInstFlags::RerouteSplitted) && reroute_node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not splitted reroute. w:" << reroute_node->get_workflow_id() << ", n:" << reroute_node->get_instance_id() << ", t:" << typeid(reroute_node).name(), );
 
     const mngr::HRerouteSplitted data = { cast::strict<data::CNI_Reroute>(reroute_node)->get_splitted_nodes_poses(), reroute_node->flags().has(NodeInstFlags::RerouteSplitted) };
     cast::strict<data::CNI_Reroute>(reroute_node)->merge_parts(to_left);
@@ -223,14 +223,14 @@ void WorkflowAction::set_node_color(data::NodeInstance* node, ImU32 color)
     if (node->flags().has(NodeInstFlags::Group))
     {
         old_clr = node->m_clr_group;
-        node->set_group_color(ImGui::ColorConvertU32ToFloat4(color));
+        node->set_group_color(color);
         new_clr = node->m_clr_group;
     }
     else
     {
-        old_clr = ImGui::ColorConvertFloat4ToU32(node->m_clr_node);
-        node->set_node_color(ImGui::ColorConvertU32ToFloat4(color));
-        new_clr = ImGui::ColorConvertFloat4ToU32(node->m_clr_node);
+        old_clr = node->m_clr_node;
+        node->set_node_color(color);
+        new_clr =node->m_clr_node;
     }
 
     if (old_clr == new_clr)
@@ -251,9 +251,9 @@ void WorkflowAction::reset_node_color(data::NodeInstance* node)
     }
     else
     {
-        old_clr = ImGui::ColorConvertFloat4ToU32(node->m_clr_node);
+        old_clr = node->m_clr_node;
         node->reset_to_default_colors();
-        new_clr = ImGui::ColorConvertFloat4ToU32(node->m_clr_node);
+        new_clr = node->m_clr_node;
     }
 
     if (old_clr == new_clr)

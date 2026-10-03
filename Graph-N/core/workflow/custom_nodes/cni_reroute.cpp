@@ -13,7 +13,10 @@ std::unique_ptr<Node> CNI_Reroute::cni_create_object()
     node->name = node->display_name = cni_get_node_class();
     node->category = "utils";
     node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
+    node->python_module = "nodes";
+    node->python_module_hash = base::HashID::make_hash(node->python_module);
     node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanRename);
+    node->flags.add(NodeObjFlags::SpecReroute, NodeObjFlags::CustomWdgtRestrictCfg);
     node->finalize(nullptr);
     return node;
 }
@@ -21,8 +24,7 @@ std::unique_ptr<Node> CNI_Reroute::cni_create_object()
 CNI_Reroute::CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2) noexcept
     : CNI_BaseObj_T<CNI_Reroute>(obj, workflow_id, instance_id)
 {
-    flags().add(NodeInstFlags::CNI, NodeInstFlags::Reroute, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
-    obj_flags().add(NodeObjFlags::CustomWdgtRestrictCfg);
+    flags().add(NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
 
     static bool r_node_creation = false;
     if (r_node_creation)
@@ -40,7 +42,7 @@ CNI_Reroute::CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instan
     {
         r_node_creation = true;
         auto node = wf->add_node(obj, {}, {}, instance_id2);
-        LogRAssert(node->flags().has(NodeInstFlags::Reroute), "Invalid node created. w:" << get_workflow_id() << ", n1:" << get_instance_id() << ", n1:" << node->get_instance_id(), );
+        LogRAssert(node->obj_flags().has(NodeObjFlags::SpecReroute), "Invalid node created. w:" << get_workflow_id() << ", n1:" << get_instance_id() << ", n1:" << node->get_instance_id(), );
         m_splitted_part = cast::strict<CNI_Reroute>(node);
         m_splitted_part->m_splitted_part = this;
         m_data = std::make_shared<RerouteData>();
@@ -159,7 +161,7 @@ void CNI_Reroute::cni_cleanup_base_object()
 
 bool CNI_Reroute::cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids)
 {
-    LogRAssert(copy_from_node->flags().has(NodeInstFlags::Reroute), "Source node is not reroute", false);
+    LogRAssert(copy_from_node->obj_flags().has(NodeObjFlags::SpecReroute), "Source node is not reroute", false);
     LogRAssert(m_splitted_part, "Reroute splitted part Zero ptr. w:" << get_workflow_id() << ", n:" << get_instance_id(), false);
     LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", false);
 
