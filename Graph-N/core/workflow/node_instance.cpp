@@ -356,40 +356,42 @@ void NodeInstance::set_mode(NodeInstFlags mode) noexcept
     flags().add(mode);
 }
 
-void NodeInstance::set_group_color(ImVec4 clr) noexcept
+ImU32 NodeInstance::get_default_color() noexcept
 {
-    clr.w = 0.3f;
-    m_clr_group = ImGui::ColorConvertFloat4ToU32(clr);
-
-    clr.w = 0.7f;
-    m_clr_head = ImGui::ColorConvertFloat4ToU32(clr);
-
-    clr.w = 0.9f;
-    m_clr_group_capt = ImGui::ColorConvertFloat4ToU32(clr);
-    m_clr_group_capt = ImGuiEx::increase_brightness(m_clr_group_capt);
+    if (0 == m_def_color)
+    {
+        ImU32 c2 = 0, c3 = 0, from = 0;
+        if (flags().has(NodeInstFlags::Group))
+            from = g::pOptsManager->color_load(AppColor::GroupBg);
+        else if (obj_flags().has_any(NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
+            from = g::pOptsManager->color_load(AppColor::NodeNote);
+        else
+            from = g::pOptsManager->color_load(AppColor::NodeBodyBg);
+        mngr::ModuleColors::make_colors(ImGui::ColorConvertU32ToFloat4(from), m_def_color, c2, c3, flags().has(NodeInstFlags::Group));
+    }
+    return m_def_color;
 }
 
-void NodeInstance::set_node_color(const ImVec4& clr) noexcept
+void NodeInstance::set_group_color(ImU32 clr) noexcept
 {
-    m_clr_node = clr;
-    m_clr_head = ImGuiEx::decrease_brightness(ImGui::ColorConvertFloat4ToU32(m_clr_node));
+    mngr::ModuleColors::make_colors(ImGui::ColorConvertU32ToFloat4(clr), m_clr_group, m_clr_head, m_clr_group_capt, true);
+}
+
+void NodeInstance::set_node_color(ImU32 clr) noexcept
+{
+    ImU32 dummy = 0;
+    mngr::ModuleColors::make_colors(ImGui::ColorConvertU32ToFloat4(clr), m_clr_node, m_clr_head, dummy, false);
 }
 
 void NodeInstance::reset_to_default_colors() noexcept
 {
     if (flags().has(NodeInstFlags::Group))
     {
-        set_group_color(ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::GroupBg)));
+        set_group_color(get_default_color());
     }
     else if (has_object())
     {
-        const auto& cl = get_object()->node_class;
-        ImU32 color = 0;
-        if (cl == CNI_CLASS_NOTE || cl == CNI_CLASS_MARKDOWN_NOTE)
-            color = g::pOptsManager->color_load(AppColor::NoteNode);
-        else
-            color = g::pOptsManager->color_load(AppColor::NodeBodyBg);
-        set_node_color(ImGui::ColorConvertU32ToFloat4(color));
+        set_node_color(get_default_color());
     }
 }
 

@@ -781,6 +781,54 @@ const NodeOptions& SettingsManager::items_node_load(hid node_hash)
     return m_item_node_opts[node_hash];
 }
 
+void SettingsManager::items_module_colors_load_all()
+{
+    const auto vals = g::pDbManager->item_option_load_all(DbItemOptionType::ModuleColors);
+    if (vals.empty())
+        return;
+    m_module_colors.deserialize(vals.front().second.sval);
+}
+
+ImU32 SettingsManager::items_module_color_load_bg(hid module_hash) const
+{
+    uint32_t body_bg = 0, head_bg = 0, head_capt = 0;
+    if (m_module_colors.get_colors(module_hash, body_bg, head_bg, head_capt))
+        return body_bg;
+    return 0;
+}
+
+ImU32 SettingsManager::items_module_color_load_capt_bg(hid module_hash) const
+{
+    uint32_t body_bg = 0, head_bg = 0, head_capt = 0;
+    if (m_module_colors.get_colors(module_hash, body_bg, head_bg, head_capt))
+        return head_bg;
+    return 0;
+}
+
+ImU32 SettingsManager::items_module_color_load_capt_text(hid module_hash) const
+{
+    uint32_t body_bg = 0, head_bg = 0, head_capt = 0;
+    if (m_module_colors.get_colors(module_hash, body_bg, head_bg, head_capt))
+        return head_capt;
+    return 0;
+}
+
+void SettingsManager::items_module_color_save(const std::list<hid>& modules_hash, ImU32 color)
+{
+    LogRAssert(!modules_hash.empty(), "Empty colors list", );
+    ImU32 bg_color = 0, head_bg = 0, caption = 0;
+    ModuleColors::make_colors(ImGui::ColorConvertU32ToFloat4(color), bg_color, head_bg, caption, 0 == modules_hash.front());
+    m_module_colors.set_colors(modules_hash, bg_color, head_bg, caption);
+    item_save(0, DbItemOptionType::ModuleColors, m_module_colors.serialize());
+}
+
+void SettingsManager::items_module_color_reset(const std::list<hid>& modules_hash)
+{
+    LogRAssert(!modules_hash.empty(), "Empty colors list", );
+    m_module_colors.delete_colors(modules_hash);
+    item_save(0, DbItemOptionType::ModuleColors, m_module_colors.serialize());
+}
+
 LabelsList SettingsManager::items_wf_labels_load() const
 {
     return items_load<LabelsList>(m_items_wf_labels_id, DbItemOptionType::LabelWfs);

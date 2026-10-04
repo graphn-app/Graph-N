@@ -87,6 +87,131 @@ void NodeOptions::deserialize(const std::string& opts) noexcept
 }
 
 ///////////////////////////////////////////////////////////////////
+///////      ModuleColors         /////////////////////////////////
+///////////////////////////////////////////////////////////////////
+
+bool ModuleColors::get_colors(hid item, ImU32& body_bg, ImU32& head_bg, ImU32& head_capt) const noexcept
+{
+    const auto it = colors.find(item);
+    if (it == colors.end())
+        return false;
+    body_bg = it->second.body_bg;
+    head_bg = it->second.head_bg;
+    head_capt = it->second.head_capt;
+    return true;
+}
+
+void ModuleColors::set_colors(const std::list<hid>& items, ImU32 body_bg, ImU32 head_bg, ImU32 head_capt)
+{
+    for (auto item : items)
+    {
+        auto& module = colors[item];
+        module.body_bg = body_bg;
+        module.head_bg = head_bg;
+        module.head_capt = head_capt;
+    }
+}
+
+void ModuleColors::delete_colors(const std::list<hid>& items)
+{
+    for (auto item : items)
+    {
+        colors.erase(item);
+    }
+}
+
+void ModuleColors::make_colors(ImVec4 initial_color, ImU32& bg_color, ImU32& head_bg, ImU32& caption, bool for_group) noexcept
+{
+    if (for_group)
+    {
+        initial_color.w = 0.3f;
+        bg_color = ImGui::ColorConvertFloat4ToU32(initial_color);
+
+        initial_color.w = 0.7f;
+        head_bg = ImGui::ColorConvertFloat4ToU32(initial_color);
+
+        initial_color.w = 0.9f;
+        caption = ImGui::ColorConvertFloat4ToU32(initial_color);
+        caption = ImGuiEx::increase_brightness(caption);
+    }
+    else
+    {
+        initial_color.w = 1.0f;
+        bg_color = ImGui::ColorConvertFloat4ToU32(initial_color);
+        head_bg = ImGuiEx::decrease_brightness(bg_color);
+    }
+}
+
+std::string ModuleColors::serialize() const noexcept
+{
+    try
+    {
+        u_json j;
+        for (const auto& [hash, clr] : colors)
+        {
+            u_json jclr;
+            jclr["hash"] = hash;
+            jclr["body_bg"] = clr.body_bg;
+            jclr["head_bg"] = clr.head_bg;
+            jclr["head_capt"] = clr.head_capt;
+            j["colors"].push_back(std::move(jclr));
+        }
+
+        return j.dump();
+    }
+    catch (const std::exception& ex)
+    {
+        LogExcep("Colors serialization err: " << ex.what());
+    }
+
+    return {};
+}
+
+void ModuleColors::deserialize(const std::string& opts) noexcept
+{
+    if (opts.empty())
+        return;
+
+    colors.clear();
+    try
+    {
+        const auto j = u_json::parse(opts);
+        if (j.is_object())
+        {
+            if (j.contains("colors") && j["colors"].is_array())
+            {
+                const auto& jarr = j["colors"];
+                for (auto& jitem : jarr)
+                {
+                    if (jitem.is_object())
+                    {
+                        ModuleColor color;
+                        hid hash = 0;
+                        if (jitem.contains("hash") && jitem["hash"].is_number_unsigned())
+                            hash = jitem["hash"].get<uint64_t>();
+                        else
+                            continue;
+
+                        if (jitem.contains("body_bg") && jitem["body_bg"].is_number_unsigned())
+                            color.body_bg = jitem["body_bg"].get<uint32_t>();
+                        if (jitem.contains("head_bg") && jitem["head_bg"].is_number_unsigned())
+                            color.head_bg = jitem["head_bg"].get<uint32_t>();
+                        if (jitem.contains("head_capt") && jitem["head_capt"].is_number_unsigned())
+                            color.head_capt = jitem["head_capt"].get<uint32_t>();
+
+                        colors[hash] = color;
+                    }
+                }
+            }
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        LogExcep("Colors deserialization err: " << ex.what());
+    }
+}
+
+///////////////////////////////////////////////////////////////////
 ///////      LabelsList           /////////////////////////////////
 ///////////////////////////////////////////////////////////////////
 

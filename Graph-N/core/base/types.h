@@ -482,6 +482,7 @@ enum class DbItemOptionType : uint8_t
     LabelNodes,
     StarredModels,
     StarredHistory,
+    ModuleColors,
 
     _count,
     _first = Pins,

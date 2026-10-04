@@ -137,6 +137,8 @@ bool PanelWorkflow::context_menu_handler()
     }
 
     {
+        m_colors_apply_to_modules = false;
+        m_colors_apply_to_nodes_in_group = false;
         const auto node = m_drawer.get_hovered_node();
         if (node != nullptr)
         {
@@ -572,15 +574,16 @@ bool PanelWorkflow::show_node_menu()
     if (ImGui::BeginMenu("Color"))
     {
         bool reset = false;
-        if (show_colors_menu(close, reset, true, node->m_clr_node))
+        if (show_colors_menu(close, reset, true, ImGui::ColorConvertU32ToFloat4(node->m_clr_node), prepare_module_colors(node)))
         {
-            if (reset)
-            {
-                m_action->reset_node_color(node);
-            }
+            if (m_colors_apply_to_modules)
+                apply_module_colors(node, reset);
             else
             {
-                m_action->set_node_color(node, ImGui::ColorConvertFloat4ToU32(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3])));
+                if (reset)
+                    m_action->reset_node_color(node);
+                else
+                    m_action->set_node_color(node, ImGui::ColorConvertFloat4ToU32(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3])));
             }
         }
 
@@ -783,40 +786,46 @@ bool PanelWorkflow::show_group_menu()
     ImGui::Separator();
     if (ImGui::BeginMenu("Color"))
     {
-        static bool for_all = false;
         if (!nodes.empty())
         {
-            ImGui::Checkbox("Apply to nodes in group", &for_all);
-            ImGui::Separator();
+            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+            ImGui::MenuItem("Apply to nodes in group", nullptr, &m_colors_apply_to_nodes_in_group);
+            ImGui::PopItemFlag();
         }
+
         bool reset = false;
-        if (show_colors_menu(close, reset, for_all, ImGui::ColorConvertU32ToFloat4(group->m_clr_group)))
+        if (show_colors_menu(close, reset, m_colors_apply_to_nodes_in_group, ImGui::ColorConvertU32ToFloat4(group->m_clr_group), prepare_module_colors(group)))
         {
-            m_action->multi_action_on("Set color");
-            if (reset)
-            {
-                m_action->reset_node_color(group);
-                if (for_all)
-                {
-                    for (auto node : nodes)
-                    {
-                        m_action->reset_node_color(node);
-                    }
-                }
-            }
+            if (m_colors_apply_to_modules)
+                apply_module_colors(group, reset);
             else
             {
-                const auto color = ImGui::ColorConvertFloat4ToU32(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
-                m_action->set_node_color(group, color);
-                if (for_all)
+                m_action->multi_action_on("Set color");
+                if (reset)
                 {
-                    for (auto node : nodes)
+                    m_action->reset_node_color(group);
+                    if (m_colors_apply_to_nodes_in_group)
                     {
-                        m_action->set_node_color(node, color);
+                        for (auto node : nodes)
+                        {
+                            m_action->reset_node_color(node);
+                        }
                     }
                 }
+                else
+                {
+                    const auto color = ImGui::ColorConvertFloat4ToU32(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+                    m_action->set_node_color(group, color);
+                    if (m_colors_apply_to_nodes_in_group)
+                    {
+                        for (auto node : nodes)
+                        {
+                            m_action->set_node_color(node, color);
+                        }
+                    }
+                }
+                m_action->multi_action_off();
             }
-            m_action->multi_action_off();
         }
 
         ImGui::EndMenu();
@@ -1050,8 +1059,9 @@ bool PanelWorkflow::show_multigroup_menu()
         static bool for_all = false;
         if (nodes_inside > 0)
         {
-            ImGui::Checkbox("Apply to nodes in group", &for_all);
-            ImGui::Separator();
+            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+            ImGui::MenuItem("Apply to nodes in group", nullptr, &for_all);
+            ImGui::PopItemFlag();
         }
         bool reset = false;
         if (show_colors_menu(close, reset, for_all, ImGui::ColorConvertU32ToFloat4(m_menu_objs.groups.begin()->first->m_clr_group)))
@@ -1549,7 +1559,7 @@ bool PanelWorkflow::show_new_node_menu()
 
 ////////////////////////////////
 
-bool PanelWorkflow::show_colors_menu(bool& close, bool& reset, bool show_alpha, const ImVec4& init)
+bool PanelWorkflow::show_colors_menu(bool& close, bool& reset, bool show_alpha, const ImVec4& init, const char* category_name /*= nullptr*/)
 {
     const std::pair<ImU32, const char*> colors[] =
     {
@@ -1567,6 +1577,12 @@ bool PanelWorkflow::show_colors_menu(bool& close, bool& reset, bool show_alpha, 
     reset = close = false;
     bool ret = false;
 
+    if (category_name != nullptr)
+    {
+        ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+        ImGui::MenuItem(category_name, nullptr, &m_colors_apply_to_modules);
+        ImGui::PopItemFlag();
+    }
     if (ImGui::MenuItem("Reset to default"))
     {
         reset = close = true;
@@ -1599,6 +1615,57 @@ bool PanelWorkflow::show_colors_menu(bool& close, bool& reset, bool show_alpha, 
     }
 
     return ret;
+}
+
+const char* PanelWorkflow::prepare_module_colors(const data::NodeInstance* node)
+{
+    if (node->flags().has(NodeInstFlags::Group))
+    {
+        m_module_clr_buffer.clear();
+        fmt::format_to(std::back_inserter(m_module_clr_buffer), FMT_STRING("Apply to all Groups"));
+        m_module_clr_buffer.push_back('\0');
+        return m_module_clr_buffer.data();
+    }
+
+    const std::string& module = node->get_object()->python_module;
+    if (module.empty())
+        return nullptr;
+
+    constexpr std::string_view vanilla = "nodes";
+
+    m_module_clr_buffer.clear();
+    if (node->obj_flags().has_any(NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
+        fmt::format_to(std::back_inserter(m_module_clr_buffer), FMT_STRING("Apply to all Note nodes"));
+    else if (module == vanilla)
+        fmt::format_to(std::back_inserter(m_module_clr_buffer), FMT_STRING("Apply to all Vanilla nodes"));
+    else
+        fmt::format_to(std::back_inserter(m_module_clr_buffer), FMT_STRING("Apply to all [{}] nodes"), node->get_object()->python_module);
+    m_module_clr_buffer.push_back('\0');
+
+    return m_module_clr_buffer.data();
+}
+
+void PanelWorkflow::apply_module_colors(data::NodeInstance* node, bool reset)
+{
+    if (reset)
+    {
+        if (node->flags().has(NodeInstFlags::Group))
+            g::pOptsManager->items_module_color_reset({ 0 });
+        else if (node->obj_flags().has_any(NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
+            g::pOptsManager->items_module_color_reset({ base::HashID::make_hash(CNI_CLASS_NOTE), base::HashID::make_hash(CNI_CLASS_MARKDOWN_NOTE) });
+        else
+            g::pOptsManager->items_module_color_reset({ node->get_object()->python_module_hash });
+    }
+    else
+    {
+        const auto color = ImGui::ColorConvertFloat4ToU32(ImVec4(m_color_buff[0], m_color_buff[1], m_color_buff[2], m_color_buff[3]));
+        if (node->flags().has(NodeInstFlags::Group))
+            g::pOptsManager->items_module_color_save({ 0 }, color);
+        else if (node->obj_flags().has_any(NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
+            g::pOptsManager->items_module_color_save({ base::HashID::make_hash(CNI_CLASS_NOTE), base::HashID::make_hash(CNI_CLASS_MARKDOWN_NOTE) }, color);
+        else
+            g::pOptsManager->items_module_color_save({ node->get_object()->python_module_hash }, color);
+    }
 }
 
 data::Node* PanelWorkflow::show_nodes_menu(const std::list<std::pair<PinType, std::string>>& in_pins, const std::list<std::pair<PinType, std::string>>& out_pins)

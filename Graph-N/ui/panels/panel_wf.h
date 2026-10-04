@@ -107,8 +107,10 @@ private:
     bool show_link_menu();
     bool show_multilink_menu();
     bool show_new_node_menu();
-    bool show_colors_menu(bool& close, bool& reset, bool show_alpha, const ImVec4& init);
+    bool show_colors_menu(bool& close, bool& reset, bool show_alpha, const ImVec4& init, const char* category_name = nullptr);
     data::Node* show_nodes_menu(const std::list<std::pair<PinType, std::string>>& in_pins, const std::list<std::pair<PinType, std::string>>& out_pins);
+    const char* prepare_module_colors(const data::NodeInstance* node);
+    void apply_module_colors(data::NodeInstance* node, bool reset);
 
     void fit(std::map<data::NodeInstance*, std::set<data::NodeInstance*>>& items);
 
@@ -128,6 +130,8 @@ private:
     bool m_select_new_nodes = false;
     bool m_select_all_nodes = false;
     bool m_first_show = true;
+    bool m_colors_apply_to_nodes_in_group = false;
+    bool m_colors_apply_to_modules = false;
 
     const ImGuiID m_context_menuid;
     bool m_handle_context_menu = false;
@@ -135,6 +139,7 @@ private:
     bool m_display_new_node_menu = false;
     std::string m_context_menu_nodes_filter;
     fmt::memory_buffer m_fmt_buffer;
+    fmt::memory_buffer m_module_clr_buffer;
     fmt::memory_buffer m_status_buffer;
     const std::map<iid, std::set<std::string>>* m_failed_nodes = nullptr;
 

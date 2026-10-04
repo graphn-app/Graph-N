@@ -29,6 +29,28 @@ struct NodeOptions final
     void deserialize(const std::string& opts) noexcept;
 };
 
+struct ModuleColor final
+{
+    ImU32 body_bg = 0;
+    ImU32 head_bg = 0;
+    ImU32 head_capt = 0;
+};
+
+struct ModuleColors final
+{
+    bool get_colors(hid item, ImU32& body_bg, ImU32& head_bg, ImU32& head_capt) const noexcept;
+    void set_colors(const std::list<hid>& items, ImU32 body_bg, ImU32 head_bg, ImU32 head_capt);
+    void delete_colors(const std::list<hid>& items);
+
+    static void make_colors(ImVec4 initial_color, ImU32& bg_color, ImU32& head_bg, ImU32& caption, bool for_group) noexcept;
+
+    std::string serialize() const noexcept;
+    void deserialize(const std::string& opts) noexcept;
+
+private:
+    std::unordered_map<hid, ModuleColor> colors;
+};
+
 struct Label final
 {
     uint32_t id = 0;

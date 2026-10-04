@@ -154,6 +154,8 @@ bool GraphN_Flow::init()
     load_hotkeys();
     g::block_hotkeys_mask = 0;
 
+    g::pOptsManager->items_module_colors_load_all();
+
     LogOut;
     return true;
 }

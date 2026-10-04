@@ -168,6 +168,13 @@ public:
     const NodeOptions& items_node_load(hid node_hash);    // will use preloaded map if <items_nodes_preload_all> was called first
     void items_node_save(hid node_hash, const NodeOptions& opt) const { item_save(node_hash, DbItemOptionType::Nodes, opt.serialize()); }
 
+    void items_module_colors_load_all();
+    ImU32 items_module_color_load_bg(hid module_hash) const;         // zero for groups
+    ImU32 items_module_color_load_capt_bg(hid module_hash) const;
+    ImU32 items_module_color_load_capt_text(hid module_hash) const;
+    void items_module_color_save(const std::list<hid>& modules_hash, ImU32 color);
+    void items_module_color_reset(const std::list<hid>& modules_hash);
+
     LabelsList items_wf_labels_load() const;
     void items_wf_labels_save(const LabelsList& labels) const { item_save(tools::str::hash_stable(m_items_wf_labels_id), DbItemOptionType::LabelWfs, labels.serialize()); }
 
@@ -299,6 +306,7 @@ private:
     bool m_item_node_opts_preloaded = false;
     std::unordered_map<hid, PinOptions> m_item_pin_opts;
     std::unordered_map<hid, NodeOptions> m_item_node_opts;
+    ModuleColors m_module_colors;
 
     // stats
     std::vector<OptionValue> m_stat_limits_warn;

@@ -29,8 +29,9 @@ public:
     bool get_mode_bypass() const noexcept { return flags().has(NodeInstFlags::ModeBypass); }
     bool get_mode_mute() const noexcept { return flags().has_any(NodeInstFlags::ModeMute, NodeInstFlags::ModeOnEvent, NodeInstFlags::ModeOnTrigger); }
 
-    void set_group_color(ImVec4 clr) noexcept;
-    void set_node_color(const ImVec4& clr) noexcept;
+    ImU32 get_default_color() noexcept;
+    void set_group_color(ImU32 clr) noexcept;
+    void set_node_color(ImU32 clr) noexcept;
     void reset_to_default_colors() noexcept;
 
     void reset_width() noexcept override;
@@ -46,6 +47,7 @@ protected:
 
 public:
     ImRect m_rc = {};               // Min.x/y: pos for all; Max.x/y: size for group, width for node
+    ImU32 m_def_color = 0;
     ImU32 m_clr_node = 0;           // color for node backgroud
     ImU32 m_clr_group = 0;          // color for group backgroud
     ImU32 m_clr_head = 0;           // color for node/group header background

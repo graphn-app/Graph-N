@@ -312,7 +312,18 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
             ed::PushStyleColor(ed::StyleColor_NodeSelRect, clr);
             ed::PushStyleColor(ed::StyleColor_NodeSelRectBorder, clr);
         }
-        ed::PushStyleColor(ed::StyleColor_NodeBg, m_active_node->m_clr_node);
+
+        if (m_active_node->m_clr_node != m_active_node->get_default_color())
+            ed::PushStyleColor(ed::StyleColor_NodeBg, ImGui::ColorConvertU32ToFloat4(m_active_node->m_clr_node));
+        else
+        {
+            ImU32 module_color = 0;
+            if (m_active_node->obj_flags().has_any(NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
+                module_color = g::pOptsManager->items_module_color_load_bg(m_active_node->get_object()->get_hash());
+            else
+                module_color = g::pOptsManager->items_module_color_load_bg(m_active_node->get_object()->python_module_hash);
+            ed::PushStyleColor(ed::StyleColor_NodeBg, ImGui::ColorConvertU32ToFloat4(0 == module_color ? m_active_node->m_clr_node : module_color));
+        }
     }
 
     if (m_active_node->get_mode_mute())
@@ -644,10 +655,22 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
     auto draw_list = ImGui::GetWindowDrawList();
     if (draw_list != nullptr)
     {
+        ImU32 color_bg = m_active_node->m_clr_group, color_head = m_active_node->m_clr_head, color_capt = m_active_node->m_clr_group_capt;
+        if (m_active_node->m_clr_group == m_active_node->get_default_color())
+        {
+            const auto bg = g::pOptsManager->items_module_color_load_bg(0);
+            if (bg != 0)
+            {
+                color_bg = bg;
+                color_head = g::pOptsManager->items_module_color_load_capt_bg(0);
+                color_capt = g::pOptsManager->items_module_color_load_capt_text(0);
+            }
+        }
+
         draw_list->AddRectFilled(
             ImVec2(rc_x, m_curr_node_top_offset - style.NodePadding.y + style.GroupBorderWidth),
             ImVec2(width, capt_height),
-            m_active_node->m_clr_head,
+            color_head,
             style.NodeRounding,
             ImDrawFlags_RoundCornersTop
         );
@@ -655,7 +678,7 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
         draw_list->AddRectFilled(
             ImVec2(rc_x, m_curr_node_top_offset + ImGui::GetTextLineHeight()),
             ImVec2(width, m_curr_node_top_offset + m_active_node->m_rc.Max.y - style.NodePadding.y),
-            m_active_node->m_clr_group,
+            color_bg,
             style.NodeRounding,
             ImDrawFlags_RoundCornersBottom
         );
@@ -663,7 +686,7 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
         if (m_active_node != m_renaming_node && !zoomed_skip_captions()) [[likely]]
         {
             ImGui::SetCursorPosX(text_lt.x);
-            ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->m_clr_group_capt);
+            ImGui::PushStyleColor(ImGuiCol_Text, color_capt);
             ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
 
             //width = m_active_node->m_rc.Max.x - ImGui::GetStyle().ItemSpacing.x * 4; // TODO:FIX name too long: use draw_list->AddText
@@ -710,6 +733,19 @@ void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
 
 void NodeDrawer::draw_node_header()
 {
+    const auto obj = m_active_node->get_object();
+    ImU32 color_head = m_active_node->m_clr_head;
+    if (m_active_node->m_clr_node == m_active_node->get_default_color())
+    {
+        ImU32 bg = 0;
+        if (m_active_node->obj_flags().has_any(NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
+            bg = g::pOptsManager->items_module_color_load_capt_bg(obj->get_hash());
+        else
+            bg = g::pOptsManager->items_module_color_load_capt_bg(obj->python_module_hash);
+        if (bg != 0)
+            color_head = bg;
+    }
+
     auto draw_list = ImGui::GetWindowDrawList();
     if (draw_list != nullptr)
     {
@@ -722,7 +758,7 @@ void NodeDrawer::draw_node_header()
         draw_list->AddRectFilled(
             ImVec2(m_curr_node_left_offset - style.NodePadding.x + style.NodeBorderWidth, m_curr_node_top_offset - style.NodePadding.y + style.NodeBorderWidth),
             ImVec2(m_curr_node_left_offset + style.NodePadding.x + m_active_node->w_node - style.NodeBorderWidth, m_curr_node_top_offset + header_h),
-            m_active_node->m_clr_head,
+            color_head,
             style.NodeRounding,
             (m_active_node->flags().has(NodeInstFlags::Collapsed) ? ImDrawFlags_RoundCornersAll : ImDrawFlags_RoundCornersTop)
         );
