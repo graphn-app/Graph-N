@@ -31,6 +31,7 @@ struct Node : public base::HashID
     bool python_module_custom_node = false;
     hid python_module_hash = 0;
     std::string search_aliases;
+    std::string built_subcapt;
 
     float w_name = 0.0f;
     float w_pin_in_max = 0.0f;

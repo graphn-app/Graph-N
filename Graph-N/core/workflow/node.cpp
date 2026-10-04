@@ -20,6 +20,37 @@ void Node::finalize(std::unordered_map<std::string, std::list<hid>>* models_map)
     if (input.empty() || output.empty())
         flags.remove(NodeObjFlags::CanBypass);
 
+    if (!python_module.empty() && python_module != "nodes")
+        built_subcapt = fmt::format(FMT_STRING("[{}]"), python_module);
+    if (flags.has(NodeObjFlags::ApiNode))
+    {
+        if (!built_subcapt.empty())
+            built_subcapt = fmt::format(FMT_STRING("{} [API]"), built_subcapt);
+        else
+            built_subcapt = "[API node]";
+    }
+    if (flags.has(NodeObjFlags::Experimental))
+    {
+        if (!built_subcapt.empty())
+            built_subcapt = fmt::format(FMT_STRING("{} [Exp]"), built_subcapt);
+        else
+            built_subcapt = "[Experimental]";
+    }
+    if (flags.has(NodeObjFlags::Deprecated))
+    {
+        if (!built_subcapt.empty())
+            built_subcapt = fmt::format(FMT_STRING("{} [Depr]"), built_subcapt);
+        else
+            built_subcapt = "[Depricated]";
+    }
+    if (flags.has(NodeObjFlags::DevOnly))
+    {
+        if (!built_subcapt.empty())
+            built_subcapt = fmt::format(FMT_STRING("{} [Dev-only]"), built_subcapt);
+        else
+            built_subcapt = "[Dev-only]";
+    }
+
     if (nullptr == models_map)
         return;
 

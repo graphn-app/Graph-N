@@ -52,6 +52,7 @@ protected:
 public:
     float w_node = 0.0f;
     float w_node_name_off = 0.0f;
+    float w_node_subcapt_off = 0.0f;
     float w_name = -1.0f;
     float w_center = 0.0f;
     float w_separator = 0.0f;

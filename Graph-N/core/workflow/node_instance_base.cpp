@@ -3,6 +3,7 @@
 #include "core/managers/nodes_manager.h"
 #include "core/workflow/node.h"
 #include "core/workflow/pin.h"
+#include "main.h"
 
 namespace data
 {
@@ -24,6 +25,7 @@ void NodeInstanceBase::reset_width() noexcept
 {
     w_node = 0.0f;
     w_node_name_off = 0.0f;
+    w_node_subcapt_off = 0.0f;
     w_name = -1.0f;
     w_center = 0.0f;
     w_separator = 0.0f;
@@ -202,10 +204,16 @@ float NodeInstanceBase::recalc_node_width(float new_width, bool ro, bool use_big
     if (m_saved_width == new_width) [[likely]]
         return w_node;
 
+    ImGui::PushFont(g::pMain->get_small_font());
+    const auto w_cabcapt = ImGui::CalcTextSize(get_object()->built_subcapt.c_str()).x;
+    ImGui::PopFont();
+
     if (!do_need_calc_node_widths()) [[unlikely]]
     {
         w_node = w_name + ImGui::GetStyle().ItemSpacing.x * 2 + get_additional_node_width();
+        w_node = std::max(w_cabcapt + ImGui::GetStyle().ItemSpacing.x * 2, w_node);
         w_node_name_off = std::max(0.0f, (w_node / 2) - (w_name / 2));
+        w_node_subcapt_off = std::max(0.0f, (w_node / 2) - (w_cabcapt / 2));
         m_saved_width = new_width;
         return w_node;
     }
@@ -216,6 +224,9 @@ float NodeInstanceBase::recalc_node_width(float new_width, bool ro, bool use_big
 
     w_node = new_width;
     w_node_name_off = std::max(0.0f, (new_width / 2) - (w_name / 2));
+
+    w_node_subcapt_off = std::max(0.0f, (w_node / 2) - (w_cabcapt / 2));
+    w_node = std::max(w_cabcapt + ImGui::GetStyle().ItemSpacing.x * 2, w_node);
 
     const float pin_l_offset = ro ? w::pin_l_offset_ro : w::pin_l_offset_rw;
     const float max_ico = (use_big_pin_icon ? w::ico_max : w::ico_circle);

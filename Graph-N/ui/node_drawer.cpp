@@ -716,7 +716,8 @@ void NodeDrawer::draw_node_header()
         const auto& style = ed::GetStyle();
 
         //const ImU32 bg_color = (m_active_node->m_clr_custom ? m_active_node->m_clr_head : m_defclr_node_header_bg);
-        const float header_h = ImGui::GetTextLineHeight() * 1.5f - (m_active_node->flags().has(NodeInstFlags::Collapsed) ? style.NodeBorderWidth : 0);
+        const float header_h = (ImGui::GetTextLineHeight() * 1.5f - (m_active_node->flags().has(NodeInstFlags::Collapsed) ? style.NodeBorderWidth : 0)) *
+            (m_active_node->get_object()->built_subcapt.empty() ? 1.0f : 1.5f);
 
         draw_list->AddRectFilled(
             ImVec2(m_curr_node_left_offset - style.NodePadding.x + style.NodeBorderWidth, m_curr_node_top_offset - style.NodePadding.y + style.NodeBorderWidth),
@@ -742,6 +743,14 @@ void NodeDrawer::draw_node_header()
             ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->obj_flags().has(NodeObjFlags::Dummy) ? g::pOptsManager->color_load(AppColor::DummyNode) : m_clr_node_header_text);
             ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
             ImGui::PopStyleColor();
+
+            if (!m_active_node->get_object()->built_subcapt.empty())
+            {
+                ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_subcapt_off);
+                ImGui::PushFont(g::pMain->get_small_font());
+                ImGui::TextUnformatted(m_active_node->get_object()->built_subcapt.c_str(), m_active_node->get_object()->built_subcapt.c_str() + m_active_node->get_object()->built_subcapt.size());
+                ImGui::PopFont();
+            }
 
             if (zoomed_allow_renaming() && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             {

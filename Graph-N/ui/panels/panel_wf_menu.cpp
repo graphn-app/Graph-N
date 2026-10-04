@@ -393,7 +393,45 @@ bool PanelWorkflow::show_node_menu()
     bool close = false;
     auto node = *m_menu_objs.nodes.begin();
 
-    ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
+    if (ImGui::BeginMenu("Node metadata"))
+    {
+        auto obj = node->get_object();
+        std::string* to_copy = nullptr;
+
+        if (!obj->display_name.empty())
+        {
+            if (ImGui::MenuItem(obj->display_name.c_str(), "Original name")) { to_copy = &obj->display_name; }
+        }
+
+        if (ImGui::MenuItem(obj->node_class.c_str(), "Class name")) { to_copy = &obj->node_class; }
+
+        if (!obj->python_module.empty())
+        {
+            if (ImGui::MenuItem(obj->python_module.c_str(), "Module")) { to_copy = &obj->python_module; }
+        }
+
+        if (!obj->description.empty())
+        {
+            if (obj->description.size() > 20)
+            {
+                m_fmt_buffer.clear();
+                fmt::format_to(std::back_inserter(m_fmt_buffer), FMT_STRING("{}..."), obj->description.substr(0, 20));
+                m_fmt_buffer.push_back('\0');
+                if (ImGui::MenuItem(m_fmt_buffer.data(), "Description")) { to_copy = &obj->description; }
+            }
+            else if (ImGui::MenuItem(obj->description.c_str(), "Description")) { to_copy = &obj->description; }
+        }
+
+        if (to_copy != nullptr)
+        {
+            ImGui::SetClipboardText(to_copy->c_str());
+            g::pFlow->set_toast(ImGuiEx::toast_prepare("Copied"));
+            close = true;
+        }
+
+        ImGui::EndMenu();
+    }
+
     ImGui::Separator();
     if (node->flags().has_any(NodeInstFlags::MaskEditorReady, NodeInstFlags::PosEditorReady))
     {
