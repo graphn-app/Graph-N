@@ -200,7 +200,7 @@ void PanelTextEditor::create_toolbar()
     {
         PanelToolbar::Element el;
         el.type = PanelToolbar::Element::Type::Button;
-        el.icon = ICON_LC_SEARCH;
+        el.icon = ICON_LC_LOCATE;
         el.tooltip = "Locate node on graph";
         el.on_click = [this](PanelToolbar::Element& /*el*/)
         {

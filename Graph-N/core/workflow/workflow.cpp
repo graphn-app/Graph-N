@@ -516,7 +516,8 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
     m_action->multi_action_on("Separate");
     for (auto node : nodes)
     {
-        LogCAssert(node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
+        if (node->obj_flags().has_not(NodeObjFlags::SpecReroute))
+            continue;
         LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
 
         if (node->flags().has(NodeInstFlags::RerouteSplitted))
@@ -596,7 +597,8 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
     data::NodeInstance* dest_node = nullptr;
     for (auto node : nodes)
     {
-        LogCAssert(node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name());
+        if (node->obj_flags().has_not(NodeObjFlags::SpecReroute))
+            continue;
         LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
 
         if (nullptr == dest_node)

@@ -1,3 +1,4 @@
+#ifdef _DEBUG
 #include "ui/dialogs/debug_wf_view.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/node_instance.h"
@@ -470,3 +471,4 @@ DlgCode DebugWfView::show()
 }
 
 } // namespace ui
+#endif // #ifdef _DEBUG

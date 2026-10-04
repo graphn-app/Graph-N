@@ -242,14 +242,14 @@ ActivityBar::Direction ActivityBar::get_panel_direction(DlgObj panel_obj, ImRect
 
     const ImRect panel_rc = win->DockNode->Rect();
 
-    if (panel_rc.Min.y >= center_rc.Max.y - 5.0f)
-        return Direction::Bottom;
-
     if (panel_rc.Max.x <= center_rc.Min.x + 5.0f)
         return Direction::Left;
 
     if (panel_rc.Min.x >= center_rc.Max.x - 5.0f)
         return Direction::Right;
+
+    if (panel_rc.Min.y >= center_rc.Max.y - 5.0f)
+        return Direction::Bottom;
 
     return Direction::None;
 }

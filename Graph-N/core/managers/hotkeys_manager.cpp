@@ -564,8 +564,9 @@ bool HotkeysManager::process_node_hotkey(const ui::PanelWorkflow* wf_panel) cons
     case KeyTarget::Node_Unlink:
         g::pFlow->wf_node_unlink();
         return true;
-  //case KeyTarget::Node_Reroute:
-  //    return true;
+    case KeyTarget::Node_Reroute:
+        g::pFlow->wf_insert_reroute();
+        return true;
     case KeyTarget::Node_AlignLeft:
         g::pFlow->wf_node_align(true, false);
         return true;

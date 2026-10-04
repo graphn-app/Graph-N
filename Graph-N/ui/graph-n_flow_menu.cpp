@@ -138,7 +138,7 @@ void GraphN_Flow::show_menu_bar()
             {
                 on_menu_panel_window(ViewPanelNodeInpector);
             }
-            if (ImGui::MenuItem(ICON_LC_LIBRARY " My Projects##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Projects), (m_windows & ViewPanelWfList)))
+            if (ImGui::MenuItem(ICON_LC_WORKFLOW " Projects##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Projects), (m_windows & ViewPanelWfList)))
             {
                 on_menu_panel_window(ViewPanelWfList);
             }
@@ -244,7 +244,7 @@ void GraphN_Flow::show_menu_bar()
                 m_panel_queue->toggle_history_visible();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem(ICON_LC_CLOUD_DOWNLOAD " Reload history tasks##PanelsQueue"))
+            if (ImGui::MenuItem(ICON_LC_CLOUD_DOWNLOAD " Reload history tasks##PanelsQueue", nullptr, nullptr, get_online()))
             {
                 m_panel_queue->force_reload_history();
             }

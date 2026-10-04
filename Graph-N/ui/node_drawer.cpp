@@ -780,14 +780,6 @@ void NodeDrawer::draw_node_header()
             ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
             ImGui::PopStyleColor();
 
-            if (!m_active_node->get_object()->built_subcapt.empty())
-            {
-                ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_subcapt_off);
-                ImGui::PushFont(g::pMain->get_small_font());
-                ImGui::TextUnformatted(m_active_node->get_object()->built_subcapt.c_str(), m_active_node->get_object()->built_subcapt.c_str() + m_active_node->get_object()->built_subcapt.size());
-                ImGui::PopFont();
-            }
-
             if (zoomed_allow_renaming() && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             {
                 if (m_active_node->has_object() && m_active_node->obj_flags().has(NodeObjFlags::CanRename))
@@ -796,6 +788,14 @@ void NodeDrawer::draw_node_header()
                     m_renaming_buff = m_active_node->get_name();
                     m_need_renaming_focus = true;
                 }
+            }
+
+            if (!m_active_node->get_object()->built_subcapt.empty())
+            {
+                ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_subcapt_off);
+                ImGui::PushFont(g::pMain->get_small_font());
+                ImGui::TextUnformatted(m_active_node->get_object()->built_subcapt.c_str(), m_active_node->get_object()->built_subcapt.c_str() + m_active_node->get_object()->built_subcapt.size());
+                ImGui::PopFont();
             }
 
             if (m_active_node->flags().has(NodeInstFlags::Pinned))

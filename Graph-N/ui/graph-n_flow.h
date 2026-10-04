@@ -189,6 +189,7 @@ public:
     void wf_node_move(bool left, bool right, bool up, bool down);
     void wf_node_align(bool left, bool top);
     void wf_node_unlink();
+    void wf_insert_reroute();
 
     // menu
     void on_menu_import();

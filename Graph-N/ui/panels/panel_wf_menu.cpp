@@ -1451,7 +1451,7 @@ bool PanelWorkflow::show_link_menu()
         m_action->unlink(link);
         close = true;
     }
-    if (ImGui::MenuItem("Reroute", nullptr, nullptr, can_unlink))
+    if (ImGui::MenuItem("Insert reroute", nullptr, nullptr, can_unlink))
     {
         insert_reroute(link, m_menu_objs.click_pos);
         close = true;

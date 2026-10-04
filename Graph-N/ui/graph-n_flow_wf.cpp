@@ -687,4 +687,10 @@ void GraphN_Flow::wf_node_unlink()
     action->multi_action_off();
 }
 
+void GraphN_Flow::wf_insert_reroute()
+{
+    if (m_wf_focused != nullptr)
+        m_wf_focused->insert_reroute(nullptr, {});
+}
+
 }

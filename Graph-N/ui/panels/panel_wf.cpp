@@ -302,8 +302,26 @@ void PanelWorkflow::bundle_reroutes(const std::set<data::NodeInstance*>& nodes)
     m_wf->bundle_reroutes(nodes);
 }
 
-void PanelWorkflow::insert_reroute(data::Link* link, const ImVec2& pos)
+void PanelWorkflow::insert_reroute(data::Link* link, ImVec2 pos)
 {
+    if (nullptr == link)
+    {
+        const auto links = m_drawer.get_selected_links();
+        if (links.empty())
+            return;
+        link = *links.begin();
+
+        const auto* n1 = m_wf->get_node_by_instance(link->get_input()->get_parent_node());
+        const auto* n2 = m_wf->get_node_by_instance(link->get_output()->get_parent_node());
+
+        const auto p1_x = n1->m_rc.Min.x + n1->m_rc.Max.x;
+        const auto p1_y = n1->m_rc.Min.y;
+        const auto p2_x = n2->m_rc.Min.x;
+        const auto p2_y = n2->m_rc.Min.y;
+
+        pos.x = p1_x + (p2_x - p1_x) / 2;
+        pos.y = p1_y + (p2_y - p1_y) / 2;
+    }
     LogRAssert(link != nullptr, "Zero ptr", );
     m_wf->insert_reroute(link, pos);
 }

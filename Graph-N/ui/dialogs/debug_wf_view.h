@@ -1,5 +1,5 @@
 #pragma once
-
+#ifdef _DEBUG
 namespace data
 {
 class Workflow;
@@ -42,3 +42,4 @@ private:
 };
 
 } // namespace ui
+#endif

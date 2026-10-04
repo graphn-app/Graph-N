@@ -227,7 +227,6 @@ const char* GraphN_Flow::get_panel_icon(DlgObj panel_obj) const noexcept
     case DlgObj::PanelNodeInspector:
         return ICON_LC_TANGENT;
     case DlgObj::PanelWfList:
-        return ICON_LC_LIBRARY;
     case DlgObj::PanelWf:
         return ICON_LC_WORKFLOW;
     //case DlgObj::PanelTemplates:
@@ -740,11 +739,13 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
         m_windows &= ~ViewActivityBarR;
         Log("Right activity bar closed");
         break;
+#ifdef _DEBUG
     case DlgObj::PanelDebugWf:
         if (m_wf_debug_panels.empty())
             m_windows &= ~ViewWfDebug;
         Log("Wf debug dlgs closed");
         break;
+#endif
     default:
         LogRError("Unknown dialog is trying to be closed " << cast::to_u64(dlg), );
     }

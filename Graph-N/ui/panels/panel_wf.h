@@ -71,7 +71,7 @@ public:
 
     void separate_reroutes(const std::set<data::NodeInstance*>& nodes);
     void bundle_reroutes(const std::set<data::NodeInstance*>& nodes);
-    void insert_reroute(data::Link* link, const ImVec2& pos);
+    void insert_reroute(data::Link* link, ImVec2 pos);
 
     void split_reroute_to_parts(data::NodeInstance* reroute);
     void merge_reroute_parts(data::NodeInstance* reroute, bool to_left);
