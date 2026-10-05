@@ -31,7 +31,7 @@ bool SettingsManager::init()
 
     // ui
     m_ui_open_wnds =                                  { "open_windows",             int64_t(ui::ViewPanelsResetAll) };
-    m_ui_nodes_tree_view =                            { "nodes_tree_view",          bool(true) };
+    m_ui_nodes_view =                                 { "nodes_view",               int64_t(NodeViewType::categories) };
     m_ui_theme =                                      { "theme",                    int64_t(0) };
     m_ui_activity_bar_mode =                          { "activity_bar_mode",        int64_t(cast::to_i64(ActivityBarMode::Smart)) };
     m_ui_activity_bar_big_icons =                     { "activity_bar_big_icons",   bool(false) };
@@ -202,7 +202,7 @@ bool SettingsManager::init()
     values.push_back(&m_app_scale);
     values.push_back(&m_app_db_backups);
     values.push_back(&m_ui_open_wnds);
-    values.push_back(&m_ui_nodes_tree_view);
+    values.push_back(&m_ui_nodes_view);
     values.push_back(&m_ui_theme);
     values.push_back(&m_ui_activity_bar_mode);
     values.push_back(&m_ui_activity_bar_big_icons);

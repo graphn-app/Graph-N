@@ -13,7 +13,7 @@ std::unique_ptr<Node> CNI_Reroute::cni_create_object()
     node->name = node->display_name = cni_get_node_class();
     node->category = "utils";
     node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
-    node->python_module = "nodes";
+    node->python_module = VANILLA;
     node->python_module_hash = base::HashID::make_hash(node->python_module);
     node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanRename);
     node->flags.add(NodeObjFlags::SpecReroute, NodeObjFlags::CustomWdgtRestrictCfg);

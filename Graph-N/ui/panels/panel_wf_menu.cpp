@@ -1631,13 +1631,11 @@ const char* PanelWorkflow::prepare_module_colors(const data::NodeInstance* node)
     if (module.empty())
         return nullptr;
 
-    constexpr std::string_view vanilla = "nodes";
-
     m_module_clr_buffer.clear();
     if (node->obj_flags().has_any(NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
         fmt::format_to(std::back_inserter(m_module_clr_buffer), FMT_STRING("Apply to all Note nodes"));
-    else if (module == vanilla)
-        fmt::format_to(std::back_inserter(m_module_clr_buffer), FMT_STRING("Apply to all Vanilla nodes"));
+    else if (VANILLA == node->get_object()->python_module)
+        fmt::format_to(std::back_inserter(m_module_clr_buffer), FMT_STRING("Apply to all {} nodes"), VANILLA);
     else
         fmt::format_to(std::back_inserter(m_module_clr_buffer), FMT_STRING("Apply to all [{}] nodes"), node->get_object()->python_module);
     m_module_clr_buffer.push_back('\0');
@@ -1675,16 +1673,16 @@ data::Node* PanelWorkflow::show_nodes_menu(const std::list<std::pair<PinType, st
         ImGui::SetKeyboardFocusHere();
         m_context_menu_nodes_need_focus = false;
 
-        g::pNodesManager->calc_number_inside(tools::str::trim_their(m_context_menu_nodes_filter), in_pins, out_pins);
+        g::pNodesManager->calc_number_inside(tools::str::trim_their(m_context_menu_nodes_filter), in_pins, out_pins, true);
     }
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (ImGuiEx::InputTextWithHint("##nodes_filter", "filter nodes", &m_context_menu_nodes_filter,
         ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoUndoRedo | ImGuiInputTextFlags_EscapeClearsAll))
     {
-        g::pNodesManager->calc_number_inside(tools::str::trim_their(m_context_menu_nodes_filter), in_pins, out_pins);
+        g::pNodesManager->calc_number_inside(tools::str::trim_their(m_context_menu_nodes_filter), in_pins, out_pins, true);
     }
 
-    auto& nodes = g::pNodesManager->get_nodes_tree();
+    auto& nodes = g::pNodesManager->get_nodes_by_category();
 
     data::Node* ret_node = nullptr;
 

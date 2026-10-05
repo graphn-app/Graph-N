@@ -58,6 +58,8 @@ constexpr float WIDGET_COLOR_RGB_W = 240.0f;
 constexpr float WIDGET_COLOR_RGBA_W = 270.0f;
 constexpr float WIDGET_OUT_TEXT_MAX_H = 200.0f;
 
+constexpr const char* VANILLA                   = "Vanilla";
+
 constexpr const char* TEMP_LABEL_COMPLETED      = "Completed tasks";
 constexpr const char* TEMP_LABEL_IMPORTED       = "Imported";
 

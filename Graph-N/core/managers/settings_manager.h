@@ -45,8 +45,9 @@ public:
     int64_t ui_open_wnds_load() const noexcept { return *std::get_if<int64_t>(&m_ui_open_wnds.value); }
     void ui_open_wnds_save(int64_t windows);
 
-    bool ui_nodes_pane_tree_view_load() const noexcept { return *std::get_if<bool>(&m_ui_nodes_tree_view.value); }
-    void ui_nodes_pane_tree_view_save(bool tree_view) { save_option(m_ui_nodes_tree_view, bool(tree_view)); }
+    enum NodeViewType : uint8_t { plain, categories, modules, _first = plain, _last = modules };
+    NodeViewType ui_nodes_pane_tree_view_load() const noexcept { return cast::to<NodeViewType>(*std::get_if<int64_t>(&m_ui_nodes_view.value)); }
+    void ui_nodes_pane_tree_view_save(NodeViewType view) { save_option(m_ui_nodes_view, cast::to_i64(view)); }
 
     int64_t ui_theme_load() const noexcept { return *std::get_if<int64_t>(&m_ui_theme.value); }
     void ui_theme_save(int64_t theme) { save_option(m_ui_theme, int64_t(theme)); }
@@ -251,7 +252,7 @@ private:
 
     // ui
     OptionValue m_ui_open_wnds; // int
-    OptionValue m_ui_nodes_tree_view; // int
+    OptionValue m_ui_nodes_view; // int
     std::vector<OptionValue> m_ui_colors; // int
     OptionValue m_ui_theme; // int. 0 - sys default, 1 - dark, 2 - light
     OptionValue m_ui_activity_bar_mode; // int

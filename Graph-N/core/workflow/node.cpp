@@ -20,7 +20,7 @@ void Node::finalize(std::unordered_map<std::string, std::list<hid>>* models_map)
     if (input.empty() || output.empty())
         flags.remove(NodeObjFlags::CanBypass);
 
-    if (!python_module.empty() && python_module != "nodes")
+    if (!python_module.empty() && python_module != VANILLA)
         built_subcapt = fmt::format(FMT_STRING("[{}]"), python_module);
     if (flags.has(NodeObjFlags::ApiNode))
     {

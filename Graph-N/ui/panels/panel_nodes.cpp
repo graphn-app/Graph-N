@@ -108,7 +108,7 @@ void PanelNodes::create_toolbar()
             el.icon = ICON_LC_LIST_CHEVRONS_UP_DOWN;
             el.tooltip = "Expand all";
             el.on_click = [this](PanelToolbar::Element& /*el*/) { rebuild_items(true); };
-            el.on_preview = [](PanelToolbar::Element& el) noexcept { el.enabled = g::pOptsManager->ui_nodes_pane_tree_view_load(); };
+            el.on_preview = [](PanelToolbar::Element& el) noexcept { el.enabled = (g::pOptsManager->ui_nodes_pane_tree_view_load() != mngr::SettingsManager::NodeViewType::plain); };
             add_toolbar_element(std::move(el), false);
         }
         {
@@ -121,14 +121,15 @@ void PanelNodes::create_toolbar()
                 for (auto& item : m_panel_items) { item.expanded = false; }
                 rebuild_items();
             };
-            el.on_preview = [](PanelToolbar::Element& el) noexcept { el.enabled = g::pOptsManager->ui_nodes_pane_tree_view_load(); };
+            el.on_preview = [](PanelToolbar::Element& el) noexcept { el.enabled = (g::pOptsManager->ui_nodes_pane_tree_view_load() != mngr::SettingsManager::NodeViewType::plain); };
             add_toolbar_element(std::move(el), false);
         }
         {
             PanelToolbar::Element el;
             el.type = PanelToolbar::Element::Type::Button;
-            el.icon = g::pOptsManager->ui_nodes_pane_tree_view_load() ? ICON_LC_FOLDER_TREE : ICON_LC_LIST_TREE;
-            el.tooltip = "Toggle Flat/Category view";
+            const auto view = g::pOptsManager->ui_nodes_pane_tree_view_load();
+            el.icon = (mngr::SettingsManager::NodeViewType::plain == view ? ICON_LC_LIST_TREE : (mngr::SettingsManager::NodeViewType::categories == view ? ICON_LC_FOLDER_TREE : ICON_LC_PACKAGE));
+            el.tooltip = "Toggle Flat/Category/Module view";
             el.on_click = [this](PanelToolbar::Element& el) { on_view(el); };
             add_toolbar_element(std::move(el), false);
         }
@@ -156,7 +157,7 @@ DlgCode PanelNodes::show(bool& focused)
     bool opened = true;
     if (begin_panel(opened, focused) && opened)
     {
-        if (!m_labels_mode && g::pNodesManager->get_nodes_tree().empty()) [[unlikely]]
+        if (!m_labels_mode && g::pNodesManager->get_nodes_by_category().empty()) [[unlikely]]
         {
             show_empty_panel_descr(
                 ICON_LC_INFO " Node Library: Browse, search, and add nodes to your workflow.",
@@ -221,7 +222,7 @@ DlgCode PanelNodes::show(bool& focused)
             {
                 dlg_data()->buffer[PanelNodesData::BuffFilterLowered] = tools::str::to_lower_ascii(dlg_data()->buffer[PanelNodesData::BuffFilter]);
                 Log("Filter by: " << dlg_data()->buffer[PanelNodesData::BuffFilterLowered]);
-                g::pNodesManager->calc_number_inside(tools::str::trim_this(dlg_data()->buffer[PanelNodesData::BuffFilterLowered]), {}, {});
+                g::pNodesManager->calc_number_inside(tools::str::trim_this(dlg_data()->buffer[PanelNodesData::BuffFilterLowered]), {}, {}, true);
                 rebuild_items(true);
             }
         }
@@ -247,7 +248,10 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         return;
     }
 
-    g::pNodesManager->calc_number_inside(tools::str::trim_this(dlg_data()->buffer[PanelNodesData::BuffFilterLowered]), {}, {});
+    const auto view = g::pOptsManager->ui_nodes_pane_tree_view_load();
+
+    if (view != mngr::SettingsManager::NodeViewType::plain)
+        g::pNodesManager->calc_number_inside(tools::str::trim_this(dlg_data()->buffer[PanelNodesData::BuffFilterLowered]), {}, {}, mngr::SettingsManager::NodeViewType::categories == view);
 
     std::set<data::NodeItem*> expanded_nodes;
     std::set<uint32_t> expanded_labels;
@@ -318,10 +322,10 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
         }
     }
 
-    if (g::pOptsManager->ui_nodes_pane_tree_view_load())
+    if (view != mngr::SettingsManager::NodeViewType::plain)
     {
         if (!labels.empty())
-            add_separator("Categories");
+            add_separator(mngr::SettingsManager::NodeViewType::categories == view ? "Categories" : "Modules");
 
         std::function<void(const std::vector<data::NodeItem*>&, int32_t)> go_tree;
         go_tree = [&go_tree, &panel_items = m_panel_items, &expanded_nodes, force_expand_all, &inspector = m_inspector,
@@ -364,7 +368,10 @@ void PanelNodes::rebuild_items(bool force_expand_all /*= false*/)
                 }
             }
         };
-        go_tree(g::pNodesManager->get_nodes_tree(), 0);
+        if (mngr::SettingsManager::NodeViewType::categories == view)
+            go_tree(g::pNodesManager->get_nodes_by_category(), 0);
+        else
+            go_tree(g::pNodesManager->get_nodes_by_module(), 0);
     }
     else
     {
@@ -645,16 +652,14 @@ void PanelNodes::on_labels_mode(PanelToolbar::Element& /*el*/)
 
 void PanelNodes::on_view(PanelToolbar::Element& el)
 {
-    auto tree_view = g::pOptsManager->ui_nodes_pane_tree_view_load();
-    tree_view = !tree_view;
-    g::pOptsManager->ui_nodes_pane_tree_view_save(tree_view);
+    uint8_t view = cast::to_u8(g::pOptsManager->ui_nodes_pane_tree_view_load());
+    if (++view > mngr::SettingsManager::NodeViewType::_last)
+        view = mngr::SettingsManager::NodeViewType::_first;
+
+    el.icon = (mngr::SettingsManager::NodeViewType::plain == view ? ICON_LC_LIST_TREE : (mngr::SettingsManager::NodeViewType::categories == view ? ICON_LC_FOLDER_TREE : ICON_LC_PACKAGE));
+    g::pOptsManager->ui_nodes_pane_tree_view_save(cast::to<mngr::SettingsManager::NodeViewType>(view));
 
     rebuild_items();
-
-    if (tree_view)
-        el.icon = ICON_LC_FOLDER_TREE;
-    else
-        el.icon = ICON_LC_LIST_TREE;
 }
 
 } // namespace ui

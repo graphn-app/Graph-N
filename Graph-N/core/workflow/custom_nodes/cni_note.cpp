@@ -90,7 +90,7 @@ std::unique_ptr<Node> CNI_Note::cni_create_object()
     auto node = std::make_unique<data::Node>(cni_get_node_class());
     node->category = "utils";
     node->description = "Node to add annotations to a workflow.";
-    node->python_module = "nodes";
+    node->python_module = VANILLA;
     node->python_module_hash = base::HashID::make_hash(node->python_module);
     node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
     node->flags.add(NodeObjFlags::SpecNote, NodeObjFlags::CustomWdgtRestrictCfg);
@@ -106,7 +106,7 @@ std::unique_ptr<Node> CNI_MarkdownNote::cni_create_object()
     node->name = node->display_name = markdown_note_name;
     node->category = "utils";
     node->description = "Node to add annotations to a workflow. It supports text formatting using Markdown syntax.";
-    node->python_module = "nodes";
+    node->python_module = VANILLA;
     node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
     node->flags.add(NodeObjFlags::SpecMdNote, NodeObjFlags::CustomWdgtRestrictCfg);
     node->finalize(nullptr);

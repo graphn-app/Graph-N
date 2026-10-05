@@ -857,7 +857,10 @@ void NodesParser::parse_others(data::Node& node, const o_json& jnode)
     get_string("python_module", node.python_module);
 
     constexpr std::string_view custom_module = "custom_nodes.";
-    if (node.python_module.starts_with(custom_module))
+    constexpr std::string_view vanilla_module = "nodes";
+    if (node.python_module == vanilla_module)
+        node.python_module = VANILLA;
+    else if (node.python_module.starts_with(custom_module))
     {
         node.python_module = node.python_module.substr(custom_module.size());
         node.python_module_custom_node = true;
@@ -882,34 +885,33 @@ void NodesParser::parse_others(data::Node& node, const o_json& jnode)
     }
 }
 
-void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
+void NodesParser::put_in_tree(NodesManager& manager, data::NodeItem* leaf_item, const std::string& path, std::vector<data::NodeItem*>& tree, char separator)
 {
-    if (nullptr == node) [[unlikely]]
-        return;
-
-    const auto search_branch = [](std::vector<data::NodeItem*>* items, const std::string& category) noexcept
+    const auto search_branch = [](std::vector<data::NodeItem*>* items, const std::string& name) noexcept
     {
         for (auto it = items->begin(); it != items->end(); ++it)
         {
-            if (!(*it)->is_node && category == (*it)->name_or_category)
+            if (!(*it)->is_node && name == (*it)->name_or_category)
                 return it;
         }
         return items->end();
     };
 
-    const auto cats = tools::str::split(node->category, '/');
-    std::vector<data::NodeItem*>* root = &manager.m_nodes_tree;
+    const auto parts = (path.empty() ? std::vector<std::string>{ "__unknown" } : tools::str::split(path, separator));
+    std::vector<data::NodeItem*>* root = &tree;
 
-    auto cat = cats.begin();
-    for (; cat != cats.end(); ++cat)
+    // search existing branch
+    auto part = parts.begin();
+    for (; part != parts.end(); ++part)
     {
-        auto it = search_branch(root, *cat);
+        auto it = search_branch(root, *part);
         if (it == root->end())
             break;
         root = &(*it)->children;
     }
 
-    for (; cat != cats.end(); ++cat)
+    // create new branches, if needed
+    for (; part != parts.end(); ++part)
     {
         auto branch_ptr = std::make_unique<data::NodeItem>();
         auto branch = branch_ptr.get();
@@ -917,24 +919,39 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
 
         root->push_back(branch);
         branch->is_node = false;
-        branch->name_or_category = *cat;
+        branch->name_or_category = *part;
         branch->name_or_category_len = branch->name_or_category.size();
         branch->search = tools::str::to_lower_ascii(branch->name_or_category);
+
         root = &branch->children;
     }
 
-    auto branch_ptr = std::make_unique<data::NodeItem>();
-    auto branch = branch_ptr.get();
-    manager.m_node_items.push_back(std::move(branch_ptr));
+    // add node to the end
+    root->push_back(leaf_item);
+}
 
-    root->push_back(branch);
-    branch->is_node = true;
-    branch->name_or_category = (node->display_name.empty() ? node->name : node->display_name);
-    branch->name_or_category_len = branch->name_or_category.size();
-    branch->search = tools::str::to_lower_ascii(node->name + " " + node->display_name + " " + node->search_aliases);
-    branch->node = node;
+void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
+{
+    if (nullptr == node) [[unlikely]]
+        return;
 
-    manager.m_nodes_plain.push_back(branch);
+    // new leaf
+    auto leaf_ptr = std::make_unique<data::NodeItem>();
+    auto leaf = leaf_ptr.get();
+    manager.m_node_items.push_back(std::move(leaf_ptr));
+
+    leaf->is_node = true;
+    leaf->name_or_category = (node->display_name.empty() ? node->name : node->display_name);
+    leaf->name_or_category_len = leaf->name_or_category.size();
+    leaf->search = tools::str::to_lower_ascii(node->name + " " + node->display_name + " " + node->search_aliases + " " + node->python_module);
+    leaf->node = node;
+
+    // plain list
+    manager.m_nodes_plain.push_back(leaf);
+
+    // add to trees
+    put_in_tree(manager, leaf, node->category, manager.m_category_tree, '/');
+    put_in_tree(manager, leaf, node->python_module, manager.m_module_tree, '.');
 }
 
 void NodesParser::sort_nodes(NodesManager& manager)
@@ -950,7 +967,8 @@ void NodesParser::sort_nodes(NodesManager& manager)
         }
     };
 
-    sort_tree(manager.m_nodes_tree);
+    sort_tree(manager.m_category_tree);
+    sort_tree(manager.m_module_tree);
     NodesManager::sort_nodes(manager.m_nodes_plain);
 }
 

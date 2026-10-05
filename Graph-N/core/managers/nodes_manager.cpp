@@ -11,7 +11,8 @@ bool NodesManager::init()
 
     m_labels = g::pOptsManager->items_node_labels_load();
     m_node_items.reserve(1000);
-    m_nodes_tree.reserve(1000);
+    m_category_tree.reserve(1000);
+    m_module_tree.reserve(1000);
     m_nodes_plain.reserve(1000);
     return true;
 }
@@ -20,7 +21,8 @@ void NodesManager::stop_and_cleanup()
 {
     m_nodes.clear(); m_nodes.rehash(0);
     m_pins.clear(); m_pins.rehash(0);
-    m_nodes_tree.clear(); m_nodes_tree.shrink_to_fit();
+    m_category_tree.clear(); m_category_tree.shrink_to_fit();
+    m_module_tree.clear(); m_module_tree.shrink_to_fit();
     m_nodes_plain.clear(); m_nodes_plain.shrink_to_fit();
     m_node_items.clear(); m_node_items.shrink_to_fit();
 }
@@ -31,9 +33,10 @@ void NodesManager::init_from_copy(NodesManager& copy)
     m_nodes = std::move(copy.m_nodes);
     m_pins = std::move(copy.m_pins);
     m_node_items = std::move(copy.m_node_items);
-    m_nodes_tree = std::move(copy.m_nodes_tree);
+    m_category_tree = std::move(copy.m_category_tree);
+    m_module_tree = std::move(copy.m_module_tree);
     m_nodes_plain = std::move(copy.m_nodes_plain);
-    calc_number_inside("", {}, {});
+    calc_number_inside("", {}, {}, true);
 
     m_labels = g::pOptsManager->items_node_labels_load();
     for (auto& label : m_labels.get_label_list())
@@ -52,7 +55,7 @@ void NodesManager::init_from_copy(NodesManager& copy)
 }
 
 void NodesManager::calc_number_inside(
-    const std::string& filter, const std::list<std::pair<PinType, std::string>>& in_types, const std::list<std::pair<PinType, std::string>>& out_types)
+    const std::string& filter, const std::list<std::pair<PinType, std::string>>& in_types, const std::list<std::pair<PinType, std::string>>& out_types, bool use_categories)
 {
     const auto pin_filter = [](const std::vector<data::Pin*>& pins, const std::list<std::pair<PinType, std::string>>& type_filter)
     {
@@ -129,7 +132,10 @@ void NodesManager::calc_number_inside(
     };
 
     uint32_t count = 0;
-    calculator(m_nodes_tree, &count, false);
+    if (use_categories)
+        calculator(m_category_tree, &count, false);
+    else
+        calculator(m_module_tree, &count, false);
 }
 
 data::Node* NodesManager::find_node(hid hash) const
@@ -376,6 +382,9 @@ bool sort_callback(const data::NodeItem* lhs, const data::NodeItem* rhs)
         return true;
     if (lhs->is_node && !rhs->is_node)
         return false;
+
+    if (VANILLA == lhs->name_or_category) return true;
+    if (VANILLA == rhs->name_or_category) return false;
 
     const char* lhs_sort = find_first_sortable(lhs->name_or_category.c_str());
     const char* rhs_sort = find_first_sortable(rhs->name_or_category.c_str());
