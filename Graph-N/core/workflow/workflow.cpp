@@ -125,7 +125,13 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source, bool copy
     LogRAssert(copy_from_source->get_object(), "Zero object ptr", nullptr);
     const auto id = (copy_id ? copy_from_source->get_instance_id() : get_new_child_id());
     set_last_child_id(id);
-    auto instance = create_node(copy_from_source->get_object(), id, 0);
+
+    std::unique_ptr<NodeInstance> instance;
+    if (copy_from_source->has_object() && copy_from_source->obj_flags().has(NodeObjFlags::Dummy))
+        instance = create_node(g::pNodesManager->make_dummy_node(copy_from_source->get_object()->node_class), id, 0);
+    else
+        instance = create_node(copy_from_source->get_object(), id, 0);
+
     auto ptr = instance.get();
     ptr->init(copy_from_source, copy_id);
     m_nodes.push_back(std::move(instance));
@@ -516,7 +522,7 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
     m_action->multi_action_on("Separate");
     for (auto node : nodes)
     {
-        if (node->obj_flags().has_not(NodeObjFlags::SpecReroute))
+        if (!node->has_object() || node->has_object() && node->obj_flags().has_not(NodeObjFlags::SpecReroute))
             continue;
         LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
 
@@ -597,7 +603,7 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
     data::NodeInstance* dest_node = nullptr;
     for (auto node : nodes)
     {
-        if (node->obj_flags().has_not(NodeObjFlags::SpecReroute))
+        if (!node->has_object() || node->has_object() && node->obj_flags().has_not(NodeObjFlags::SpecReroute))
             continue;
         LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
 
@@ -695,7 +701,7 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
 void Workflow::collapse_reroute(data::NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
-    LogRAssert(node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name(), );
+    LogRAssert(node->has_object() && node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name(), );
     LogRAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size(), );
 
     node = filter_reroute(node);

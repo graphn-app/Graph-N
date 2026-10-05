@@ -148,20 +148,19 @@ bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinI
     if (style.FrameBorderSize > 0.0f)
         window->DrawList->AddRect(p_min, p_max, border_col, style.FrameRounding, 0, style.FrameBorderSize);
 
-    ImGui::PushClipRect(p_min, p_max, true); 
-
     const ImVec2 text_pos = p_min + style.FramePadding;
 
+    // Use RenderTextClipped instead of PushClipRect to prevent breaking ImDrawList channels
     if (str != nullptr && !str->empty())
     {
-        window->DrawList->AddText(text_pos, ImGui::GetColorU32(ImGuiCol_Text), str->c_str());
+        ImGui::RenderTextClipped(text_pos, p_max, str->c_str(), nullptr, nullptr);
     }
     else if (hint != nullptr && *hint != 0)
     {
-        window->DrawList->AddText(text_pos, ImGui::GetColorU32(ImGuiCol_TextDisabled), hint);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetColorU32(ImGuiCol_TextDisabled));
+        ImGui::RenderTextClipped(text_pos, p_max, hint, nullptr, nullptr);
+        ImGui::PopStyleColor();
     }
-
-    ImGui::PopClipRect();
 
     return pressed;
 }

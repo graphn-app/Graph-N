@@ -623,20 +623,26 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
         {
             std::ranges::for_each(node->get_inputs(), [new_node](data::PinInstance* pin)
             {
-                const auto it = std::ranges::find_if(new_node->get_inputs(), [pin](data::PinInstance* new_pin) { return pin->get_object()->get_hash() == new_pin->get_object()->get_hash(); });
-                if (it != new_node->get_inputs().end())
-                    (*it)->set_instance_id(pin->get_instance_id());
-                else if (new_node->obj_flags().has_none(NodeObjFlags::SpecPrimitive, NodeObjFlags::SpecReroute, NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
-                    LogErrorS("Copied input pin not found. psrc:" << pin->get_instance_id());
+                if (new_node->obj_flags().has_none(NodeObjFlags::SpecPrimitive, NodeObjFlags::SpecReroute, NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
+                {
+                    const auto it = std::ranges::find_if(new_node->get_inputs(), [pin](data::PinInstance* new_pin) { return pin->get_object()->get_hash() == new_pin->get_object()->get_hash(); });
+                    if (it != new_node->get_inputs().end())
+                        (*it)->set_instance_id(pin->get_instance_id());
+                    else
+                        LogErrorS("Copied input pin not found. psrc:" << pin->get_instance_id());
+                }
                 
             });
             std::ranges::for_each(node->get_outputs(), [new_node](data::PinInstance* pin)
             {
-                const auto it = std::ranges::find_if(new_node->get_outputs(), [pin](data::PinInstance* new_pin) { return pin->get_object()->get_hash() == new_pin->get_object()->get_hash(); });
-                if (it != new_node->get_outputs().end())
-                    (*it)->set_instance_id(pin->get_instance_id());
-                else if (new_node->obj_flags().has_none(NodeObjFlags::SpecPrimitive, NodeObjFlags::SpecReroute, NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
-                    LogErrorS("Copied input pin not found. psrc:" << pin->get_instance_id());
+                if (new_node->obj_flags().has_none(NodeObjFlags::SpecPrimitive, NodeObjFlags::SpecReroute, NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
+                {
+                    const auto it = std::ranges::find_if(new_node->get_outputs(), [pin](data::PinInstance* new_pin) { return pin->get_object()->get_hash() == new_pin->get_object()->get_hash(); });
+                    if (it != new_node->get_outputs().end())
+                        (*it)->set_instance_id(pin->get_instance_id());
+                    else
+                        LogErrorS("Copied input pin not found. psrc:" << pin->get_instance_id());
+                }
             });
         }
 
