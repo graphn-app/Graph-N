@@ -31,6 +31,8 @@ private:
     bool check_cni_node_definition_note(const o_json& j, bool& is_valid) const;
     bool check_cni_node_definition_markdownnote(const o_json& j, bool& is_valid) const;
 
+    NodeInstance* deserialize_js_node(NodeInstance* node, const o_json& j);
+
     NodeInstance* deserialize_cni_node(NodeInstance* node, const o_json& j);
     NodeInstance* deserialize_cni_node_primitive(NodeInstance* node, const o_json& j);
     NodeInstance* deserialize_cni_node_reroute(NodeInstance* node, const o_json& j);

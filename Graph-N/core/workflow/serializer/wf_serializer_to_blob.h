@@ -26,6 +26,8 @@ private:
     void serialize_node_definition();
     void serialize_cni_node_definition();
 
+    void serialize_js_node();
+
     void serialize_cni_node();
     void serialize_cni_node_primitive();
     void serialize_cni_node_reroute();

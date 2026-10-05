@@ -4,8 +4,6 @@ namespace data
 {
 class Workflow;
 class NodeInstance;
-class PinInstance;
-class Link;
 
 class WfSerializerToJsonApi final
 {
@@ -16,6 +14,9 @@ public:
     NO_COPY_MOVE(WfSerializerToJsonApi);
 
     o_json serialize();
+
+private:
+    o_json serialize_custom_node(data::NodeInstance* node, int32_t& input_count);
 
 private:
     const Workflow* m_wf = nullptr;

@@ -24,6 +24,8 @@ private:
     iid serialize_links();
     void serialize_groups();
 
+    void serialize_js_node(o_json& j);
+
     void serialize_cni_node(o_json& j);
     void serialize_cni_node_primitive(o_json& j);
     void serialize_cni_node_reroute(o_json& j);

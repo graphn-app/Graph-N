@@ -30,107 +30,118 @@ o_json WfSerializerToJsonApi::serialize()
         jnode["_meta"]["title"] = node->get_name();
 
         int32_t inputs_counter = 0;
-        o_json inputs;
 
-        for (auto pin : node->get_inputs())
+        if (node->flags().has(NodeInstFlags::JsonApiCustomSerialization))
         {
-            if (!pin->get_object()->is_widget() && 0 == pin->state().links)
-                continue;
+            o_json inputs = serialize_custom_node(node.get(), inputs_counter);
+            if (inputs_counter > 0)
+                jnode["inputs"] = std::move(inputs);
+            else
+                jnode["inputs"] = nlohmann::json::object();
+        }
+        else
+        {
+            o_json inputs;
 
-            bool has_links = (pin->state().links > 0);
-            if (has_links)
+            for (auto pin : node->get_inputs())
             {
-                const auto links = m_wf->get_links_by_pin(pin);
-                if (links.size() != 1)
-                {
-                    LogError("Invalid number of links for input pin");
-                }
-                else
-                {
-                    const auto* output_pin = (*links.begin())->get_output();
-                    const auto* output_node = m_wf->get_node_by_instance(output_pin->get_parent_node());
-                    if (output_node->flags().has(NodeInstFlags::JsonApiDontExport))
-                        has_links = false;
-                }
-            }
+                if (!pin->get_object()->is_widget() && 0 == pin->state().links)
+                    continue;
 
-            if (!has_links)
-            {
-                o_json& input = inputs[pin->get_object()->def_state.name];
-
-                std::visit([&input, pin](const auto& v)
+                bool has_links = (pin->state().links > 0);
+                if (has_links)
                 {
-                    using T = std::decay_t<decltype(v)>;
-
-                    if constexpr (std::is_same_v<T, double> || std::is_same_v<T, bool>)
+                    const auto links = m_wf->get_links_by_pin(pin);
+                    if (links.size() != 1)
                     {
-                        input = v;
+                        LogError("Invalid number of links for input pin");
                     }
-                    else if constexpr (std::is_same_v<T, int64_t>)
+                    else
                     {
-                        if (PinType::COMBO == pin->get_object()->def_state.type)
-                        {
-                            if (pin->get_object()->combo_items_ptr.size() <= cast::to_szt(v))
-                                input = "";
-                            else
-                                input = pin->get_object()->combo_items_ptr[v];
-                        }
-                        else
+                        const auto* output_pin = (*links.begin())->get_output();
+                        const auto* output_node = m_wf->get_node_by_instance(output_pin->get_parent_node());
+                        if (output_node->flags().has(NodeInstFlags::JsonApiDontExport))
+                            has_links = false;
+                    }
+                }
+
+                if (!has_links)
+                {
+                    o_json& input = inputs[pin->get_object()->def_state.name];
+
+                    std::visit([&input, pin](const auto& v)
+                    {
+                        using T = std::decay_t<decltype(v)>;
+
+                        if constexpr (std::is_same_v<T, double> || std::is_same_v<T, bool>)
                         {
                             input = v;
                         }
-                    }
-                    else if constexpr (std::is_same_v<T, std::string>)
-                    {
-                        input = v;
-                    }
-                }, pin->state().value.value());
-
-                inputs_counter++;
-            }
-            else
-            {
-                auto jarr = o_json::array();
-
-                for (auto& link : m_wf->get_links_all())
-                {
-                    if (link->get_input() == pin)
-                    {
-                        const auto src_node_iid = link->get_output()->get_parent_node();
-                        jarr.push_back(std::to_string(src_node_iid));
-
-                        const auto* src_node = m_wf->get_node_by_instance(src_node_iid);
-                        LogRAssert(src_node, "Node not found. w:" << m_wf->get_id() << ", n:" << src_node_iid, o_json{});
-
-                        int32_t index = 0;
-                        iid out_pin_id = 0;
-                        for (auto out_pin : src_node->get_outputs())
+                        else if constexpr (std::is_same_v<T, int64_t>)
                         {
-                            if (out_pin == link->get_output())
+                            if (PinType::COMBO == pin->get_object()->def_state.type)
                             {
-                                out_pin_id = out_pin->get_instance_id();
-                                break;
+                                if (pin->get_object()->combo_items_ptr.size() <= cast::to_szt(v))
+                                    input = "";
+                                else
+                                    input = pin->get_object()->combo_items_ptr[v];
                             }
-                            index++;
+                            else
+                            {
+                                input = v;
+                            }
                         }
+                        else if constexpr (std::is_same_v<T, std::string>)
+                        {
+                            input = v;
+                        }
+                    }, pin->state().value.value());
 
-                        LogRAssert(out_pin_id != 0, "Output pin not found. w:" << m_wf->get_id() << ", n:" << src_node_iid << ", p:" << out_pin_id, o_json{});
-
-                        jarr.push_back(index);
-                        inputs_counter++;
-                        break;
-                    }
+                    inputs_counter++;
                 }
+                else
+                {
+                    auto jarr = o_json::array();
 
-                inputs[pin->get_object()->def_state.name] = std::move(jarr);
+                    for (auto& link : m_wf->get_links_all())
+                    {
+                        if (link->get_input() == pin)
+                        {
+                            const auto src_node_iid = link->get_output()->get_parent_node();
+                            jarr.push_back(std::to_string(src_node_iid));
+
+                            const auto* src_node = m_wf->get_node_by_instance(src_node_iid);
+                            LogRAssert(src_node, "Node not found. w:" << m_wf->get_id() << ", n:" << src_node_iid, o_json{});
+
+                            int32_t index = 0;
+                            iid out_pin_id = 0;
+                            for (auto out_pin : src_node->get_outputs())
+                            {
+                                if (out_pin == link->get_output())
+                                {
+                                    out_pin_id = out_pin->get_instance_id();
+                                    break;
+                                }
+                                index++;
+                            }
+
+                            LogRAssert(out_pin_id != 0, "Output pin not found. w:" << m_wf->get_id() << ", n:" << src_node_iid << ", p:" << out_pin_id, o_json{});
+
+                            jarr.push_back(index);
+                            inputs_counter++;
+                            break;
+                        }
+                    }
+
+                    inputs[pin->get_object()->def_state.name] = std::move(jarr);
+                }
             }
+
+            if (inputs_counter > 0)
+                jnode["inputs"] = std::move(inputs);
+            else
+                jnode["inputs"] = nlohmann::json::object();
         }
-
-        if (inputs_counter > 0)
-            jnode["inputs"] = std::move(inputs);
-        else
-            jnode["inputs"] = nlohmann::json::object();
-
         j[std::to_string(node->get_instance_id())] = std::move(jnode);
     }
 

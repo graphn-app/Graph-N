@@ -12,6 +12,9 @@ void WfSerializerToBlob::serialize_cni_node_definition()
 
 void WfSerializerToBlob::serialize_cni_node()
 {
+    if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
+        return serialize_js_node();
+
     if (CNI_Primitive::cni_is_same(m_curr_node))
         return serialize_cni_node_primitive();
     if (CNI_Reroute::cni_is_same(m_curr_node))

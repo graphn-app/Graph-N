@@ -7,6 +7,8 @@
 #include "core/workflow/custom_nodes/all_impl.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/workflows_manager.h"
+#include "ui/graph-n_flow.h"
+#include "ui/custom_nodes/custom_js_node.h"
 
 namespace data
 {
@@ -71,6 +73,8 @@ std::unique_ptr<NodeInstance> Workflow::create_node(data::Node* node, iid node_i
         }
     }
     auto instance = std::make_unique<NodeInstance>(node, get_id(), node_id);
+    if (node->flags.has(NodeObjFlags::CustomJsNode))
+        g::pFlow->custom_js_nodes().init(instance.get());
     Log("Node created. w:" << get_id() << ", n:" << instance->get_instance_id() << ":" << (node != nullptr ? node->node_class : "group"));
     return instance;
 }

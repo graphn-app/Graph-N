@@ -227,36 +227,37 @@ private:
 
 enum class NodeInstFlags : uint64_t
 {
-    None                      = 0,            // 0                  -  0x00
-    Group                     = 1ULL << 0,    // 1                  -  0x01
-    CanBeDeleted              = 1ULL << 1,    // 2                  -  0x02               // default
-    CNI                       = 1ULL << 2,    // 4                  -  0x04
-    __AVAILABLE__1            = 1ULL << 3,    // 8                  -  0x08
-    RerouteSplitted           = 1ULL << 4,    // 16                 -  0x10
-    RerouteSplitted_R         = 1ULL << 5,    // 32                 -  0x20
-    Hidden                    = 1ULL << 6,    // 64                 -  0x40
-    PosSet                    = 1ULL << 7,    // 128                -  0x80
-    SizeSet                   = 1ULL << 8,    // 256                -  0x100
-    IgnoreSizeOnFrameEnd      = 1ULL << 9,    // 512                -  0x200
-    PinnedSet                 = 1ULL << 10,   // 1024               -  0x400
-    ShowHidden                = 1ULL << 11,   // 2048               -  0x800
-    Deserialization           = 1ULL << 12,   // 4096               -  0x1000
-    Pinned                    = 1ULL << 13,   // 8192               -  0x2000
-    Collapsed                 = 1ULL << 14,   // 16384              -  0x4000
-    ModeOnEvent               = 1ULL << 16,   // 65536              -  0x10000
-    ModeMute                  = 1ULL << 17,   // 131072             -  0x20000
-    ModeOnTrigger             = 1ULL << 18,   // 262144             -  0x40000
-    ModeBypass                = 1ULL << 19,   // 524288             -  0x80000
-    HasInPins                 = 1ULL << 20,   // 1048576            -  0x100000
-    HasOutPins                = 1ULL << 21,   // 2097152            -  0x200000
-    HasWidgets                = 1ULL << 22,   // 4194304            -  0x400000
-    JsonApiDontExport         = 1ULL << 23,   // 8388608            -  0x800000
-    JsonCustomSerialization   = 1ULL << 24,   // 16777216           -  0x1000000
-    BlobCustomSerialization   = 1ULL << 25,   // 33554432           -  0x2000000
-    MaskEditorReady           = 1ULL << 26,   // 67108864           -  0x4000000
-    PosEditorReady            = 1ULL << 27,   // 134217728          -  0x8000000
-    MaskEditorRunning         = 1ULL << 28,   // 268435456          -  0x10000000
-    PosEditorRunning          = 1ULL << 29,   // 536870912          -  0x20000000
+    None                           = 0,            // 0                  -  0x00
+    Group                          = 1ULL << 0,    // 1                  -  0x01
+    CanBeDeleted                   = 1ULL << 1,    // 2                  -  0x02               // default
+    CNI                            = 1ULL << 2,    // 4                  -  0x04
+    __AVAILABLE__1                 = 1ULL << 3,    // 8                  -  0x08
+    RerouteSplitted                = 1ULL << 4,    // 16                 -  0x10
+    RerouteSplitted_R              = 1ULL << 5,    // 32                 -  0x20
+    Hidden                         = 1ULL << 6,    // 64                 -  0x40
+    PosSet                         = 1ULL << 7,    // 128                -  0x80
+    SizeSet                        = 1ULL << 8,    // 256                -  0x100
+    IgnoreSizeOnFrameEnd           = 1ULL << 9,    // 512                -  0x200
+    PinnedSet                      = 1ULL << 10,   // 1024               -  0x400
+    ShowHidden                     = 1ULL << 11,   // 2048               -  0x800
+    Deserialization                = 1ULL << 12,   // 4096               -  0x1000
+    Pinned                         = 1ULL << 13,   // 8192               -  0x2000
+    Collapsed                      = 1ULL << 14,   // 16384              -  0x4000
+    ModeOnEvent                    = 1ULL << 16,   // 65536              -  0x10000
+    ModeMute                       = 1ULL << 17,   // 131072             -  0x20000
+    ModeOnTrigger                  = 1ULL << 18,   // 262144             -  0x40000
+    ModeBypass                     = 1ULL << 19,   // 524288             -  0x80000
+    HasInPins                      = 1ULL << 20,   // 1048576            -  0x100000
+    HasOutPins                     = 1ULL << 21,   // 2097152            -  0x200000
+    HasWidgets                     = 1ULL << 22,   // 4194304            -  0x400000
+    JsonApiDontExport              = 1ULL << 23,   // 8388608            -  0x800000
+    JsonCustomSerialization        = 1ULL << 24,   // 16777216           -  0x1000000
+    BlobCustomSerialization        = 1ULL << 25,   // 33554432           -  0x2000000
+    JsonApiCustomSerialization     = 1ULL << 26,   // 67108864           -  0x4000000
+    MaskEditorReady                = 1ULL << 27,   // 134217728          -  0x8000000
+    PosEditorReady                 = 1ULL << 28,   // 268435456          -  0x10000000
+    MaskEditorRunning              = 1ULL << 29,   // 536870912          -  0x20000000
+    PosEditorRunning               = 1ULL << 30,   // 1073741824         -  0x40000000
 };
 
 inline constexpr ObjectFlags<NodeInstFlags> g_node_inst_all_modes_mask

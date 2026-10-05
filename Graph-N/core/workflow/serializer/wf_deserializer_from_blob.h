@@ -27,6 +27,8 @@ private:
     bool check_node_definition(blob::Reader& block) const;
     bool check_cni_node_definition(blob::Reader& block, const std::string& node_class) const;
 
+    NodeInstance* deserialize_js_node(blob::Reader& reader);
+
     NodeInstance* deserialize_cni_node(blob::Reader& reader);
     NodeInstance* deserialize_cni_node_primitive(blob::Reader& reader);
     NodeInstance* deserialize_cni_node_reroute(blob::Reader& reader);

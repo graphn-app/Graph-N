@@ -4,6 +4,7 @@
 #include "core/workflow/custom_nodes/all_impl.h"
 #include "core/workflow/pin.h"
 #include "ui/graph-n_flow.h"
+#include "ui/custom_nodes/custom_js_node.h"
 
 namespace mngr
 {
@@ -126,6 +127,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
         parse_output(manager, *node.get(), jnode);        // output, output_is_list, output_name, output_node, output_tooltips
         parse_others(*node.get(), jnode);                // python_module, experimental, deprecated, api_node
 
+        g::pFlow->custom_js_nodes().test(node.get());
         node->finalize(&models_map);
         put_in_tree(manager, node.get());
 

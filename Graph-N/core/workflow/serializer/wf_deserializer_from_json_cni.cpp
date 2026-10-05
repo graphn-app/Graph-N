@@ -26,6 +26,9 @@ bool WfDeserializerFromJson::check_cni_node_definition(const o_json& j, const st
 
 NodeInstance* WfDeserializerFromJson::deserialize_cni_node(NodeInstance* node, const o_json& j)
 {
+    if (node->obj_flags().has(NodeObjFlags::CustomJsNode))
+        return deserialize_js_node(node, j);
+
     if (CNI_Primitive::cni_is_same(node))
         return deserialize_cni_node_primitive(node, j);
     if (CNI_Reroute::cni_is_same(node))

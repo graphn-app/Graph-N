@@ -14,6 +14,9 @@ bool WfDeserializerFromBlob::check_cni_node_definition(blob::Reader& /*block*/, 
 
 NodeInstance* WfDeserializerFromBlob::deserialize_cni_node(blob::Reader& block)
 {
+    if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
+        return deserialize_js_node(block);
+
     if (CNI_Primitive::cni_is_same(m_curr_node))
         return deserialize_cni_node_primitive(block);
     if (CNI_Reroute::cni_is_same(m_curr_node))

@@ -351,4 +351,23 @@ struct KeyBinding
     bool repeatable = false;
 };
 
+///////////////////////////////////////////////////////////////////
+///////      ui::js::CustomJsData         /////////////////////////
+///////////////////////////////////////////////////////////////////
+
+namespace js
+{
+struct Data {};
+struct Definition
+{
+    hid hash = 0;
+    bool need_data = false;
+};
+
+constexpr Definition LoadImageFromUrl = { tools::str::hash_stable("LoadImageFromUrl"), true };
+struct Js_LoadImageFromUrl final : public Data
+{};
+
+}
+
 } // namespace ui

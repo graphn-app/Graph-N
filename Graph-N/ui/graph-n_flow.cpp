@@ -1,6 +1,7 @@
 #include "ui/graph-n_flow.h"
 #include "ui/base_dlg.h"
 #include "ui/custom_nodes/custom_media_widget.h"
+#include "ui/custom_nodes/custom_js_node.h"
 #include "ui/dialogs/options/opts_dlg.h"
 #include "ui/dialogs/modal_message.h"
 #include "ui/dialogs/sync_projects_dlg.h"
@@ -75,6 +76,7 @@ bool GraphN_Flow::init()
     style.Colors[ImGuiCol_MenuBarBg] = ImColor(g::pOptsManager->color_load(AppColor::MenubarBg));
 
     m_custom_media_widget = std::make_unique<CustomMediaWidget>();
+    m_custom_js_node = std::make_unique<CustomJsNode>();
 
     // open windows
     m_windows = g::pOptsManager->ui_open_wnds_load();
@@ -486,6 +488,7 @@ void GraphN_Flow::quit()
 
     m_nodes_parser.reset();
     m_custom_media_widget.reset();
+    m_custom_js_node.reset();
     m_all_dialogs.clear();
 
     m_activity_bar.reset();

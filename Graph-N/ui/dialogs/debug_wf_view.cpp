@@ -37,7 +37,8 @@ constexpr FlagDef<NodeInstFlags> g_node_inst_flags[] =
     DEF_FLAG(NodeInstFlags, ModeBypass), DEF_FLAG(NodeInstFlags, HasInPins), DEF_FLAG(NodeInstFlags, HasOutPins),
     DEF_FLAG(NodeInstFlags, HasWidgets), DEF_FLAG(NodeInstFlags, JsonApiDontExport), DEF_FLAG(NodeInstFlags, JsonCustomSerialization),
     DEF_FLAG(NodeInstFlags, BlobCustomSerialization), DEF_FLAG(NodeInstFlags, MaskEditorReady), DEF_FLAG(NodeInstFlags, PosEditorReady),
-    DEF_FLAG(NodeInstFlags, MaskEditorRunning), DEF_FLAG(NodeInstFlags, PosEditorRunning), DEF_FLAG(NodeInstFlags, __AVAILABLE__1)
+    DEF_FLAG(NodeInstFlags, MaskEditorRunning), DEF_FLAG(NodeInstFlags, PosEditorRunning), DEF_FLAG(NodeInstFlags, JsonApiCustomSerialization),
+    DEF_FLAG(NodeInstFlags, __AVAILABLE__1)
 };
 
 constexpr FlagDef<PinInstFlags> g_pin_inst_flags[] =

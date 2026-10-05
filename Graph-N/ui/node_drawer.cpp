@@ -2,6 +2,7 @@
 #include "ui/helpers/imgui_ex_ne.h"
 #include "ui/graph-n_flow.h"
 #include "ui/custom_nodes/custom_media_widget.h"
+#include "ui/custom_nodes/custom_js_node.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/history_manager.h"
 #include "core/workflow/node.h"
@@ -603,6 +604,28 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
             m_active_node->flags().remove(NodeInstFlags::ShowHidden);
     }
 
+    if (m_active_node->obj_flags().has(NodeObjFlags::CustomJsNode))
+    {
+        if (zoomed_skip_widget_content() && m_active_node->obj_flags().has_not(NodeObjFlags::CustomMediaWidget)) [[unlikely]]
+        {
+            ImGui::SetCursorPosX(m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle);
+            draw_zoomed_low_box(m_active_node->w_widget_name + m_active_node->w_widget_value, m_active_node->m_last_custom_widgets_h);
+        }
+        if (!zoomed_skip_widget_content())
+        {
+            if (zoomed_draw_fade())
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, get_zoomed_fade_alpha());
+
+            const auto y = ImGui::GetCursorPosY();
+            g::pFlow->custom_js_nodes().draw(m_active_node);
+            if (m_active_node->obj_flags().has_not(NodeObjFlags::CustomMediaWidget))
+                m_active_node->m_last_custom_widgets_h = ImGui::GetCursorPosY() - y;
+
+            if (zoomed_draw_fade())
+                ImGui::PopStyleVar();
+        }
+    }
+
     if (m_active_node->obj_flags().has(NodeObjFlags::CustomMediaWidget))
     {
         if (zoomed_skip_widget_content()) [[unlikely]]
@@ -624,7 +647,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         }
     }
 
-    if (m_active_node->flags().has(NodeInstFlags::HasWidgets) && m_active_node->obj_flags().has_not(NodeObjFlags::CustomMediaWidget))
+    if (m_active_node->flags().has(NodeInstFlags::HasWidgets) && m_active_node->obj_flags().has_none(NodeObjFlags::CustomMediaWidget, NodeObjFlags::CustomJsNode))
         ImGui::Dummy(ImVec2(m_active_node->w_node, 10.0f));
 
     if (zoomed_draw_all()) [[likely]]

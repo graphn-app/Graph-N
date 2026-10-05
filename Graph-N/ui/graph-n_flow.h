@@ -23,6 +23,7 @@ class ModalMessage;
 class ActivityBar;
 class SyncProjectsDlg;
 class CustomMediaWidget;
+class CustomJsNode;
 class PanelNodes;
 class PanelNodeInspector;
 class PanelStats;
@@ -213,8 +214,9 @@ public:
     void txt_panel_delete(wid wf, const data::NodeInstance* node = nullptr, const data::PinInstance* pin = nullptr) noexcept;
     void txt_panel_clear(wid wf) noexcept;
 
-    // custom widget handling
+    // custom nodes handling
     CustomMediaWidget& custom_media_widgets() { return *m_custom_media_widget.get(); }
+    CustomJsNode& custom_js_nodes() { return *m_custom_js_node.get(); }
 
     // modal msg box
     void modal_begin(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def, const std::function<void(ModalDlgCtrl)>& callback);
@@ -297,6 +299,7 @@ private:
 
     std::unique_ptr<mngr::NodesParser> m_nodes_parser;
     std::unique_ptr<CustomMediaWidget> m_custom_media_widget;
+    std::unique_ptr<CustomJsNode> m_custom_js_node;
 
     ImGuiEx::Toast m_toast;
 
