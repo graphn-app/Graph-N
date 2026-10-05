@@ -23,7 +23,8 @@ void ConnectManager::stop_and_cleanup()
     LogIn;
 
     {
-        std::unique_lock<std::mutex> lock(m_http_inbox_mutex);  // cleanup queue coz its a app quit
+        // clearing out pending requests during application exit
+        std::unique_lock<std::mutex> lock(m_http_inbox_mutex);
         while (!m_http_inbox.empty())
             m_http_inbox.pop();
     }
@@ -78,6 +79,7 @@ uint32_t ConnectManager::send_http_get_request(HttpRequestor requestor, const ch
     req->type = RequestData::Type::GetByUrl;
     req->url = url;
     req->requestor = requestor;
+    // pre-calculate boolean flags so we don't scan strings in the worker thread later
     req->is_object_info = req->url.find(comfyui_http::object_info) != std::string::npos;
     req->is_binary_resp = req->url.find(comfyui_http::view_input) != std::string::npos || req->url.find(comfyui_http::view) != std::string::npos;
     req->retry_on_timeout = retry_on_timeout;
@@ -191,7 +193,7 @@ uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
         who_is_asking = "Unknown_requestor";
     }
 
-    if (glog::Logger::get_log_web_response_enabled())   // user requested all web activity
+    if (glog::Logger::get_log_web_response_enabled())
         req->log_this_request = true;
 
     const char* type = (RequestData::Type::GetByUrl == req->type || RequestData::Type::GetByUrlAndParams == req->type ? "GET" : "POST");
@@ -224,6 +226,7 @@ void ConnectManager::http_worker()
 
     std::unique_ptr<httplib::Client> client;
 
+    // blocks until websocket connects to guarantee backend readiness
     while (get_status() != ConnectState::Connected)
     {
         if (g::app_global_stop_all_threads.stop_requested())
@@ -327,6 +330,7 @@ void ConnectManager::http_worker()
         }
 
         {
+            // sending response back to consumer
             std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
             m_http_pickup.push(req);
             m_http_pickup_empty.store(false, std::memory_order_release);
@@ -338,11 +342,12 @@ void ConnectManager::http_worker()
 
 bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std::string& response)
 {
+    // quick lockless check before hitting the mutex
     if (m_http_pickup_empty.load(std::memory_order_acquire)) [[likely]]
         return false;
 
     std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
-    if (m_http_pickup.empty()) [[unlikely]] // double check
+    if (m_http_pickup.empty()) [[unlikely]]
         return false;
 
     auto req = m_http_pickup.front();
@@ -368,6 +373,7 @@ bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std
             req->data.clear();
 
             {
+                // requeue failed request internally
                 std::unique_lock<std::mutex> inbox_lock(m_http_inbox_mutex);
 
                 m_reconnect = true;
@@ -397,6 +403,7 @@ bool ConnectManager::pickup_ws_message(bool& is_binary, std::string& message)
 {
     if (m_ws != nullptr) [[likely]]
     {
+        // moving ws internal inbox to manager level
         auto msgs = m_ws->get();
         for (auto& msg : msgs)
         {

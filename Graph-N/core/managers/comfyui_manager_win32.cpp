@@ -285,15 +285,17 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
     if (enumerator != nullptr)
     {
         ULONG ret;
-        CComPtr<IWbemClassObject> object;
-        while (S_OK == enumerator->Next(WBEM_INFINITE, 1, &object, &ret))
+        while (true)
         {
+            CComPtr<IWbemClassObject> object;
+            if (S_OK != enumerator->Next(WBEM_INFINITE, 1, &object, &ret))
+                break;
+
             CComVariant var;
             hres = object->Get(L"CommandLine", 0, &var, nullptr, nullptr);
             if (FAILED(hres))
             {
                 LogWarn("Failed to get python CommandLine, err: " << LogHRES(hres));
-                object.Release();
                 continue;
             }
 
@@ -304,16 +306,14 @@ uint32_t ComfyUIManager_Win32::check_existing_process() const
                 if (FAILED(hres) || (var.vt != VT_UI4 && var.vt != VT_I4))
                 {
                     LogWarn("Failed to get python ProcessId, err: " << LogHRES(hres));
-                    object.Release();
                     continue;
                 }
                 return var.uintVal;
             }
-            object.Release();
         }
     }
 
-    return false;
+    return 0;
 }
 
 void ComfyUIManager_Win32::append_log(std::deque<std::string>& logs)
@@ -322,10 +322,7 @@ void ComfyUIManager_Win32::append_log(std::deque<std::string>& logs)
         return;
 
     std::unique_lock<std::mutex> lock(m_mutex);
-    for (auto it = m_logs.begin(); it != m_logs.end(); ++it)
-    {
-        logs.push_back(std::move(*it));
-    }
+    logs.insert(logs.end(), std::make_move_iterator(m_logs.begin()), std::make_move_iterator(m_logs.end()));
     m_logs.clear();
     m_new_data_ready.store(false, std::memory_order_relaxed);
 }
@@ -341,9 +338,10 @@ void ComfyUIManager_Win32::read_logs_th()
     std::string line_accumulator;
     line_accumulator.reserve(10000);
 
-    std::list<std::string> file_logs;
+    std::vector<std::string> file_logs;
     constexpr const uint32_t log_flush_interval = 5000;
     constexpr const uint32_t log_flush_buffer_size = 10;
+    file_logs.reserve(log_flush_buffer_size);
     uint32_t log_flush_time_passed = 0;
 
     std::ofstream logfs;

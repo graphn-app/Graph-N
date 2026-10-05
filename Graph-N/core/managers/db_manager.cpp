@@ -15,7 +15,6 @@ constexpr auto gdb_val_when = "at";
 constexpr auto gdb_val_hash = "hash";
 constexpr auto gdb_val_int = "value_int";
 constexpr auto gdb_val_str = "value_str";
-constexpr auto gdb_val_opt = "option";
 constexpr auto gdb_val_uuid = "uuid";
 constexpr auto gdb_val_type = "type";
 constexpr auto gdb_val_pending_delete = "pending_delete";
@@ -185,6 +184,7 @@ bool DbManager::init()
 
         SQLite::Transaction transaction(*m_db);
 
+        // if we need migration logic later, we shouldn't blindly overwrite user_version here
         m_db->exec("PRAGMA user_version = " + std::to_string(ver::app_major) + ";");
 
         m_db->exec(fmt::format(FMT_STRING(R"(
@@ -389,7 +389,7 @@ std::vector<DbAppOptionData> DbManager::app_option_load_all()
         ret.reserve(200);
         while (query.executeStep())
         {
-            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull()) [[unlikely]]
+            if (query.getColumn(0).isNull() || (query.getColumn(1).isNull() && query.getColumn(2).isNull())) [[unlikely]]
                 continue;
 
             DbAppOptionData db_opt;
@@ -501,7 +501,7 @@ std::vector<std::pair<hid, DbValue>> DbManager::item_option_load_all(DbItemOptio
         ret.reserve(100);
         while(query.executeStep())
         {
-            if (query.getColumn(0).isNull() || query.getColumn(1).isNull() && query.getColumn(2).isNull()) [[unlikely]]
+            if (query.getColumn(0).isNull() || (query.getColumn(1).isNull() && query.getColumn(2).isNull())) [[unlikely]]
                 continue;
 
             const std::string hash = query.getColumn(0).getString();
@@ -1131,6 +1131,7 @@ void DbManager::delete_wf_draft(const SQLite::Database& db, const WfBlob* data)
                 gdb_val_uuid
             ));
 
+        // setting both blob and time to NULL
         query.bind(1);
         query.bind(2);
         query.bindNoCopy(3, data->uuid);

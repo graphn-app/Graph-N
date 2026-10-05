@@ -14,7 +14,8 @@ WebSocket::~WebSocket() noexcept = default;
 
 std::shared_ptr<WebSocket> WebSocket::create_and_connect(const std::string& host, int64_t port, int64_t timeout, int64_t ping_interval)
 {
-    auto obj = std::shared_ptr<WebSocket>(new WebSocket); // def ctor is private
+    // constructor is private, so we can't use make_shared directly
+    auto obj = std::shared_ptr<WebSocket>(new WebSocket);
     obj->m_timeout = timeout;
     obj->m_host = host;
     obj->m_state.store(ConnectState::Connecting, std::memory_order_relaxed);
@@ -52,12 +53,14 @@ void WebSocket::stop_and_forget()
     if (m_th_ping.joinable())
     {
         m_stop_flag.request_stop();
+        // ideally these should be joined, detach can crash if globals are destroyed during exit
         m_th_ping.detach();
     }
     if (m_th_working.joinable())
     {
         Log("WebSocket thread to stop");
         net::post(m_ioc, [this] { m_ioc.stop(); });
+        // same here, detaching working thread during teardown is risky
         m_th_working.detach();
     }
 }
@@ -68,6 +71,7 @@ void WebSocket::send(std::string&& text)
         [self = shared_from_this(), text = std::move(text)]() mutable
         {
             self->m_write_queue.push(std::move(text));
+            // handles overlapping async writes safely
             if (self->m_write_queue.size() > 1)
                 return;
             self->do_write();
@@ -81,10 +85,11 @@ void WebSocket::ping()
     const auto ms = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
 
     net::post(m_ws.get_executor(),
-        [self = shared_from_this(), payload =std::to_string(ms)]()
+        [self = shared_from_this(), payload = std::to_string(ms)]()
         {
+            // capturing payload inside the completion handler keeps it alive for beast to read
             self->m_ws.async_ping(websocket::ping_data(payload), 
-                [self](beast::error_code)
+                [self, payload](beast::error_code)
             { /* ignore */ });
         }
     );
@@ -150,7 +155,7 @@ void WebSocket::on_handshake(beast::error_code ec)
                 m_latency.store(cast::to_i64(curr - sent), std::memory_order_relaxed);
             }
             catch(...)
-            {}
+            {}// ignore parsing exceptions from corrupted pong payloads
         }
     });
     do_read();
@@ -247,4 +252,3 @@ void WebSocket::fail(beast::error_code ec, char const* what)
     Log(m_last_error);
 }
 } // namespace mngr
-
