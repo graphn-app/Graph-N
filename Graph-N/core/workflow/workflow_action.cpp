@@ -7,7 +7,7 @@
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
 #include "core/workflow/custom_nodes/cni_reroute.h"
-#include "ui/custom_widgets/custom_widget.h"
+#include "ui/custom_nodes/custom_media_widget.h"
 #include "ui/node_drawer.h"
 #include "ui/graph-n_flow.h"
 
@@ -86,7 +86,7 @@ void WorkflowAction::delete_node(data::NodeInstance* node)
     g::pWfsManager->copy_del(node);
     g::pFlow->txt_panel_delete(m_wf->get_id(), node);
     g::pFlow->host_handle_node_removal(m_wf->get_id(), node->get_instance_id());
-    g::pFlow->custom_widgets().cleanup_outputs(m_wf->get_id(), node->get_instance_id());
+    g::pFlow->custom_media_widgets().cleanup_outputs(m_wf->get_id(), node->get_instance_id());
 
     if (m_drawer != nullptr)
         m_drawer->delete_node(node);

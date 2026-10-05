@@ -1,4 +1,4 @@
-#include "ui/custom_widgets/custom_widget.h"
+#include "ui/custom_nodes/custom_media_widget.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/managers/settings_manager.h"
@@ -8,7 +8,7 @@
 
 namespace ui
 {
-void CustomWidget::draw_video(WidgetItem& widget)
+void CustomMediaWidget::draw_video(WidgetItem& widget)
 {
     bool is_playing = false;
     float video_pos = 0.0f;
@@ -124,7 +124,7 @@ void CustomWidget::draw_video(WidgetItem& widget)
         ImGui::Dummy(ImVec2(m_widget_width, 10.0f));
 }
 
-void CustomWidget::draw_video_widget_from_output(OutputData& out)
+void CustomMediaWidget::draw_video_widget_from_output(OutputData& out)
 {
     if (!out.item.media_valid.has_value())
     {
@@ -147,7 +147,7 @@ void CustomWidget::draw_video_widget_from_output(OutputData& out)
     draw_video(out.item);
 }
 
-void CustomWidget::draw_video_widget_from_source()
+void CustomMediaWidget::draw_video_widget_from_source()
 {
     int64_t index = 0;
     data::Pin* source_pin_obj = nullptr;

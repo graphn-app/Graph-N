@@ -22,7 +22,7 @@ struct PinOptions final
 struct NodeOptions final
 {
     ObjectFlags<NodeObjFlags> flags;
-    static constexpr ObjectFlags<NodeObjFlags> mask { NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtUploadButton, NodeObjFlags::CustomWdgtFromSource };
+    static constexpr ObjectFlags<NodeObjFlags> mask { NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaFromSource };
     std::string display_source;
 
     std::string serialize() const noexcept;

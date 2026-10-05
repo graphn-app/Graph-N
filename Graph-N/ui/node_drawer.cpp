@@ -1,7 +1,7 @@
 #include "ui/node_drawer.h"
 #include "ui/helpers/imgui_ex_ne.h"
 #include "ui/graph-n_flow.h"
-#include "ui/custom_widgets/custom_widget.h"
+#include "ui/custom_nodes/custom_media_widget.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/history_manager.h"
 #include "core/workflow/node.h"
@@ -603,7 +603,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
             m_active_node->flags().remove(NodeInstFlags::ShowHidden);
     }
 
-    if (m_active_node->obj_flags().has(NodeObjFlags::CustomWidget))
+    if (m_active_node->obj_flags().has(NodeObjFlags::CustomMediaWidget))
     {
         if (zoomed_skip_widget_content()) [[unlikely]]
         {
@@ -616,7 +616,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, get_zoomed_fade_alpha());
 
             const auto y = ImGui::GetCursorPosY();
-            g::pFlow->custom_widgets().draw_custom_widget(m_active_node, m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle, m_active_node->w_widget_name + m_active_node->w_widget_value);
+            g::pFlow->custom_media_widgets().draw_custom_widget(m_active_node, m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle, m_active_node->w_widget_name + m_active_node->w_widget_value);
             m_active_node->m_last_custom_widgets_h = ImGui::GetCursorPosY() - y;
 
             if (zoomed_draw_fade())
@@ -624,7 +624,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         }
     }
 
-    if (m_active_node->flags().has(NodeInstFlags::HasWidgets) && m_active_node->obj_flags().has_not(NodeObjFlags::CustomWidget))
+    if (m_active_node->flags().has(NodeInstFlags::HasWidgets) && m_active_node->obj_flags().has_not(NodeObjFlags::CustomMediaWidget))
         ImGui::Dummy(ImVec2(m_active_node->w_node, 10.0f));
 
     if (zoomed_draw_all()) [[likely]]

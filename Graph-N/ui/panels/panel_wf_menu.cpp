@@ -1,5 +1,5 @@
 #include "ui/panels/panel_wf.h"
-#include "ui/custom_widgets/custom_widget.h"
+#include "ui/custom_nodes/custom_media_widget.h"
 #include "ui/graph-n_flow.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
@@ -449,26 +449,26 @@ bool PanelWorkflow::show_node_menu()
         }
         ImGui::Separator();
     }
-    else if (node->obj_flags().has_all(NodeObjFlags::CustomWidget, NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtText))
+    else if (node->obj_flags().has_all(NodeObjFlags::CustomMediaWidget, NodeObjFlags::CustomMediaFromOutput, NodeObjFlags::CustomMediaText))
     {
         if (ImGui::MenuItem("Copy output text"))
         {
-            g::pFlow->custom_widgets().copy_text_output(node->get_workflow_id(), node->get_instance_id());
+            g::pFlow->custom_media_widgets().copy_text_output(node->get_workflow_id(), node->get_instance_id());
             close = true;
         }
         if (ImGui::MenuItem("View output text in full-text mode", "Dbl-Click"))
         {
-            g::pFlow->custom_widgets().view_text_output(node->get_workflow_id(), node->get_instance_id());
+            g::pFlow->custom_media_widgets().view_text_output(node->get_workflow_id(), node->get_instance_id());
             close = true;
         }
         ImGui::Separator();
     }
 
-    if (node->obj_flags().has(NodeObjFlags::CustomWidget))
+    if (node->obj_flags().has(NodeObjFlags::CustomMediaWidget))
     { 
-        if (ImGui::MenuItem("Open in default app", nullptr, nullptr, g::pFlow->custom_widgets().check_open_def_app(node, true)))
+        if (ImGui::MenuItem("Open in default app", nullptr, nullptr, g::pFlow->custom_media_widgets().check_open_def_app(node, true)))
         {
-            g::pFlow->custom_widgets().check_open_def_app(node, false);
+            g::pFlow->custom_media_widgets().check_open_def_app(node, false);
             close = true;
         }
         ImGui::Separator();
@@ -594,7 +594,7 @@ bool PanelWorkflow::show_node_menu()
 
 
     data::Pin* preffered_source_pin = nullptr;
-    bool restricted = node->obj_flags().has(NodeObjFlags::CustomWdgtRestrictCfg);
+    bool restricted = node->obj_flags().has(NodeObjFlags::RestrictCfg);
     if (!restricted)
     {
         if (node->get_object()->custom_widget_source != nullptr)
@@ -636,7 +636,7 @@ bool PanelWorkflow::show_node_menu()
                 g::pOptsManager->items_node_save(node->get_object()->get_hash(), opts);
 
                 const bool has_media_opt = node->obj_flags().has_any_by_mask_obj(g_node_obj_all_custom_widget_mask);
-                node->obj_flags().add_remove_if(NodeObjFlags::CustomWidget, has_media_opt);
+                node->obj_flags().add_remove_if(NodeObjFlags::CustomMediaWidget, has_media_opt);
             };
 
             struct CustomWidgetCfgMenu final
@@ -646,33 +646,33 @@ bool PanelWorkflow::show_node_menu()
             };
             constexpr CustomWidgetCfgMenu menu_cfg[3] =
             {
-                { "Add widget: Image", NodeObjFlags::CustomWdgtImage },
-                { "Add widget: Video", NodeObjFlags::CustomWdgtVideo },
-                { "Add widget: Audio", NodeObjFlags::CustomWdgtAudio }
+                { "Add widget: Image", NodeObjFlags::CustomMediaImage },
+                { "Add widget: Video", NodeObjFlags::CustomMediaVideo },
+                { "Add widget: Audio", NodeObjFlags::CustomMediaAudio }
             };
 
             for (const auto& cfg : menu_cfg)
             {
                 if (ImGui::BeginMenu(cfg.menu_name))
                 {
-                    bool display = node->obj_flags().has_all(NodeObjFlags::CustomWdgtFromSource, cfg.media_flag);
+                    bool display = node->obj_flags().has_all(NodeObjFlags::CustomMediaFromSource, cfg.media_flag);
                     if (ImGui::MenuItem("Display media", nullptr, &display))
                     {
-                        node->obj_flags().remove(NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage);
-                        const bool media_flag = node->obj_flags().has(NodeObjFlags::CustomWdgtUploadButton) || display;
+                        node->obj_flags().remove(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage);
+                        const bool media_flag = node->obj_flags().has(NodeObjFlags::CustomMediaUploadButton) || display;
                         node->obj_flags().add_remove_if(cfg.media_flag, media_flag);
-                        node->obj_flags().add_remove_if(NodeObjFlags::CustomWdgtFromSource, display);
+                        node->obj_flags().add_remove_if(NodeObjFlags::CustomMediaFromSource, display);
                         node->get_object()->custom_widget_source = preffered_source_pin;
                         save_opts();
                     }
 
-                    bool can_upload = node->obj_flags().has_all(NodeObjFlags::CustomWdgtUploadButton, cfg.media_flag);
+                    bool can_upload = node->obj_flags().has_all(NodeObjFlags::CustomMediaUploadButton, cfg.media_flag);
                     if (ImGui::MenuItem("Add 'Upload' button", nullptr, &can_upload))
                     {
-                        node->obj_flags().remove(NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage);
-                        const bool media_flag = node->obj_flags().has(NodeObjFlags::CustomWdgtFromSource) || can_upload;
+                        node->obj_flags().remove(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage);
+                        const bool media_flag = node->obj_flags().has(NodeObjFlags::CustomMediaFromSource) || can_upload;
                         node->obj_flags().add_remove_if(cfg.media_flag, media_flag);
-                        node->obj_flags().add_remove_if(NodeObjFlags::CustomWdgtUploadButton, can_upload);
+                        node->obj_flags().add_remove_if(NodeObjFlags::CustomMediaUploadButton, can_upload);
                         node->get_object()->custom_widget_source = preffered_source_pin;
                         save_opts();
                     }
@@ -683,7 +683,7 @@ bool PanelWorkflow::show_node_menu()
                     const std::string* display_source = (nullptr == node->get_object()->custom_widget_source ? nullptr : &node->get_object()->custom_widget_source->def_state.name);
                     if (nullptr == display_source && preffered_source_pin != nullptr)
                         display_source = &preffered_source_pin->def_state.name;
-                    if (node->obj_flags().has_none(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton) || node->obj_flags().has_not(cfg.media_flag))
+                    if (node->obj_flags().has_none(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton) || node->obj_flags().has_not(cfg.media_flag))
                         display_source = nullptr;
 
                     for (auto pin : node->get_object()->input)
@@ -708,7 +708,7 @@ bool PanelWorkflow::show_node_menu()
             ImGui::Separator();
             if (ImGui::MenuItem("Reset"))
             {
-                g::pFlow->custom_widgets().reset_widgets();
+                g::pFlow->custom_media_widgets().reset_widgets();
                 g::pHostManager->kill_all();
                 node->obj_flags().remove_raw(g_node_obj_all_custom_widget_mask.get_raw());
                 save_opts();

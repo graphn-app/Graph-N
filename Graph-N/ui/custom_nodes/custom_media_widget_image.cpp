@@ -1,4 +1,4 @@
-#include "ui/custom_widgets/custom_widget.h"
+#include "ui/custom_nodes/custom_media_widget.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/managers/settings_manager.h"
@@ -8,7 +8,7 @@
 namespace ui
 {
 
-void CustomWidget::draw_image(WidgetItem& widget)
+void CustomMediaWidget::draw_image(WidgetItem& widget)
 {
     if (g::pTextures->get_image_alive(widget.media_id))
     {
@@ -60,7 +60,7 @@ void CustomWidget::draw_image(WidgetItem& widget)
     }
 }
 
-void CustomWidget::draw_image_widget_from_output(OutputData& out)
+void CustomMediaWidget::draw_image_widget_from_output(OutputData& out)
 {
     if (!out.item.media_valid.has_value())
         out.item.media_valid = tools::path::exists(out.item.temp_path);
@@ -74,7 +74,7 @@ void CustomWidget::draw_image_widget_from_output(OutputData& out)
     draw_image(out.item);
 }
 
-void CustomWidget::draw_image_widget_from_source()
+void CustomMediaWidget::draw_image_widget_from_source()
 {
     m_node->flags().remove(NodeInstFlags::MaskEditorReady, NodeInstFlags::PosEditorReady);
 
@@ -99,9 +99,9 @@ void CustomWidget::draw_image_widget_from_source()
         download_media(HttpRequestor::CustomWdgt_Image, m_images, index);
 }
 
-bool CustomWidget::get_current_image_paths(data::NodeInstance* node, std::filesystem::path& path, std::filesystem::path& server_name) const
+bool CustomMediaWidget::get_current_image_paths(data::NodeInstance* node, std::filesystem::path& path, std::filesystem::path& server_name) const
 {
-    if (node->obj_flags().has_all(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtImage))
+    if (node->obj_flags().has_all(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaImage))
     {
         auto source_pin_obj = node->get_object()->custom_widget_source;
         data::PinInstance* source_pin_inst = nullptr;
@@ -126,7 +126,7 @@ bool CustomWidget::get_current_image_paths(data::NodeInstance* node, std::filesy
         }
         return false;
     }
-    else if(node->obj_flags().has_all(NodeObjFlags::CustomWdgtFromOutput, NodeObjFlags::CustomWdgtImage))
+    else if(node->obj_flags().has_all(NodeObjFlags::CustomMediaFromOutput, NodeObjFlags::CustomMediaImage))
     {
         const auto it = m_outputs.find(std::make_pair(node->get_workflow_id(), node->get_instance_id()));
         if (it != m_outputs.end())

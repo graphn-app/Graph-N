@@ -8,7 +8,7 @@
 #include "core/workflow/custom_nodes/cni_reroute.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/serializer/wf_serializers.h"
-#include "ui/custom_widgets/custom_widget.h"
+#include "ui/custom_nodes/custom_media_widget.h"
 #include "ui/graph-n_flow.h"
 
 namespace mngr
@@ -732,7 +732,7 @@ void WfsManager::close(wid wf_id, bool process_pending_deletion)
     if (!process_pending_deletion)
     {
         g::pFlow->host_handle_wf_closure(wf_id);
-        g::pFlow->custom_widgets().cleanup_outputs(wf_id);
+        g::pFlow->custom_media_widgets().cleanup_outputs(wf_id);
 
         if (data.temp && data.dirty)
         {

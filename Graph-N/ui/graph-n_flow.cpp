@@ -1,6 +1,6 @@
 #include "ui/graph-n_flow.h"
 #include "ui/base_dlg.h"
-#include "ui/custom_widgets/custom_widget.h"
+#include "ui/custom_nodes/custom_media_widget.h"
 #include "ui/dialogs/options/opts_dlg.h"
 #include "ui/dialogs/modal_message.h"
 #include "ui/dialogs/sync_projects_dlg.h"
@@ -74,7 +74,7 @@ bool GraphN_Flow::init()
     style.Colors[ImGuiCol_PopupBg] = ImColor(g::pOptsManager->color_load(AppColor::PopupBg));
     style.Colors[ImGuiCol_MenuBarBg] = ImColor(g::pOptsManager->color_load(AppColor::MenubarBg));
 
-    m_custom_widget = std::make_unique<CustomWidget>();
+    m_custom_media_widget = std::make_unique<CustomMediaWidget>();
 
     // open windows
     m_windows = g::pOptsManager->ui_open_wnds_load();
@@ -461,7 +461,7 @@ void GraphN_Flow::prepare_to_quit()
 
     if (m_nodes_parser)
         m_nodes_parser->stop_and_cleanup();
-    m_custom_widget->reset_widgets();
+    m_custom_media_widget->reset_widgets();
 
     for (auto dlg : m_all_dialogs)
     {
@@ -485,7 +485,7 @@ void GraphN_Flow::quit()
     m_pending_cleanups = {};
 
     m_nodes_parser.reset();
-    m_custom_widget.reset();
+    m_custom_media_widget.reset();
     m_all_dialogs.clear();
 
     m_activity_bar.reset();
@@ -1599,7 +1599,7 @@ void GraphN_Flow::check_ws_message(const std::function<void(bool, std::string&)>
 }
 
 namespace {
-void host_open(CustomWidget* wdgt, wid wf_id, iid node_id, mngr::HostManager::HostType type)
+void host_open(CustomMediaWidget* wdgt, wid wf_id, iid node_id, mngr::HostManager::HostType type)
 {
     auto wf = g::pWfsManager->access(wf_id);
     LogRAssertS(wf, "Wf not found. w:" << wf_id, );
@@ -1633,18 +1633,18 @@ void host_open(CustomWidget* wdgt, wid wf_id, iid node_id, mngr::HostManager::Ho
     else
         node->flags().add(NodeInstFlags::PosEditorRunning);
 
-    g::pHostManager->add_host(wf_id, node_id, type, std::move(source_path), std::move(dest_path), node->obj_flags().has(NodeObjFlags::CustomWdgtFromSource));
+    g::pHostManager->add_host(wf_id, node_id, type, std::move(source_path), std::move(dest_path), node->obj_flags().has(NodeObjFlags::CustomMediaFromSource));
 }
 } // namespace
 
 void GraphN_Flow::host_open_mask_editor(wid wf_id, iid node_id)
 {
-    host_open(m_custom_widget.get(), wf_id, node_id, mngr::HostManager::HostType::MaskEditor);
+    host_open(m_custom_media_widget.get(), wf_id, node_id, mngr::HostManager::HostType::MaskEditor);
 }
 
 void GraphN_Flow::host_open_3dpos_editor(wid wf_id, iid node_id)
 {
-    host_open(m_custom_widget.get(), wf_id, node_id, mngr::HostManager::HostType::PosEditor);
+    host_open(m_custom_media_widget.get(), wf_id, node_id, mngr::HostManager::HostType::PosEditor);
 }
 
 void GraphN_Flow::host_handle_node_removal(wid wf_id, iid node_id)
@@ -1694,7 +1694,7 @@ void GraphN_Flow::check_host_reply()
 
     node->flags().remove(NodeInstFlags::MaskEditorRunning, NodeInstFlags::PosEditorRunning);
     if (result)
-        m_custom_widget->upload_edited_image(node, std::move(image_path), true);
+        m_custom_media_widget->upload_edited_image(node, std::move(image_path), true);
 }
 
 }

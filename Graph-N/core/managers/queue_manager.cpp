@@ -4,7 +4,7 @@
 #include "core/managers/db_manager.h"
 #include "core/workflow/serializer/wf_serializers.h"
 #include "core/base/comfyui_web_paths.h"
-#include "ui/custom_widgets/custom_widget.h"
+#include "ui/custom_nodes/custom_media_widget.h"
 #include "ui/graph-n_flow.h"
 #include "ui/helpers/textures.h"
 
@@ -773,7 +773,7 @@ void QueueManager::load_outputs(wid wf_id, ExecTask& task)
             g::pFlow->http_get(HttpRequestor::Queue_Output, get_alive_callback(), request.c_str(), callback);
         }
         else if (ExecTask::OutputType::Text == out.type && out.target_node != 0)
-            g::pFlow->custom_widgets().add_output(wf_id, out.target_node, out.type, out.text, "", 0);
+            g::pFlow->custom_media_widgets().add_output(wf_id, out.target_node, out.type, out.text, "", 0);
     }
 }
 
@@ -823,7 +823,7 @@ void QueueManager::load_output_data(wid wf_id, uint64_t task_id, uint64_t out_id
                 out.media_id = g::pTextures->load_image_from_path(out.binary_path, QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
 
             if (out.target_node != 0)
-                g::pFlow->custom_widgets().add_output(wf_id, out.target_node, out.type, out.binary_path, out.filename, out.media_id);
+                g::pFlow->custom_media_widgets().add_output(wf_id, out.target_node, out.type, out.binary_path, out.filename, out.media_id);
 
             out.exists = true;
             out.ready = true;

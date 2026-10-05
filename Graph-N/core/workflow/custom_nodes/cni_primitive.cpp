@@ -19,7 +19,7 @@ std::unique_ptr<Node> CNI_Primitive::cni_create_object()
     node->python_module = VANILLA;
     node->python_module_hash = base::HashID::make_hash(node->python_module);
     node->flags.remove(NodeObjFlags::CanBypass);
-    node->flags.add(NodeObjFlags::SpecPrimitive, NodeObjFlags::CustomWdgtRestrictCfg);
+    node->flags.add(NodeObjFlags::SpecPrimitive, NodeObjFlags::RestrictCfg);
     node->finalize(nullptr);
     return node;
 }

@@ -1,4 +1,4 @@
-#include "ui/custom_widgets/custom_widget.h"
+#include "ui/custom_nodes/custom_media_widget.h"
 #include "core/workflow/node_instance.h"
 #include "core/base/comfyui_web_paths.h"
 #include "ui/graph-n_flow.h"
@@ -6,7 +6,7 @@
 namespace ui
 {
 
-void CustomWidget::draw_widget_upload_button()
+void CustomMediaWidget::draw_widget_upload_button()
 {
     ImGui::SetCursorPosX(m_start_pos);
 
@@ -21,9 +21,9 @@ void CustomWidget::draw_widget_upload_button()
 
     Widget* widget = nullptr;
     const auto flags = m_node->obj_flags();
-    if (flags.has(NodeObjFlags::CustomWdgtImage))        widget = &m_images;
-    else if (flags.has(NodeObjFlags::CustomWdgtVideo))   widget = &m_videos;
-    else if (flags.has(NodeObjFlags::CustomWdgtAudio))   widget = &m_audios;
+    if (flags.has(NodeObjFlags::CustomMediaImage))        widget = &m_images;
+    else if (flags.has(NodeObjFlags::CustomMediaVideo))   widget = &m_videos;
+    else if (flags.has(NodeObjFlags::CustomMediaAudio))   widget = &m_audios;
     else LogRError("Unhandled upload media type", );
 
     const auto large_file_handler = [this, widget, target = m_node->get_instance_id()](ModalDlgCtrl res)
@@ -43,9 +43,9 @@ void CustomWidget::draw_widget_upload_button()
 
         // TODO: add config
         size_t soft_limit = 0, hard_limit = 0;
-        if (NodeObjFlags::CustomWdgtImage == widget->media_type) { soft_limit = 20; hard_limit = 60; }
-        else if (NodeObjFlags::CustomWdgtVideo == widget->media_type) { soft_limit = 100; hard_limit = 500; }
-        else if (NodeObjFlags::CustomWdgtAudio == widget->media_type) { soft_limit = 30; hard_limit = 100; }
+        if (NodeObjFlags::CustomMediaImage == widget->media_type) { soft_limit = 20; hard_limit = 60; }
+        else if (NodeObjFlags::CustomMediaVideo == widget->media_type) { soft_limit = 100; hard_limit = 500; }
+        else if (NodeObjFlags::CustomMediaAudio == widget->media_type) { soft_limit = 30; hard_limit = 100; }
 
         constexpr uintmax_t mb = 1024 * 1024;
         const auto file_size = tools::path::get_size(path);
@@ -81,7 +81,7 @@ void CustomWidget::draw_widget_upload_button()
         }
     };
 
-    if (flags.has(NodeObjFlags::CustomWdgtImage))
+    if (flags.has(NodeObjFlags::CustomMediaImage))
     {
         if (ImGui::Button("Choose image to upload...", ImVec2(m_widget_width, 0.0f)))
         {
@@ -94,7 +94,7 @@ void CustomWidget::draw_widget_upload_button()
         }
         return;
     }
-    if (flags.has(NodeObjFlags::CustomWdgtVideo))
+    if (flags.has(NodeObjFlags::CustomMediaVideo))
     {
         if (ImGui::Button("Choose video to upload...", ImVec2(m_widget_width, 0.0f)))
         {
@@ -107,7 +107,7 @@ void CustomWidget::draw_widget_upload_button()
         }
         return;
     }
-    if (flags.has(NodeObjFlags::CustomWdgtAudio))
+    if (flags.has(NodeObjFlags::CustomMediaAudio))
     {
         if (ImGui::Button("Choose audio to upload...", ImVec2(m_widget_width, 0.0f)))
         {
@@ -124,7 +124,7 @@ void CustomWidget::draw_widget_upload_button()
     LogError("Unhandled upload media type");
 }
 
-void CustomWidget::upload_media(Widget& widget, const std::filesystem::path& path, bool mask, bool overwrite)
+void CustomMediaWidget::upload_media(Widget& widget, const std::filesystem::path& path, bool mask, bool overwrite)
 {
     auto buffer = tools::path::read_file(path, false);
     if (buffer.empty())

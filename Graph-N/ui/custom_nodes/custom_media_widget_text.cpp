@@ -1,11 +1,11 @@
-#include "ui/custom_widgets/custom_widget.h"
+#include "ui/custom_nodes/custom_media_widget.h"
 #include "ui/graph-n_flow.h"
 #include "core/workflow/node_instance.h"
 
 namespace ui
 {
 
-void CustomWidget::draw_text_widget_from_output(OutputData& out)
+void CustomMediaWidget::draw_text_widget_from_output(OutputData& out)
 {
     if (out.item.text_info.empty())
         return;
@@ -57,19 +57,19 @@ void CustomWidget::draw_text_widget_from_output(OutputData& out)
     ImGui::PopStyleColor(4);
 }
 
-void CustomWidget::copy_text_output(wid wf_id, iid node_id)
+void CustomMediaWidget::copy_text_output(wid wf_id, iid node_id)
 {
     const auto it = m_outputs.find(std::make_pair(wf_id, node_id));
-    if (it != m_outputs.end() && NodeObjFlags::CustomWdgtText == it->second.media_type && !it->second.item.text_info.empty())
+    if (it != m_outputs.end() && NodeObjFlags::CustomMediaText == it->second.media_type && !it->second.item.text_info.empty())
     {
         ImGui::SetClipboardText(it->second.item.text_info.c_str());
     }
 }
 
-void CustomWidget::view_text_output(wid wf_id, iid node_id)
+void CustomMediaWidget::view_text_output(wid wf_id, iid node_id)
 {
     const auto it = m_outputs.find(std::make_pair(wf_id, node_id));
-    if (it != m_outputs.end() && NodeObjFlags::CustomWdgtText == it->second.media_type && !it->second.item.text_info.empty())
+    if (it != m_outputs.end() && NodeObjFlags::CustomMediaText == it->second.media_type && !it->second.item.text_info.empty())
     {
         auto wf = g::pWfsManager->access(wf_id);
         LogRAssert(wf, "wf:" << wf_id << " not found", );

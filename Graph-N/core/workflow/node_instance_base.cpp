@@ -175,7 +175,7 @@ float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon) noexcept
     const float max_ico = (use_big_pin_icon ? w::ico_max : w::ico_circle);
     const float pin_off = (pin_l_offset * 2) + (max_ico * 2) + (w::pin_r_offset * 2);
     m_ideal_w = obj->w_fit = std::max(min_pins_w, min_widget_w) + pin_off;
-    if (obj_flags().has_all(NodeObjFlags::CustomWidget, NodeObjFlags::CustomWdgtFromOutput))
+    if (obj_flags().has_all(NodeObjFlags::CustomMediaWidget, NodeObjFlags::CustomMediaFromOutput))
         m_ideal_w = obj->w_fit = std::max(m_ideal_w, (cast::to_float(NODE_IMAGE_RECT) + pin_off));
 
     m_min_possible_w = std::max(m_min_possible_w, (obj->w_widget_name_max + obj->w_widget_value_max) / 3);

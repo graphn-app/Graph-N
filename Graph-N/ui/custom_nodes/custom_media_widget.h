@@ -9,12 +9,12 @@ class NodeInstance;
 namespace ui
 {
 
-class CustomWidget final : public IsAlive
+class CustomMediaWidget final : public IsAlive
 {
 public:
-    CustomWidget() noexcept;
-    ~CustomWidget() noexcept;
-    NO_COPY_MOVE(CustomWidget);
+    CustomMediaWidget() noexcept;
+    ~CustomMediaWidget() noexcept;
+    NO_COPY_MOVE(CustomMediaWidget);
 
     void draw_custom_widget(data::NodeInstance* node, float pos, float width);
     void upload_edited_image(data::NodeInstance* node, std::filesystem::path&& image_path, bool image_is_mask);

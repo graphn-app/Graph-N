@@ -1,4 +1,4 @@
-#include "ui/custom_widgets/custom_widget.h"
+#include "ui/custom_nodes/custom_media_widget.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/managers/host_manager.h"
@@ -8,16 +8,16 @@
 namespace ui
 {
 
-CustomWidget::CustomWidget() noexcept
+CustomMediaWidget::CustomMediaWidget() noexcept
 {
-    m_images.media_type = NodeObjFlags::CustomWdgtImage;
-    m_videos.media_type = NodeObjFlags::CustomWdgtVideo;
-    m_audios.media_type = NodeObjFlags::CustomWdgtAudio;
+    m_images.media_type = NodeObjFlags::CustomMediaImage;
+    m_videos.media_type = NodeObjFlags::CustomMediaVideo;
+    m_audios.media_type = NodeObjFlags::CustomMediaAudio;
 }
 
-CustomWidget::~CustomWidget() noexcept = default;
+CustomMediaWidget::~CustomMediaWidget() noexcept = default;
 
-void CustomWidget::draw_custom_widget(data::NodeInstance* node, float pos, float width)
+void CustomMediaWidget::draw_custom_widget(data::NodeInstance* node, float pos, float width)
 {
     if (width <= 0.0f) [[unlikely]] return;
     LogRAssert(node, "Zero ptr", );
@@ -28,19 +28,19 @@ void CustomWidget::draw_custom_widget(data::NodeInstance* node, float pos, float
 
     const auto flags = m_node->obj_flags();
 
-    if (flags.has(NodeObjFlags::CustomWdgtFromOutput))
+    if (flags.has(NodeObjFlags::CustomMediaFromOutput))
     {
         const auto it = m_outputs.find(std::make_pair(node->get_workflow_id(), node->get_instance_id()));
         if (it != m_outputs.end())
         {
             auto& out = it->second;
-            if (flags.has(NodeObjFlags::CustomWdgtImage) && NodeObjFlags::CustomWdgtImage == out.media_type)
+            if (flags.has(NodeObjFlags::CustomMediaImage) && NodeObjFlags::CustomMediaImage == out.media_type)
                 draw_image_widget_from_output(out);
-            else if (flags.has(NodeObjFlags::CustomWdgtVideo) && NodeObjFlags::CustomWdgtVideo == out.media_type)
+            else if (flags.has(NodeObjFlags::CustomMediaVideo) && NodeObjFlags::CustomMediaVideo == out.media_type)
                 draw_video_widget_from_output(out);
-            else if (flags.has(NodeObjFlags::CustomWdgtAudio) && NodeObjFlags::CustomWdgtAudio == out.media_type)
+            else if (flags.has(NodeObjFlags::CustomMediaAudio) && NodeObjFlags::CustomMediaAudio == out.media_type)
                 draw_audio_widget_from_output(out);
-            else if (flags.has(NodeObjFlags::CustomWdgtText) && NodeObjFlags::CustomWdgtText == out.media_type)
+            else if (flags.has(NodeObjFlags::CustomMediaText) && NodeObjFlags::CustomMediaText == out.media_type)
                 draw_text_widget_from_output(out);
             else
                 LogError("Unhandled output widget");
@@ -48,10 +48,10 @@ void CustomWidget::draw_custom_widget(data::NodeInstance* node, float pos, float
     }
     else
     {
-        if (flags.has(NodeObjFlags::CustomWdgtUploadButton))
+        if (flags.has(NodeObjFlags::CustomMediaUploadButton))
             draw_widget_upload_button();
 
-        if (flags.has(NodeObjFlags::CustomWdgtFromSource) && nullptr == m_node->get_object()->custom_widget_source) [[unlikely]]
+        if (flags.has(NodeObjFlags::CustomMediaFromSource) && nullptr == m_node->get_object()->custom_widget_source) [[unlikely]]
         {
             constexpr size_t err_count = 2;
             constexpr const char* err_lines[err_count] = { "Input source not set", "Please select media source in Node config" };
@@ -59,11 +59,11 @@ void CustomWidget::draw_custom_widget(data::NodeInstance* node, float pos, float
         }
         else
         {
-            if (flags.has_all(NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtFromSource))
+            if (flags.has_all(NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaFromSource))
                 draw_image_widget_from_source();
-            else if (flags.has_all(NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtFromSource))
+            else if (flags.has_all(NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaFromSource))
                 draw_video_widget_from_source();
-            else if (flags.has_all(NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtFromSource))
+            else if (flags.has_all(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaFromSource))
                 draw_audio_widget_from_source();
         }
     }
@@ -71,15 +71,15 @@ void CustomWidget::draw_custom_widget(data::NodeInstance* node, float pos, float
     m_node = nullptr;
 }
 
-void CustomWidget::upload_edited_image(data::NodeInstance* node, std::filesystem::path&& image_path, bool image_is_mask)
+void CustomMediaWidget::upload_edited_image(data::NodeInstance* node, std::filesystem::path&& image_path, bool image_is_mask)
 {
     m_images.upload_target = 0;
     if (node != nullptr)
-        m_images.upload_target = (node->obj_flags().has(NodeObjFlags::CustomWdgtFromSource) ? node->get_instance_id() : 0);
+        m_images.upload_target = (node->obj_flags().has(NodeObjFlags::CustomMediaFromSource) ? node->get_instance_id() : 0);
     upload_media(m_images, image_path, image_is_mask, image_is_mask);
 }
 
-void CustomWidget::draw_widget_message(const char* const lines[], size_t count)
+void CustomMediaWidget::draw_widget_message(const char* const lines[], size_t count)
 {
     const auto text_centered = [avail = m_widget_width, pos = m_start_pos](const char *text) noexcept
     {
@@ -98,7 +98,7 @@ void CustomWidget::draw_widget_message(const char* const lines[], size_t count)
     ImGui::Dummy(ImVec2(10.0f, 20.0f));
 }
 
-void CustomWidget::draw_load_result_message(int32_t load_result)
+void CustomMediaWidget::draw_load_result_message(int32_t load_result)
 {
     constexpr size_t err__1_count = 1;
     constexpr const char* err__1[err__1_count] = { "Network error" };                                   // HTTP_RESP_FAIL
@@ -153,7 +153,7 @@ void CustomWidget::draw_load_result_message(int32_t load_result)
     }
 }
 
-void CustomWidget::check_media_list_version(Widget& widget)
+void CustomMediaWidget::check_media_list_version(Widget& widget)
 {
     if (-1 == widget.list_version) [[unlikely]] // init global list
     {
@@ -191,7 +191,7 @@ void CustomWidget::check_media_list_version(Widget& widget)
     }
 }
 
-bool CustomWidget::check_source_and_get_pin(Widget& widget, int64_t& index, data::Pin*& source_pin, bool skip_media_validation /*= false*/)
+bool CustomMediaWidget::check_source_and_get_pin(Widget& widget, int64_t& index, data::Pin*& source_pin, bool skip_media_validation /*= false*/)
 {
     source_pin = m_node->get_object()->custom_widget_source;
     if (nullptr == source_pin || source_pin->combo_items_str.empty())
@@ -248,7 +248,7 @@ bool CustomWidget::check_source_and_get_pin(Widget& widget, int64_t& index, data
     return true;
 }
 
-void CustomWidget::download_media(HttpRequestor requestor, Widget& widget, int64_t index)
+void CustomMediaWidget::download_media(HttpRequestor requestor, Widget& widget, int64_t index)
 {
     auto& widget_item = widget.items[index];
 
@@ -291,7 +291,7 @@ void CustomWidget::download_media(HttpRequestor requestor, Widget& widget, int64
     widget_item.load_result = HTTP_RESP_IN_PROGRESS;
 }
 
-const char* CustomWidget::format_timeline(float duration, float pos)
+const char* CustomMediaWidget::format_timeline(float duration, float pos)
 {
     const auto get_times = [](const float time, int32_t& h, int32_t& m, int32_t& s, int32_t& ms) noexcept
     {
@@ -319,14 +319,14 @@ const char* CustomWidget::format_timeline(float duration, float pos)
     return buffer;
 }
 
-void CustomWidget::reset_widgets()
+void CustomMediaWidget::reset_widgets()
 {
     m_images = {};
     m_videos = {};
     m_audios = {};
 }
 
-void CustomWidget::add_output(
+void CustomMediaWidget::add_output(
     wid wf_id, iid node_id, mngr::ExecTask::OutputType type, const std::string& data, const std::string& server_filename, int32_t preloaded_media_id)
 {
     auto wf = g::pWfsManager->access(wf_id, true);
@@ -342,19 +342,19 @@ void CustomWidget::add_output(
     switch (type)
     {
     case mngr::ExecTask::OutputType::Audio:
-        out.media_type = NodeObjFlags::CustomWdgtAudio;
+        out.media_type = NodeObjFlags::CustomMediaAudio;
         out.item.temp_path = data;
         break;
     case mngr::ExecTask::OutputType::Gif:
-        out.media_type = NodeObjFlags::CustomWdgtVideo;
+        out.media_type = NodeObjFlags::CustomMediaVideo;
         out.item.temp_path = data;
         break;
     case mngr::ExecTask::OutputType::Image:
-        out.media_type = NodeObjFlags::CustomWdgtImage;
+        out.media_type = NodeObjFlags::CustomMediaImage;
         out.item.temp_path = data;
         break;
     case mngr::ExecTask::OutputType::Text:
-        out.media_type = NodeObjFlags::CustomWdgtText;
+        out.media_type = NodeObjFlags::CustomMediaText;
         out.item.text_info = data;
         break;
     default:
@@ -362,14 +362,14 @@ void CustomWidget::add_output(
     }
 
     out.item.server_name = server_filename;
-    node->obj_flags().remove(NodeObjFlags::CustomWdgtFromSource, NodeObjFlags::CustomWdgtUploadButton, NodeObjFlags::CustomWdgtAudio, NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtText);
-    node->obj_flags().add(NodeObjFlags::CustomWdgtRestrictCfg, NodeObjFlags::CustomWidget, NodeObjFlags::CustomWdgtFromOutput, out.media_type);
+    node->obj_flags().remove(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
+    node->obj_flags().add(NodeObjFlags::RestrictCfg, NodeObjFlags::CustomMediaWidget, NodeObjFlags::CustomMediaFromOutput, out.media_type);
     node->reset_width();
 
     m_outputs[std::make_pair(wf_id, node_id)] = std::move(out);
 }
 
-void CustomWidget::cleanup_outputs(wid wf_id)
+void CustomMediaWidget::cleanup_outputs(wid wf_id)
 {
     std::erase_if(m_outputs, [wf_id]
         (const std::pair<std::pair<wid, iid>, OutputData>& value)
@@ -379,7 +379,7 @@ void CustomWidget::cleanup_outputs(wid wf_id)
     );
 }
 
-void CustomWidget::cleanup_outputs(wid wf_id, iid node_id)
+void CustomMediaWidget::cleanup_outputs(wid wf_id, iid node_id)
 {
     std::erase_if(m_outputs, [wf_id, node_id]
         (const std::pair<std::pair<wid, iid>, OutputData>& value)
@@ -389,13 +389,13 @@ void CustomWidget::cleanup_outputs(wid wf_id, iid node_id)
     );
 }
 
-bool CustomWidget::check_open_def_app(data::NodeInstance* node, bool check_only)
+bool CustomMediaWidget::check_open_def_app(data::NodeInstance* node, bool check_only)
 {
     const auto flags = node->obj_flags();
-    if (flags.has_not(NodeObjFlags::CustomWidget))
+    if (flags.has_not(NodeObjFlags::CustomMediaWidget))
         return false;
 
-    if (flags.has(NodeObjFlags::CustomWdgtFromOutput))
+    if (flags.has(NodeObjFlags::CustomMediaFromOutput))
     {
         const auto it = m_outputs.find(std::make_pair(node->get_workflow_id(), node->get_instance_id()));
         if (it != m_outputs.end())
@@ -408,17 +408,17 @@ bool CustomWidget::check_open_def_app(data::NodeInstance* node, bool check_only)
         return false;
     }
 
-    if (flags.has(NodeObjFlags::CustomWdgtFromSource) && flags.has_any(NodeObjFlags::CustomWdgtVideo, NodeObjFlags::CustomWdgtImage, NodeObjFlags::CustomWdgtAudio))
+    if (flags.has(NodeObjFlags::CustomMediaFromSource) && flags.has_any(NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaAudio))
     {
         int64_t index = 0;
         data::Pin* source_pin_obj = nullptr;
         Widget* widget = nullptr;
 
-        if (flags.has(NodeObjFlags::CustomWdgtImage))
+        if (flags.has(NodeObjFlags::CustomMediaImage))
             widget = &m_images;
-        else if (flags.has(NodeObjFlags::CustomWdgtVideo))
+        else if (flags.has(NodeObjFlags::CustomMediaVideo))
             widget = &m_videos;
-        else if (flags.has(NodeObjFlags::CustomWdgtAudio))
+        else if (flags.has(NodeObjFlags::CustomMediaAudio))
             widget = &m_audios;
         else
             return false;

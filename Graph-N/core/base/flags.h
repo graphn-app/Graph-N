@@ -293,44 +293,45 @@ enum class NodeObjFlags : uint64_t
     Experimental                = 1ULL << 7,    // 128        -  0x80
     Deprecated                  = 1ULL << 8,    // 256        -  0x100
     ApiNode                     = 1ULL << 9,    // 512        -  0x200
-    CustomWidget                = 1ULL << 10,   // 1024       -  0x400              // this flag is must if any of CustomWdgt** is set
-    CustomWdgtAudio             = 1ULL << 11,   // 2048       -  0x800
-    CustomWdgtVideo             = 1ULL << 12,   // 4096       -  0x1000
-    CustomWdgtImage             = 1ULL << 13,   // 8192       -  0x2000
-    CustomWdgtText              = 1ULL << 14,   // 16384      -  0x4000
-    CustomWdgtRestrictCfg       = 1ULL << 15,   // 32768      -  0x8000             // disables custom widget config in menu
-    CustomWdgtUploadButton      = 1ULL << 16,   // 65536      -  0x10000            // displays 'Upload' button
-    CustomWdgtFromSource        = 1ULL << 17,   // 131072     -  0x20000            // displays media from input source
-    CustomWdgtFromOutput        = 1ULL << 18,   // 262144     -  0x40000            // displays media/text from output
+    CustomMediaWidget           = 1ULL << 10,   // 1024       -  0x400              // this flag is must if any of CustomWdgt** is set
+    CustomMediaAudio            = 1ULL << 11,   // 2048       -  0x800
+    CustomMediaVideo            = 1ULL << 12,   // 4096       -  0x1000
+    CustomMediaImage            = 1ULL << 13,   // 8192       -  0x2000
+    CustomMediaText             = 1ULL << 14,   // 16384      -  0x4000
+    RestrictCfg                 = 1ULL << 15,   // 32768      -  0x8000             // disables custom widget config in menu
+    CustomMediaUploadButton     = 1ULL << 16,   // 65536      -  0x10000            // displays 'Upload' button
+    CustomMediaFromSource       = 1ULL << 17,   // 131072     -  0x20000            // displays media from input source
+    CustomMediaFromOutput       = 1ULL << 18,   // 262144     -  0x40000            // displays media/text from output
     DevOnly                     = 1ULL << 19,   // 524288     -  0x80000
     SpecNote                    = 1ULL << 20,   // 1048576    -  0x100000
     SpecMdNote                  = 1ULL << 21,   // 2097152    -  0x200000
     SpecPrimitive               = 1ULL << 22,   // 4194304    -  0x400000
     SpecReroute                 = 1ULL << 23,   // 8388608    -  0x800000
+    CustomJsNode                = 1ULL << 24,   // 16777216   -  0x1000000          // node has custom JS logic and need to be re-implemented
 };
 
 inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_all_custom_widget_mask
 {
-    NodeObjFlags::CustomWdgtAudio,
-    NodeObjFlags::CustomWdgtVideo,
-    NodeObjFlags::CustomWdgtImage,
-    NodeObjFlags::CustomWdgtText,
-    NodeObjFlags::CustomWdgtUploadButton,
-    NodeObjFlags::CustomWdgtFromSource,
-    NodeObjFlags::CustomWdgtFromOutput
+    NodeObjFlags::CustomMediaAudio,
+    NodeObjFlags::CustomMediaVideo,
+    NodeObjFlags::CustomMediaImage,
+    NodeObjFlags::CustomMediaText,
+    NodeObjFlags::CustomMediaUploadButton,
+    NodeObjFlags::CustomMediaFromSource,
+    NodeObjFlags::CustomMediaFromOutput
 };
 
 inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_serializable_flags
 {
-    NodeObjFlags::CustomWidget,
-    NodeObjFlags::CustomWdgtAudio,
-    NodeObjFlags::CustomWdgtVideo,
-    NodeObjFlags::CustomWdgtImage,
-    NodeObjFlags::CustomWdgtText,
-    NodeObjFlags::CustomWdgtRestrictCfg,
-    NodeObjFlags::CustomWdgtUploadButton,
-    NodeObjFlags::CustomWdgtFromSource,
-    NodeObjFlags::CustomWdgtFromOutput,
+    NodeObjFlags::CustomMediaWidget,
+    NodeObjFlags::CustomMediaAudio,
+    NodeObjFlags::CustomMediaVideo,
+    NodeObjFlags::CustomMediaImage,
+    NodeObjFlags::CustomMediaText,
+    NodeObjFlags::RestrictCfg,
+    NodeObjFlags::CustomMediaUploadButton,
+    NodeObjFlags::CustomMediaFromSource,
+    NodeObjFlags::CustomMediaFromOutput,
 };
 
 enum class PinInstFlags : uint64_t

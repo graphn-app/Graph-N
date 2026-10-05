@@ -37,7 +37,7 @@ constexpr FlagDef<NodeInstFlags> g_node_inst_flags[] =
     DEF_FLAG(NodeInstFlags, ModeBypass), DEF_FLAG(NodeInstFlags, HasInPins), DEF_FLAG(NodeInstFlags, HasOutPins),
     DEF_FLAG(NodeInstFlags, HasWidgets), DEF_FLAG(NodeInstFlags, JsonApiDontExport), DEF_FLAG(NodeInstFlags, JsonCustomSerialization),
     DEF_FLAG(NodeInstFlags, BlobCustomSerialization), DEF_FLAG(NodeInstFlags, MaskEditorReady), DEF_FLAG(NodeInstFlags, PosEditorReady),
-    DEF_FLAG(NodeInstFlags, MaskEditorRunning), DEF_FLAG(NodeInstFlags, PosEditorRunning)
+    DEF_FLAG(NodeInstFlags, MaskEditorRunning), DEF_FLAG(NodeInstFlags, PosEditorRunning), DEF_FLAG(NodeInstFlags, __AVAILABLE__1)
 };
 
 constexpr FlagDef<PinInstFlags> g_pin_inst_flags[] =
@@ -53,10 +53,11 @@ constexpr FlagDef<NodeObjFlags> g_node_obj_flags[] =
     DEF_FLAG(NodeObjFlags, SpecReroute), DEF_FLAG(NodeObjFlags, SpecPrimitive), DEF_FLAG(NodeObjFlags, SpecNote), DEF_FLAG(NodeObjFlags, SpecMdNote), 
     DEF_FLAG(NodeObjFlags, Dummy), DEF_FLAG(NodeObjFlags, CanBypass), DEF_FLAG(NodeObjFlags, CanMute),
     DEF_FLAG(NodeObjFlags, CanRename), DEF_FLAG(NodeObjFlags, Experimental), DEF_FLAG(NodeObjFlags, Deprecated),
-    DEF_FLAG(NodeObjFlags, ApiNode), DEF_FLAG(NodeObjFlags, CustomWidget), DEF_FLAG(NodeObjFlags, CustomWdgtAudio),
-    DEF_FLAG(NodeObjFlags, CustomWdgtVideo), DEF_FLAG(NodeObjFlags, CustomWdgtImage), DEF_FLAG(NodeObjFlags, CustomWdgtText),
-    DEF_FLAG(NodeObjFlags, CustomWdgtRestrictCfg), DEF_FLAG(NodeObjFlags, CustomWdgtUploadButton),
-    DEF_FLAG(NodeObjFlags, CustomWdgtFromSource), DEF_FLAG(NodeObjFlags, CustomWdgtFromOutput)
+    DEF_FLAG(NodeObjFlags, ApiNode), DEF_FLAG(NodeObjFlags, CustomMediaWidget), DEF_FLAG(NodeObjFlags, CustomMediaAudio),
+    DEF_FLAG(NodeObjFlags, CustomMediaVideo), DEF_FLAG(NodeObjFlags, CustomMediaImage), DEF_FLAG(NodeObjFlags, CustomMediaText),
+    DEF_FLAG(NodeObjFlags, RestrictCfg), DEF_FLAG(NodeObjFlags, CustomMediaUploadButton),
+    DEF_FLAG(NodeObjFlags, CustomMediaFromSource), DEF_FLAG(NodeObjFlags, CustomMediaFromOutput), DEF_FLAG(NodeObjFlags, DevOnly),
+    DEF_FLAG(NodeObjFlags, CustomJsNode)
 };
 
 constexpr FlagDef<PinObjFlags> g_pin_obj_flags[] =
