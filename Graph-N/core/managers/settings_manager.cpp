@@ -320,7 +320,7 @@ void SettingsManager::init_options(std::vector<OptionValue*>& values)
 void SettingsManager::init_disks()
 {
     m_stat_enabled_disks_parsed.clear();
-    const auto loaded = tools::str::split(*std::get_if<std::string>(&m_stat_enabled_disks.value), '|');
+    const auto loaded = tools::str::split(*std::get_if<std::string>(&m_stat_enabled_disks.value), "|", true);
     const auto installed = tools::api::scan_for_disks(); // always scan for new disks
     for (auto& installed_name : installed)
     {

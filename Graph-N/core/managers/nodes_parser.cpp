@@ -887,7 +887,7 @@ void NodesParser::parse_others(data::Node& node, const o_json& jnode)
     }
 }
 
-void NodesParser::put_in_tree(NodesManager& manager, data::NodeItem* leaf_item, const std::string& path, std::vector<data::NodeItem*>& tree, char separator)
+void NodesParser::put_in_tree(NodesManager& manager, data::NodeItem* leaf_item, const std::string& path, std::vector<data::NodeItem*>& tree, const char* separator)
 {
     const auto search_branch = [](std::vector<data::NodeItem*>* items, const std::string& name) noexcept
     {
@@ -899,7 +899,7 @@ void NodesParser::put_in_tree(NodesManager& manager, data::NodeItem* leaf_item, 
         return items->end();
     };
 
-    const auto parts = (path.empty() ? std::vector<std::string>{ "__unknown" } : tools::str::split(path, separator));
+    const auto parts = (path.empty() ? std::vector<std::string>{ "__unknown" } : tools::str::split(path, separator, true));
     std::vector<data::NodeItem*>* root = &tree;
 
     // search existing branch
@@ -952,8 +952,8 @@ void NodesParser::put_in_tree(NodesManager& manager, data::Node* node)
     manager.m_nodes_plain.push_back(leaf);
 
     // add to trees
-    put_in_tree(manager, leaf, node->category, manager.m_category_tree, '/');
-    put_in_tree(manager, leaf, node->python_module, manager.m_module_tree, '.');
+    put_in_tree(manager, leaf, node->category, manager.m_category_tree, "/");
+    put_in_tree(manager, leaf, node->python_module, manager.m_module_tree, ".");
 }
 
 void NodesParser::sort_nodes(NodesManager& manager)

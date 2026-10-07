@@ -205,6 +205,12 @@ struct VideoInfo final
     bool is_gif = false;
 };
 
+struct TextInfo final
+{
+    std::vector<std::string> arr;
+    std::string line;
+};
+
 ///////////////////////////////////////////////////////////////////
 ///////      mngr::ExecTask               /////////////////////////
 ///////////////////////////////////////////////////////////////////
@@ -256,7 +262,6 @@ struct ExecTask final
         std::string filetype;
         std::string subfolder;
         std::string format;
-        std::string text;
         int32_t media_id = 0;
         int32_t media_id_tt = 0;
         std::string binary_path;
@@ -268,6 +273,7 @@ struct ExecTask final
         ImageInfo image_info;
         AudioInfo audio_info;
         VideoInfo video_info;
+        TextInfo text_info;
     };
     std::list<Output> outputs;
 

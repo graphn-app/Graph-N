@@ -75,6 +75,8 @@ public:
 
     void swap_groups(uint64_t group_l, uint64_t group_r);
 
+    TextInfo format_output_text(const o_json& j);
+
 private:
     void parse_http_response(int32_t result, const std::string& payload);
     void check_ws_inbox();

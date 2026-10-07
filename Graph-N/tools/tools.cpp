@@ -72,30 +72,46 @@ std::string replace_their(const std::string& str, const std::string& find, const
     return copy;
 }
 
-std::vector<std::string> split(const std::string& str, char separator)
+std::vector<std::string> split(std::string_view str, std::string_view separator, bool trim)
 {
     std::vector<std::string> out;
-    if (!str.empty())
-        out.reserve(str.size() / 8);
+    if (str.empty())
+        return out;
+
+    out.reserve(str.size() / 3);
 
     size_t start = 0;
     size_t end = str.find(separator);
 
-    while (end != std::string::npos)
+    auto trim_view = [](std::string_view sv) -> std::string_view
     {
-        std::string token = str.substr(start, end - start);
-        trim_this(token);
-        if (!token.empty())
-            out.push_back(std::move(token));
+        const size_t first = sv.find_first_not_of(" \t\r\n");
+        if (first == std::string_view::npos)
+            return {};
+        const size_t last = sv.find_last_not_of(" \t\r\n");
+        return sv.substr(first, last - first + 1);
+    };
 
-        start = end + 1;
+    while (end != std::string_view::npos)
+    {
+        std::string_view token = str.substr(start, end - start);
+
+        if (trim)
+            token = trim_view(token);
+
+        if (!token.empty())
+            out.emplace_back(token);
+
+        start = end + separator.size();
         end = str.find(separator, start);
     }
 
-    std::string last_token = str.substr(start);
-    trim_this(last_token);
+    std::string_view last_token = str.substr(start);
+    if (trim)
+        last_token = trim_view(last_token);
+
     if (!last_token.empty())
-        out.push_back(std::move(last_token));
+        out.emplace_back(last_token);
 
     return out;
 }

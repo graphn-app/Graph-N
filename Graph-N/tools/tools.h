@@ -11,7 +11,7 @@ std::string trim_their(const std::string& str, const std::string& chars = " \r\n
 std::string& replace_this(std::string& str, const std::string& find, const std::string& replace, size_t from_pos = 0);
 std::string replace_their(const std::string& str, const std::string& find, const std::string& replace, size_t from_pos = 0);
 
-std::vector<std::string> split(const std::string& str, char separator);
+std::vector<std::string> split(std::string_view str, std::string_view separator, bool trim);
 std::string merge(const std::vector<std::string>& items, char separator);
 std::string merge(const std::set<std::string>& items, char separator);
 

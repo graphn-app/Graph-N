@@ -28,7 +28,7 @@ private:
     void parse_output(NodesManager& manager, data::Node& node, const o_json& jnode);
     void parse_others(data::Node& node, const o_json& jnode);
     void put_in_tree(NodesManager& manager, data::Node* node);
-    void put_in_tree(NodesManager& manager, data::NodeItem* leaf_item, const std::string& path, std::vector<data::NodeItem*>& tree, char separator);
+    void put_in_tree(NodesManager& manager, data::NodeItem* leaf_item, const std::string& path, std::vector<data::NodeItem*>& tree, const char* separator);
     void sort_nodes(NodesManager& manager);
     void prepare_parsers_map();
     void parse_by_key(const data::Node& node, data::Pin& pin, const o_json& j, const std::string& key);

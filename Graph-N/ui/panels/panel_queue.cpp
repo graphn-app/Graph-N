@@ -811,7 +811,7 @@ void PanelQueue::show_completed_task(uint64_t group_id, mngr::ExecTask* task, co
 
                 if (mngr::ExecTask::OutputType::Text == o.type)
                 {
-                    ImGuiEx::InputTextMultiline("", &o.text, rect, ImGuiInputTextFlags_ReadOnly);
+                    ImGuiEx::InputTextMultiline("", &o.text_info.line, rect, ImGuiInputTextFlags_ReadOnly);
                     ImGui::PopID();
                     continue;
                 }
@@ -911,14 +911,14 @@ void PanelQueue::show_asset_info(const mngr::ExecTask::Output& output, size_t ou
 
     if (mngr::ExecTask::OutputType::Text == output.type)
     {
-        if (!output.text.empty())
+        if (!output.text_info.line.empty())
         {
-            *fmt::format_to_n(buffer, sizeof(buffer), FMT_STRING(ICON_LC_CLIPBOARD_COPY " {} bytes"), output.text.size()).out = 0;
+            *fmt::format_to_n(buffer, sizeof(buffer), FMT_STRING(ICON_LC_CLIPBOARD_COPY " {} bytes"), output.text_info.line.size()).out = 0;
             if (ImGuiEx::UrlButton(buffer, "Copy to clipboard",
                 g::pOptsManager->color_load(AppColor::ActivityBarInactive),
                 g::pOptsManager->color_load(AppColor::SelectedItem), false))
             {
-                ImGui::SetClipboardText(output.text.c_str());
+                ImGui::SetClipboardText(output.text_info.line.c_str());
                 g::pFlow->set_toast(ImGuiEx::toast_prepare("Copied", g::pOptsManager->color_load(AppColor::SelectedItem)));
             }
         }
@@ -1479,11 +1479,7 @@ void PanelQueue::load_history()
                                             mngr::ExecTask::Output out;
                                             out.id = base::GlobalID::random();
                                             out.type = mngr::ExecTask::OutputType::Text;
-                                            for (auto& jitem : jout)
-                                            {
-                                                if (jitem.is_string())
-                                                    out.text += jitem.get<std::string>() + "\r\n";
-                                            }
+                                            out.text_info = g::pQueueManager->format_output_text(jout);
                                             task.outputs.push_back(std::move(out));
                                         }
                                         else

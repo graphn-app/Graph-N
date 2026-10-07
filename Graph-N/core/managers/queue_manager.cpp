@@ -685,7 +685,7 @@ void QueueManager::check_ws_inbox()
                 }
 
                 const auto& joutput = j["data"]["output"];
-                for (const auto&[jtype, jarr] : joutput.items())
+                for (const auto& [jtype, jarr] : joutput.items())
                 {
                     if ((jtype == "images" || jtype == "gifs" || jtype == "audio") && jarr.is_array())
                     {
@@ -718,16 +718,12 @@ void QueueManager::check_ws_inbox()
                             task.outputs.push_back(std::move(out));
                         }
                     }
-                    else if (jtype == "text" && jarr.is_array())
+                    else if (jtype == "text")
                     {
                         ExecTask::Output out;
                         out.target_node = display_node;
                         out.type = ExecTask::OutputType::Text;
-                        for (auto& jitem : jarr)
-                        {
-                            if (jitem.is_string())
-                                out.text += jitem.get<std::string>() + "\r\n";
-                        }
+                        out.text_info = format_output_text(jarr);
                         out.id = base::GlobalID::random();
                         out.ready = true;
                         task.outputs.push_back(std::move(out));
@@ -755,6 +751,97 @@ void QueueManager::check_ws_inbox()
     g::pFlow->check_ws_message(callback);
 }
 
+TextInfo QueueManager::format_output_text(const o_json& j)
+{
+    // recursively clean up double-serialized JSON strings while preserving array/object structure
+    std::function<nlohmann::json(const nlohmann::json&)> sanitize_json;
+    sanitize_json = [&sanitize_json](const nlohmann::json& node) -> nlohmann::json
+    {
+        if (node.is_string())
+        {
+            std::string str = node.get<std::string>();
+            // if the string contains a serialized JSON array, parse and unpack it
+            if (str.starts_with('[') && str.ends_with(']'))
+            {
+                try 
+                {
+                    return sanitize_json(nlohmann::json::parse(str));
+                }
+                catch (...) {} // Fallback to raw string if parsing fails
+            }
+            return str;
+        }
+        if (node.is_array())
+        {
+            nlohmann::json arr = nlohmann::json::array();
+            for (const auto& item : node)
+            {
+                arr.push_back(sanitize_json(item));
+            }
+            return arr;
+        }
+        if (node.is_object())
+        {
+            nlohmann::json obj = nlohmann::json::object();
+            for (auto it = node.begin(); it != node.end(); ++it)
+            {
+                obj[it.key()] = sanitize_json(it.value());
+            }
+            return obj;
+        }
+        return node;
+    };
+
+    // flattens to 1D array only for nodes that spawn multiple widgets (like ShowText)
+    std::function<void(const nlohmann::json&, std::vector<std::string>&)> flatten;
+    flatten = [&flatten](const nlohmann::json& node, std::vector<std::string>& arr)
+    {
+        if (node.is_string())
+            arr.push_back(node.get<std::string>());
+        else if (node.is_array())
+        {
+            for (const auto& i : node)
+            {
+                flatten(i, arr);
+            }
+        }
+        else if (!node.is_null())
+            arr.push_back(node.dump());
+    };
+
+    TextInfo out;
+
+    // get structurally identical but clean JSON
+    nlohmann::json clean_j = sanitize_json(j); 
+
+    // format outputs
+    if (clean_j.is_array())
+    {
+        if (clean_j.size() == 1 && clean_j[0].is_string())
+        {
+            // fast path for single-element array
+            out.line = clean_j[0].get<std::string>();
+        }
+        else
+        {
+            // complex structure preserved, safely dumped with indents
+            out.line = clean_j.dump(4);
+        }
+        // fill the flat array for specific nodes that need it
+        flatten(clean_j, out.arr); 
+    }
+    else if (clean_j.is_string())
+    {
+        out.line = clean_j.get<std::string>();
+    }
+    else if (!clean_j.is_null())
+    {
+        out.line = clean_j.dump(4);
+    }
+
+    return out;
+}
+
 void QueueManager::load_outputs(wid wf_id, ExecTask& task)
 {
     for (auto& out : task.outputs)
@@ -773,7 +860,7 @@ void QueueManager::load_outputs(wid wf_id, ExecTask& task)
             g::pFlow->http_get(HttpRequestor::Queue_Output, get_alive_callback(), request.c_str(), callback);
         }
         else if (ExecTask::OutputType::Text == out.type && out.target_node != 0)
-            g::pFlow->custom_media_widgets().add_output(wf_id, out.target_node, out.type, out.text, "", 0);
+            g::pFlow->custom_media_widgets().add_output(wf_id, out.target_node, out.type, out.text_info.line, "", 0);
     }
 }
 
@@ -851,7 +938,7 @@ void QueueManager::check_current_task_is_done()
 
         try
         {
-            const auto j = o_json::parse(binary);
+            const auto j = u_json::parse(binary);
             if (j.is_object())
             {
                 for (auto& [prompt_id, jdatas] : j.items())

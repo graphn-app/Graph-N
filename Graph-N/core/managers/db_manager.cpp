@@ -722,7 +722,23 @@ void DbManager::history_add(ExecTask& task)
         jout["filetype"] = o.filetype;
         jout["subfolder"] = o.subfolder;
         jout["format"] = o.format;
-        jout["texts"] = o.text;
+        jout["texts"] = "";
+        if (ExecTask::OutputType::Text == o.type)
+        {
+            try
+            {
+                u_json jtext;
+                if (!o.text_info.arr.empty())
+                    jtext = o.text_info.arr;
+                else
+                {
+                    decltype(o.text_info.arr) arr = { o.text_info.line };
+                    jtext = arr;
+                }
+                jout["texts"] = jtext.dump();
+            }
+            catch (...) {}
+        }
 
         jouts.push_back(std::move(jout));
     }
@@ -805,7 +821,21 @@ std::vector<ExecTask> DbManager::history_load_all()
                     o.id = base::GlobalID::random();
 
                     auto& jtexts = jitem["texts"];
-                    o.text = jtexts.get<std::string>();
+                    if (ExecTask::OutputType::Text == o.type && !jtexts.empty())
+                    {
+                        try
+                        {
+                            o.text_info.arr = jtexts.get<std::vector<std::string>>();
+                            if (1 == o.text_info.arr.size())
+                            {
+                                o.text_info.line = std::move(o.text_info.arr[0]);
+                                o.text_info.arr.clear();
+                            }
+                            else
+                                o.text_info.line = jtexts.dump(4);
+                        }
+                        catch(...) {}                        
+                    }
 
                     if (!o.filename.empty())
                     {
