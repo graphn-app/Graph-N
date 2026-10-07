@@ -266,7 +266,8 @@ bool InputText(const char* label, std::string* str, ImGuiInputTextFlags flags, I
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return ImGui::InputText(label, (char*)str->c_str(), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
+    const size_t buf_size = (flags & ImGuiInputTextFlags_ReadOnly) ? str->size() + 1 : str->capacity() + 1;
+    return ImGui::InputText(label, (char*)str->c_str(), buf_size, flags, InputTextCallback, &cb_user_data);
 }
 
 bool InputTextWithHint(const char* label, const char* hint, std::string* str, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
@@ -278,7 +279,8 @@ bool InputTextWithHint(const char* label, const char* hint, std::string* str, Im
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return ImGui::InputTextWithHint(label, hint, (char*)str->c_str(), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
+    const size_t buf_size = (flags & ImGuiInputTextFlags_ReadOnly) ? str->size() + 1 : str->capacity() + 1;
+    return ImGui::InputTextWithHint(label, hint, (char*)str->c_str(), buf_size, flags, InputTextCallback, &cb_user_data);
 }
 
 bool InputTextMultiline(const char* label, std::string* str, const ImVec2& size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
@@ -291,7 +293,8 @@ bool InputTextMultiline(const char* label, std::string* str, const ImVec2& size,
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return ImGui::InputTextEx(label, nullptr, (char*)str->c_str(), cast::to_i32(str->capacity() + 1), size, str_flags, InputTextCallback, &cb_user_data);
+    const size_t buf_size = (flags & ImGuiInputTextFlags_ReadOnly) ? str->size() + 1 : str->capacity() + 1;
+    return ImGui::InputTextEx(label, nullptr, (char*)str->c_str(), cast::to_i32(buf_size), size, str_flags, InputTextCallback, &cb_user_data);
 }
 
 bool InputTextMultilineWithHint(const char* label, const char* hint, std::string* str, const ImVec2& size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
@@ -304,7 +307,8 @@ bool InputTextMultilineWithHint(const char* label, const char* hint, std::string
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return ImGui::InputTextEx(label, hint, (char*)str->c_str(), cast::to_i32(str->capacity() + 1), size, str_flags, InputTextCallback, &cb_user_data);
+    const size_t buf_size = (flags & ImGuiInputTextFlags_ReadOnly) ? str->size() + 1 : str->capacity() + 1;
+    return ImGui::InputTextEx(label, hint, (char*)str->c_str(), cast::to_i32(buf_size), size, str_flags, InputTextCallback, &cb_user_data);
 }
 
 ImVec2 CalcTextSizeForMultilineWithHScroll(const std::string& text) noexcept
@@ -337,10 +341,7 @@ std::pair<bool, bool> InputTextMultilineWithHScroll(
         const float inner_w = std::max(text_sz.x, ImGui::GetContentRegionAvail().x);
         const float inner_h = std::max(text_sz.y, child_h); 
 
-        edited = ImGuiEx::InputTextMultiline(text_label, str, 
-            ImVec2(inner_w, inner_h), 
-            flags | ImGuiInputTextFlags_NoHorizontalScroll);
-
+        edited = ImGuiEx::InputTextMultiline(text_label, str, ImVec2(inner_w, inner_h), flags | ImGuiInputTextFlags_NoHorizontalScroll);
         deactivated = ImGui::IsItemDeactivatedAfterEdit();
     }
 
@@ -370,10 +371,7 @@ std::pair<bool, bool> InputTextMultilineWithHintWithHScroll(
         const float inner_w = std::max(text_sz.x, ImGui::GetContentRegionAvail().x);
         const float inner_h = std::max(text_sz.y, child_h); 
 
-        edited = ImGuiEx::InputTextMultilineWithHint(text_label, hint, str, 
-            ImVec2(inner_w, inner_h), 
-            flags | ImGuiInputTextFlags_NoHorizontalScroll);
-
+        edited = ImGuiEx::InputTextMultilineWithHint(text_label, hint, str, ImVec2(inner_w, inner_h), flags | ImGuiInputTextFlags_NoHorizontalScroll);
         deactivated = ImGui::IsItemDeactivatedAfterEdit();
     }
 

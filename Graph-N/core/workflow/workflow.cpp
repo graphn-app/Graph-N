@@ -73,7 +73,7 @@ std::unique_ptr<NodeInstance> Workflow::create_node(data::Node* node, iid node_i
         }
     }
     auto instance = std::make_unique<NodeInstance>(node, get_id(), node_id);
-    if (node->flags.has(NodeObjFlags::CustomJsNode))
+    if (node != nullptr && node->flags.has(NodeObjFlags::CustomJsNode))
         g::pFlow->custom_js_nodes().init(instance.get());
     Log("Node created. w:" << get_id() << ", n:" << instance->get_instance_id() << ":" << (node != nullptr ? node->node_class : "group"));
     return instance;
