@@ -139,14 +139,14 @@ bool WfDeserializerFromJson::check_node_definition(const o_json& j, bool& is_val
         return false;
     }
 
-    const std::string node_class = j["type"];
-    const auto node_hash = base::HashID::make_hash(node_class);
+    std::string node_class = j["type"];
+    const auto node_hash = g::pNodesManager->make_node_hash_and_migrate_node_if_required(node_class);
     const auto* node = g::pNodesManager->find_node(node_hash);
     if (nullptr == node)
         return false;
 
     bool is_cni = true;
-    if (!check_cni_node_definition(j, node_class, is_valid, is_cni))
+    if (!check_cni_node_definition(j, node_hash, is_valid, is_cni))
         return false;
     if (is_cni)
         return true;
@@ -221,7 +221,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
     else if (j["id"].is_number_integer())
         node_id_from_json = std::to_string(j["id"].get<int32_t>());
 
-    const std::string node_class = j["type"];
+    std::string node_class = j["type"];
 
     // position
     ImRect rc = {};
@@ -247,7 +247,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
     }
     else
     {
-        const auto node_hash = base::HashID::make_hash(node_class);
+        const auto node_hash = g::pNodesManager->make_node_hash_and_migrate_node_if_required(node_class);
         auto obj = g::pNodesManager->find_node(node_hash);
         LogRAssert(obj != nullptr, "Dummy node " << node_class << " in base map", nullptr);
         node_instance = m_wf->add_node(obj, rc);

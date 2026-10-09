@@ -25,7 +25,7 @@ private:
     NodeInstance* deserialize_group(const o_json& j);
 
     bool check_node_definition(const o_json& j, bool& is_valid) const;
-    bool check_cni_node_definition(const o_json& j, const std::string& node_class, bool& is_valid, bool& is_cni) const;
+    bool check_cni_node_definition(const o_json& j, hid node_class, bool& is_valid, bool& is_cni) const;
     bool check_cni_node_definition_primitive(const o_json& j, bool& is_valid) const;
     bool check_cni_node_definition_reroute(const o_json& j, bool& is_valid) const;
     bool check_cni_node_definition_note(const o_json& j, bool& is_valid) const;

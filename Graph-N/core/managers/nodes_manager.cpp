@@ -138,6 +138,20 @@ void NodesManager::calc_number_inside(
         calculator(m_module_tree, &count, false);
 }
 
+hid NodesManager::make_node_hash_and_migrate_node_if_required(std::string& node_class)
+{
+    const hid original_hash = base::HashID::make_hash(node_class);
+    switch (original_hash)
+    {
+    case js::REROUTE_PYSSSSS:
+    case js::REROUTE_RGTHREE:
+        node_class = js::REROUTE_CLASS;
+        return js::REROUTE;
+    default: [[likely]]
+        return original_hash;
+    }    
+}
+
 data::Node* NodesManager::find_node(hid hash) const
 {
     const auto it = m_nodes.find(hash);

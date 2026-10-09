@@ -38,6 +38,11 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node(NodeInstance* node, c
         return deserialize_cni_node_primitive(node, j);
     case js::REROUTE:
         return deserialize_cni_node_reroute(node, j);
+    case js::REROUTE_PYSSSSS:
+    case js::REROUTE_RGTHREE:
+        node->get_object()->node_class = js::REROUTE_CLASS;
+        node->get_object()->force_replace_hash(js::REROUTE);
+        return deserialize_cni_node_reroute(node, j);
     case js::NOTE:
         return deserialize_cni_node_note(node, j);
     case js::MARKDOWN_NOTE:

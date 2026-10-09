@@ -43,6 +43,8 @@ public:
 
     void calc_number_inside(const std::string& filter, const std::list<std::pair<PinType, std::string>>& in_pins, const std::list<std::pair<PinType, std::string>>& out_pins, bool use_categories);
 
+    hid make_node_hash_and_migrate_node_if_required(std::string& node_class);
+
     data::Node* find_node(hid hash) const;
     data::Pin* find_pin(hid hash) const;
 
