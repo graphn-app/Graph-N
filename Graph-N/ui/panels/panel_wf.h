@@ -67,14 +67,16 @@ public:
     void group_nodes(const std::set<data::NodeInstance*>& nodes);
     void delete_nodes(std::set<data::NodeInstance*>&& nodes, bool process_pending_deletion);
     void copy_nodes(const std::set<data::NodeInstance*>& nodes, std::optional<ImVec2> src_point);
+    void copy_selected_nodes(std::optional<ImVec2> src_point);
     void paste_copied(std::optional<ImVec2> paste_at);
 
     void separate_reroutes(const std::set<data::NodeInstance*>& nodes);
     void bundle_reroutes(const std::set<data::NodeInstance*>& nodes);
     void insert_reroute(data::Link* link, ImVec2 pos);
-
     void split_reroute_to_parts(data::NodeInstance* reroute);
     void merge_reroute_parts(data::NodeInstance* reroute, bool to_left);
+
+    void set_group_mode(data::NodeInstance* group, NodeInstFlags mode);
 
 private:
     DlgCode show(bool& focused) override;

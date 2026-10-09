@@ -241,6 +241,21 @@ void PanelWorkflow::copy_nodes(const std::set<data::NodeInstance*>& nodes, std::
     }
 }
 
+void PanelWorkflow::copy_selected_nodes(std::optional<ImVec2> src_point)
+{    
+    const std::set<data::NodeInstance*> nodes = get_selected_nodes(true);
+    std::set<data::NodeInstance*> to_copy = nodes;
+    for (auto node : nodes)
+    {
+        if (node->flags().has(NodeInstFlags::Group))
+        {
+            auto inside = m_drawer.get_nodes_in_group(node, m_wf->get_nodes_all());
+            to_copy.merge(inside);
+        }
+    }
+    copy_nodes(to_copy, src_point);
+}
+
 void PanelWorkflow::paste_copied(std::optional<ImVec2> paste_at)
 {
     bool center_point = false;
@@ -336,6 +351,29 @@ void PanelWorkflow::merge_reroute_parts(data::NodeInstance* reroute, bool to_lef
 {
     LogRAssert(reroute != nullptr, "Zero ptr", );
     m_wf->merge_reroute_parts(reroute, to_left);
+}
+
+void PanelWorkflow::set_group_mode(data::NodeInstance* group, NodeInstFlags mode)
+{
+    LogRAssert(group, "Zero ptr", );
+    LogRAssert(group->flags().has(NodeInstFlags::Group), "Not a group", );
+    LogRAssert(NodeInstFlags::None == mode || NodeInstFlags::ModeBypass == mode || NodeInstFlags::ModeMute == mode, "Unknown mode", );
+
+    if (NodeInstFlags::None == mode)
+        m_action->multi_action_on("Always mode");
+    else if (NodeInstFlags::ModeBypass == mode)
+        m_action->multi_action_on("Bypass");
+    else if (NodeInstFlags::ModeMute == mode)
+        m_action->multi_action_on("Mute");
+
+    const auto nodes = m_drawer.get_nodes_in_group(group, m_wf->get_nodes_all());
+    for (auto node : nodes)
+    {
+        if (node->obj_flags().has_not(NodeObjFlags::Dummy))
+            m_action->set_node_mode(node, mode);
+    }
+
+    m_action->multi_action_off();
 }
 
 void PanelWorkflow::draw_wf()

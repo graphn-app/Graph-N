@@ -560,10 +560,7 @@ void GraphN_Flow::wf_node_remove()
 void GraphN_Flow::wf_node_copy()
 {
     if (m_wf_focused != nullptr)
-    {
-        std::set<data::NodeInstance*> nodes = m_wf_focused->get_selected_nodes(true);
-        m_wf_focused->copy_nodes(nodes, {});
-    }
+        m_wf_focused->copy_selected_nodes({});
 }
 
 bool GraphN_Flow::wf_node_paste(bool check_only)

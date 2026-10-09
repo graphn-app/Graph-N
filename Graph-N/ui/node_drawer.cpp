@@ -821,14 +821,6 @@ void NodeDrawer::draw_node_header()
                 }
             }
 
-            if (!m_active_node->get_object()->built_subcapt.empty())
-            {
-                ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_subcapt_off);
-                ImGui::PushFont(g::pMain->get_small_font());
-                ImGui::TextUnformatted(m_active_node->get_object()->built_subcapt.c_str(), m_active_node->get_object()->built_subcapt.c_str() + m_active_node->get_object()->built_subcapt.size());
-                ImGui::PopFont();
-            }
-
             if (m_active_node->flags().has(NodeInstFlags::Pinned))
             {
                 ImGui::SameLine();
@@ -855,6 +847,14 @@ void NodeDrawer::draw_node_header()
                 ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered())
                     tooltip_suspended([]() { return "Node is muted. It will not be processed."; });
+            }
+
+            if (!m_active_node->get_object()->built_subcapt.empty())
+            {
+                ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_subcapt_off);
+                ImGui::PushFont(g::pMain->get_small_font());
+                ImGui::TextUnformatted(m_active_node->get_object()->built_subcapt.c_str(), m_active_node->get_object()->built_subcapt.c_str() + m_active_node->get_object()->built_subcapt.size());
+                ImGui::PopFont();
             }
         }
         else

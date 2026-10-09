@@ -777,10 +777,30 @@ bool PanelWorkflow::show_group_menu()
             create_toolbar();
             return close;
         }
+
+        ImGui::Separator();
+        if (ImGui::MenuItem("Always", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Always)))
+        {
+            set_group_mode(group, NodeInstFlags::None);
+            close = true;
+        }
+        if (ImGui::MenuItem("Bypass", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Bypass)))
+        {
+            set_group_mode(group, NodeInstFlags::ModeBypass);
+            close = true;
+        }
+        if (ImGui::MenuItem("Mute", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Mute)))
+        {
+            set_group_mode(group, NodeInstFlags::ModeMute);
+            close = true;
+        }
     }
+    ImGui::Separator();
     if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy)))
     {
-        copy_nodes({ group }, {});
+        auto to_copy = nodes;
+        to_copy.insert(group);
+        copy_nodes(to_copy, {});
         close = true;
     }
     ImGui::Separator();
@@ -1018,7 +1038,7 @@ bool PanelWorkflow::show_multigroup_menu()
         if (ImGui::MenuItem("Remove groups and nodes inside"))
         {
             std::set<data::NodeInstance*> objs;
-            for (const auto&[group, nodes] : m_menu_objs.groups)
+            for (const auto& [group, nodes] : m_menu_objs.groups)
             {
                 objs.insert(group);
                 objs.insert(nodes.begin(), nodes.end());
@@ -1028,15 +1048,45 @@ bool PanelWorkflow::show_multigroup_menu()
             create_toolbar();
             return close;
         }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Always", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Always)))
+        {
+            for (const auto& [group, nodes] : m_menu_objs.groups)
+            {
+                (void)nodes;
+                set_group_mode(group, NodeInstFlags::None);
+            }
+            close = true;
+        }
+        if (ImGui::MenuItem("Bypass", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Bypass)))
+        {
+            for (const auto& [group, nodes] : m_menu_objs.groups)
+            {
+                (void)nodes;
+                set_group_mode(group, NodeInstFlags::ModeBypass);
+            }
+            close = true;
+        }
+        if (ImGui::MenuItem("Mute", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Mute)))
+        {
+            for (const auto& [group, nodes] : m_menu_objs.groups)
+            {
+                (void)nodes;
+                set_group_mode(group, NodeInstFlags::ModeMute);
+            }
+            close = true;
+        }
     }
+    ImGui::Separator();
     if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy)))
     {
-        std::set<data::NodeInstance*> objs;
+        std::set<data::NodeInstance*> to_copy;
         for (auto& group : m_menu_objs.groups)
         {
-            objs.insert(group.first);
+            to_copy.insert(group.first);
+            to_copy.insert(group.second.begin(), group.second.end());
         }
-        copy_nodes(objs, {});
+        copy_nodes(to_copy, {});
         close = true;
     }
     ImGui::Separator();

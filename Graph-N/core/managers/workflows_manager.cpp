@@ -613,7 +613,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
 
         if (node->flags().has(NodeInstFlags::Group))
         {
-            wf_dest->add_group(dest_rect, node->get_name(), node->get_instance_id());
+            wf_dest->add_group(dest_rect, node->get_name());
             continue;
         }
 
