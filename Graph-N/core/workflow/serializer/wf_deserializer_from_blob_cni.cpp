@@ -79,8 +79,10 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_reroute(blob::Reader&
         RoutedPinPair pair;
         pair.type = block.pop_string_ptr();
         pair.in_id = block.pop_iid();
+        pair.in_hash = block.pop_hid();
         pair.in_pin_name = block.pop_string_ptr();
         pair.out_id = block.pop_iid();
+        pair.out_hash = block.pop_hid();
         pair.out_index = block.pop_i32();
         pair.hidden = block.pop_bool();
         reroute_data->pairs.push_back(pair);

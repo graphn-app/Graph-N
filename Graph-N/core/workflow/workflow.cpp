@@ -624,7 +624,7 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
 
         for (int32_t step = Step::Check; node_can_merge && step < Step::Finish; step++)
         {
-            const size_t count = node->get_inputs().size() - 1;
+            const size_t count = node->get_inputs().size();
             for (size_t i = 0; node_can_merge && i < count; i++)
             {
                 if (Step::Relink == step && node->flags().has(NodeInstFlags::RerouteSplitted))
@@ -664,7 +664,7 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
                     break;
                 }
 
-                const size_t dest_idx = dest_node->get_inputs().size() - 1;
+                const size_t dest_idx = dest_node->get_inputs().size();
                 if (left_pin != nullptr)
                 {
                     auto new_in_pin = dest_node->get_inputs()[dest_idx];
@@ -715,13 +715,14 @@ void Workflow::collapse_reroute(data::NodeInstance* node)
     if (node->flags().has(NodeInstFlags::RerouteSplitted))
         m_action->merge_reroute(node, true);
 
-    const size_t count = node->get_inputs().size() - 1;
-
+    const size_t count = node->get_inputs().size();
     for (size_t i = 0; i < count; i++)
     {
         const auto in_pin = node->get_inputs()[i];
         const auto out_pin = node->get_outputs()[i];
         if (in_pin->flags().has(PinInstFlags::Hidden) || out_pin->flags().has(PinInstFlags::Hidden))
+            continue;
+        if (0 == in_pin->state().links || 0 == out_pin->state().links)
             continue;
 
         PinInstance* left_pin = nullptr;

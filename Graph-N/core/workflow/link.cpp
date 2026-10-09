@@ -45,8 +45,6 @@ bool Link::can_link(const PinInstance* i1, const PinInstance* i2)
         return false;
     }
 
-    if (PinType::ANY == i1->state().type && PinType::ANY == i2->state().type)
-        return false;
 
     if (PinType::COLOR == s1.type && PinType::STRING == s2.type ||    // special case
         PinType::COLOR == s2.type && PinType::STRING == s1.type)
@@ -108,7 +106,7 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
     if (p2->flags.has(PinObjFlags::Advanced))
         n2->flags().add(NodeInstFlags::ShowHidden);
 
-    if (i1->flags().has_not(PinInstFlags::RerouteSplittingPin))
+    if (i1->flags().has_not(PinInstFlags::RerouteSplittingPin) && !(PinType::ANY == i1->state().type && PinType::ANY == i2->state().type))
     {
         if (PinType::ANY == i1->state().type)
         {

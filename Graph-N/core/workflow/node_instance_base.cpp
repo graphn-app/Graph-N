@@ -190,7 +190,8 @@ float NodeInstanceBase::calc_node_width(bool ro, bool use_big_pin_icon) noexcept
 
 float NodeInstanceBase::recalc_node_width(float new_width, bool ro, bool use_big_pin_icon) noexcept
 {
-    if (!has_object()) return new_width;
+    if (!has_object())
+        return new_width;
 
     if (ro)
         new_width = m_ideal_w;

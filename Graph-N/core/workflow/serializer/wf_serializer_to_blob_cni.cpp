@@ -80,8 +80,10 @@ void WfSerializerToBlob::serialize_cni_node_reroute()
         const auto* out = outputs[i];
         m_writer.push(in->state().type_str);
         m_writer.push(in->get_instance_id());
+        m_writer.push(in->get_object()->get_hash());
         m_writer.push(in->get_object()->def_state.name);
         m_writer.push(out->get_instance_id());
+        m_writer.push(out->get_object()->get_hash());
         m_writer.push(out->get_object()->out_index);
         m_writer.push(in->flags().has(PinInstFlags::Hidden));
     }

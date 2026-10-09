@@ -9,7 +9,9 @@ struct RoutedPinPair final
 {
     std::string type = "*";
     iid in_id = 0;
+    hid in_hash = 0;
     iid out_id = 0;
+    hid out_hash = 0;
     std::string in_pin_name = "*";
     int32_t out_index = -1;
     bool hidden = false;
@@ -51,7 +53,6 @@ struct LinkedPair final
 struct RerouteData
 {
     std::list<LinkedPair> m_pairs;
-    std::map<PinType, int32_t> m_in_pin_types;
     int32_t m_next_out_index = 1;
 };
 
@@ -65,6 +66,7 @@ public:
     static const char* cni_get_node_class() noexcept { return CNI_CLASS_REROUTE; }
 
     void cni_init() override;
+    void add_pair(const RoutedPinPair& pair = {});
 
     bool cni_is_applicable() const noexcept override { return true; }
 
@@ -73,11 +75,8 @@ public:
     void cni_pin_unlinked(const PinInstance* p1, const PinInstance* p2) override;
 
     void cni_cleanup_base_object() override;
-
     bool cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
-
     void cni_mirror_value_to(const PinInstance* src, std::vector<PinInstance*>& append_pins) const override;
-
     void on_deserialilzation_ends() override;
 
 public:
@@ -130,17 +129,19 @@ private:
     void get_pins_from_link(const PinInstance* p1, const PinInstance* p2, const PinInstance*& external, LinkedPair*& pair) noexcept;
     void cleanup_pairs(bool keep_linked);
     void refresh_pair_state(LinkedPair& pair);
-    void add_pair(const RoutedPinPair& pair = {});
-    PinInstance* add_pin_internal(Workflow* wf, const std::string& type, const std::string& name, int32_t out_index, iid id);
+    PinInstance* add_pin_internal(Workflow* wf, const std::string& type, const std::string& name, int32_t out_index, iid id, hid hash);
     void remove_pin_internal(Workflow* wf, PinInstance* pin, bool force_cleanup) noexcept;
-    std::string create_pin_name(const std::string& type_str);
+    void refresh_names();
+    void propagate_pair_type(const LinkedPair& pair);
+    bool pair_is_hidden(const LinkedPair& pair) const noexcept;
+    void add_pair_if_empty();
 
 private:
-    std::shared_ptr<RerouteData> m_data; // cleanup
-
+    std::shared_ptr<RerouteData> m_data;
     CNI_Reroute* m_splitted_part = nullptr;
     PinInstance* m_splitted_pin = nullptr;
     iid m_splitter_link_id = 0;
+    bool m_now_propagading = false;
 };
 
 } // namespace data

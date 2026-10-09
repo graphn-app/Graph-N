@@ -554,6 +554,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
     ImVec2 src_pt(FLT_MAX, FLT_MAX);
     if (!m_copy_point.has_value())
     {
+        // if the source point isn't provided, take the upper-left point of all copied nodes
         for (auto node : m_copied_nodes)
         {
             src_pt.x = std::min(src_pt.x, node->m_rc.Min.x);
@@ -567,6 +568,8 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
         Log("Copy source point set to " << src_pt.x << "/" << src_pt.y);
     }
 
+    // we might be asked to center the destination point in case of a paste via hotkey when the mouse pointer is out of canvas bounds
+    // in this case, we just place the copied nodes at the center of the canvas
     if (center_dest_point)
     {
         ImVec2 src_max(-FLT_MAX, -FLT_MAX);
@@ -587,11 +590,15 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
     }
 
     const auto& dest_wf_data = wf_dest->get_data();
+
+    // a virtual copy of the workflow is created when a new task starts or when the workflow is being exported
     if (!dest_wf_data.virt)
         g::pHistoryManager->multi_action_begin(wf_dest->get_id(), "Paste");
 
-    std::map<iid, data::NodeInstance*> curr_node_to_new_node;
+    std::map<iid, std::pair<data::NodeInstance*, data::NodeInstance*>> curr_node_to_new_node; // src node iid -> src_node/dest_node
     wf_dest->set_last_child_id(m_copy_src->get_last_child_id());
+
+    std::set<data::NodeInstance*> new_nodes;
 
     for (auto node : m_copied_nodes)
     {
@@ -611,6 +618,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
         }
 
         auto new_node = wf_dest->add_node(node, dest_wf_data.virt);
+        new_nodes.insert(new_node);
         new_node->flags().add(NodeInstFlags::Deserialization);
         new_node->m_rc = dest_rect;
 
@@ -621,6 +629,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
             g::pHistoryManager->push_node_action(new_node, HistoryActionType::NodeAdd);
         else
         {
+            // for a virtual copy, we need to mirror all instance ids
             std::ranges::for_each(node->get_inputs(), [new_node](data::PinInstance* pin)
             {
                 if (new_node->obj_flags().has_none(NodeObjFlags::SpecPrimitive, NodeObjFlags::SpecReroute, NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
@@ -646,28 +655,43 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
             });
         }
 
-        curr_node_to_new_node[node->get_instance_id()] = new_node;
+        curr_node_to_new_node[node->get_instance_id()] = std::make_pair(node, new_node);
     }
+
+    // mirror connections
 
     const auto links = m_copy_src->get_links_no_reroutes();
     for (auto link : links)
     {
         const auto* src_in_pin = link->get_input();
         const auto* src_out_pin = link->get_output();
-
+        
         const auto in_it = curr_node_to_new_node.find(src_in_pin->get_parent_node());
         const auto out_it = curr_node_to_new_node.find(src_out_pin->get_parent_node());
+
+        // valid case: one of the linked nodes wasn't copied
         if (in_it == curr_node_to_new_node.end() || out_it == curr_node_to_new_node.end())
             continue;
 
-        const data::NodeInstance* dest_in_node = in_it->second;
-        const data::NodeInstance* dest_out_node = out_it->second;
+        const data::NodeInstance* dest_in_node = in_it->second.second;
+        const data::NodeInstance* dest_out_node = out_it->second.second;
         data::PinInstance* dest_in_pin = nullptr;
         data::PinInstance* dest_out_pin = nullptr;
 
+        // search for the same pin on the copied node
+        // in the case of a reroute, we don't search by hash because all hashes are unique, but pin names are unique within the node
+
         for (auto pin : dest_in_node->get_inputs())
         {
-            if (pin->get_object()->get_hash() == src_in_pin->get_object()->get_hash())
+            if (dest_in_node->obj_flags().has(NodeObjFlags::SpecReroute))
+            {
+                if (pin->state().name == src_in_pin->state().name)
+                {
+                    dest_in_pin = pin;
+                    break;
+                }
+            }
+            else if (pin->get_object()->get_hash() == src_in_pin->get_object()->get_hash())
             {
                 dest_in_pin = pin;
                 break;
@@ -675,7 +699,15 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
         }
         for (auto pin : dest_out_node->get_outputs())
         {
-            if (pin->get_object()->get_hash() == src_out_pin->get_object()->get_hash())
+            if (dest_out_node->obj_flags().has(NodeObjFlags::SpecReroute))
+            {
+                if (pin->state().name == src_out_pin->state().name)
+                {
+                    dest_out_pin = pin;
+                    break;
+                }
+            }
+            else if (pin->get_object()->get_hash() == src_out_pin->get_object()->get_hash())
             {
                 dest_out_pin = pin;
                 break;
@@ -696,8 +728,11 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
     const auto dest_nodes = wf_dest->get_nodes_no_reroutes_r();
     for (auto node : dest_nodes)
     {
-        node->flags().remove(NodeInstFlags::Deserialization);
-        node->on_deserialilzation_ends();
+        if (new_nodes.contains(node))
+        {
+            node->flags().remove(NodeInstFlags::Deserialization);
+            node->on_deserialilzation_ends();
+        }
     }
 
     if (!dest_wf_data.virt)

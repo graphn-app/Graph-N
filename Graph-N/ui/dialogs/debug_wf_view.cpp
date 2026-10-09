@@ -63,7 +63,7 @@ constexpr FlagDef<NodeObjFlags> g_node_obj_flags[] =
 
 constexpr FlagDef<PinObjFlags> g_pin_obj_flags[] =
 {
-    DEF_FLAG(PinObjFlags, Hidden), DEF_FLAG(PinObjFlags, Input), DEF_FLAG(PinObjFlags, Output),
+    DEF_FLAG(PinObjFlags, Input), DEF_FLAG(PinObjFlags, Output),
     DEF_FLAG(PinObjFlags, Required), DEF_FLAG(PinObjFlags, Optional), DEF_FLAG(PinObjFlags, CanLink),
     DEF_FLAG(PinObjFlags, CanUnlink), DEF_FLAG(PinObjFlags, CanRename), DEF_FLAG(PinObjFlags, Advanced),
     DEF_FLAG(PinObjFlags, InputCanBeWidget), DEF_FLAG(PinObjFlags, ImageUpload), DEF_FLAG(PinObjFlags, AudioUpload),

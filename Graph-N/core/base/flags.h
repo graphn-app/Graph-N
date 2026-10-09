@@ -361,7 +361,7 @@ inline constexpr ObjectFlags<PinInstFlags> g_pin_inst_serializable_flags
 enum class PinObjFlags : uint64_t
 {
     None                      = 0,          // 0                  -  0x00
-    Hidden                    = 1ULL << 0,  // 1                  -  0x01
+    __AVAILABLE__1            = 1ULL << 0,  // 1                  -  0x01
     Input                     = 1ULL << 1,  // 2                  -  0x02                  // default for inputs
     Output                    = 1ULL << 2,  // 4                  -  0x04                  // default for outputs
     Required                  = 1ULL << 3,  // 8                  -  0x08

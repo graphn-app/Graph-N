@@ -48,6 +48,7 @@ struct HashID
 
     static hid make_hash(const std::string& unique);
     hid get_hash() const noexcept { return m_hash; }
+    void force_replace_hash(hid hash) { m_hash = hash; }
 
 private:
     hid m_hash = 0;

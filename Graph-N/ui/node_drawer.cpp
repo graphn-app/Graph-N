@@ -545,8 +545,18 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
     ImGui::PopStyleColor();
 
     if (m_active_node->flags().has_not(NodeInstFlags::HasWidgets))
-        ImGui::SetCursorPosY(std::max(last_in_off_y, ImGui::GetCursorPosY()));
-    ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing * 2));
+    {
+        if (m_active_node->obj_flags().has(NodeObjFlags::SpecReroute))
+        {
+            if (draw_reroute_appender(w::pin_l_offset_rw))
+                cast::strict<data::CNI_Reroute>(m_active_node)->add_pair();
+        }
+        else
+            ImGui::SetCursorPosY(std::max(last_in_off_y, ImGui::GetCursorPosY()));
+    }
+
+    if (m_active_node->obj_flags().has_not(NodeObjFlags::SpecReroute))
+        ImGui::Dummy(ImVec2(m_active_node->w_node, w::v_spacing * 2));
 
     if (zoomed_draw_all()) [[likely]]
         m_active_node->m_last_pins_h = ImGui::GetCursorPosY() - y_off;
@@ -828,7 +838,7 @@ void NodeDrawer::draw_node_header()
                 ImGui::TextUnformatted(" " ICON_LC_PIN);
                 ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered())
-                    tooltip_suspended([this]() { return "Node is pinned to the canvas."; });
+                    tooltip_suspended([]() { return "Node is pinned to the canvas."; });
             }
             if (m_active_node->get_mode_bypass())
             {
@@ -837,7 +847,7 @@ void NodeDrawer::draw_node_header()
                 ImGui::TextUnformatted(" " ICON_LC_SKIP_FORWARD);
                 ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered())
-                    tooltip_suspended([this]() { return "Node is bypassed. Inputs pass through to outputs."; });
+                    tooltip_suspended([]() { return "Node is bypassed. Inputs pass through to outputs."; });
             }
             else if (!m_active_node->get_mode_always())
             {
@@ -846,7 +856,7 @@ void NodeDrawer::draw_node_header()
                 ImGui::TextUnformatted(" " ICON_LC_VOLUME_X);
                 ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered())
-                    tooltip_suspended([this]() { return "Node is muted. It will not be processed."; });
+                    tooltip_suspended([]() { return "Node is muted. It will not be processed."; });
             }
         }
         else
@@ -1442,6 +1452,7 @@ void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_op
     const bool pressed = ImGui::Button(ICON_LC_CHEVRON_UP);
     const auto btn_pos = ImGui::GetItemRectMin();
     ImGui::PopStyleColor(4);
+    tooltip_suspended([]() { return "Show hidden widgets"; });
 
     temp_open = false;
     ImU32 color = ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Text]);
@@ -1457,6 +1468,32 @@ void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_op
 
     ImGui::GetWindowDrawList()->AddText(btn_pos, color, opened || temp_open ? ICON_LC_CHEVRON_UP : ICON_LC_CHEVRON_DOWN);
     ImGui::PopFont();
+}
+
+bool NodeDrawer::draw_reroute_appender(float offset) noexcept
+{
+    ImGui::SetCursorPosX(m_curr_node_left_offset + offset);
+
+    ImGui::PushFont(g::pMain->get_small_font());
+
+    ImGui::PushStyleColor(ImGuiCol_Text, 0);
+    ImGui::PushStyleColor(ImGuiCol_Button, 0);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
+    const bool pressed = ImGui::Button(ICON_LC_PLUS);
+    const auto btn_pos = ImGui::GetItemRectMin();
+    ImGui::PopStyleColor(4);
+    tooltip_suspended([]() { return "Add rerouting pair"; });
+
+    ImU32 color = ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Text]);
+    if (pressed)
+        ed::SelectNode(m_active_node->ed());
+    else
+        color = g::pOptsManager->color_load(AppColor::ActivityBarInactive);
+
+    ImGui::GetWindowDrawList()->AddText(btn_pos, color, ICON_LC_PLUS);
+    ImGui::PopFont();
+    return pressed;
 }
 
 void NodeDrawer::draw_cag_helper(const data::PinInstance* pin) const noexcept

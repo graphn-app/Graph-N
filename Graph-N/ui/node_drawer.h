@@ -123,6 +123,7 @@ private:
     void draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_separator(float offset, bool& opened, bool& temp_open) noexcept;
+    bool draw_reroute_appender(float offset) noexcept;
     void draw_cag_helper(const data::PinInstance* pin) const noexcept;
 
     void handle_widget_active_state(data::PinInstance* pin, const Primitive* backup = nullptr);
