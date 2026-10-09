@@ -6,20 +6,22 @@
 namespace data
 {
 
-bool WfDeserializerFromJson::check_cni_node_definition(const o_json& j, const std::string& node_class, bool& is_valid, bool& is_cni) const
+bool WfDeserializerFromJson::check_cni_node_definition(const o_json& j, hid node_class, bool& is_valid, bool& is_cni) const
 {
     is_valid = true;
     is_cni = true;
 
-    const auto hash = tools::str::hash_stable(node_class);
-    if (hash == js::PRIMITIVE_NODE)
+    switch (node_class)
+    {
+    case js::PRIMITIVE_NODE:
         return check_cni_node_definition_primitive(j, is_valid);
-    if (hash == js::REROUTE)
+    case js::REROUTE:
         return check_cni_node_definition_reroute(j, is_valid);
-    if (hash == js::NOTE)
+    case js::NOTE:
         return check_cni_node_definition_note(j, is_valid);
-    if (hash == js::MARKDOWN_NOTE)
+    case js::MARKDOWN_NOTE:
         return check_cni_node_definition_markdownnote(j, is_valid);
+    }
 
     is_cni = false;
     return true;
@@ -156,7 +158,8 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node_reroute(NodeInstance*
 
     if (0 == pair.in_id) pair.in_id = m_wf->get_new_child_id();
     if (0 == pair.out_id) pair.out_id = m_wf->get_new_child_id();
-
+    
+    cast::strict<CNI_DeserializedReroute>(data.get())->poses = { node->m_rc, node->m_rc };
     cast::strict<CNI_DeserializedReroute>(data.get())->pairs.push_back(pair);
     
     reroute->cni_save_deserialized_info(std::move(data));

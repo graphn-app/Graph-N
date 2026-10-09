@@ -535,6 +535,8 @@ data::NodeInstance* Workflow::filter_reroute(data::NodeInstance* node) const noe
 
 void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
 {
+    // split a bundled reroute node into individual single-pair reroute nodes
+
     nodes = filter_reroutes(nodes);
 
     m_action->multi_action_on("Separate");
@@ -562,6 +564,7 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
             data::Link* left_link = nullptr;
             data::Link* right_link = nullptr;
 
+            // find connected nodes: instantiate a new node and rewire connections
             for (auto& link : get_links_all())
             {
                 if (link->get_input()->get_instance_id() == in_pin->get_instance_id())
@@ -578,17 +581,16 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
                     break;
             }
 
+            // valid state: the pin has no connections
             if (nullptr == left_pin && nullptr == right_pin)
-            {
-                LogError("Linked pins not found. w:" << get_id() << ", n1:" << in_pin->get_parent_node() << ", p1:" << in_pin->get_instance_id() << ", n2:" << out_pin->get_parent_node() << ", p2:" << out_pin->get_instance_id());
                 break;
-            }
 
             const auto* new_node = m_action->add_node(node->get_object(), "", rect);
             LogCAssert(new_node->obj_flags().has(NodeObjFlags::SpecReroute), "New node is not reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", t:" << typeid(new_node).name());
             LogCAssert(new_node->get_inputs().size() == new_node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz1:" << new_node->get_inputs().size() << ", sz2:" << new_node->get_outputs().size());
             LogCAssert(new_node->get_inputs().size() == 1, "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz:" << new_node->get_inputs().size());
 
+            // claim the first available slot and rewire the nodes
             if (left_pin != nullptr)
             {
                 m_action->unlink(left_link);
@@ -602,8 +604,8 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
                 m_action->link(right_pin, new_out_pin);
             }
 
-            rect.Min.x += 10;
-            rect.Min.y += 10;
+            rect.Min.x += 50;   // offset the next node position by 50 px
+            rect.Min.y += 50;
         }
     }
     m_action->multi_action_off();
@@ -611,6 +613,8 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
 
 void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
 {
+    // bundle selected reroute nodes into a single composite reroute
+
     if (nodes.size() <= 1)
         return;
 
@@ -618,99 +622,84 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
 
     m_action->multi_action_on("Bundle reroutes");
 
-    data::NodeInstance* dest_node = nullptr;
+    data::CNI_Reroute* dest_node = nullptr;
     for (auto node : nodes)
     {
         if (!node->has_object() || node->has_object() && node->obj_flags().has_not(NodeObjFlags::SpecReroute))
             continue;
         LogCAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size());
 
+        // merge all selected reroutes into the primary (first) node
         if (nullptr == dest_node)
         {
-            dest_node = node;
-            if (node->flags().has(NodeInstFlags::RerouteSplitted))
-                m_action->merge_reroute(cast::strict<data::CNI_Reroute>(node)->get_splitted_base(), true);
+            dest_node = cast::strict<data::CNI_Reroute>(cast::strict<data::CNI_Reroute>(node)->get_splitted_base());
+            //if (node->flags().has(NodeInstFlags::RerouteSplitted))
+              //  m_action->merge_reroute(cast::strict<data::CNI_Reroute>(node)->get_splitted_base(), true);
             continue;
         }
 
-        bool node_can_merge = true;
-        enum Step : uint8_t { Check, Relink, Finish };
-
-        for (int32_t step = Step::Check; node_can_merge && step < Step::Finish; step++)
+        bool delete_node = true;
+        const size_t count = node->get_inputs().size();
+        for (size_t i = 0; i < count; i++)
         {
-            const size_t count = node->get_inputs().size();
-            for (size_t i = 0; node_can_merge && i < count; i++)
+            if (node->flags().has(NodeInstFlags::RerouteSplitted))
+                m_action->merge_reroute(cast::strict<data::CNI_Reroute>(node)->get_splitted_base(), true);
+
+            const auto in_pin = node->get_inputs()[i];
+            const auto out_pin = node->get_outputs()[i];
+
+            if (in_pin->flags().has(PinInstFlags::Hidden))
+                continue;
+
+            data::PinInstance* left_pin = nullptr;
+            data::PinInstance* right_pin = nullptr;
+            data::Link* left_link = nullptr;
+            data::Link* right_link = nullptr;
+
+            // look up nodes wired to the merged pin and rewire them into the bundle
+            for (auto& link : get_links_all())
             {
-                if (Step::Relink == step && node->flags().has(NodeInstFlags::RerouteSplitted))
-                    m_action->merge_reroute(cast::strict<data::CNI_Reroute>(node)->get_splitted_base(), true);
-
-                const auto in_pin = node->get_inputs()[i];
-                const auto out_pin = node->get_outputs()[i];
-
-                if (in_pin->flags().has(PinInstFlags::Hidden))
-                    continue;
-
-                data::PinInstance* left_pin = nullptr;
-                data::PinInstance* right_pin = nullptr;
-                data::Link* left_link = nullptr;
-                data::Link* right_link = nullptr;
-
-                for (auto& link : get_links_all())
+                if (link->get_input()->get_instance_id() == in_pin->get_instance_id())
                 {
-                    if (link->get_input()->get_instance_id() == in_pin->get_instance_id())
-                    {
-                        left_pin = link->get_output();
-                        left_link = link.get();
-                    }
-                    else if (link->get_output()->get_instance_id() == out_pin->get_instance_id())
-                    {
-                        right_pin = link->get_input();
-                        right_link = link.get();
-                    }
-                    if (left_pin != nullptr && right_pin != nullptr)
-                        break;
+                    left_pin = link->get_output();
+                    left_link = link.get();
                 }
-
-                if (nullptr == left_pin && nullptr == right_pin)
+                else if (link->get_output()->get_instance_id() == out_pin->get_instance_id())
                 {
-                    node_can_merge = false;
-                    LogError("Linked pins not found. w:" << get_id() << ", n1:" << in_pin->get_parent_node() << ", p1:" << in_pin->get_instance_id() << ", n2:" << out_pin->get_parent_node() << ", p2:" << out_pin->get_instance_id());
+                    right_pin = link->get_input();
+                    right_link = link.get();
+                }
+                if (left_pin != nullptr && right_pin != nullptr)
                     break;
-                }
+            }
 
-                const size_t dest_idx = dest_node->get_inputs().size();
-                if (left_pin != nullptr)
-                {
-                    auto new_in_pin = dest_node->get_inputs()[dest_idx];
-                    if (Step::Check == step && !Link::can_link(left_pin, new_in_pin))
-                    {
-                        node_can_merge = false;
-                        break;
-                    }
-                    else if (Step::Relink == step)
-                    {
-                        m_action->unlink(left_link);
-                        m_action->link(left_pin, new_in_pin);
-                    }
-                }
-                if (right_pin != nullptr)
-                {
-                    auto new_out_pin = dest_node->get_outputs()[dest_idx];
-                    if (Step::Check == step && !Link::can_link(right_pin, new_out_pin))
-                    {
-                        node_can_merge = false;
-                        break;
-                    }
-                    else if (Step::Relink == step)
-                    {
-                        m_action->unlink(right_link);
-                        m_action->link(right_pin, new_out_pin);
-                    }
-                }
+            // valid state: reroute pin has no active links
+            if (nullptr == left_pin && nullptr == right_pin)
+                continue;
+
+            // ignore direct links to destination reroutes (reroute daisy-chaining)
+            if (left_pin != nullptr && left_pin->get_parent_node() == dest_node->get_instance_id() ||
+                right_pin != nullptr && right_pin->get_parent_node() == dest_node->get_instance_id())
+            {
+                delete_node = false;
+                break;
+            }
+
+            // allocate an empty pin pair and rewire incoming/outgoing connections
+            auto new_pair = dest_node->find_first_empty_pair_or_add_empty();
+            if (left_pin != nullptr)
+            {
+                m_action->unlink(left_link);
+                m_action->link(left_pin, new_pair.first);
+            }
+            if (right_pin != nullptr)
+            {
+                m_action->unlink(right_link);
+                m_action->link(right_pin, new_pair.second);
             }
         }
 
-        if (node_can_merge)
+        if (delete_node)
             m_action->delete_node(node);
     }
     m_action->multi_action_off();
@@ -718,6 +707,9 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
 
 void Workflow::collapse_reroute(data::NodeInstance* node)
 {
+    // detach reroute from the connection path
+    // the caller is responsible for deleting the node later if necessary
+
     LogRAssert(node, "Zero ptr", );
     LogRAssert(node->has_object() && node->obj_flags().has(NodeObjFlags::SpecReroute), "Node is not reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", t:" << typeid(node).name(), );
     LogRAssert(node->get_inputs().size() == node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << node->get_instance_id() << ", sz1:" << node->get_inputs().size() << ", sz2:" << node->get_outputs().size(), );
@@ -729,13 +721,11 @@ void Workflow::collapse_reroute(data::NodeInstance* node)
     if (node->flags().has(NodeInstFlags::RerouteSplitted))
         m_action->merge_reroute(node, true);
 
-    const size_t count = node->get_inputs().size();
+    const size_t count = node->get_inputs().size() - 1;
     for (size_t i = 0; i < count; i++)
     {
         const auto in_pin = node->get_inputs()[i];
         const auto out_pin = node->get_outputs()[i];
-        if (in_pin->flags().has(PinInstFlags::Hidden) || out_pin->flags().has(PinInstFlags::Hidden))
-            continue;
         if (0 == in_pin->state().links || 0 == out_pin->state().links)
             continue;
 
@@ -915,6 +905,8 @@ void Workflow::prepare_for_api()
 
 void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
 {
+    // insert reroute between linked nodes
+
     LogRAssert(link, "Zero ptr", );
 
     m_action->multi_action_on("Reroute");
@@ -934,7 +926,6 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
     pair.type = left->state().type_str;
     cast::strict<CNI_DeserializedReroute>(data.get())->poses.first.Min = pos;
     cast::strict<CNI_DeserializedReroute>(data.get())->pairs.push_back(pair);
-
     reroute->cni_save_deserialized_info(std::move(data));
     ((CNI_Reroute*)reroute)->cni_init();
 

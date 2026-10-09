@@ -481,7 +481,6 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
             ImGui::PopID();
             draw_pins = false;
         }
-
     }
     if (draw_pins) [[likely]]
     {
@@ -546,13 +545,12 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
 
     if (m_active_node->flags().has_not(NodeInstFlags::HasWidgets))
     {
+        ImGui::SetCursorPosY(std::max(last_in_off_y, ImGui::GetCursorPosY()));
         if (m_active_node->obj_flags().has(NodeObjFlags::SpecReroute))
         {
             if (draw_reroute_appender(w::pin_l_offset_rw))
-                cast::strict<data::CNI_Reroute>(m_active_node)->add_pair();
-        }
-        else
-            ImGui::SetCursorPosY(std::max(last_in_off_y, ImGui::GetCursorPosY()));
+                cast::strict<data::CNI_Reroute>(cast::strict<data::CNI_Reroute>(m_active_node)->get_splitted_base())->add_pair();
+        }   
     }
 
     if (m_active_node->obj_flags().has_not(NodeObjFlags::SpecReroute))
@@ -1452,7 +1450,6 @@ void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_op
     const bool pressed = ImGui::Button(ICON_LC_CHEVRON_UP);
     const auto btn_pos = ImGui::GetItemRectMin();
     ImGui::PopStyleColor(4);
-    tooltip_suspended([]() { return "Show hidden widgets"; });
 
     temp_open = false;
     ImU32 color = ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Text]);
@@ -1468,6 +1465,7 @@ void NodeDrawer::draw_widget_separator(float offset, bool& opened, bool& temp_op
 
     ImGui::GetWindowDrawList()->AddText(btn_pos, color, opened || temp_open ? ICON_LC_CHEVRON_UP : ICON_LC_CHEVRON_DOWN);
     ImGui::PopFont();
+    tooltip_suspended([]() { return "Show hidden widgets"; });
 }
 
 bool NodeDrawer::draw_reroute_appender(float offset) noexcept
@@ -1483,7 +1481,6 @@ bool NodeDrawer::draw_reroute_appender(float offset) noexcept
     const bool pressed = ImGui::Button(ICON_LC_PLUS);
     const auto btn_pos = ImGui::GetItemRectMin();
     ImGui::PopStyleColor(4);
-    tooltip_suspended([]() { return "Add rerouting pair"; });
 
     ImU32 color = ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Text]);
     if (pressed)
@@ -1493,6 +1490,7 @@ bool NodeDrawer::draw_reroute_appender(float offset) noexcept
 
     ImGui::GetWindowDrawList()->AddText(btn_pos, color, ICON_LC_PLUS);
     ImGui::PopFont();
+    tooltip_suspended([]() { return "Add rerouting pair"; });
     return pressed;
 }
 

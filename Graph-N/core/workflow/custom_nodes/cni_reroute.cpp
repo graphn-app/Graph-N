@@ -636,6 +636,28 @@ void CNI_Reroute::add_pair(const RoutedPinPair& pair/* = {}*/)
     refresh_names();
 }
 
+std::pair<PinInstance*, PinInstance*> CNI_Reroute::find_first_empty_pair_or_add_empty()
+{
+    std::pair<PinInstance*, PinInstance*> ret;
+    for (auto& pair : m_data->m_pairs)
+    {
+        if (pair_is_hidden(pair))
+            continue;
+        if (pair.ever_linked || pair.linked)
+            continue;
+        LogCAssert(PinType::ANY == pair.type, "Empty pair is not ANY");
+        ret.first = pair.input.internal;
+        ret.second = pair.output.internal;
+        return ret;
+    }
+
+    add_pair();
+    auto& pair = m_data->m_pairs.back();
+    ret.first = pair.input.internal;
+    ret.second = pair.output.internal;
+    return ret;
+}
+
 void CNI_Reroute::cleanup_pairs(bool keep_linked)
 {
     auto wf = g::pWfsManager->access(get_workflow_id());
@@ -712,7 +734,6 @@ void CNI_Reroute::cni_pin_linked(PinInstance* p1, PinInstance* p2)
     if (flags().has(NodeInstFlags::RerouteSplitted_R)) // linkage should be handled only once and only on the base node
         return;
     LogRAssert(p1 && p2, "Zero ptr", );
-    LogRAssert(p1->flags().has_not(PinInstFlags::RerouteSplittingPin) && p2->flags().has_not(PinInstFlags::RerouteSplittingPin), "Invalid logic. Splitting pins shouldn't be here", );    
     LogRAssert(cni_can_link(p1, p2), "Check CNI_Reroute::can_link before entablish connection. w:" << get_workflow_id() << ", n: " << get_instance_id() << ", p1:" << p1->get_instance_id() << ", p2:" << p2->get_instance_id(), );
 
     if (p1->flags().has(PinInstFlags::RerouteSplittingPin) || p2->flags().has(PinInstFlags::RerouteSplittingPin))

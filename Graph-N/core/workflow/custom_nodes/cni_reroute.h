@@ -65,7 +65,9 @@ public:
     static std::unique_ptr<Node> cni_create_object();
 
     void cni_init() override;
+
     void add_pair(const RoutedPinPair& pair = {});
+    std::pair<PinInstance*, PinInstance*> find_first_empty_pair_or_add_empty();
 
     bool cni_is_applicable() const noexcept override { return true; }
 
