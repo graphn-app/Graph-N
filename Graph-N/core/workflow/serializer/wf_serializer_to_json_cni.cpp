@@ -11,10 +11,14 @@ void WfSerializerToJson::serialize_cni_node(o_json& j)
     if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
         return serialize_js_node(j);
 
-    if (CNI_Primitive::cni_is_same(m_curr_node))
+    switch (m_curr_node->get_object()->get_hash())
+    {
+    case js::PRIMITIVE_NODE:
         return serialize_cni_node_primitive(j);
-    if (CNI_Reroute::cni_is_same(m_curr_node))
+    case js::REROUTE:
         return serialize_cni_node_reroute(j);
+    }
+
     LogError("Unhandled cni node");
 }
 

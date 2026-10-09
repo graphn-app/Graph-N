@@ -32,7 +32,6 @@ public:
     ~CNI_Note() noexcept = default;
 
     static std::unique_ptr<Node> cni_create_object();
-    static const char* cni_get_node_class() noexcept { return CNI_CLASS_NOTE; }
 };
 
 
@@ -43,7 +42,6 @@ public:
     ~CNI_MarkdownNote() noexcept = default;
 
     static std::unique_ptr<Node> cni_create_object();
-    static const char* cni_get_node_class() noexcept { return CNI_CLASS_MARKDOWN_NOTE; }
 };
 
 } // namespace data

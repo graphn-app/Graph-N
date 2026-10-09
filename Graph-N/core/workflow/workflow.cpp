@@ -56,16 +56,35 @@ void Workflow::init()
     m_action = std::make_unique<WorkflowAction>(this);
 }
 
+namespace
+{
+std::unique_ptr<data::NodeInstance> create_custom(data::Node* node, wid wf_id, iid node_id, iid node_id2)
+{
+    std::unique_ptr<NodeInstance> custom_node;
+    switch (node->get_hash())
+    {
+    case js::PRIMITIVE_NODE:
+        custom_node = std::make_unique<CNI_Primitive>(node, wf_id, node_id);
+        break;
+    case js::REROUTE:
+        custom_node = std::make_unique<CNI_Reroute>(node, wf_id, node_id, node_id2);
+        break;
+    case js::NOTE:
+        custom_node = std::make_unique<CNI_Note>(node, wf_id, node_id);
+        break;
+    case js::MARKDOWN_NOTE:
+        custom_node = std::make_unique<CNI_MarkdownNote>(node, wf_id, node_id);
+        break;
+    }
+    return custom_node;
+}
+}
+
 std::unique_ptr<NodeInstance> Workflow::create_node(data::Node* node, iid node_id, iid node_id2) const
 {
     if (node != nullptr)
     {
-        std::unique_ptr<NodeInstance> custom_node;
-        if (CNI_Primitive::cni_is_same(node))         custom_node = std::make_unique<CNI_Primitive>(node, get_id(), node_id);
-        else if (CNI_Reroute::cni_is_same(node))           custom_node = std::make_unique<CNI_Reroute>(node, get_id(), node_id, node_id2);
-        else if (CNI_Note::cni_is_same(node))              custom_node = std::make_unique<CNI_Note>(node, get_id(), node_id);
-        else if (CNI_MarkdownNote::cni_is_same(node))      custom_node = std::make_unique<CNI_MarkdownNote>(node, get_id(), node_id);
-
+        std::unique_ptr<NodeInstance> custom_node = create_custom(node, get_id(), node_id, node_id2);
         if (custom_node && custom_node->cni_is_applicable())
         {
             Log("Node created (CNI). w:" << get_id() << ", n:" << custom_node->get_instance_id() << ":" << node->node_class);
@@ -83,12 +102,7 @@ std::unique_ptr<NodeInstanceRo> Workflow::create_node_ro(data::Node* node, iid n
 {
     if (node != nullptr)
     {
-        std::unique_ptr<NodeInstanceRo> custom_node;
-        if (CNI_Primitive::cni_is_same(node))         custom_node = std::make_unique<CNI_Primitive>(node, get_id(), node_id);
-        else if (CNI_Reroute::cni_is_same(node))           custom_node = std::make_unique<CNI_Reroute>(node, get_id(), node_id, 0);
-        else if (CNI_Note::cni_is_same(node))              custom_node = std::make_unique<CNI_Note>(node, get_id(), node_id);
-        else if (CNI_MarkdownNote::cni_is_same(node))      custom_node = std::make_unique<CNI_MarkdownNote>(node, get_id(), node_id);
-
+        std::unique_ptr<NodeInstance> custom_node = create_custom(node, get_id(), node_id, 0);
         if (custom_node && custom_node->cni_is_applicable())
         {
             Log("Node(RO) created (CNI). w:" << get_id() << ", n:" << custom_node->get_instance_id() << ":" << node->node_class);
@@ -908,7 +922,7 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
     auto left = link->get_output();
     auto right = link->get_input();
 
-    auto reroute_obj = g::pNodesManager->find_node(base::HashID::make_hash(CNI_CLASS_REROUTE));
+    auto reroute_obj = g::pNodesManager->find_node(js::REROUTE);
     LogRAssert(reroute_obj != nullptr, "Reroute node obj not found", );
 
     auto* reroute = m_action->add_node(reroute_obj, "", ImRect(pos.x, pos.y, 0, 0));

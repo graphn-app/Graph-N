@@ -12,7 +12,7 @@ namespace data
 
 std::unique_ptr<Node> CNI_Primitive::cni_create_object()
 {
-    auto node = std::make_unique<data::Node>(cni_get_node_class());
+    auto node = std::make_unique<data::Node>(js::PRIMITIVE_NODE_CLASS);
     node->name = node->display_name = "Primitive";
     node->category = "utils";
     node->description = "Primitive values like numbers, strings, and booleans.";

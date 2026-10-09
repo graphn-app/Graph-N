@@ -9,8 +9,8 @@ namespace data
 
 std::unique_ptr<Node> CNI_Reroute::cni_create_object()
 {
-    auto node = std::make_unique<data::Node>(cni_get_node_class());
-    node->name = node->display_name = cni_get_node_class();
+    auto node = std::make_unique<data::Node>(js::REROUTE_CLASS);
+    node->name = node->display_name = "Reroute";
     node->category = "utils";
     node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
     node->python_module = VANILLA;

@@ -17,14 +17,17 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node(blob::Reader& block)
     if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
         return deserialize_js_node(block);
 
-    if (CNI_Primitive::cni_is_same(m_curr_node))
+    switch (m_curr_node->get_object()->get_hash())
+    {
+    case js::PRIMITIVE_NODE:
         return deserialize_cni_node_primitive(block);
-    if (CNI_Reroute::cni_is_same(m_curr_node))
+    case js::REROUTE:
         return deserialize_cni_node_reroute(block);
-    if (CNI_Note::cni_is_same(m_curr_node))
+    case js::NOTE:
         return deserialize_cni_node_note(block);
-    if (CNI_MarkdownNote::cni_is_same(m_curr_node))
+    case js::MARKDOWN_NOTE:
         return deserialize_cni_node_markdownnote(block);
+    }
     LogRError("Unhandled cni node. n:" << m_curr_node->get_object()->node_class, nullptr);
 }
 
@@ -110,7 +113,7 @@ NodeInstance* deserialize_cni_node_note_impl(blob::Reader& root_block, Workflow*
 {
     auto note = cast::dynamic<N>(curr_node);
     LogRAssertS(note, "Node is not CNI. w:" << wf->get_id() << ", n: " << curr_node->get_instance_id() << ", t:" << typeid(curr_node).name(), curr_node);
-    LogRAssertS(note->get_object()->input.size() == 1, "Invalid " << N::cni_get_node_class()  << " node definition. w:" << wf->get_id() << ", n: " << curr_node->get_instance_id() << ", t:" << typeid(curr_node).name(), curr_node);
+    LogRAssertS(note->get_object()->input.size() == 1, "Invalid " << note->get_object()->node_class  << " node definition. w:" << wf->get_id() << ", n: " << curr_node->get_instance_id() << ", t:" << typeid(curr_node).name(), curr_node);
 
     auto block = root_block.pop_block();
 

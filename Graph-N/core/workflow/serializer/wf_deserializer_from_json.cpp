@@ -237,7 +237,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
         return nullptr;
     }
 
-    //BREAK_IF(node_class == "Note" || node_class == "MarkdownNote");
+    //BREAK_IF(node_class == js::NOTE_CLASS || node_class == js::MARKDOWN_NOTE_CLASS);
 
     NodeInstance* node_instance = nullptr;
     if (dummy)

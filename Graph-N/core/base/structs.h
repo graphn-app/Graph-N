@@ -357,12 +357,27 @@ struct KeyBinding
     bool repeatable = false;
 };
 
+} // namespace ui
+
 ///////////////////////////////////////////////////////////////////
-///////      ui::js::CustomJsData         /////////////////////////
+///////      js::CustomJsData             /////////////////////////
 ///////////////////////////////////////////////////////////////////
 
 namespace js
 {
+
+constexpr const char* REROUTE_CLASS                 = "Reroute";
+constexpr const char* REROUTE_PYSSSSS_CLASS         = "ReroutePrimitive|pysssss";
+constexpr const char* PRIMITIVE_NODE_CLASS          = "PrimitiveNode";
+constexpr const char* NOTE_CLASS                    = "Note";
+constexpr const char* MARKDOWN_NOTE_CLASS           = "MarkdownNote";
+
+constexpr hid REROUTE                               = tools::str::hash_stable(REROUTE_CLASS);
+constexpr hid REROUTE_PYSSSSS                       = tools::str::hash_stable(REROUTE_PYSSSSS_CLASS);
+constexpr hid PRIMITIVE_NODE                        = tools::str::hash_stable(PRIMITIVE_NODE_CLASS);
+constexpr hid NOTE                                  = tools::str::hash_stable(NOTE_CLASS);
+constexpr hid MARKDOWN_NOTE                         = tools::str::hash_stable(MARKDOWN_NOTE_CLASS);
+
 struct Data {};
 struct Definition
 {
@@ -370,10 +385,8 @@ struct Definition
     bool need_data = false;
 };
 
-constexpr Definition LoadImageFromUrl = { tools::str::hash_stable("LoadImageFromUrl"), true };
+constexpr Definition LoadImageFromUrl = { REROUTE, true };
 struct Js_LoadImageFromUrl final : public Data
 {};
 
-}
-
-} // namespace ui
+} // namespace js

@@ -11,13 +11,14 @@ bool WfDeserializerFromJson::check_cni_node_definition(const o_json& j, const st
     is_valid = true;
     is_cni = true;
 
-    if (CNI_Primitive::cni_get_node_class() == node_class)
+    const auto hash = tools::str::hash_stable(node_class);
+    if (hash == js::PRIMITIVE_NODE)
         return check_cni_node_definition_primitive(j, is_valid);
-    if (CNI_Reroute::cni_get_node_class() == node_class)
+    if (hash == js::REROUTE)
         return check_cni_node_definition_reroute(j, is_valid);
-    if (CNI_Note::cni_get_node_class() == node_class)
+    if (hash == js::NOTE)
         return check_cni_node_definition_note(j, is_valid);
-    if (CNI_MarkdownNote::cni_get_node_class() == node_class)
+    if (hash == js::MARKDOWN_NOTE)
         return check_cni_node_definition_markdownnote(j, is_valid);
 
     is_cni = false;
@@ -29,14 +30,17 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node(NodeInstance* node, c
     if (node->obj_flags().has(NodeObjFlags::CustomJsNode))
         return deserialize_js_node(node, j);
 
-    if (CNI_Primitive::cni_is_same(node))
+    switch (node->get_object()->get_hash())
+    {
+    case js::PRIMITIVE_NODE:
         return deserialize_cni_node_primitive(node, j);
-    if (CNI_Reroute::cni_is_same(node))
+    case js::REROUTE:
         return deserialize_cni_node_reroute(node, j);
-    if (CNI_Note::cni_is_same(node))
+    case js::NOTE:
         return deserialize_cni_node_note(node, j);
-    if (CNI_MarkdownNote::cni_is_same(node))
+    case js::MARKDOWN_NOTE:
         return deserialize_cni_node_markdownnote(node, j);
+    }
 
     LogRError("Unhandled cni node", nullptr);
 }
@@ -187,7 +191,7 @@ NodeInstance* deserialize_cni_node_note_impl(Workflow* wf, NodeInstance* node, c
 {
     auto note = cast::dynamic<N>(node);
     LogRAssertS(note, "Node is not CNI. w:" << wf->get_id() << ", n: " << node->get_instance_id() << ", t:" << typeid(node).name(), node);
-    LogRAssertS(note->get_inputs().size() == 1, "Invalid " << N::cni_get_node_class() << " node definition. w:" << wf->get_id() << ", n: " << node->get_instance_id() << ", t:" << typeid(node).name(), node);
+    LogRAssertS(note->get_inputs().size() == 1, "Invalid " << note->get_object()->node_class << " node definition. w:" << wf->get_id() << ", n: " << node->get_instance_id() << ", t:" << typeid(node).name(), node);
 
     const auto pin_hash = Pin::make_hash(node->get_object(), "", -1);
     auto pin = node->get_object()->find_pin(pin_hash, true); // do not use pNodesManager

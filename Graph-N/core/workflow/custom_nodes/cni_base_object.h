@@ -48,20 +48,6 @@ public:
     {
         return T::cni_create_object();
     }
-    static bool cni_is_same(const NodeInstance* node) noexcept
-    {
-        return strcmp(T::cni_get_node_class(), node->cni_get_node_class()) == 0;
-    }
-    static bool cni_is_same(const Node* node) noexcept
-    {
-        return T::cni_get_node_class() == node->node_class;
-    }
-
-protected:
-    const char* cni_get_node_class() const noexcept override
-    {
-        return T::cni_get_node_class();
-    }
 };
 
 } // namespace data

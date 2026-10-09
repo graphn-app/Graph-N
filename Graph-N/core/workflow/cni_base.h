@@ -18,9 +18,6 @@ public:
 
     virtual void cni_init() {}
 
-    // cni node custom class
-    virtual const char* cni_get_node_class() const noexcept { return ""; };
-
     // remove internal pins
     virtual void cni_cleanup_base_object() {}
 

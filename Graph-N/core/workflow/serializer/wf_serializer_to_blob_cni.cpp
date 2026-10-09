@@ -15,14 +15,18 @@ void WfSerializerToBlob::serialize_cni_node()
     if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
         return serialize_js_node();
 
-    if (CNI_Primitive::cni_is_same(m_curr_node))
+    switch (m_curr_node->get_object()->get_hash())
+    {
+    case js::PRIMITIVE_NODE:
         return serialize_cni_node_primitive();
-    if (CNI_Reroute::cni_is_same(m_curr_node))
+    case js::REROUTE:
         return serialize_cni_node_reroute();
-    if (CNI_Note::cni_is_same(m_curr_node))
+    case js::NOTE:
         return serialize_cni_node_note();
-    if (CNI_MarkdownNote::cni_is_same(m_curr_node))
+    case js::MARKDOWN_NOTE:
         return serialize_cni_node_markdownnote();
+    }
+
     LogError("Unhandled cni node");
 }
 

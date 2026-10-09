@@ -87,7 +87,8 @@ template class CNI_NoteBase<CNI_MarkdownNote>;
 
 std::unique_ptr<Node> CNI_Note::cni_create_object()
 {
-    auto node = std::make_unique<data::Node>(cni_get_node_class());
+    auto node = std::make_unique<data::Node>(js::NOTE_CLASS);
+    node->name = node->display_name = "Note";
     node->category = "utils";
     node->description = "Node to add annotations to a workflow.";
     node->python_module = VANILLA;
@@ -100,10 +101,8 @@ std::unique_ptr<Node> CNI_Note::cni_create_object()
 
 std::unique_ptr<Node> CNI_MarkdownNote::cni_create_object()
 {
-    constexpr const char* markdown_note_name = "Markdown Note";
-
-    auto node = std::make_unique<data::Node>(cni_get_node_class());
-    node->name = node->display_name = markdown_note_name;
+    auto node = std::make_unique<data::Node>(js::MARKDOWN_NOTE_CLASS);
+    node->name = node->display_name = "Markdown Note";
     node->category = "utils";
     node->description = "Node to add annotations to a workflow. It supports text formatting using Markdown syntax.";
     node->python_module = VANILLA;

@@ -9,7 +9,7 @@ void WfSerializerToJson::serialize_js_node(o_json& /*j*/)
 {
     switch (m_curr_node->get_object()->get_hash())
     {
-    case ui::js::LoadImageFromUrl.hash:
+    case js::LoadImageFromUrl.hash:
         break;
     }
 }

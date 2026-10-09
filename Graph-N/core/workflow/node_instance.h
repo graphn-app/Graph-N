@@ -59,7 +59,7 @@ public:
     float m_last_custom_widgets_h = 0.0f;
     float m_last_all_widgets_h = 0.0f;
 
-    std::unique_ptr<ui::js::Data> m_js_data;
+    std::unique_ptr<js::Data> m_js_data;
 };
 
 } // namespace data

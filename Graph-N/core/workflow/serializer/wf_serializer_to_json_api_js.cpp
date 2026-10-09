@@ -9,7 +9,7 @@ o_json WfSerializerToJsonApi::serialize_custom_node(data::NodeInstance* node, in
 {
     switch (node->get_object()->get_hash())
     {
-    case ui::js::LoadImageFromUrl.hash:
+    case js::LoadImageFromUrl.hash:
         break;
     }
     return {};

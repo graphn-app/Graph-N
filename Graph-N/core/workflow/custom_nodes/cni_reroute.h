@@ -63,7 +63,6 @@ public:
     ~CNI_Reroute() noexcept;
 
     static std::unique_ptr<Node> cni_create_object();
-    static const char* cni_get_node_class() noexcept { return CNI_CLASS_REROUTE; }
 
     void cni_init() override;
     void add_pair(const RoutedPinPair& pair = {});

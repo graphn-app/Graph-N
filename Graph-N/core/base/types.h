@@ -67,12 +67,6 @@ constexpr const char* DND_FROM_NODES_LIBRARY    = "F86C637FBBC3";
 constexpr const char* DND_FROM_SYSTEM           = "770C64EA9B66";
 constexpr const char* DND_REORDER_QUEUE         = "79C13B4685DA";
 
-constexpr const char* CNI_CLASS_REROUTE         = "Reroute";
-constexpr const char* CNI_CLASS_PRIMITIVE       = "PrimitiveNode";
-constexpr const char* CNI_CLASS_NOTE            = "Note";
-constexpr const char* CNI_CLASS_MARKDOWN_NOTE   = "MarkdownNote";
-constexpr const char* CNI_CLASS_LOAD_IMAGE      = "LoadImage";
-
 constexpr const char* CAG_PIN_NAME              = "E742ADEF-156C-45DF-90EC-AA36CA21A9B2";
 constexpr const char* REROUTE_SPLITTED_PIN      = "32DB533B-64D6-4F95-A90A-A50B17B59CDB";
 
