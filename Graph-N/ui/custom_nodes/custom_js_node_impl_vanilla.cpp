@@ -3,9 +3,9 @@
 namespace ui
 {
 
-void CustomJsNode::draw_LoadImageFromUrl(data::NodeInstance* /*node*/, js::Js_LoadImageFromUrl* /*data*/)
-{
-
-}
+//void CustomJsNode::draw_LoadImageFromUrl(data::NodeInstance* /*node*/, js::Js_LoadImageFromUrl* /*data*/)
+//{
+//
+//}
 
 } // namespace ui

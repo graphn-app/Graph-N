@@ -14,9 +14,6 @@ bool WfDeserializerFromBlob::check_cni_node_definition(blob::Reader& /*block*/, 
 
 NodeInstance* WfDeserializerFromBlob::deserialize_cni_node(blob::Reader& block)
 {
-    if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
-        return deserialize_js_node(block);
-
     switch (m_curr_node->get_object()->get_hash())
     {
     case js::PRIMITIVE_NODE:
@@ -27,7 +24,19 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node(blob::Reader& block)
         return deserialize_cni_node_note(block);
     case js::MARKDOWN_NOTE:
         return deserialize_cni_node_markdownnote(block);
+    case js::FAST_BYPASSER_RGTHREE:
+    case js::FAST_MUTER_RGTHREE:
+        return deserialize_cni_node_fast_switcher(block);
+    case js::FAST_GROUPS_BYPASSER_RGTHREE:
+    case js::FAST_GROUPS_MUTER_RGTHREE:
+        return deserialize_cni_node_fast_group_switcher(block);
+    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+        return deserialize_cni_node_fast_action(block);
     }
+
+    if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
+        return deserialize_js_node(block);
+
     LogRError("Unhandled cni node. n:" << m_curr_node->get_object()->node_class, nullptr);
 }
 
@@ -139,6 +148,79 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_note(blob::Reader& ro
 NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_markdownnote(blob::Reader& root_block)
 {
     return deserialize_cni_node_note_impl<CNI_MarkdownNote>(root_block, m_wf, m_curr_node);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    CNI_FastModeSwitcherRgthree                     /////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_switcher(blob::Reader& root_block)
+{
+    LogRAssert(m_curr_node->obj_flags().has_any(NodeObjFlags::SpecFastBypasserRgthree, NodeObjFlags::SpecFastMuterRgthree), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
+
+    auto block = root_block.pop_block();
+
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedFastActionRgthree>();
+    auto fast_data = cast::strict<CNI_DeserializedFastActionRgthree>(data.get());
+
+    fast_data->out_id = block.pop_iid();
+
+    const auto size = block.pop_u64();
+    for (auto i = 0; i < size; i++)
+    {
+        fast_data->in_ids.push_back(std::make_tuple(block.pop_iid(), 0, 0));
+    }
+
+    m_curr_node->cni_save_deserialized_info(std::move(data));
+    m_curr_node->cni_init();
+
+    return m_curr_node;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    CNI_FastModeGroupSwitcherRgthree                     /////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_group_switcher(blob::Reader& root_block)
+{
+    LogRAssert(m_curr_node->obj_flags().has_any(NodeObjFlags::SpecFastGBypasserRgthree, NodeObjFlags::SpecFastGMuterRgthree), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
+
+    auto block = root_block.pop_block();
+
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedFastActionRgthree>();
+    auto fast_data = cast::strict<CNI_DeserializedFastActionRgthree>(data.get());
+    fast_data->out_id = block.pop_iid();
+    m_curr_node->cni_save_deserialized_info(std::move(data));
+    m_curr_node->cni_init();
+
+    return m_curr_node;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    CNI_FastActionRgthree                           /////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_action(blob::Reader& root_block)
+{
+    LogRAssert(m_curr_node->obj_flags().has(NodeObjFlags::SpecFastActRgthree), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
+
+    auto block = root_block.pop_block();
+
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedFastActionRgthree>();
+    auto fast_data = cast::strict<CNI_DeserializedFastActionRgthree>(data.get());
+
+    const auto size = block.pop_u64();
+    for (auto i = 0; i < size; i++)
+    {
+        const auto id = block.pop_iid();
+        const auto mode = block.pop_u8();
+        fast_data->in_ids.push_back(std::make_tuple(id, 0, mode));
+    }
+
+    m_curr_node->cni_save_deserialized_info(std::move(data));
+    m_curr_node->cni_init();
+
+    return m_curr_node;
 }
 
 } // namespace data

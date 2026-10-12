@@ -397,8 +397,8 @@ struct Definition
     bool need_data = false;
 };
 
-constexpr Definition LoadImageFromUrl = { REROUTE, true };
-struct Js_LoadImageFromUrl final : public Data
-{};
+constexpr Definition FastActionsButtonRgthree = { FAST_ACTIONS_BUTTON_RGTHREE, false };
+//struct Js_LoadImageFromUrl final : public Data
+//{};
 
 } // namespace js

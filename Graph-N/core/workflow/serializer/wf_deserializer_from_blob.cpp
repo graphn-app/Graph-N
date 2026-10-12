@@ -66,7 +66,7 @@ bool WfDeserializerFromBlob::deserialize(blob::Blob& drawer_state)
         for (auto node : nodes)
         {
             node->flags().remove(NodeInstFlags::Deserialization);
-            node->on_deserialilzation_ends();
+            node->on_deserialization_ends();
         }
 
 #ifdef _DEBUG
@@ -126,7 +126,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& block)
     if (node != nullptr)
     {
         node->flags().remove(NodeInstFlags::Deserialization);
-        node->on_deserialilzation_ends();
+        node->on_deserialization_ends();
     }
     return node;
 }

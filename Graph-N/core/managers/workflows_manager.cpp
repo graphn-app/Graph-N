@@ -731,7 +731,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
         if (new_nodes.contains(node))
         {
             node->flags().remove(NodeInstFlags::Deserialization);
-            node->on_deserialilzation_ends();
+            node->on_deserialization_ends();
         }
     }
 

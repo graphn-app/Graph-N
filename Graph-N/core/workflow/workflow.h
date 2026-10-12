@@ -75,6 +75,8 @@ public:
     void split_reroute_to_parts(data::NodeInstance* node);
     void merge_reroute_parts(data::NodeInstance* node, bool to_left);
 
+    void handle_rgthree_switchers(const data::PinInstance* pin);
+
     void bypass_node(data::NodeInstance* node);
 
     void prepare_for_api();

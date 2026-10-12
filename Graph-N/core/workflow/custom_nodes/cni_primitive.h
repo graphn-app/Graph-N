@@ -33,7 +33,7 @@ public:
 
     std::list<std::pair<PinType, std::string>> get_supported_pin_types(PinInstance* pin) const override;
 
-    void on_deserialilzation_ends() override;
+    void on_deserialization_ends() override;
 
 #ifdef _DEBUG
     const std::vector<PinInstance*>& get_linked_outs() const noexcept { return m_links; }

@@ -328,7 +328,7 @@ void CNI_Reroute::refresh_names()
     reset_width();
 }
 
-void CNI_Reroute::on_deserialilzation_ends()
+void CNI_Reroute::on_deserialization_ends()
 {
     LogRAssert(flags().has_not(NodeInstFlags::RerouteSplitted_R), "Invalid logic. Splitted R part shouldn't be here", );
     cleanup_pairs(true); // cleanup unused pairs

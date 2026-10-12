@@ -53,6 +53,7 @@ data::NodeInstance* WorkflowAction::add_group(std::optional<ImRect> size)
 {
     const auto group_inst = m_wf->add_group(size.value_or(ImRect(100, 100, -1, -1)), "New group");
     g::pHistoryManager->push_node_action(group_inst, mngr::HistoryActionType::NodeAdd);
+    m_wf->handle_rgthree_switchers(nullptr);
     return group_inst;
 }
 
@@ -126,11 +127,13 @@ void WorkflowAction::delete_node(data::NodeInstance* node)
     g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeDel);
     m_wf->remove_node(node);
     multi_action_off();
+
+    m_wf->handle_rgthree_switchers(nullptr);
 }
 
 void WorkflowAction::delete_group(data::NodeInstance* group)
 {
-    return delete_node(group);
+    delete_node(group);
 }
 
 void WorkflowAction::hard_reset() noexcept
@@ -279,6 +282,8 @@ void WorkflowAction::set_node_name(data::NodeInstance* node, const std::string& 
     }
 
     g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeRen, mngr::HActionT(std::move(old_name)));
+
+    m_wf->handle_rgthree_switchers(nullptr);
 }
 
 void WorkflowAction::reset_node_name(data::NodeInstance* node)
@@ -354,6 +359,8 @@ void WorkflowAction::set_node_mode(data::NodeInstance* node, NodeInstFlags mode)
     const uint64_t old_mode = node->flags().get_by_mask(g_node_inst_all_modes_mask);
     node->set_mode(mode);
     g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeMode, mngr::HActionT(old_mode));
+
+    m_wf->handle_rgthree_switchers(nullptr);
 }
 
 void WorkflowAction::begin_nodes_move(const std::set<data::NodeInstance*>& nodes)
@@ -393,7 +400,7 @@ void WorkflowAction::set_pin_name(data::PinInstance* pin, const std::string& nam
     pin->set_name(tools::str::trim_their(name));
     if (old_name == pin->state().name)
         return;
-    
+
     auto node = m_wf->get_node_by_instance(pin->get_parent_node());
     node->reset_width();
     node->flags().add(NodeInstFlags::IgnoreSizeOnFrameEnd);
@@ -413,6 +420,12 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, Primitive&& old_val)
     if (old_val == pin->state().value) [[unlikely]]
         return;
 
+    const auto* parent_node = m_wf->get_node_by_instance(pin->get_parent_node());
+    if (parent_node->obj_flags().has(NodeObjFlags::SpecSwitherRgthree))
+        m_wf->handle_rgthree_switchers(pin);
+    if (parent_node->obj_flags().has(NodeObjFlags::NoHistoryOnPinValChange))
+        return;
+
     multi_action_on("Set value");
     g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinVal, mngr::HActionT(std::move(old_val)));
     mirror_pin_value(pin);
@@ -424,6 +437,10 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, int64_t old_idx)
     LogRAssert(pin, "Zero ptr", );
     const Primitive old_val = old_idx;
     if (old_val == pin->state().value) [[unlikely]]
+        return;
+
+    const auto* parent_node = m_wf->get_node_by_instance(pin->get_parent_node());
+    if (parent_node->obj_flags().has(NodeObjFlags::NoHistoryOnPinValChange))
         return;
 
     multi_action_on("Set value");
@@ -439,6 +456,11 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, const float* new_colors
     const Primitive new_colors_v = data::Pin::colors_to_int(ImVec4(new_colors));
     if (old_colors == new_colors_v) [[unlikely]]
         return;
+
+    const auto* parent_node = m_wf->get_node_by_instance(pin->get_parent_node());
+    if (parent_node->obj_flags().has(NodeObjFlags::NoHistoryOnPinValChange))
+        return;
+
     pin->state().value = new_colors_v;
 
     multi_action_on("Set value");

@@ -43,6 +43,8 @@ public:
     void locate_node(data::NodeInstance* node) noexcept { m_locate = node; }
     void locate_selected_node() noexcept { m_locate_selected = true; }
 
+    std::set<data::NodeInstance*> get_nodes_in_group(data::NodeInstance* group);
+
     void set_wf_view(std::optional<ImRect> wf_rc, std::optional<float> wf_zoom);
 
     void display_new_node_menu() noexcept { m_display_new_node_menu = true; }

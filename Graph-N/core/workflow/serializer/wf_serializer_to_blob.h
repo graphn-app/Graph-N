@@ -33,6 +33,9 @@ private:
     void serialize_cni_node_reroute();
     void serialize_cni_node_note();
     void serialize_cni_node_markdownnote();
+    void serialize_cni_node_fast_switcher_rgthree();
+    void serialize_cni_node_fast_group_switcher_rgthree();
+    void serialize_cni_node_fast_action_rgthree();
 
 private:
     const Workflow* m_wf = nullptr;

@@ -196,6 +196,14 @@ void PanelWorkflow::group_nodes(const std::set<data::NodeInstance*>& nodes)
     auto group = m_action->add_group(std::nullopt);
     m_action->set_node_rect(group, m_drawer.get_group_rect(nodes));
     m_action->multi_action_off();
+    m_wf->handle_rgthree_switchers(nullptr);
+}
+
+std::set<data::NodeInstance*> PanelWorkflow::get_nodes_in_group(data::NodeInstance* group)
+{
+    LogRAssert(group, "Zero ptr", {});
+    LogRAssert(group->flags().has(NodeInstFlags::Group), "Not a group", {});
+    return m_drawer.get_nodes_in_group(group, m_wf->get_nodes_all());
 }
 
 void PanelWorkflow::delete_nodes(std::set<data::NodeInstance*>&& nodes, bool process_pending_deletion)

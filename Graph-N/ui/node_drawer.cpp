@@ -625,7 +625,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, get_zoomed_fade_alpha());
 
             const auto y = ImGui::GetCursorPosY();
-            g::pFlow->custom_js_nodes().draw(m_active_node);
+            g::pFlow->custom_js_nodes().draw(m_active_node, m_curr_node_left_offset + w::pin_l_offset_rw + w::pin_r_offset + w::ico_circle, m_active_node->w_widget_name + m_active_node->w_widget_value);
             if (m_active_node->obj_flags().has_not(NodeObjFlags::CustomMediaWidget))
                 m_active_node->m_last_custom_widgets_h = ImGui::GetCursorPosY() - y;
 

@@ -29,6 +29,9 @@ private:
     void serialize_cni_node(o_json& j);
     void serialize_cni_node_primitive(o_json& j);
     void serialize_cni_node_reroute(o_json& j);
+    void serialize_cni_node_fast_switcher_rgthree(o_json& j);
+    void serialize_cni_node_fast_group_switcher_rgthree(o_json& j);
+    void serialize_cni_node_fast_action_rgthree(o_json& j);
 
 private:
     const Workflow* m_wf = nullptr;

@@ -75,7 +75,7 @@ public:
     void cni_cleanup_base_object() override;
     bool cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
     void cni_mirror_value_to(const PinInstance* src, std::vector<PinInstance*>& append_pins) const override;
-    void on_deserialilzation_ends() override;
+    void on_deserialization_ends() override;
 
 public:
     void split_to_parts();

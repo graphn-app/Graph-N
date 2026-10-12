@@ -40,7 +40,7 @@ public:
     void remove_pin(const PinInstance* pin) noexcept;
     void reset_pins() noexcept;
 
-    virtual void on_deserialilzation_ends() {}
+    virtual void on_deserialization_ends() {}
 
 protected:
     virtual float get_additional_name_width() const noexcept { return 0.0f; }

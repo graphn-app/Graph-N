@@ -316,6 +316,8 @@ enum class NodeObjFlags : uint64_t
     SpecBookmark                = 1ULL << 29,   // 536870912            -  0x20000000         // Bookmark
     CustomJsNode                = 1ULL << 30,   // 1073741824           -  0x40000000         // node has custom JS logic and need to be re-implemented
     SpecSwitherRgthree          = 1ULL << 31,   // 2147483648           -  0x80000000
+    NoHistoryOnPinValChange     = 1ULL << 32,   // 4294967296           -  0x100000000
+    NoPinCagMenu                = 1ULL << 33,   // 8589934592           -  0x200000000
 };
 
 inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_all_custom_widget_mask

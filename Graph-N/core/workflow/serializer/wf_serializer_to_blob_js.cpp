@@ -7,11 +7,11 @@ namespace data
 
 void WfSerializerToBlob::serialize_js_node()
 {
-    switch (m_curr_node->get_object()->get_hash())
-    {
-    case js::LoadImageFromUrl.hash:
-        break;
-    }
+    //switch (m_curr_node->get_object()->get_hash())
+    //{
+    //case js::LoadImageFromUrl.hash:
+    //    break;
+    //}
 }
 
 } // namespace data

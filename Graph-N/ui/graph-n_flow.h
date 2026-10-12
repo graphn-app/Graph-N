@@ -163,6 +163,7 @@ public:
     void wf_rename(wid id, const std::string& new_name);
     void wf_add_node_to_active_panel(data::Node* node, const std::string& select = "");
     void wf_locate_node(wid id, data::NodeInstance* node);
+    std::set<data::NodeInstance*> wf_get_nodes_in_group(wid wf_id, data::NodeInstance* group);
     void wf_reload();
     void wf_rename() noexcept;
     wid wf_get_active(std::set<wid>* all_opened = nullptr) const noexcept;

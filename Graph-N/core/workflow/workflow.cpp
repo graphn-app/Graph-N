@@ -75,7 +75,23 @@ std::unique_ptr<data::NodeInstance> create_custom(data::Node* node, wid wf_id, i
     case js::MARKDOWN_NOTE:
         custom_node = std::make_unique<CNI_MarkdownNote>(node, wf_id, node_id);
         break;
+    case js::FAST_BYPASSER_RGTHREE:
+        custom_node = std::make_unique<CNI_FastBypasserRgthree>(node, wf_id, node_id);
+        break;
+    case js::FAST_MUTER_RGTHREE:
+        custom_node = std::make_unique<CNI_FastMuterRgthree>(node, wf_id, node_id);
+        break;
+    case js::FAST_GROUPS_BYPASSER_RGTHREE:
+        custom_node = std::make_unique<CNI_FastGroupBypasserRgthree>(node, wf_id, node_id);
+        break;
+    case js::FAST_GROUPS_MUTER_RGTHREE:
+        custom_node = std::make_unique<CNI_FastGroupMuterRgthree>(node, wf_id, node_id);
+        break;
+    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+        custom_node = std::make_unique<CNI_FastActionRgthree>(node, wf_id, node_id);
+        break;
     }
+
     return custom_node;
 }
 }
@@ -786,6 +802,44 @@ void Workflow::merge_reroute_parts(data::NodeInstance* node, bool to_left)
     m_action->merge_reroute(filter_reroute(node), to_left);
 }
 
+void Workflow::handle_rgthree_switchers(const data::PinInstance* pin)
+{
+    static bool now_refreshing = false;
+    if (now_refreshing)
+        return;
+    now_refreshing = true;
+
+    if (pin != nullptr)
+    {
+        auto parent_node = get_node_by_instance(pin->get_parent_node());
+        if (parent_node->obj_flags().has_not(NodeObjFlags::SpecSwitherRgthree))
+            LogError("Pin is not from Rgthree node");
+        else
+        {
+            auto rgthree = cast::strict<CNI_FastSwitcherBaseRgthree>(parent_node);
+            const auto to_switch = rgthree->switch_state(pin);
+            for (auto [id, mode] : to_switch)
+            {
+                auto node = get_node_by_instance(id);
+                LogCAssert(node, "Node not found");
+                m_action->set_node_mode(node, mode);
+            }
+        }
+    }
+
+    auto& all_nodes = get_nodes_all();
+    for (auto& node : all_nodes)
+    {
+        if (node->has_object() && node->obj_flags().has(NodeObjFlags::SpecSwitherRgthree))
+        {
+            auto rgthree = cast::strict<CNI_FastSwitcherBaseRgthree>(node.get());
+            rgthree->refresh_switchers();
+        }
+    }
+
+    now_refreshing = false;
+}
+
 void Workflow::bypass_node(data::NodeInstance* node)
 {
     LogRAssert(node, "Zero ptr", );
@@ -881,7 +935,7 @@ void Workflow::prepare_for_api()
     const auto nodes = get_nodes_no_reroutes_r();
     for (auto node : nodes)
     {
-        bool remove = (node->flags().has(NodeInstFlags::Group) || node->get_mode_mute());
+        bool remove = (node->flags().has(NodeInstFlags::Group) || node->obj_flags().has(NodeObjFlags::SpecSwitherRgthree) || node->get_mode_mute());
         if (!remove && node->obj_flags().has(NodeObjFlags::SpecReroute))
         {
             if (node->flags().has(NodeInstFlags::RerouteSplitted))

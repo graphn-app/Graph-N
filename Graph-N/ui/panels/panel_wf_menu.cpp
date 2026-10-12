@@ -5,6 +5,7 @@
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
 #include "core/workflow/workflow_action.h"
+#include "core/workflow/custom_nodes/cni_fast_action_rgthree.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/history_manager.h"
@@ -72,7 +73,8 @@ bool PanelWorkflow::context_menu_handler()
             PinType::NUMBER == pin->state().type ||
             PinType::COMBO == pin->state().type ||
             PinType::STRING == pin->state().type ||
-            PinType::COLOR == pin->state().type))
+            PinType::COLOR == pin->state().type ||
+            PinType::BOOLEAN == pin->state().type))
         {
             const auto parent = m_wf->get_node_by_instance(pin->get_parent_node());
             
@@ -1417,16 +1419,48 @@ bool PanelWorkflow::show_widget_menu()
         return close;
     };
 
+    const auto node = *m_menu_objs.nodes.begin();
+
+    const auto draw_locate_menu = [this, pin, node, &caption = m_menu_objs.caption]()
+    {
+        ImGui::MenuItem(caption.c_str(), nullptr, nullptr, false);
+        ImGui::Separator();
+        if (ImGui::MenuItem("Locate"))
+        {
+            const auto* rgthree = cast::strict<data::CNI_FastSwitcherBaseRgthree>(node);
+            const auto node_id = rgthree->node_from_widget(pin);
+            if (node_id != 0)
+                locate_node(m_wf->get_node_by_instance(node_id));
+            return true;
+        }
+        return false;
+    };
+
     switch (pin->state().type)
     {
     case PinType::INT:
     case PinType::FLOAT:
     case PinType::NUMBER:
     case PinType::COMBO:
-        if (pin->obj_flags().has(PinObjFlags::DisplAsColor))
-            close = draw_color_menu();
-        else
-            close = draw_cag_menu();
+        if (node->obj_flags().has_not(NodeObjFlags::NoPinCagMenu))
+        {
+            if (pin->obj_flags().has(PinObjFlags::DisplAsColor))
+                close = draw_color_menu();
+            else
+                close = draw_cag_menu();
+        }
+        if (node->obj_flags().has(NodeObjFlags::SpecSwitherRgthree))
+        {
+            if (draw_locate_menu())
+                close = true;
+        }
+        break;
+    case PinType::BOOLEAN:
+        if (node->obj_flags().has(NodeObjFlags::SpecSwitherRgthree))
+        {
+            if (draw_locate_menu())
+                close = true;
+        }
         break;
     case PinType::STRING:
         if (pin->obj_flags().has_not(PinObjFlags::DenyMultilineSwitch))
@@ -1483,6 +1517,55 @@ bool PanelWorkflow::show_pin_menu()
     {
         m_action->reset_pin_name(pin);
         close = true;
+    }
+    if (linked)
+    {
+        ImGui::Separator();
+        if (1 == pin->state().links)
+        {
+            if (ImGui::MenuItem("Locate linked node"))
+            {
+                auto& links = m_wf->get_links_all();
+                for (auto& link : links)
+                {
+                    const data::PinInstance* target = nullptr;
+                    if (link->get_input() == pin) target = link->get_output();
+                    else if (link->get_output() == pin) target = link->get_input();
+                    if (target != nullptr)
+                    {
+                        locate_node(m_wf->get_node_by_instance(target->get_parent_node()));
+                        break;
+                    }
+                }
+                close = true;
+            }
+        }
+        else
+        {
+            if (ImGui::BeginMenu("Locate linked node"))
+            {
+                auto& links = m_wf->get_links_all();
+                std::set<iid> targets;
+                for (auto& link : links)
+                {
+                    if (link->get_output() == pin)
+                    {
+                        targets.insert(link->get_input()->get_parent_node());
+                    }
+                }
+                for (auto id : targets)
+                {
+                    auto node = m_wf->get_node_by_instance(id);
+                    if (ImGui::MenuItem(node->get_name().c_str()))
+                    {
+                        locate_node(node);
+                        break;
+                    }
+                }
+
+                ImGui::EndMenu();
+            }
+        }
     }
 
     return close;

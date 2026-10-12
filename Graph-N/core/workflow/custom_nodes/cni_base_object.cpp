@@ -88,7 +88,7 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->description = "A panel to quickly toggle directly connected nodes to Bypass mode";
         node->python_module = "frontend-only";
         node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
-        node->flags.add(NodeObjFlags::SpecFastBypasserRgthree, NodeObjFlags::SpecSwitherRgthree);
+        node->flags.add(NodeObjFlags::SpecFastBypasserRgthree, NodeObjFlags::SpecSwitherRgthree, NodeObjFlags::NoHistoryOnPinValChange, NodeObjFlags::NoPinCagMenu);
         break;
 
     case js::FAST_MUTER_RGTHREE:
@@ -98,7 +98,7 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->description = "A panel to quickly toggle directly connected nodes to Mute mode";
         node->python_module = "frontend-only";
         node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
-        node->flags.add(NodeObjFlags::SpecFastMuterRgthree, NodeObjFlags::SpecSwitherRgthree);
+        node->flags.add(NodeObjFlags::SpecFastMuterRgthree, NodeObjFlags::SpecSwitherRgthree, NodeObjFlags::NoHistoryOnPinValChange, NodeObjFlags::NoPinCagMenu);
         break;
 
     case js::FAST_GROUPS_BYPASSER_RGTHREE:
@@ -108,7 +108,7 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->description = "Automatically collects a list of groups on the canvas and allows bypassing all nodes within selected groups";
         node->python_module = "frontend-only";
         node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
-        node->flags.add(NodeObjFlags::SpecFastGBypasserRgthree, NodeObjFlags::SpecSwitherRgthree);
+        node->flags.add(NodeObjFlags::SpecFastGBypasserRgthree, NodeObjFlags::SpecSwitherRgthree, NodeObjFlags::NoHistoryOnPinValChange, NodeObjFlags::NoPinCagMenu);
         break;
 
     case js::FAST_GROUPS_MUTER_RGTHREE:
@@ -118,7 +118,7 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->description = "Automatically collects a list of groups on the canvas and allows muting all nodes within selected groups";
         node->python_module = "frontend-only";
         node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
-        node->flags.add(NodeObjFlags::SpecFastGMuterRgthree, NodeObjFlags::SpecSwitherRgthree);
+        node->flags.add(NodeObjFlags::SpecFastGMuterRgthree, NodeObjFlags::SpecSwitherRgthree, NodeObjFlags::NoHistoryOnPinValChange, NodeObjFlags::NoPinCagMenu);
         break;
 
     case js::FAST_ACTIONS_BUTTON_RGTHREE:
@@ -128,7 +128,7 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->description = "Executes assigned actions (Mute, Bypass, Enable) on connected nodes with a single click of an interface button";
         node->python_module = "frontend-only";
         node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
-        node->flags.add(NodeObjFlags::SpecFastActRgthree, NodeObjFlags::SpecSwitherRgthree);
+        node->flags.add(NodeObjFlags::SpecFastActRgthree, NodeObjFlags::SpecSwitherRgthree, NodeObjFlags::CustomJsNode, NodeObjFlags::NoPinCagMenu);
         break;
 
     default:

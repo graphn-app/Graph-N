@@ -12,9 +12,6 @@ void WfSerializerToBlob::serialize_cni_node_definition()
 
 void WfSerializerToBlob::serialize_cni_node()
 {
-    if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
-        return serialize_js_node();
-
     switch (m_curr_node->get_object()->get_hash())
     {
     case js::PRIMITIVE_NODE:
@@ -25,7 +22,18 @@ void WfSerializerToBlob::serialize_cni_node()
         return serialize_cni_node_note();
     case js::MARKDOWN_NOTE:
         return serialize_cni_node_markdownnote();
+    case js::FAST_BYPASSER_RGTHREE:
+    case js::FAST_MUTER_RGTHREE:
+        return serialize_cni_node_fast_switcher_rgthree();
+    case js::FAST_GROUPS_BYPASSER_RGTHREE:
+    case js::FAST_GROUPS_MUTER_RGTHREE:
+        return serialize_cni_node_fast_group_switcher_rgthree();
+    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+        return serialize_cni_node_fast_action_rgthree();
     }
+
+    if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
+        return serialize_js_node();
 
     LogError("Unhandled cni node");
 }
@@ -131,6 +139,61 @@ void WfSerializerToBlob::serialize_cni_node_note()
 void WfSerializerToBlob::serialize_cni_node_markdownnote()
 {
     return serialize_cni_node_note();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    FastModeSwitcherRgthree                        //////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToBlob::serialize_cni_node_fast_switcher_rgthree()
+{
+    blob::Block block(m_writer);
+
+    auto sw_node = cast::strict<CNI_FastModeSwitcherRgthree>(m_curr_node);
+    auto data = sw_node->dump();
+
+    m_writer.push(data.out_id);
+    m_writer.push(cast::to_u64(data.in_ids.size()));
+    for (auto [id, hash, mode] : data.in_ids)
+    {
+        (void)hash;
+        (void)mode;
+        m_writer.push(id);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    FastModeGroupSwitcherRgthree                   //////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToBlob::serialize_cni_node_fast_group_switcher_rgthree()
+{
+    blob::Block block(m_writer);
+
+    auto sw_node = cast::strict<CNI_FastModeSwitcherRgthree>(m_curr_node);
+    auto data = sw_node->dump();
+
+    m_writer.push(data.out_id);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    FashActionRgthree                              //////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToBlob::serialize_cni_node_fast_action_rgthree()
+{
+    blob::Block block(m_writer);
+
+    auto sw_node = cast::strict<CNI_FastModeSwitcherRgthree>(m_curr_node);
+    auto data = sw_node->dump();
+
+    m_writer.push(cast::to_u64(data.in_ids.size()));
+    for (auto [id, hash, mode] : data.in_ids)
+    {
+        (void)hash;
+        m_writer.push(id);
+        m_writer.push(mode);
+    }
 }
 
 } // namespace data

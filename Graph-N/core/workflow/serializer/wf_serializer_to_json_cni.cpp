@@ -8,16 +8,24 @@ namespace data
 
 void WfSerializerToJson::serialize_cni_node(o_json& j)
 {
-    if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
-        return serialize_js_node(j);
-
     switch (m_curr_node->get_object()->get_hash())
     {
     case js::PRIMITIVE_NODE:
         return serialize_cni_node_primitive(j);
     case js::REROUTE:
         return serialize_cni_node_reroute(j);
+    case js::FAST_BYPASSER_RGTHREE:
+    case js::FAST_MUTER_RGTHREE:
+        return serialize_cni_node_fast_switcher_rgthree(j);
+    case js::FAST_GROUPS_BYPASSER_RGTHREE:
+    case js::FAST_GROUPS_MUTER_RGTHREE:
+        return serialize_cni_node_fast_group_switcher_rgthree(j);
+    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+        return serialize_cni_node_fast_action_rgthree(j);
     }
+
+    if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
+        return serialize_js_node(j);
 
     LogError("Unhandled cni node");
 }
@@ -148,6 +156,178 @@ void WfSerializerToJson::serialize_cni_node_reroute(o_json& j)
 
     j["inputs"] = std::move(jins);
     j["outputs"] = std::move(jouts);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    FashModeSwitcherRgthree                       ///////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToJson::serialize_cni_node_fast_switcher_rgthree(o_json& j)
+{
+    const auto& inputs = m_curr_node->get_inputs();
+    const auto& outputs = m_curr_node->get_outputs();
+    LogRAssert(inputs.size() >= 1 && outputs.size() == 1, "Invalid node definition, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id() << ", sz:" << outputs.size(), );
+
+    j["properties"]["toggleRestriction"] = "default";
+
+    auto jins = o_json::array();
+    {
+        for (auto in : inputs)
+        {
+            if (0 == in->state().links)
+                continue;
+
+            o_json jin;
+            jin["dir"] = 3;
+            jin["name"] = in->state().name;
+            jin["type"] = "*";
+
+            for (auto& link : m_wf->get_links_all())
+            {
+                if (link->get_input()->get_instance_id() == in->get_instance_id())
+                {
+                    jin["link"] = link->get_instance_id();
+                    break;
+                }
+            }
+
+            jins.push_back(std::move(jin));
+        }
+
+        o_json jin_last;
+        jin_last["dir"] = 3;
+        jin_last["name"] = "";
+        jin_last["type"] = "*";
+        jin_last["link"] = nullptr;
+        jins.push_back(std::move(jin_last));
+    }
+    j["inputs"] = std::move(jins);
+
+    auto jouts = o_json::array();
+    {
+        auto pin = outputs[0];
+        o_json jout;
+
+        jout["dir"] = 4;
+        jout["name"] = "OPT_CONNECTION";
+        jout["type"] = "*";
+
+        if (0 == pin->state().links)
+            jout["links"] = nullptr;
+        else
+        {
+            jout["links"] = o_json::array();
+            for (auto& link : m_wf->get_links_all())
+            {
+                if (link->get_output()->get_instance_id() == pin->get_instance_id())
+                {
+                    jout["links"].push_back(link->get_instance_id());
+                }
+            }
+        }
+
+        jouts.push_back(std::move(jout));
+    }
+    j["outputs"] = std::move(jouts);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    FashModeSwitcherRgthree                       ///////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToJson::serialize_cni_node_fast_group_switcher_rgthree(o_json& j)
+{
+    const auto& outputs = m_curr_node->get_outputs();
+    LogRAssert(outputs.size() == 1, "Invalid node definition, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id() << ", sz:" << outputs.size(), );
+
+    j["properties"]["matchColors"] = "";
+    j["properties"]["matchTitle"] = "";
+    j["properties"]["showNav"] = true;
+    j["properties"]["showAllGraphs"] = true;
+    j["properties"]["sort"] = "position";
+    j["properties"]["customSortAlphabet"] = "";
+    j["properties"]["toggleRestriction"] = "default";
+
+    j["inputs"] = o_json::array();
+
+    auto jouts = o_json::array();
+    {
+        auto pin = outputs[0];
+        o_json jout;
+
+        jout["name"] = "OPT_CONNECTION";
+        jout["type"] = "*";
+
+        if (0 == pin->state().links)
+            jout["links"] = nullptr;
+        else
+        {
+            jout["links"] = o_json::array();
+            for (auto& link : m_wf->get_links_all())
+            {
+                if (link->get_output()->get_instance_id() == pin->get_instance_id())
+                {
+                    jout["links"].push_back(link->get_instance_id());
+                }
+            }
+        }
+
+        jouts.push_back(std::move(jout));
+    }
+    j["outputs"] = std::move(jouts);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    FastActionRgthree                             ///////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToJson::serialize_cni_node_fast_action_rgthree(o_json& j)
+{
+    const auto& inputs = m_curr_node->get_inputs();
+    const auto& outputs = m_curr_node->get_outputs();
+    LogRAssert(inputs.size() >= 1 && outputs.size() == 1, "Invalid node definition, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id() << ", sz:" << outputs.size(), );
+
+    j["properties"]["buttonText"] = "🎬 Action!";
+    j["properties"]["shortcutModifier"] = "alt";
+    j["properties"]["shortcutKey"] = "";
+
+    auto jwidgets = o_json::array();
+    auto jins = o_json::array();
+    {
+        jwidgets.push_back("");
+        for (auto in : inputs)
+        {
+            if (0 == in->state().links)
+                continue;
+
+            o_json jin;
+            jin["dir"] = 3;
+            jin["name"] = in->state().name;
+            jin["type"] = "*";
+
+            for (auto& link : m_wf->get_links_all())
+            {
+                if (link->get_input()->get_instance_id() == in->get_instance_id())
+                {
+                    jin["link"] = link->get_instance_id();
+                    break;
+                }
+            }
+
+            jins.push_back(std::move(jin));
+            jwidgets.push_back(CNI_FastActionRgthree::string_from_mode(in->state().value));
+        }
+
+        o_json jin_last;
+        jin_last["dir"] = 3;
+        jin_last["name"] = "";
+        jin_last["type"] = "*";
+        jin_last["link"] = nullptr;
+        jins.push_back(std::move(jin_last));
+    }
+    j["inputs"] = std::move(jins);
+    j["widgets_values"] = std::move(jwidgets);
+    j["outputs"] = o_json::array();
 }
 
 } // namespace data

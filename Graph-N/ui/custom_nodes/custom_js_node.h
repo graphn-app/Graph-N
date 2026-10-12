@@ -16,10 +16,10 @@ public:
 
     void test(data::Node* node);
     void init(data::NodeInstance* node);
-    void draw(data::NodeInstance* node);
+    void draw(data::NodeInstance* node, float off, float width);
 
 private:
-    void draw_LoadImageFromUrl(data::NodeInstance* node, js::Js_LoadImageFromUrl* data);
+    void draw_FastActionsButtonRgthree(data::NodeInstance* node, float off, float width);
 };
 
 } // namespace ui

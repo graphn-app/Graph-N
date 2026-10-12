@@ -21,6 +21,14 @@ bool WfDeserializerFromJson::check_cni_node_definition(const o_json& j, hid node
         return check_cni_node_definition_note(j, is_valid);
     case js::MARKDOWN_NOTE:
         return check_cni_node_definition_markdownnote(j, is_valid);
+    case js::FAST_BYPASSER_RGTHREE:
+    case js::FAST_MUTER_RGTHREE:
+        return check_cni_node_fast_switcher_rgthree(j, is_valid);
+    case js::FAST_GROUPS_BYPASSER_RGTHREE:
+    case js::FAST_GROUPS_MUTER_RGTHREE:
+        return check_cni_node_fast_group_switcher_rgthree(j, is_valid);
+    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+        return check_cni_node_fast_action_rgthree(j, is_valid);
     }
 
     is_cni = false;
@@ -29,9 +37,6 @@ bool WfDeserializerFromJson::check_cni_node_definition(const o_json& j, hid node
 
 NodeInstance* WfDeserializerFromJson::deserialize_cni_node(NodeInstance* node, const o_json& j)
 {
-    if (node->obj_flags().has(NodeObjFlags::CustomJsNode))
-        return deserialize_js_node(node, j);
-
     switch (node->get_object()->get_hash())
     {
     case js::PRIMITIVE_NODE:
@@ -47,7 +52,18 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node(NodeInstance* node, c
         return deserialize_cni_node_note(node, j);
     case js::MARKDOWN_NOTE:
         return deserialize_cni_node_markdownnote(node, j);
+    case js::FAST_BYPASSER_RGTHREE:
+    case js::FAST_MUTER_RGTHREE:
+        return deserialize_cni_fast_switcher_rgthree(node, j);
+    case js::FAST_GROUPS_BYPASSER_RGTHREE:
+    case js::FAST_GROUPS_MUTER_RGTHREE:
+        return deserialize_cni_fast_group_switcher_rgthree(node, j);
+    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+        return deserialize_cni_fast_action_rgthree(node, j);
     }
+
+    if (node->obj_flags().has(NodeObjFlags::CustomJsNode))
+        return deserialize_js_node(node, j);
 
     LogRError("Unhandled cni node", nullptr);
 }
@@ -229,6 +245,136 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node_note(NodeInstance* no
 NodeInstance* WfDeserializerFromJson::deserialize_cni_node_markdownnote(NodeInstance* node, const o_json& j)
 {
     return deserialize_cni_node_note_impl<CNI_MarkdownNote>(m_wf, node, j);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    FastModeSwitcherRgthree                      ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+bool WfDeserializerFromJson::check_cni_node_fast_switcher_rgthree(const o_json& j, bool& /*is_valid*/) const
+{
+    if (j.contains("inputs") && j["inputs"].empty())
+        return false;
+    if (j.contains("outputs") && j["outputs"].size() != 1)
+        return false;
+    return true;
+}
+
+NodeInstance* WfDeserializerFromJson::deserialize_cni_fast_switcher_rgthree(NodeInstance* node, const o_json& j)
+{
+    auto switcher = cast::dynamic<CNI_FastModeSwitcherRgthree>(node);
+    LogRAssert(switcher, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << node->get_instance_id() << ", t:" << typeid(node).name(), node);
+
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedFastActionRgthree>();
+    auto switcher_data = cast::strict<CNI_DeserializedFastActionRgthree>(data.get());
+
+    int32_t index = 0;
+    if (j.contains("inputs") && j["inputs"].is_array())
+    {
+        for (const auto& jinput : j["inputs"])
+        {
+            if (jinput.is_object() && jinput.contains("link") && !jinput["link"].is_null() && jinput["link"].is_number_integer())
+            {
+                const auto id = m_wf->get_new_child_id();
+                switcher_data->in_ids.push_back(std::make_tuple(id, 0, 0));
+                m_node_in_pins[node->get_instance_id()][index++] = id;
+            }
+        }
+    }
+
+    switcher_data->out_id = m_wf->get_new_child_id();
+    m_node_out_pins[node->get_instance_id()][0] = switcher_data->out_id;
+
+    switcher->cni_save_deserialized_info(std::move(data));
+    switcher->cni_init();
+
+    return node;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    FastModeGroupSwitcherRgthree                 ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+bool WfDeserializerFromJson::check_cni_node_fast_group_switcher_rgthree(const o_json& j, bool& /*is_valid*/) const
+{
+    if (j.contains("outputs") && j["outputs"].size() != 1)
+        return false;
+    return true;
+}
+
+NodeInstance* WfDeserializerFromJson::deserialize_cni_fast_group_switcher_rgthree(NodeInstance* node, const o_json& /*j*/)
+{
+    auto switcher = cast::dynamic<CNI_FastGroupModeSwitcherRgthree>(node);
+    LogRAssert(switcher, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << node->get_instance_id() << ", t:" << typeid(node).name(), node);
+
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedFastActionRgthree>();
+    auto switcher_data = cast::strict<CNI_DeserializedFastActionRgthree>(data.get());
+
+    switcher_data->out_id = m_wf->get_new_child_id();
+    m_node_out_pins[node->get_instance_id()][0] = switcher_data->out_id;
+
+    switcher->cni_save_deserialized_info(std::move(data));
+    switcher->cni_init();
+
+    return node;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    FastActionRgthree                            ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+bool WfDeserializerFromJson::check_cni_node_fast_action_rgthree(const o_json& j, bool& /*is_valid*/) const
+{
+    if (j.contains("inputs") && j["inputs"].empty())
+        return false;
+    return true;
+}
+
+NodeInstance* WfDeserializerFromJson::deserialize_cni_fast_action_rgthree(NodeInstance* node, const o_json& j)
+{
+    auto switcher = cast::dynamic<CNI_FastActionRgthree>(node);
+    LogRAssert(switcher, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << node->get_instance_id() << ", t:" << typeid(node).name(), node);
+
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedFastActionRgthree>();
+    auto switcher_data = cast::strict<CNI_DeserializedFastActionRgthree>(data.get());
+
+    int32_t index = 0;
+    if (j.contains("inputs") && j["inputs"].is_array())
+    {
+        for (const auto& jinput : j["inputs"])
+        {
+            if (jinput.is_object() && jinput.contains("link") && !jinput["link"].is_null() && jinput["link"].is_number_integer())
+            {
+                const auto id = m_wf->get_new_child_id();
+                switcher_data->in_ids.push_back(std::make_tuple(id, 0, 0));
+                m_node_in_pins[node->get_instance_id()][index++] = id;
+            }
+        }
+    }
+    if (j.contains("widgets_values") && j["widgets_values"].is_array())
+    {
+        index = 0;
+        for (const auto& jwidget : j["widgets_values"])
+        {
+            if (jwidget.is_string())
+            {
+                const auto value = jwidget.get<std::string>();
+                if (value.empty())
+                    continue;
+
+                if (index >= switcher_data->in_ids.size())
+                    break;
+
+                const auto mode = CNI_FastActionRgthree::mode_from_string(value);
+                std::get<2>(switcher_data->in_ids[index++]) = mode;
+            }
+        }
+    }
+
+    switcher->cni_save_deserialized_info(std::move(data));
+    switcher->cni_init();
+
+    return node;
 }
 
 } // namespace data

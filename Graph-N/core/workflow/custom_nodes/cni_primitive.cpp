@@ -79,7 +79,7 @@ void CNI_Primitive::cni_init()
     //cni_add_pin(std::move(obj));
 }
 
-void CNI_Primitive::on_deserialilzation_ends()
+void CNI_Primitive::on_deserialization_ends()
 {
     update();
 }

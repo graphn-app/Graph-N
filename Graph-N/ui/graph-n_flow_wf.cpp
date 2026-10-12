@@ -157,6 +157,21 @@ void GraphN_Flow::wf_locate_node(wid id, data::NodeInstance* node)
         m_wf_focused->locate_node(node);
 }
 
+std::set<data::NodeInstance*> GraphN_Flow::wf_get_nodes_in_group(wid wf_id, data::NodeInstance* group)
+{
+    LogRAssert(group, "Zero ptr", {});
+    LogRAssert(wf_id, "Zero wf id", {});
+
+    for (auto& panel : m_panels_wf)
+    {
+        if (panel->get_workflow()->get_id() == wf_id)
+        {
+            return panel->get_nodes_in_group(group);
+        }
+    }
+    return {};
+}
+
 void GraphN_Flow::wf_reload()
 {
     m_panel_wf_list->rebuild_items();

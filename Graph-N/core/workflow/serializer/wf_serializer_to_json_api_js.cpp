@@ -5,13 +5,13 @@
 namespace data
 {
 
-o_json WfSerializerToJsonApi::serialize_custom_node(data::NodeInstance* node, int32_t& /*input_count*/)
+o_json WfSerializerToJsonApi::serialize_custom_node(data::NodeInstance* /*node*/, int32_t& /*input_count*/)
 {
-    switch (node->get_object()->get_hash())
-    {
-    case js::LoadImageFromUrl.hash:
-        break;
-    }
+    //switch (node->get_object()->get_hash())
+    //{
+    //case js::LoadImageFromUrl.hash:
+    //    break;
+    //}
     return {};
 }
 
