@@ -7,22 +7,8 @@
 namespace data
 {
 
-std::unique_ptr<Node> CNI_Reroute::cni_create_object()
-{
-    auto node = std::make_unique<data::Node>(js::REROUTE_CLASS);
-    node->name = node->display_name = "Reroute";
-    node->category = "utils";
-    node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
-    node->python_module = VANILLA;
-    node->python_module_hash = base::HashID::make_hash(node->python_module);
-    node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanRename);
-    node->flags.add(NodeObjFlags::SpecReroute, NodeObjFlags::RestrictCfg);
-    node->finalize(nullptr);
-    return node;
-}
-
 CNI_Reroute::CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2) noexcept
-    : CNI_BaseObj_T<CNI_Reroute>(obj, workflow_id, instance_id)
+    : CNI_BaseObj(obj, workflow_id, instance_id)
 {
     flags().add(NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
 

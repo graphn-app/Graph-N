@@ -974,13 +974,12 @@ void NodesParser::sort_nodes(NodesManager& manager)
     NodesManager::sort_nodes(manager.m_nodes_plain);
 }
 
-template <typename T>
 data::Node* add_internal_node(hid node_hash, std::unordered_map<hid, std::unique_ptr<data::Node>>& all_nodes)
 {
     data::Node* node = nullptr;
     if (all_nodes.find(node_hash) == all_nodes.end())
     {
-        auto node_ptr = T::cni_create_object();
+        auto node_ptr = data::CNI_BaseObj::cni_make_base_object(node_hash);
         node = node_ptr.get();
         all_nodes.emplace(node_hash, std::move(node_ptr));
         LogS("Custom node added: " << node->node_class);
@@ -990,10 +989,12 @@ data::Node* add_internal_node(hid node_hash, std::unordered_map<hid, std::unique
 
 void NodesParser::add_internal_nodes(NodesManager& manager)
 {
-    put_in_tree(manager, add_internal_node<data::CNI_Reroute>(js::REROUTE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node<data::CNI_Primitive>(js::PRIMITIVE_NODE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node<data::CNI_Note>(js::NOTE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node<data::CNI_MarkdownNote>(js::MARKDOWN_NOTE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::REROUTE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::PRIMITIVE_NODE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::NOTE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::MARKDOWN_NOTE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::FAST_BYPASSER_RGTHREE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::FAST_MUTER_RGTHREE, manager.m_nodes));
 }
 
 template <size_t N>

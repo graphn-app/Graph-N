@@ -14,13 +14,11 @@ struct CNI_DeserializedPrimitive final : public CNI_DeserializedData
     iid out_id = 0;
 };
 
-class CNI_Primitive final : public CNI_BaseObj_T<CNI_Primitive>
+class CNI_Primitive final : public CNI_BaseObj
 {
 public:
     CNI_Primitive(Node* obj, wid workflow_id, iid instance_id) noexcept;
     ~CNI_Primitive() noexcept = default;
-
-    static std::unique_ptr<Node> cni_create_object();
 
     void cni_cleanup_base_object() noexcept override;
     bool cni_is_applicable() const noexcept override { return true; }

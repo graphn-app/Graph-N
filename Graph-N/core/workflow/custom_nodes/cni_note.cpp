@@ -6,15 +6,13 @@
 namespace data
 {
 
-template <typename T>
-CNI_NoteBase<T>::CNI_NoteBase(Node* obj, wid workflow_id, iid instance_id) noexcept
-    : CNI_BaseObj_T<T>(obj, workflow_id, instance_id)
+CNI_NoteBase::CNI_NoteBase(Node* obj, wid workflow_id, iid instance_id) noexcept
+    : CNI_BaseObj(obj, workflow_id, instance_id)
 {
     this->flags().add(NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::BlobCustomSerialization);
 }
 
-template <typename T>
-void CNI_NoteBase<T>::cni_cleanup_base_object() noexcept
+void CNI_NoteBase::cni_cleanup_base_object() noexcept
 {
     auto& ins = this->get_inputs();
     for (auto in : ins)
@@ -23,8 +21,7 @@ void CNI_NoteBase<T>::cni_cleanup_base_object() noexcept
     }
 }
 
-template <typename T>
-void CNI_NoteBase<T>::cni_init()
+void CNI_NoteBase::cni_init()
 {
     auto wf = g::pWfsManager->access(this->get_workflow_id());
     auto& inputs = this->get_inputs();
@@ -65,11 +62,11 @@ void CNI_NoteBase<T>::cni_init()
     this->add_input(instance);
 }
 
-template <typename T>
-bool CNI_NoteBase<T>::cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids)
+bool CNI_NoteBase::cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids)
 {
     auto& src_ins = copy_from_node->get_inputs();
     LogRAssert(!src_ins.empty(), "Source node pins empty", true);
+    LogRAssert(copy_from_node->obj_flags().has_any(NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote), "Not a Note", true);
 
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedNote>();
     auto note_data = cast::strict<CNI_DeserializedNote>(data.get());
@@ -79,37 +76,6 @@ bool CNI_NoteBase<T>::cni_copy_from(const NodeInstance* copy_from_node, bool cop
 
     this->cni_save_deserialized_info(std::move(data));
     return true;
-}
-
-template class CNI_NoteBase<CNI_Note>;
-template class CNI_NoteBase<CNI_MarkdownNote>;
-
-
-std::unique_ptr<Node> CNI_Note::cni_create_object()
-{
-    auto node = std::make_unique<data::Node>(js::NOTE_CLASS);
-    node->name = node->display_name = "Note";
-    node->category = "utils";
-    node->description = "Node to add annotations to a workflow.";
-    node->python_module = VANILLA;
-    node->python_module_hash = base::HashID::make_hash(node->python_module);
-    node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
-    node->flags.add(NodeObjFlags::SpecNote, NodeObjFlags::RestrictCfg);
-    node->finalize(nullptr);
-    return node;
-}
-
-std::unique_ptr<Node> CNI_MarkdownNote::cni_create_object()
-{
-    auto node = std::make_unique<data::Node>(js::MARKDOWN_NOTE_CLASS);
-    node->name = node->display_name = "Markdown Note";
-    node->category = "utils";
-    node->description = "Node to add annotations to a workflow. It supports text formatting using Markdown syntax.";
-    node->python_module = VANILLA;
-    node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
-    node->flags.add(NodeObjFlags::SpecMdNote, NodeObjFlags::RestrictCfg);
-    node->finalize(nullptr);
-    return node;
 }
 
 } // namespace data

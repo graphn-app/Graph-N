@@ -21,6 +21,7 @@ public:
     void init(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
 
     void cni_recreate_base_object();
+    static std::unique_ptr<Node> cni_make_base_object(hid hash);
 
     static void cni_add_pin(std::unique_ptr<Pin>&& pin) { m_pins.push_back(std::move(pin)); }
     static void cni_remove_pin(Pin* pin) noexcept { m_pins.remove_if([pin](const std::unique_ptr<Pin>& element) noexcept { return pin == element.get(); }); }
@@ -30,24 +31,10 @@ public:
 #endif
 
 protected:
-    virtual std::unique_ptr<Node> cni_make_base_object() const { return nullptr; }
 
 private:
     std::unique_ptr<Node> m_base_obj;
     static std::list<std::unique_ptr<Pin>> m_pins;
-};
-
-template <typename T>
-class CNI_BaseObj_T : public CNI_BaseObj
-{
-public:
-    using CNI_BaseObj::CNI_BaseObj;
-    ~CNI_BaseObj_T() = default;
-
-    std::unique_ptr<Node> cni_make_base_object() const override
-    {
-        return T::cni_create_object();
-    }
 };
 
 } // namespace data

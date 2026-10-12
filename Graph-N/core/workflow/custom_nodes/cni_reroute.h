@@ -56,20 +56,17 @@ struct RerouteData
     int32_t m_next_out_index = 1;
 };
 
-class CNI_Reroute final : public CNI_BaseObj_T<CNI_Reroute>
+class CNI_Reroute final : public CNI_BaseObj
 {
 public:
     CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2) noexcept;
     ~CNI_Reroute() noexcept;
 
-    static std::unique_ptr<Node> cni_create_object();
-
     void cni_init() override;
+    bool cni_is_applicable() const noexcept override { return true; }
 
     void add_pair(const RoutedPinPair& pair = {});
     std::pair<PinInstance*, PinInstance*> find_first_empty_pair_or_add_empty();
-
-    bool cni_is_applicable() const noexcept override { return true; }
 
     bool cni_can_link(const PinInstance* p1, const PinInstance* p2) const noexcept override;
     void cni_pin_linked(PinInstance* p1, PinInstance* p2) override;

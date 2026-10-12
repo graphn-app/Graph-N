@@ -366,19 +366,29 @@ struct KeyBinding
 namespace js
 {
 
-constexpr const char* REROUTE_CLASS                 = "Reroute";
-constexpr const char* REROUTE_PYSSSSS_CLASS         = "ReroutePrimitive|pysssss";
-constexpr const char* REROUTE_RGTHREE_CLASS         = "Reroute (rgthree)";
-constexpr const char* PRIMITIVE_NODE_CLASS          = "PrimitiveNode";
-constexpr const char* NOTE_CLASS                    = "Note";
-constexpr const char* MARKDOWN_NOTE_CLASS           = "MarkdownNote";
+constexpr const char* REROUTE_CLASS                             = "Reroute";
+constexpr const char* REROUTE_PYSSSSS_CLASS                     = "ReroutePrimitive|pysssss";
+constexpr const char* REROUTE_RGTHREE_CLASS                     = "Reroute (rgthree)";
+constexpr const char* PRIMITIVE_NODE_CLASS                      = "PrimitiveNode";
+constexpr const char* NOTE_CLASS                                = "Note";
+constexpr const char* MARKDOWN_NOTE_CLASS                       = "MarkdownNote";
+constexpr const char* FAST_BYPASSER_RGTHREE_CLASS               = "Fast Bypasser (rgthree)";
+constexpr const char* FAST_MUTER_RGTHREE_CLASS                  = "Fast Muter (rgthree)";
+constexpr const char* FAST_GROUPS_BYPASSER_RGTHREE_CLASS        = "Fast Groups Bypasser (rgthree)";
+constexpr const char* FAST_GROUPS_MUTER_RGTHREE_CLASS           = "Fast Groups Muter (rgthree)";
+constexpr const char* FAST_ACTIONS_BUTTON_RGTHREE_CLASS         = "Fast Actions Button (rgthree)";
 
-constexpr hid REROUTE                               = tools::str::hash_stable(REROUTE_CLASS);
-constexpr hid REROUTE_PYSSSSS                       = tools::str::hash_stable(REROUTE_PYSSSSS_CLASS);
-constexpr hid REROUTE_RGTHREE                       = tools::str::hash_stable(REROUTE_RGTHREE_CLASS);
-constexpr hid PRIMITIVE_NODE                        = tools::str::hash_stable(PRIMITIVE_NODE_CLASS);
-constexpr hid NOTE                                  = tools::str::hash_stable(NOTE_CLASS);
-constexpr hid MARKDOWN_NOTE                         = tools::str::hash_stable(MARKDOWN_NOTE_CLASS);
+constexpr hid REROUTE                                           = tools::str::hash_stable(REROUTE_CLASS);
+constexpr hid REROUTE_PYSSSSS                                   = tools::str::hash_stable(REROUTE_PYSSSSS_CLASS);
+constexpr hid REROUTE_RGTHREE                                   = tools::str::hash_stable(REROUTE_RGTHREE_CLASS);
+constexpr hid PRIMITIVE_NODE                                    = tools::str::hash_stable(PRIMITIVE_NODE_CLASS);
+constexpr hid NOTE                                              = tools::str::hash_stable(NOTE_CLASS);
+constexpr hid MARKDOWN_NOTE                                     = tools::str::hash_stable(MARKDOWN_NOTE_CLASS);
+constexpr hid FAST_BYPASSER_RGTHREE                             = tools::str::hash_stable(FAST_BYPASSER_RGTHREE_CLASS);
+constexpr hid FAST_MUTER_RGTHREE                                = tools::str::hash_stable(FAST_MUTER_RGTHREE_CLASS);
+constexpr hid FAST_GROUPS_MUTER_RGTHREE                         = tools::str::hash_stable(FAST_GROUPS_MUTER_RGTHREE_CLASS);
+constexpr hid FAST_GROUPS_BYPASSER_RGTHREE                      = tools::str::hash_stable(FAST_GROUPS_BYPASSER_RGTHREE_CLASS);
+constexpr hid FAST_ACTIONS_BUTTON_RGTHREE                       = tools::str::hash_stable(FAST_ACTIONS_BUTTON_RGTHREE_CLASS);
 
 struct Data {};
 struct Definition

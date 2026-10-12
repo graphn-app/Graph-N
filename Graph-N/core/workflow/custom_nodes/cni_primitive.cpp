@@ -10,22 +10,8 @@
 namespace data
 {
 
-std::unique_ptr<Node> CNI_Primitive::cni_create_object()
-{
-    auto node = std::make_unique<data::Node>(js::PRIMITIVE_NODE_CLASS);
-    node->name = node->display_name = "Primitive";
-    node->category = "utils";
-    node->description = "Primitive values like numbers, strings, and booleans.";
-    node->python_module = VANILLA;
-    node->python_module_hash = base::HashID::make_hash(node->python_module);
-    node->flags.remove(NodeObjFlags::CanBypass);
-    node->flags.add(NodeObjFlags::SpecPrimitive, NodeObjFlags::RestrictCfg);
-    node->finalize(nullptr);
-    return node;
-}
-
 CNI_Primitive::CNI_Primitive(Node* obj, wid workflow_id, iid instance_id) noexcept
-    : CNI_BaseObj_T<CNI_Primitive>(obj, workflow_id, instance_id)
+    : CNI_BaseObj(obj, workflow_id, instance_id)
 {
     flags().add(NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
 }
@@ -102,6 +88,7 @@ bool CNI_Primitive::cni_copy_from(const NodeInstance* copy_from_node, bool copy_
 {
     auto& src_outs = copy_from_node->get_outputs();
     LogRAssert(!src_outs.empty(), "Source node pins empty out", true);
+    LogRAssert(copy_from_node->obj_flags().has(NodeObjFlags::SpecPrimitive), "Not a PrimitiveNode", true);
 
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedPrimitive>();
     auto primitive_data = cast::strict<CNI_DeserializedPrimitive>(data.get());
