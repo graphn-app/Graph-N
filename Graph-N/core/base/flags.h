@@ -313,7 +313,7 @@ enum class NodeObjFlags : uint64_t
     SpecFastGMuterRgthree       = 1ULL << 26,   // 67108864             -  0x4000000          // Fast Groups Muter (rgthree)
     SpecFastGBypasserRgthree    = 1ULL << 27,   // 134217728            -  0x8000000          // Fast Groups Bypasser (rgthree)
     SpecFastActRgthree          = 1ULL << 28,   // 268435456            -  0x10000000         // Fast Actions Button (rgthree)
-    SpecBookmark                = 1ULL << 29,   // 536870912            -  0x20000000         // Bookmark
+    SpecBookmarkRgthree         = 1ULL << 29,   // 536870912            -  0x20000000         // Bookmark
     CustomJsNode                = 1ULL << 30,   // 1073741824           -  0x40000000         // node has custom JS logic and need to be re-implemented
     SpecSwitherRgthree          = 1ULL << 31,   // 2147483648           -  0x80000000
     NoHistoryOnPinValChange     = 1ULL << 32,   // 4294967296           -  0x100000000

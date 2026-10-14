@@ -29,6 +29,8 @@ bool WfDeserializerFromJson::check_cni_node_definition(const o_json& j, hid node
         return check_cni_node_fast_group_switcher_rgthree(j, is_valid);
     case js::FAST_ACTIONS_BUTTON_RGTHREE:
         return check_cni_node_fast_action_rgthree(j, is_valid);
+    case js::BOOKMARK_RGTHREE:
+        return check_cni_node_bookmark_rgthree(j, is_valid);
     }
 
     is_cni = false;
@@ -60,6 +62,8 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node(NodeInstance* node, c
         return deserialize_cni_fast_group_switcher_rgthree(node, j);
     case js::FAST_ACTIONS_BUTTON_RGTHREE:
         return deserialize_cni_fast_action_rgthree(node, j);
+    case js::BOOKMARK_RGTHREE:
+        return deserialize_cni_bookmark_rgthree(node, j);
     }
 
     if (node->obj_flags().has(NodeObjFlags::CustomJsNode))
@@ -374,6 +378,23 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_fast_action_rgthree(NodeIn
     switcher->cni_save_deserialized_info(std::move(data));
     switcher->cni_init();
 
+    return node;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    BookmarkRgthree                              ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+bool WfDeserializerFromJson::check_cni_node_bookmark_rgthree(const o_json& j, bool& /*is_valid*/) const
+{
+    if (j.contains("inputs") && j["inputs"].empty())
+        return false;
+    return true;
+}
+
+NodeInstance* WfDeserializerFromJson::deserialize_cni_bookmark_rgthree(NodeInstance* node, const o_json& /*j*/)
+{
+    // TODO: CNI_BookmarkRgthree
     return node;
 }
 

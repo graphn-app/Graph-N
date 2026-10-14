@@ -26,12 +26,14 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node(blob::Reader& block)
         return deserialize_cni_node_markdownnote(block);
     case js::FAST_BYPASSER_RGTHREE:
     case js::FAST_MUTER_RGTHREE:
-        return deserialize_cni_node_fast_switcher(block);
+        return deserialize_cni_node_fast_switcher_rgthree(block);
     case js::FAST_GROUPS_BYPASSER_RGTHREE:
     case js::FAST_GROUPS_MUTER_RGTHREE:
-        return deserialize_cni_node_fast_group_switcher(block);
+        return deserialize_cni_node_fast_group_switcher_rgthree(block);
     case js::FAST_ACTIONS_BUTTON_RGTHREE:
-        return deserialize_cni_node_fast_action(block);
+        return deserialize_cni_node_fast_action_rgthree(block);
+    case js::BOOKMARK_RGTHREE:
+        return deserialize_cni_node_bookmark_rgthree(block);
     }
 
     if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
@@ -154,7 +156,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_markdownnote(blob::Re
 ///////////    CNI_FastModeSwitcherRgthree                     /////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_switcher(blob::Reader& root_block)
+NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_switcher_rgthree(blob::Reader& root_block)
 {
     LogRAssert(m_curr_node->obj_flags().has_any(NodeObjFlags::SpecFastBypasserRgthree, NodeObjFlags::SpecFastMuterRgthree), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
 
@@ -181,7 +183,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_switcher(blob::R
 ///////////    CNI_FastModeGroupSwitcherRgthree                     /////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_group_switcher(blob::Reader& root_block)
+NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_group_switcher_rgthree(blob::Reader& root_block)
 {
     LogRAssert(m_curr_node->obj_flags().has_any(NodeObjFlags::SpecFastGBypasserRgthree, NodeObjFlags::SpecFastGMuterRgthree), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
 
@@ -200,7 +202,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_group_switcher(b
 ///////////    CNI_FastActionRgthree                           /////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_action(blob::Reader& root_block)
+NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_action_rgthree(blob::Reader& root_block)
 {
     LogRAssert(m_curr_node->obj_flags().has(NodeObjFlags::SpecFastActRgthree), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
 
@@ -219,6 +221,18 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_action(blob::Rea
 
     m_curr_node->cni_save_deserialized_info(std::move(data));
     m_curr_node->cni_init();
+
+    return m_curr_node;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    CNI_BookmarkRgthree                           /////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_bookmark_rgthree(blob::Reader& /*root_block*/)
+{
+    // TODO: CNI_BookmarkRgthree
+    //LogRAssert(m_curr_node->obj_flags().has(NodeObjFlags::SpecBookmarkRgthree), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
 
     return m_curr_node;
 }

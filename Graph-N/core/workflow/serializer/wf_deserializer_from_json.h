@@ -33,6 +33,7 @@ private:
     bool check_cni_node_fast_switcher_rgthree(const o_json& j, bool& is_valid) const;
     bool check_cni_node_fast_group_switcher_rgthree(const o_json& j, bool& is_valid) const;
     bool check_cni_node_fast_action_rgthree(const o_json& j, bool& is_valid) const;
+    bool check_cni_node_bookmark_rgthree(const o_json& j, bool& is_valid) const;
 
     NodeInstance* deserialize_js_node(NodeInstance* node, const o_json& j);
 
@@ -44,6 +45,7 @@ private:
     NodeInstance* deserialize_cni_fast_switcher_rgthree(NodeInstance* node, const o_json& j);
     NodeInstance* deserialize_cni_fast_group_switcher_rgthree(NodeInstance* node, const o_json& j);
     NodeInstance* deserialize_cni_fast_action_rgthree(NodeInstance* node, const o_json& j);
+    NodeInstance* deserialize_cni_bookmark_rgthree(NodeInstance* node, const o_json& j);
 
 private:
     Workflow* m_wf = nullptr;

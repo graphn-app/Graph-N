@@ -30,6 +30,8 @@ void WfSerializerToBlob::serialize_cni_node()
         return serialize_cni_node_fast_group_switcher_rgthree();
     case js::FAST_ACTIONS_BUTTON_RGTHREE:
         return serialize_cni_node_fast_action_rgthree();
+    case js::BOOKMARK_RGTHREE:
+        return serialize_cni_node_bookmark_rgthree();
     }
 
     if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
@@ -194,6 +196,17 @@ void WfSerializerToBlob::serialize_cni_node_fast_action_rgthree()
         m_writer.push(id);
         m_writer.push(mode);
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    BookmarkRgthree                                //////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToBlob::serialize_cni_node_bookmark_rgthree()
+{
+    blob::Block block(m_writer);
+
+    // TODO: CNI_BookmarkRgthree
 }
 
 } // namespace data

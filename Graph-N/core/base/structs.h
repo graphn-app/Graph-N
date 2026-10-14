@@ -363,6 +363,7 @@ struct KeyBinding
 ///////      js::CustomJsData             /////////////////////////
 ///////////////////////////////////////////////////////////////////
 
+namespace data { struct Pin; }
 namespace js
 {
 
@@ -377,6 +378,8 @@ constexpr const char* FAST_MUTER_RGTHREE_CLASS                  = "Fast Muter (r
 constexpr const char* FAST_GROUPS_BYPASSER_RGTHREE_CLASS        = "Fast Groups Bypasser (rgthree)";
 constexpr const char* FAST_GROUPS_MUTER_RGTHREE_CLASS           = "Fast Groups Muter (rgthree)";
 constexpr const char* FAST_ACTIONS_BUTTON_RGTHREE_CLASS         = "Fast Actions Button (rgthree)";
+constexpr const char* BOOKMARK_RGTHREE_CLASS                    = "Bookmark (rgthree)";
+constexpr const char* CUSTOM_COMBO_CLASS                        = "CustomCombo";
 
 constexpr hid REROUTE                                           = tools::str::hash_stable(REROUTE_CLASS);
 constexpr hid REROUTE_PYSSSSS                                   = tools::str::hash_stable(REROUTE_PYSSSSS_CLASS);
@@ -389,16 +392,13 @@ constexpr hid FAST_MUTER_RGTHREE                                = tools::str::ha
 constexpr hid FAST_GROUPS_MUTER_RGTHREE                         = tools::str::hash_stable(FAST_GROUPS_MUTER_RGTHREE_CLASS);
 constexpr hid FAST_GROUPS_BYPASSER_RGTHREE                      = tools::str::hash_stable(FAST_GROUPS_BYPASSER_RGTHREE_CLASS);
 constexpr hid FAST_ACTIONS_BUTTON_RGTHREE                       = tools::str::hash_stable(FAST_ACTIONS_BUTTON_RGTHREE_CLASS);
+constexpr hid BOOKMARK_RGTHREE                                  = tools::str::hash_stable(BOOKMARK_RGTHREE_CLASS);
+constexpr hid CUSTOM_COMBO                                      = tools::str::hash_stable(CUSTOM_COMBO_CLASS);
 
 struct Data {};
-struct Definition
+struct CustomCombo_Data : public Data
 {
-    hid hash = 0;
-    bool need_data = false;
+    std::unique_ptr<data::Pin> pins;
 };
-
-constexpr Definition FastActionsButtonRgthree = { FAST_ACTIONS_BUTTON_RGTHREE, false };
-//struct Js_LoadImageFromUrl final : public Data
-//{};
 
 } // namespace js

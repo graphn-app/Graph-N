@@ -978,11 +978,11 @@ void OptRightPane::load_hotkeys(bool defaults)
     m_data->hotkeys_names_k.clear();
     m_data->hotkeys_names_n.clear();
 
-    const auto key_names = g::pHotkeysManager->get_key_names();
+    const auto& key_names = g::pHotkeysManager->get_key_names();
     m_data->hotkeys_names_k.reserve(key_names.size());
     m_data->hotkeys_names_n.reserve(key_names.size());
 
-    for (auto& [key, name] : key_names)
+    for (auto [key, name] : key_names)
     {
         m_data->hotkeys_names_k.push_back(key);
         m_data->hotkeys_names_n.push_back(name);

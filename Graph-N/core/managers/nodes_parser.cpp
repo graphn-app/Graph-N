@@ -998,6 +998,7 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
     put_in_tree(manager, add_internal_node(js::FAST_GROUPS_MUTER_RGTHREE, manager.m_nodes));
     put_in_tree(manager, add_internal_node(js::FAST_GROUPS_BYPASSER_RGTHREE, manager.m_nodes));
     put_in_tree(manager, add_internal_node(js::FAST_ACTIONS_BUTTON_RGTHREE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::BOOKMARK_RGTHREE, manager.m_nodes));
 }
 
 template <size_t N>

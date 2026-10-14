@@ -36,6 +36,7 @@ private:
     void serialize_cni_node_fast_switcher_rgthree();
     void serialize_cni_node_fast_group_switcher_rgthree();
     void serialize_cni_node_fast_action_rgthree();
+    void serialize_cni_node_bookmark_rgthree();
 
 private:
     const Workflow* m_wf = nullptr;

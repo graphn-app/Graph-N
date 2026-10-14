@@ -131,6 +131,16 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecFastActRgthree, NodeObjFlags::SpecSwitherRgthree, NodeObjFlags::CustomJsNode, NodeObjFlags::NoPinCagMenu);
         break;
 
+    case js::BOOKMARK_RGTHREE:
+        node = std::make_unique<data::Node>(js::BOOKMARK_RGTHREE_CLASS);
+        node->name = node->display_name = "Bookmark (rgthree)";
+        node->category = "rgthree";
+        node->description = "A navigational node that saves a specific canvas location and zoom level, allowing users to quickly jump (pan and zoom) to this area of the workflow using an assigned shortcut key";
+        node->python_module = "frontend-only";
+        node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
+        node->flags.add(NodeObjFlags::SpecBookmarkRgthree, NodeObjFlags::CustomJsNode, NodeObjFlags::NoPinCagMenu);
+        break;
+
     default:
         LogRErrorS("Unknown base object", nullptr);
     }

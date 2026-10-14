@@ -205,4 +205,52 @@ private:
     std::vector<Switch> m_switches;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+/////////        CNI_BookmarkRgthree                                    ///////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+struct CNI_DeserializedBookmarkRgthree final : public CNI_DeserializedData
+{
+    int32_t hotkey = 0;
+    float zoom = 1.0;
+};
+
+/*
+TODO: CNI_BookmarkRgthree
+
+register bookmark
+unregister on wf focus change
+unregister on wf closure/deletion
+unregister on node removal
+handle hotkeys
+resolve zoom issue
+serialization
+*/
+
+class CNI_BookmarkRgthree : public CNI_BaseObj
+{
+public:
+    using CNI_BaseObj::CNI_BaseObj;
+    ~CNI_BookmarkRgthree() noexcept = default;
+
+    void cni_init() override;
+    bool cni_is_applicable() const noexcept override { return true; }
+
+    bool cni_can_link(const PinInstance* /*p1*/, const PinInstance* /*p2*/) const noexcept override { return true; }
+    void cni_pin_linked(PinInstance* /*p1*/, PinInstance* /*p2*/) override {}
+    void cni_pin_unlinked(const PinInstance* /*p1*/, const PinInstance* /*p2*/) override {}
+
+    void cni_cleanup_base_object() override;
+    bool cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
+    void on_deserialization_ends() override {}
+
+    CNI_DeserializedBookmarkRgthree dump() const noexcept;
+
+    void cni_mirror_value_to(const PinInstance* /*src*/, std::vector<PinInstance*>& /*append_pins*/) const override { }
+
+private:
+    int32_t m_hotkey = 0;
+    float m_zoom = 1.0f;
+};
+
 } // namespace data

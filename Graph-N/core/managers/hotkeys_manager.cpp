@@ -35,15 +35,15 @@ std::vector<ui::KeyBinding> HotkeysManager::get_default_key_bindings() const
   //{ ui::KeyBinding kb; kb.target = KeyTarget::App_Command;                                                                                     hks.push_back(kb); }
   //{ ui::KeyBinding kb; kb.target = KeyTarget::App_Restart;         kb.key = ImGuiKey::ImGuiKey_R;          kb.ctrl = true; kb.shift = true;    hks.push_back(kb); }
 
-    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_1;                kb.key = ImGuiKey::ImGuiKey_1;                                              hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_2;                kb.key = ImGuiKey::ImGuiKey_2;                                              hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_3;                kb.key = ImGuiKey::ImGuiKey_3;                                              hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_4;                kb.key = ImGuiKey::ImGuiKey_4;                                              hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_5;                kb.key = ImGuiKey::ImGuiKey_5;                                              hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_6;                kb.key = ImGuiKey::ImGuiKey_6;                                              hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_7;                kb.key = ImGuiKey::ImGuiKey_7;                                              hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_8;                kb.key = ImGuiKey::ImGuiKey_8;                                              hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_9;                kb.key = ImGuiKey::ImGuiKey_9;                                              hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_1;                kb.key = ImGuiKey::ImGuiKey_1;          kb.shift = true;                    hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_2;                kb.key = ImGuiKey::ImGuiKey_2;          kb.shift = true;                    hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_3;                kb.key = ImGuiKey::ImGuiKey_3;          kb.shift = true;                    hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_4;                kb.key = ImGuiKey::ImGuiKey_4;          kb.shift = true;                    hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_5;                kb.key = ImGuiKey::ImGuiKey_5;          kb.shift = true;                    hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_6;                kb.key = ImGuiKey::ImGuiKey_6;          kb.shift = true;                    hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_7;                kb.key = ImGuiKey::ImGuiKey_7;          kb.shift = true;                    hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_8;                kb.key = ImGuiKey::ImGuiKey_8;          kb.shift = true;                    hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Wf_9;                kb.key = ImGuiKey::ImGuiKey_9;          kb.shift = true;                    hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Wf_Next;             kb.key = ImGuiKey::ImGuiKey_W;                                              hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Wf_Prev;             kb.key = ImGuiKey::ImGuiKey_W;          kb.ctrl = true;                     hks.push_back(kb); }
 
@@ -202,9 +202,9 @@ bool HotkeysManager::test(const std::vector<ui::KeyBinding>& hotkeys, std::set<K
     return failed.empty();
 }
 
-std::vector<std::pair<ImGuiKey, const char*>> HotkeysManager::get_key_names() const
+const std::vector<std::pair<ImGuiKey, const char*>>& HotkeysManager::get_key_names() const
 {
-    std::vector<std::pair<ImGuiKey, const char*>> key_names =
+    static std::vector<std::pair<ImGuiKey, const char*>> key_names =
     {
         { ImGuiKey_None, "" },
 
@@ -236,6 +236,24 @@ std::vector<std::pair<ImGuiKey, const char*>> HotkeysManager::get_key_names() co
     return key_names;
 }
 
+const std::vector<std::pair<ImGuiKey, const char*>>& HotkeysManager::get_key_names_for_bookmark() const
+{
+    static std::vector<std::pair<ImGuiKey, const char*>> key_names =
+    {
+        { ImGuiKey_None, "" },
+
+        { ImGuiKey_1, "1" }, { ImGuiKey_2, "2" }, { ImGuiKey_3, "3" }, { ImGuiKey_4, "4" }, { ImGuiKey_5, "5" }, { ImGuiKey_6, "6" },
+        { ImGuiKey_7, "7" }, { ImGuiKey_8, "8" }, { ImGuiKey_9, "9" }, { ImGuiKey_0, "0" }, 
+
+        { ImGuiKey_A, "A" }, { ImGuiKey_B, "B" }, { ImGuiKey_C, "C" }, { ImGuiKey_D, "D" }, { ImGuiKey_E, "E" }, { ImGuiKey_F, "F" }, { ImGuiKey_G, "G" },
+        { ImGuiKey_H, "H" }, { ImGuiKey_I, "I" }, { ImGuiKey_J, "J" }, { ImGuiKey_K, "K" }, { ImGuiKey_L, "L" }, { ImGuiKey_M, "M" }, { ImGuiKey_N, "N" },
+        { ImGuiKey_O, "O" }, { ImGuiKey_P, "P" }, { ImGuiKey_Q, "Q" }, { ImGuiKey_R, "R" }, { ImGuiKey_S, "S" }, { ImGuiKey_T, "T" }, { ImGuiKey_U, "U" },
+        { ImGuiKey_V, "V" }, { ImGuiKey_W, "W" }, { ImGuiKey_X, "X" }, { ImGuiKey_Y, "Y" }, { ImGuiKey_Z, "Z" },
+    };
+
+    return key_names;
+}
+
 std::string HotkeysManager::get_key_binding_name_str(KeyTarget target) const
 {
     const auto* ptr = get_key_binding_name(target);
@@ -248,7 +266,7 @@ const char* HotkeysManager::get_key_binding_name(KeyTarget target, const char* a
 {
     static fmt::memory_buffer text;
 
-    static auto key_names = get_key_names();
+    static const auto& key_names = get_key_names();
     const ui::KeyBinding* bind = nullptr;
     for (auto& hk : m_key_binding)
     {

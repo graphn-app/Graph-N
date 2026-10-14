@@ -90,6 +90,10 @@ std::unique_ptr<data::NodeInstance> create_custom(data::Node* node, wid wf_id, i
     case js::FAST_ACTIONS_BUTTON_RGTHREE:
         custom_node = std::make_unique<CNI_FastActionRgthree>(node, wf_id, node_id);
         break;
+    // TODO: CNI_BookmarkRgthree
+    //case js::BOOKMARK_RGTHREE:
+    //    custom_node = std::make_unique<CNI_BookmarkRgthree>(node, wf_id, node_id);
+    //    break;
     }
 
     return custom_node;

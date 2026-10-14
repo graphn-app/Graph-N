@@ -22,6 +22,8 @@ void WfSerializerToJson::serialize_cni_node(o_json& j)
         return serialize_cni_node_fast_group_switcher_rgthree(j);
     case js::FAST_ACTIONS_BUTTON_RGTHREE:
         return serialize_cni_node_fast_action_rgthree(j);
+    case js::BOOKMARK_RGTHREE:
+        return serialize_cni_node_bookmark_rgthree(j);
     }
 
     if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
@@ -328,6 +330,15 @@ void WfSerializerToJson::serialize_cni_node_fast_action_rgthree(o_json& j)
     j["inputs"] = std::move(jins);
     j["widgets_values"] = std::move(jwidgets);
     j["outputs"] = o_json::array();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    BookmarkRgthree                               ///////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToJson::serialize_cni_node_bookmark_rgthree(o_json& /*j*/)
+{
+    // TODO: CNI_BookmarkRgthree
 }
 
 } // namespace data

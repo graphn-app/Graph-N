@@ -20,6 +20,7 @@ public:
 
 private:
     void draw_FastActionsButtonRgthree(data::NodeInstance* node, float off, float width);
+    void draw_CustomCombo(data::NodeInstance* node, float off, float width);
 };
 
 } // namespace ui

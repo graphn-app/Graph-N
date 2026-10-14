@@ -239,6 +239,12 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/, bool first
     else if (m_zoom <= ZOOMED_MEDIUM)       m_zoomed_visibility = ZoomedVisibility::Medium;
     else if (m_zoom <= ZOOMED_LOW)          m_zoomed_visibility = ZoomedVisibility::Low;
     else                                    m_zoomed_visibility = ZoomedVisibility::None;
+
+    // TODO: CNI_BookmarkRgthree
+    //static float z = 0.0f;
+    //if (z != m_zoom)
+    //    Log("Zoom: " << z);
+    //z = m_zoom;
 }
 
 void NodeDrawer::post_draw_all(

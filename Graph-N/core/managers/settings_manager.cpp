@@ -481,10 +481,10 @@ std::vector<ui::KeyBinding> SettingsManager::ui_hotkeys_load() noexcept
         std::vector<ui::KeyBinding> hotkeys;
         const auto j = u_json::parse(*val);
 
-        const auto key_names = g::pHotkeysManager->get_key_names();
+        const auto& key_names = g::pHotkeysManager->get_key_names();
         const auto is_supported = [&key_names](int32_t test)
         {
-            for (auto& key : key_names)
+            for (auto key : key_names)
             {
                 if (key.first == test)
                     return true;
