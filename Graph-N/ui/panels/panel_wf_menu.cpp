@@ -657,24 +657,49 @@ bool PanelWorkflow::show_node_menu()
             {
                 if (ImGui::BeginMenu(cfg.menu_name))
                 {
-                    bool display = node->obj_flags().has_all(NodeObjFlags::CustomMediaFromSource, cfg.media_flag);
-                    if (ImGui::MenuItem("Display media", nullptr, &display))
+                    bool display = node->obj_flags().has_all(cfg.media_flag, NodeObjFlags::CustomMediaFromSourceIn);
+                    if (ImGui::MenuItem("Display input media", nullptr, &display))
                     {
                         node->obj_flags().remove(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage);
-                        const bool media_flag = node->obj_flags().has(NodeObjFlags::CustomMediaUploadButton) || display;
+                        const bool media_flag = node->obj_flags().has_any(NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton) || display;
                         node->obj_flags().add_remove_if(cfg.media_flag, media_flag);
-                        node->obj_flags().add_remove_if(NodeObjFlags::CustomMediaFromSource, display);
+                        node->obj_flags().add_remove_if(NodeObjFlags::CustomMediaFromSourceIn, display);
+                        node->obj_flags().add_remove_if(NodeObjFlags::CustomMediaFromSourceOut, !display);
                         node->get_object()->custom_widget_source = preffered_source_pin;
                         save_opts();
                     }
 
-                    bool can_upload = node->obj_flags().has_all(NodeObjFlags::CustomMediaUploadButton, cfg.media_flag);
-                    if (ImGui::MenuItem("Add 'Upload' button", nullptr, &can_upload))
+                    display = node->obj_flags().has_all(cfg.media_flag, NodeObjFlags::CustomMediaFromSourceOut);
+                    if (ImGui::MenuItem("Display output media", nullptr, &display))
                     {
                         node->obj_flags().remove(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage);
-                        const bool media_flag = node->obj_flags().has(NodeObjFlags::CustomMediaFromSource) || can_upload;
+                        const bool media_flag = node->obj_flags().has_any(NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton) || display;
                         node->obj_flags().add_remove_if(cfg.media_flag, media_flag);
-                        node->obj_flags().add_remove_if(NodeObjFlags::CustomMediaUploadButton, can_upload);
+                        node->obj_flags().add_remove_if(NodeObjFlags::CustomMediaFromSourceOut, display);
+                        node->obj_flags().add_remove_if(NodeObjFlags::CustomMediaFromSourceIn, !display);
+                        node->obj_flags().remove_if(NodeObjFlags::CustomMediaUploadButton, display);
+                        node->get_object()->custom_widget_source = preffered_source_pin;
+                        save_opts();
+                    }
+
+                    bool upload = node->obj_flags().has_all(NodeObjFlags::CustomMediaUploadButton, cfg.media_flag);
+                    if (ImGui::MenuItem("Add 'Upload' button", nullptr, &upload, node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceIn)))
+                    {
+                        node->obj_flags().remove(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage);
+                        const bool media_flag = node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceIn) || upload;
+                        node->obj_flags().add_remove_if(cfg.media_flag, media_flag);
+                        node->obj_flags().add_remove_if(NodeObjFlags::CustomMediaUploadButton, upload);
+                        node->get_object()->custom_widget_source = preffered_source_pin;
+                        save_opts();
+                    }
+
+                    bool refresh = node->obj_flags().has_all(NodeObjFlags::CustomMediaRefreshButton, cfg.media_flag);
+                    if (ImGui::MenuItem("Add 'Refresh' button", nullptr, &refresh))
+                    {
+                        node->obj_flags().remove(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage);
+                        const bool media_flag = node->obj_flags().has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut) || refresh;
+                        node->obj_flags().add_remove_if(cfg.media_flag, media_flag);
+                        node->obj_flags().add_remove_if(NodeObjFlags::CustomMediaRefreshButton, refresh);
                         node->get_object()->custom_widget_source = preffered_source_pin;
                         save_opts();
                     }
@@ -685,7 +710,7 @@ bool PanelWorkflow::show_node_menu()
                     const std::string* display_source = (nullptr == node->get_object()->custom_widget_source ? nullptr : &node->get_object()->custom_widget_source->def_state.name);
                     if (nullptr == display_source && preffered_source_pin != nullptr)
                         display_source = &preffered_source_pin->def_state.name;
-                    if (node->obj_flags().has_none(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton) || node->obj_flags().has_not(cfg.media_flag))
+                    if (node->obj_flags().has_none(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaRefreshButton, NodeObjFlags::CustomMediaUploadButton) || node->obj_flags().has_not(cfg.media_flag))
                         display_source = nullptr;
 
                     for (auto pin : node->get_object()->input)

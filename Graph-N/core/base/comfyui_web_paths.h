@@ -23,6 +23,7 @@ constexpr const char* view_input_       = "/api/view?type=input&filename={}&subf
 constexpr const char* upload_media      = "/api/upload/image";                                                           // post
 constexpr const char* upload_mask       = "/api/upload/mask";                                                            // post
 constexpr const char* refresh_inputs    = "/internal/files/input";                                                       // get
+constexpr const char* refresh_outputs   = "/internal/files/output";                                                      // get
 constexpr const char* reboot            = "/api/manager/reboot";                                                         // get
 
 constexpr const char* clipbuffer_subfolder = "clipspace";

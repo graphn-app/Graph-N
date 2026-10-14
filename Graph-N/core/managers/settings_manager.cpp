@@ -706,22 +706,23 @@ void SettingsManager::init_items_defaults()
         return;
 
     using namespace tools::str;
-    item_save(hash_stable("LoadImage"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
-    item_save(hash_stable("LoadImageOutput"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
-    item_save(hash_stable("LoadImageMask"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
-    item_save(hash_stable("LoadImage //Inspire"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
-    item_save(hash_stable("Image Load"), DbItemOptionType::Nodes, R"({"display_source":"image_path","flags":204800})");
-    item_save(hash_stable("LayerUtility: LoadImage"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
-    item_save(hash_stable("LayerUtility: LoadMask"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
-    item_save(hash_stable("LoadImageBase64"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":204800})");
+    item_save(hash_stable("LoadImage"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":335872})");
+    item_save(hash_stable("LoadImageMask"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":335872})");
+    item_save(hash_stable("LoadImage //Inspire"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":335872})");
+    item_save(hash_stable("Image Load"), DbItemOptionType::Nodes, R"({"display_source":"image_path","flags":335872})");
+    item_save(hash_stable("LayerUtility: LoadImage"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":335872})");
+    item_save(hash_stable("LayerUtility: LoadMask"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":335872})");
+    item_save(hash_stable("LoadImageBase64"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":335872})");
 
-    item_save(hash_stable("LoadVideo"), DbItemOptionType::Nodes, R"({"display_source":"file","flags":200704})");
-    item_save(hash_stable("VHS_LoadVideo"), DbItemOptionType::Nodes, R"({"display_source":"video","flags":200704})");
-    item_save(hash_stable("VHS_LoadVideoFFmpeg"), DbItemOptionType::Nodes, R"({"display_source":"video","flags":200704})");
+    item_save(hash_stable("LoadImageOutput"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":663552})");
 
-    item_save(hash_stable("LoadAudio"), DbItemOptionType::Nodes, R"({"display_source":"audio","flags":198656})");
-    item_save(hash_stable("VHS_LoadAudioUpload"), DbItemOptionType::Nodes, R"({"display_source":"audio","flags":198656})");
-    item_save(hash_stable("LoadAudio //AudioLDM"), DbItemOptionType::Nodes, R"({"display_source":"audio","flags":198656})");
+    item_save(hash_stable("LoadVideo"), DbItemOptionType::Nodes, R"({"display_source":"file","flags":331776})");
+    item_save(hash_stable("VHS_LoadVideo"), DbItemOptionType::Nodes, R"({"display_source":"video","flags":331776})");
+    item_save(hash_stable("VHS_LoadVideoFFmpeg"), DbItemOptionType::Nodes, R"({"display_source":"video","flags":331776})");
+
+    item_save(hash_stable("LoadAudio"), DbItemOptionType::Nodes, R"({"display_source":"audio","flags":329728})");
+    item_save(hash_stable("VHS_LoadAudioUpload"), DbItemOptionType::Nodes, R"({"display_source":"audio","flags":329728})");
+    item_save(hash_stable("LoadAudio //AudioLDM"), DbItemOptionType::Nodes, R"({"display_source":"audio","flags":329728})");
 }
 
 template<typename T>

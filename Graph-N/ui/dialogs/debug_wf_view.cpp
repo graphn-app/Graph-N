@@ -59,8 +59,9 @@ constexpr FlagDef<NodeObjFlags> g_node_obj_flags[] =
     DEF_FLAG(NodeObjFlags, CanRename), DEF_FLAG(NodeObjFlags, Experimental), DEF_FLAG(NodeObjFlags, Deprecated),
     DEF_FLAG(NodeObjFlags, ApiNode), DEF_FLAG(NodeObjFlags, CustomMediaWidget), DEF_FLAG(NodeObjFlags, CustomMediaAudio),
     DEF_FLAG(NodeObjFlags, CustomMediaVideo), DEF_FLAG(NodeObjFlags, CustomMediaImage), DEF_FLAG(NodeObjFlags, CustomMediaText),
-    DEF_FLAG(NodeObjFlags, RestrictCfg), DEF_FLAG(NodeObjFlags, CustomMediaUploadButton),
-    DEF_FLAG(NodeObjFlags, CustomMediaFromSource), DEF_FLAG(NodeObjFlags, CustomMediaFromOutput), DEF_FLAG(NodeObjFlags, DevOnly),
+    DEF_FLAG(NodeObjFlags, RestrictCfg), DEF_FLAG(NodeObjFlags, CustomMediaUploadButton), DEF_FLAG(NodeObjFlags, CustomMediaRefreshButton),
+    DEF_FLAG(NodeObjFlags, CustomMediaFromSourceIn), DEF_FLAG(NodeObjFlags, CustomMediaFromSourceOut), DEF_FLAG(NodeObjFlags, CustomMediaFromOutput),
+    DEF_FLAG(NodeObjFlags, DevOnly),
     DEF_FLAG(NodeObjFlags, CustomJsNode)
 };
 

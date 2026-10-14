@@ -92,6 +92,7 @@ enum class HttpRequestor : uint8_t
     CustomWdgt_Video,
     CustomWdgt_Audio,
     UploadMedia,
+    RefreshMedia,
     Restart,
 };
 

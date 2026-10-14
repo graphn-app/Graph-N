@@ -21,9 +21,9 @@ void CustomMediaWidget::draw_widget_upload_button()
 
     Widget* widget = nullptr;
     const auto flags = m_node->obj_flags();
-    if (flags.has(NodeObjFlags::CustomMediaImage))        widget = &m_images;
-    else if (flags.has(NodeObjFlags::CustomMediaVideo))   widget = &m_videos;
-    else if (flags.has(NodeObjFlags::CustomMediaAudio))   widget = &m_audios;
+    if (flags.has(NodeObjFlags::CustomMediaImage))        widget = &m_images_in;
+    else if (flags.has(NodeObjFlags::CustomMediaVideo))   widget = &m_videos_in;
+    else if (flags.has(NodeObjFlags::CustomMediaAudio))   widget = &m_audios_in;
     else LogRError("Unhandled upload media type", );
 
     const auto large_file_handler = [this, widget, target = m_node->get_instance_id()](ModalDlgCtrl res)
@@ -151,6 +151,7 @@ void CustomMediaWidget::upload_media(Widget& widget, const std::filesystem::path
                 }
 
                 widget.list_version++;
+                widget.reset = false;
 
                 bool found = false;
                 for (size_t i = 0; i < widget.names.size(); i++)
@@ -170,7 +171,7 @@ void CustomMediaWidget::upload_media(Widget& widget, const std::filesystem::path
         }
         catch (const std::exception& ex)
         {
-            LogExcep("Failed to parse uploaded media result: " << ex.what());
+            LogExcep("Failed to parse uploaded media. result: " << ex.what());
         }
     };
 

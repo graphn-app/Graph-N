@@ -67,6 +67,8 @@ std::unique_ptr<data::NodeInstance> create_custom(data::Node* node, wid wf_id, i
         custom_node = std::make_unique<CNI_Primitive>(node, wf_id, node_id);
         break;
     case js::REROUTE:
+    case js::REROUTE_PYSSSSS:
+    case js::REROUTE_RGTHREE:
         custom_node = std::make_unique<CNI_Reroute>(node, wf_id, node_id, node_id2);
         break;
     case js::NOTE:

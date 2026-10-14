@@ -1113,36 +1113,36 @@ void NodesParser::apply_options(NodesManager& manager)
         auto& opt = g::pOptsManager->items_node_load(hash);
         node->flags.add_raw(opt.flags.get_raw());
 
-        if (node->flags.has_any(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton) &&
+        if (node->flags.has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton) &&
             node->flags.has_none(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage))
         {
-            node->flags.remove(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton);
+            node->flags.remove(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton);
         }
 
         if (restricted_nodes.contains(hash) || node->flags.has(NodeObjFlags::CustomMediaFromOutput))
         {
             node->flags.add(NodeObjFlags::RestrictCfg);
-            node->flags.remove(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton);
+            node->flags.remove(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton);
         }
 
         if (display_output_images.contains(hash))
         {
-            node->flags.remove(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
+            node->flags.remove(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
             node->flags.add(NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaFromOutput, NodeObjFlags::RestrictCfg);
         }
         else if (display_output_videos.contains(hash))
         {
-            node->flags.remove(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
+            node->flags.remove(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
             node->flags.add(NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaFromOutput, NodeObjFlags::RestrictCfg);
         }
         else if (display_output_audios.contains(hash))
         {
-            node->flags.remove(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
+            node->flags.remove(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
             node->flags.add(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaFromOutput, NodeObjFlags::RestrictCfg);
         }
         else if (display_output_texts.contains(hash))
         {
-            node->flags.remove(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
+            node->flags.remove(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
             node->flags.add(NodeObjFlags::CustomMediaText, NodeObjFlags::CustomMediaFromOutput, NodeObjFlags::RestrictCfg);
         }
         else if (!opt.display_source.empty() && node->flags.has_not(NodeObjFlags::RestrictCfg))
@@ -1157,7 +1157,7 @@ void NodesParser::apply_options(NodesManager& manager)
             }
 
             // source pin name changed?
-            if (nullptr == node->custom_widget_source && node->flags.has_any(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton))
+            if (nullptr == node->custom_widget_source && node->flags.has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton))
             {
                 for (auto pin : node->input)
                 {

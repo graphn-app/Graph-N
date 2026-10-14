@@ -91,12 +91,14 @@ void CustomMediaWidget::draw_audio_widget_from_output(OutputData& out)
 
 void CustomMediaWidget::draw_audio_widget_from_source()
 {
+    auto data_widget = m_node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceIn) ? &m_audios_in : &m_audios_out;
+
     int64_t index = 0;
     data::Pin* source_pin_obj = nullptr;
-    if (!check_source_and_get_pin(m_audios, index, source_pin_obj))
+    if (!check_source_and_get_pin(*data_widget, index, source_pin_obj))
         return;
 
-    auto& widget = m_audios.items[index];
+    auto& widget = data_widget->items[index];
 
     if (widget.media_valid.value_or(false))
     {
@@ -117,7 +119,7 @@ void CustomMediaWidget::draw_audio_widget_from_source()
         }
     }
     else
-        download_media(HttpRequestor::CustomWdgt_Audio, m_audios, index);
+        download_media(HttpRequestor::CustomWdgt_Audio, *data_widget, index, m_node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceOut));
 }
 
 } // namespace ui

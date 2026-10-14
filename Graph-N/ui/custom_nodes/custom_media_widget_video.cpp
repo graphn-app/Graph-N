@@ -149,12 +149,14 @@ void CustomMediaWidget::draw_video_widget_from_output(OutputData& out)
 
 void CustomMediaWidget::draw_video_widget_from_source()
 {
+    auto data_widget = m_node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceIn) ? &m_videos_in : &m_videos_out;
+
     int64_t index = 0;
     data::Pin* source_pin_obj = nullptr;
-    if (!check_source_and_get_pin(m_videos, index, source_pin_obj))
+    if (!check_source_and_get_pin(*data_widget, index, source_pin_obj))
         return;
 
-    auto& widget = m_videos.items[index];
+    auto& widget = data_widget->items[index];
 
     if (widget.media_valid.value_or(false))
     {
@@ -172,7 +174,7 @@ void CustomMediaWidget::draw_video_widget_from_source()
         widget.media_id = -1;
     }
     else
-        download_media(HttpRequestor::CustomWdgt_Video, m_videos, index);
+        download_media(HttpRequestor::CustomWdgt_Video, *data_widget, index, m_node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceOut));
 }
 
 } // namespace ui

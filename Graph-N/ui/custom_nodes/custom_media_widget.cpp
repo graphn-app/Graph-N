@@ -10,9 +10,9 @@ namespace ui
 
 CustomMediaWidget::CustomMediaWidget() noexcept
 {
-    m_images.media_type = NodeObjFlags::CustomMediaImage;
-    m_videos.media_type = NodeObjFlags::CustomMediaVideo;
-    m_audios.media_type = NodeObjFlags::CustomMediaAudio;
+    m_images_in.media_type = m_images_out.media_type = NodeObjFlags::CustomMediaImage;
+    m_videos_in.media_type = m_videos_out.media_type = NodeObjFlags::CustomMediaVideo;
+    m_audios_in.media_type = m_audios_out.media_type = NodeObjFlags::CustomMediaAudio;
 }
 
 CustomMediaWidget::~CustomMediaWidget() noexcept = default;
@@ -48,10 +48,13 @@ void CustomMediaWidget::draw_custom_widget(data::NodeInstance* node, float pos, 
     }
     else
     {
-        if (flags.has(NodeObjFlags::CustomMediaUploadButton))
+        if (flags.has_all(NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaFromSourceIn))
             draw_widget_upload_button();
 
-        if (flags.has(NodeObjFlags::CustomMediaFromSource) && nullptr == m_node->get_object()->custom_widget_source) [[unlikely]]
+        if (flags.has(NodeObjFlags::CustomMediaRefreshButton))
+            draw_widget_refresh_button();
+
+        if (flags.has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut) && nullptr == m_node->get_object()->custom_widget_source) [[unlikely]]
         {
             constexpr size_t err_count = 2;
             constexpr const char* err_lines[err_count] = { "Input source not set", "Please select media source in Node config" };
@@ -59,11 +62,11 @@ void CustomMediaWidget::draw_custom_widget(data::NodeInstance* node, float pos, 
         }
         else
         {
-            if (flags.has_all(NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaFromSource))
+            if (flags.has(NodeObjFlags::CustomMediaImage) && flags.has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut))
                 draw_image_widget_from_source();
-            else if (flags.has_all(NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaFromSource))
+            else if (flags.has(NodeObjFlags::CustomMediaVideo) && flags.has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut))
                 draw_video_widget_from_source();
-            else if (flags.has_all(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaFromSource))
+            else if (flags.has(NodeObjFlags::CustomMediaAudio) && flags.has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut))
                 draw_audio_widget_from_source();
         }
     }
@@ -73,10 +76,10 @@ void CustomMediaWidget::draw_custom_widget(data::NodeInstance* node, float pos, 
 
 void CustomMediaWidget::upload_edited_image(data::NodeInstance* node, std::filesystem::path&& image_path, bool image_is_mask)
 {
-    m_images.upload_target = 0;
+    m_images_in.upload_target = 0;
     if (node != nullptr)
-        m_images.upload_target = (node->obj_flags().has(NodeObjFlags::CustomMediaFromSource) ? node->get_instance_id() : 0);
-    upload_media(m_images, image_path, image_is_mask, image_is_mask);
+        m_images_in.upload_target = (node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceIn) ? node->get_instance_id() : 0);
+    upload_media(m_images_in, image_path, image_is_mask, image_is_mask);
 }
 
 void CustomMediaWidget::draw_widget_message(const char* const lines[], size_t count)
@@ -161,14 +164,28 @@ void CustomMediaWidget::check_media_list_version(Widget& widget)
         widget.names.clear();
         std::ranges::for_each(pin_list, [&widget](const Primitive& item) { widget.names.push_back(item.get_string()); });
         widget.list_version = 0;
+        widget.reset = false;
         return;
     }
 
-    LogRAssert(m_node->m_media_list_version <= widget.list_version, "Local list version > global list version", );
+    if (widget.list_version != 0) // reset
+        LogRAssert(m_node->m_media_list_version <= widget.list_version, "Local list version > global list version", );
 
     if (m_node->m_media_list_version == widget.list_version) [[likely]]
         return;
     m_node->m_media_list_version = widget.list_version;
+
+    if (widget.reset)
+    {
+        const auto pin = m_node->get_object()->custom_widget_source;
+        pin->combo_items.clear();
+        for (auto& item : widget.names)
+        {
+            pin->combo_items.push_back(item);
+        }
+        pin->finalize_combo();
+        return;
+    }
 
     if ((0 == widget.upload_target || widget.upload_target == m_node->get_instance_id()) && !widget.uploaded_media.empty())
     {
@@ -194,10 +211,13 @@ void CustomMediaWidget::check_media_list_version(Widget& widget)
 bool CustomMediaWidget::check_source_and_get_pin(Widget& widget, int64_t& index, data::Pin*& source_pin, bool skip_media_validation /*= false*/)
 {
     source_pin = m_node->get_object()->custom_widget_source;
-    if (nullptr == source_pin || source_pin->combo_items_str.empty())
+    if (nullptr == source_pin)
         return false;
 
     check_media_list_version(widget);
+
+    if (source_pin->combo_items_str.empty())
+        return false;
 
     if (widget.items.size() < widget.names.size())
         widget.items.resize(widget.names.size());
@@ -248,7 +268,7 @@ bool CustomMediaWidget::check_source_and_get_pin(Widget& widget, int64_t& index,
     return true;
 }
 
-void CustomMediaWidget::download_media(HttpRequestor requestor, Widget& widget, int64_t index)
+void CustomMediaWidget::download_media(HttpRequestor requestor, Widget& widget, int64_t index, bool from_output)
 {
     auto& widget_item = widget.items[index];
 
@@ -260,7 +280,7 @@ void CustomMediaWidget::download_media(HttpRequestor requestor, Widget& widget, 
     }
 
     std::filesystem::path source_name = widget.names[index];
-    const auto download_video = [&widget, w_id = m_node->get_workflow_id(), n_id = m_node->get_instance_id(), index, ext = tools::path::path_to_string(source_name.extension())]
+    const auto callback = [&widget, w_id = m_node->get_workflow_id(), n_id = m_node->get_instance_id(), index]
     (int32_t result, std::string&& data)
     {
         LogRAssertS(cast::to_szt(index) < widget.items.size(), "Index out of bound. w: " << w_id << ", n:" << n_id << ", idx:" << index << ", lst:" << widget.items.size(), );
@@ -270,7 +290,7 @@ void CustomMediaWidget::download_media(HttpRequestor requestor, Widget& widget, 
         if (result != HTTP_RESP_OK || data.empty())
             return;
 
-        auto temp_filename = fs::get_temp_filepath(ext);
+        auto temp_filename = fs::get_temp_filepath(".media");
         if (!temp_filename.empty())
         {
             if (tools::path::make_file(temp_filename, true, data))
@@ -284,9 +304,9 @@ void CustomMediaWidget::download_media(HttpRequestor requestor, Widget& widget, 
     };
 
     const std::string directory = tools::path::path_to_string(source_name.parent_path());
-    const std::string filename = tools::path::path_to_string(source_name.filename());
+    const std::string filename = tools::path::path_to_string(source_name.filename()) + (from_output ? " [output]" : "");
     const auto request = fmt::format(comfyui_http::view_input_, tools::str::url_encode(filename), tools::str::url_encode(directory));
-    g::pFlow->http_get(requestor, get_alive_callback(), request.c_str(), download_video, true);
+    g::pFlow->http_get(requestor, get_alive_callback(), request.c_str(), callback, true);
     widget_item.requested = true;
     widget_item.load_result = HTTP_RESP_IN_PROGRESS;
 }
@@ -321,9 +341,12 @@ const char* CustomMediaWidget::format_timeline(float duration, float pos)
 
 void CustomMediaWidget::reset_widgets()
 {
-    m_images = {};
-    m_videos = {};
-    m_audios = {};
+    m_images_in = {};
+    m_images_out = {};
+    m_videos_in = {};
+    m_videos_out = {};
+    m_audios_in = {};
+    m_audios_out = {};
 }
 
 void CustomMediaWidget::add_output(
@@ -362,7 +385,7 @@ void CustomMediaWidget::add_output(
     }
 
     out.item.server_name = server_filename;
-    node->obj_flags().remove(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
+    node->obj_flags().remove(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaRefreshButton, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
     node->obj_flags().add(NodeObjFlags::RestrictCfg, NodeObjFlags::CustomMediaWidget, NodeObjFlags::CustomMediaFromOutput, out.media_type);
     node->reset_width();
 
@@ -408,18 +431,24 @@ bool CustomMediaWidget::check_open_def_app(data::NodeInstance* node, bool check_
         return false;
     }
 
-    if (flags.has(NodeObjFlags::CustomMediaFromSource) && flags.has_any(NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaAudio))
+    if (flags.has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut) && flags.has_any(NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaAudio))
     {
         int64_t index = 0;
         data::Pin* source_pin_obj = nullptr;
         Widget* widget = nullptr;
 
-        if (flags.has(NodeObjFlags::CustomMediaImage))
-            widget = &m_images;
-        else if (flags.has(NodeObjFlags::CustomMediaVideo))
-            widget = &m_videos;
-        else if (flags.has(NodeObjFlags::CustomMediaAudio))
-            widget = &m_audios;
+        if (flags.has_all(NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaFromSourceIn))
+            widget = &m_images_in;
+        else if (flags.has_all(NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaFromSourceOut))
+            widget = &m_images_out;
+        else if (flags.has_all(NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaFromSourceIn))
+            widget = &m_videos_in;
+        else if (flags.has_all(NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaFromSourceOut))
+            widget = &m_videos_out;
+        else if (flags.has_all(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaFromSourceIn))
+            widget = &m_audios_in;
+        else if (flags.has_all(NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaFromSourceOut))
+            widget = &m_audios_out;
         else
             return false;
 

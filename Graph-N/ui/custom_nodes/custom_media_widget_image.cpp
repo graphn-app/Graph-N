@@ -78,12 +78,14 @@ void CustomMediaWidget::draw_image_widget_from_source()
 {
     m_node->flags().remove(NodeInstFlags::MaskEditorReady, NodeInstFlags::PosEditorReady);
 
+    auto data_widget = m_node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceIn) ? &m_images_in : &m_images_out;
+
     int64_t index = 0;
     data::Pin* source_pin_obj = nullptr;
-    if (!check_source_and_get_pin(m_images, index, source_pin_obj))
+    if (!check_source_and_get_pin(*data_widget, index, source_pin_obj))
         return;
 
-    auto& widget = m_images.items[index];
+    auto& widget = data_widget->items[index];
 
     if (widget.media_valid.value_or(false))
     {
@@ -96,12 +98,12 @@ void CustomMediaWidget::draw_image_widget_from_source()
         widget.media_valid = (widget.media_id != 0);
     }
     else
-        download_media(HttpRequestor::CustomWdgt_Image, m_images, index);
+        download_media(HttpRequestor::CustomWdgt_Image, *data_widget, index, m_node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceOut));
 }
 
 bool CustomMediaWidget::get_current_image_paths(data::NodeInstance* node, std::filesystem::path& path, std::filesystem::path& server_name) const
 {
-    if (node->obj_flags().has_all(NodeObjFlags::CustomMediaFromSource, NodeObjFlags::CustomMediaImage))
+    if (node->obj_flags().has(NodeObjFlags::CustomMediaImage) && node->obj_flags().has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut))
     {
         auto source_pin_obj = node->get_object()->custom_widget_source;
         data::PinInstance* source_pin_inst = nullptr;
@@ -118,9 +120,10 @@ bool CustomMediaWidget::get_current_image_paths(data::NodeInstance* node, std::f
         const int64_t index = source_pin_inst->state().value.get_int();
         LogRAssert(index >= 0 && cast::to_szt(index) < source_pin_obj->combo_items_ptr.size(), "Indext out of bounds. w: " << node->get_workflow_id() << ", n:" << node->get_instance_id() << ", p:" << source_pin_inst->get_instance_id(), false);
 
-        if (g::pTextures->get_image_alive(m_images.items[index].media_id))
+        auto data_widget = node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceIn) ? &m_images_in : &m_images_out;
+        if (g::pTextures->get_image_alive(data_widget->items[index].media_id))
         {
-            path = m_images.items[index].temp_path;
+            path = data_widget->items[index].temp_path;
             server_name = source_pin_obj->combo_items_ptr[index];
             return tools::path::exists(path);
         }

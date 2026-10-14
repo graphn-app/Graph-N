@@ -1636,7 +1636,7 @@ void host_open(CustomMediaWidget* wdgt, wid wf_id, iid node_id, mngr::HostManage
     else
         node->flags().add(NodeInstFlags::PosEditorRunning);
 
-    g::pHostManager->add_host(wf_id, node_id, type, std::move(source_path), std::move(dest_path), node->obj_flags().has(NodeObjFlags::CustomMediaFromSource));
+    g::pHostManager->add_host(wf_id, node_id, type, std::move(source_path), std::move(dest_path), node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceIn));
 }
 } // namespace
 
