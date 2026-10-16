@@ -5,6 +5,10 @@ namespace data
 struct Node;
 class NodeInstance;
 }
+namespace mngr
+{
+class NodesManager;
+}
 
 namespace ui
 {
@@ -14,7 +18,7 @@ class CustomJsNode final
 public:
     NO_COPY_MOVE_CTORS(CustomJsNode);
 
-    void test(data::Node* node);
+    void test(mngr::NodesManager* manager, data::Node* node);
     void init(data::NodeInstance* node);
     void draw(data::NodeInstance* node, float off, float width);
 

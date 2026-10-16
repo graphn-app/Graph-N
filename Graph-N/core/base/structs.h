@@ -384,6 +384,10 @@ constexpr const char* IMPACT_SWITCH_CLASS                       = "ImpactSwitch"
 constexpr const char* LATENT_SWITCH_CLASS                       = "LatentSwitch";
 constexpr const char* SEGS_SWITCH_CLASS                         = "SEGSSwitch";
 constexpr const char* IMPACT_INVERSED_SWITCH_CLASS              = "ImpactInversedSwitch";
+constexpr const char* CONTEXT_MERGE_RGTHREE_CLASS               = "Context Merge (rgthree)";
+constexpr const char* CONTEXT_MERGE_BIG_RGTHREE_CLASS           = "Context Merge Big (rgthree)";
+constexpr const char* CONTEXT_SWITCH_RGTHREE_CLASS              = "Context Switch (rgthree)";
+constexpr const char* CONTEXT_SWITCH_BIG_RGTHREE_CLASS          = "Context Switch Big (rgthree)";
 
 constexpr hid REROUTE                                           = tools::str::hash_stable(REROUTE_CLASS);
 constexpr hid REROUTE_PYSSSSS                                   = tools::str::hash_stable(REROUTE_PYSSSSS_CLASS);
@@ -402,6 +406,10 @@ constexpr hid IMPACT_SWITCH                                     = tools::str::ha
 constexpr hid LATENT_SWITCH                                     = tools::str::hash_stable(LATENT_SWITCH_CLASS);
 constexpr hid SEGS_SWITCH                                       = tools::str::hash_stable(SEGS_SWITCH_CLASS);
 constexpr hid IMPACT_INVERSED_SWITCH                            = tools::str::hash_stable(IMPACT_INVERSED_SWITCH_CLASS);
+constexpr hid CONTEXT_MERGE_RGTHREE                             = tools::str::hash_stable(CONTEXT_MERGE_RGTHREE_CLASS);
+constexpr hid CONTEXT_MERGE_BIG_RGTHREE                         = tools::str::hash_stable(CONTEXT_MERGE_BIG_RGTHREE_CLASS);
+constexpr hid CONTEXT_SWITCH_RGTHREE                            = tools::str::hash_stable(CONTEXT_SWITCH_RGTHREE_CLASS);
+constexpr hid CONTEXT_SWITCH_BIG_RGTHREE                        = tools::str::hash_stable(CONTEXT_SWITCH_BIG_RGTHREE_CLASS);
 
 struct Data {};
 struct CustomCombo_Data : public Data

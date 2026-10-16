@@ -127,7 +127,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
         parse_output(manager, *node.get(), jnode);        // output, output_is_list, output_name, output_node, output_tooltips
         parse_others(*node.get(), jnode);                // python_module, experimental, deprecated, api_node
 
-        g::pFlow->custom_js_nodes().test(node.get());
+        g::pFlow->custom_js_nodes().test(&manager, node.get());
         node->finalize(&models_map);
         put_in_tree(manager, node.get());
 

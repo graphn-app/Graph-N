@@ -1,21 +1,32 @@
 #include "ui/custom_nodes/custom_js_node.h"
+#include "core/managers/nodes_manager.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/node.h"
+#include "core/workflow/pin.h"
 
 namespace ui
 {
 
-void CustomJsNode::test(data::Node* /*node*/)
+void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
 {
-    //switch (node->get_hash())
-    //{
-    //    // TODO
-    ////case js::CUSTOM_COMBO:
-    ////    if (!node->input.empty())
-    ////        node->input[0]->flags.remove(PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::CanRename);
-    ////    node->flags.add(NodeObjFlags::CustomJsNode);
-    ////    break;
-    //}
+    switch (node->get_hash())
+    {
+    case js::CONTEXT_MERGE_RGTHREE:
+    case js::CONTEXT_MERGE_BIG_RGTHREE:
+    case js::CONTEXT_SWITCH_RGTHREE:
+    case js::CONTEXT_SWITCH_BIG_RGTHREE:
+        for (size_t i = 1; i <= 5; i++)
+        {
+            manager->make_pin(node, "RGTHREE_CONTEXT", fmt::format(FMT_STRING("ctx_0{}"), i), -1);
+        }
+        break;
+        // TODO
+    //case js::CUSTOM_COMBO:
+    //    if (!node->input.empty())
+    //        node->input[0]->flags.remove(PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::CanRename);
+    //    node->flags.add(NodeObjFlags::CustomJsNode);
+    //    break;
+    }
 }
 
 void CustomJsNode::init(data::NodeInstance* node)
