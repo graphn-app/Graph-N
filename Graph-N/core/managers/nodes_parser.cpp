@@ -121,7 +121,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
         auto node = std::make_unique<data::Node>(node_class);
         parse_names(*node.get(), node_class, jnode);        // name, display name, category, description, search_aliases
 
-        //BREAK_IF(node_class == "ControlNetPreprocessorSelector");
+        BREAK_IF(node_class == "ColorToRGBInt");
 
         parse_input(manager, *node.get(), jnode);        // input, input_order
         parse_output(manager, *node.get(), jnode);        // output, output_is_list, output_name, output_node, output_tooltips
@@ -175,10 +175,62 @@ TYPE json_to_number(const o_json& j)
     {
         static_assert(std::same_as<number_t, double>, "Update this function if number_t changes");
 
-        if constexpr (std::is_same_v<TYPE, number>)
-            return j.get<double>();
-        else
-            return j.get<TYPE>();
+        try 
+        {
+            // clamp limits for integral types
+            if constexpr (std::is_integral_v<TYPE>)
+            {
+                if (j.is_number_float()) 
+                {
+                    const double d = j.get<double>();
+                    if (d <= cast::to_double(std::numeric_limits<TYPE>::min()))
+                        return std::numeric_limits<TYPE>::min();
+                    if (d >= cast::to_double(std::numeric_limits<TYPE>::max()))
+                        return std::numeric_limits<TYPE>::max();
+                    return cast::to<TYPE>(d);
+                } 
+                else if (j.is_number_unsigned()) 
+                {
+                    const uint64_t u = j.get<uint64_t>();
+                    if (u >= cast::to_u64(std::numeric_limits<TYPE>::max()))
+                        return std::numeric_limits<TYPE>::max();
+                    return cast::to<TYPE>(u);
+                } 
+                else 
+                {
+                    const int64_t i = j.get<int64_t>();
+                    if (i <= cast::to_i64(std::numeric_limits<TYPE>::min()))
+                        return std::numeric_limits<TYPE>::min();
+                    if (i >= cast::to_i64(std::numeric_limits<TYPE>::max()))
+                        return std::numeric_limits<TYPE>::max();
+                    return cast::to<TYPE>(i);
+                }
+            }
+            else 
+            {
+                // native fallback for floating point types
+                if constexpr (std::is_same_v<TYPE, number>)
+                    return j.get<double>();
+                else
+                    return j.get<TYPE>();
+            }
+        }
+        catch (const std::exception&) 
+        {
+            // extreme overflow fallback (e.g. value doesn't fit in uint64_t or double)
+            if constexpr (std::is_integral_v<TYPE>)
+            {
+                if (j.dump().starts_with('-'))
+                    return std::numeric_limits<TYPE>::min();
+                return std::numeric_limits<TYPE>::max();
+            }
+            else
+            {
+                if (j.dump().starts_with('-'))
+                    return std::numeric_limits<TYPE>::lowest();
+                return std::numeric_limits<TYPE>::infinity();
+            }
+        }
     }
     if (j.is_boolean())
     {
@@ -486,6 +538,12 @@ void NodesParser::prepare_parsers_map()
     {
         if (j.is_boolean()) pin.flags.add_remove_if(PinObjFlags::VideoUpload, j.get<bool>());
         else log_err_type(node, pin, j, "video_upload");
+    };
+    m_parsers["socketless"] =
+        [&log_err_type](const data::Node& node, data::Pin& pin, const o_json& j)
+    {
+        if (j.is_boolean()) pin.flags.remove_if(PinObjFlags::CanLink, j.get<bool>());
+        else log_err_type(node, pin, j, "socketless");
     };
 }
 

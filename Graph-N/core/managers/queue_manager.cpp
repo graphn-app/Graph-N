@@ -440,6 +440,7 @@ void QueueManager::parse_http_response(int32_t result, const std::string& payloa
 
         if (j.contains("error") && j["error"].contains("message") && j["error"]["message"].is_string())
         {
+            task.result = TaskResult::Failed;
             task.err_message = task.err_full = j["error"]["message"];
             LogS("Task #" << task_log_id << " failed: " << task.err_message);
         }
@@ -450,6 +451,7 @@ void QueueManager::parse_http_response(int32_t result, const std::string& payloa
             auto& jerrors = j["node_errors"];
             for (auto&[jnode_id, jerr] : jerrors.items())
             {
+                task.result = TaskResult::Failed;
                 const iid node = std::strtoul(jnode_id.c_str(), nullptr, 10);
                 if (node > 0 && jerr.contains("errors") && jerr["errors"].is_array())
                 {

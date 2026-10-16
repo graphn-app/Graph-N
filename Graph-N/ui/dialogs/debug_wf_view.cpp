@@ -76,7 +76,7 @@ constexpr FlagDef<PinObjFlags> g_pin_obj_flags[] =
     DEF_FLAG(PinObjFlags, DenyMultilineSwitch), DEF_FLAG(PinObjFlags, OutputIsList), DEF_FLAG(PinObjFlags, ForceInput),
     DEF_FLAG(PinObjFlags, DefInput), DEF_FLAG(PinObjFlags, Lazy), DEF_FLAG(PinObjFlags, Multiselect),
     DEF_FLAG(PinObjFlags, DisplAsNumber), DEF_FLAG(PinObjFlags, DisplAsColor), DEF_FLAG(PinObjFlags, DisplAsSlider),
-    DEF_FLAG(PinObjFlags, DynamicPrompts)
+    DEF_FLAG(PinObjFlags, DynamicPrompts), DEF_FLAG(PinObjFlags, ColorAsString)
 };
 
 template<typename T, size_t N>

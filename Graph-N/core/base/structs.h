@@ -388,6 +388,14 @@ constexpr const char* CONTEXT_MERGE_RGTHREE_CLASS               = "Context Merge
 constexpr const char* CONTEXT_MERGE_BIG_RGTHREE_CLASS           = "Context Merge Big (rgthree)";
 constexpr const char* CONTEXT_SWITCH_RGTHREE_CLASS              = "Context Switch (rgthree)";
 constexpr const char* CONTEXT_SWITCH_BIG_RGTHREE_CLASS          = "Context Switch Big (rgthree)";
+constexpr const char* IMPACT_REMOTE_INT_IMPACT_CLASS            = "ImpactRemoteInt";
+constexpr const char* IMPACT_REMOTE_BOOL_IMPACT_CLASS           = "ImpactRemoteBoolean";
+constexpr const char* IMPACT_REMOTE_FLOAT_IMPACT_CLASS          = "ImpactRemoteFloat";
+constexpr const char* IMPACT_REMOTE_STRING_IMPACT_CLASS         = "ImpactRemoteString";
+constexpr const char* IMPACT_REMOTE_TEXT_IMPACT_CLASS           = "ImpactRemoteText";
+constexpr const char* IMPACT_SET_BYPASS_IMPACT_CLASS            = "ImpactNodeSetBypassState";
+constexpr const char* IMPACT_SET_MUTE_IMPACT_CLASS              = "ImpactNodeSetMuteState";
+constexpr const char* IMPACT_SET_WIDGET_VALUE_CLASS             = "ImpactSetWidgetValue";
 
 constexpr hid REROUTE                                           = tools::str::hash_stable(REROUTE_CLASS);
 constexpr hid REROUTE_PYSSSSS                                   = tools::str::hash_stable(REROUTE_PYSSSSS_CLASS);
@@ -410,6 +418,14 @@ constexpr hid CONTEXT_MERGE_RGTHREE                             = tools::str::ha
 constexpr hid CONTEXT_MERGE_BIG_RGTHREE                         = tools::str::hash_stable(CONTEXT_MERGE_BIG_RGTHREE_CLASS);
 constexpr hid CONTEXT_SWITCH_RGTHREE                            = tools::str::hash_stable(CONTEXT_SWITCH_RGTHREE_CLASS);
 constexpr hid CONTEXT_SWITCH_BIG_RGTHREE                        = tools::str::hash_stable(CONTEXT_SWITCH_BIG_RGTHREE_CLASS);
+constexpr hid IMPACT_REMOTE_INT_IMPACT                          = tools::str::hash_stable(IMPACT_REMOTE_INT_IMPACT_CLASS);
+constexpr hid IMPACT_REMOTE_BOOL_IMPACT                         = tools::str::hash_stable(IMPACT_REMOTE_BOOL_IMPACT_CLASS);
+constexpr hid IMPACT_REMOTE_FLOAT_IMPACT                        = tools::str::hash_stable(IMPACT_REMOTE_FLOAT_IMPACT_CLASS);
+constexpr hid IMPACT_REMOTE_STRING_IMPACT                       = tools::str::hash_stable(IMPACT_REMOTE_STRING_IMPACT_CLASS);
+constexpr hid IMPACT_REMOTE_TEXT_IMPACT                         = tools::str::hash_stable(IMPACT_REMOTE_TEXT_IMPACT_CLASS);
+constexpr hid IMPACT_SET_BYPASS_IMPACT                          = tools::str::hash_stable(IMPACT_SET_BYPASS_IMPACT_CLASS);
+constexpr hid IMPACT_SET_MUTE_IMPACT                            = tools::str::hash_stable(IMPACT_SET_MUTE_IMPACT_CLASS);
+constexpr hid IMPACT_SET_WIDGET_VALUE                           = tools::str::hash_stable(IMPACT_SET_WIDGET_VALUE_CLASS);
 
 struct Data {};
 struct CustomCombo_Data : public Data

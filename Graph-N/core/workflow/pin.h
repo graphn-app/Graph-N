@@ -91,7 +91,7 @@ public:
     void finalize_bool();
     void finalize_color();
 
-    static int64_t color_to_val(const std::string& clr, bool& alpha_in_string) noexcept;
+    static bool color_to_val(const std::string& clr, int64_t& val, bool& alpha_in_string) noexcept;
     static int64_t colors_to_int(const ImVec4& colors) noexcept;
 
     static PinShape get_shape(PinType type) noexcept;

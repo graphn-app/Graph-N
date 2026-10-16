@@ -62,6 +62,8 @@ private:
     LinkMap m_node_in_pins;
     LinkMap m_node_out_pins;
     std::map<std::string, iid> m_node_ids;
+
+    static std::unordered_set<hid> m_ignore_pins;
 };
 
 } // namespace data

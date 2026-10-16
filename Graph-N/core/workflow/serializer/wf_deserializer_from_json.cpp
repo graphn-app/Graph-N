@@ -45,6 +45,10 @@ ImU32 parse_color(const std::string& color)
 }
 } // namespace
 
+std::unordered_set<hid> WfDeserializerFromJson::m_ignore_pins =
+{
+    tools::str::hash_stable("IMAGEUPLOAD")
+};
 
 WfDeserializerFromJson::WfDeserializerFromJson(Workflow* wf, const o_json& j)
     : m_wf(wf)
@@ -168,6 +172,9 @@ bool WfDeserializerFromJson::check_node_definition(const o_json& j, bool& is_val
                 const std::string type = jinput["type"];
 
                 const auto pin_hash = Pin::make_hash(node_class, name, -1);
+                if (m_ignore_pins.contains(pin_hash))
+                    continue;
+
                 auto pin = g::pNodesManager->find_pin(pin_hash);
                 if (nullptr == pin || pin->def_state.type_str != type)
                     return false;
@@ -198,6 +205,9 @@ bool WfDeserializerFromJson::check_node_definition(const o_json& j, bool& is_val
                 const std::string type = joutput["type"];
 
                 const auto pin_hash = Pin::make_hash(node_class, name, index);
+                if (m_ignore_pins.contains(pin_hash))
+                    continue;
+
                 auto pin = g::pNodesManager->find_pin(pin_hash);
                 if (nullptr == pin || pin->def_state.type_str != type)
                     return false;
@@ -328,6 +338,8 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
 
                     Pin* pin = nullptr;
                     const auto pin_hash = Pin::make_hash(node_instance->get_object(), name, -1);
+                    if (m_ignore_pins.contains(pin_hash))
+                        continue;
 
                     if (dummy)
                     {
@@ -388,6 +400,8 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                     {
                         pin_hash = Pin::make_hash(node_instance->get_object(), name, index);
                     }
+                    if (m_ignore_pins.contains(pin_hash))
+                        continue;
 
                     Pin* pin = nullptr;
                     if (dummy)

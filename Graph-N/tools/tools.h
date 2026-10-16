@@ -30,7 +30,7 @@ constexpr uint64_t hash_stable(std::string_view str) noexcept
     uint64_t hash = FNV_OFFSET_BASIS;    
     for (size_t i = 0; i < str.size(); ++i)
     {
-        hash ^= cast::to<uint64_t>(cast::to<uint8_t>(str[i]));
+        hash ^= static_cast<uint64_t>(static_cast<uint8_t>(str[i]));    // don't check for type cast overflow, force cast
         hash *= FNV_PRIME;
     }
     return hash;

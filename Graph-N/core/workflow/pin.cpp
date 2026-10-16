@@ -285,7 +285,7 @@ void Pin::finalize_int()
     precision = fmt::format(FMT_STRING("%lld"));
     precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
 
-    if (flags.has(PinObjFlags::CagRequire) || def_state.max < def_state.min)  // usually max = -1 and min = 0 -> unsigned int
+    if (def_state.max < def_state.min)  // usually max = -1 and min = 0 -> unsigned int
     {
         def_state.step = int64_t(1);
         def = int64_t(0);
@@ -442,15 +442,27 @@ void Pin::finalize_color()
     precision = fmt::format(FMT_STRING("%lld"));
     precision_named = fmt::format(FMT_STRING("{}: %lld"), def_state.name);
 
-    if (!def_state.min.is_int() || !def_state.max.is_int() || !def_state.step.is_int() || !def_state.value.is_int())
+    bool alpha = false;
+    if (def.is_string())
     {
-        def_state.min = def_state.min.is_int() ? def_state.min : int64_t(0);
-        def_state.max = def_state.max.is_int() ? def_state.max : int64_t(0xffffff);
-        def_state.step = def_state.step.is_int() ? def_state.step : int64_t(0);
-        def_state.value = def_state.value.is_int() ? def_state.value : int64_t(0);
+        int64_t val = 0;
+        if (!color_to_val(def.get_string(), val, alpha))
+        {
+            flags.add(PinObjFlags::ColorAsString);
+            return;
+        }
+        def = val;
+        def_state.value = val;
     }
 
-    def_state.max = std::max(def_state.max.get_int(), int64_t(0xffffffff));
+    def_state.min = def_state.min.is_int() ? def_state.min : int64_t(0);
+    def_state.max = def_state.max.is_int() ? def_state.max : int64_t(0xffffff);
+    def_state.step = def_state.step.is_int() ? def_state.step : int64_t(1);
+    def_state.value = def_state.value.is_int() ? def_state.value : int64_t(0);
+
+    if (alpha)
+        def_state.max = std::max(def_state.max.get_int(), int64_t(0xffffffff));
+
     if (def_state.max.get_int() > int64_t(0xffffff))
         flags.add(PinObjFlags::ClrAlphaEnabled);
 
@@ -533,7 +545,7 @@ void Pin::init_defaults()
     {
         def_state.value = int64_t(IM_COL32_WHITE);
         def = int64_t(IM_COL32_WHITE);
-        def_state.min = int64_t(IM_COL32_BLACK);
+        def_state.min = int64_t(0);
         def_state.max = int64_t(IM_COL32_WHITE);
         def_state.step = int64_t(1);
     }
@@ -698,10 +710,10 @@ int64_t Pin::colors_to_int(const ImVec4& colors) noexcept
     return cast::to_i64(ImU32(clr));
 }
 
-int64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string) noexcept
+bool Pin::color_to_val(const std::string& clr, int64_t& val, bool& alpha_in_string) noexcept
 {
     if (clr.empty())
-        return cast::to_i64(IM_COL32_WHITE);
+        return false;
 
     if ((clr.size() == 7 || clr.size() == 9) && clr[0] == '#')
     {
@@ -716,7 +728,8 @@ int64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string) noexcep
             alpha_in_string = true;
             sscanf_s(clr.c_str(), "#%02x%02x%02x%02x", &r, &g, &b, &a);
         }
-        return cast::to_i64(IM_COL32(r, g, b, a));
+        val = cast::to_i64(IM_COL32(r, g, b, a));
+        return true;
     }
 
     struct ColorEntry final
@@ -743,10 +756,12 @@ int64_t Pin::color_to_val(const std::string& clr, bool& alpha_in_string) noexcep
     
     const auto it = std::ranges::lower_bound(named_colors, clr, std::ranges::less{}, &ColorEntry::name);
     if (it != named_colors.end() && it->name == clr)
-        return cast::to_i64(it->value);
+    {
+        val = cast::to_i64(it->value);
+        return true;
+    }
     
-    // if we didn't get it - return bright magenta
-    return cast::to_i64(IM_COL32(255, 0, 255, 255));
+    return false;
 }
 
 PinShape Pin::get_shape(PinType type) noexcept
