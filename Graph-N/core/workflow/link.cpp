@@ -152,6 +152,9 @@ void Link::unlink()
     s1.links--;
     s2.links--;
 
+    const auto i1 = p1->get_instance_id();  // pin(s) might be destroyed
+    const auto i2 = p2->get_instance_id();
+
     if (p1->flags().has_not(PinInstFlags::RerouteSplittingPin))
     {
         auto o1 = p1->get_object();
@@ -180,7 +183,7 @@ void Link::unlink()
         if (n2->flags().has(NodeInstFlags::CNI)) n2->cni_pin_unlinked(p2, p1);
     }
 
-    Log("Unlinked. w:" << get_workflow_id() << ", l:" << get_instance_id() << ", p1:" << p1->get_instance_id() << ", p2" << p2->get_instance_id());
+    Log("Unlinked. w:" << get_workflow_id() << ", l:" << get_instance_id() << ", p1:" << i1 << ", p2" << i2);
 }
 
 bool Link::is_reroute_splitting_link() const noexcept

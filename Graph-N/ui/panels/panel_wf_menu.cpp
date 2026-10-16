@@ -1520,7 +1520,7 @@ bool PanelWorkflow::show_pin_menu()
     bool close = false;
 
     auto pin = *m_menu_objs.pins.begin();
-    const bool linked = (pin->state().links > 0);
+    bool linked = (pin->state().links > 0);
     const bool is_widget = pin->get_object()->is_widget();
     const bool name_eq = (pin->state().name == pin->get_object()->def_state.name);
     const bool can_rename = m_drawer.zoomed_allow_renaming() && pin->obj_flags().has(PinObjFlags::CanRename);
@@ -1531,6 +1531,7 @@ bool PanelWorkflow::show_pin_menu()
     {
         m_action->unlink(pin); // pin might be destroyed here
         close = true;
+        linked = false;
     }
     ImGui::Separator();
     if (ImGui::MenuItem("Rename slot", nullptr, nullptr, !is_widget && can_rename))

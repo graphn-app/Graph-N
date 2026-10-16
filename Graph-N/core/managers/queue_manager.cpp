@@ -141,7 +141,7 @@ void QueueManager::add_to_queue(data::Workflow* wf, int32_t count, bool push_fro
 
 void QueueManager::process()
 {
-    if (!g::pFlow->get_online()) [[unlikely]]
+    if (!g::pFlow->get_nodes_ready()) [[unlikely]]
     {
         m_external_tasks = 0;
         if (m_current != nullptr)
