@@ -32,6 +32,10 @@ void WfSerializerToBlob::serialize_cni_node()
         return serialize_cni_node_fast_action_rgthree();
     case js::BOOKMARK_RGTHREE:
         return serialize_cni_node_bookmark_rgthree();
+    case js::IMPACT_SWITCH:
+        return serialize_cni_node_impact_switch();
+    case js::IMPACT_INVERSED_SWITCH:
+        return serialize_cni_node_impact_insversed_switch();
     }
 
     if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
@@ -207,6 +211,47 @@ void WfSerializerToBlob::serialize_cni_node_bookmark_rgthree()
     blob::Block block(m_writer);
 
     // TODO: CNI_BookmarkRgthree
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    ImpactSwitch & ImpactInversedSwitch            //////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+void serialize_impact_switch(blob::Writer& writer, const CNI_DeserializedSwitchImpact& data)
+{
+    blob::Block block(writer);
+
+    const auto write = [&](const std::vector<std::pair<iid, hid>>& ids)
+    {
+        writer.push(cast::to_u64(ids.size()));
+        for (auto [id, hash] : ids)
+        {
+            writer.push(id);
+        }
+    };
+
+    write(data.in_ids);
+    write(data.out_ids);
+    write(data.in_dynamic_ids);
+    write(data.out_dynamic_ids);
+    writer.push(data.selected);
+    writer.push(data.mode);
+}
+} // namespace
+
+
+void WfSerializerToBlob::serialize_cni_node_impact_switch()
+{
+    auto sw_node = cast::strict<CNI_SwitchImpact>(m_curr_node);
+    serialize_impact_switch(m_writer, sw_node->dump());
+}
+
+void WfSerializerToBlob::serialize_cni_node_impact_insversed_switch()
+{
+    auto sw_node = cast::strict<CNI_SwitchInversedImpact>(m_curr_node);
+    serialize_impact_switch(m_writer, sw_node->dump());
 }
 
 } // namespace data

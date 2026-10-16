@@ -31,6 +31,10 @@ bool WfDeserializerFromJson::check_cni_node_definition(const o_json& j, hid node
         return check_cni_node_fast_action_rgthree(j, is_valid);
     case js::BOOKMARK_RGTHREE:
         return check_cni_node_bookmark_rgthree(j, is_valid);
+    case js::IMPACT_SWITCH:
+        return check_cni_node_impact_switch(j, is_valid);
+    case js::IMPACT_INVERSED_SWITCH:
+        return check_cni_node_impact_insversed_switch(j, is_valid);
     }
 
     is_cni = false;
@@ -64,6 +68,10 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node(NodeInstance* node, c
         return deserialize_cni_fast_action_rgthree(node, j);
     case js::BOOKMARK_RGTHREE:
         return deserialize_cni_bookmark_rgthree(node, j);
+    case js::IMPACT_SWITCH:
+        return deserialize_cni_node_impact_switch(node, j);
+    case js::IMPACT_INVERSED_SWITCH:
+        return deserialize_cni_node_impact_insversed_switch(node, j);
     }
 
     if (node->obj_flags().has(NodeObjFlags::CustomJsNode))
@@ -395,6 +403,118 @@ bool WfDeserializerFromJson::check_cni_node_bookmark_rgthree(const o_json& j, bo
 NodeInstance* WfDeserializerFromJson::deserialize_cni_bookmark_rgthree(NodeInstance* node, const o_json& /*j*/)
 {
     // TODO: CNI_BookmarkRgthree
+    return node;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    CNI_SwitchImpact                                       //////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+bool WfDeserializerFromJson::check_cni_node_impact_switch(const o_json& j, bool& /*is_valid*/) const
+{
+    if (j.contains("inputs") && j["inputs"].empty())
+        return false;
+    if (j.contains("outputs") && j["outputs"].size() < 3)
+        return false;
+    if (j.contains("widgets_values") && j["widgets_values"].empty())
+        return false;
+    return true;
+}
+
+NodeInstance* WfDeserializerFromJson::deserialize_cni_node_impact_switch(NodeInstance* node, const o_json& j)
+{
+    auto switcher = cast::dynamic<CNI_SwitchImpact>(node);
+    LogRAssert(switcher, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << node->get_instance_id() << ", t:" << typeid(node).name(), node);
+
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedSwitchImpact>();
+    auto switcher_data = cast::strict<CNI_DeserializedSwitchImpact>(data.get());
+
+    int32_t index = 0;
+    if (j.contains("inputs") && j["inputs"].is_array())
+    {
+        for (const auto& jinput : j["inputs"])
+        {
+            if (jinput.is_object() && jinput.contains("link") && !jinput["link"].is_null() && jinput["link"].is_number_integer())
+            {
+                const auto id = m_wf->get_new_child_id();
+                switcher_data->in_dynamic_ids.push_back(std::make_pair(id, 0));
+                m_node_in_pins[node->get_instance_id()][index++] = id;
+            }
+        }
+    }
+    index = 0;
+    if (j.contains("outputs") && j["outputsoutputs"].is_array())
+    {
+        for (const auto& joutput : j["outputs"])
+        {
+            if (joutput.is_object() && joutput.contains("link") && !joutput["link"].is_null() && !joutput["link"].empty())
+            {
+                const auto id = m_wf->get_new_child_id();
+                switcher_data->out_ids.push_back(std::make_pair(id, 0));
+                m_node_out_pins[node->get_instance_id()][index++] = id;
+            }
+        }
+    }
+
+    switcher->cni_save_deserialized_info(std::move(data));
+    switcher->cni_init();
+
+    return node;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    CNI_ReversedSwitchImpact                               //////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+bool WfDeserializerFromJson::check_cni_node_impact_insversed_switch(const o_json& j, bool& /*is_valid*/) const
+{
+    if (j.contains("inputs") && j["inputs"].empty())
+        return false;
+    if (j.contains("outputs") && j["outputs"].empty())
+        return false;
+    if (j.contains("widgets_values") && j["widgets_values"].empty())
+        return false;
+    return true;
+}
+
+NodeInstance* WfDeserializerFromJson::deserialize_cni_node_impact_insversed_switch(NodeInstance* node, const o_json& j)
+{
+    auto switcher = cast::dynamic<CNI_SwitchInversedImpact>(node);
+    LogRAssert(switcher, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << node->get_instance_id() << ", t:" << typeid(node).name(), node);
+
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedSwitchImpact>();
+    auto switcher_data = cast::strict<CNI_DeserializedSwitchImpact>(data.get());
+
+    int32_t index = 0;
+    if (j.contains("inputs") && j["inputs"].is_array())
+    {
+        for (const auto& jinput : j["inputs"])
+        {
+            if (jinput.is_object() && jinput.contains("link") && !jinput["link"].is_null() && jinput["link"].is_number_integer())
+            {
+                const auto id = m_wf->get_new_child_id();
+                switcher_data->in_ids.push_back(std::make_pair(id, 0));
+                m_node_in_pins[node->get_instance_id()][index++] = id;
+            }
+        }
+    }
+    index = 0;
+    if (j.contains("outputs") && j["outputsoutputs"].is_array())
+    {
+        for (const auto& joutput : j["outputs"])
+        {
+            if (joutput.is_object() && joutput.contains("link") && !joutput["link"].is_null() && !joutput["link"].empty())
+            {
+                const auto id = m_wf->get_new_child_id();
+                switcher_data->out_dynamic_ids.push_back(std::make_pair(id, 0));
+                m_node_out_pins[node->get_instance_id()][index++] = id;
+            }
+        }
+    }
+
+    switcher->cni_save_deserialized_info(std::move(data));
+    switcher->cni_init();
+
     return node;
 }
 

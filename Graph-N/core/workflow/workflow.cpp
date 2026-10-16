@@ -96,6 +96,14 @@ std::unique_ptr<data::NodeInstance> create_custom(data::Node* node, wid wf_id, i
     //case js::BOOKMARK_RGTHREE:
     //    custom_node = std::make_unique<CNI_BookmarkRgthree>(node, wf_id, node_id);
     //    break;
+    case js::IMPACT_SWITCH:
+    case js::LATENT_SWITCH:
+    case js::SEGS_SWITCH:
+        custom_node = std::make_unique<CNI_SwitchImpact>(node, wf_id, node_id);
+        break;
+    case js::IMPACT_INVERSED_SWITCH:
+        custom_node = std::make_unique<CNI_SwitchInversedImpact>(node, wf_id, node_id);
+        break;
     }
 
     return custom_node;

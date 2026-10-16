@@ -34,6 +34,10 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node(blob::Reader& block)
         return deserialize_cni_node_fast_action_rgthree(block);
     case js::BOOKMARK_RGTHREE:
         return deserialize_cni_node_bookmark_rgthree(block);
+    case js::IMPACT_SWITCH:
+        return deserialize_cni_node_impact_switch(block);
+    case js::IMPACT_INVERSED_SWITCH:
+        return deserialize_cni_node_impact_insversed_switch(block);
     }
 
     if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
@@ -234,6 +238,56 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_bookmark_rgthree(blob
     // TODO: CNI_BookmarkRgthree
     //LogRAssert(m_curr_node->obj_flags().has(NodeObjFlags::SpecBookmarkRgthree), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
 
+    return m_curr_node;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    ImpactSwitch & ImpactInversedSwitch            //////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+void deserialize_impact_switch(blob::Reader& root_block, CNI_DeserializedSwitchImpact& data)
+{
+    auto block = root_block.pop_block();
+
+    const auto read = [&](std::vector<std::pair<iid, hid>>& ids)
+    {
+        const auto size = block.pop_u64();
+        for (auto i = 0; i < size; i++)
+        {
+            const auto id = block.pop_iid();
+            ids.push_back(std::make_pair(id, 0));
+        }
+    };
+
+    read(data.in_ids);
+    read(data.out_ids);
+    read(data.in_dynamic_ids);
+    read(data.out_dynamic_ids);
+    data.selected = block.pop_i64();
+    data.mode = block.pop_bool();
+}
+} // namespace
+
+
+NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_impact_switch(blob::Reader& root_block)
+{
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedSwitchImpact>();
+    auto sw_data = cast::strict<CNI_DeserializedSwitchImpact>(data.get());
+    deserialize_impact_switch(root_block, *sw_data);
+    m_curr_node->cni_save_deserialized_info(std::move(data));
+    m_curr_node->cni_init();
+    return m_curr_node;
+}
+
+NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_impact_insversed_switch(blob::Reader& root_block)
+{
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedSwitchImpact>();
+    auto sw_data = cast::strict<CNI_DeserializedSwitchImpact>(data.get());
+    deserialize_impact_switch(root_block, *sw_data);
+    m_curr_node->cni_save_deserialized_info(std::move(data));
+    m_curr_node->cni_init();
     return m_curr_node;
 }
 

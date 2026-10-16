@@ -141,6 +141,24 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecBookmarkRgthree, NodeObjFlags::CustomJsNode, NodeObjFlags::NoPinCagMenu);
         break;
 
+    case js::IMPACT_SWITCH:
+    case js::LATENT_SWITCH:
+    case js::SEGS_SWITCH:
+        node = std::make_unique<data::Node>(js::IMPACT_SWITCH_CLASS);
+        node->name = node->display_name = "Switch (Any)";
+        node->category = "ImpactPack";
+        node->description = "Selects and passes a single input from multiple available inputs to the output based on the 'select' index. Acts as a data multiplexer supporting any data type";
+        node->python_module = "comfyui-impact-pack";
+        break;
+
+    case js::IMPACT_INVERSED_SWITCH:
+        node = std::make_unique<data::Node>(js::IMPACT_INVERSED_SWITCH_CLASS);
+        node->name = node->display_name = "Inversed Switch (Any)";
+        node->category = "ImpactPack";
+        node->description = "Routes a single input value to one of multiple available output slots based on the 'select' index. Unselected outputs remain inactive. Acts as a data demultiplexer supporting any data type";
+        node->python_module = "comfyui-impact-pack";
+        break;
+
     default:
         LogRErrorS("Unknown base object", nullptr);
     }

@@ -147,6 +147,10 @@ hid NodesManager::make_node_hash_and_migrate_node_if_required(std::string& node_
     case js::REROUTE_RGTHREE:
         node_class = js::REROUTE_CLASS;
         return js::REROUTE;
+    case js::LATENT_SWITCH:
+    case js::SEGS_SWITCH:
+        node_class = js::IMPACT_SWITCH_CLASS;
+        return js::IMPACT_SWITCH;
     default: [[likely]]
         return original_hash;
     }    

@@ -380,6 +380,10 @@ constexpr const char* FAST_GROUPS_MUTER_RGTHREE_CLASS           = "Fast Groups M
 constexpr const char* FAST_ACTIONS_BUTTON_RGTHREE_CLASS         = "Fast Actions Button (rgthree)";
 constexpr const char* BOOKMARK_RGTHREE_CLASS                    = "Bookmark (rgthree)";
 constexpr const char* CUSTOM_COMBO_CLASS                        = "CustomCombo";
+constexpr const char* IMPACT_SWITCH_CLASS                       = "ImpactSwitch";
+constexpr const char* LATENT_SWITCH_CLASS                       = "LatentSwitch";
+constexpr const char* SEGS_SWITCH_CLASS                         = "SEGSSwitch";
+constexpr const char* IMPACT_INVERSED_SWITCH_CLASS              = "ImpactInversedSwitch";
 
 constexpr hid REROUTE                                           = tools::str::hash_stable(REROUTE_CLASS);
 constexpr hid REROUTE_PYSSSSS                                   = tools::str::hash_stable(REROUTE_PYSSSSS_CLASS);
@@ -394,6 +398,10 @@ constexpr hid FAST_GROUPS_BYPASSER_RGTHREE                      = tools::str::ha
 constexpr hid FAST_ACTIONS_BUTTON_RGTHREE                       = tools::str::hash_stable(FAST_ACTIONS_BUTTON_RGTHREE_CLASS);
 constexpr hid BOOKMARK_RGTHREE                                  = tools::str::hash_stable(BOOKMARK_RGTHREE_CLASS);
 constexpr hid CUSTOM_COMBO                                      = tools::str::hash_stable(CUSTOM_COMBO_CLASS);
+constexpr hid IMPACT_SWITCH                                     = tools::str::hash_stable(IMPACT_SWITCH_CLASS);
+constexpr hid LATENT_SWITCH                                     = tools::str::hash_stable(LATENT_SWITCH_CLASS);
+constexpr hid SEGS_SWITCH                                       = tools::str::hash_stable(SEGS_SWITCH_CLASS);
+constexpr hid IMPACT_INVERSED_SWITCH                            = tools::str::hash_stable(IMPACT_INVERSED_SWITCH_CLASS);
 
 struct Data {};
 struct CustomCombo_Data : public Data

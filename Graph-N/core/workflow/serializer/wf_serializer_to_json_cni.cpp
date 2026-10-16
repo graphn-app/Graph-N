@@ -24,6 +24,10 @@ void WfSerializerToJson::serialize_cni_node(o_json& j)
         return serialize_cni_node_fast_action_rgthree(j);
     case js::BOOKMARK_RGTHREE:
         return serialize_cni_node_bookmark_rgthree(j);
+    case js::IMPACT_SWITCH:
+        return serialize_cni_node_impact_switch(j);
+    case js::IMPACT_INVERSED_SWITCH:
+        return serialize_cni_node_impact_insversed_switch(j);
     }
 
     if (m_curr_node->obj_flags().has(NodeObjFlags::CustomJsNode))
@@ -339,6 +343,166 @@ void WfSerializerToJson::serialize_cni_node_fast_action_rgthree(o_json& j)
 void WfSerializerToJson::serialize_cni_node_bookmark_rgthree(o_json& /*j*/)
 {
     // TODO: CNI_BookmarkRgthree
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    CNI_SwitchImpact                                       //////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToJson::serialize_cni_node_impact_switch(o_json& j)
+{
+    const auto& inputs = m_curr_node->get_inputs();
+    const auto& outputs = m_curr_node->get_outputs();
+    LogRAssert(inputs.size() >= 1 && outputs.size() >= 3, "Invalid node definition, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id() << ", sz:" << outputs.size(), );
+
+    j["properties"]["cnr_id"] = "comfyui-impact-pack";
+    j["properties"]["ver"] = "429d0159ad429e64d2b3916e6e7be9c22d025c3c";
+    j["properties"]["Node name for S&R"] = "ImpactSwitch";
+
+    auto jins = o_json::array();
+    {
+        for (auto in : inputs)
+        {
+            o_json jin;
+            jin["name"] = in->state().name;
+            jin["type"] = in->state().type_str;
+
+            if (in->obj_flags().has(PinObjFlags::InputCanBeWidget))
+            {
+                if (in->state().type == PinType::BOOLEAN)
+                    continue;
+                jin["widget"]["name"] = "select";
+            }
+
+            if (0 == in->state().links)
+                jin["link"] = nullptr;
+            else
+            {
+                for (auto& link : m_wf->get_links_all())
+                {
+                    if (link->get_input()->get_instance_id() == in->get_instance_id())
+                    {
+                        jin["link"] = link->get_instance_id();
+                        break;
+                    }
+                }
+            }
+
+            jins.push_back(std::move(jin));
+        }
+    }
+    j["inputs"] = std::move(jins);
+
+    auto jouts = o_json::array();
+    {
+        for (auto out : outputs)
+        {
+            o_json jout;
+            jout["name"] = out->state().name;
+            jout["type"] = out->state().type_str;
+
+            jout["links"] = o_json::array();
+            if (out->state().links > 0)
+            {
+                for (auto& link : m_wf->get_links_all())
+                {
+                    if (link->get_input()->get_instance_id() == out->get_instance_id())
+                    {
+                        jout["links"].push_back(link->get_instance_id());
+                        break;
+                    }
+                }
+            }
+
+            jins.push_back(std::move(jout));
+        }
+    }
+    j["outputs"] = std::move(jouts);
+
+    auto jwidgets = o_json::array();
+    jwidgets.push_back(0);
+    jwidgets.push_back(false);
+    j["widgets_values"] = std::move(jwidgets);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    CNI_ReversedSwitchImpact                               //////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToJson::serialize_cni_node_impact_insversed_switch(o_json& j)
+{
+    const auto& inputs = m_curr_node->get_inputs();
+    const auto& outputs = m_curr_node->get_outputs();
+    LogRAssert(inputs.size() >= 3 && outputs.size() >= 1, "Invalid node definition, w:" << m_wf->get_id() << ", n:" << m_curr_node->get_instance_id() << ", sz:" << outputs.size(), );
+
+    j["properties"]["cnr_id"] = "comfyui-impact-pack";
+    j["properties"]["ver"] = "429d0159ad429e64d2b3916e6e7be9c22d025c3c";
+    j["properties"]["Node name for S&R"] = "ImpactInversedSwitch";
+
+    auto jins = o_json::array();
+    {
+        for (auto in : inputs)
+        {
+            o_json jin;
+            jin["name"] = in->state().name;
+            jin["type"] = in->state().type_str;
+
+            if (in->obj_flags().has(PinObjFlags::InputCanBeWidget))
+            {
+                if (in->state().type == PinType::BOOLEAN)
+                    continue;
+                jin["widget"]["name"] = "select";
+            }
+
+            if (0 == in->state().links)
+                jin["link"] = nullptr;
+            else
+            {
+                for (auto& link : m_wf->get_links_all())
+                {
+                    if (link->get_input()->get_instance_id() == in->get_instance_id())
+                    {
+                        jin["link"] = link->get_instance_id();
+                        break;
+                    }
+                }
+            }
+
+            jins.push_back(std::move(jin));
+        }
+    }
+    j["inputs"] = std::move(jins);
+
+    auto jouts = o_json::array();
+    {
+        for (auto out : outputs)
+        {
+            o_json jout;
+            jout["name"] = out->state().name;
+            jout["type"] = out->state().type_str;
+
+            jout["links"] = o_json::array();
+            if (out->state().links > 0)
+            {
+                for (auto& link : m_wf->get_links_all())
+                {
+                    if (link->get_input()->get_instance_id() == out->get_instance_id())
+                    {
+                        jout["links"].push_back(link->get_instance_id());
+                        break;
+                    }
+                }
+            }
+
+            jins.push_back(std::move(jout));
+        }
+    }
+    j["outputs"] = std::move(jouts);
+
+    auto jwidgets = o_json::array();
+    jwidgets.push_back(0);
+    jwidgets.push_back(false);
+    j["widgets_values"] = std::move(jwidgets);
 }
 
 } // namespace data
