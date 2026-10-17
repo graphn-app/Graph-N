@@ -45,6 +45,7 @@ struct LinkedPair final
 {
     bool linked = false;
     bool ever_linked = false;
+    bool restored = false;
     PinType type = PinType::_none;
     LinkedIn input;
     LinkedOut output;
@@ -65,7 +66,7 @@ public:
     void cni_init() override;
     bool cni_is_applicable() const noexcept override { return true; }
 
-    void add_pair(const RoutedPinPair& pair = {});
+    void add_pair(const RoutedPinPair& pair = {}, bool restored = false);
     std::pair<PinInstance*, PinInstance*> find_first_empty_pair_or_add_empty();
 
     bool cni_can_link(const PinInstance* p1, const PinInstance* p2) const noexcept override;

@@ -298,6 +298,20 @@ void NodeInstance::collect_search_data(std::stringstream& data) const
     }
 }
 
+void NodeInstance::copy_attributes(NodeInstance* dest) const noexcept
+{
+    dest->flags().add_remove_if(NodeInstFlags::Pinned, flags().has(NodeInstFlags::Pinned));
+    dest->flags().add_remove_if(NodeInstFlags::Collapsed, flags().has(NodeInstFlags::Collapsed));
+    dest->flags().add_remove_if(NodeInstFlags::ModeOnEvent, flags().has(NodeInstFlags::ModeOnEvent));
+    dest->flags().add_remove_if(NodeInstFlags::ModeMute, flags().has(NodeInstFlags::ModeMute));
+    dest->flags().add_remove_if(NodeInstFlags::ModeOnTrigger, flags().has(NodeInstFlags::ModeOnTrigger));
+    dest->flags().add_remove_if(NodeInstFlags::ModeBypass, flags().has(NodeInstFlags::ModeBypass));
+    dest->m_clr_head = m_clr_head;
+    dest->m_clr_node = m_clr_node;
+    dest->m_clr_group = m_clr_group;
+    dest->m_clr_group_capt = m_clr_group_capt;
+}
+
 const std::string& NodeInstance::get_name() const noexcept
 {
     if (flags().has(NodeInstFlags::Group))

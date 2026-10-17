@@ -939,7 +939,7 @@ bool PanelWorkflow::show_multinode_menu()
         close = true;
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Expand"))
+    if (ImGui::MenuItem("Expand", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Collapse)))
     {
         for (auto node : m_menu_objs.nodes)
         {

@@ -100,9 +100,11 @@ struct ActLink : public HistoryStep
 
     iid node_in = 0;
     iid pin_in = 0;
+    hid pin_in_hash = 0;
     std::string pin_in_name;
     iid node_out = 0;
     iid pin_out = 0;
+    hid pin_out_hash = 0;
     int32_t pin_out_index = 0;
     std::string linked_pins_type;
 };

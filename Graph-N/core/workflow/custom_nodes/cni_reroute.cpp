@@ -119,7 +119,7 @@ void CNI_Reroute::cni_init()
         {
             for (const auto& pair : deserialized_values->pairs)
             {
-                add_pair(pair);
+                add_pair(pair, true);
                 m_data->m_next_out_index = std::max(m_data->m_next_out_index, pair.out_index + 1);
             }
             m_data->m_next_out_index = std::max(m_data->m_next_out_index, deserialized_values->next_out_index);
@@ -599,7 +599,7 @@ void CNI_Reroute::add_pair_if_empty()
         add_pair();
 }
 
-void CNI_Reroute::add_pair(const RoutedPinPair& pair/* = {}*/)
+void CNI_Reroute::add_pair(const RoutedPinPair& pair/* = {}*/, bool restored /*= false*/)
 {
     // this function can be called from the UI with a default parameter - pair will default to ANY.
     // if pair.type or pair.in_pin_name is empty, someone called the function and cleared all fields for some reason - this is an error.
@@ -610,6 +610,7 @@ void CNI_Reroute::add_pair(const RoutedPinPair& pair/* = {}*/)
     LinkedPair new_pair;
 
     new_pair.type = Pin::type_str_to_type(pair.type);
+    new_pair.restored = restored;
     const int32_t out_index = (pair.out_index < 0 ? m_data->m_next_out_index++ : pair.out_index);
 
     new_pair.input.internal = add_pin_internal(wf, pair.type, pair.type, -1, pair.in_id, pair.in_hash);
@@ -658,7 +659,7 @@ void CNI_Reroute::cleanup_pairs(bool keep_linked)
         auto& pair = *it;
         if (!keep_linked || keep_linked && !pair.linked)
         {
-            const bool erase_pins = !keep_linked || !pair.ever_linked && (PinType::_none == pair.type || PinType::ANY == pair.type);
+            const bool erase_pins = !keep_linked || !pair.ever_linked && !pair.restored && (PinType::_none == pair.type || PinType::ANY == pair.type);
             if (pair.input.internal != nullptr)
             {
                 remove_pin_internal(wf, pair.input.internal, erase_pins);
@@ -824,6 +825,7 @@ void CNI_Reroute::split_to_parts()
     flags().add(NodeInstFlags::RerouteSplitted);
     m_splitted_part->flags().add(NodeInstFlags::RerouteSplitted);
     m_splitted_part->flags().remove(NodeInstFlags::Hidden);
+    copy_attributes(m_splitted_part);
 
     auto right_pin = m_splitted_part->m_splitted_pin;
     LogRAssert(Link::can_link(m_splitted_pin, right_pin), "Can't link splitted reroutes. w:" << get_workflow_id() << ", n1:" << get_instance_id() << ", n2:" << m_splitted_part->get_instance_id() << ", p1:" << m_splitted_pin->get_instance_id() << ", p2:" << right_pin->get_instance_id(), );

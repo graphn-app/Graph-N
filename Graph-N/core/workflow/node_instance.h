@@ -40,6 +40,8 @@ public:
     void increment(const NodeInstance* copy_to, WorkflowAction* wf_action);
     void collect_search_data(std::stringstream& data) const;
 
+    void copy_attributes(NodeInstance* dest) const noexcept;
+
 protected:
     float get_additional_name_width() const noexcept override;
     float get_additional_node_width() const noexcept override;

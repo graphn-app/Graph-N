@@ -1010,7 +1010,7 @@ void WfsManager::export_wf(wid wf_id, bool api, const std::filesystem::path& to)
 void WfsManager::on_1s_lazy_timer(int64_t /*total_seconds_elapsed*/)
 {
     m_dump_counter++;
-    if (m_dump_counter >= 60)
+    if (m_dump_counter >= DRAFT_DUMP_INTERVAL)
     {
         if (ImGui::IsAnyMouseDown()) [[unlikely]]
         {

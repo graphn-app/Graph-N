@@ -551,8 +551,11 @@ std::optional<std::filesystem::path> move(const std::filesystem::path& from, con
 
 bool make_folder(const std::filesystem::path& dirpath)
 {
-    if (dirpath.empty() || tools::path::exists(dirpath))
+    if (dirpath.empty())
         return false;
+
+    if (tools::path::exists(dirpath))
+        return true;
 
     std::error_code ec;
     std::filesystem::create_directories(dirpath, ec);

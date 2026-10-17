@@ -231,7 +231,11 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
     else if (j["id"].is_number_integer())
         node_id_from_json = std::to_string(j["id"].get<int32_t>());
 
-    std::string node_class = j["type"];
+    std::string node_class;
+    if (!j["type"].is_string())
+        node_class = j["type"].dump();
+    else
+        node_class = j["type"];
 
     // position
     ImRect rc = {};
@@ -333,8 +337,13 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
             {
                 if (jinput.is_object())
                 {
-                    const std::string name = jinput["name"];
-                    const std::string type = jinput["type"];
+                    std::string name, type;
+
+                    if (jinput["name"].is_string()) name = jinput["name"];
+                    else                            name = jinput["name"].dump();
+
+                    if (jinput["type"].is_string()) type = jinput["type"];
+                    else                            type = jinput["type"].dump();
 
                     Pin* pin = nullptr;
                     const auto pin_hash = Pin::make_hash(node_instance->get_object(), name, -1);

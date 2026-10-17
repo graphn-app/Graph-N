@@ -504,9 +504,11 @@ void HistoryManager::push_link_action(const data::Link* link, HistoryActionType 
     step->id = link->get_instance_id();
     step->node_in = link->get_input()->get_parent_node();
     step->pin_in = link->get_input()->get_instance_id();
+    step->pin_in_hash = link->get_input()->get_object()->get_hash();
     step->pin_in_name = link->get_input()->get_object()->def_state.name;
     step->node_out = link->get_output()->get_parent_node();
     step->pin_out = link->get_output()->get_instance_id();
+    step->pin_out_hash = link->get_output()->get_object()->get_hash();
     step->pin_out_index = link->get_output()->get_object()->out_index;
     step->linked_pins_type = link->get_input()->get_object()->def_state.type_str;
     history->steps.push_back(std::move(step));
@@ -786,7 +788,11 @@ void HistoryManager::pop_link_add(const data::Workflow* dest_wf, const HistorySt
     }
     const ActLink* real_step = cast::dynamic<const ActLink>(step);
     const auto* p1 = dest_wf->get_pin_by_instance(real_step->pin_in);
+    if (nullptr == p1 && real_step->node_in != 0 && real_step->pin_in_hash != 0)
+        p1 = dest_wf->get_pin_by_hash(real_step->node_in, real_step->pin_in_hash);
     const auto* p2 = dest_wf->get_pin_by_instance(real_step->pin_out);
+    if (nullptr == p2 && real_step->node_out != 0 && real_step->pin_out_hash != 0)
+        p2 = dest_wf->get_pin_by_hash(real_step->node_out, real_step->pin_out_hash);
     LogRAssert(p1 != nullptr && p2 != nullptr, "Pin(s) not found in wf. w:" << dest_wf->get_id() << ", p1:" << real_step->pin_in << ":" << (p1 != nullptr) << ", p2:" << real_step->pin_out << ":" << (p2 != nullptr), );
     
     dest_wf->action()->unlink(p1, p2);
@@ -802,7 +808,11 @@ void HistoryManager::pop_link_del(const data::Workflow* dest_wf, const HistorySt
 
     const ActLink* real_step = cast::dynamic<const ActLink>(step);
     auto p1 = dest_wf->get_pin_by_instance(real_step->pin_in);
+    if (nullptr == p1 && real_step->node_in != 0 && real_step->pin_in_hash != 0)
+        p1 = dest_wf->get_pin_by_hash(real_step->node_in, real_step->pin_in_hash);
     auto p2 = dest_wf->get_pin_by_instance(real_step->pin_out);
+    if (nullptr == p2 && real_step->node_out != 0 && real_step->pin_out_hash != 0)
+        p2 = dest_wf->get_pin_by_hash(real_step->node_out, real_step->pin_out_hash);
     LogRAssert(p1 != nullptr && p2 != nullptr, "Pin(s) not found in wf. w:" << dest_wf->get_id()
         << ", n1:" << real_step->node_in << ", p1:" << real_step->pin_in << ":" << (p1 != nullptr)
         << ", n2:" << real_step->node_out << ", p2:" << real_step->pin_out << ":" << (p2 != nullptr), );

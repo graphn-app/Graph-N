@@ -144,7 +144,7 @@ bool CNI_Primitive::cni_can_link(const PinInstance* p1, const PinInstance* p2) c
     const auto dest_type = linking_pin->state().type;
 
     if (m_links.empty())
-        return Pin::is_primitive_type(dest_type);
+        return Pin::is_primitive_type(dest_type) /*|| PinType::ANY == dest_type*/; // TODO: allow ANY linkage
 
     const auto& src_inputs = get_inputs();
     LogRAssert(!src_inputs.empty(), "Empty inputs", false);
@@ -159,7 +159,7 @@ bool CNI_Primitive::cni_can_link(const PinInstance* p1, const PinInstance* p2) c
 
     if (PinType::INT == dest_type && PinType::INT == src_state.type)
     {
-        LogRAssert(src_inputs.size() == 2, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
+        LogRAssert(src_inputs.size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
 
         const bool dest_u = dest_val.is_int();
         const bool src_u = src_value.is_int();
@@ -172,19 +172,19 @@ bool CNI_Primitive::cni_can_link(const PinInstance* p1, const PinInstance* p2) c
 
     if (PinType::FLOAT == dest_type && PinType::FLOAT == src_state.type)
     {
-        LogRAssert(src_inputs.size() == 2, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
+        LogRAssert(src_inputs.size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
         return test_ranges(src_obj->def_state.min.get_float(), src_obj->def_state.max.get_float(), dest_obj->def_state.min.get_float(), dest_obj->def_state.max.get_float());
     }
 
     if (PinType::NUMBER == dest_type && PinType::NUMBER == src_state.type)
     {
-        LogRAssert(src_inputs.size() == 2, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
+        LogRAssert(src_inputs.size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
         return test_ranges(src_obj->def_state.min.get_number(), src_obj->def_state.max.get_number(), dest_obj->def_state.min.get_number(), dest_obj->def_state.max.get_number());
     }
 
     if (PinType::COMBO == dest_type && PinType::COMBO == src_state.type)
     {
-        LogRAssert(src_inputs.size() == 2, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
+        LogRAssert(src_inputs.size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
 
         if (dest_obj->combo_items_str.size() != src_obj->combo_items_str.size())
             return false;
@@ -355,93 +355,96 @@ void CNI_Primitive::update()
             cni_add_pin(std::move(this_pin_obj));
         }
 
-        auto& ins = get_inputs();
-        auto& outs = get_outputs();
-        LogRAssert(!ins.empty() && !outs.empty(), "Empty pins", );
+        if (src_type != PinType::ANY)
+        {
+            auto& ins = get_inputs();
+            auto& outs = get_outputs();
+            LogRAssert(!ins.empty() && !outs.empty(), "Empty pins", );
 
-        auto out = outs[0];
-        auto in = ins[0];
-        //in->get_object()->def_state.copy_to(out->get_object()->def_state);
-        out->state().value = in->state().value;
-        out->get_object()->def_state.min = in->get_object()->def_state.min;
-        out->get_object()->def_state.max = in->get_object()->def_state.max;
-        out->get_object()->def_state.step = in->get_object()->def_state.step;
-        out->get_object()->def_state.cag_val = in->get_object()->def_state.cag_val;
-        out->get_object()->def = in->get_object()->def;
-        out->get_object()->def_state.copy_to(out->state());
-        out->obj_flags().add(PinObjFlags::CanRename);
-        if (deserialized_values != nullptr)
-            out->state().name = deserialized_values->out_pin_name;
+            auto out = outs[0];
+            auto in = ins[0];
+            //in->get_object()->def_state.copy_to(out->get_object()->def_state);
+            out->state().value = in->state().value;
+            out->get_object()->def_state.min = in->get_object()->def_state.min;
+            out->get_object()->def_state.max = in->get_object()->def_state.max;
+            out->get_object()->def_state.step = in->get_object()->def_state.step;
+            out->get_object()->def_state.cag_val = in->get_object()->def_state.cag_val;
+            out->get_object()->def = in->get_object()->def;
+            out->get_object()->def_state.copy_to(out->state());
+            out->obj_flags().add(PinObjFlags::CanRename);
+            if (deserialized_values != nullptr)
+                out->state().name = deserialized_values->out_pin_name;
+        }
 
-        m_deserialized_values.reset();
+        m_deserialized_values.reset();        
         m_linked = true;
     }
 
-    const auto& inputs = get_inputs();
-    auto this_pin_obj = inputs[0]->get_object();
-
-    if (src_val.is_int())
+    if (src_type != PinType::ANY)
     {
-        int64_t this_min = IM_S64_MIN_WIDGET;
-        int64_t this_max = IM_S64_MAX_WIDGET;
+        const auto& inputs = get_inputs();
+        auto this_pin_obj = inputs[0]->get_object();
 
-        for (auto link : m_links)
+        if (src_val.is_int())
         {
-            const int64_t min = link->get_object()->def_state.min.get_int();
-            const int64_t max = link->get_object()->def_state.max.get_int();
-            this_min = std::max(this_min, min);
-            this_max = std::min(this_max, max);
+            int64_t this_min = IM_S64_MIN_WIDGET;
+            int64_t this_max = IM_S64_MAX_WIDGET;
+
+            for (auto link : m_links)
+            {
+                const int64_t min = link->get_object()->def_state.min.get_int();
+                const int64_t max = link->get_object()->def_state.max.get_int();
+                this_min = std::max(this_min, min);
+                this_max = std::min(this_max, max);
+            }
+
+            this_pin_obj->def_state.min = this_min;
+            this_pin_obj->def_state.max = this_max;
+
+            auto& val = inputs[0]->state().value;
+            val = std::clamp(val.get_int(), this_min, this_max);
         }
-
-        this_pin_obj->def_state.min = this_min;
-        this_pin_obj->def_state.max = this_max;
-
-        auto& val = inputs[0]->state().value;
-        val = std::clamp(val.get_int(), this_min, this_max);
-    }
-
-    else if (src_val.is_float())
-    {
-        double this_min = IM_DBL_MIN_WIDGET;
-        double this_max = IM_DBL_MAX_WIDGET;
-
-        for (auto link : m_links)
+        else if (src_val.is_float())
         {
-            const double min = link->get_object()->def_state.min.get_float();
-            const double max = link->get_object()->def_state.max.get_float();
-            this_min = std::max(this_min, min);
-            this_max = std::min(this_max, max);
+            double this_min = IM_DBL_MIN_WIDGET;
+            double this_max = IM_DBL_MAX_WIDGET;
+
+            for (auto link : m_links)
+            {
+                const double min = link->get_object()->def_state.min.get_float();
+                const double max = link->get_object()->def_state.max.get_float();
+                this_min = std::max(this_min, min);
+                this_max = std::min(this_max, max);
+            }
+
+            this_pin_obj->def_state.min = this_min;
+            this_pin_obj->def_state.max = this_max;
+
+            auto& val = inputs[0]->state().value;
+            val = std::clamp(val.get_float(), this_min, this_max);
         }
-
-        this_pin_obj->def_state.min = this_min;
-        this_pin_obj->def_state.max = this_max;
-
-        auto& val = inputs[0]->state().value;
-        val = std::clamp(val.get_float(), this_min, this_max);
-    }
-
-    else if (src_val.is_number())
-    {
-        static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
-
-        number this_min = IM_NUM_MIN_WIDGET;
-        number this_max = IM_NUM_MAX_WIDGET;
-
-        for (auto link : m_links)
+        else if (src_val.is_number())
         {
-            const number min = link->get_object()->def_state.min.get_number();
-            const number max = link->get_object()->def_state.max.get_number();
-            this_min = std::max(this_min, min);
-            this_max = std::min(this_max, max);
+            static_assert(std::same_as<number_t, double>, "Check this function if number_t changes");
+
+            number this_min = IM_NUM_MIN_WIDGET;
+            number this_max = IM_NUM_MAX_WIDGET;
+
+            for (auto link : m_links)
+            {
+                const number min = link->get_object()->def_state.min.get_number();
+                const number max = link->get_object()->def_state.max.get_number();
+                this_min = std::max(this_min, min);
+                this_max = std::min(this_max, max);
+            }
+
+            this_pin_obj->def_state.min = this_min;
+            this_pin_obj->def_state.max = this_max;
+
+            auto& val = inputs[0]->state().value;
+            val = std::clamp(val.get_number(), this_min, this_max);
         }
-
-        this_pin_obj->def_state.min = this_min;
-        this_pin_obj->def_state.max = this_max;
-
-        auto& val = inputs[0]->state().value;
-        val = std::clamp(val.get_number(), this_min, this_max);
     }
-
     reset_width();
 }
 

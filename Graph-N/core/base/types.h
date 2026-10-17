@@ -25,6 +25,8 @@ using u_json = nlohmann::json;
 constexpr double HTTP_REQUEST_LIFETIME = 30.0; // seconds
 constexpr int32_t HIDDEN_VIDEO_PLAYING = 5; // seconds
 
+constexpr int32_t DRAFT_DUMP_INTERVAL    = 10; // seconds
+
 constexpr int32_t HTTP_RESP_UNDEFINED    = 0;
 constexpr int32_t HTTP_RESP_OK           = 200;
 constexpr int32_t HTTP_RESP_FAIL         = -1;

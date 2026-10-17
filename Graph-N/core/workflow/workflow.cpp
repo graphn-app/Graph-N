@@ -182,6 +182,7 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source, bool copy
 
     auto ptr = instance.get();
     ptr->init(copy_from_source, copy_id);
+    copy_from_source->copy_attributes(ptr);
     m_nodes.push_back(std::move(instance));
     test_duplicates();
     ed_create(ptr);
@@ -579,7 +580,7 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
         if (node->flags().has(NodeInstFlags::RerouteSplitted))
             m_action->merge_reroute(cast::strict<data::CNI_Reroute>(node)->get_splitted_base(), true);
 
-        const size_t count = node->get_inputs().size() - 1;
+        const size_t count = node->get_inputs().size();
         ImRect rect = node->m_rc;
 
         for (size_t i = 1; i < count; i++)
@@ -615,10 +616,11 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
             if (nullptr == left_pin && nullptr == right_pin)
                 break;
 
-            const auto* new_node = m_action->add_node(node->get_object(), "", rect);
+            auto* new_node = m_action->add_node(node->get_object(), "", rect);
             LogCAssert(new_node->obj_flags().has(NodeObjFlags::SpecReroute), "New node is not reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", t:" << typeid(new_node).name());
             LogCAssert(new_node->get_inputs().size() == new_node->get_outputs().size(), "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz1:" << new_node->get_inputs().size() << ", sz2:" << new_node->get_outputs().size());
             LogCAssert(new_node->get_inputs().size() == 1, "Invalid reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", sz:" << new_node->get_inputs().size());
+            node->copy_attributes(new_node);
 
             // claim the first available slot and rewire the nodes
             if (left_pin != nullptr)
@@ -751,7 +753,7 @@ void Workflow::collapse_reroute(data::NodeInstance* node)
     if (node->flags().has(NodeInstFlags::RerouteSplitted))
         m_action->merge_reroute(node, true);
 
-    const size_t count = node->get_inputs().size() - 1;
+    const size_t count = node->get_inputs().size();
     for (size_t i = 0; i < count; i++)
     {
         const auto in_pin = node->get_inputs()[i];
