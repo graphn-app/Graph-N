@@ -201,7 +201,11 @@ uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
 
     const char* type = (RequestData::Type::GetByUrl == req->type || RequestData::Type::GetByUrlAndParams == req->type ? "GET" : "POST");
     if (req->log_this_request)
+    {
         Log("HTTP-Req#" << req->req_id << ". Registered: " << type << ". Who: " << who_is_asking << ". Retry: " << req->retry_on_timeout << ". Url: " << req->url);
+        if (!req->post_payload.empty())
+            LogClear(req->post_payload);
+    }
 
     {
         const auto host = g::pOptsManager->comfyui_host_load_safe();

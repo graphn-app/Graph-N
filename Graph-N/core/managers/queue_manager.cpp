@@ -2,6 +2,7 @@
 #include "core/managers/workflows_manager.h"
 #include "core/managers/connect_manager.h"
 #include "core/managers/db_manager.h"
+#include "core/managers/nodes_parser.h"
 #include "core/workflow/serializer/wf_serializers.h"
 #include "core/base/comfyui_web_paths.h"
 #include "ui/custom_nodes/custom_media_widget.h"
@@ -206,11 +207,18 @@ void QueueManager::go_next_task()
 {
     const auto make_wf = [](ExecTask& task, data::Workflow* wf, wid src_id)
     {
+        data::Workflow* src_wf = nullptr;
+        if (src_id != 0)
+            src_wf = g::pWfsManager->access(src_id, true);
+        if (src_wf != nullptr)
+            src_wf->apply_pre_flight_mutations();
+        wf->apply_pre_flight_mutations();
+
         task.json = data::WfSerializerToJson(wf).serialize();
         task.api = data::WfSerializerToJsonApi(wf).serialize();
         task.flow = data::WfSerializerToBlob(wf).serialize({}).release();
         task.search_data = wf->collect_search_data();
-        wf->increment(0 == src_id ? nullptr : g::pWfsManager->access(src_id, true));
+        wf->increment(src_wf);
     };
 
     if (nullptr == m_current)
@@ -449,6 +457,7 @@ void QueueManager::parse_http_response(int32_t result, const std::string& payloa
         {
             task.err_nodes.clear();
             auto& jerrors = j["node_errors"];
+            task.err_message = "Prompt execution failed";
             for (auto&[jnode_id, jerr] : jerrors.items())
             {
                 task.result = TaskResult::Failed;
@@ -499,6 +508,11 @@ void QueueManager::check_ws_inbox()
     if (m_task_active_time > 0.0f)
         m_task_elapsed_time = ImGui::GetTime() - m_task_active_time;
 
+    static std::unordered_set<std::string> message_no_prompt_id_allowed =
+    {
+        "impact-node-mute-state", "impact-node-bypass-state", "impact-node-feedback"
+    };
+
     const auto callback = [this](bool is_binary, std::string& message)
     {
         if (is_binary) [[unlikely]]
@@ -509,10 +523,12 @@ void QueueManager::check_ws_inbox()
 
         try
         {
-
             auto j = u_json::parse(message);
             if (!j.contains("type") || !j["type"].is_string() || !j.contains("data") || !j["data"].is_object())
                 return;
+
+            const std::string& type = j["type"].get_ref<std::string&>();
+            const bool allow_no_prompt_id = message_no_prompt_id_allowed.contains(type);
 
             std::string prompt_id;
             if (j["data"].contains("prompt_id") && j["data"]["prompt_id"].is_string())
@@ -524,13 +540,19 @@ void QueueManager::check_ws_inbox()
                 j["data"]["status"]["exec_info"].contains("queue_remaining") &&
                 j["data"]["status"]["exec_info"]["queue_remaining"].is_number_integer())
             {
-                m_external_tasks = j["data"]["status"]["exec_info"]["queue_remaining"].get<int32_t>();
-                m_task_active_time = (0 == m_external_tasks ? 0.0 : ImGui::GetTime());
-                return;
+                if (!allow_no_prompt_id)
+                {
+                    m_external_tasks = j["data"]["status"]["exec_info"]["queue_remaining"].get<int32_t>();
+                    m_task_active_time = (0 == m_external_tasks ? 0.0 : ImGui::GetTime());
+                    return;
+                }
             }
 
-            if (nullptr == m_current || m_current->state != ExecGroup::State::Executing || m_current->task.prompt_id != prompt_id)
+            if (nullptr == m_current || m_current->state != ExecGroup::State::Executing)
                 return;
+            if (m_current->task.prompt_id != prompt_id && !allow_no_prompt_id)
+                return;
+
             auto& task = m_current->task;
             const auto task_log_id = get_log_task_id(*m_current);
 
@@ -538,7 +560,6 @@ void QueueManager::check_ws_inbox()
             m_task_active_time = ImGui::GetTime();
 
             m_lost = false;
-            const std::string& type = j["type"].get_ref<std::string&>();
             if (type == "execution_start")
             {
                 if (j["data"].contains("timestamp") && j["data"]["timestamp"].is_number_integer())
@@ -742,6 +763,67 @@ void QueueManager::check_ws_inbox()
                 }
 
                 load_outputs(m_current->src_wf, task);
+                return;
+            }
+
+            if (type == "impact-node-mute-state" || type == "impact-node-bypass-state")
+            {
+                if (j["data"].contains("node_id") && (j["data"]["node_id"].is_number_unsigned() || j["data"]["node_id"].is_string()) &&
+                    j["data"].contains("is_active") && j["data"]["is_active"].is_boolean())
+                {
+                    iid node_id = 0;
+                    if (j["data"]["node_id"].is_number_unsigned())
+                        node_id = j["data"]["node_id"].get<uint32_t>();
+                    else
+                    {
+                        const auto node_id_str = j["data"]["node_id"].get<std::string>();
+                        node_id = std::strtoul(node_id_str.c_str(), nullptr, 10);
+                    }
+                    const bool active = j["data"]["is_active"].get<bool>();
+                    const NodeInstFlags mode = (active ? NodeInstFlags::None : (type == "impact-node-mute-state" ? NodeInstFlags::ModeMute : NodeInstFlags::ModeBypass));
+
+                    m_current->wf->apply_runtime_updates(node_id, mode);
+                    if (m_current->src_wf != 0)
+                    {
+                        auto src_wf = g::pWfsManager->access(m_current->src_wf, true);
+                        if (src_wf != nullptr)
+                            src_wf->apply_runtime_updates(node_id, mode);
+                    }
+                }
+                return;
+            }
+
+            if (type == "impact-node-feedback")
+            {
+                if (j["data"].contains("node_id") && (j["data"]["node_id"].is_number_unsigned() || j["data"]["node_id"].is_string()) &&
+                    j["data"].contains("widget_name") && j["data"]["widget_name"].is_string() &&
+                    j["data"].contains("type") && j["data"]["type"].is_string() &&
+                    j["data"].contains("value"))
+                {
+                    iid node_id = 0;
+                    if (j["data"]["node_id"].is_number_unsigned())
+                        node_id = j["data"]["node_id"].get<uint32_t>();
+                    else
+                    {
+                        const auto node_id_str = j["data"]["node_id"].get<std::string>();
+                        node_id = std::strtoul(node_id_str.c_str(), nullptr, 10);
+                    }
+                    const std::string widget_name = j["data"]["widget_name"].get<std::string>();
+                    const std::string pin_type_str = j["data"]["type"].get<std::string>();
+                    const PinType pin_type = data::Pin::type_str_to_type(pin_type_str);
+                    auto value = NodesParser::parse_value_from_pin_type(j["data"]["value"], pin_type);
+                    if (!value.is_null())
+                    {
+                        m_current->wf->apply_runtime_updates(node_id, widget_name, pin_type, std::move(value));
+                        if (m_current->src_wf != 0)
+                        {
+                            auto src_wf = g::pWfsManager->access(m_current->src_wf, true);
+                            if (src_wf != nullptr)
+                                src_wf->apply_runtime_updates(node_id, widget_name, pin_type, std::move(value));
+                        }
+                    }
+                }
+                return;
             }
         }
         catch (const std::exception& ex)

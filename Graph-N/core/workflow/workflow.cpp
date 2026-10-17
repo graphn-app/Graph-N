@@ -1117,6 +1117,95 @@ void Workflow::increment(const Workflow* copy_to)
         copy_to_action->multi_action_off();
 }
 
+void Workflow::apply_pre_flight_mutations()
+{
+    for (auto& node : m_nodes)
+    {
+        if (!node->has_object() || node->get_mode_bypass() || node->get_mode_mute())
+            continue;
+        if (node->get_object()->get_hash() == js::IMPACT_REMOTE_INT_IMPACT ||
+            node->get_object()->get_hash() == js::IMPACT_REMOTE_BOOL_IMPACT ||
+            node->get_object()->get_hash() == js::IMPACT_REMOTE_FLOAT_IMPACT ||
+            node->get_object()->get_hash() == js::IMPACT_REMOTE_STRING_IMPACT ||
+            node->get_object()->get_hash() == js::IMPACT_REMOTE_TEXT_IMPACT)
+        {
+            iid node_id = 0;
+            std::string pin_name;
+            Primitive value;
+
+            auto& ins = node->get_inputs();
+            for (auto in : ins)
+            {
+                if (in->get_object()->def_state.name == "node_id" && in->state().value.is_int())
+                    node_id = cast::to_u32(in->state().value.get_int());
+                else if (in->get_object()->def_state.name == "widget_name" && in->state().value.is_string())
+                    pin_name = in->state().value.get_string();
+                else if (in->get_object()->def_state.name == "value")
+                    value = in->state().value;
+            }
+
+            if (node_id != 0)
+            {
+                auto target_node = get_node_by_instance(node_id);
+                if (target_node != nullptr)
+                {
+                    auto& target_ins = target_node->get_inputs();
+                    for (auto target_in : target_ins)
+                    {
+                        if (target_in->has_object() && (target_in->get_object()->def_state.name == pin_name || target_in->state().name == pin_name))
+                        {
+                            if (target_in->state().value.value().index() == value.value().index())
+                            {
+                                auto old = target_in->state().value;
+                                target_in->state().value = std::move(value);
+                                m_action->set_pin_val(target_in, std::move(old));
+                                Log("Applied value for n:" << node_id << ", p:" << pin_name);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void Workflow::apply_runtime_updates(iid node_id, NodeInstFlags mode)
+{
+    if (0 == node_id)
+        return;
+    auto target_node = get_node_by_instance(node_id);
+    if (target_node != nullptr)
+    {
+        m_action->set_node_mode(target_node, mode);
+        Log("Applied mode for n:" << node_id);
+    }
+}
+
+void Workflow::apply_runtime_updates(iid node_id, const std::string& pin_name, PinType pin_type, Primitive&& value)
+{
+    if (0 == node_id)
+        return;
+    auto target_node = get_node_by_instance(node_id);
+    if (nullptr == target_node)
+        return;
+
+    auto& target_ins = target_node->get_inputs();
+    for (auto target_in : target_ins)
+    {
+        if (target_in->has_object() && (target_in->get_object()->def_state.name == pin_name || target_in->state().name == pin_name))
+        {
+            if (target_in->state().type == pin_type &&
+                target_in->state().value.value().index() == value.value().index())
+            {
+                auto old = target_in->state().value;
+                target_in->state().value = std::move(value);
+                m_action->set_pin_val(target_in, std::move(old));
+                Log("Applied value for n:" << node_id << ", p:" << pin_name);
+            }
+        }
+    }
+}
+
 std::string Workflow::collect_search_data() const
 {
     std::stringstream data;

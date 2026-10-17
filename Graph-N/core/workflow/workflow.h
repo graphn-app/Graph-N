@@ -85,6 +85,10 @@ public:
     void clear_wf() noexcept;
 
     void increment(const Workflow* copy_to);
+    void apply_pre_flight_mutations();
+    void apply_runtime_updates(iid node_id, NodeInstFlags mode);
+    void apply_runtime_updates(iid node_id, const std::string& pin_name, PinType pin_type, Primitive&& value);
+
     std::string collect_search_data() const;
 
     iid get_new_child_id() noexcept { return ++m_last_child_id; }

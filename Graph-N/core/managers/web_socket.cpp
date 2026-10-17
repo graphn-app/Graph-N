@@ -199,6 +199,12 @@ void WebSocket::on_read(beast::error_code ec, std::size_t /*bytes_transferred*/)
 
 bool WebSocket::is_useful(const std::string& message) const
 {
+    static const std::unordered_set<std::string> useful_types =
+    {
+        "execution_start", "executing", "progress", "execution_success", "execution_error", "execution_interrupted", "executed", "status",
+        "impact-node-mute-state", "impact-node-bypass-state", "impact-node-feedback"
+    };
+
     try
     {
         auto j = u_json::parse(message);
@@ -206,14 +212,7 @@ bool WebSocket::is_useful(const std::string& message) const
             return false;
 
         const std::string& type = j["type"].get_ref<std::string&>();
-        if (type == "execution_start" ||
-            type == "executing" ||
-            type == "progress" ||
-            type == "execution_success" ||
-            type == "execution_error" ||
-            type == "execution_interrupted" ||
-            type == "executed" ||
-            type == "status")
+        if (useful_types.contains(type)) [[likely]]
         {
             return true;
         }

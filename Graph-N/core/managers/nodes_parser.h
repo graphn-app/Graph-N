@@ -20,6 +20,8 @@ public:
     bool is_parse_finished() const noexcept { return m_parse_finished.load(std::memory_order_relaxed); };
     void check_status(size_t& parsed_item, size_t& parse_total);
 
+    static Primitive parse_value_from_pin_type(const u_json& j, PinType type);
+
 private:
     std::shared_ptr<NodesManager> parse_thread();
     void parse_node(NodesManager& manager, const std::string& node_class, const o_json& jnode, std::unordered_map<std::string, std::list<hid>>& models_map);

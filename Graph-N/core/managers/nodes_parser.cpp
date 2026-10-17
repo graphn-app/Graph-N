@@ -121,7 +121,7 @@ void NodesParser::parse_node(NodesManager& manager, const std::string& node_clas
         auto node = std::make_unique<data::Node>(node_class);
         parse_names(*node.get(), node_class, jnode);        // name, display name, category, description, search_aliases
 
-        BREAK_IF(node_class == "ColorToRGBInt");
+        //BREAK_IF(node_class == "ColorToRGBInt");
 
         parse_input(manager, *node.get(), jnode);        // input, input_order
         parse_output(manager, *node.get(), jnode);        // output, output_is_list, output_name, output_node, output_tooltips
@@ -206,13 +206,20 @@ TYPE json_to_number(const o_json& j)
                     return cast::to<TYPE>(i);
                 }
             }
-            else 
+            else if constexpr (std::is_same_v<TYPE, number> || std::is_same_v<TYPE, double> || std::is_same_v<TYPE, float>) 
             {
-                // native fallback for floating point types
-                if constexpr (std::is_same_v<TYPE, number>)
-                    return j.get<double>();
+                // native fallback for floating point types                
+                if (j.is_number_integer())
+                    return cast::to<TYPE>(j.get<int64_t>());
+                else if (j.is_number_unsigned())
+                    return cast::to<TYPE>(j.get<uint64_t>());
                 else
-                    return j.get<TYPE>();
+                {
+                    if constexpr (std::is_same_v<TYPE, number>)
+                        return j.get<double>();
+                    else
+                        return j.get<TYPE>();
+                }
             }
         }
         catch (const std::exception&) 
@@ -346,6 +353,25 @@ Primitive get_from_pin_type(const data::Node& jnode, const data::Pin& pin, const
     return {};
 }
 } // namespace
+
+Primitive NodesParser::parse_value_from_pin_type(const u_json& j, PinType type)
+{
+    switch (type)
+    {
+    case PinType::INT:
+        return json_to_number<int64_t>(j);
+    case PinType::FLOAT:
+        return json_to_number<double>(j);
+    case PinType::NUMBER:
+        return json_to_number<number>(j);
+    case PinType::BOOLEAN:
+        return json_to_bool(j);
+    case PinType::STRING:
+        return json_to_string(j);
+    }
+
+    return {};
+}
 
 void NodesParser::prepare_parsers_map()
 {

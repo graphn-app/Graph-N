@@ -957,6 +957,8 @@ void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
         {
             el.text = failed->err_message.c_str();
             el.tooltip = failed->err_full.c_str();
+            if (failed->err_message.empty())
+                el.text = "Prompt execution failed";
             m_failed_nodes = &failed->err_nodes;
         }
         el.text_clr = g::pOptsManager->color_load(AppColor::SelectedItem);

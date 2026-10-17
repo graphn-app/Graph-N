@@ -51,7 +51,7 @@ int64_t GlobalID::random_widget(int64_t min, int64_t max)
 {
     if (min > max) std::swap(min, max);
     if (min < IM_S64_MIN_WIDGET) min = IM_S64_MIN_WIDGET;
-    if (max > IM_S64_MAX_WIDGET) min = IM_S64_MAX_WIDGET;
+    if (max > IM_S64_MAX_WIDGET) max = IM_S64_MAX_WIDGET;
 
     auto& self = instance();
     std::lock_guard<std::mutex> lock(self.m_lock);
