@@ -87,7 +87,8 @@ public:
     void increment(const Workflow* copy_to);
     void apply_pre_flight_mutations();
     void apply_runtime_updates(iid node_id, NodeInstFlags mode);
-    void apply_runtime_updates(iid node_id, const std::string& pin_name, PinType pin_type, Primitive&& value);
+    void apply_runtime_updates(iid node_id, const std::string& pin_name, PinType pin_type, Primitive value);
+    void apply_runtime_updates(uint32_t link_id, std::string value);
 
     std::string collect_search_data() const;
 

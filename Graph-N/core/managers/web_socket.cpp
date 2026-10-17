@@ -202,7 +202,7 @@ bool WebSocket::is_useful(const std::string& message) const
     static const std::unordered_set<std::string> useful_types =
     {
         "execution_start", "executing", "progress", "execution_success", "execution_error", "execution_interrupted", "executed", "status",
-        "impact-node-mute-state", "impact-node-bypass-state", "impact-node-feedback"
+        "impact-node-mute-state", "impact-node-bypass-state", "impact-node-feedback", "value-send"
     };
 
     try

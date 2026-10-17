@@ -510,7 +510,7 @@ void QueueManager::check_ws_inbox()
 
     static std::unordered_set<std::string> message_no_prompt_id_allowed =
     {
-        "impact-node-mute-state", "impact-node-bypass-state", "impact-node-feedback"
+        "impact-node-mute-state", "impact-node-bypass-state", "impact-node-feedback", "value-send"
     };
 
     const auto callback = [this](bool is_binary, std::string& message)
@@ -814,14 +814,33 @@ void QueueManager::check_ws_inbox()
                     auto value = NodesParser::parse_value_from_pin_type(j["data"]["value"], pin_type);
                     if (!value.is_null())
                     {
-                        m_current->wf->apply_runtime_updates(node_id, widget_name, pin_type, std::move(value));
                         if (m_current->src_wf != 0)
                         {
                             auto src_wf = g::pWfsManager->access(m_current->src_wf, true);
                             if (src_wf != nullptr)
-                                src_wf->apply_runtime_updates(node_id, widget_name, pin_type, std::move(value));
+                                src_wf->apply_runtime_updates(node_id, widget_name, pin_type, value);
                         }
+                        m_current->wf->apply_runtime_updates(node_id, widget_name, pin_type, std::move(value));
                     }
+                }
+                return;
+            }
+
+            if (type == "value-send")
+            {
+                if (j["data"].contains("link_id") && j["data"]["link_id"].is_number_unsigned() &&
+                    j["data"].contains("value"))
+                {
+                    const uint32_t link_id = j["data"]["link_id"].get<uint32_t>();
+                    std::string value = j["data"]["value"].dump();
+
+                    if (m_current->src_wf != 0)
+                    {
+                        auto src_wf = g::pWfsManager->access(m_current->src_wf, true);
+                        if (src_wf != nullptr)
+                            src_wf->apply_runtime_updates(link_id, value);
+                    }
+                    m_current->wf->apply_runtime_updates(link_id, std::move(value));
                 }
                 return;
             }

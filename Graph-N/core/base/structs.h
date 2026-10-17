@@ -396,6 +396,7 @@ constexpr const char* IMPACT_REMOTE_TEXT_IMPACT_CLASS           = "ImpactRemoteT
 constexpr const char* IMPACT_SET_BYPASS_IMPACT_CLASS            = "ImpactNodeSetBypassState";
 constexpr const char* IMPACT_SET_MUTE_IMPACT_CLASS              = "ImpactNodeSetMuteState";
 constexpr const char* IMPACT_SET_WIDGET_VALUE_CLASS             = "ImpactSetWidgetValue";
+constexpr const char* IMPACT_VALUE_RECEIVER_CLASS               = "ImpactValueReceiver";
 
 constexpr hid REROUTE                                           = tools::str::hash_stable(REROUTE_CLASS);
 constexpr hid REROUTE_PYSSSSS                                   = tools::str::hash_stable(REROUTE_PYSSSSS_CLASS);
@@ -426,6 +427,7 @@ constexpr hid IMPACT_REMOTE_TEXT_IMPACT                         = tools::str::ha
 constexpr hid IMPACT_SET_BYPASS_IMPACT                          = tools::str::hash_stable(IMPACT_SET_BYPASS_IMPACT_CLASS);
 constexpr hid IMPACT_SET_MUTE_IMPACT                            = tools::str::hash_stable(IMPACT_SET_MUTE_IMPACT_CLASS);
 constexpr hid IMPACT_SET_WIDGET_VALUE                           = tools::str::hash_stable(IMPACT_SET_WIDGET_VALUE_CLASS);
+constexpr hid IMPACT_VALUE_RECEIVER                             = tools::str::hash_stable(IMPACT_VALUE_RECEIVER_CLASS);
 
 struct Data {};
 struct CustomCombo_Data : public Data

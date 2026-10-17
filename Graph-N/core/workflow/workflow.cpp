@@ -1183,7 +1183,7 @@ void Workflow::apply_runtime_updates(iid node_id, NodeInstFlags mode)
     }
 }
 
-void Workflow::apply_runtime_updates(iid node_id, const std::string& pin_name, PinType pin_type, Primitive&& value)
+void Workflow::apply_runtime_updates(iid node_id, const std::string& pin_name, PinType pin_type, Primitive value)
 {
     if (0 == node_id)
         return;
@@ -1203,6 +1203,36 @@ void Workflow::apply_runtime_updates(iid node_id, const std::string& pin_name, P
                 target_in->state().value = std::move(value);
                 m_action->set_pin_val(target_in, std::move(old));
                 Log("Applied value for n:" << node_id << ", p:" << pin_name);
+            }
+        }
+    }
+}
+
+void Workflow::apply_runtime_updates(uint32_t link_id, std::string value)
+{
+    for (auto& node : m_nodes)
+    {
+        if (!node->has_object() || node->get_mode_bypass() || node->get_mode_mute())
+            continue;
+        if (node->get_object()->get_hash() == js::IMPACT_VALUE_RECEIVER)
+        {
+            PinInstance* pin_value = nullptr;
+            PinInstance* pin_link = nullptr;
+            for (auto pin : node->get_inputs())
+            {
+                if ("value" == pin->get_object()->def_state.name)
+                    pin_value = pin;
+                else if ("link_id" == pin->get_object()->def_state.name)
+                    pin_link = pin;
+            }
+
+            if (pin_value != nullptr && pin_value->state().value.is_string() &&
+                pin_link != nullptr && pin_link->state().value.is_int() && pin_link->state().value.get_int() == cast::to_u32(link_id))
+            {
+                auto old = pin_value->state().value;
+                *pin_value->state().value.get_string_ref() = std::move(value);
+                m_action->set_pin_val(pin_value, std::move(old));
+                Log("Applied value for n:" << node->get_instance_id() << ", l:" << link_id);
             }
         }
     }
