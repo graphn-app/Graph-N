@@ -81,7 +81,7 @@ bool PanelWorkflow::context_menu_handler()
             m_handle_context_menu = true;
             m_menu_objs = {};
             m_context_menu_type = MenuType::Widget;
-            m_menu_objs.caption = fmt::format(FMT_STRING("Widget: {}"), pin->state().name);
+            m_menu_objs.caption = fmt::format(FMT_STRING("Widget [{}]: {}"), pin->get_instance_id(), pin->state().name);
             m_menu_objs.pins.insert(pin);
             m_menu_objs.nodes.insert(parent);
             m_menu_objs.click_pos = m_drawer.get_mouse_pos();
@@ -100,7 +100,7 @@ bool PanelWorkflow::context_menu_handler()
                 m_handle_context_menu = true;
                 m_menu_objs = {};
                 m_context_menu_type = MenuType::Pin;
-                m_menu_objs.caption = fmt::format(FMT_STRING("Pin: {}"), pin->state().name);
+                m_menu_objs.caption = fmt::format(FMT_STRING("Pin [{}]: {}"), pin->get_instance_id(), pin->state().name);
                 m_menu_objs.pins.insert(pin);
                 m_menu_objs.nodes.insert(parent);
                 m_menu_objs.click_pos = m_drawer.get_mouse_pos();
@@ -123,7 +123,7 @@ bool PanelWorkflow::context_menu_handler()
             {
                 m_drawer.select_link(link->ed(), false);
                 m_context_menu_type = MenuType::Link;
-                m_menu_objs.caption = fmt::format(FMT_STRING("Link: {} -> {}"), link->get_output()->state().name, link->get_input()->state().name);
+                m_menu_objs.caption = fmt::format(FMT_STRING("Link [{}]: {} -> {}"), link->get_instance_id(), link->get_output()->state().name, link->get_input()->state().name);
                 m_menu_objs.links.insert(link);
                 Log("Menu: " << m_menu_objs.caption);
             }
@@ -159,8 +159,8 @@ bool PanelWorkflow::context_menu_handler()
                 else
                     m_menu_objs.nodes.insert(node);
                 m_context_menu_type = node->flags().has(NodeInstFlags::Group) ? MenuType::Group : MenuType::Node;
-                m_menu_objs.caption = fmt::format(FMT_STRING("{}: {}"),
-                    (MenuType::Group == m_context_menu_type ? "Group" : "Node"),
+                m_menu_objs.caption = fmt::format(FMT_STRING("{} [{}]: {}"),
+                    (MenuType::Group == m_context_menu_type ? "Group" : "Node"), node->get_instance_id(),
                     (MenuType::Group == m_context_menu_type ? node->get_name() : node->get_object()->node_class));
             }
             else
@@ -182,7 +182,7 @@ bool PanelWorkflow::context_menu_handler()
                     if (m_menu_objs.groups.size() == 1)
                     {
                         m_context_menu_type = MenuType::Group;
-                        m_menu_objs.caption = fmt::format(FMT_STRING("Group: {}"), m_menu_objs.groups.begin()->first->get_name());
+                        m_menu_objs.caption = fmt::format(FMT_STRING("Group [{}]: {}"), m_menu_objs.groups.begin()->first->get_instance_id(), m_menu_objs.groups.begin()->first->get_name());
                     }
                     else
                     {
@@ -195,7 +195,7 @@ bool PanelWorkflow::context_menu_handler()
                     if (m_menu_objs.nodes.size() == 1)
                     {
                         m_context_menu_type = MenuType::Node;
-                        m_menu_objs.caption = fmt::format(FMT_STRING("Node: {}"), (*m_menu_objs.nodes.begin())->get_object()->node_class);
+                        m_menu_objs.caption = fmt::format(FMT_STRING("Node [{}]: {}"), (*m_menu_objs.nodes.begin())->get_instance_id(), (*m_menu_objs.nodes.begin())->get_object()->node_class);
                     }
                     else
                     {
@@ -493,6 +493,11 @@ bool PanelWorkflow::show_node_menu()
         close = true;
         create_toolbar();
         return close;
+    }
+    if (ImGui::MenuItem("Unlink"))
+    {
+        m_wf->unlink_node(node);
+        close = true;
     }
     if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy), nullptr, node->obj_flags().has_not(NodeObjFlags::Dummy)))
     {
@@ -911,6 +916,16 @@ bool PanelWorkflow::show_multinode_menu()
         close = true;
         create_toolbar();
         return close;
+    }
+    if (ImGui::MenuItem("Unlink"))
+    {
+        m_action->multi_action_on("Unlink");
+        for (auto node : m_menu_objs.nodes)
+        {
+            m_wf->unlink_node(node);
+        }
+        m_action->multi_action_off();
+        close = true;
     }
     if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy)))
     {
@@ -1616,6 +1631,21 @@ bool PanelWorkflow::show_link_menu()
     if (ImGui::MenuItem("Insert reroute", nullptr, nullptr, can_unlink))
     {
         insert_reroute(link, m_menu_objs.click_pos);
+        close = true;
+    }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Locate input node"))
+    {
+        auto node = m_wf->get_node_by_instance(link->get_input()->get_parent_node());
+        if (node != nullptr)
+            m_drawer.locate_node(node);
+        close = true;
+    }
+    if (ImGui::MenuItem("Locate output node"))
+    {
+        auto node = m_wf->get_node_by_instance(link->get_output()->get_parent_node());
+        if (node != nullptr)
+            m_drawer.locate_node(node);
         close = true;
     }
     //if (ImGui::MenuItem("Insert angle")) // TODO. deny if dummy

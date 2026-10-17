@@ -544,6 +544,25 @@ void Workflow::remove_link(const Link* link)
     m_links.erase(it);
 }
 
+void Workflow::unlink_node(NodeInstance* node)
+{
+    std::vector<Link*> links;
+    links.reserve(m_links.size());
+    for (auto& link : m_links)
+    {
+        links.push_back(link.get());
+    }
+
+    for (auto link : links)
+    {
+        if (link->get_input()->get_parent_node() == node->get_instance_id() ||
+            link->get_output()->get_parent_node() == node->get_instance_id())
+        {
+            m_action->unlink(link);
+        }
+    }    
+}
+
 std::set<data::NodeInstance*> Workflow::filter_reroutes(const std::set<data::NodeInstance*>& nodes) const
 {
     std::set<data::NodeInstance*> ret;

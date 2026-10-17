@@ -68,6 +68,8 @@ public:
     void remove_link(const Link* link);
     void remove_pin(const PinInstance* pin, bool cleanup_ed = true) noexcept;
 
+    void unlink_node(NodeInstance* node);
+
     void bundle_reroutes(std::set<data::NodeInstance*> nodes);
     void separate_reroutes(std::set<data::NodeInstance*> nodes);
     void insert_reroute(data::Link* link, const ImVec2& pos);
