@@ -10,19 +10,19 @@ void WfSerializerToJson::serialize_cni_node(o_json& j)
 {
     switch (m_curr_node->get_object()->get_hash())
     {
-    case js::PRIMITIVE_NODE:
+    case js::VANILLA_PRIMITIVE_NODE:
         return serialize_cni_node_primitive(j);
-    case js::REROUTE:
+    case js::VANILLA_REROUTE:
         return serialize_cni_node_reroute(j);
-    case js::FAST_BYPASSER_RGTHREE:
-    case js::FAST_MUTER_RGTHREE:
+    case js::RGTHREE_FAST_BYPASSER:
+    case js::RGTHREE_FAST_MUTER:
         return serialize_cni_node_fast_switcher_rgthree(j);
-    case js::FAST_GROUPS_BYPASSER_RGTHREE:
-    case js::FAST_GROUPS_MUTER_RGTHREE:
+    case js::RGTHREE_FAST_GROUPS_BYPASSER:
+    case js::RGTHREE_FAST_GROUPS_MUTER:
         return serialize_cni_node_fast_group_switcher_rgthree(j);
-    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+    case js::RGTHREE_FAST_ACTIONS_BUTTON:
         return serialize_cni_node_fast_action_rgthree(j);
-    case js::BOOKMARK_RGTHREE:
+    case js::RGTHREE_BOOKMARK:
         return serialize_cni_node_bookmark_rgthree(j);
     case js::IMPACT_SWITCH:
         return serialize_cni_node_impact_switch(j);

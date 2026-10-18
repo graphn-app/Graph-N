@@ -1842,7 +1842,7 @@ void PanelWorkflow::apply_module_colors(data::NodeInstance* node, bool reset)
         if (node->flags().has(NodeInstFlags::Group))
             g::pOptsManager->items_module_color_reset({ 0 });
         else if (node->obj_flags().has_any(NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
-            g::pOptsManager->items_module_color_reset({ js::NOTE, js::MARKDOWN_NOTE });
+            g::pOptsManager->items_module_color_reset({ js::VANILLA_NOTE, js::VANILLA_MARKDOWN_NOTE });
         else
             g::pOptsManager->items_module_color_reset({ node->get_object()->python_module_hash });
     }
@@ -1852,7 +1852,7 @@ void PanelWorkflow::apply_module_colors(data::NodeInstance* node, bool reset)
         if (node->flags().has(NodeInstFlags::Group))
             g::pOptsManager->items_module_color_save({ 0 }, color);
         else if (node->obj_flags().has_any(NodeObjFlags::SpecNote, NodeObjFlags::SpecMdNote))
-            g::pOptsManager->items_module_color_save({ js::NOTE, js::MARKDOWN_NOTE }, color);
+            g::pOptsManager->items_module_color_save({ js::VANILLA_NOTE, js::VANILLA_MARKDOWN_NOTE }, color);
         else
             g::pOptsManager->items_module_color_save({ node->get_object()->python_module_hash }, color);
     }

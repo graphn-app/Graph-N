@@ -1073,16 +1073,16 @@ data::Node* add_internal_node(hid node_hash, std::unordered_map<hid, std::unique
 
 void NodesParser::add_internal_nodes(NodesManager& manager)
 {
-    put_in_tree(manager, add_internal_node(js::REROUTE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::PRIMITIVE_NODE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::NOTE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::MARKDOWN_NOTE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::FAST_BYPASSER_RGTHREE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::FAST_MUTER_RGTHREE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::FAST_GROUPS_MUTER_RGTHREE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::FAST_GROUPS_BYPASSER_RGTHREE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::FAST_ACTIONS_BUTTON_RGTHREE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::BOOKMARK_RGTHREE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::VANILLA_REROUTE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::VANILLA_PRIMITIVE_NODE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::VANILLA_NOTE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::VANILLA_MARKDOWN_NOTE, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::RGTHREE_FAST_BYPASSER, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::RGTHREE_FAST_MUTER, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::RGTHREE_FAST_GROUPS_MUTER, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::RGTHREE_FAST_GROUPS_BYPASSER, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::RGTHREE_FAST_ACTIONS_BUTTON, manager.m_nodes));
+    put_in_tree(manager, add_internal_node(js::RGTHREE_BOOKMARK, manager.m_nodes));
 }
 
 template <size_t N>

@@ -63,43 +63,43 @@ std::unique_ptr<data::NodeInstance> create_custom(data::Node* node, wid wf_id, i
     std::unique_ptr<NodeInstance> custom_node;
     switch (node->get_hash())
     {
-    case js::PRIMITIVE_NODE:
-    case js::POWER_PRIMITIVE_RGTHREE:
+    case js::VANILLA_PRIMITIVE_NODE:
+    case js::RGTHREE_POWER_PRIMITIVE:
         custom_node = std::make_unique<CNI_Primitive>(node, wf_id, node_id);
         break;
-    case js::REROUTE:
-    case js::REROUTE_PYSSSSS:
-    case js::REROUTE_RGTHREE:
+    case js::VANILLA_REROUTE:
+    case js::PYSSSSS_REROUTE:
+    case js::RGTHREE_REROUTE:
         custom_node = std::make_unique<CNI_Reroute>(node, wf_id, node_id, node_id2);
         break;
-    case js::NOTE:
+    case js::VANILLA_NOTE:
         custom_node = std::make_unique<CNI_Note>(node, wf_id, node_id);
         break;
-    case js::MARKDOWN_NOTE:
+    case js::VANILLA_MARKDOWN_NOTE:
         custom_node = std::make_unique<CNI_MarkdownNote>(node, wf_id, node_id);
         break;
-    case js::FAST_BYPASSER_RGTHREE:
+    case js::RGTHREE_FAST_BYPASSER:
         custom_node = std::make_unique<CNI_FastBypasserRgthree>(node, wf_id, node_id);
         break;
-    case js::FAST_MUTER_RGTHREE:
+    case js::RGTHREE_FAST_MUTER:
         custom_node = std::make_unique<CNI_FastMuterRgthree>(node, wf_id, node_id);
         break;
-    case js::FAST_GROUPS_BYPASSER_RGTHREE:
+    case js::RGTHREE_FAST_GROUPS_BYPASSER:
         custom_node = std::make_unique<CNI_FastGroupBypasserRgthree>(node, wf_id, node_id);
         break;
-    case js::FAST_GROUPS_MUTER_RGTHREE:
+    case js::RGTHREE_FAST_GROUPS_MUTER:
         custom_node = std::make_unique<CNI_FastGroupMuterRgthree>(node, wf_id, node_id);
         break;
-    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+    case js::RGTHREE_FAST_ACTIONS_BUTTON:
         custom_node = std::make_unique<CNI_FastActionRgthree>(node, wf_id, node_id);
         break;
     // TODO: CNI_BookmarkRgthree
-    //case js::BOOKMARK_RGTHREE:
+    //case js::RGTHREE_BOOKMARK:
     //    custom_node = std::make_unique<CNI_BookmarkRgthree>(node, wf_id, node_id);
     //    break;
     case js::IMPACT_SWITCH:
-    case js::LATENT_SWITCH:
-    case js::SEGS_SWITCH:
+    case js::IMPACT_LATENT_SWITCH:
+    case js::IMPACT_SEGS_SWITCH:
         custom_node = std::make_unique<CNI_SwitchImpact>(node, wf_id, node_id);
         break;
     case js::IMPACT_INVERSED_SWITCH:
@@ -1004,7 +1004,7 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
     auto left = link->get_output();
     auto right = link->get_input();
 
-    auto reroute_obj = g::pNodesManager->find_node(js::REROUTE);
+    auto reroute_obj = g::pNodesManager->find_node(js::VANILLA_REROUTE);
     LogRAssert(reroute_obj != nullptr, "Reroute node obj not found", );
 
     auto* reroute = m_action->add_node(reroute_obj, "", ImRect(pos.x, pos.y, 0, 0));
@@ -1145,11 +1145,11 @@ void Workflow::apply_pre_flight_mutations()
     {
         if (!node->has_object() || node->get_mode_bypass() || node->get_mode_mute())
             continue;
-        if (node->get_object()->get_hash() == js::IMPACT_REMOTE_INT_IMPACT ||
-            node->get_object()->get_hash() == js::IMPACT_REMOTE_BOOL_IMPACT ||
-            node->get_object()->get_hash() == js::IMPACT_REMOTE_FLOAT_IMPACT ||
-            node->get_object()->get_hash() == js::IMPACT_REMOTE_STRING_IMPACT ||
-            node->get_object()->get_hash() == js::IMPACT_REMOTE_TEXT_IMPACT)
+        if (node->get_object()->get_hash() == js::IMPACT_REMOTE_INT ||
+            node->get_object()->get_hash() == js::IMPACT_REMOTE_BOOL ||
+            node->get_object()->get_hash() == js::IMPACT_REMOTE_FLOAT ||
+            node->get_object()->get_hash() == js::IMPACT_REMOTE_STRING ||
+            node->get_object()->get_hash() == js::IMPACT_REMOTE_TEXT)
         {
             iid node_id = 0;
             std::string pin_name;

@@ -11,10 +11,10 @@ void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
 {
     switch (node->get_hash())
     {
-    case js::CONTEXT_MERGE_RGTHREE:
-    case js::CONTEXT_MERGE_BIG_RGTHREE:
-    case js::CONTEXT_SWITCH_RGTHREE:
-    case js::CONTEXT_SWITCH_BIG_RGTHREE:
+    case js::RGTHREE_CONTEXT_MERGE:
+    case js::RGTHREE_CONTEXT_MERGE_BIG:
+    case js::RGTHREE_CONTEXT_SWITCH:
+    case js::RGTHREE_CONTEXT_SWITCH_BIG:
         for (size_t i = 1; i <= 5; i++)
         {
             manager->make_pin(node, "RGTHREE_CONTEXT", fmt::format(FMT_STRING("ctx_0{}"), i), -1);
@@ -53,7 +53,7 @@ void CustomJsNode::draw(data::NodeInstance* node, float off, float width)
     //case js::CUSTOM_COMBO:
     //    draw_CustomCombo(node, off, width);
     //    break;
-    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+    case js::RGTHREE_FAST_ACTIONS_BUTTON:
         draw_FastActionsButtonRgthree(node, off, width);
         break;
     }    

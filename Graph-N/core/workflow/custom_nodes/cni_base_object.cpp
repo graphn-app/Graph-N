@@ -39,10 +39,10 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
 
     switch (hash)
     {
-    case js::REROUTE:
-    case js::REROUTE_PYSSSSS:
-    case js::REROUTE_RGTHREE:
-        node = std::make_unique<data::Node>(js::REROUTE_CLASS);
+    case js::VANILLA_REROUTE:
+    case js::PYSSSSS_REROUTE:
+    case js::RGTHREE_REROUTE:
+        node = std::make_unique<data::Node>(js::VANILLA_REROUTE_CLASS);
         node->name = node->display_name = "Reroute";
         node->category = "utils";
         node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
@@ -51,9 +51,9 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecReroute);
         break;
 
-    case js::PRIMITIVE_NODE:
-    case js::POWER_PRIMITIVE_RGTHREE:
-        node = std::make_unique<data::Node>(js::PRIMITIVE_NODE_CLASS);
+    case js::VANILLA_PRIMITIVE_NODE:
+    case js::RGTHREE_POWER_PRIMITIVE:
+        node = std::make_unique<data::Node>(js::VANILLA_PRIMITIVE_NODE_CLASS);
         node->name = node->display_name = "Primitive";
         node->category = "utils";
         node->description = "Primitive values like numbers, strings, and booleans.";
@@ -62,8 +62,8 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecPrimitive);
         break;
 
-    case js::NOTE:
-        node = std::make_unique<data::Node>(js::NOTE_CLASS);
+    case js::VANILLA_NOTE:
+        node = std::make_unique<data::Node>(js::VANILLA_NOTE_CLASS);
         node->name = node->display_name = "Note";
         node->category = "utils";
         node->description = "Node to add annotations to a workflow.";
@@ -72,8 +72,8 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecNote);
         break;
 
-    case js::MARKDOWN_NOTE:
-        node = std::make_unique<data::Node>(js::MARKDOWN_NOTE_CLASS);
+    case js::VANILLA_MARKDOWN_NOTE:
+        node = std::make_unique<data::Node>(js::VANILLA_MARKDOWN_NOTE_CLASS);
         node->name = node->display_name = "Markdown Note";
         node->category = "utils";
         node->description = "Node to add annotations to a workflow. It supports text formatting using Markdown syntax.";
@@ -82,8 +82,8 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecMdNote);
         break;
 
-    case js::FAST_BYPASSER_RGTHREE:
-        node = std::make_unique<data::Node>(js::FAST_BYPASSER_RGTHREE_CLASS);
+    case js::RGTHREE_FAST_BYPASSER:
+        node = std::make_unique<data::Node>(js::RGTHREE_FAST_BYPASSER_CLASS);
         node->name = node->display_name = "Fast Bypasser (rgthree)";
         node->category = "rgthree";
         node->description = "A panel to quickly toggle directly connected nodes to Bypass mode";
@@ -92,8 +92,8 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecFastBypasserRgthree, NodeObjFlags::SpecSwitherRgthree, NodeObjFlags::NoHistoryOnPinValChange, NodeObjFlags::NoPinCagMenu);
         break;
 
-    case js::FAST_MUTER_RGTHREE:
-        node = std::make_unique<data::Node>(js::FAST_MUTER_RGTHREE_CLASS);
+    case js::RGTHREE_FAST_MUTER:
+        node = std::make_unique<data::Node>(js::RGTHREE_FAST_MUTER_CLASS);
         node->name = node->display_name = "Fast Muter (rgthree)";
         node->category = "rgthree";
         node->description = "A panel to quickly toggle directly connected nodes to Mute mode";
@@ -102,8 +102,8 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecFastMuterRgthree, NodeObjFlags::SpecSwitherRgthree, NodeObjFlags::NoHistoryOnPinValChange, NodeObjFlags::NoPinCagMenu);
         break;
 
-    case js::FAST_GROUPS_BYPASSER_RGTHREE:
-        node = std::make_unique<data::Node>(js::FAST_GROUPS_BYPASSER_RGTHREE_CLASS);
+    case js::RGTHREE_FAST_GROUPS_BYPASSER:
+        node = std::make_unique<data::Node>(js::RGTHREE_FAST_GROUPS_BYPASSER_CLASS);
         node->name = node->display_name = "Fast Groups Bypasser (rgthree)";
         node->category = "rgthree";
         node->description = "Automatically collects a list of groups on the canvas and allows bypassing all nodes within selected groups";
@@ -112,8 +112,8 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecFastGBypasserRgthree, NodeObjFlags::SpecSwitherRgthree, NodeObjFlags::NoHistoryOnPinValChange, NodeObjFlags::NoPinCagMenu);
         break;
 
-    case js::FAST_GROUPS_MUTER_RGTHREE:
-        node = std::make_unique<data::Node>(js::FAST_GROUPS_MUTER_RGTHREE_CLASS);
+    case js::RGTHREE_FAST_GROUPS_MUTER:
+        node = std::make_unique<data::Node>(js::RGTHREE_FAST_GROUPS_MUTER_CLASS);
         node->name = node->display_name = "Fast Groups Muter (rgthree)";
         node->category = "rgthree";
         node->description = "Automatically collects a list of groups on the canvas and allows muting all nodes within selected groups";
@@ -122,8 +122,8 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecFastGMuterRgthree, NodeObjFlags::SpecSwitherRgthree, NodeObjFlags::NoHistoryOnPinValChange, NodeObjFlags::NoPinCagMenu);
         break;
 
-    case js::FAST_ACTIONS_BUTTON_RGTHREE:
-        node = std::make_unique<data::Node>(js::FAST_ACTIONS_BUTTON_RGTHREE_CLASS);
+    case js::RGTHREE_FAST_ACTIONS_BUTTON:
+        node = std::make_unique<data::Node>(js::RGTHREE_FAST_ACTIONS_BUTTON_CLASS);
         node->name = node->display_name = "Fast Actions Button (rgthree)";
         node->category = "rgthree";
         node->description = "Executes assigned actions (Mute, Bypass, Enable) on connected nodes with a single click of an interface button";
@@ -132,8 +132,8 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecFastActRgthree, NodeObjFlags::SpecSwitherRgthree, NodeObjFlags::CustomJsNode, NodeObjFlags::NoPinCagMenu);
         break;
 
-    case js::BOOKMARK_RGTHREE:
-        node = std::make_unique<data::Node>(js::BOOKMARK_RGTHREE_CLASS);
+    case js::RGTHREE_BOOKMARK:
+        node = std::make_unique<data::Node>(js::RGTHREE_BOOKMARK_CLASS);
         node->name = node->display_name = "Bookmark (rgthree)";
         node->category = "rgthree";
         node->description = "A navigational node that saves a specific canvas location and zoom level, allowing users to quickly jump (pan and zoom) to this area of the workflow using an assigned shortcut key";
@@ -143,8 +143,8 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         break;
 
     case js::IMPACT_SWITCH:
-    case js::LATENT_SWITCH:
-    case js::SEGS_SWITCH:
+    case js::IMPACT_LATENT_SWITCH:
+    case js::IMPACT_SEGS_SWITCH:
         node = std::make_unique<data::Node>(js::IMPACT_SWITCH_CLASS);
         node->name = node->display_name = "Switch (Any)";
         node->category = "ImpactPack";

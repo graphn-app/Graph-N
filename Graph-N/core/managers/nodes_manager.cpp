@@ -143,15 +143,15 @@ hid NodesManager::make_node_hash_and_migrate_node_if_required(std::string& node_
     const hid original_hash = base::HashID::make_hash(node_class);
     switch (original_hash)
     {
-    case js::REROUTE_PYSSSSS:
-    case js::REROUTE_RGTHREE:
-        node_class = js::REROUTE_CLASS;
-        return js::REROUTE;
-    case js::POWER_PRIMITIVE_RGTHREE:
-        node_class = js::PRIMITIVE_NODE_CLASS;
-        return js::PRIMITIVE_NODE;
-    case js::LATENT_SWITCH:
-    case js::SEGS_SWITCH:
+    case js::PYSSSSS_REROUTE:
+    case js::RGTHREE_REROUTE:
+        node_class = js::VANILLA_REROUTE_CLASS;
+        return js::VANILLA_REROUTE;
+    case js::RGTHREE_POWER_PRIMITIVE:
+        node_class = js::VANILLA_PRIMITIVE_NODE_CLASS;
+        return js::VANILLA_PRIMITIVE_NODE;
+    case js::IMPACT_LATENT_SWITCH:
+    case js::IMPACT_SEGS_SWITCH:
         node_class = js::IMPACT_SWITCH_CLASS;
         return js::IMPACT_SWITCH;
     default: [[likely]]

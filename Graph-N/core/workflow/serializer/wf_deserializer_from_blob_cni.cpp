@@ -16,23 +16,23 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node(blob::Reader& block)
 {
     switch (m_curr_node->get_object()->get_hash())
     {
-    case js::PRIMITIVE_NODE:
+    case js::VANILLA_PRIMITIVE_NODE:
         return deserialize_cni_node_primitive(block);
-    case js::REROUTE:
+    case js::VANILLA_REROUTE:
         return deserialize_cni_node_reroute(block);
-    case js::NOTE:
+    case js::VANILLA_NOTE:
         return deserialize_cni_node_note(block);
-    case js::MARKDOWN_NOTE:
+    case js::VANILLA_MARKDOWN_NOTE:
         return deserialize_cni_node_markdownnote(block);
-    case js::FAST_BYPASSER_RGTHREE:
-    case js::FAST_MUTER_RGTHREE:
+    case js::RGTHREE_FAST_BYPASSER:
+    case js::RGTHREE_FAST_MUTER:
         return deserialize_cni_node_fast_switcher_rgthree(block);
-    case js::FAST_GROUPS_BYPASSER_RGTHREE:
-    case js::FAST_GROUPS_MUTER_RGTHREE:
+    case js::RGTHREE_FAST_GROUPS_BYPASSER:
+    case js::RGTHREE_FAST_GROUPS_MUTER:
         return deserialize_cni_node_fast_group_switcher_rgthree(block);
-    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+    case js::RGTHREE_FAST_ACTIONS_BUTTON:
         return deserialize_cni_node_fast_action_rgthree(block);
-    case js::BOOKMARK_RGTHREE:
+    case js::RGTHREE_BOOKMARK:
         return deserialize_cni_node_bookmark_rgthree(block);
     case js::IMPACT_SWITCH:
         return deserialize_cni_node_impact_switch(block);

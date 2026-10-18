@@ -13,23 +13,23 @@ bool WfDeserializerFromJson::check_cni_node_definition(const o_json& j, hid node
 
     switch (node_class)
     {
-    case js::PRIMITIVE_NODE:
+    case js::VANILLA_PRIMITIVE_NODE:
         return check_cni_node_definition_primitive(j, is_valid);
-    case js::REROUTE:
+    case js::VANILLA_REROUTE:
         return check_cni_node_definition_reroute(j, is_valid);
-    case js::NOTE:
+    case js::VANILLA_NOTE:
         return check_cni_node_definition_note(j, is_valid);
-    case js::MARKDOWN_NOTE:
+    case js::VANILLA_MARKDOWN_NOTE:
         return check_cni_node_definition_markdownnote(j, is_valid);
-    case js::FAST_BYPASSER_RGTHREE:
-    case js::FAST_MUTER_RGTHREE:
+    case js::RGTHREE_FAST_BYPASSER:
+    case js::RGTHREE_FAST_MUTER:
         return check_cni_node_fast_switcher_rgthree(j, is_valid);
-    case js::FAST_GROUPS_BYPASSER_RGTHREE:
-    case js::FAST_GROUPS_MUTER_RGTHREE:
+    case js::RGTHREE_FAST_GROUPS_BYPASSER:
+    case js::RGTHREE_FAST_GROUPS_MUTER:
         return check_cni_node_fast_group_switcher_rgthree(j, is_valid);
-    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+    case js::RGTHREE_FAST_ACTIONS_BUTTON:
         return check_cni_node_fast_action_rgthree(j, is_valid);
-    case js::BOOKMARK_RGTHREE:
+    case js::RGTHREE_BOOKMARK:
         return check_cni_node_bookmark_rgthree(j, is_valid);
     case js::IMPACT_SWITCH:
         return check_cni_node_impact_switch(j, is_valid);
@@ -45,32 +45,32 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node(NodeInstance* node, c
 {
     switch (node->get_object()->get_hash())
     {
-    case js::PRIMITIVE_NODE:
+    case js::VANILLA_PRIMITIVE_NODE:
         return deserialize_cni_node_primitive(node, j);
-    case js::POWER_PRIMITIVE_RGTHREE:
-        node->get_object()->node_class = js::PRIMITIVE_NODE_CLASS;
-        node->get_object()->force_replace_hash(js::PRIMITIVE_NODE);
+    case js::RGTHREE_POWER_PRIMITIVE:
+        node->get_object()->node_class = js::VANILLA_PRIMITIVE_NODE_CLASS;
+        node->get_object()->force_replace_hash(js::VANILLA_PRIMITIVE_NODE);
         return deserialize_cni_node_primitive(node, j);
-    case js::REROUTE:
+    case js::VANILLA_REROUTE:
         return deserialize_cni_node_reroute(node, j);
-    case js::REROUTE_PYSSSSS:
-    case js::REROUTE_RGTHREE:
-        node->get_object()->node_class = js::REROUTE_CLASS;
-        node->get_object()->force_replace_hash(js::REROUTE);
+    case js::PYSSSSS_REROUTE:
+    case js::RGTHREE_REROUTE:
+        node->get_object()->node_class = js::VANILLA_REROUTE_CLASS;
+        node->get_object()->force_replace_hash(js::VANILLA_REROUTE);
         return deserialize_cni_node_reroute(node, j);
-    case js::NOTE:
+    case js::VANILLA_NOTE:
         return deserialize_cni_node_note(node, j);
-    case js::MARKDOWN_NOTE:
+    case js::VANILLA_MARKDOWN_NOTE:
         return deserialize_cni_node_markdownnote(node, j);
-    case js::FAST_BYPASSER_RGTHREE:
-    case js::FAST_MUTER_RGTHREE:
+    case js::RGTHREE_FAST_BYPASSER:
+    case js::RGTHREE_FAST_MUTER:
         return deserialize_cni_fast_switcher_rgthree(node, j);
-    case js::FAST_GROUPS_BYPASSER_RGTHREE:
-    case js::FAST_GROUPS_MUTER_RGTHREE:
+    case js::RGTHREE_FAST_GROUPS_BYPASSER:
+    case js::RGTHREE_FAST_GROUPS_MUTER:
         return deserialize_cni_fast_group_switcher_rgthree(node, j);
-    case js::FAST_ACTIONS_BUTTON_RGTHREE:
+    case js::RGTHREE_FAST_ACTIONS_BUTTON:
         return deserialize_cni_fast_action_rgthree(node, j);
-    case js::BOOKMARK_RGTHREE:
+    case js::RGTHREE_BOOKMARK:
         return deserialize_cni_bookmark_rgthree(node, j);
     case js::IMPACT_SWITCH:
         return deserialize_cni_node_impact_switch(node, j);
