@@ -64,6 +64,7 @@ std::unique_ptr<data::NodeInstance> create_custom(data::Node* node, wid wf_id, i
     switch (node->get_hash())
     {
     case js::PRIMITIVE_NODE:
+    case js::POWER_PRIMITIVE_RGTHREE:
         custom_node = std::make_unique<CNI_Primitive>(node, wf_id, node_id);
         break;
     case js::REROUTE:

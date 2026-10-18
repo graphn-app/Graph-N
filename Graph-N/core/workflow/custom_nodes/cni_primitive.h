@@ -8,10 +8,13 @@ class PinInstance;
 struct CNI_DeserializedPrimitive final : public CNI_DeserializedData
 {
     Primitive widget_value;
-    Primitive cag_value;
+    iid widget_id = 0;
+    hid widget_hash = 0;
+    ControlAfterGenerate cag_value;
     std::string out_pin_name = "*";
     std::string out_pin_type = "*";
     iid out_id = 0;
+    hid out_hash = 0;
 };
 
 class CNI_Primitive final : public CNI_BaseObj

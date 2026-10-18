@@ -99,9 +99,12 @@ bool CNI_Primitive::cni_copy_from(const NodeInstance* copy_from_node, bool copy_
 
     auto& ins = copy_from_node->get_inputs();
     if (ins.size() >= 1)
+    {
         primitive_data->widget_value = ins[0]->state().value;
-    if (ins.size() >= 2)
-        primitive_data->cag_value = ins[1]->state().value;
+        primitive_data->cag_value = ins[0]->state().cag_val;
+        primitive_data->widget_hash = ins[0]->get_object()->get_hash();
+        primitive_data->widget_id = ins[0]->get_instance_id();
+    }
 
     cni_save_deserialized_info(std::move(data));
 
@@ -262,9 +265,7 @@ void CNI_Primitive::update()
             src_pin_inst->state().copy_to(instance->state());
 
             if (deserialized_values != nullptr && instance->state().value.is_int() && deserialized_values->widget_value.is_int())
-            {
                 instance->state().value = deserialized_values->widget_value;
-            }
 
             add_input(instance);
             cni_add_pin(std::move(this_pin_obj));
@@ -374,6 +375,15 @@ void CNI_Primitive::update()
             out->obj_flags().add(PinObjFlags::CanRename);
             if (deserialized_values != nullptr)
                 out->state().name = deserialized_values->out_pin_name;
+        }
+
+        if (deserialized_values != nullptr && m_input.size() >= 1)
+        {
+            m_input[0]->state().cag_val = deserialized_values->cag_value;
+            if (deserialized_values->widget_hash != 0)
+                m_input[0]->get_object()->force_replace_hash(deserialized_values->widget_hash);
+            if (deserialized_values->widget_id != 0)
+                m_input[0]->set_instance_id(deserialized_values->widget_id);
         }
 
         m_deserialized_values.reset();        

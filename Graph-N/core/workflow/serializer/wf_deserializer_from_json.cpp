@@ -495,7 +495,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                         if (*cag_val == "fixed")    pin->state().cag_val = ControlAfterGenerate::Fixed;
                         else if (*cag_val == "increment")    pin->state().cag_val = ControlAfterGenerate::Increment;
                         else if (*cag_val == "decrement")    pin->state().cag_val = ControlAfterGenerate::Decrement;
-                        else if (*cag_val == "randomize")    pin->state().cag_val = ControlAfterGenerate::Randomize;                        
+                        else if (*cag_val == "randomize")    pin->state().cag_val = ControlAfterGenerate::Randomize;
                     }
                     continue;
                 }

@@ -92,7 +92,7 @@ void WfSerializerToJson::serialize_cni_node_reroute(o_json& j)
     j["properties"]["horizontal"] = false;
 
     size_t active_idx = inputs.size();
-    for (size_t i = 0; i < inputs.size() - 1; i++)
+    for (size_t i = 0; i < inputs.size(); i++)
     {
         if (inputs[i]->flags().has_not(PinInstFlags::Hidden))
         {

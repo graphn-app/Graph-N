@@ -65,12 +65,18 @@ void WfSerializerToBlob::serialize_cni_node_primitive()
     m_writer.push(cast::to_u32(inputs.size()));
     m_writer.push(cast::to_u32(outputs.size()));
 
-    Primitive val;
-    if (inputs.size() >= 1) val = inputs[0]->state().value;   // widget value
-    m_writer.push(val);
-    if (inputs.size() >= 2) val = inputs[1]->state().value;   // cag value
-    else val.reset();
-    m_writer.push(val);
+    if (inputs.size() >= 1)
+    {
+        m_writer.push(inputs[0]->state().value);
+        m_writer.push(cast::to_u8(inputs[0]->state().cag_val));
+        m_writer.push(inputs[0]->get_object()->get_hash());
+        m_writer.push(inputs[0]->get_instance_id());
+    }
+    else
+    {
+        m_writer.push(Primitive{});
+        m_writer.push(cast::to_u8(ControlAfterGenerate::Fixed));
+    }
 
     auto pin = outputs[0];
     m_writer.push(pin->get_object()->get_hash());

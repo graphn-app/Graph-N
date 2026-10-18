@@ -47,6 +47,10 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node(NodeInstance* node, c
     {
     case js::PRIMITIVE_NODE:
         return deserialize_cni_node_primitive(node, j);
+    case js::POWER_PRIMITIVE_RGTHREE:
+        node->get_object()->node_class = js::PRIMITIVE_NODE_CLASS;
+        node->get_object()->force_replace_hash(js::PRIMITIVE_NODE);
+        return deserialize_cni_node_primitive(node, j);
     case js::REROUTE:
         return deserialize_cni_node_reroute(node, j);
     case js::REROUTE_PYSSSSS:
@@ -128,7 +132,11 @@ NodeInstance* WfDeserializerFromJson::deserialize_cni_node_primitive(NodeInstanc
             const auto& jvalue1 = j["widgets_values"][1];
             if (jvalue1.is_string())
             {
-                cast::strict<CNI_DeserializedPrimitive>(data.get())->cag_value = jvalue1.get<std::string>();
+                const auto cag_val = jvalue1.get<std::string>();
+                if (cag_val == "fixed")             cast::strict<CNI_DeserializedPrimitive>(data.get())->cag_value = ControlAfterGenerate::Fixed;
+                else if (cag_val == "increment")    cast::strict<CNI_DeserializedPrimitive>(data.get())->cag_value = ControlAfterGenerate::Increment;
+                else if (cag_val == "decrement")    cast::strict<CNI_DeserializedPrimitive>(data.get())->cag_value = ControlAfterGenerate::Decrement;
+                else if (cag_val == "randomize")    cast::strict<CNI_DeserializedPrimitive>(data.get())->cag_value = ControlAfterGenerate::Randomize;
             }
         }
 

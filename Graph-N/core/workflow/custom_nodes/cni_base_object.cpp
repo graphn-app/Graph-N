@@ -52,6 +52,7 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         break;
 
     case js::PRIMITIVE_NODE:
+    case js::POWER_PRIMITIVE_RGTHREE:
         node = std::make_unique<data::Node>(js::PRIMITIVE_NODE_CLASS);
         node->name = node->display_name = "Primitive";
         node->category = "utils";
