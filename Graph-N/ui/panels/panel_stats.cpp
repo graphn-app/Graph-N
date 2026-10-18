@@ -485,18 +485,23 @@ void PanelStats::print_fps(float val_offset)
 
     const auto latency = smoother.update(g::pMain->get_frame_render_time());
 
-    bool def_clr = true;
-    const auto color = get_color(cast::to_i64(latency * 100), def_clr,
-        g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalFPS),
-        g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalFPS),
-        true);
+    ImU32 color = 0;
+    if (latency >= g::pMain->get_frame_budget_crit())
+        color = g::pOptsManager->color_load(AppColor::StatCrit);
+    else if (latency >= g::pMain->get_frame_budget_warn())
+        color = g::pOptsManager->color_load(AppColor::StatWarn);
 
-    if (!def_clr)
+    //const auto color = get_color(cast::to_i64(latency * 100), def_clr,
+    //    g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalFPS),
+    //    g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalFPS),
+    //    true);
+
+    if (color != 0)
         ImGui::PushStyleColor(ImGuiCol_Text, color);
     ImGui::TextUnformatted("Latency");
     ImGui::SameLine(val_offset);
     ImGui::Text("%.1f ms, FPS: %u", latency, m_fps);
-    if (!def_clr)
+    if (color != 0)
         ImGui::PopStyleColor();
 }
 

@@ -44,12 +44,17 @@ public:
 
     virtual bool get_ini_config_exists() const = 0;
 
+    float get_frame_budget() const noexcept { return m_frame_budget; }
+    float get_frame_budget_warn() const noexcept { return m_frame_budget / 2.0f; }
+    float get_frame_budget_crit() const noexcept { return m_frame_budget - 2.0f; }
+
 protected:
     void prepare_fonts();
 
 protected:
     DragAndDropCallback m_dnd_callback = nullptr;
     bool m_fullscreen = false;
+    float m_frame_budget = 16.6f;
 
 private:
     bool m_vsync = true;

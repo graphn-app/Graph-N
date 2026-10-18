@@ -70,6 +70,7 @@ bool MainRoutine_Win32::init()
 
     ::ShowWindow(m_hwnd, SW_SHOWMAXIMIZED);
     ::UpdateWindow(m_hwnd);
+    calc_current_monitor_refresh_rate();
 
     ::SetTimer(m_hwnd, 1, 1000, nullptr);
 
@@ -304,6 +305,15 @@ bool MainRoutine_Win32::create_render_target()
     return true;
 }
 
+namespace
+{
+MainRoutine_Win32* from_user_data(HWND hWnd)
+{
+    auto user_data = ::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+    return cast::ptrs<MainRoutine_Win32>(user_data);
+}
+} // namespace
+
 // Win32 message handler
 // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
 // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
@@ -321,14 +331,14 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         return 0;
     case WM_ENTERSIZEMOVE:
         {
-            MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            auto routine = from_user_data(hWnd);
             if (routine != nullptr)
                 routine->m_moving = true;
         }
         break;
     case WM_EXITSIZEMOVE:
         {
-            MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            auto routine = from_user_data(hWnd);
             if (routine != nullptr)
                 routine->m_moving = false;
         }
@@ -342,7 +352,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
                 return 0;
             }
 
-            MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            auto routine = from_user_data(hWnd);
             if (routine != nullptr)
             {
                 // defer resize if it was triggered programmatically from within the UI loop
@@ -389,7 +399,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         break;
     case USER_MESSAGE:
         {
-            MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            auto routine = from_user_data(hWnd);
             if (routine != nullptr && routine->m_user_msg_callback != nullptr)
             {
                 routine->m_user_msg_callback(wParam, lParam);
@@ -399,28 +409,35 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         return 0;
     case WM_DROPFILES:
         {
-            HDROP hdrop = (HDROP)wParam;
-            const UINT file_count = DragQueryFileA(hdrop, 0xFFFFFFFF, nullptr, 0);
-            std::list<std::filesystem::path> files;
-
-            for (UINT i = 0; i < file_count; i++)
-            {
-                char file_path[MAX_PATH];
-                if (DragQueryFileA(hdrop, i, file_path, MAX_PATH))
-                {
-                    files.push_back(file_path);
-                }
-            }
-
-            DragFinish(hdrop);
-
-            const MainRoutine_Win32* routine = (MainRoutine_Win32*)::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            auto routine = from_user_data(hWnd);
             if (routine != nullptr && routine->m_dnd_callback != nullptr)
             {
+                HDROP hdrop = (HDROP)wParam;
+                const UINT file_count = DragQueryFileA(hdrop, 0xFFFFFFFF, nullptr, 0);
+                std::list<std::filesystem::path> files;
+
+                for (UINT i = 0; i < file_count; i++)
+                {
+                    char file_path[MAX_PATH];
+                    if (DragQueryFileA(hdrop, i, file_path, MAX_PATH))
+                    {
+                        files.push_back(file_path);
+                    }
+                }
+
+                DragFinish(hdrop);
                 routine->m_dnd_callback(std::move(files));
             }
         }
         return 0;
+
+    case WM_WINDOWPOSCHANGED:
+        {
+            auto routine = from_user_data(hWnd);
+            if (routine != nullptr)
+                routine->calc_current_monitor_refresh_rate();
+        }
+        break;
 
     default: [[likely]]
         break;
@@ -512,6 +529,50 @@ void MainRoutine_Win32::wnd_toggle_fullscreen() noexcept
     }
 
     m_fullscreen = !m_fullscreen;
+}
+
+void MainRoutine_Win32::calc_current_monitor_refresh_rate() noexcept
+{
+    if (nullptr == m_hwnd)
+        return;
+
+    const auto fallback = [this]()
+    {
+        m_frame_budget = 1000.0f / 60.0f;
+        LogS("Failed to calc current monitor refresh rate, err " << LogApiERR << ". Reset to default 60Hz and default frame budget " << m_frame_budget << "ms. Warning " << get_frame_budget_warn() << ", critical " << get_frame_budget_crit());
+    };
+
+    const auto calculated = [this](DWORD monitor_freq)
+    {
+        m_frame_budget = cast::to_float(1000.0f / monitor_freq);
+        LogS("Monitor refresh rate: " << cast::to_u32(monitor_freq) << "Hz. Frame budget set to " << m_frame_budget << "ms. Warning " << get_frame_budget_warn() << ", critical " << get_frame_budget_crit());
+    };
+
+    // get monitor handle where the window is mostly located
+    HMONITOR h_monitor = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
+    if (nullptr == h_monitor)
+        return fallback();
+    if (h_monitor == m_last_monitor)
+        return;
+    m_last_monitor = h_monitor;
+
+    // get monitor info to retrieve the device name
+    MONITORINFOEXW mi = {};
+    mi.cbSize = sizeof(MONITORINFOEXW);
+    if (!GetMonitorInfoW(h_monitor, (MONITORINFO*)&mi))
+        return fallback();
+
+    // query current display settings
+    DEVMODEW dm = {};
+    dm.dmSize = sizeof(DEVMODEW);
+    dm.dmDriverExtra = 0;
+    if (EnumDisplaySettingsW(mi.szDevice, ENUM_CURRENT_SETTINGS, &dm))
+    {
+        if (dm.dmFields & DM_DISPLAYFREQUENCY)
+            return calculated(dm.dmDisplayFrequency);
+    }
+
+    fallback();
 }
 
 } // namespace platform

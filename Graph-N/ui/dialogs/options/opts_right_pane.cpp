@@ -72,8 +72,8 @@ void OptRightPane::init(OptsData& data)
     m_data->buffer_i[BuffConnOptChanged] = 0;
     m_data->buffer_i[BuffPort] = g::pOptsManager->comfyui_port_load();
     m_data->buffer_i[BuffConnTm] = g::pOptsManager->comfyui_connect_timeout_load();
-    m_data->buffer_i[BuffFpsW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalFPS);
-    m_data->buffer_i[BuffFpsC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalFPS);
+    //m_data->buffer_i[BuffFpsW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalFPS);
+    //m_data->buffer_i[BuffFpsC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalFPS);
     m_data->buffer_i[BuffLRamW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalRAM);
     m_data->buffer_i[BuffLRamC] = g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalRAM);
     m_data->buffer_i[BuffSRamW] = g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerRAM);
@@ -953,17 +953,17 @@ void OptRightPane::show_thresholds(const char*& help_text)
     //    }
     //}
 
-    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, APP_CAPTION " performance");
+    //ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, APP_CAPTION " performance");
 
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("UI latency:");
-    show_help_mark(help_text,
-        "Client-side render time (Frame Time).\n"
-        "Indicates how long it takes for " APP_CAPTION " to process and draw one frame.\n"
-        "High values mean the interface itself is lagging (heavy load on your GPU/CPU).");
-    changed = show_thresholds("##LatencyWarning", "##LatencyCritical", m_data->buffer_i[BuffFpsW], m_data->buffer_i[BuffFpsC], false, true, 0.01f, 20.0f, "%.2f ms");
-    if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsW]);
-    if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsC]);
+    //ImGui::AlignTextToFramePadding();
+    //ImGui::TextUnformatted("UI latency:");
+    //show_help_mark(help_text,
+    //    "Client-side render time (Frame Time).\n"
+    //    "Indicates how long it takes for " APP_CAPTION " to process and draw one frame.\n"
+    //    "High values mean the interface itself is lagging (heavy load on your GPU/CPU).");
+    //changed = show_thresholds("##LatencyWarning", "##LatencyCritical", m_data->buffer_i[BuffFpsW], m_data->buffer_i[BuffFpsC], false, true, 0.01f, 20.0f, "%.2f ms");
+    //if (changed.first) g::pOptsManager->stat_threshold_warn_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsW]);
+    //if (changed.second) g::pOptsManager->stat_threshold_crit_save(MetricLimit::LocalFPS, m_data->buffer_i[BuffFpsC]);
 }
 
 void OptRightPane::load_hotkeys(bool defaults)

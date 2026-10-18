@@ -343,7 +343,7 @@ enum class MetricLimit : uint8_t
 {
     LocalRAM,
     LocalDisk,
-    LocalFPS,
+    //LocalFPS,
     ServerRAM,
     ServerVRAM,
     ServerPyTorch,

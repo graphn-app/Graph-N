@@ -46,6 +46,7 @@ private:
     void cleanup_device_d3d() noexcept;
     bool create_render_target();
     void cleanup_render_target() noexcept;
+    void calc_current_monitor_refresh_rate() noexcept;
 
     static LRESULT WINAPI wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -76,6 +77,7 @@ private:
 
     // fps
     double m_frame_render_time = 0;
+    HMONITOR m_last_monitor = nullptr;
 
     static int64_t m_seconds_elapsed;
 

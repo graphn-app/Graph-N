@@ -179,8 +179,8 @@ bool SettingsManager::init()
     m_stat_limits_crit[cast::to_szt(MetricLimit::LocalRAM)] =                 { "stat_local_ram_crit",      int64_t(524288000) };      // 500 mb
     m_stat_limits_warn[cast::to_szt(MetricLimit::LocalDisk)] =                { "stat_disk_warn",           int64_t(10737418240) };    // 10 gb
     m_stat_limits_crit[cast::to_szt(MetricLimit::LocalDisk)] =                { "stat_disk_crit",           int64_t(2147483648) };     // 2 gb
-    m_stat_limits_warn[cast::to_szt(MetricLimit::LocalFPS)] =                 { "stat_fps_warn",            int64_t(200) };
-    m_stat_limits_crit[cast::to_szt(MetricLimit::LocalFPS)] =                 { "stat_fps_crit",            int64_t(1000) };
+    //m_stat_limits_warn[cast::to_szt(MetricLimit::LocalFPS)] =                 { "stat_fps_warn",            int64_t(200) };
+    //m_stat_limits_crit[cast::to_szt(MetricLimit::LocalFPS)] =                 { "stat_fps_crit",            int64_t(1000) };
     m_stat_limits_warn[cast::to_szt(MetricLimit::ServerRAM)] =                { "stat_server_ram_warn",     int64_t(3221225472) };     // 3 gb
     m_stat_limits_crit[cast::to_szt(MetricLimit::ServerRAM)] =                { "stat_server_ram_crit",     int64_t(1073741824) };     // 1 gb
     m_stat_limits_warn[cast::to_szt(MetricLimit::ServerVRAM)] =               { "stat_vram_warn",           int64_t(1073741824) };     // 1 gb
