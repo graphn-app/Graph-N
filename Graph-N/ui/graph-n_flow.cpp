@@ -1602,7 +1602,7 @@ void GraphN_Flow::check_ws_message(const std::function<void(bool, std::string&)>
 }
 
 namespace {
-void host_open(CustomMediaWidget* wdgt, wid wf_id, iid node_id, mngr::HostManager::HostType type)
+void host_open(CustomMediaWidget* wdgt, wid wf_id, iid node_id, HostType type)
 {
     auto wf = g::pWfsManager->access(wf_id);
     LogRAssertS(wf, "Wf not found. w:" << wf_id, );
@@ -1616,7 +1616,7 @@ void host_open(CustomMediaWidget* wdgt, wid wf_id, iid node_id, mngr::HostManage
 
     dest_path = fs::get_temp_directory_path();
     dest_path /= server_name.stem();
-    if (mngr::HostManager::HostType::MaskEditor == type)
+    if (HostType::MaskEditor == type)
         dest_path += "_mask";
     else
         dest_path += "_3dpos";
@@ -1631,7 +1631,7 @@ void host_open(CustomMediaWidget* wdgt, wid wf_id, iid node_id, mngr::HostManage
         }
     }
 
-    if (mngr::HostManager::HostType::MaskEditor == type)
+    if (HostType::MaskEditor == type)
         node->flags().add(NodeInstFlags::MaskEditorRunning);
     else
         node->flags().add(NodeInstFlags::PosEditorRunning);
@@ -1642,12 +1642,12 @@ void host_open(CustomMediaWidget* wdgt, wid wf_id, iid node_id, mngr::HostManage
 
 void GraphN_Flow::host_open_mask_editor(wid wf_id, iid node_id)
 {
-    host_open(m_custom_media_widget.get(), wf_id, node_id, mngr::HostManager::HostType::MaskEditor);
+    host_open(m_custom_media_widget.get(), wf_id, node_id, HostType::MaskEditor);
 }
 
 void GraphN_Flow::host_open_3dpos_editor(wid wf_id, iid node_id)
 {
-    host_open(m_custom_media_widget.get(), wf_id, node_id, mngr::HostManager::HostType::PosEditor);
+    host_open(m_custom_media_widget.get(), wf_id, node_id, HostType::PosEditor);
 }
 
 void GraphN_Flow::host_handle_node_removal(wid wf_id, iid node_id)
@@ -1680,7 +1680,7 @@ void GraphN_Flow::check_host_reply()
     wid wf_id = 0;
     iid node_id = 0;
     bool result = false;
-    mngr::HostManager::HostType type;
+    HostType type;
     std::filesystem::path image_path;
     if (!g::pHostManager->pickup_finished_host(wf_id, node_id, result, image_path, type)) [[likely]]
         return;

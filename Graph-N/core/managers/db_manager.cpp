@@ -196,6 +196,7 @@ bool DbManager::init()
 					);
 			   )"), gdb_tbl_meta, gdb_val_id,
                     gdb_val_name, gdb_val_str, gdb_val_int));
+        m_prev_meta = read_db_metadata();
 
         SQLite::Statement query_appver(*m_db,
             fmt::format(FMT_STRING(R"(

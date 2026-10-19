@@ -79,6 +79,7 @@ private:
     std::atomic_uint32_t m_queue_remaining = 0;     // comfyui api /prompt
     uint64_t m_fps = 0;                             // imgui
     int64_t m_ping_mk = 0;
+    std::string m_comfy_ver;
 
     fmt::memory_buffer m_buffer;
 };

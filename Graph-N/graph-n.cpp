@@ -166,7 +166,6 @@ void GraphN::prepare_to_quit()
     g::app_global_stop_all_threads.request_stop();
     m_graphn_flow->prepare_to_quit();
 
-    g::pConnectManager->stop_and_cleanup();
     g::pWfsManager->stop_and_cleanup();
 
     for (auto& manager : m_managers)
@@ -180,6 +179,7 @@ void GraphN::prepare_to_quit()
         }
     }
     g::pDbManager->stop_and_cleanup();
+    g::pConnectManager->stop_and_cleanup();
 
     m_video->stop_and_cleanup();
     m_textures->stop_and_cleanup();

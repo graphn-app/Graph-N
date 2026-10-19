@@ -17,6 +17,7 @@ public:
     DbManager();
     ~DbManager() override;
 
+    const DbMetadata& get_prev_db_metadata() const noexcept { return m_prev_meta; }
     static DbMetadata read_db_metadata();
 
     bool init() override;
@@ -113,6 +114,7 @@ private:
 
     std::unique_ptr<SQLite::Database> m_db;
     bool m_first_run = true;
+    DbMetadata m_prev_meta;
 };
 
 } // namespace mngr

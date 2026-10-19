@@ -64,12 +64,12 @@ void OptionsDlgs::show_left_pane()
 {
     constexpr const char* opt_list[cast::to_szt(OptPane::_count)] =
     {
-        "Application",
         "Connection",
         "Local Server",
         "Interface",
-        "Diagnostics",
         "Key Bindings",
+        "Application",
+        "Diagnostics",
     };
 
     if (ImGui::BeginChild(DlgObj_IID[cast::to_szt(DlgObj::OptLeftPane)], ImVec2(m_opts_data.left_pane_w, -FLT_MIN), true))

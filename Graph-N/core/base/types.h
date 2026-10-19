@@ -283,16 +283,16 @@ enum class OptPane : uint8_t
 {
     _none,
 
-    Application = _none,
-    Connection,
+    Connection = _none,
     LocalServer,
     Interface,
-    Diagnostics,
     KeyBindings,
+    Application,
+    Diagnostics,
 
     _count,
-    _first = Application,
-    _last = KeyBindings
+    _first = Connection,
+    _last = Diagnostics
 };
 
 enum ModalDlgCtrl : uint8_t
@@ -363,6 +363,12 @@ enum class ActivityBarMode : uint8_t
 
     _first = Disable,
     _last = Right
+};
+
+enum class HostType : uint8_t
+{
+    MaskEditor,
+    PosEditor
 };
 
 enum class AppColor : uint16_t

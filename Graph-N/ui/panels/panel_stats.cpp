@@ -162,6 +162,11 @@ void PanelStats::th_comfyui()
                         if (jsystem.contains("ram_total") && jsystem["ram_total"].is_number_integer())
                             m_sram_total.store(jsystem["ram_total"].get<uint64_t>(), std::memory_order_relaxed);
                     }
+                    if (j.contains("system") && j["system"].contains("comfyui_version") && j["system"]["comfyui_version"].is_string())
+                    {
+                        auto& jsystem = j["system"];
+                        m_comfy_ver = jsystem["comfyui_version"].get<std::string>();
+                    }
                     if (j.contains("devices") && j["devices"].is_array())
                     {
                         std::list<VideoDevice> list;
@@ -352,6 +357,11 @@ DlgCode PanelStats::show(bool& focused)
             }
             else
                 ImGui::TextUnformatted("Idle");
+
+            ImGui::TextUnformatted("Version");
+            ImGui::SameLine(val_text_offset);
+            ImGui::TextUnformatted(m_comfy_ver.c_str());
+
             print_ping(val_text_offset);
 
             if (show_bar)
