@@ -15,6 +15,7 @@ bool ConnectManager::init()
         return false;
 
     m_http_thread = std::thread(&ConnectManager::http_worker, this);
+    m_http_thread_ext = std::thread(&ConnectManager::http_worker_external, this);
     return true;
 }
 
@@ -22,16 +23,24 @@ void ConnectManager::stop_and_cleanup()
 {
     LogIn;
 
-    {
-        // clearing out pending requests during application exit
+    // clearing out pending requests during application exit
+    {        
         std::unique_lock<std::mutex> lock(m_http_inbox_mutex);
         while (!m_http_inbox.empty())
-            m_http_inbox.pop();
+        { m_http_inbox.pop(); }
+    }
+    {
+        std::unique_lock<std::mutex> lock(m_http_inbox_mutex_ext);
+        while (!m_http_inbox_ext.empty())
+        { m_http_inbox_ext.pop(); }
     }
     m_inbox_cv.notify_one();
+    m_inbox_cv_ext.notify_one();
 
     if (m_http_thread.joinable())
         m_http_thread.join();
+    if (m_http_thread_ext.joinable())
+        m_http_thread_ext.join();
 
     drop_ws_connection();
     drop_all_messages();
@@ -120,6 +129,33 @@ uint32_t ConnectManager::send_http_post_request(HttpRequestor requestor, const c
     return register_http_request(req);
 }
 
+uint32_t ConnectManager::send_http_get_request_ext(HttpRequestor requestor, const char* server, int32_t port, const char* url, bool retry_on_timeout)
+{
+    auto req = std::make_shared<RequestData>();
+    req->type = RequestData::Type::GetByUrl;
+    req->server = server;
+    req->port = port;
+    req->url = url;
+    req->external = true;
+    req->requestor = requestor;
+    req->retry_on_timeout = retry_on_timeout;
+    return register_http_request(req);
+}
+
+uint32_t ConnectManager::send_http_post_request_ext(HttpRequestor requestor, const char* server, int32_t port, const char* url, std::string&& payload, bool retry_on_timeout)
+{
+    auto req = std::make_shared<RequestData>();
+    req->type = RequestData::Type::PostRawPayload;
+    req->server = server;
+    req->port = port;
+    req->url = url;
+    req->external = true;
+    req->post_payload = std::move(payload);
+    req->requestor = requestor;
+    req->retry_on_timeout = retry_on_timeout;
+    return register_http_request(req);
+}
+
 uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
 {
     req->req_id = m_last_request_id.fetch_add(1, std::memory_order_relaxed) + 1;
@@ -191,12 +227,43 @@ uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
     case HttpRequestor::Restart:
         who_is_asking = "Reboot";
         break;
+
+    case HttpRequestor::Ext_Update:
+        who_is_asking = "Ext/Update";
+        req->log_this_request = false;
+        break;
+
+    case HttpRequestor::Ext_Stat_Session:
+        who_is_asking = "Ext/Stat/Session";
+        req->log_this_request = false;
+        break;
+    case HttpRequestor::Ext_Stat_Comfyui:
+        who_is_asking = "Ext/Stat/ComfyUI";
+        req->log_this_request = false;
+        break;
+    case HttpRequestor::Ext_Stat_Hardware:
+        who_is_asking = "Ext/Stat/Hardware";
+        req->log_this_request = false;
+        break;
+    case HttpRequestor::Ext_Stat_Nodes:
+        who_is_asking = "Ext/Stat/Nodes";
+        req->log_this_request = false;
+        break;
+    case HttpRequestor::Ext_Stat_Host:
+        who_is_asking = "Ext/Stat/Host";
+        req->log_this_request = false;
+        break;
+    case HttpRequestor::Ext_Stat_Config:
+        who_is_asking = "Ext/Stat/Config";
+        req->log_this_request = false;
+        break;
+
     default:
         LogError("Unknown requestor");
         who_is_asking = "Unknown_requestor";
     }
 
-    if (glog::Logger::get_log_web_response_enabled())
+    if (glog::Logger::get_log_web_response_enabled() && !req->external)
         req->log_this_request = true;
 
     const char* type = (RequestData::Type::GetByUrl == req->type || RequestData::Type::GetByUrlAndParams == req->type ? "GET" : "POST");
@@ -206,7 +273,18 @@ uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
         if (!req->post_payload.empty())
             LogClear(req->post_payload);
     }
+    else if (req->external)
+    {
+        Log("HTTP-Req-Ext#" << req->req_id << ". Registered: " << type << ". Who: " << who_is_asking << ". Retry: " << req->retry_on_timeout << ". Url: " << req->server << ":" << req->port << "/" << req->url);
+    }
 
+    if (req->external)
+    {
+        std::unique_lock<std::mutex> lock(m_http_inbox_mutex_ext);
+        m_http_inbox_ext.push(req);
+        m_inbox_cv_ext.notify_one();
+    }
+    else [[likely]]
     {
         const auto host = g::pOptsManager->comfyui_host_load_safe();
         const auto port = cast::to_i32(g::pOptsManager->comfyui_port_load_safe());
@@ -221,8 +299,8 @@ uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
             m_port = port;
             m_timeout = tm_out;
         }
+        m_inbox_cv.notify_one();
     }
-    m_inbox_cv.notify_one();
 
     return req->req_id;
 }
@@ -347,6 +425,83 @@ void ConnectManager::http_worker()
     LogOut;
 }
 
+void ConnectManager::http_worker_external()
+{
+    LogIn;
+
+    while (!g::app_global_stop_all_threads.stop_requested())
+    {
+        std::shared_ptr<RequestData> req;
+
+        {
+            std::unique_lock<std::mutex> lock(m_http_inbox_mutex_ext);
+            m_inbox_cv_ext.wait(lock, [this]() noexcept {
+                return !m_http_inbox_ext.empty() || g::app_global_stop_all_threads.stop_requested();
+            });
+
+            if (g::app_global_stop_all_threads.stop_requested() && m_http_inbox_ext.empty())
+                break;
+
+            req = m_http_inbox_ext.front();
+            m_http_inbox_ext.pop();
+        }
+
+        Log("HTTP-Req-Ext#" << req->req_id << ". Started");
+
+        if (443 == req->port)
+        {
+            send_https(req);
+        }
+        else
+        {
+            httplib::Client client(req->server, req->port);
+            const auto wait_timeout = (g::app_global_stop_all_threads.stop_requested() ? 1s : 5s);
+            client.set_connection_timeout(wait_timeout);
+            client.set_read_timeout(wait_timeout);
+            client.set_keep_alive(false);
+
+            httplib::Result res;
+            switch (req->type)
+            {
+            case RequestData::Type::GetByUrl:
+                res = client.Get(req->url);
+                break;
+            case RequestData::Type::PostRawPayload:
+                res = client.Post(req->url, req->post_payload, "application/json");
+                break;
+            default:
+                {
+                    std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
+                    req->status = HTTP_RESP_FAIL;
+                    m_http_pickup.push(req);
+                    m_http_pickup_empty.store(false, std::memory_order_release);
+                    LogCError("HTTP-Req-Ext#" << req->req_id << ". Unknown request type");
+                }
+            }
+
+            if (res)
+            {
+                req->status = res->status;
+                req->data = std::move(res->body);
+                Log("HTTP-Req-Ext#" << req->req_id << ". Finished. Result: " << res->status << ". Body: " << req->data.size() << " bytes");
+            }
+            else
+            {
+                Log("HTTP-Req-Ext#" << req->req_id << ". Failed. Error: " << httplib::to_string(res.error()));
+            }
+        }
+
+        {
+            // sending response back to consumer
+            std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
+            m_http_pickup.push(req);
+            m_http_pickup_empty.store(false, std::memory_order_release);
+        }
+    }
+
+    LogOut;
+}
+
 bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std::string& response)
 {
     // quick lockless check before hitting the mutex
@@ -379,6 +534,7 @@ bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std
             req->status = 0; 
             req->data.clear();
 
+            if (!req->external) [[likely]]
             {
                 // requeue failed request internally
                 std::unique_lock<std::mutex> inbox_lock(m_http_inbox_mutex);
@@ -388,8 +544,15 @@ bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std
                 m_port = cast::to_i32(g::pOptsManager->comfyui_port_load());
                 m_timeout = g::pOptsManager->comfyui_connect_timeout_load();
                 m_http_inbox.push(req);
+                m_inbox_cv.notify_one();
             }
-            m_inbox_cv.notify_one();
+            else
+            {
+                // requeue failed request internally
+                std::unique_lock<std::mutex> inbox_lock(m_http_inbox_mutex_ext);
+                m_http_inbox_ext.push(req);
+                m_inbox_cv_ext.notify_one();
+            }
 
             m_http_pickup.pop();
             if (m_http_pickup.empty()) m_http_pickup_empty.store(true, std::memory_order_relaxed);
@@ -437,9 +600,10 @@ void ConnectManager::drop_all_messages()
     }
     {
         std::unique_lock<std::mutex> lock(m_http_inbox_mutex);
-        std::queue<std::shared_ptr<RequestData>> temp;
-        m_http_inbox.swap(temp);
+        std::queue<std::shared_ptr<RequestData>> t1;
+        m_http_inbox.swap(t1);
     }
+    // do not clean-up external queue
 
     m_ws_pickup.clear();
 }

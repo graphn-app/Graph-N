@@ -27,6 +27,9 @@ private:
     uint32_t send_http_post_request(HttpRequestor requestor, const char* url, std::string&& payload, bool retry_on_timeout);
     uint32_t send_http_post_request(HttpRequestor requestor, const char* url, httplib::UploadFormDataItems&& payload_items, bool retry_on_timeout);
 
+    uint32_t send_http_get_request_ext(HttpRequestor requestor, const char* server, int32_t port, const char* url, bool retry_on_timeout);
+    uint32_t send_http_post_request_ext(HttpRequestor requestor, const char* server, int32_t port, const char* url, std::string&& payload, bool retry_on_timeout);
+
     bool pickup_http_response(uint32_t& req_id, int32_t& result, std::string& response);
     bool pickup_ws_message(bool& is_binary, std::string& message);
     void drop_all_messages();
@@ -39,6 +42,10 @@ private:
         uint32_t req_id = 0;
         HttpRequestor requestor;
         bool log_this_request = true;
+
+        bool external = false;
+        std::string server; // external request
+        int32_t port = 0; // external request
 
         std::string url;
 
@@ -59,7 +66,9 @@ private:
 
     uint32_t register_http_request(std::shared_ptr<RequestData> req);
     void http_worker();
+    void http_worker_external();
     void drop_ws_connection();
+    void send_https(std::shared_ptr<RequestData> req);
 
 private:
     std::atomic_uint32_t m_last_request_id = 0;
@@ -76,6 +85,11 @@ private:
     std::condition_variable m_inbox_cv;
     std::queue<std::shared_ptr<RequestData>> m_http_inbox;
     std::thread m_http_thread;
+
+    std::mutex m_http_inbox_mutex_ext;
+    std::condition_variable m_inbox_cv_ext;
+    std::queue<std::shared_ptr<RequestData>> m_http_inbox_ext;
+    std::thread m_http_thread_ext;
 
     std::mutex m_http_pickup_mutex;
     std::queue<std::shared_ptr<RequestData>> m_http_pickup;
