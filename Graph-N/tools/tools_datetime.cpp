@@ -4,96 +4,112 @@ namespace tools
 {
 dt dt::m_start_time;
 
-dt dt::from_current_date() noexcept
-{
-    const auto now = std::chrono::system_clock::now();
-    const std::time_t t = std::chrono::system_clock::to_time_t(now);
-    std::tm ptm;
-    if (localtime_s(&ptm, &t) != 0)
-    {
-        LogWarnS("localtime_s failed");
-        return {};
-    }
-
-    const auto duration = now.time_since_epoch();
-    const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() % 1000;
-
-    dt date = {};
-
-    date.m_raw = t;
-
-    date.m_year = cast::to_u16(ptm.tm_year + 1900);
-    date.m_month = cast::to_u8(ptm.tm_mon + 1);
-    date.m_day = cast::to_u8(ptm.tm_mday);
-
-    date.m_hour = cast::to_u8(ptm.tm_hour);
-    date.m_minute = cast::to_u8(ptm.tm_min);
-    date.m_second = cast::to_u8(ptm.tm_sec);
-    date.m_millisecond = cast::to_u16(millis);
-
-    return date;
-}
-
-dt dt::from_time(time_t raw) noexcept
+dt dt::create_from_raw(time_t raw, uint16_t millis, bool utc) noexcept
 {
     if (raw > 100'000'000'000)
         raw /= 1000;
 
-    std::tm ptm;
-    if (localtime_s(&ptm, &raw) != 0)
+    std::tm ptm = {};
+    bool success = false;
+
+    if (utc)
     {
-        LogWarnS("localtime_s failed");
+#ifdef _WIN32
+        success = (gmtime_s(&ptm, &raw) == 0);
+#else
+        success = (gmtime_r(&raw, &ptm) != nullptr);
+#endif
+    }
+    else
+    {
+#ifdef _WIN32
+        success = (localtime_s(&ptm, &raw) == 0);
+#else
+        success = (localtime_r(&raw, &ptm) != nullptr);
+#endif
+    }
+
+    if (!success)
+    {
+        LogWarnS("time conversion failed");
         return {};
     }
 
-    const auto t = std::chrono::system_clock::from_time_t(raw);
-    const auto duration = t.time_since_epoch();
-    const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() % 1000;
-
     dt date = {};
-
     date.m_raw = raw;
+    date.m_is_utc = utc;
 
-    date.m_year = cast::to_u16(ptm.tm_year + 1900);
-    date.m_month = cast::to_u8(ptm.tm_mon + 1);
-    date.m_day = cast::to_u8(ptm.tm_mday);
+    date.m_year = cast::to_i32(ptm.tm_year + 1900);
+    date.m_month = cast::to_i32(ptm.tm_mon + 1);
+    date.m_day = cast::to_i32(ptm.tm_mday);
 
-    date.m_hour = cast::to_u8(ptm.tm_hour);
-    date.m_minute = cast::to_u8(ptm.tm_min);
-    date.m_second = cast::to_u8(ptm.tm_sec);
-    date.m_millisecond = cast::to_u16(millis);
+    date.m_hour = cast::to_i32(ptm.tm_hour);
+    date.m_minute = cast::to_i32(ptm.tm_min);
+    date.m_second = cast::to_i32(ptm.tm_sec);
+    date.m_millisecond = cast::to_i32(millis);
 
     return date;
 }
 
-const char* dt::month_name(int32_t length /*= 0*/) const noexcept
+dt dt::from_current_date() noexcept
 {
+    const auto now = std::chrono::system_clock::now();
+    const std::time_t t = std::chrono::system_clock::to_time_t(now);
+    const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() % 1000;
+    return create_from_raw(t, static_cast<uint16_t>(millis), false);
+}
+
+dt dt::from_current_date_utc() noexcept
+{
+    const auto now = std::chrono::system_clock::now();
+    const std::time_t t = std::chrono::system_clock::to_time_t(now);
+    const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() % 1000;
+    return create_from_raw(t, static_cast<uint16_t>(millis), true);
+}
+
+dt dt::from_time(time_t raw) noexcept
+{
+    // millis extraction is removed here since raw time_t only has seconds.
+    // if you need exact ms from raw, you should pass it as an argument.
+    return create_from_raw(raw, 0, false);
+}
+
+dt dt::from_time_utc(time_t raw) noexcept
+{
+    return create_from_raw(raw, 0, true);
+}
+
+const char* dt::month_name(int32_t length /*= 5*/) const noexcept
+{
+    if (0 == length)
+        length = 5;
+
     switch (m_month)
     {
     case 1:
-        return (1 == length ? "J" : (3 == length ? "Jan" : "January"));
+        return (1 == length ? "J" : (length <= 3 ? "Jan" : "January"));
     case 2:
-        return (1 == length ? "F" : (3 == length ? "Feb" : "February"));
+        return (1 == length ? "F" : (length <= 3 ? "Feb" : "February"));
     case 3:
-        return (1 == length ? "M" : (3 == length ? "Mar" : "March"));
+        return (1 == length ? "M" : (length <= 3 ? "Mar" : "March"));
     case 4:
-        return (1 == length ? "A" : (3 == length ? "Apr" : "April"));
+        return (1 == length ? "A" : (length <= 3 ? "Apr" : "April"));
     case 5:
-        return (1 == length ? "M" : (3 == length ? "May" : "May"));
+        return (1 == length ? "M" : (length <= 3 ? "May" : "May"));
     case 6:
-        return (1 == length ? "J" : (3 == length ? "Jun" : "June"));
+        return (1 == length ? "J" : (length <= 3 ? "Jun" : "June"));
     case 7:
-        return (1 == length ? "J" : (3 == length ? "Jul" : "July"));
+        return (1 == length ? "J" : (length <= 3 ? "Jul" : "July"));
     case 8:
-        return (1 == length ? "A" : (3 == length ? "Aug" : "August"));
+        return (1 == length ? "A" : (length <= 3 ? "Aug" : "August"));
     case 9:
-        return (1 == length ? "S" : (3 == length ? "Sep" : "September"));
+        return (1 == length ? "S" : (length <= 3 ? "Sep" : "September"));
     case 10:
-        return (1 == length ? "O" : (3 == length ? "Oct" : "October"));
+        return (1 == length ? "O" : (length <= 3 ? "Oct" : "October"));
     case 11:
-        return (1 == length ? "N" : (3 == length ? "Nov" : "November"));
+        return (1 == length ? "N" : (length <= 3 ? "Nov" : "November"));
     case 12:
-        return (1 == length ? "D" : (3 == length ? "Dec" : "December"));
+        return (1 == length ? "D" : (length <= 3 ? "Dec" : "December"));
     }
 
     return "";
@@ -102,7 +118,7 @@ const char* dt::month_name(int32_t length /*= 0*/) const noexcept
 std::string dt::as_log_line() const
 {
     // HH:MM:SS.mmm
-    return fmt::format(FMT_STRING("{:02}:{:02}:{:02}.{:03}"), m_hour, m_minute, m_second, m_millisecond);
+    return fmt::format(FMT_COMPILE("{:02}:{:02}:{:02}.{:03}"), m_hour, m_minute, m_second, m_millisecond);
 }
 
 std::string dt::as_filename() const
@@ -145,4 +161,16 @@ std::string dt::as_full_date_readable(bool add_ms) const
         m_hour, m_minute, m_second);
 }
 
+std::string dt::as_iso8601() const
+{
+    // ISO 8601 with 'Z' MUST be in UTC.
+    // If this object holds local time components, dynamically calculate UTC
+    // to prevent sending fake future timestamps.
+    if (!m_is_utc)
+        return from_time_utc(m_raw).as_iso8601();
+
+    // 2026-10-19T20:18:00.000Z
+    return fmt::format(FMT_STRING("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:03}Z"),
+        m_year, m_month, m_day, m_hour, m_minute, m_second, m_millisecond);
+}
 }	//	namespace tools
