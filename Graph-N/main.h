@@ -19,7 +19,8 @@ public:
     void set_vsync_enabled(bool enable) noexcept { m_vsync = enable; }
     bool get_vsync_enabled() noexcept { return m_vsync; }
 
-    virtual double get_frame_render_time() const = 0;
+    virtual double get_frame_render_time() const noexcept = 0;
+    virtual int64_t get_seconds_elapsed() const noexcept = 0;
 
     using cleanup_callback = std::function<void()>;
     using flow_callback = std::function<bool(bool DoExit)>;
@@ -44,6 +45,11 @@ public:
 
     virtual bool get_ini_config_exists() const = 0;
 
+    uint32_t get_monitor_frequency() const noexcept { return m_monitor_frequency; }
+    uint32_t& get_monitor_x() noexcept { return m_monitor_x; }
+    uint32_t& get_monitor_y() noexcept { return m_monitor_y; }
+    float& get_monitor_dpi() noexcept { return m_monitor_dpi; }
+
     float get_frame_budget() const noexcept { return m_frame_budget; }
     float get_frame_budget_warn() const noexcept { return m_frame_budget / 2.0f; }
     float get_frame_budget_crit() const noexcept { return m_frame_budget - 2.0f; }
@@ -54,7 +60,12 @@ protected:
 protected:
     DragAndDropCallback m_dnd_callback = nullptr;
     bool m_fullscreen = false;
-    float m_frame_budget = 16.6f;
+
+    float m_frame_budget = 0.0f;
+    uint32_t m_monitor_frequency = 0;
+    uint32_t m_monitor_x = 0;
+    uint32_t m_monitor_y = 0;
+    float m_monitor_dpi = 0.0f;
 
 private:
     bool m_vsync = true;

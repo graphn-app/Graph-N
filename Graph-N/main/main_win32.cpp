@@ -202,6 +202,7 @@ bool MainRoutine_Win32::render_frame(bool done)
         ::Sleep(10); 
     }
 
+    m_monitor_dpi = ImGui::GetMainViewport()->DpiScale;
     m_is_rendering = false; // unlock
     return ret_value;
 }
@@ -544,6 +545,7 @@ void MainRoutine_Win32::calc_current_monitor_refresh_rate() noexcept
 
     const auto calculated = [this](DWORD monitor_freq)
     {
+        m_monitor_frequency = cast::to_u32(monitor_freq);
         m_frame_budget = cast::to_float(1000.0f / monitor_freq);
         LogS("Monitor refresh rate: " << cast::to_u32(monitor_freq) << "Hz. Frame budget set to " << m_frame_budget << "ms. Warning " << get_frame_budget_warn() << ", critical " << get_frame_budget_crit());
     };
@@ -555,6 +557,14 @@ void MainRoutine_Win32::calc_current_monitor_refresh_rate() noexcept
     if (h_monitor == m_last_monitor)
         return;
     m_last_monitor = h_monitor;
+
+    DEVMODE dev_mode = {};
+    dev_mode.dmSize = sizeof(DEVMODE);
+    if (EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dev_mode))
+    {
+        m_monitor_x = cast::to_u32(dev_mode.dmPelsWidth);
+        m_monitor_y = cast::to_u32(dev_mode.dmPelsHeight);
+    }
 
     // get monitor info to retrieve the device name
     MONITORINFOEXW mi = {};

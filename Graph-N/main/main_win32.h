@@ -19,6 +19,7 @@ public:
     ~MainRoutine_Win32() noexcept override;
 
     double get_frame_render_time() const noexcept override { return m_frame_render_time; }
+    int64_t get_seconds_elapsed() const noexcept override { return m_seconds_elapsed; }
     HWND get_hwnd() const noexcept { return m_hwnd; }
     void set_user_msg_callback(UserMsgCallback callback) { m_user_msg_callback = callback; }
     bool get_ini_config_exists() const noexcept override { return m_ini_config_exists; }

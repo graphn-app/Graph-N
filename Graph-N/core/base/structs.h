@@ -286,6 +286,35 @@ struct ExecTask final
     int32_t nodes_done = 0;     // num of nodes finished processing
     float progress = 0.0f;      // progress in %
 };
+
+///////////////////////////////////////////////////////////////////
+///////      StatsData                    /////////////////////////
+///////////////////////////////////////////////////////////////////
+
+struct StatsData final
+{
+    struct Progress final
+    {
+        bool sent = false;
+        bool in_progress = false;
+        int64_t next_attempt = 5;
+    };
+
+    Progress app_start_sent;
+    Progress app_end_sent;
+    Progress monitor_sent;
+    Progress user_sent;
+    bool all_sent() const noexcept { return app_start_sent.sent && app_end_sent.sent && monitor_sent.sent && user_sent.sent; }
+
+    std::string customer_id;
+    int64_t session_id = 0;
+    std::string comfyui_ver;
+
+    std::unordered_set<std::string> resolved_nodes;
+    std::unordered_set<std::string> unresolved_nodes;
+    std::unordered_set<std::string> python_modules;
+};
+
 } // namespace mngr
 
 ///////////////////////////////////////////////////////////////////

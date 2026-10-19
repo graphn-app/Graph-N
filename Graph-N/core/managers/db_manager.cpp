@@ -28,6 +28,11 @@ constexpr auto gdb_val_data = "data";
 
 constexpr auto gdb_valname_app_ver = "app_ver";
 constexpr auto gdb_valname_last_run = "last_run";
+constexpr auto gdb_valname_customer_id = "customer_id";
+constexpr auto gdb_valname_last_session = "last_session";
+constexpr auto gdb_valname_resolved_nodes = "resolved_nodes";
+constexpr auto gdb_valname_unresolved_nodes = "unresolved_nodes";
+constexpr auto gdb_valname_python_modules = "python_modules";
 
 constexpr auto gdb_tbl_meta = "METADATA";
 constexpr auto gdb_tbl_err = "ERRORS";
@@ -145,10 +150,18 @@ DbMetadata DbManager::read_db_metadata()
 
         while (query.executeStep())
         {
-            if (query.getColumn(0).getString() == gdb_valname_app_ver)
+            const auto parameter = query.getColumn(0).getString();
+            if (parameter == gdb_valname_app_ver)
                 meta.app_ver = query.getColumn(1).getString();
-            else if (query.getColumn(0).getString() == gdb_valname_last_run)
+            else if (parameter == gdb_valname_last_run)
                 meta.last_run = query.getColumn(1).getString();
+            else if (parameter == gdb_valname_customer_id)
+                meta.customer_id = query.getColumn(1).getString();
+            else if (parameter == gdb_valname_last_session)
+            {
+                meta.last_session_id = query.getColumn(2).getInt();
+                meta.last_session_duration = query.getColumn(1).getString();
+            }
         }
 
         return meta;
@@ -223,6 +236,22 @@ bool DbManager::init()
         query_lastrun.bind(2, tools::dt::from_current_date().as_full_date(false));
         query_lastrun.bind(3, 0);
         query_lastrun.exec();
+
+        if (m_prev_meta.customer_id.empty())
+        {
+            SQLite::Statement query_customer_id(*m_db,
+                fmt::format(FMT_STRING(R"(
+                        REPLACE INTO {}
+                                ({}, {}, {})
+                        VALUES  (?,  ?,  ?)
+                )"),
+                    gdb_tbl_meta,
+                    gdb_val_name, gdb_val_str, gdb_val_int));
+            query_customer_id.bindNoCopy(1, gdb_valname_customer_id);
+            query_customer_id.bind(2, tools::str::generate_uuid_v4());
+            query_customer_id.bind(3, 0);
+            query_customer_id.exec();
+        }
 
         m_db->exec(fmt::format(FMT_STRING(R"(
 					CREATE TABLE IF NOT EXISTS {} (
@@ -351,6 +380,126 @@ void DbManager::exception_save(std::string&& message, const char* file, int32_t 
     }
     catch(...) {}
     m_cv.notify_all();
+}
+
+void DbManager::session_end_save(int64_t session_id, const std::string& duration)
+{
+    WriteData data;
+    SessionData s;
+    s.session_id = session_id;
+    s.session_duration = duration;
+
+    data.type = WriteType::SessionEnd;
+    data.data = s;
+
+    {
+        std::lock_guard<std::mutex> lock(m_lock);
+        if (!m_transaction_flag.load(std::memory_order_relaxed))
+            m_write_queue.push(std::move(data));
+        else
+            m_transaction_queue.push_back(std::move(data));
+    }
+    if (!m_transaction_flag.load(std::memory_order_relaxed))
+        m_cv.notify_all();
+}
+
+void DbManager::session_nodes_load(
+    std::unordered_set<std::string>& resolved_nodes,
+    std::unordered_set<std::string>& unresolved_nodes,
+    std::unordered_set<std::string>& python_modules)
+{
+    try
+    {
+        SQLite::Statement query(*m_db,
+            fmt::format(FMT_STRING(R"(
+                    SELECT {}, {}
+                    FROM {}
+                    WHERE {} = ? OR {} = ? OR {} = ?
+                )"),
+                gdb_val_name, gdb_val_str,
+                gdb_tbl_meta,
+                gdb_val_name, gdb_val_name, gdb_val_name));
+
+        query.bindNoCopy(1, gdb_valname_resolved_nodes);
+        query.bindNoCopy(2, gdb_valname_unresolved_nodes);
+        query.bindNoCopy(3, gdb_valname_python_modules);
+
+        std::string resolved_str, unresolved_str, python_modules_str;
+        while (query.executeStep())
+        {
+            const auto parameter = query.getColumn(0).getString();
+            if (parameter == gdb_valname_resolved_nodes)
+                resolved_str = query.getColumn(1).getString();
+            else if (parameter == gdb_valname_unresolved_nodes)
+                unresolved_str = query.getColumn(1).getString();
+            else if (parameter == gdb_valname_python_modules)
+                python_modules_str = query.getColumn(1).getString();
+        }
+
+        u_json j;
+        if (!resolved_str.empty())
+        {
+            j = u_json::parse(resolved_str);
+            resolved_nodes = j;
+        }
+        if (!unresolved_str.empty())
+        {
+            j = u_json::parse(unresolved_str);
+            unresolved_nodes = j;
+        }
+        if (!python_modules_str.empty())
+        {
+            j = u_json::parse(python_modules_str);
+            python_modules = j;
+        }
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogSqlDbErr("Load nodes from meta: " << LOG_EXP(ex));
+    }
+}
+
+void DbManager::session_nodes_save(
+    const std::unordered_set<std::string>& resolved_nodes,
+    const std::unordered_set<std::string>& unresolved_nodes,
+    const std::unordered_set<std::string>& python_modules)
+{
+    WriteData data;
+    NodesData n;
+
+    try
+    {
+        u_json j;
+        if (!resolved_nodes.empty())
+        {
+            j = resolved_nodes;
+            n.resolved_nodes = j.dump();
+        }
+        if (!unresolved_nodes.empty())
+        {
+            j = unresolved_nodes;
+            n.unresolved_nodes = j.dump();
+        }
+        if (!python_modules.empty())
+        {
+            j = python_modules;
+            n.python_modules = j.dump();
+        }
+    }
+    catch (...) {}
+
+    data.type = WriteType::NodesData;
+    data.data = std::move(n);
+
+    {
+        std::lock_guard<std::mutex> lock(m_lock);
+        if (!m_transaction_flag.load(std::memory_order_relaxed))
+            m_write_queue.push(std::move(data));
+        else
+            m_transaction_queue.push_back(std::move(data));
+    }
+    if (!m_transaction_flag.load(std::memory_order_relaxed))
+        m_cv.notify_all();
 }
 
 void DbManager::app_option_save(const std::string& key, DbValue&& value)
@@ -1285,6 +1434,92 @@ void DbManager::del_history(const SQLite::Database& db, const HistoryData* data)
     }
 }
 
+void DbManager::write_session_end(const SQLite::Database& db, const SessionData* data)
+{
+    try
+    {
+        SQLite::Statement query_session(db,
+            fmt::format(FMT_STRING(R"(
+                        REPLACE INTO {}
+                                ({}, {}, {})
+                        VALUES  (?,  ?,  ?)
+                )"),
+                gdb_tbl_meta,
+                gdb_val_name, gdb_val_str, gdb_val_int));
+
+        query_session.bindNoCopy(1, gdb_valname_last_session);
+        query_session.bindNoCopy(2, data->session_duration);
+        query_session.bind(3, data->session_id);
+        query_session.exec();
+
+        Log("Session end. id:" << data->session_id << ", d:" << data->session_duration);
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogSqlDbErr("Session end. id:" << data->session_id << ", d:" << data->session_duration << ", " << LOG_EXP(ex));
+    }
+}
+
+void DbManager::write_nodes(const SQLite::Database& db, const NodesData* data)
+{
+    try
+    {
+        if (!data->resolved_nodes.empty())
+        {
+            SQLite::Statement query_n(db,
+                fmt::format(FMT_STRING(R"(
+                        REPLACE INTO {}
+                                ({}, {})
+                        VALUES  (?,  ?)
+                )"),
+                    gdb_tbl_meta,
+                    gdb_val_name, gdb_val_str));
+
+            query_n.bindNoCopy(1, gdb_valname_resolved_nodes);
+            query_n.bindNoCopy(2, data->resolved_nodes);
+            query_n.exec();
+        }
+
+        if (!data->unresolved_nodes.empty())
+        {
+            SQLite::Statement query_n(db,
+                fmt::format(FMT_STRING(R"(
+                        REPLACE INTO {}
+                                ({}, {})
+                        VALUES  (?,  ?)
+                )"),
+                    gdb_tbl_meta,
+                    gdb_val_name, gdb_val_str));
+
+            query_n.bindNoCopy(1, gdb_valname_unresolved_nodes);
+            query_n.bindNoCopy(2, data->unresolved_nodes);
+            query_n.exec();
+        }
+
+        if (!data->python_modules.empty())
+        {
+            SQLite::Statement query_n(db,
+                fmt::format(FMT_STRING(R"(
+                        REPLACE INTO {}
+                                ({}, {})
+                        VALUES  (?,  ?)
+                )"),
+                    gdb_tbl_meta,
+                    gdb_val_name, gdb_val_str));
+
+            query_n.bindNoCopy(1, gdb_valname_python_modules);
+            query_n.bindNoCopy(2, data->python_modules);
+            query_n.exec();
+        }
+
+        Log("Session end. kn:" << data->resolved_nodes.size() << ", dn:" << data->unresolved_nodes.size() << ", pm:" << data->python_modules.size());
+    }
+    catch (const SQLite::Exception& ex)
+    {
+        LogSqlDbErr("Session end. kn:" << data->resolved_nodes.size() << ", dn:" << data->unresolved_nodes.size() << ", pm:" << data->python_modules.size() << ", " << LOG_EXP(ex));
+    }
+}
+
 void DbManager::write_thread(std::filesystem::path db_path)
 {
     constexpr const auto wait_period = 5s;
@@ -1368,6 +1603,12 @@ void DbManager::write_thread(std::filesystem::path db_path)
                         break;
                     case WriteType::HistoryDel:
                         del_history(db, std::get_if<HistoryData>(&data.data));
+                        break;
+                    case WriteType::SessionEnd:
+                        write_session_end(db, std::get_if<SessionData>(&data.data));
+                        break;
+                    case WriteType::NodesData:
+                        write_nodes(db, std::get_if<NodesData>(&data.data));
                         break;
                     default:
                         LogError("Unhandled data type to write: " << cast::to_i32(data.type));

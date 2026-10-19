@@ -199,7 +199,7 @@ void Logger::log_start() noexcept
             ;
 #ifndef TOOLS_DETACHED_STATE
             if (db_meta.db_ver != 0)
-                writer << "db ver " << db_meta.db_ver << ", app ver " << db_meta.app_ver << ", last run " << db_meta.last_run << "\n";
+                writer << "db ver " << db_meta.db_ver << ", app ver " << db_meta.app_ver << ", last run " << db_meta.last_run << ", customer " << db_meta.customer_id << "\n";
             else
 #endif // TOOLS_DETACHED_STATE
                 writer << "\n";

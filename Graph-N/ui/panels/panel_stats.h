@@ -15,6 +15,7 @@ public:
 
     void init() override;
     void stop_and_cleanup() override;
+    bool collect_metrics(std::string& ver, std::string& ram, std::string& vram);
 
 private:
     DlgCode show(bool& focused) override;

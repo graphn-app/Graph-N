@@ -2,19 +2,19 @@
 
 using namespace std::chrono_literals;
 
-using byte = uint8_t;
-using app_version_type = uint64_t;
-using hid = size_t;		// hash id for pin/node, based on node/pin name
-using iid = uint32_t;	// node/pin instance id, unique for each workflow
-using wid = uint32_t;   // workflow id - crc32 of uuid
-using byte_buff = std::vector<byte>;
+using byte              = uint8_t;
+using app_version_type  = uint32_t;
+using hid               = size_t;		// hash id for pin/node, based on node/pin name
+using iid               = uint32_t;	    // node/pin instance id, unique for each workflow
+using wid               = uint32_t;     // workflow id - crc32 of uuid
+using byte_buff         = std::vector<byte>;
 
 using number_t = double;
-constexpr const number_t IM_NUM_MIN_WIDGET = -DBL_MAX / 2.0;
-constexpr const number_t IM_NUM_MAX_WIDGET = DBL_MAX / 2.0;
-constexpr const number_t NUMBER_ZERO = 0.0;
-constexpr const number_t NUMBER_DEFAULT = NUMBER_ZERO;
-constexpr const number_t NUMBER_STEP = 0.1;
+constexpr const number_t IM_NUM_MIN_WIDGET  = -DBL_MAX / 2.0;
+constexpr const number_t IM_NUM_MAX_WIDGET  = DBL_MAX / 2.0;
+constexpr const number_t NUMBER_ZERO        = 0.0;
+constexpr const number_t NUMBER_DEFAULT     = NUMBER_ZERO;
+constexpr const number_t NUMBER_STEP        = 0.1;
 
 using ImTextureIDPtr = std::shared_ptr<std::remove_pointer_t<ImTextureID>>;
 using ImageData = std::shared_ptr<byte>;
@@ -22,10 +22,10 @@ using ImageData = std::shared_ptr<byte>;
 using o_json = nlohmann::ordered_json;
 using u_json = nlohmann::json;
 
-constexpr double HTTP_REQUEST_LIFETIME = 30.0; // seconds
-constexpr int32_t HIDDEN_VIDEO_PLAYING = 5; // seconds
+constexpr double HTTP_REQUEST_LIFETIME = 30.0;  // seconds
+constexpr int32_t HIDDEN_VIDEO_PLAYING = 5;     // seconds
 
-constexpr int32_t DRAFT_DUMP_INTERVAL    = 10; // seconds
+constexpr int32_t DRAFT_DUMP_INTERVAL    = 10;  // seconds
 
 constexpr int32_t HTTP_RESP_UNDEFINED    = 0;
 constexpr int32_t HTTP_RESP_OK           = 200;
@@ -37,28 +37,29 @@ constexpr int32_t HTTP_RESP_NOT_FOUND    = 404;
 constexpr int32_t HTTP_RESP_NOT_ALLOWED  = 405;
 constexpr uint32_t HTTP_RETRY_MAX_COUNT  = 5;
 
-constexpr int32_t QUEUE_IMAGE_RECT = 512; // size
-constexpr int32_t QUEUE_AUDIO_RECT = 20; // size
-constexpr int32_t QUEUE_TEXT_RECT = 50; // size
-constexpr int32_t QUEUE_IMAGE_LIFETIME = 30; // seconds
-constexpr int32_t QUEUE_TT_IMAGE_LIFETIME = 1; // seconds
-constexpr int32_t QUEUE_MAX_RUNS = 100; // count
-constexpr int32_t QUEUE_DEAD_TASK = 5 * 60; // seconds
+constexpr int32_t QUEUE_IMAGE_RECT          = 512;      // size
+constexpr int32_t QUEUE_AUDIO_RECT          = 20;       // size
+constexpr int32_t QUEUE_TEXT_RECT           = 50;       // size
+constexpr int32_t QUEUE_IMAGE_LIFETIME      = 30;       // seconds
+constexpr int32_t QUEUE_TT_IMAGE_LIFETIME   = 1;        // seconds
+constexpr int32_t QUEUE_MAX_RUNS            = 100;      // count
+constexpr int32_t QUEUE_DEAD_TASK           = 5 * 60;   // seconds
 
-constexpr int32_t NODE_IMAGE_LIFETIME = 30; // seconds
-constexpr int32_t NODE_IMAGE_RECT = 256; // size
+constexpr int32_t NODE_IMAGE_LIFETIME   = 30;   // seconds
+constexpr int32_t NODE_IMAGE_RECT       = 256;  // size
 
 constexpr double PLAYING_AUDIO_LIFETIME = 5.0; // seconds
 constexpr double PLAYING_VIDEO_LIFETIME = 5.0; // seconds
 
-constexpr float WIDGET_STRING_W = 200.0f;
-constexpr float WIDGET_STRING_ML_H = 4.0f;
-constexpr float WIDGET_COMBO_W = 150.0f;
-constexpr float WIDGET_BOOL_W = 100.0f;
-constexpr float WIDGET_NUM_W = 150.0f;
-constexpr float WIDGET_COLOR_RGB_W = 240.0f;
-constexpr float WIDGET_COLOR_RGBA_W = 270.0f;
-constexpr float WIDGET_OUT_TEXT_MAX_H = 200.0f;
+
+constexpr float WIDGET_STRING_W         = 200.0f;
+constexpr float WIDGET_STRING_ML_H      = 4.0f;
+constexpr float WIDGET_COMBO_W          = 150.0f;
+constexpr float WIDGET_BOOL_W           = 100.0f;
+constexpr float WIDGET_NUM_W            = 150.0f;
+constexpr float WIDGET_COLOR_RGB_W      = 240.0f;
+constexpr float WIDGET_COLOR_RGBA_W     = 270.0f;
+constexpr float WIDGET_OUT_TEXT_MAX_H   = 200.0f;
 
 constexpr const char* VANILLA                   = "Vanilla";
 
@@ -71,6 +72,11 @@ constexpr const char* DND_REORDER_QUEUE         = "79C13B4685DA";
 
 constexpr const char* CAG_PIN_NAME              = "E742ADEF-156C-45DF-90EC-AA36CA21A9B2";
 constexpr const char* REROUTE_SPLITTED_PIN      = "32DB533B-64D6-4F95-A90A-A50B17B59CDB";
+
+constexpr const char* STATS_API_KEY             = GRAPHN_STATS_API_KEY;
+constexpr const char* STATS_SERVER              = "eu.i.posthog.com";
+constexpr const char* STATS_URL                 = "/batch";
+constexpr int32_t     STATS_PORT                = 443;
 
 using HttpResponseCb = std::function<void(int32_t, std::string&&)>; // http code, data
 
@@ -96,6 +102,13 @@ enum class HttpRequestor : uint8_t
     UploadMedia,
     RefreshMedia,
     Restart,
+    Ext_Update,
+    Ext_Stat_Session,
+    Ext_Stat_Comfyui,
+    Ext_Stat_Hardware,
+    Ext_Stat_Nodes,
+    Ext_Stat_Host,
+    Ext_Stat_Config
 };
 
 enum class DlgObj : uint8_t

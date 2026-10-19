@@ -102,4 +102,21 @@ std::filesystem::path get_host_webprofile_path(uint64_t host_id)
     return path;
 }
 
+std::filesystem::path get_app_icon_path(bool png)
+{
+    auto path = get_res_directory_path();
+    if (png)    path /= "graph-n.png";
+    else        path /= "graph-n.ico";
+    return path;
+}
+
+void get_license_paths(std::filesystem::path& license, std::filesystem::path& third_party, std::filesystem::path& privacy, std::filesystem::path& readme)
+{
+    auto root = get_root_directory_path();
+    license =       root / "EULA.txt";
+    third_party =   root / "THIRD-PARTY-NOTICES.txt";
+    privacy =       root / "PRIVACY.md";
+    readme =        root / "README.md";
+}
+
 }

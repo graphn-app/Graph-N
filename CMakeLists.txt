@@ -16,6 +16,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+set(GRAPHN_STATS_API_KEY $ENV{GRAPHN_STATS_API_KEY})
+if(NOT GRAPHN_STATS_API_KEY)
+    set(GRAPHN_STATS_API_KEY "-")
+endif()
+
 if(MSVC)
     # remove default warning config
     string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -247,6 +252,7 @@ target_compile_definitions(Graph-N PRIVATE
     _WIN32_WINNT=0x0A00
     WIN32_LEAN_AND_MEAN
     NOMINMAX
+	GRAPHN_STATS_API_KEY="${GRAPHN_STATS_API_KEY}"
 )
 
 # --- Include Directories ---
@@ -363,6 +369,7 @@ target_compile_definitions(Graph-N_Host PRIVATE
     NOMINMAX
 	TOOLS_DETACHED_STATE
 	CLEAR_LOG_MODE
+	GRAPHN_STATS_API_KEY="${GRAPHN_STATS_API_KEY}"
 )
 
 target_precompile_headers(Graph-N_Host PRIVATE "Graph-N_Host/pch.h")

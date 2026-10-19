@@ -297,6 +297,21 @@ ImU32 PanelStats::get_color(int64_t value, bool& stay_default, int64_t lim_warn,
     return g::pOptsManager->color_load(AppColor::StatNorm);
 }
 
+bool PanelStats::collect_metrics(std::string& ver, std::string& ram, std::string& vram)
+{
+    if (0 == m_lram_total.load(std::memory_order_relaxed) || m_comfy_ver.empty() || m_video_devices.empty())
+        return false;
+
+    ver = m_comfy_ver;
+    ram = std::to_string(m_lram_total.load(std::memory_order_relaxed));
+    for (auto& v : m_video_devices)
+    {
+        vram = std::to_string(v.vram_total) + " ";
+    }
+
+    return true;
+}
+
 void PanelStats::format_bytes(uint64_t bytes)
 {        
     static constexpr std::string_view suffixes[] = { "B", "KB", "MB", "GB", "TB", "PB" };

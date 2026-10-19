@@ -25,9 +25,10 @@ bool SettingsManager::init()
     m_app_vsync =                                      { "vsync_enabled",           bool(true) };
     m_app_fps_limit =                                  { "fps_limit",               bool(false) };
     m_app_fps_limit_val =                              { "fps_limit_value",         int64_t(30) };
-    m_app_autoupdate =                                 { "autoupdate",              bool(true) };
     m_app_scale =                                      { "ui_scale",                int64_t(100) };
     m_app_db_backups =                                 { "ui_backups",              int64_t(2) };
+    m_app_metrics_on =                                 { "app_metrics",             bool(true) };
+    m_app_upd_check_on =                               { "app_update_check",        bool(true) };
 
     // ui
     m_ui_open_wnds =                                  { "open_windows",             int64_t(ui::ViewPanelsResetAll) };
@@ -198,9 +199,10 @@ bool SettingsManager::init()
     values.push_back(&m_app_vsync);
     values.push_back(&m_app_fps_limit);
     values.push_back(&m_app_fps_limit_val);
-    values.push_back(&m_app_autoupdate);
     values.push_back(&m_app_scale);
     values.push_back(&m_app_db_backups);
+    values.push_back(&m_app_metrics_on);
+    values.push_back(&m_app_upd_check_on);
     values.push_back(&m_ui_open_wnds);
     values.push_back(&m_ui_nodes_view);
     values.push_back(&m_ui_theme);

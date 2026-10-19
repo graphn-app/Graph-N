@@ -15,7 +15,7 @@ public:
 
     NO_COPY_MOVE(WfSerializerToBlob);
 
-    blob::Writer serialize(const blob::Blob& drawer_state);
+    blob::Writer serialize(const blob::Blob& drawer_state, bool collect_nodes_stat = false);
     blob::Blob serialize_node(const NodeInstance* node);
 
 private:
@@ -46,6 +46,11 @@ private:
     const NodeInstance* m_curr_node = nullptr;
     const PinInstance* m_curr_pin = nullptr;
     const Link* m_curr_link = nullptr;
+
+    bool m_collect_nodes_stat = false;
+    std::unordered_set<std::string> m_resolved_nodes;
+    std::unordered_set<std::string> m_unresolved_nodes;
+    std::unordered_set<std::string> m_python_modules;
 };
 
 } // namespace data

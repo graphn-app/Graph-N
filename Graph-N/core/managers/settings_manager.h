@@ -14,8 +14,8 @@ public:
     bool get_ready() const noexcept { return m_ready.load(std::memory_order_relaxed); }
 
     // app
-    bool app_autoupdate_load() const noexcept { return *std::get_if<bool>(&m_app_autoupdate.value); }
-    void app_autoupdate_save(bool enabled) { save_option(m_app_autoupdate, bool(enabled)); }
+    bool app_upd_check_load() const noexcept { return *std::get_if<bool>(&m_app_upd_check_on.value); }
+    void app_upd_check_save(bool on) { save_option(m_app_upd_check_on, bool(on)); }
 
     bool app_vsync_load() const noexcept { return *std::get_if<bool>(&m_app_vsync.value); }
     void app_vsync_save(bool enabled) { save_option(m_app_vsync, bool(enabled)); }
@@ -31,6 +31,9 @@ public:
 
     int64_t app_db_backups_load() const noexcept { return *std::get_if<int64_t>(&m_app_db_backups.value); }
     void app_db_backups_save(int64_t scale) { save_option(m_app_db_backups, int64_t(scale)); }
+
+    bool app_metrics_load() const noexcept { return *std::get_if<bool>(&m_app_metrics_on.value); }
+    void app_metrics_save(bool on) { save_option(m_app_metrics_on, bool(on)); }
 
     // ui
     ImU32 color_load(AppColor color) const noexcept 
@@ -243,12 +246,13 @@ private:
     std::atomic_bool m_ready = false;
 
     // app
-    OptionValue m_app_autoupdate; // int
     OptionValue m_app_vsync; // int
     OptionValue m_app_fps_limit; // int
     OptionValue m_app_fps_limit_val; // int
     OptionValue m_app_scale; // int
     OptionValue m_app_db_backups; // int
+    OptionValue m_app_metrics_on; // int
+    OptionValue m_app_upd_check_on; // int
 
     // ui
     OptionValue m_ui_open_wnds; // int

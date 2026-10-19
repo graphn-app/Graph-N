@@ -1,5 +1,5 @@
 #pragma once
-#include "core/alive.h"
+#include "core/listeners.h"
 #include "core/managers/connect_manager.h"
 
 namespace mngr
@@ -95,7 +95,9 @@ enum ViewDialogs : uint64_t
     ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewSyncProjects | ViewAllMenuBar | ViewPanelWf,
 };
 
-class GraphN_Flow final : public IsAlive
+class GraphN_Flow final
+    : public IsAlive
+    , public listener::Timer
 {
 public:
     GraphN_Flow() noexcept;
@@ -143,6 +145,10 @@ public:
     int32_t http_get_and_wait(HttpRequestor requestor, const char* request, httplib::Params&& params, httplib::Headers&& headers, bool retry_on_timeout, const std::function<bool()>& stop_callback, std::string& ret_data);
     uint32_t http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);
     uint32_t http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);    
+
+    void check_for_updates(const HttpResponseCb& callback);
+    void stats_post_nodes(std::unordered_set<std::string>&& resolved_nodes, std::unordered_set<std::string>&& unresolved_nodes, std::unordered_set<std::string>&& python_modules);
+    void stats_post_config(const char* property, const char* value);
 
     // host manager
     void host_open_mask_editor(wid wf_id, iid node_id);
@@ -228,6 +234,9 @@ public:
     // web socket
     void check_ws_message(const std::function<void(bool, std::string&)>& callback);
 
+    // stats
+    mngr::StatsData& get_stats() { return m_stats; }
+
 private:
     void check_connection();
     void check_http_reply();
@@ -290,6 +299,18 @@ private:
     ImGuiID find_def_txt_panel_dock() noexcept;
     void activate_txt_panels(wid wf);
     void destroy_txt_panel(PanelTextEditor* panel) noexcept;
+
+    // timer
+    void on_1s_lazy_timer(int64_t total_seconds_elapsed) override;
+
+    // stats
+    void post_stats_event(HttpRequestor requestor, int64_t session_id, const char* ev_type, uint64_t ev_time, const char* prop_type, nlohmann::json&& event_props, bool callback_needed, mngr::StatsData::Progress* progress = nullptr);
+    void stats_post_session_start();
+    void stats_save_session_end();
+    void stats_post_session_end();
+    void stats_post_monitor_data();
+    void stats_post_user_data();
+    void stats_post_host(HostType host_type);
 
 private:
     std::thread::id m_ui_thread_id;
@@ -358,5 +379,13 @@ private:
         std::vector<PanelWorkflow*> wf_panels;
     }
     m_pending_cleanups;
+
+    // stats
+    int64_t m_next_stat_attempt = 10;
+    mngr::StatsData m_stats;
+
+    // update
+    int64_t m_last_update_check = 0;
+    app_version_type m_version_found = 0;
 };
 }

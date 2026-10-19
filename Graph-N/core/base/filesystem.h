@@ -13,5 +13,7 @@ std::filesystem::path get_backup_directory_path();
 std::filesystem::path get_crash_dump_directory_path();
 std::filesystem::path get_host_path();
 std::filesystem::path get_host_webprofile_path(uint64_t host_id);
+std::filesystem::path get_app_icon_path(bool png);
+void get_license_paths(std::filesystem::path& license, std::filesystem::path& third_party, std::filesystem::path& privacy, std::filesystem::path& readme);
 
 }

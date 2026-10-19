@@ -9,6 +9,9 @@ struct DbMetadata final
     uint32_t db_ver = 0;
     std::string app_ver;
     std::string last_run;
+    std::string customer_id;
+    int64_t last_session_id = 0;
+    std::string last_session_duration;
 };
 
 class DbManager final : public Manager
@@ -28,6 +31,10 @@ public:
     void end_transaction();
 
     void exception_save(std::string &&message, const char *file, int32_t line) noexcept;
+    void session_end_save(int64_t session_id, const std::string& duration);
+
+    void session_nodes_load(std::unordered_set<std::string>& resolved_nodes, std::unordered_set<std::string>& unresolved_nodes, std::unordered_set<std::string>& python_modules);
+    void session_nodes_save(const std::unordered_set<std::string>& resolved_nodes, const std::unordered_set<std::string>& unresolved_nodes, const std::unordered_set<std::string>& python_modules);
 
     void app_option_save(const std::string& key, DbValue&& value);
     std::vector<DbAppOptionData> app_option_load_all();
@@ -50,7 +57,7 @@ public:
 private:
     enum class WriteType : uint8_t
     {
-        AppOption, Item, WfMeta, WfBlob, WfPurge, HistoryAdd, HistoryDel
+        AppOption, Item, WfMeta, WfBlob, WfPurge, HistoryAdd, HistoryDel, SessionEnd, NodesData
     };
     struct ExcepData final
     {
@@ -78,10 +85,21 @@ private:
         std::string flow_data;
         std::string search_data;
     };
+    struct SessionData final
+    {
+        int64_t session_id = 0;
+        std::string session_duration;
+    };
+    struct NodesData final
+    {
+        std::string resolved_nodes;
+        std::string unresolved_nodes;
+        std::string python_modules;
+    };
     struct WriteData final
     {
         WriteType type;
-        std::variant<DbAppOptionData, ItemData, WfData, WfBlob, HistoryData> data;
+        std::variant<DbAppOptionData, ItemData, WfData, WfBlob, HistoryData, SessionData, NodesData> data;
     };
 
 private:
@@ -97,6 +115,8 @@ private:
     void purge_wf(const SQLite::Database& db);
     void add_history(const SQLite::Database& db, const HistoryData* data);
     void del_history(const SQLite::Database& db, const HistoryData* data);
+    void write_session_end(const SQLite::Database& db, const SessionData* data);
+    void write_nodes(const SQLite::Database& db, const NodesData* data);
 
 private:
     std::thread m_th_write;

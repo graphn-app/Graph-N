@@ -157,9 +157,12 @@ void OptRightPane::show_general(const char*& /*help_text*/)
     ImGui::Spacing();
 
     // auto update
-    bool b_val = g::pOptsManager->app_autoupdate_load();
-    if (ImGui::Checkbox("Check for " APP_CAPTION " updates on startup", &b_val))
-        g::pOptsManager->app_autoupdate_save(b_val);
+    bool b_val = g::pOptsManager->app_upd_check_load();
+    if (ImGui::Checkbox("Autocheck for " APP_CAPTION " updates", &b_val))
+    {
+        g::pOptsManager->app_upd_check_save(b_val);
+        g::pFlow->stats_post_config("upd_check", b_val ? "on" : "off");
+    }
 }
 
 // vsync
@@ -171,7 +174,10 @@ void OptRightPane::show_rendering(const char*& help_text)
     // vsync
     bool b_val = g::pOptsManager->app_vsync_load();
     if (ImGui::Checkbox("Enable VSync", &b_val))
+    {
         g::pOptsManager->app_vsync_save(b_val);
+        g::pFlow->stats_post_config("vsync", b_val ? "on" : "off");
+    }
     show_help_mark(help_text,
         "Synchronizes the frame rate with your monitor's refresh rate.\n"
         "Keep this enabled for a smooth, tear-free image.\n"
@@ -199,7 +205,8 @@ void OptRightPane::show_rendering(const char*& help_text)
     //if (g::pOptsManager->app_vsync_load())
     //    ImGui::EndDisabled();
 
-    // scale
+    // scale: TODO
+    /*
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("UI scale");
     show_help_mark(help_text,
@@ -210,6 +217,7 @@ void OptRightPane::show_rendering(const char*& help_text)
     ImGuiEx::SliderIntSmart("##scale", &m_data->buffer_i[BuffScale], 50, 200, "%u %%", 10);
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->app_scale_save(m_data->buffer_i[BuffScale]);
+    */
 }
 
 void OptRightPane::show_diagnostics(const char*& help_text)
@@ -220,28 +228,37 @@ void OptRightPane::show_diagnostics(const char*& help_text)
     // logs
     bool log_on = glog::Logger::get_log_enabled();
     if (ImGui::Checkbox("Enable logging", &log_on))
+    {
         glog::Logger::set_log_enabled(log_on);
+        g::pFlow->stats_post_config("log", log_on ? "on" : "off");
+    }
     show_help_mark(help_text, "Writes application events and errors to the log\\ directory.\nOlder log files are automatically deleted");
 
     if (!log_on)
         ImGui::BeginDisabled();
 
-    bool append_log_on = glog::Logger::get_log_web_response_enabled();
-    if (ImGui::Checkbox("Log web responses", &append_log_on))
-        glog::Logger::set_log_web_response_enabled(append_log_on);
+    bool adv_log_on = glog::Logger::get_log_web_response_enabled();
+    if (ImGui::Checkbox("Log web responses", &adv_log_on))
+    {
+        glog::Logger::set_log_web_response_enabled(adv_log_on);
+        g::pFlow->stats_post_config("log_web", adv_log_on ? "on" : "off");
+    }
     show_help_mark(help_text, "Includes full raw HTTP responses from the server in the log files.\nSignificantly increases log size.");
 
-    append_log_on = glog::Logger::get_log_dump_invalid_json_enabled();
-    if (ImGui::Checkbox("Log node parsing errors", &append_log_on))
-        glog::Logger::set_log_dump_invalid_json_enabled(append_log_on);
+    adv_log_on = glog::Logger::get_log_dump_invalid_json_enabled();
+    if (ImGui::Checkbox("Log node parsing errors", &adv_log_on))
+        glog::Logger::set_log_dump_invalid_json_enabled(adv_log_on);
     show_help_mark(help_text, "Records detailed errors encountered while reading or validating node definitions from the server.");
 
     if (!log_on)
         ImGui::EndDisabled();
 
-    append_log_on = glog::Logger::get_log_object_info_enabled();
-    if (ImGui::Checkbox("Dump node definitions", &append_log_on))
-        glog::Logger::set_log_object_info_enabled(append_log_on);
+    adv_log_on = glog::Logger::get_log_object_info_enabled();
+    if (ImGui::Checkbox("Dump node definitions", &adv_log_on))
+    {
+        glog::Logger::set_log_object_info_enabled(adv_log_on);
+        g::pFlow->stats_post_config("log_objects", adv_log_on ? "on" : "off");
+    }
     show_help_mark(help_text, "Saves a raw copy of the server's node data to the log\\object_info.json for manual inspection.");
 
     ImGui::Spacing();
@@ -256,6 +273,21 @@ void OptRightPane::show_diagnostics(const char*& help_text)
     ImGuiEx::SliderIntSmart("##DBBackups", &m_data->buffer_i[BuffDbBackups], 1, 10, "%u");
     if (ImGui::IsItemDeactivatedAfterEdit())
         g::pOptsManager->app_db_backups_save(m_data->buffer_i[BuffDbBackups]);
+
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, "Usage statistics");
+
+    bool metrics = g::pOptsManager->app_metrics_load();
+    if (ImGui::Checkbox("Send unresolved " APP_COMFYUI " data and hardware usage", &metrics))
+    {
+        if (!metrics) g::pFlow->stats_post_config("metrics", "off");
+        g::pOptsManager->app_metrics_save(metrics);
+        if (metrics) g::pFlow->stats_post_config("metrics", "on");
+    }
+    show_help_mark(help_text, APP_CAPTION " securely sends anonymous technical data to help us prioritize updates. The payload strictly includes:\n"
+        "* class names of unrecognized nodes (to implement native support in future updates);\n"
+        "* editor performance metrics;\n"
+        "* basic system specifications (OS, RAM/VRAM, Monitor info) to optimize UI rendering and scaling across different hardware configurations;\n\n"
+        "No personal data, prompts, or generated images are ever transmitted.");
 }
 
 // comfyui connection
@@ -441,6 +473,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     bool b_val = g::pOptsManager->comfyui_start_server_load();
     if (ImGui::Checkbox("Auto-start server", &b_val))
     {
+        g::pFlow->stats_post_config("autostart_comfyui", b_val ? "on" : "off");
         g::pOptsManager->comfyui_start_server_save(b_val);
         if (!b_val)
         {
@@ -609,6 +642,7 @@ void OptRightPane::show_widget_input(const char*& help_text)
     {
         m_data->input.numbers = WidgetInput::Direct;
         g::pOptsManager->wf_widget_input_numbers_save(m_data->input.numbers);
+        g::pFlow->stats_post_config("input_style", "direct");
     }
     idx++;
     ImGui::SameLine();
@@ -621,6 +655,7 @@ void OptRightPane::show_widget_input(const char*& help_text)
     {
         m_data->input.numbers = WidgetInput::Slider;
         g::pOptsManager->wf_widget_input_numbers_save(m_data->input.numbers);
+        g::pFlow->stats_post_config("input_style", "slider");
     }
     idx++;
     show_help_mark(help_text, "Ctrl+click to type value.");
@@ -657,6 +692,7 @@ void OptRightPane::show_widget_input(const char*& help_text)
     {
         m_data->input.booleans = WidgetInput::Select;
         g::pOptsManager->wf_widget_input_bools_save(m_data->input.booleans);
+        g::pFlow->stats_post_config("bool_style", "selectable");
     }
     idx++;
     ImGui::SameLine();
@@ -670,6 +706,7 @@ void OptRightPane::show_widget_input(const char*& help_text)
     {
         m_data->input.booleans = WidgetInput::Toggle;
         g::pOptsManager->wf_widget_input_bools_save(m_data->input.booleans);
+        g::pFlow->stats_post_config("bool_style", "toggle");
     }
     idx++;
     ImGui::SameLine();
@@ -695,13 +732,19 @@ void OptRightPane::show_canvas(const char*& help_text)
     // show grid
     bool b_val = g::pOptsManager->wf_show_grid_load();
     if (ImGui::Checkbox("Show grid", &b_val))
+    {
         g::pOptsManager->wf_show_grid_save(b_val);
+        g::pFlow->stats_post_config("grid", b_val ? "on" : "off");
+    }
     show_help_mark(help_text, "Toggles the visibility of the background grid in the node editor.");
 
     // snap nodes
     b_val = g::pOptsManager->wf_snap_nodes_load();
     if (ImGui::Checkbox("Snap to grid", &b_val))
+    {
         g::pOptsManager->wf_snap_nodes_save(b_val);
+        g::pFlow->stats_post_config("snap", b_val ? "on" : "off");
+    }
     show_help_mark(help_text, "Aligns nodes to the nearest grid lines when dragging."); // \nHold Alt to temporarily invert this behavior.
 
     // thickness
@@ -748,6 +791,7 @@ void OptRightPane::show_activity_bar(const char*& help_text)
     {
         g::pOptsManager->ui_activity_bar_mode_save(ActivityBarMode::Left);
         g::pFlow->load_activity_bar_mode();
+        g::pFlow->stats_post_config("activiti_bar", "left");
     }
     show_help_mark(help_text, "Force all icons to the left side.");
 
@@ -757,6 +801,7 @@ void OptRightPane::show_activity_bar(const char*& help_text)
     {
         g::pOptsManager->ui_activity_bar_mode_save(ActivityBarMode::Right);
         g::pFlow->load_activity_bar_mode();
+        g::pFlow->stats_post_config("activiti_bar", "right");
     }
     show_help_mark(help_text, "Force all icons to the right side.");
 
@@ -765,6 +810,7 @@ void OptRightPane::show_activity_bar(const char*& help_text)
     {
         g::pOptsManager->ui_activity_bar_mode_save(ActivityBarMode::Smart);
         g::pFlow->load_activity_bar_mode();
+        g::pFlow->stats_post_config("activiti_bar", "smart");
     }
     show_help_mark(help_text, "Show bars on sides where panels are docked.");
 
@@ -774,6 +820,7 @@ void OptRightPane::show_activity_bar(const char*& help_text)
     {
         g::pOptsManager->ui_activity_bar_mode_save(ActivityBarMode::Disable);
         g::pFlow->load_activity_bar_mode();
+        g::pFlow->stats_post_config("activiti_bar", "none");
     }
     show_help_mark(help_text, "Maximize workspace space.");
 
@@ -788,6 +835,7 @@ void OptRightPane::show_activity_bar(const char*& help_text)
     if (ImGui::RadioButton("Big", big_icons))
     {
         g::pOptsManager->ui_activity_bar_big_icons_save(true);
+        g::pFlow->stats_post_config("icons", "big");
     }
 
     ImGui::SameLine();
@@ -795,6 +843,7 @@ void OptRightPane::show_activity_bar(const char*& help_text)
     if (ImGui::RadioButton("Small", !big_icons))
     {
         g::pOptsManager->ui_activity_bar_big_icons_save(false);
+        g::pFlow->stats_post_config("icons", "small");
     }
 }
 
