@@ -32,7 +32,7 @@ void GraphN_Flow::show_menu_bar()
         const bool active_wf = g::pWfsManager->get_active() != 0;
         const bool online = get_online();
 
-        if (ImGui::BeginMenu("File##MainMenuBar")) [[unlikely]]
+        if (ImGui::BeginMenu("File##MainMenuBar"))
         {
             if (ImGui::MenuItem(ICON_LC_FOLDER_INPUT " Import Project from file...##FileMenuBar", hk->get_key_binding_name(KeyTarget::App_Import), nullptr, nodes_ready))
             {
@@ -81,7 +81,7 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Projects##MainMenuBar")) [[unlikely]]
+        if (ImGui::BeginMenu("Projects##MainMenuBar"))
         {
             if (ImGui::MenuItem(ICON_LC_PLUS " Add new Project##WfMenuBar", hk->get_key_binding_name(KeyTarget::Project_CreateNew), nullptr, nodes_ready))
             {
@@ -128,7 +128,7 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Panels##MainMenuBar")) [[unlikely]]
+        if (ImGui::BeginMenu("Panels##MainMenuBar"))
         {
             if (ImGui::MenuItem(ICON_LC_BOOK_OPEN " Nodes Library##PanelsMenuBar", hk->get_key_binding_name(KeyTarget::PanelOpen_Nodes), (m_windows & ViewPanelNodes)))
             {
@@ -178,7 +178,7 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Workspace##Workspace")) [[unlikely]]
+        if (ImGui::BeginMenu("Workspace##Workspace"))
         {
             if (ImGui::MenuItem(ICON_LC_SAVE " Save workflow##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Save), nullptr, wf_save(true)))
             {
@@ -215,7 +215,7 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Queue##Queue")) [[unlikely]]
+        if (ImGui::BeginMenu("Queue##Queue"))
         {
             if (ImGui::MenuItem(ICON_LC_PLAY " Queue prompt##PanelsQueue", hk->get_key_binding_name(KeyTarget::Workspace_RunBack), nullptr, wf_can_run()))
             {
@@ -257,7 +257,7 @@ void GraphN_Flow::show_menu_bar()
         if (ImGui::BeginMenu("Help##MainMenuBar")) [[unlikely]]
         {
 #ifdef _DEBUG
-            if (ImGui::BeginMenu("Debug workflows##MainMenuBar")) [[unlikely]]
+            if (ImGui::BeginMenu("Debug workflows##MainMenuBar"))
             {
                 for (auto& panel : m_panels_wf)
                 {

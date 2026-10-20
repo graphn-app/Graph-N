@@ -1135,9 +1135,9 @@ std::string build_commandline_arg(const std::string& arg)
 }
 #endif // #ifdef _WIN32
 
-bool open_file(const std::filesystem::path& path)
+bool open_file(const std::filesystem::path& path, bool url)
 {
-    if (!tools::path::exists(path))
+    if (!url && !tools::path::exists(path))
         return false;
 #ifdef _WIN32
     const auto res = cast::from_ptr<int32_t>(ShellExecuteW(nullptr, L"open", path.wstring().c_str(), nullptr, nullptr, SW_SHOWNORMAL));

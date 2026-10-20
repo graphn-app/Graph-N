@@ -49,7 +49,8 @@ public:
     std::string as_iso8601() const;
 
     // length can be 1 (first char), 2 or 3 (first 3 chars) or more (or zero) for full name. 
-    const char* month_name(int32_t length = 5) const noexcept;
+    static const char* month_name(int32_t month, int32_t length) noexcept;
+    const char* month_name(int32_t length = 5) const noexcept { return month_name(m_month, length); }
 
 private:
     static dt create_from_raw(time_t raw, uint16_t millis, bool utc) noexcept;

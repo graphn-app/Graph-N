@@ -83,12 +83,12 @@ dt dt::from_time_utc(time_t raw) noexcept
     return create_from_raw(raw, 0, true);
 }
 
-const char* dt::month_name(int32_t length /*= 5*/) const noexcept
+const char* dt::month_name(int32_t month, int32_t length) noexcept
 {
     if (0 == length)
         length = 5;
 
-    switch (m_month)
+    switch (month)
     {
     case 1:
         return (1 == length ? "J" : (length <= 3 ? "Jan" : "January"));

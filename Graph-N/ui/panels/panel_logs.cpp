@@ -246,7 +246,7 @@ void PanelServerLogs::show_logs()
                     {
                         if (ImGuiEx::UrlButton(tools::path::path_to_string(path).c_str(), "Open log file"))
                         {
-                            tools::path::open_file(g::pComfyUIManager->get_log_filepath());
+                            tools::path::open_file(g::pComfyUIManager->get_log_filepath(), false);
                         }
                     }
                     continue;

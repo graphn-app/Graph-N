@@ -392,4 +392,5 @@ private:
     int64_t m_last_update_check = 0;
     app_version_type m_version_found = 0;
 };
-}
+
+} // namespace ui

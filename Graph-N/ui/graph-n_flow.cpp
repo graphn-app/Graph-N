@@ -87,46 +87,46 @@ bool GraphN_Flow::init()
     m_windows = g::pOptsManager->ui_open_wnds_load();
 
     // create panels
-    m_panel_node_inspector = std::make_unique<ui::PanelNodeInspector>();
+    m_panel_node_inspector = std::make_unique<PanelNodeInspector>();
     m_panel_node_inspector->init();
     m_all_dialogs.insert(m_panel_node_inspector.get());
 
-    m_panel_nodes = std::make_unique<ui::PanelNodes>(m_panel_node_inspector.get());
+    m_panel_nodes = std::make_unique<PanelNodes>(m_panel_node_inspector.get());
     m_panel_nodes->init();
     m_all_dialogs.insert(m_panel_nodes.get());
 
-    m_panel_stats = std::make_unique<ui::PanelStats>();
+    m_panel_stats = std::make_unique<PanelStats>();
     m_panel_stats->init();
     m_all_dialogs.insert(m_panel_stats.get());
 
-    m_panel_wf_list = std::make_unique<ui::PanelWfList>();
+    m_panel_wf_list = std::make_unique<PanelWfList>();
     m_panel_wf_list->init();
     m_all_dialogs.insert(m_panel_wf_list.get());
 
-    //m_panel_templates = std::make_unique<ui::PanelTemplates>();
+    //m_panel_templates = std::make_unique<PanelTemplates>();
     //m_panel_templates->init();
     //m_all_dialogs.insert(m_panel_templates.get());
 
-    m_panel_logs = std::make_unique<ui::PanelServerLogs>();
+    m_panel_logs = std::make_unique<PanelServerLogs>();
     m_panel_logs->init();
     m_all_dialogs.insert(m_panel_logs.get());
 
-    //m_panel_notes = std::make_unique<ui::PanelNotes>();
+    //m_panel_notes = std::make_unique<PanelNotes>();
     //m_panel_notes->init();
     //m_all_dialogs.insert(m_panel_notes.get());
 
-    m_panel_models = std::make_unique<ui::PanelModels>();
+    m_panel_models = std::make_unique<PanelModels>();
     m_panel_models->init();
     m_all_dialogs.insert(m_panel_models.get());
 
-    m_panel_queue = std::make_unique<ui::PanelQueue>();
+    m_panel_queue = std::make_unique<PanelQueue>();
     m_panel_queue->init();
     m_all_dialogs.insert(m_panel_queue.get());
 
   //  wf_panels_init();
 
     // activity bar
-    m_activity_bar = std::make_unique<ui::ActivityBar>();
+    m_activity_bar = std::make_unique<ActivityBar>();
     load_activity_bar_mode();
     m_activity_bar->register_panels({ // except PanelServerLogs
         DlgObj::PanelNodes,
@@ -873,7 +873,7 @@ void GraphN_Flow::show_options_dlg()
 
     if (!m_opts_dlg) [[unlikely]]
     {
-        m_opts_dlg = std::make_unique<ui::OptionsDlgs>();
+        m_opts_dlg = std::make_unique<OptionsDlgs>();
         m_opts_dlg->init();
         m_all_dialogs.insert(m_opts_dlg.get());
         Log("OptionsDlg initialized");
@@ -897,7 +897,7 @@ void GraphN_Flow::show_sync_projs_dlg()
 
     if (!m_sync_projs_dlg) [[unlikely]]
     {
-        m_sync_projs_dlg = std::make_unique<ui::SyncProjectsDlg>();
+        m_sync_projs_dlg = std::make_unique<SyncProjectsDlg>();
         m_sync_projs_dlg->init();
         m_all_dialogs.insert(m_sync_projs_dlg.get());
         Log("SyncProjectsDlg initialized");

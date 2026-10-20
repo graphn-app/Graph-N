@@ -430,7 +430,7 @@ bool CustomMediaWidget::check_open_def_app(data::NodeInstance* node, bool check_
             auto& out = it->second;
             if (check_only)
                 return !out.item.temp_path.empty();
-            return tools::path::open_file(out.item.temp_path);
+            return tools::path::open_file(out.item.temp_path, false);
         }
         return false;
     }
@@ -464,7 +464,7 @@ bool CustomMediaWidget::check_open_def_app(data::NodeInstance* node, bool check_
 
         if (check_only)
             return !widget->items[index].temp_path.empty();
-        return tools::path::open_file(widget->items[index].temp_path);
+        return tools::path::open_file(widget->items[index].temp_path, false);
     }
 
     return false;
