@@ -196,20 +196,9 @@ void Logger::log_start() noexcept
             writer
                 << "\n\n"
                 << "Log started: " << tools::dt::get_app_start_time().as_log_line() << "\n"
+                << "App version: " << ver::ver_as_caption() << "\n"
 #ifndef TOOLS_DETACHED_STATE
-                << "App version: " << ver::ver_as_string() << "\n"
-                << "Db meta: "
-#endif // TOOLS_DETACHED_STATE
-            ;
-#ifndef TOOLS_DETACHED_STATE
-            if (db_meta.db_ver != 0)
-                writer << "db ver " << db_meta.db_ver << ", app ver " << db_meta.app_ver << ", last run " << db_meta.last_run << ", customer " << db_meta.customer_id << "\n";
-            else
-#endif // TOOLS_DETACHED_STATE
-                writer << "\n";
-            writer
-#ifndef TOOLS_DETACHED_STATE
-                << "Generated client id: " << base::GlobalID::client_id() << "\n"
+                << "ComfyUI client id: " << base::GlobalID::client_id() << "\n"
 #endif // TOOLS_DETACHED_STATE
 #ifdef _WIN32
                 << "Process ID: " << cast::to_u32(::GetCurrentProcessId()) << "\n"
@@ -221,7 +210,7 @@ void Logger::log_start() noexcept
 #error Not implemented
 #endif
                 << "\n"
-                ;
+            ;
 
             write(writer);
             force_flush();

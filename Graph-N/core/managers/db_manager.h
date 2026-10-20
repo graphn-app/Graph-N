@@ -10,8 +10,7 @@ namespace mngr
 
 struct DbMetadata final
 {
-    uint32_t db_ver = 0;
-    std::string app_ver;
+    app_version_type version = 0;
     std::string last_run;
     std::string customer_id;
     int64_t last_session_id = 0;

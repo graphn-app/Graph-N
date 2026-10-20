@@ -4,6 +4,7 @@
 
 #ifdef _WIN32
 #include "main/main_win32.h"
+#include "core/base/version.h"
 #include "ui/helpers/textures.h"
 #include "tools/exception_handler.h"
 #include "imgui_impl_win32.h"
@@ -55,7 +56,9 @@ bool MainRoutine_Win32::init()
     const auto initial_left = screen_w / 2 - initial_width / 2;
     const auto initial_top = screen_y / 2 - initial_height / 2;
 
-    m_hwnd = ::CreateWindowW(m_wc.lpszClassName, APP_CAPTION_W, WS_OVERLAPPEDWINDOW | WS_MAXIMIZE,
+    const std::wstring caption = fmt::format(FMT_STRING(L"{} {}"), APP_CAPTION_W, tools::str::utf8_to_wide(ver::ver_as_caption()));
+
+    m_hwnd = ::CreateWindowW(m_wc.lpszClassName, caption.c_str(), WS_OVERLAPPEDWINDOW | WS_MAXIMIZE,
         initial_left, initial_top, initial_width, initial_height, nullptr, nullptr,
         m_wc.hInstance, nullptr);
     LogCriticalIf(m_hwnd, "Failed to create main window, err " << LogApiERR);

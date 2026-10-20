@@ -30,7 +30,7 @@ constexpr auto gdb_val_flow = "flow";
 constexpr auto gdb_val_prompt_id = "prompt_id";
 constexpr auto gdb_val_data = "data";
 
-constexpr auto gdb_valname_app_ver = "app_ver";
+constexpr auto gdb_valname_app_ver = "app_version";
 constexpr auto gdb_valname_last_run = "last_run";
 constexpr auto gdb_valname_customer_id = "customer_id";
 constexpr auto gdb_valname_last_session = "last_session";
@@ -142,7 +142,9 @@ DbMetadata DbManager::read_db_metadata()
     try
     {
         SQLite::Database db(path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
-        meta.db_ver = db.execAndGet("PRAGMA user_version");
+        const auto version = db.execAndGet("PRAGMA user_version").getString();
+        if (!version.empty())
+            meta.version = std::strtoul(version.c_str(), nullptr, 10);
 
         SQLite::Statement query(db,
             fmt::format(FMT_STRING(R"(
@@ -155,9 +157,7 @@ DbMetadata DbManager::read_db_metadata()
         while (query.executeStep())
         {
             const auto parameter = query.getColumn(0).getString();
-            if (parameter == gdb_valname_app_ver)
-                meta.app_ver = query.getColumn(1).getString();
-            else if (parameter == gdb_valname_last_run)
+            if (parameter == gdb_valname_last_run)
                 meta.last_run = query.getColumn(1).getString();
             else if (parameter == gdb_valname_customer_id)
                 meta.customer_id = query.getColumn(1).getString();
@@ -199,10 +199,13 @@ bool DbManager::init()
             m_first_run = (first_time_query.getColumn(0).getInt() == 0);
         }
 
+        m_prev_meta = read_db_metadata();
+        LogRAssert(ver::is_compatible(m_prev_meta.version), "DB version is not compatible", false);
+
         SQLite::Transaction transaction(*m_db);
 
         // if we need migration logic later, we shouldn't blindly overwrite user_version here
-        m_db->exec("PRAGMA user_version = " + std::to_string(ver::app_major) + ";");
+        m_db->exec("PRAGMA user_version = " + std::to_string(ver::current) + ";");
 
         m_db->exec(fmt::format(FMT_STRING(R"(
 					CREATE TABLE IF NOT EXISTS {} (
@@ -213,7 +216,6 @@ bool DbManager::init()
 					);
 			   )"), gdb_tbl_meta, gdb_val_id,
                     gdb_val_name, gdb_val_str, gdb_val_int));
-        m_prev_meta = read_db_metadata();
 
         SQLite::Statement query_appver(*m_db,
             fmt::format(FMT_STRING(R"(
@@ -224,7 +226,7 @@ bool DbManager::init()
                 gdb_tbl_meta,
                 gdb_val_name, gdb_val_str, gdb_val_int));
         query_appver.bindNoCopy(1, gdb_valname_app_ver);
-        query_appver.bind(2, ver::ver_as_string());
+        query_appver.bind(2, ver::ver_as_caption());
         query_appver.bind(3, 0);
         query_appver.exec();
 

@@ -6,76 +6,37 @@
 
 namespace ver
 {
-constexpr void version_to_parts(
-    app_version_type ver, byte& app_major_, byte& app_minor_, byte& app_patch_, byte& db_major_, byte& db_patch_, byte& year_, byte& month_, byte& day_) noexcept
+
+app_version_type from_string(const std::string& version) noexcept
 {
-    app_major_ = (ver >> 56) & 0xff;
-    app_minor_ = (ver >> 48) & 0xff;
-    app_patch_ = (ver >> 40) & 0xff;
-    db_major_ = (ver >> 32) & 0xff;
-    db_patch_ = (ver >> 24) & 0xff;
-    year_ = (ver >> 16) & 0xff;
-    month_ = (ver >> 8) & 0xff;
-    day_ = (ver & 0xff);
+    uint32_t major = 0, minor = 0, patch = 0;
+
+    // try to parse format "vX.Y.Z" or "X.Y.Z"
+    if (std::sscanf(version.c_str(), "v%d.%d.%d", &major, &minor, &patch) == 3 ||
+        std::sscanf(version.c_str(), "%d.%d.%d", &major, &minor, &patch) == 3)
+    {
+        return ver::build_version(major, minor, patch);
+    }
+    return 0;
 }
 
 std::string ver_as_string(const std::string& separator /*= "."*/, app_version_type app_ver /*= current*/)
 {
-    byte app_major_ = 0, app_minor_ = 0, app_patch_ = 0, db_major_ = 0, db_patch_ = 0, year_ = 0, month_ = 0, day_ = 0;
-    version_to_parts(app_ver, app_major_, app_minor_, app_patch_, db_major_, db_patch_, year_, month_, day_);
-
-    return fmt::format(FMT_STRING("{}{}{:02}{}{:02}{}{:02}{}{:02}{}{:02}{:02}{:02}"),
-        cast::to_u32(app_major_), separator,
-        cast::to_u32(app_minor_), separator,
-        cast::to_u32(app_patch_), separator,
-        cast::to_u32(db_major_), separator,
-        cast::to_u32(db_patch_), separator,
-        cast::to_u32(year_),
-        cast::to_u32(month_),
-        cast::to_u32(day_)
+    return fmt::format(FMT_STRING("{}{}{}{}{}"),
+        get_app_major(app_ver), separator,
+        get_app_minor(app_ver), separator,
+        get_app_patch(app_ver)
     );
 }
 
-constexpr byte get_app_major(app_version_type app_ver /*= current*/) noexcept
+std::string ver_as_caption()
 {
-    byte app_major_ = 0, app_minor_ = 0, app_patch_ = 0, db_major_ = 0, db_patch_ = 0, year_ = 0, month_ = 0, day_ = 0;
-    version_to_parts(app_ver, app_major_, app_minor_, app_patch_, db_major_, db_patch_, year_, month_, day_);
-    return app_major_;
-}
-
-constexpr byte get_app_minor(app_version_type app_ver /*= current*/) noexcept
-{
-    byte app_major_ = 0, app_minor_ = 0, app_patch_ = 0, db_major_ = 0, db_patch_ = 0, year_ = 0, month_ = 0, day_ = 0;
-    version_to_parts(app_ver, app_major_, app_minor_, app_patch_, db_major_, db_patch_, year_, month_, day_);
-    return app_minor_;
-}
-
-constexpr byte get_app_patch(app_version_type app_ver /*= current*/) noexcept
-{
-    byte app_major_ = 0, app_minor_ = 0, app_patch_ = 0, db_major_ = 0, db_patch_ = 0, year_ = 0, month_ = 0, day_ = 0;
-    version_to_parts(app_ver, app_major_, app_minor_, app_patch_, db_major_, db_patch_, year_, month_, day_);
-    return app_patch_;
-}
-
-constexpr byte get_db_major(app_version_type app_ver /*= current*/) noexcept
-{
-    byte app_major_ = 0, app_minor_ = 0, app_patch_ = 0, db_major_ = 0, db_patch_ = 0, year_ = 0, month_ = 0, day_ = 0;
-    version_to_parts(app_ver, app_major_, app_minor_, app_patch_, db_major_, db_patch_, year_, month_, day_);
-    return db_major_;
-}
-
-constexpr byte get_db_patch(app_version_type app_ver /*= current*/) noexcept
-{
-    byte app_major_ = 0, app_minor_ = 0, app_patch_ = 0, db_major_ = 0, db_patch_ = 0, year_ = 0, month_ = 0, day_ = 0;
-    version_to_parts(app_ver, app_major_, app_minor_, app_patch_, db_major_, db_patch_, year_, month_, day_);
-    return db_patch_;
-}
-
-constexpr bool is_compatible(app_version_type package_ver) noexcept
-{
-    const auto package_db_major = get_db_major(package_ver);
-    const auto package_app_major = get_app_major(package_ver);
-    return (package_db_major == db_major && package_app_major == app_major);
+    return fmt::format(FMT_STRING("{}.{}.{} {}"),
+        app_major,
+        app_minor,
+        app_patch,
+        beta ? "beta" : ""
+    );
 }
 
 } // namespace ver
