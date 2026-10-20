@@ -11,9 +11,9 @@ app_version_type from_string(const std::string& version) noexcept
 {
     uint32_t major = 0, minor = 0, patch = 0;
 
-    // try to parse format "vX.Y.Z" or "X.Y.Z"
+    // try to parse format "vX.Y.Z" or "vX.Y.Z-beta"
     if (std::sscanf(version.c_str(), "v%d.%d.%d", &major, &minor, &patch) == 3 ||
-        std::sscanf(version.c_str(), "%d.%d.%d", &major, &minor, &patch) == 3)
+        std::sscanf(version.c_str(), "v%d.%d.%d-beta", &major, &minor, &patch) == 3)
     {
         return ver::build_version(major, minor, patch);
     }

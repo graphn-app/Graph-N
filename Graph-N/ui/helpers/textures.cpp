@@ -3,7 +3,7 @@
 */
 
 #include "ui/helpers/textures.h"
-#include "stb_image_resize2.h"
+#include "deprecated/stb_image_resize2.h"
 
 #ifndef STBIR_FREE
 #define STBIR_FREE(ptr,user_data)    ((void)(user_data), free(ptr))

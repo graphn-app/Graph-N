@@ -1,6 +1,6 @@
 Graph-N: Native C++ client for ComfyUI
 
-Copyright (c) 2026 Serhii Kalenchuk
+Copyright (c) 2026 Serhii Kalenchuk (https://github.com/graphn-app/Graph-N)
 
 
 GNU GENERAL PUBLIC LICENSE

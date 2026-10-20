@@ -1821,6 +1821,16 @@ void GraphN_Flow::check_for_updates(const std::function<void(bool /*http_result*
     m_http_requests[req_id] = { .alive = get_alive_callback(), .callback = ver_callback, .time = ImGui::GetTime(), .retry = false, .force_drop = false };
 }
 
+bool GraphN_Flow::get_updates_info(std::string& upd_version, std::string& upd_date) const
+{
+    if (!m_upd_found)
+        return false;
+
+    upd_version = m_upd_version;
+    upd_date = m_upd_date;
+    return true;
+}
+
 void GraphN_Flow::on_1s_lazy_timer(int64_t total_seconds_elapsed)
 {
     if (g::pOptsManager->app_metrics_load())

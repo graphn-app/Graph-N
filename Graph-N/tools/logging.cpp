@@ -196,8 +196,8 @@ void Logger::log_start() noexcept
             writer
                 << "\n\n"
                 << "Log started: " << tools::dt::get_app_start_time().as_log_line() << "\n"
-                << "App version: " << ver::ver_as_caption() << "\n"
 #ifndef TOOLS_DETACHED_STATE
+                << "App version: " << ver::ver_as_caption() << "\n"
                 << "ComfyUI client id: " << base::GlobalID::client_id() << "\n"
 #endif // TOOLS_DETACHED_STATE
 #ifdef _WIN32

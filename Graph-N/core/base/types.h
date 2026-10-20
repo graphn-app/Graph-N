@@ -57,10 +57,10 @@ constexpr double PLAYING_VIDEO_LIFETIME = 5.0; // seconds
 
 constexpr int32_t ABOUT_ICON_RECT           = 128;  // size
 constexpr int32_t ABOUT_ICON_LIFETIME       = 2;    // seconds
-constexpr const char* WEB_APP_HOME          = "https://github.com/elgeminy/graph-n";
-constexpr const char* UPDATE_PATH           = "https://github.com/elgeminy/graph-n";
+constexpr const char* WEB_APP_HOME          = "https://github.com/graphn-app/Graph-N";
+constexpr const char* UPDATE_PATH           = "https://github.com/graphn-app/Graph-N";
 constexpr const char* UPDATE_SERVER         = "api.github.com";
-constexpr const char* UPDATE_URL            = "/repos/elgeminy/graph-n/releases/latest";
+constexpr const char* UPDATE_URL            = "/repos/graphn-app/Graph-N/releases/latest";
 constexpr int32_t     UPDATE_PORT           = 443;
 constexpr int32_t     FIRST_UPD_ATTEMPT     = 10;   // second
 

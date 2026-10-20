@@ -45,6 +45,13 @@ void AboutDlg::init()
     m_third_party = tools::path::read_file(third_party, false);
     m_privacy = tools::path::read_file(privacy, false);
     m_readme = tools::path::read_file(readme, false);
+
+    std::string v, d;
+    if (g::pFlow->get_updates_info(v, d))
+    {
+        m_http_result = m_upd_checked = m_upd_found = true;
+        m_new_version = fmt::format(FMT_STRING("{} ({})"), v, d);
+    }
 }
 
 DlgCode AboutDlg::show(bool& /*focused*/)
@@ -114,7 +121,9 @@ DlgCode AboutDlg::show(bool& /*focused*/)
                     tools::path::open_file(WEB_APP_HOME, true);
 
                 ImGui::TableNextRow();
+                if (m_upd_found) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderText));
                 ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Update:");
+                if (m_upd_found) ImGui::PopStyleColor();
                 ImGui::TableSetColumnIndex(1); 
 
                 if (m_upd_checked)
