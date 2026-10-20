@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/custom_nodes/custom_media_widget.h"
 #include "core/workflow/node_instance.h"
 #include "core/base/comfyui_web_paths.h"

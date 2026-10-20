@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/dialogs/sync_projects_dlg.h"
 #include "ui/graph-n_flow.h"
 #include "core/managers/connect_manager.h"

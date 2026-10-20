@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "core/workflow/workflow_action.h"
 #include "core/managers/workflows_manager.h"
 #include "core/managers/nodes_manager.h"

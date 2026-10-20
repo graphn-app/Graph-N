@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #ifdef __linux__
 #include "core/managers/host_manager_linux.h"
 

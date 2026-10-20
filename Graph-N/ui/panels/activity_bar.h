@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #pragma once
 #include "core/listeners.h"
 #include "ui/base_dlg.h"

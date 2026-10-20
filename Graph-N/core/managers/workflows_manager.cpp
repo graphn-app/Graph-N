@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "core/managers/workflows_manager.h"
 #include "core/managers/db_manager.h"
 #include "core/managers/settings_manager.h"

@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/dialogs/options/opts_dlg.h"
 #include "ui/dialogs/options/opts_right_pane.h"
 #include "ui/graph-n_flow.h"

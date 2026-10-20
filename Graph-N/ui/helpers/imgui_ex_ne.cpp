@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/helpers/imgui_ex_ne.h"
 #include  "core/workflow/node_instance.h"
 #include  "core/workflow/pin_instance.h"

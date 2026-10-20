@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #pragma once
 #include "imgui_node_editor_edtype.h"
 #include "core/managers/workflows_manager.h"

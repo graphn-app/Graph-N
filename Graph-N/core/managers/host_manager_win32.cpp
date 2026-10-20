@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #ifdef _WIN32
 #include "core/managers/host_manager_win32.h"
 #include "core/managers/settings_manager.h"

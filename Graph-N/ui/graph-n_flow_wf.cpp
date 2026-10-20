@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/graph-n_flow.h"
 #include "ui/panels/panel_wf.h"
 #include "ui/panels/panel_wf_list.h"

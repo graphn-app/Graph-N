@@ -17,13 +17,14 @@ x64/
 build/
 work_dir/
 copy/
-todo/
 dump/
+doc/
 
 *.vcxproj*
 *.user
 *.cmake
 *.sln
+*.aps
 
 CMakeCache.txt
 CMakeSettings.json

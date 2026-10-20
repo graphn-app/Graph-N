@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/panels/panel_models.h"
 #include "core/managers/models_manager.h"
 #include "core/managers/nodes_manager.h"

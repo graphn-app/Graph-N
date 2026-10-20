@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #ifdef _WIN32
 #include "main/main_win32.h"
 #elif defined __linux__

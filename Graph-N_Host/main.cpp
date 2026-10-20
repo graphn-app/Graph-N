@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #define MASKEDITOR_HTML         "mask_editor.html"
 #define POSEDITOR_HTML          "3dpos_editor.html"
 

@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "core/workflow/custom_nodes/cni_fast_action_rgthree.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/workflow.h"

@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/graph-n_flow.h"
 #include "ui/base_dlg.h"
 #include "ui/custom_nodes/custom_media_widget.h"

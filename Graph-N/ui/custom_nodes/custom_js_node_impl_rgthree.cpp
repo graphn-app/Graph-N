@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/custom_nodes/custom_js_node.h"
 #include "core/workflow/custom_nodes/cni_fast_action_rgthree.h"
 #include "core/managers/workflows_manager.h"

@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/panels/panel_nodes.h"
 #include "ui/panels/panel_node_inspector.h"
 #include "ui/graph-n_flow.h"

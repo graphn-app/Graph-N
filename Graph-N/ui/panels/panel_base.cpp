@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/panels/panel_base.h"
 #include "ui/helpers/font_guard.h"
 #include "main.h"

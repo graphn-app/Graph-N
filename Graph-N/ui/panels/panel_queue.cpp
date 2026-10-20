@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/panels/panel_queue.h"
 #include "ui/helpers/textures.h"
 #include "ui/helpers/audio_control.h"
@@ -962,7 +966,7 @@ void PanelQueue::show_asset_info(const mngr::ExecTask::Output& output, size_t ou
                     g::pOptsManager->color_load(AppColor::ActivityBarInactive),
                     g::pOptsManager->color_load(AppColor::SelectedItem), false))
             {
-                tools::path::open_file(output.binary_path);
+                tools::path::open_file(output.binary_path, false);
             }
         }
         else

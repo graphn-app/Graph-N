@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/graph-n_flow.h"
 #include "core/base/comfyui_web_paths.h"
 #include "core/managers/settings_manager.h"

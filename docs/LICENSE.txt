@@ -1,7 +1,0 @@
-
-glfw
-imgui
-nlohmann
-sqlite
-SQLiteCpp
-stb

@@ -1,3 +1,7 @@
+/*
+*	Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
+*/
+
 #include "ui/helpers/gif_player.h"
 #include "ui/helpers/textures.h"
 #include "stb_image_write.h"
