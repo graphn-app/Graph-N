@@ -50,6 +50,14 @@ void ConnectManager::send_https(std::shared_ptr<RequestData> req)
         ::WinHttpAddRequestHeaders(hrequest.get(), header.c_str(), DWORD(-1), WINHTTP_ADDREQ_FLAG_ADD);
     }
 
+    if (HttpRequestor::Ext_Update == req->requestor) // add github-specific headers
+    {
+        const std::wstring github_headers = 
+            L"Accept: application/vnd.github.v3+json\r\n"
+            L"X-GitHub-Api-Version: 2022-11-28\r\n";
+        ::WinHttpAddRequestHeaders(hrequest.get(), github_headers.c_str(), DWORD(-1), WINHTTP_ADDREQ_FLAG_ADD);
+    }
+
     LPVOID payload_ptr = req->post_payload.empty() ? WINHTTP_NO_REQUEST_DATA : (LPVOID)req->post_payload.data();
     DWORD payload_size = cast::to<DWORD>(req->post_payload.size());
     BOOL results = ::WinHttpSendRequest(hrequest.get(), WINHTTP_NO_ADDITIONAL_HEADERS, 0, payload_ptr, payload_size, payload_size, 0);

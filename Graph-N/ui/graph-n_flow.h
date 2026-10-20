@@ -23,6 +23,7 @@ namespace ui
 {
 class BaseDlg;
 class OptionsDlgs;
+class AboutDlg;
 class ModalMessage;
 class ActivityBar;
 class SyncProjectsDlg;
@@ -49,54 +50,56 @@ enum ViewDialogs : uint64_t
 {
     ViewNone                    = 0,
 
-    // options
-    ViewOptions                 = 1ULL << 0,
+    ViewAbout                   = 1ULL << 0,
+    ViewOptions                 = 1ULL << 1,
 
     // status & control bar
-    ViewConnect                 = 1ULL << 1,
-    ViewParsingNodes            = 1ULL << 2,
+    ViewConnect                 = 1ULL << 2,
+    ViewParsingNodes            = 1ULL << 3,
 
     // panels
-    ViewPanelsResetAll          = 1ULL << 3,
-    ViewPanelNodes              = 1ULL << 4,
-    ViewPanelNodeInpector       = 1ULL << 5,
-    ViewPanelStats              = 1ULL << 6,
-    ViewPanelWf                 = 1ULL << 7,
-    ViewPanelWfList             = 1ULL << 8,
-    ViewPanelModels             = 1ULL << 9,
-    //ViewPanelTemplates          = 1ULL << 10,
-    ViewPanelOutput             = 1ULL << 11,
-    //ViewPanelNotes              = 1ULL << 12,
-    ViewPanelTextEditor         = 1ULL << 13,
-    //ViewPanelMarkdownPreview    = 1ULL << 14,
-    ViewPanelQueue              = 1ULL << 27,
+    ViewPanelsResetAll          = 1ULL << 4,
+    ViewPanelNodes              = 1ULL << 5,
+    ViewPanelNodeInpector       = 1ULL << 6,
+    ViewPanelStats              = 1ULL << 7,
+    ViewPanelWf                 = 1ULL << 8,
+    ViewPanelWfList             = 1ULL << 9,
+    ViewPanelModels             = 1ULL << 10,
+    //ViewPanelTemplates          = 1ULL << 11,
+    ViewPanelOutput             = 1ULL << 12,
+    //ViewPanelNotes              = 1ULL << 13,
+    ViewPanelTextEditor         = 1ULL << 14,
+    //ViewPanelMarkdownPreview    = 1ULL << 15,
+    ViewPanelQueue              = 1ULL << 16,
 
     // debug
-    ViewDebugMetrics            = 1ULL << 15,
-    ViewDebugDemo               = 1ULL << 16,
-    ViewDebugLogs               = 1ULL << 17,
-    ViewStackTool               = 1ULL << 18,
-    ViewStyleEditor             = 1ULL << 19,
-    ViewStyleSelector           = 1ULL << 20,
-    ViewFontSelector            = 1ULL << 21,
-    ViewWfDebug                 = 1ULL << 28,
+    ViewDebugMetrics            = 1ULL << 17,
+    ViewDebugDemo               = 1ULL << 18,
+    ViewDebugLogs               = 1ULL << 19,
+    ViewStackTool               = 1ULL << 20,
+    ViewStyleEditor             = 1ULL << 21,
+    ViewStyleSelector           = 1ULL << 22,
+    ViewFontSelector            = 1ULL << 23,
+    ViewWfDebug                 = 1ULL << 24,
 
     // top windows
-    ViewModal                   = 1ULL << 22,
-    ViewModalStop               = 1ULL << 23,
+    ViewModal                   = 1ULL << 25,
+    ViewModalStop               = 1ULL << 26,
 
     // bar
-    ViewActivityBarL            = 1ULL << 24,
-    ViewActivityBarR            = 1ULL << 25,
+    ViewActivityBarL            = 1ULL << 27,
+    ViewActivityBarR            = 1ULL << 28,
 
-    ViewSyncProjects            = 1ULL << 26,
+    ViewSyncProjects            = 1ULL << 29,
 
-    _ViewNextAvailable          = 1ULL << 29,   // UPDATE ON NEW DIALOG
+    ////////////
+    _ViewNextAvailable          = 1ULL << 30,   // UPDATE ON NEW DIALOG
+    ////////////
 
     ViewAllMenuBar              = ViewConnect | ViewParsingNodes,
     ViewAllPanels               = ViewPanelNodes | ViewPanelNodeInpector | ViewPanelStats | ViewPanelWfList | ViewPanelModels | /*ViewPanelTemplates | */ViewPanelOutput | ViewPanelQueue /*| ViewPanelNotes*/,
     ViewAllDebug                = ViewDebugMetrics | ViewDebugDemo | ViewDebugLogs | ViewStackTool | ViewStyleEditor | ViewStyleSelector | ViewFontSelector | ViewWfDebug,
-    ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewSyncProjects | ViewAllMenuBar | ViewPanelWf,
+    ViewAlwaysClose             = ViewAllDebug | ViewModal | ViewOptions | ViewSyncProjects | ViewAllMenuBar | ViewPanelWf | ViewAbout,
 };
 
 class GraphN_Flow final
@@ -150,7 +153,7 @@ public:
     uint32_t http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);
     uint32_t http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);    
 
-    void check_for_updates(const HttpResponseCb& callback);
+    void check_for_updates(const std::function<void(bool /*http_result*/, bool /*upd_found*/, const std::string& /*version*/, const std::string& /*date*/)>& callback);
     void stats_post_nodes(std::unordered_set<std::string>&& resolved_nodes, std::unordered_set<std::string>&& unresolved_nodes, std::unordered_set<std::string>&& python_modules);
     void stats_post_config(const char* property, const char* value);
 
@@ -258,6 +261,7 @@ private:
 
     void show_panels();
 
+    void show_about_dlg(bool autocheck);
     void show_options_dlg();
     void show_sync_projs_dlg();
     void show_activity_bar();
@@ -336,6 +340,8 @@ private:
 
     std::set<BaseDlg*> m_all_dialogs;
 
+    std::unique_ptr<AboutDlg> m_about_dlg;
+
     std::unique_ptr<ModalMessage> m_modal_message;
     std::function<void(ModalDlgCtrl)> m_msg_callback = nullptr;
 
@@ -376,6 +382,7 @@ private:
 
     struct PendingCleanup final
     {
+        bool about_dlg = false;
         bool opts_dlg = false;
         bool sync_projs_dlg = false;
         bool modal_dlg = false;
@@ -390,7 +397,10 @@ private:
 
     // update
     int64_t m_last_update_check = 0;
-    app_version_type m_version_found = 0;
+    bool m_upd_found = false;
+    bool m_upd_checked = false;
+    std::string m_upd_version;
+    std::string m_upd_date;
 };
 
 } // namespace ui

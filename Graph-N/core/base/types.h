@@ -55,6 +55,14 @@ constexpr int32_t NODE_IMAGE_RECT       = 256;  // size
 constexpr double PLAYING_AUDIO_LIFETIME = 5.0; // seconds
 constexpr double PLAYING_VIDEO_LIFETIME = 5.0; // seconds
 
+constexpr int32_t ABOUT_ICON_RECT           = 128;  // size
+constexpr int32_t ABOUT_ICON_LIFETIME       = 2;    // seconds
+constexpr const char* WEB_APP_HOME          = "https://github.com/elgeminy/graph-n";
+constexpr const char* UPDATE_PATH           = "https://github.com/elgeminy/graph-n";
+constexpr const char* UPDATE_SERVER         = "api.github.com";
+constexpr const char* UPDATE_URL            = "/repos/elgeminy/graph-n/releases/latest";
+constexpr int32_t     UPDATE_PORT           = 443;
+constexpr int32_t     FIRST_UPD_ATTEMPT     = 10;   // second
 
 constexpr float WIDGET_STRING_W         = 200.0f;
 constexpr float WIDGET_STRING_ML_H      = 4.0f;
@@ -117,6 +125,7 @@ enum class HttpRequestor : uint8_t
 
 enum class DlgObj : uint8_t
 {
+    AboutDlg,
     OptionsDlg,
     OptLeftPane,
     OptRightPane,
@@ -159,6 +168,8 @@ enum class DlgObj : uint8_t
 // in sync with DlgObj
 constexpr const char* DlgObj_SID[static_cast<size_t>(DlgObj::_count)] = 
 {
+    ICON_LC_INFO " About " APP_CAPTION "###C4BC72A9-8DF8-4B44-8A3C-AD7C1C80BD20",    // AboutDlg: with caption
+
     ICON_LC_SETTINGS " Options###C0121D08-41AA-4BC6-90D9-DCE1D70BDE80",              // OptionsDlg: with caption
     "###08D470FA-B8EC-47F4-AE0E-55129C3CEFFC",                     // OptLeftPane
     "###EDAC954E-79AD-4E89-B9E9-68B4B24453A1",                     // OptRightPane
@@ -198,6 +209,7 @@ constexpr const char* DlgObj_SID[static_cast<size_t>(DlgObj::_count)] =
 
 constexpr ImGuiID DlgObj_IID[static_cast<size_t>(DlgObj::_count)] = 
 {
+    0x00,                           // AboutDlg: with caption
     0x00,                           // OptionsDlg: with caption
     0x08D470FA,                     // OptLeftPane
     0xEDAC954E,                     // OptRightPane

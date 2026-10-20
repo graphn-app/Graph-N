@@ -6,6 +6,7 @@
 #include "ui/base_dlg.h"
 #include "ui/custom_nodes/custom_media_widget.h"
 #include "ui/custom_nodes/custom_js_node.h"
+#include "ui/dialogs/about_dlg.h"
 #include "ui/dialogs/options/opts_dlg.h"
 #include "ui/dialogs/modal_message.h"
 #include "ui/dialogs/sync_projects_dlg.h"
@@ -350,6 +351,9 @@ bool GraphN_Flow::run()
     if ((m_windows & ViewActivityBarL) || (m_windows & ViewActivityBarR))
         show_activity_bar();
 
+    if ((m_windows & ViewAbout) > 0)
+        show_about_dlg(false);
+
     if ((m_windows & ViewOptions) > 0)
         show_options_dlg();
 
@@ -384,6 +388,13 @@ bool GraphN_Flow::run()
 
 void GraphN_Flow::cleanup_frame()
 {
+    if (m_pending_cleanups.about_dlg)
+    {
+        m_about_dlg->stop_and_cleanup();
+        m_all_dialogs.erase(m_about_dlg.get());
+        m_about_dlg.reset();
+    }
+
     if (m_pending_cleanups.opts_dlg)
     {
         m_opts_dlg->stop_and_cleanup();
@@ -515,6 +526,7 @@ void GraphN_Flow::quit()
     m_panels_text_editor.clear();
     m_panels_wf.clear();
 
+    m_about_dlg.reset();
     m_opts_dlg.reset();
     m_sync_projs_dlg.reset();
     m_modal_message.reset();
@@ -691,6 +703,11 @@ void GraphN_Flow::on_dlg_closed(DlgObj dlg)
 {
     switch (dlg)
     {
+    case DlgObj::AboutDlg:
+        m_windows &= ~ViewAbout;
+        m_pending_cleanups.about_dlg = true;
+        Log("About dlg closed");
+        break;
     case DlgObj::OptionsDlg:
         m_windows &= ~ViewOptions;
         m_pending_cleanups.opts_dlg = true;
@@ -854,6 +871,29 @@ void GraphN_Flow::destroy_txt_panel(PanelTextEditor* panel) noexcept
             panel->reset();
             break;
         }
+    }
+}
+
+void GraphN_Flow::show_about_dlg(bool autocheck)
+{
+    if ((m_windows & ViewAbout) == 0)
+        return;
+
+    g::block_hotkeys_mask |= ViewAbout;
+
+    if (!m_about_dlg) [[unlikely]]
+    {
+        m_about_dlg = std::make_unique<AboutDlg>(autocheck);
+        m_about_dlg->init();
+        m_all_dialogs.insert(m_about_dlg.get());
+        Log("AboutDlg initialized");
+    }
+
+    bool focused = false;
+    if (m_about_dlg->show_dialog(focused) != DlgCode::Progress)
+    {
+        on_dlg_closed(DlgObj::AboutDlg);
+        g::block_hotkeys_mask &= ~ViewAbout;
     }
 }
 
@@ -1725,16 +1765,60 @@ void GraphN_Flow::stats_post_config(const char* property, const char* value)
     post_stats_event(HttpRequestor::Ext_Stat_Config, 0 /*session_id*/, "config", 0 /*ev_time*/, "event_properties", std::move(prop), false /*callback_needed*/, nullptr /*progress*/);
 }
 
-void GraphN_Flow::check_for_updates(const HttpResponseCb& /*callback*/)
+void GraphN_Flow::check_for_updates(const std::function<void(bool /*http_result*/, bool /*upd_found*/, const std::string& /*version*/, const std::string& /*date*/)>& callback)
 {
-    if (m_version_found != 0)
+    if (m_upd_checked)
     {
-        // 
-        // call callback and return
+        if (callback != nullptr)
+            callback(true, m_upd_found, m_upd_version, m_upd_date);
+        return;
     }
 
-    m_last_update_check++; // pause checking
-    // check
+    m_last_update_check = -1; // pause auto check
+
+    const auto ver_callback = [this, callback](int32_t result, std::string&& data)
+    {
+        m_last_update_check = g::pMain->get_seconds_elapsed();
+
+        if (result != HTTP_RESP_OK || data.empty())
+        {
+            m_upd_checked = false;
+            m_upd_found = false;
+            m_upd_version.clear();
+            m_upd_date.clear();
+        }
+        else
+        {
+            try
+            {
+                const auto j = u_json::parse(data);
+                if (j.contains("tag_name") && j["tag_name"].is_string() && j.contains("published_at") && j["published_at"].is_string())
+                {
+                    const auto ver_or = j["tag_name"].get<std::string>();
+                    const auto version = ver::from_string(ver_or);
+                    const auto date_or = j["published_at"].get<std::string>();
+                    const std::string date = date_or.length() >= 10 ? date_or.substr(0, 10) : date_or;
+                    const bool is_new_ver = ver::is_greater(version);
+                    LogS("Version check: " << ver_or << ", " << date_or << ", is new: " << is_new_ver);
+
+                    m_upd_checked = true;
+                    m_upd_found = is_new_ver;
+                    m_upd_version = ver_or;
+                    m_upd_date = date;
+                }
+            }
+            catch(...)
+            {
+                LogExcepS("Failed to parse version: " << data);
+            }
+        }
+
+        if (callback != nullptr)
+            callback(HTTP_RESP_OK == result, m_upd_found, m_upd_version, m_upd_date);
+    };
+
+    const auto req_id = g::pConnectManager->send_http_get_request_ext(HttpRequestor::Ext_Update, UPDATE_SERVER, UPDATE_PORT, UPDATE_URL, true);
+    m_http_requests[req_id] = { .alive = get_alive_callback(), .callback = ver_callback, .time = ImGui::GetTime(), .retry = false, .force_drop = false };
 }
 
 void GraphN_Flow::on_1s_lazy_timer(int64_t total_seconds_elapsed)
@@ -1755,12 +1839,12 @@ void GraphN_Flow::on_1s_lazy_timer(int64_t total_seconds_elapsed)
             stats_post_user_data();
     }
 
-    if (g::pOptsManager->app_upd_check_load())
+    if (!m_upd_found && m_last_update_check >= 0 && g::pOptsManager->app_upd_check_load())
     {
         // next check in 24h or next app restart
-        if (0 == m_version_found && total_seconds_elapsed > 10 && (0 == m_last_update_check || m_last_update_check + total_seconds_elapsed > 3600 * 24))
+        if (total_seconds_elapsed > FIRST_UPD_ATTEMPT && (0 == m_last_update_check || total_seconds_elapsed - m_last_update_check >= 3600 * 24))
         {
-            //check_for_updates();
+            check_for_updates(nullptr);
         }
     }
 }

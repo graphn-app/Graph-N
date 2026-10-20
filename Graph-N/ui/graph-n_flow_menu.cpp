@@ -9,6 +9,7 @@
 #include "core/managers/queue_manager.h"
 #include "core/managers/hotkeys_manager.h"
 #include "core/managers/comfyui_manager.h"
+#include "ui/dialogs/about_dlg.h"
 #include "ui/panels/panel_wf.h"
 #include "ui/panels/panel_queue.h"
 #ifdef _DEBUG
@@ -23,6 +24,7 @@ void GraphN_Flow::show_menu_bar()
 {
     const auto* hk = g::pHotkeysManager;
     const bool connecting_mode = (m_windows & ViewConnect);
+    const bool upd_found = m_upd_found;
     if (connecting_mode)
         ImGui::PushStyleColor(ImGuiCol_MenuBarBg, g::pOptsManager->color_load(AppColor::DisconnectedMenuBarBg));
 
@@ -254,7 +256,10 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Help##MainMenuBar")) [[unlikely]]
+        if (upd_found) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderText));
+        const bool on_help = ImGui::BeginMenu("Help##MainMenuBar");
+        if (upd_found) ImGui::PopStyleColor();
+        if (on_help)
         {
 #ifdef _DEBUG
             if (ImGui::BeginMenu("Debug workflows##MainMenuBar"))
@@ -348,10 +353,12 @@ void GraphN_Flow::show_menu_bar()
             }
             ImGui::Separator();
 #endif
-            if (ImGui::MenuItem(ICON_LC_HARD_DRIVE_DOWNLOAD " Check for updates##HelpMenuBar"))
+            if (upd_found) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderText));
+            if (ImGui::MenuItem(upd_found ? ICON_LC_HARD_DRIVE_DOWNLOAD " Update available##HelpMenuBar" : ICON_LC_HARD_DRIVE_DOWNLOAD " Check for updates##HelpMenuBar"))
             {
                 on_menu_update();
             }
+            if (upd_found) ImGui::PopStyleColor();
             if (ImGui::MenuItem(ICON_LC_INFO " About " APP_CAPTION "##HelpMenuBar"))
             {
                 on_menu_about();
@@ -381,12 +388,14 @@ void GraphN_Flow::on_menu_quit() noexcept
 
 void GraphN_Flow::on_menu_update() noexcept
 {
-    //TODO
+    m_windows |= ViewAbout;
+    show_about_dlg(true);
 }
 
 void GraphN_Flow::on_menu_about() noexcept
 {
-    //TODO
+    m_windows |= ViewAbout;
+    show_about_dlg(false);
 }
 
 void GraphN_Flow::on_menu_panel_window(ViewDialogs wnd, bool toggle /*= false*/)
