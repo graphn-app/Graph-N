@@ -284,7 +284,7 @@ void CustomMediaWidget::download_media(HttpRequestor requestor, Widget& widget, 
     }
 
     std::filesystem::path source_name = widget.names[index];
-    const auto callback = [&widget, w_id = m_node->get_workflow_id(), n_id = m_node->get_instance_id(), index]
+    const auto callback = [&widget, w_id = m_node->get_workflow_id(), n_id = m_node->get_instance_id(), index, ext = source_name.extension().string()]
     (int32_t result, std::string&& data)
     {
         LogRAssertS(cast::to_szt(index) < widget.items.size(), "Index out of bound. w: " << w_id << ", n:" << n_id << ", idx:" << index << ", lst:" << widget.items.size(), );
@@ -294,7 +294,7 @@ void CustomMediaWidget::download_media(HttpRequestor requestor, Widget& widget, 
         if (result != HTTP_RESP_OK || data.empty())
             return;
 
-        auto temp_filename = fs::get_temp_filepath(".media");
+        auto temp_filename = fs::get_temp_filepath(ext);
         if (!temp_filename.empty())
         {
             if (tools::path::make_file(temp_filename, true, data))

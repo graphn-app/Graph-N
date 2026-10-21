@@ -38,10 +38,15 @@ private:
             std::pair<std::string, int32_t> linked_input; // source node, source pin index
         };
         std::list<Input> inputs;
+
+        bool invalid_definition = false;
+        bool unrecognized_class = false;
+        bool unrecognized_definition = false;
+        std::string dump;
     };
 
-    NodeInstance* create_api_node(ApiNode& api_node, bool dummy);
-    bool check_api_node_definition(const ApiNode& api_node);
+    NodeInstance* create_api_node(ApiNode& api_node);
+    void check_api_node_definition(ApiNode& api_node);
     void link_api_nodes(const std::list<ApiNode>& api_nodes);
     void arrange_nodes();
 

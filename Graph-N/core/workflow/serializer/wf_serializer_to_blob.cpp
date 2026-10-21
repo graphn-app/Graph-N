@@ -10,7 +10,6 @@
 #include "core/workflow/link.h"
 #include "core/workflow/custom_nodes/all_impl.h"
 #include "core/managers/nodes_manager.h"
-#include "ui/graph-n_flow.h"
 
 namespace data
 {
@@ -19,14 +18,10 @@ WfSerializerToBlob::WfSerializerToBlob(const Workflow* wf) noexcept
     : m_wf(wf)
 {}
 
-blob::Writer WfSerializerToBlob::serialize(const blob::Blob& drawer_state, bool collect_nodes_stat /*= false*/)
+blob::Writer WfSerializerToBlob::serialize(const blob::Blob& drawer_state)
 {
     LogRAssert(m_wf, "Zero ptr", blob::Writer{});
     LogRAssert(!m_wf->get_data().critical_failure, "Trying to serialize invalid wf. w:" << m_wf->get_id(), blob::Writer{});
-
-    m_collect_nodes_stat = collect_nodes_stat;
-    m_resolved_nodes = {};
-    m_unresolved_nodes = {};
 
     m_writer = blob::Writer();
     blob::Block root(m_writer);
@@ -61,9 +56,6 @@ blob::Writer WfSerializerToBlob::serialize(const blob::Blob& drawer_state, bool 
 
     root.end();
 
-    if (m_collect_nodes_stat && (!m_resolved_nodes.empty() || !m_unresolved_nodes.empty() || !m_python_modules.empty()))
-        g::pFlow->stats_post_nodes(std::move(m_resolved_nodes), std::move(m_unresolved_nodes), std::move(m_python_modules));
-
     return std::move(m_writer);
 }
 
@@ -78,20 +70,6 @@ blob::Blob WfSerializerToBlob::serialize_node(const NodeInstance* node)
 
 void WfSerializerToBlob::serialize_node()
 {
-    if (m_collect_nodes_stat)
-    {
-        if (!m_curr_node->has_object())
-            m_resolved_nodes.insert("Group");
-        else
-        {
-            if (m_curr_node->obj_flags().has(NodeObjFlags::Dummy))
-                m_unresolved_nodes.insert(m_curr_node->get_object()->node_class);
-            else
-                m_resolved_nodes.insert(m_curr_node->get_object()->node_class);
-            m_python_modules.insert(m_curr_node->get_object()->python_module);
-        }
-    }
-
     serialize_node_definition();
 
     blob::Block root(m_writer);

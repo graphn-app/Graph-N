@@ -155,7 +155,7 @@ public:
 
     void check_for_updates(const std::function<void(bool /*http_result*/, bool /*upd_found*/, const std::string& /*version*/, const std::string& /*date*/)>& callback);
     bool get_updates_info(std::string& upd_version, std::string& upd_date) const;
-    void stats_post_nodes(std::unordered_set<std::string>&& resolved_nodes, std::unordered_set<std::string>&& unresolved_nodes, std::unordered_set<std::string>&& python_modules);
+    void stats_post_nodes(std::unordered_set<std::string>&& invalid_definition, std::unordered_set<std::string>&& unrecognized_class, std::unordered_set<std::string>&& unrecognized_definition, std::unordered_set<std::string>&& python_modules);
     void stats_post_config(const char* property, const char* value);
 
     // host manager

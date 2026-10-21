@@ -314,8 +314,9 @@ struct StatsData final
     int64_t session_id = 0;
     std::string comfyui_ver;
 
-    std::unordered_set<std::string> resolved_nodes;
-    std::unordered_set<std::string> unresolved_nodes;
+    std::unordered_set<std::string> invalid_definition;
+    std::unordered_set<std::string> unrecognized_class;
+    std::unordered_set<std::string> unrecognized_definition;
     std::unordered_set<std::string> python_modules;
 };
 

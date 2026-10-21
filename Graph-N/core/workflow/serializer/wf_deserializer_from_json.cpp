@@ -9,6 +9,7 @@
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
 #include "core/managers/nodes_manager.h"
+#include "ui/graph-n_flow.h"
 
 namespace data
 {
@@ -49,15 +50,60 @@ ImU32 parse_color(const std::string& color)
 }
 } // namespace
 
-std::unordered_set<hid> WfDeserializerFromJson::m_ignore_pins =
+std::unordered_set<std::string> WfDeserializerFromJson::m_ignore_pin_types =
 {
-    tools::str::hash_stable("IMAGEUPLOAD")
+    "BUTTON", "LABEL", "INFO", "CANVAS",
+    "MASK_UI", "IMAGEUPLOAD", "MASKUPLOAD", "PAINTER_UI",
+    "AUDIO_UI", "AUDIOUPLOAD",
+    "VIDEO_UI", "VIDEOUPLOAD"
 };
 
 WfDeserializerFromJson::WfDeserializerFromJson(Workflow* wf, const o_json& j)
     : m_wf(wf)
     , m_json(j)
 {}
+
+bool WfDeserializerFromJson::handle_node_errors(const o_json& jnode, ParseResult& result)
+{
+    if (result.invalid_definition)
+    {
+        const auto dump = jnode.dump();
+        LogWarn("Json contains invalid node: " << dump);
+        m_stat_invalid_definition.insert(std::move(dump));
+        if (result.node_inst != nullptr && result.node_inst->has_object())
+        {
+            m_stat_python_modules.insert(result.node_inst->get_object()->python_module);
+            m_wf->remove_node(result.node_inst);
+            result.node_inst = nullptr;
+        }
+        return false;
+    }
+    if (result.unrecognized_node_class)
+    {
+        LogWarn("Json contains unrecognized node class: " << result.node_class);
+        m_stat_unrecognized_node_class.insert(std::move(result.node_class));
+        if (result.node_inst != nullptr && result.node_inst->has_object())
+            m_stat_python_modules.insert(result.node_inst->get_object()->python_module);
+        m_wf->get_data().valid = false;
+    }
+    else if (result.unrecognized_node_definition)
+    {
+        LogWarn("Json contains unrecognized node definition: " << result.node_class);
+        m_stat_unrecognized_node_definition.insert(jnode.dump());
+
+        if (result.node_inst != nullptr && result.node_inst->has_object())
+            m_stat_python_modules.insert(result.node_inst->get_object()->python_module);
+
+        if (result.node_inst != nullptr)
+            m_wf->remove_node(result.node_inst);
+        result.node_inst = nullptr;
+
+        if (result.node_obj != nullptr)
+            result.node_inst = m_wf->add_node(result.node_obj, result.rc);
+    }
+
+    return (result.node_inst != nullptr);
+}
 
 bool WfDeserializerFromJson::deserialize()
 {
@@ -88,19 +134,15 @@ bool WfDeserializerFromJson::deserialize()
 
         for (auto& jnode : m_json["nodes"])
         {
-            bool is_valid = true;
-            const bool dummy = !check_node_definition(jnode, is_valid);
-            if (!is_valid)
+            std::string jid;
+            ParseResult result = deserialize_node(jnode, jid);
+            if (result.subgraph)
                 continue;
 
-            if (dummy)
-                m_wf->get_data().valid = false;
+            if (!handle_node_errors(jnode, result))
+                continue;
 
-            std::string jid;
-            const auto* node = deserialize_node(jnode, jid, dummy);
-            LogCAssert(node != nullptr, "Checked node is dummy");
-
-            m_node_ids[jid] = node->get_instance_id();
+            m_node_ids[jid] = result.node_inst->get_instance_id();
         }
 
         if (m_json.contains("definitions") && m_json["definitions"].contains("subgraphs") && m_json["definitions"]["subgraphs"].is_array())
@@ -120,6 +162,12 @@ bool WfDeserializerFromJson::deserialize()
             }
         }
 
+        g::pFlow->stats_post_nodes(
+            std::move(m_stat_invalid_definition),
+            std::move(m_stat_unrecognized_node_class),
+            std::move(m_stat_unrecognized_node_definition),
+            std::move(m_stat_python_modules));
+
         if (!deserialize_links())
             return false;
 
@@ -132,114 +180,19 @@ bool WfDeserializerFromJson::deserialize()
     return false;
 }
 
-bool WfDeserializerFromJson::check_node_definition(const o_json& j, bool& is_valid) const
+ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::string& node_id_from_json)
 {
-    is_valid = true;
-    if (!j.contains("type") || !j["type"].is_string() || !j.contains("id"))
-    {
-        is_valid = false;
-        return false;
-    }
+    if (!j.contains("type") || !j["type"].is_string())
+        return { .invalid_definition = true };
 
-    if (!j["id"].is_string() && !j["id"].is_number_integer())
-    {
-        is_valid = false;
-        return false;
-    }
+    if (!j.contains("id") || (!j["id"].is_string() && !j["id"].is_number_integer()))
+        return { .invalid_definition = true };
 
-    std::string node_class = j["type"];
-    const auto node_hash = g::pNodesManager->make_node_hash_and_migrate_node_if_required(node_class);
-    const auto* node = g::pNodesManager->find_node(node_hash);
-    if (nullptr == node)
-        return false;
+    if (j["id"].is_string())                node_id_from_json = j["id"];
+    else if (j["id"].is_number_integer())   node_id_from_json = std::to_string(j["id"].get<int32_t>());
 
-    bool is_cni = true;
-    if (!check_cni_node_definition(j, node_hash, is_valid, is_cni))
-        return false;
-    if (is_cni)
-        return true;
-
-    // input
-    if (j.contains("inputs") && j["inputs"].is_array())
-    {
-        for (const auto& jinput : j["inputs"])
-        {
-            if (jinput.is_object())
-            {
-                if (!jinput.contains("name") || !jinput["name"].is_string() || !jinput.contains("type") || !jinput["type"].is_string())
-                {
-                    is_valid = false;
-                    return false;
-                }
-
-                const std::string name = jinput["name"];
-                const std::string type = jinput["type"];
-
-                const auto pin_hash = Pin::make_hash(node_class, name, -1);
-                if (m_ignore_pins.contains(pin_hash))
-                    continue;
-
-                auto pin = g::pNodesManager->find_pin(pin_hash);
-                if (nullptr == pin || pin->def_state.type_str != type)
-                    return false;
-            }
-            else
-            {
-                is_valid = false;
-                return false;
-            }
-        }
-    }
-
-    // output
-    if (j.contains("outputs") && j["outputs"].is_array())
-    {
-        int32_t index = 0;
-        for (const auto& joutput : j["outputs"])
-        {
-            if (joutput.is_object())
-            {
-                if (!joutput.contains("name") || !joutput["name"].is_string() || !joutput.contains("type") || !joutput["type"].is_string())
-                {
-                    is_valid = false;
-                    return false;
-                }
-
-                const std::string name = joutput["name"];
-                const std::string type = joutput["type"];
-
-                const auto pin_hash = Pin::make_hash(node_class, name, index);
-                if (m_ignore_pins.contains(pin_hash))
-                    continue;
-
-                auto pin = g::pNodesManager->find_pin(pin_hash);
-                if (nullptr == pin || pin->def_state.type_str != type)
-                    return false;
-                index++;
-            }
-            else
-            {
-                is_valid = false;
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::string& node_id_from_json, bool dummy)
-{
-    if (j["id"].is_string())
-        node_id_from_json = j["id"];
-    else if (j["id"].is_number_integer())
-        node_id_from_json = std::to_string(j["id"].get<int32_t>());
-
-    std::string node_class;
-    if (!j["type"].is_string())
-        node_class = j["type"].dump();
-    else
-        node_class = j["type"];
+    std::string node_type = j["type"];
+    //BREAK_IF(node_class == "LoadAudio" || node_class == "SaveAudioMP3");
 
     // position
     ImRect rc = {};
@@ -249,53 +202,54 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
         rc.Min.y = j["pos"][1];
     }
 
-    if (m_subgraphs.contains(node_class))
+    if (m_subgraphs.contains(node_type))
     {
-        m_subgraphs[node_class] = { node_id_from_json, rc };
-        return nullptr;
+        m_subgraphs[node_type] = { node_id_from_json, rc };
+        return { .rc = rc, .node_class = std::move(node_type), .subgraph = true };
     }
 
-    //BREAK_IF(node_class == js::NOTE_CLASS || node_class == js::MARKDOWN_NOTE_CLASS);
+    ParseResult result;
+    result.node_class = std::move(node_type);
+    result.rc = rc;
 
-    NodeInstance* node_instance = nullptr;
-    if (dummy)
+    const auto node_hash = g::pNodesManager->make_node_hash_and_migrate_node_if_required(result.node_class);
+    result.node_obj = g::pNodesManager->find_node(node_hash);
+    if (nullptr == result.node_obj)
     {
-        node_instance = m_wf->add_node(g::pNodesManager->make_dummy_node(std::string(node_class)), rc);
-        node_instance->reset_pins();
+        result.unrecognized_node_class = true;
+        result.node_inst = m_wf->add_node(g::pNodesManager->make_dummy_node(result.node_class), result.rc);
+        result.node_inst->reset_pins();
     }
     else
     {
-        const auto node_hash = g::pNodesManager->make_node_hash_and_migrate_node_if_required(node_class);
-        auto obj = g::pNodesManager->find_node(node_hash);
-        LogRAssert(obj != nullptr, "Dummy node " << node_class << " in base map", nullptr);
-        node_instance = m_wf->add_node(obj, rc);
+        result.node_inst = m_wf->add_node(result.node_obj, result.rc);
     }
 
     // name
     if (j.contains("title") && j["title"].is_string())
-        node_instance->set_name(j["title"]);
+        result.node_inst->set_name(j["title"]);
 
     // mode
-    node_instance->set_mode(NodeInstFlags::None);
+    result.node_inst->set_mode(NodeInstFlags::None);
     if (j.contains("mode") && j["mode"].is_number_integer())
     {
         switch (j["mode"].get<int32_t>())
         {
         //case 0:
         //default:
-        //    node_instance->set_mode(NodeInstFlags::ModeAlways);
+        //    result.node_inst->set_mode(NodeInstFlags::ModeAlways);
         //    break;
         case 1:
-            node_instance->set_mode(NodeInstFlags::ModeOnEvent);
+            result.node_inst->set_mode(NodeInstFlags::ModeOnEvent);
             break;
         case 2:
-            node_instance->set_mode(NodeInstFlags::ModeMute);
+            result.node_inst->set_mode(NodeInstFlags::ModeMute);
             break;
         case 3:
-            node_instance->set_mode(NodeInstFlags::ModeOnTrigger);
+            result.node_inst->set_mode(NodeInstFlags::ModeOnTrigger);
             break;
         case 4:
-            node_instance->set_mode(NodeInstFlags::ModeBypass);
+            result.node_inst->set_mode(NodeInstFlags::ModeBypass);
             break;
         }
     }
@@ -305,29 +259,25 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
     {
         const auto color = parse_color(j["bgcolor"]);
         if (color != 0)
-            node_instance->set_node_color(color);
+            result.node_inst->set_node_color(color);
     }
 
     // pinned, collapsed
-    node_instance->flags().remove(NodeInstFlags::Pinned, NodeInstFlags::Collapsed);
+    result.node_inst->flags().remove(NodeInstFlags::Pinned, NodeInstFlags::Collapsed);
     if (j.contains("flags") && j["flags"].is_object())
     {
         for (const auto& [jname, jvalue] : j["flags"].items())
         {
             if (jname == "collapsed" && jvalue.is_boolean() && jvalue.get<bool>() == true)
-                node_instance->flags().add(NodeInstFlags::Collapsed);
+                result.node_inst->flags().add(NodeInstFlags::Collapsed);
             else if (jname == "pinned" && jvalue.is_boolean() && jvalue.get<bool>() == true)
-                node_instance->flags().add(NodeInstFlags::Pinned);
+                result.node_inst->flags().add(NodeInstFlags::Pinned);
         }
     }
 
-    if (!dummy && node_instance->flags().has(NodeInstFlags::JsonCustomSerialization))
+    if (!result.unrecognized_node_class && result.node_inst->flags().has(NodeInstFlags::JsonCustomSerialization))
     {
-        if (nullptr == deserialize_cni_node(node_instance, j))
-        {
-            m_wf->remove_node(node_instance);
-            LogRError("Dummy CNI node " << node_class, nullptr);
-        }
+        deserialize_cni_node(j, result);
     }
     else
     {
@@ -343,46 +293,52 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                 {
                     std::string name, type;
 
+                    if (jinput["type"].is_string()) type = jinput["type"];
+                    else                            type = jinput["type"].dump();
+                    if (m_ignore_pin_types.contains(type))
+                        continue;
+
                     if (jinput["name"].is_string()) name = jinput["name"];
                     else                            name = jinput["name"].dump();
 
-                    if (jinput["type"].is_string()) type = jinput["type"];
-                    else                            type = jinput["type"].dump();
-
                     Pin* pin = nullptr;
-                    const auto pin_hash = Pin::make_hash(node_instance->get_object(), name, -1);
-                    if (m_ignore_pins.contains(pin_hash))
-                        continue;
-
-                    if (dummy)
+                    const auto pin_hash = Pin::make_hash(result.node_inst->get_object(), name, -1);
+                    if (result.unrecognized_node_class)
                     {
-                        pin = g::pNodesManager->make_dummy_pin(node_instance->get_object(), type, name, -1);
+                        pin = g::pNodesManager->make_dummy_pin(result.node_inst->get_object(), type, name, -1);
                     }
                     else
                     {
                         pin = g::pNodesManager->find_pin(pin_hash);
-                        LogRAssertS(pin != nullptr, "Dummy pin " << name << "/" << type, node_instance);
-                        pin->def_state.name = name;
-                        pin->finalize();
+                        if (nullptr == pin)
+                        {
+                            result.unrecognized_node_definition = true;
+                            return result;
+                        }
                     }
 
                     PinInstance* pin_instance = nullptr;
-                    if (dummy)
+                    if (result.unrecognized_node_class)
                     {
-                        pin_instance = m_wf->add_pin(node_instance, pin, m_wf->get_new_child_id());
+                        pin_instance = m_wf->add_pin(result.node_inst, pin, m_wf->get_new_child_id());
                         pin->def_state.copy_to(pin_instance->state());
-                        node_instance->add_input(pin_instance);
+                        result.node_inst->add_input(pin_instance);
                     }
                     else
                     {
-                        pin_instance = m_wf->get_pin_by_hash(node_instance->get_instance_id(), pin_hash);
-                        LogRAssert(pin_instance != nullptr, "Pin not found in wf. w:" << m_wf->get_id() << ", n:" << node_instance->get_instance_id() << ", ph:" << pin_hash, node_instance);
+                        pin_instance = m_wf->get_pin_by_hash(result.node_inst->get_instance_id(), pin_hash);
+                        if (nullptr == pin_instance)
+                        {
+                            LogError("Pin(i) instance not found in wf. w:" << m_wf->get_id() << ", n:" << result.node_inst->get_instance_id() << ", ph:" << pin_hash);
+                            result.unrecognized_node_definition = true;
+                            return result;
+                        }
                     }
 
                     if (jinput.contains("label") && jinput["label"].is_string())
                         pin_instance->set_name(jinput["label"]);
 
-                    in_pins[node_instance->get_instance_id()][index++] = pin_instance->get_instance_id();
+                    in_pins[result.node_inst->get_instance_id()][index++] = pin_instance->get_instance_id();
                 }
             }
         }
@@ -397,49 +353,56 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                 {
                     const std::string name = joutput["name"];
                     const std::string type = joutput["type"];
+                    if (m_ignore_pin_types.contains(type))
+                        continue;
 
                     std::string widget_name;
                     if (joutput.contains("widget") && joutput["widget"].is_object() && joutput["widget"].contains("name") && joutput["widget"]["name"].is_string())
                         widget_name = joutput["widget"]["name"];
 
                     hid pin_hash = 0;
-                    if (node_instance->get_object()->output.size() > index &&
-                        node_instance->get_object()->output[index]->def_state.type == PinType::ANY &&
+                    if (result.node_inst->get_object()->output.size() > index &&
+                        result.node_inst->get_object()->output[index]->def_state.type == PinType::ANY &&
                         name != "*")
                     {
-                        pin_hash = Pin::make_hash(node_instance->get_object(), "*", index);
+                        pin_hash = Pin::make_hash(result.node_inst->get_object(), "*", index);
                     }
                     else
                     {
-                        pin_hash = Pin::make_hash(node_instance->get_object(), name, index);
+                        pin_hash = Pin::make_hash(result.node_inst->get_object(), name, index);
                     }
-                    if (m_ignore_pins.contains(pin_hash))
-                        continue;
 
                     Pin* pin = nullptr;
-                    if (dummy)
+                    if (result.unrecognized_node_class)
                     {
-                        pin = g::pNodesManager->make_dummy_pin(node_instance->get_object(), type, name, index);
+                        pin = g::pNodesManager->make_dummy_pin(result.node_inst->get_object(), type, name, index);
                     }
                     else
                     {
                         pin = g::pNodesManager->find_pin(pin_hash);
-                        LogRAssertS(pin != nullptr, "Dummy pin " << name << "/" << type, node_instance);
-                        pin->def_state.name = name;
-                        pin->finalize();
+                        if (nullptr == pin)
+                        {
+                            result.unrecognized_node_definition = true;
+                            return result;
+                        }
                     }
 
                     PinInstance* pin_instance = nullptr;
-                    if (dummy)
+                    if (result.unrecognized_node_class)
                     {
-                        pin_instance = m_wf->add_pin(node_instance, pin, m_wf->get_new_child_id());
+                        pin_instance = m_wf->add_pin(result.node_inst, pin, m_wf->get_new_child_id());
                         pin->def_state.copy_to(pin_instance->state());
-                        node_instance->add_output(pin_instance);
+                        result.node_inst->add_output(pin_instance);
                     }
                     else
                     {
-                        pin_instance = m_wf->get_pin_by_hash(node_instance->get_instance_id(), pin_hash);
-                        LogRAssert(pin_instance != nullptr, "Pin not found in wf. w:" << m_wf->get_id() << ", n:" << node_instance->get_instance_id() << ", ph:" << pin_hash, node_instance);
+                        pin_instance = m_wf->get_pin_by_hash(result.node_inst->get_instance_id(), pin_hash);
+                        if (nullptr == pin_instance)
+                        {
+                            LogError("Pin(o) instance not found in wf. w:" << m_wf->get_id() << ", n:" << result.node_inst->get_instance_id() << ", ph:" << pin_hash);
+                            result.unrecognized_node_definition = true;
+                            return result;
+                        }
                     }
 
                     if (joutput.contains("label") && joutput["label"].is_string())
@@ -447,7 +410,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
                     else if (!widget_name.empty())
                         pin_instance->set_name(widget_name);
 
-                    out_pins[node_instance->get_instance_id()][index++] = pin_instance->get_instance_id();
+                    out_pins[result.node_inst->get_instance_id()][index++] = pin_instance->get_instance_id();
                 }
             }
         }
@@ -456,7 +419,7 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
         if (j.contains("widgets_values") && j["widgets_values"].is_array())
         {
             std::vector<PinInstance*> widgets;
-            for (auto pin : node_instance->get_inputs())
+            for (auto pin : result.node_inst->get_inputs())
             {
                 if (pin->get_object()->is_widget())
                     widgets.push_back(pin);
@@ -587,8 +550,8 @@ NodeInstance* WfDeserializerFromJson::deserialize_node(const o_json& j, std::str
         m_node_out_pins.merge(out_pins);
     }
 
-    node_instance->reset_width();
-    return node_instance;
+    result.node_inst->reset_width();
+    return result;
 }
 
 bool WfDeserializerFromJson::deserialize_subgraph(const o_json& j)
@@ -606,24 +569,15 @@ bool WfDeserializerFromJson::deserialize_subgraph(const o_json& j)
 
     for (auto& jnode : j["nodes"])
     {
-        bool is_valid = true;
-        const bool dummy = !check_node_definition(jnode, is_valid);
-        if (!is_valid)
+        std::string jid;
+        ParseResult result = deserialize_node(jnode, jid);
+        if (!handle_node_errors(jnode, result))
             continue;
 
-        if (dummy)
-            m_wf->get_data().valid = false;
+        result.node_inst->m_rc.Min.x = sg_rc.Min.x + result.node_inst->m_rc.Min.x;
+        result.node_inst->m_rc.Min.y = sg_rc.Min.y + result.node_inst->m_rc.Min.y;
 
-        std::string jid;
-        const auto node = deserialize_node(jnode, jid, dummy);
-        LogCAssert(node != nullptr, "Checked node is dummy");
-
-        node->m_rc.Min.x = sg_rc.Min.x + node->m_rc.Min.x;
-        node->m_rc.Min.y = sg_rc.Min.y + node->m_rc.Min.y;
-
-        m_node_ids[jid] = node->get_instance_id();
-        if (node->has_object() && node->obj_flags().has(NodeObjFlags::Dummy))
-            m_wf->get_data().valid = false;
+        m_node_ids[jid] = result.node_inst->get_instance_id();
     }
 
     if (j.contains("groups") && j["groups"].is_array())

@@ -877,7 +877,7 @@ void WfsManager::dump(wid wf_id) const
     if (nullptr == drawer_state)
         drawer_state = &empty;
 
-    auto wr = data::WfSerializerToBlob(wf).serialize(*drawer_state, true);
+    auto wr = data::WfSerializerToBlob(wf).serialize(*drawer_state);
     g::pDbManager->wf_update_blob(data.uuid, wr.release(), data.draft, data.use_ext_time ? data.ext_time : tools::dt());
 
     data.dirty = false;

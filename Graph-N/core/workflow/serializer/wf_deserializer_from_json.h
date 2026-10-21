@@ -7,9 +7,24 @@
 namespace data
 {
 class Workflow;
+struct Node;
 class NodeInstance;
 class PinInstance;
 class Link;
+
+struct ParseResult
+{
+    Node* node_obj = nullptr;
+    NodeInstance* node_inst = nullptr;
+    ImRect rc = {};
+    std::string node_class;
+    bool is_cni_node = false;
+    bool subgraph = false;
+
+    bool invalid_definition = false;                // required item is missing (type, id etc)
+    bool unrecognized_node_class = false;           // unknown node
+    bool unrecognized_node_definition = false;      // node definition doesn't match
+};
 
 class WfDeserializerFromJson final
 {
@@ -23,37 +38,24 @@ public:
     static bool deserialize_all_wf_names(const std::string& payload, std::list<std::pair<std::string, tools::dt>>& projects);
 
 private:
-    NodeInstance* deserialize_node(const o_json& j, std::string& node_id_from_json, bool dummy);
+    ParseResult deserialize_node(const o_json& j, std::string& node_id_from_json);
+    NodeInstance* deserialize_group(const o_json& j);
     bool deserialize_subgraph(const o_json& j);
     bool deserialize_links();
-    NodeInstance* deserialize_group(const o_json& j);
+    bool handle_node_errors(const o_json& jnode, ParseResult& result);
 
-    bool check_node_definition(const o_json& j, bool& is_valid) const;
-    bool check_cni_node_definition(const o_json& j, hid node_class, bool& is_valid, bool& is_cni) const;
-    bool check_cni_node_definition_primitive(const o_json& j, bool& is_valid) const;
-    bool check_cni_node_definition_reroute(const o_json& j, bool& is_valid) const;
-    bool check_cni_node_definition_note(const o_json& j, bool& is_valid) const;
-    bool check_cni_node_definition_markdownnote(const o_json& j, bool& is_valid) const;
-    bool check_cni_node_fast_switcher_rgthree(const o_json& j, bool& is_valid) const;
-    bool check_cni_node_fast_group_switcher_rgthree(const o_json& j, bool& is_valid) const;
-    bool check_cni_node_fast_action_rgthree(const o_json& j, bool& is_valid) const;
-    bool check_cni_node_bookmark_rgthree(const o_json& j, bool& is_valid) const;
-    bool check_cni_node_impact_switch(const o_json& j, bool& is_valid) const;
-    bool check_cni_node_impact_insversed_switch(const o_json& j, bool& is_valid) const;
-
-    NodeInstance* deserialize_js_node(NodeInstance* node, const o_json& j);
-
-    NodeInstance* deserialize_cni_node(NodeInstance* node, const o_json& j);
-    NodeInstance* deserialize_cni_node_primitive(NodeInstance* node, const o_json& j);
-    NodeInstance* deserialize_cni_node_reroute(NodeInstance* node, const o_json& j);
-    NodeInstance* deserialize_cni_node_note(NodeInstance* node, const o_json& j);
-    NodeInstance* deserialize_cni_node_markdownnote(NodeInstance* node, const o_json& j);
-    NodeInstance* deserialize_cni_fast_switcher_rgthree(NodeInstance* node, const o_json& j);
-    NodeInstance* deserialize_cni_fast_group_switcher_rgthree(NodeInstance* node, const o_json& j);
-    NodeInstance* deserialize_cni_fast_action_rgthree(NodeInstance* node, const o_json& j);
-    NodeInstance* deserialize_cni_bookmark_rgthree(NodeInstance* node, const o_json& j);
-    NodeInstance* deserialize_cni_node_impact_switch(NodeInstance* node, const o_json& j);
-    NodeInstance* deserialize_cni_node_impact_insversed_switch(NodeInstance* node, const o_json& j);
+    void deserialize_js_node(const o_json& j, ParseResult& result);
+    void deserialize_cni_node(const o_json& j, ParseResult& result);
+    void deserialize_cni_node_primitive(const o_json& j, ParseResult& result);
+    void deserialize_cni_node_reroute(const o_json& j, ParseResult& result);
+    void deserialize_cni_node_note(const o_json& j, ParseResult& result);
+    void deserialize_cni_node_markdownnote(const o_json& j, ParseResult& result);
+    void deserialize_cni_fast_switcher_rgthree(const o_json& j, ParseResult& result);
+    void deserialize_cni_fast_group_switcher_rgthree(const o_json& j, ParseResult& result);
+    void deserialize_cni_fast_action_rgthree(const o_json& j, ParseResult& result);
+    void deserialize_cni_bookmark_rgthree(const o_json& j, ParseResult& result);
+    void deserialize_cni_node_impact_switch(const o_json& j, ParseResult& result);
+    void deserialize_cni_node_impact_insversed_switch(const o_json& j, ParseResult& result);
 
 private:
     Workflow* m_wf = nullptr;
@@ -67,7 +69,11 @@ private:
     LinkMap m_node_out_pins;
     std::map<std::string, iid> m_node_ids;
 
-    static std::unordered_set<hid> m_ignore_pins;
+    static std::unordered_set<std::string> m_ignore_pin_types;
+    std::unordered_set<std::string> m_stat_invalid_definition;
+    std::unordered_set<std::string> m_stat_unrecognized_node_class;
+    std::unordered_set<std::string> m_stat_unrecognized_node_definition;
+    std::unordered_set<std::string> m_stat_python_modules;
 };
 
 } // namespace data

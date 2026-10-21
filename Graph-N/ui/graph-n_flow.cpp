@@ -1641,7 +1641,7 @@ void GraphN_Flow::stats_post_session_start()
     if (!g::pOptsManager->app_metrics_load())
         return;
 
-    g::pDbManager->session_nodes_load(m_stats.resolved_nodes, m_stats.unresolved_nodes, m_stats.python_modules);
+    g::pDbManager->session_nodes_load(m_stats.invalid_definition, m_stats.unrecognized_class, m_stats.unrecognized_definition, m_stats.python_modules);
     post_stats_event(HttpRequestor::Ext_Stat_Session, 0 /*session_id*/, "session", 0 /*ev_time*/, nullptr /*prop_type*/, {} /*event_props*/, true /*callback_needed*/, &m_stats.app_start_sent);
 }
 
@@ -1709,29 +1709,33 @@ void GraphN_Flow::stats_post_user_data()
 }
 
 void GraphN_Flow::stats_post_nodes(
-    std::unordered_set<std::string>&& resolved_nodes,
-    std::unordered_set<std::string>&& unresolved_nodes,
+    std::unordered_set<std::string>&& invalid_definition,
+    std::unordered_set<std::string>&& unrecognized_class,
+    std::unordered_set<std::string>&& unrecognized_definition,
     std::unordered_set<std::string>&& python_modules)
 {
     if (!g::pOptsManager->app_metrics_load())
         return;
 
-    std::erase_if(resolved_nodes, [&saved = m_stats.resolved_nodes](const std::string& node) { return saved.contains(node); });
-    std::erase_if(unresolved_nodes, [&saved = m_stats.unresolved_nodes](const std::string& node) { return saved.contains(node); });
+    std::erase_if(invalid_definition, [&saved = m_stats.invalid_definition](const std::string& node) { return saved.contains(node); });
+    std::erase_if(unrecognized_class, [&saved = m_stats.unrecognized_class](const std::string& node) { return saved.contains(node); });
+    std::erase_if(unrecognized_definition, [&saved = m_stats.unrecognized_definition](const std::string& node) { return saved.contains(node); });
     std::erase_if(python_modules, [&saved = m_stats.python_modules](const std::string& module) { return saved.contains(module); });
-    if (resolved_nodes.empty() && unresolved_nodes.empty() && python_modules.empty())
+    if (invalid_definition.empty() && unrecognized_class.empty() && unrecognized_definition.empty() && python_modules.empty())
         return;
 
     u_json prop;
-    prop["resolved_nodes"] = resolved_nodes;
-    prop["unresolved_nodes"] = unresolved_nodes;
+    prop["invalid_definition"] = invalid_definition;
+    prop["unrecognized_class"] = unrecognized_class;
+    prop["unrecognized_definition"] = unrecognized_definition;
     prop["python_modules"] = python_modules;
     post_stats_event(HttpRequestor::Ext_Stat_Nodes, 0 /*session_id*/, "nodes", 0 /*ev_time*/, "event_properties", std::move(prop), false /*callback_needed*/, nullptr /*progress*/);
 
-    m_stats.resolved_nodes.merge(resolved_nodes);
-    m_stats.unresolved_nodes.merge(unresolved_nodes);
+    m_stats.invalid_definition.merge(invalid_definition);
+    m_stats.unrecognized_class.merge(unrecognized_class);
+    m_stats.unrecognized_definition.merge(unrecognized_definition);
     m_stats.python_modules.merge(python_modules);
-    g::pDbManager->session_nodes_save(m_stats.resolved_nodes, m_stats.unresolved_nodes, m_stats.python_modules);
+    g::pDbManager->session_nodes_save(m_stats.invalid_definition, m_stats.unrecognized_class, m_stats.unrecognized_definition, m_stats.python_modules);
 }
 
 void GraphN_Flow::stats_post_host(HostType host_type)

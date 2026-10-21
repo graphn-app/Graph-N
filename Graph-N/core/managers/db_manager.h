@@ -36,8 +36,8 @@ public:
     void exception_save(std::string &&message, const char *file, int32_t line) noexcept;
     void session_end_save(int64_t session_id, const std::string& duration);
 
-    void session_nodes_load(std::unordered_set<std::string>& resolved_nodes, std::unordered_set<std::string>& unresolved_nodes, std::unordered_set<std::string>& python_modules);
-    void session_nodes_save(const std::unordered_set<std::string>& resolved_nodes, const std::unordered_set<std::string>& unresolved_nodes, const std::unordered_set<std::string>& python_modules);
+    void session_nodes_load(std::unordered_set<std::string>& invalid_definition, std::unordered_set<std::string>& unrecognized_class, std::unordered_set<std::string>& unrecognized_definition, std::unordered_set<std::string>& python_modules);
+    void session_nodes_save(const std::unordered_set<std::string>& invalid_definition, const std::unordered_set<std::string>& unrecognized_class, const std::unordered_set<std::string>& unrecognized_definition, const std::unordered_set<std::string>& python_modules);
 
     void app_option_save(const std::string& key, DbValue&& value);
     std::vector<DbAppOptionData> app_option_load_all();
@@ -95,8 +95,9 @@ private:
     };
     struct NodesData final
     {
-        std::string resolved_nodes;
-        std::string unresolved_nodes;
+        std::string invalid_definition;
+        std::string unrecognized_class;
+        std::string unrecognized_definition;
         std::string python_modules;
     };
     struct WriteData final

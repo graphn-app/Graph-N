@@ -25,6 +25,7 @@ doc/
 *.cmake
 *.sln
 *.aps
+*.exe
 
 CMakeCache.txt
 CMakeSettings.json

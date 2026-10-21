@@ -34,9 +34,10 @@ constexpr auto gdb_valname_app_ver = "app_version";
 constexpr auto gdb_valname_last_run = "last_run";
 constexpr auto gdb_valname_customer_id = "customer_id";
 constexpr auto gdb_valname_last_session = "last_session";
-constexpr auto gdb_valname_resolved_nodes = "resolved_nodes";
-constexpr auto gdb_valname_unresolved_nodes = "unresolved_nodes";
-constexpr auto gdb_valname_python_modules = "python_modules";
+constexpr auto gdb_valname_node_invalid_definition = "node_invalid_definition";
+constexpr auto gdb_valname_node_unrecognized_class = "node_unrecognized_class";
+constexpr auto gdb_valname_node_unrecognized_definition = "node_unrecognized_definition";
+constexpr auto gdb_valname_node_python_modules = "node_python_modules";
 
 constexpr auto gdb_tbl_meta = "METADATA";
 constexpr auto gdb_tbl_err = "ERRORS";
@@ -410,8 +411,9 @@ void DbManager::session_end_save(int64_t session_id, const std::string& duration
 }
 
 void DbManager::session_nodes_load(
-    std::unordered_set<std::string>& resolved_nodes,
-    std::unordered_set<std::string>& unresolved_nodes,
+    std::unordered_set<std::string>& invalid_definition,
+    std::unordered_set<std::string>& unrecognized_class,
+    std::unordered_set<std::string>& unrecognized_definition,
     std::unordered_set<std::string>& python_modules)
 {
     try
@@ -420,38 +422,47 @@ void DbManager::session_nodes_load(
             fmt::format(FMT_STRING(R"(
                     SELECT {}, {}
                     FROM {}
-                    WHERE {} = ? OR {} = ? OR {} = ?
+                    WHERE {} IN (?, ?, ?, ?)
                 )"),
                 gdb_val_name, gdb_val_str,
                 gdb_tbl_meta,
                 gdb_val_name, gdb_val_name, gdb_val_name));
 
-        query.bindNoCopy(1, gdb_valname_resolved_nodes);
-        query.bindNoCopy(2, gdb_valname_unresolved_nodes);
-        query.bindNoCopy(3, gdb_valname_python_modules);
+        query.bindNoCopy(1, gdb_valname_node_invalid_definition);
+        query.bindNoCopy(2, gdb_valname_node_unrecognized_class);
+        query.bindNoCopy(3, gdb_valname_node_unrecognized_definition);
+        query.bindNoCopy(4, gdb_valname_node_python_modules);
 
-        std::string resolved_str, unresolved_str, python_modules_str;
+        std::string invalid_definition_str, unrecognized_class_str, unrecognized_definition_str, python_modules_str;
         while (query.executeStep())
         {
             const auto parameter = query.getColumn(0).getString();
-            if (parameter == gdb_valname_resolved_nodes)
-                resolved_str = query.getColumn(1).getString();
-            else if (parameter == gdb_valname_unresolved_nodes)
-                unresolved_str = query.getColumn(1).getString();
-            else if (parameter == gdb_valname_python_modules)
+
+            if (parameter == gdb_valname_node_invalid_definition)
+                invalid_definition_str = query.getColumn(1).getString();
+            else if (parameter == gdb_valname_node_unrecognized_class)
+                unrecognized_class_str = query.getColumn(1).getString();
+            else if (parameter == gdb_valname_node_unrecognized_definition)
+                unrecognized_definition_str = query.getColumn(1).getString();
+            else if (parameter == gdb_valname_node_python_modules)
                 python_modules_str = query.getColumn(1).getString();
         }
 
         u_json j;
-        if (!resolved_str.empty())
+        if (!invalid_definition_str.empty())
         {
-            j = u_json::parse(resolved_str);
-            resolved_nodes = j;
+            j = u_json::parse(invalid_definition_str);
+            invalid_definition = j;
         }
-        if (!unresolved_str.empty())
+        if (!unrecognized_class_str.empty())
         {
-            j = u_json::parse(unresolved_str);
-            unresolved_nodes = j;
+            j = u_json::parse(unrecognized_class_str);
+            unrecognized_class = j;
+        }
+        if (!unrecognized_definition_str.empty())
+        {
+            j = u_json::parse(unrecognized_definition_str);
+            unrecognized_definition = j;
         }
         if (!python_modules_str.empty())
         {
@@ -466,8 +477,9 @@ void DbManager::session_nodes_load(
 }
 
 void DbManager::session_nodes_save(
-    const std::unordered_set<std::string>& resolved_nodes,
-    const std::unordered_set<std::string>& unresolved_nodes,
+    const std::unordered_set<std::string>& invalid_definition,
+    const std::unordered_set<std::string>& unrecognized_class,
+    const std::unordered_set<std::string>& unrecognized_definition,
     const std::unordered_set<std::string>& python_modules)
 {
     WriteData data;
@@ -476,15 +488,20 @@ void DbManager::session_nodes_save(
     try
     {
         u_json j;
-        if (!resolved_nodes.empty())
+        if (!invalid_definition.empty())
         {
-            j = resolved_nodes;
-            n.resolved_nodes = j.dump();
+            j = invalid_definition;
+            n.invalid_definition = j.dump();
         }
-        if (!unresolved_nodes.empty())
+        if (!unrecognized_class.empty())
         {
-            j = unresolved_nodes;
-            n.unresolved_nodes = j.dump();
+            j = unrecognized_class;
+            n.unrecognized_class = j.dump();
+        }
+        if (!unrecognized_definition.empty())
+        {
+            j = unrecognized_definition;
+            n.unrecognized_definition = j.dump();
         }
         if (!python_modules.empty())
         {
@@ -1470,7 +1487,7 @@ void DbManager::write_nodes(const SQLite::Database& db, const NodesData* data)
 {
     try
     {
-        if (!data->resolved_nodes.empty())
+        if (!data->invalid_definition.empty())
         {
             SQLite::Statement query_n(db,
                 fmt::format(FMT_STRING(R"(
@@ -1481,12 +1498,12 @@ void DbManager::write_nodes(const SQLite::Database& db, const NodesData* data)
                     gdb_tbl_meta,
                     gdb_val_name, gdb_val_str));
 
-            query_n.bindNoCopy(1, gdb_valname_resolved_nodes);
-            query_n.bindNoCopy(2, data->resolved_nodes);
+            query_n.bindNoCopy(1, gdb_valname_node_invalid_definition);
+            query_n.bindNoCopy(2, data->invalid_definition);
             query_n.exec();
         }
 
-        if (!data->unresolved_nodes.empty())
+        if (!data->unrecognized_class.empty())
         {
             SQLite::Statement query_n(db,
                 fmt::format(FMT_STRING(R"(
@@ -1497,8 +1514,24 @@ void DbManager::write_nodes(const SQLite::Database& db, const NodesData* data)
                     gdb_tbl_meta,
                     gdb_val_name, gdb_val_str));
 
-            query_n.bindNoCopy(1, gdb_valname_unresolved_nodes);
-            query_n.bindNoCopy(2, data->unresolved_nodes);
+            query_n.bindNoCopy(1, gdb_valname_node_unrecognized_class);
+            query_n.bindNoCopy(2, data->unrecognized_class);
+            query_n.exec();
+        }
+
+        if (!data->unrecognized_definition.empty())
+        {
+            SQLite::Statement query_n(db,
+                fmt::format(FMT_STRING(R"(
+                        REPLACE INTO {}
+                                ({}, {})
+                        VALUES  (?,  ?)
+                )"),
+                    gdb_tbl_meta,
+                    gdb_val_name, gdb_val_str));
+
+            query_n.bindNoCopy(1, gdb_valname_node_unrecognized_definition);
+            query_n.bindNoCopy(2, data->unrecognized_definition);
             query_n.exec();
         }
 
@@ -1513,16 +1546,16 @@ void DbManager::write_nodes(const SQLite::Database& db, const NodesData* data)
                     gdb_tbl_meta,
                     gdb_val_name, gdb_val_str));
 
-            query_n.bindNoCopy(1, gdb_valname_python_modules);
+            query_n.bindNoCopy(1, gdb_valname_node_python_modules);
             query_n.bindNoCopy(2, data->python_modules);
             query_n.exec();
         }
 
-        Log("Session end. kn:" << data->resolved_nodes.size() << ", dn:" << data->unresolved_nodes.size() << ", pm:" << data->python_modules.size());
+        Log("Session end. inv.def:" << data->invalid_definition.size() << ", unk.n:" << data->unrecognized_class.size() << ", unk.def:" << data->unrecognized_definition.size() << ", pm:" << data->python_modules.size());
     }
     catch (const SQLite::Exception& ex)
     {
-        LogSqlDbErr("Session end. kn:" << data->resolved_nodes.size() << ", dn:" << data->unresolved_nodes.size() << ", pm:" << data->python_modules.size() << ", " << LOG_EXP(ex));
+        LogSqlDbErr("Session end. inv.def:" << data->invalid_definition.size() << ", unk.n:" << data->unrecognized_class.size() << ", unk.def:" << data->unrecognized_definition.size() << ", pm:" << data->python_modules.size() << ", " << LOG_EXP(ex));
     }
 }
 

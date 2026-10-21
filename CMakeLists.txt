@@ -9,7 +9,7 @@ project(Graph-N)
 # ANALYZERS & SANITIZERS SETTINGS
 # ------------------------------------------------------------------------------
 option(ANALYZERS_ON "Enable MSVC and Clang-Tidy static analyzers" OFF)
-option(USE_ASAN "Enable AddressSanitizer" OFF)
+option(USE_ASAN "Enable AddressSanitizer" ON)
 
 # ------------------------------------------------------------------------------
 # Global Settings

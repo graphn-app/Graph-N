@@ -9,6 +9,8 @@
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
 #include "core/managers/nodes_manager.h"
+#include "ui/graph-n_flow.h"
+
 
 namespace data
 {
@@ -27,22 +29,27 @@ bool WfDeserializerFromJsonApi::deserialize()
             return false;
 
         std::list<ApiNode> nodes;
-        int32_t counter = 0;
 
         for (auto& [jnode_id, jnode_data] : m_json.items())
         {
-            if (!jnode_data.is_object())
-                continue;
-
             ApiNode api_node;
             api_node.node_id = jnode_id;
+            api_node.dump = jnode_data.dump();
+
+            if (!jnode_data.is_object())
+            {
+                api_node.invalid_definition = true;
+                nodes.push_back(std::move(api_node));
+                continue;
+            }
 
             if (jnode_data.contains("class_type") && jnode_data["class_type"].is_string())
                 api_node.class_type = jnode_data["class_type"].get<std::string>();
             else
             {
-                api_node.class_type = "API_UNKNOWN_" + std::to_string(counter++);
-                api_node.title = "Unknown";
+                api_node.invalid_definition = true;
+                nodes.push_back(std::move(api_node));
+                continue;
             }
 
             if (jnode_data.contains("_meta") && jnode_data["_meta"].contains("title") && jnode_data["_meta"]["title"].is_string())
@@ -78,8 +85,10 @@ bool WfDeserializerFromJsonApi::deserialize()
                             input.raw_input = jinput_value.get<bool>();
                         else
                         {
+                            if (!jinput_value.is_null())
+                                LogWarn("API node " << jnode_id << "/" << api_node.class_type << " contains unknown data value type");
                             input.raw_input = std::monostate();
-                            LogWarn("API node " << jnode_id << "/" << api_node.class_type << " contains unknown data value type");
+                            break;
                         }
                     }
                     api_node.inputs.push_back(std::move(input));
@@ -89,14 +98,37 @@ bool WfDeserializerFromJsonApi::deserialize()
             nodes.push_back(std::move(api_node));
         }
 
+        std::unordered_set<std::string> invalid_definition;
+        std::unordered_set<std::string> unrecognized_node_class;
+        std::unordered_set<std::string> unrecognized_node_definition;
+
         for (auto& api_node : nodes)
         {
-            const bool dummy = !check_api_node_definition(api_node);
-            if (!dummy)
+            if (api_node.invalid_definition)
+            {
+                invalid_definition.insert(std::move(api_node.dump));
+                continue;
+            }
+
+            check_api_node_definition(api_node);
+            create_api_node(api_node);
+
+            if (api_node.unrecognized_class)
+            {
                 m_wf->get_data().valid = false;
-            auto node = create_api_node(api_node, dummy);
-            LogAssert(node != nullptr, "Checked node is dummy");
+                unrecognized_node_class.insert(std::move(api_node.dump));
+            }
+            else if (api_node.unrecognized_definition)
+            {
+                unrecognized_node_definition.insert(std::move(api_node.dump));
+            }
         }
+
+        g::pFlow->stats_post_nodes(
+            std::move(invalid_definition),
+            std::move(unrecognized_node_class),
+            std::move(unrecognized_node_definition),
+            {});
 
         link_api_nodes(nodes);
         arrange_nodes();
@@ -109,28 +141,32 @@ bool WfDeserializerFromJsonApi::deserialize()
     return false;
 }
 
-bool WfDeserializerFromJsonApi::check_api_node_definition(const ApiNode& api_node)
+void WfDeserializerFromJsonApi::check_api_node_definition(ApiNode& api_node)
 {
     const auto node_hash = base::HashID::make_hash(api_node.class_type);
     const auto* node = g::pNodesManager->find_node(node_hash);
     if (nullptr == node)
-        return false;
+    {
+        api_node.unrecognized_class = true;
+        return;
+    }
 
     for (auto& input : api_node.inputs)
     {
         const auto pin_hash = Pin::make_hash(api_node.class_type, input.pin_name, -1);
         const auto* pin = g::pNodesManager->find_pin(pin_hash);
         if (nullptr == pin)
-            return false;
+        {
+            api_node.unrecognized_definition = true;
+            return;
+        }
     }
-
-    return true;
 }
 
-NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonApi::ApiNode& api_node, bool dummy)
+NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonApi::ApiNode& api_node)
 {
     Node* node = nullptr;
-    if (dummy)
+    if (api_node.unrecognized_class)
     {
         node = g::pNodesManager->make_dummy_node(api_node.class_type);
     }
@@ -139,19 +175,25 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
         const auto node_hash = base::HashID::make_hash(api_node.class_type);
         node = g::pNodesManager->find_node(node_hash);
         if (nullptr == node)
-            return nullptr;        
+        {
+            api_node.unrecognized_class = true;
+            node = g::pNodesManager->make_dummy_node(api_node.class_type);
+        }  
     }
     auto node_instance = m_wf->add_node(node, {});
 
     if (!api_node.title.empty())
         node_instance->set_name(api_node.title);
 
+    if (api_node.unrecognized_definition)
+        return node_instance;
+
     for (auto& input : api_node.inputs)
     {
         Pin* pin = nullptr;
         const auto pin_hash = Pin::make_hash(node_instance->get_object(), input.pin_name, -1);
 
-        if (dummy)
+        if (api_node.unrecognized_class)
         {
             pin = g::pNodesManager->make_dummy_pin(node_instance->get_object(), "*", input.pin_name, -1);
         }
@@ -160,15 +202,17 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
             pin = g::pNodesManager->find_pin(pin_hash);
             if (nullptr == pin)
             {
+                api_node.unrecognized_definition = true;
                 m_wf->remove_node(node_instance);
-                return nullptr;
+                node_instance = m_wf->add_node(node, {});
+                return node_instance;
             }
             pin->def_state.name = input.pin_name;
             pin->finalize();
         }
 
         PinInstance* pin_instance = nullptr;
-        if (dummy)
+        if (api_node.unrecognized_class)
         {
             pin_instance = m_wf->add_pin(node_instance, pin, m_wf->get_new_child_id());
             pin->def_state.copy_to(pin_instance->state());
@@ -177,7 +221,13 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
         else
         {
             pin_instance = m_wf->get_pin_by_hash(node_instance->get_instance_id(), pin_hash);
-            LogRAssert(pin_instance, "Pin not found in wf. w:" << m_wf->get_id() << ", n:" << node_instance->get_instance_id() << ", ph:" << pin_hash, nullptr);
+            if (nullptr == pin_instance)
+            {
+                api_node.unrecognized_definition = true;
+                m_wf->remove_node(node_instance);
+                node_instance = m_wf->add_node(node, {});
+                return node_instance;
+            }
         }
 
         if (!input.is_linked)
@@ -307,6 +357,8 @@ void WfDeserializerFromJsonApi::link_api_nodes(const std::list<ApiNode>& api_nod
 
     for (auto& api_node : api_nodes)
     {
+        if (0 == api_node.node_iid)
+            continue;
         auto node = m_wf->get_node_by_instance(api_node.node_iid);
         LogCAssert(node, "Can't find deserialized API node. w:" << m_wf->get_id() << ", n:" << api_node.node_iid);
 
