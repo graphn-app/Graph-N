@@ -65,6 +65,7 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
             {
                 for (int32_t i = 0; i < items_count; i++)
                 {
+                    ImGui::PushID(i);
                     const bool is_selected = (*current_item == i);
                     if (ImGui::Selectable(items[i], is_selected))
                     {
@@ -74,6 +75,7 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
                     }
                     if (is_selected)
                         ImGui::SetItemDefaultFocus();
+                    ImGui::PopID();
                 }
                 ImGui::EndPopup();
             }

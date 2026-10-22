@@ -1644,7 +1644,11 @@ bool PanelWorkflow::show_widget_menu()
             if (ImGui::MenuItem("Paste value"))
             {
                 auto old = pin->state().value;
-                *pin->state().value.get_string_ref() = ImGui::GetClipboardText();
+                auto data = ImGui::GetClipboardText();
+                if (data != nullptr)
+                    *pin->state().value.get_string_ref() = data;
+                else
+                    pin->state().value.get_string_ref()->clear();
                 m_action->set_pin_val(pin, std::move(old));
                 close = true;
             }
