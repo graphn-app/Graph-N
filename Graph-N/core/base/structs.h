@@ -407,6 +407,7 @@ constexpr const char* VANILLA_PRIMITIVE_NODE_CLASS                      = "Primi
 constexpr const char* VANILLA_NOTE_CLASS                                = "Note";
 constexpr const char* VANILLA_MARKDOWN_NOTE_CLASS                       = "MarkdownNote";
 constexpr const char* VANILLA_CUSTOM_COMBO_CLASS                        = "CustomCombo";
+constexpr const char* VANILLA_LOAD3D_CLASS                              = "Load3D";
 
 constexpr const char* PYSSSSS_REROUTE_CLASS                             = "ReroutePrimitive|pysssss";
 constexpr const char* PYSSSSS_REPEATER_CLASS                            = "Repeater|pysssss";
@@ -443,6 +444,7 @@ constexpr hid VANILLA_PRIMITIVE_NODE                                    = tools:
 constexpr hid VANILLA_NOTE                                              = tools::str::hash_stable(VANILLA_NOTE_CLASS);
 constexpr hid VANILLA_MARKDOWN_NOTE                                     = tools::str::hash_stable(VANILLA_MARKDOWN_NOTE_CLASS);
 constexpr hid VANILLA_CUSTOM_COMBO                                      = tools::str::hash_stable(VANILLA_CUSTOM_COMBO_CLASS);
+constexpr hid VANILLA_LOAD3D                                            = tools::str::hash_stable(VANILLA_LOAD3D_CLASS);
 
 constexpr hid PYSSSSS_REROUTE                                           = tools::str::hash_stable(PYSSSSS_REROUTE_CLASS);
 constexpr hid PYSSSSS_REPEATER                                          = tools::str::hash_stable(PYSSSSS_REPEATER_CLASS);

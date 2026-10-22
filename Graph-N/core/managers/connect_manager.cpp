@@ -225,6 +225,9 @@ uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
     case HttpRequestor::UploadMedia:
         who_is_asking = "UploadMedia";
         break;
+    case HttpRequestor::Upload3d:
+        who_is_asking = "Upload3d";
+        break;
     case HttpRequestor::RefreshMedia:
         who_is_asking = "RefreshMedia";
         break;

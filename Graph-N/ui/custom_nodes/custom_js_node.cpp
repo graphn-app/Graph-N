@@ -15,6 +15,16 @@ void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
 {
     switch (node->get_hash())
     {
+    case js::VANILLA_LOAD3D:
+        node->flags.add(NodeObjFlags::CustomJsNode);
+        break;
+        // TODO
+    //case js::CUSTOM_COMBO:
+    //    if (!node->input.empty())
+    //        node->input[0]->flags.remove(PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::CanRename);
+    //    node->flags.add(NodeObjFlags::CustomJsNode);
+    //    break;
+
     case js::RGTHREE_CONTEXT_MERGE:
     case js::RGTHREE_CONTEXT_MERGE_BIG:
     case js::RGTHREE_CONTEXT_SWITCH:
@@ -24,12 +34,6 @@ void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
             manager->make_pin(node, "RGTHREE_CONTEXT", fmt::format(FMT_STRING("ctx_0{}"), i), -1);
         }
         break;
-        // TODO
-    //case js::CUSTOM_COMBO:
-    //    if (!node->input.empty())
-    //        node->input[0]->flags.remove(PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::CanRename);
-    //    node->flags.add(NodeObjFlags::CustomJsNode);
-    //    break;
     }
 }
 
@@ -53,6 +57,9 @@ void CustomJsNode::draw(data::NodeInstance* node, float off, float width)
 {
     switch (node->get_object()->get_hash())
     {
+    case js::VANILLA_LOAD3D:
+        draw_load3d(node, off, width);
+        break;
         // TODO
     //case js::CUSTOM_COMBO:
     //    draw_CustomCombo(node, off, width);

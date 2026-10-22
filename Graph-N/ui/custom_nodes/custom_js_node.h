@@ -3,6 +3,7 @@
 */
 
 #pragma once
+#include "core/alive.h"
 
 namespace data
 {
@@ -17,7 +18,7 @@ class NodesManager;
 namespace ui
 {
 
-class CustomJsNode final
+class CustomJsNode final : public IsAlive
 {
 public:
     NO_COPY_MOVE_CTORS(CustomJsNode);
@@ -29,6 +30,7 @@ public:
 private:
     void draw_FastActionsButtonRgthree(data::NodeInstance* node, float off, float width);
     void draw_CustomCombo(data::NodeInstance* node, float off, float width);
+    void draw_load3d(data::NodeInstance* node, float off, float width);
 };
 
 } // namespace ui
