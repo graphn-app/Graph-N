@@ -273,9 +273,25 @@ DlgCode PanelTextEditor::show(bool& focused)
                     ImGui::SetKeyboardFocusHere();
                     m_need_focus = false;
                 }
-                ImGuiEx::InputTextMultilineWithHint("##TextEditorLabel", m_current->hint, m_current->buffer, ImVec2(-FLT_MIN, -FLT_MIN),
-                    ImGuiInputTextFlags_AllowTabInput | (m_current->ro ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None));
-                if (m_current->pin != nullptr)
+
+                std::string* buff = m_current->buffer;
+
+                bool disable = false;
+                if (m_current->buffer->size() > MAX_VISIBLE_STRING) [[unlikely]]
+                {
+                    disable = true;
+                    buff = &STRING_TOO_LONG_TEMPL;
+                }
+                else if (m_current->pin != nullptr && m_current->pin->obj_flags().has(PinObjFlags::Base64Inside)) [[unlikely]]
+                {
+                    disable = true;
+                    buff = &BASE64_INSIDE_TEMPL;
+                }
+                
+                ImGuiEx::InputTextMultilineWithHint("##TextEditorLabel", m_current->hint, buff, ImVec2(-FLT_MIN, -FLT_MIN),
+                    ImGuiInputTextFlags_AllowTabInput | (m_current->ro || disable ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None));
+
+                if (!m_current->ro && !disable && m_current->pin != nullptr)
                     handle_text_editing();
             }
             ImGui::EndChild();

@@ -1300,10 +1300,18 @@ void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width
     ImGui::PushID(0x9A5218DB);
     ImGui::PushID(pin);
     ImGui::PushItemWidth(widget_name_width + widget_value_width);
-    const auto linked = pin->state().links > 0;
-    if (linked) ImGui::BeginDisabled();
-    ImGuiEx::InputTextWithHint("##value", placeholder.c_str(), val);
-    if (linked) ImGui::EndDisabled();
+
+    const bool disable = pin->state().links > 0;
+    if (disable) ImGui::BeginDisabled();
+
+    if (pin->obj_flags().has(PinObjFlags::Base64Inside))
+        ImGuiEx::InputTextWithHint("##value", placeholder.c_str(), &BASE64_INSIDE_TEMPL, ImGuiInputTextFlags_ReadOnly);
+    else if (val->size() > MAX_VISIBLE_STRING)
+        ImGuiEx::InputTextWithHint("##value", placeholder.c_str(), &STRING_TOO_LONG_TEMPL, ImGuiInputTextFlags_ReadOnly);
+    else [[likely]]
+        ImGuiEx::InputTextWithHint("##value", placeholder.c_str(), val);
+
+    if (disable) ImGui::EndDisabled();
     else handle_widget_active_state(pin);
     ImGui::PopItemWidth();
 
@@ -1329,10 +1337,19 @@ void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_wi
     ImGui::PushID(pin);
     ImGui::PushTextWrapPos(0.0f);
     ImGui::SetNextItemWidth(widget_name_width + widget_value_width);
-    const auto linked = pin->state().links > 0;
-    if (linked) ImGui::BeginDisabled();
-    const bool clicked = ImGuiExNe::InputTextWithHint(*m_deffered_action.get(), m_active_node, pin, "##value", placeholder.c_str(), val);
-    if (linked) ImGui::EndDisabled();
+
+    const bool disable = pin->state().links > 0;
+    if (disable) ImGui::BeginDisabled();
+
+    bool clicked = false;    
+    if (val->size() > MAX_VISIBLE_STRING)
+        clicked = ImGuiExNe::InputTextWithHint(*m_deffered_action.get(), m_active_node, pin, "##value", placeholder.c_str(), val, &STRING_TOO_LONG_TEMPL);
+    else if (pin->obj_flags().has(PinObjFlags::Base64Inside))
+        clicked = ImGuiExNe::InputTextWithHint(*m_deffered_action.get(), m_active_node, pin, "##value", placeholder.c_str(), val, &BASE64_INSIDE_TEMPL);
+    else [[likely]]
+        clicked = ImGuiExNe::InputTextWithHint(*m_deffered_action.get(), m_active_node, pin, "##value", placeholder.c_str(), val);
+
+    if (disable) ImGui::EndDisabled();    
     else handle_widget_active_state(pin);
     ImGui::PopTextWrapPos();
 

@@ -31,6 +31,10 @@ constexpr int32_t HIDDEN_VIDEO_PLAYING = 5;     // seconds
 
 constexpr int32_t DRAFT_DUMP_INTERVAL    = 10;  // seconds
 
+constexpr uint32_t MAX_VISIBLE_STRING    = 20 * 1024; // 20 kb
+inline std::string STRING_TOO_LONG_TEMPL = "<String too long>";
+inline std::string BASE64_INSIDE_TEMPL   = "<Base64 inside>";
+
 constexpr int32_t HTTP_RESP_UNDEFINED    = 0;
 constexpr int32_t HTTP_RESP_OK           = 200;
 constexpr int32_t HTTP_RESP_FAIL         = -1;

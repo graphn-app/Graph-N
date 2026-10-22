@@ -1233,30 +1233,44 @@ void NodesParser::apply_options(NodesManager& manager)
             node->flags.remove(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton, NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaText);
             node->flags.add(NodeObjFlags::CustomMediaText, NodeObjFlags::CustomMediaFromOutput, NodeObjFlags::RestrictCfg);
         }
-        else if (!opt.display_source.empty() && node->flags.has_not(NodeObjFlags::RestrictCfg))
+        else if (node->flags.has_not(NodeObjFlags::RestrictCfg))
         {
-            for (auto pin : node->input)
-            {
-                if (pin->def_state.name == opt.display_source)
-                {
-                    node->custom_widget_source = pin;
-                    break;
-                }
-            }
-
-            // source pin name changed?
-            if (nullptr == node->custom_widget_source && node->flags.has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton))
+            if (!opt.display_source.empty())
             {
                 for (auto pin : node->input)
                 {
-                    if (PinType::COMBO == pin->def_state.type)
+                    if (pin->def_state.name == opt.display_source)
                     {
-                        if (node->custom_widget_source != nullptr)
-                        {
-                            node->custom_widget_source = nullptr;
-                            break;
-                        }
                         node->custom_widget_source = pin;
+                        break;
+                    }
+                }
+
+                // source pin name changed?
+                if (nullptr == node->custom_widget_source && node->flags.has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton))
+                {
+                    for (auto pin : node->input)
+                    {
+                        if (PinType::COMBO == pin->def_state.type)
+                        {
+                            if (node->custom_widget_source != nullptr)
+                            {
+                                node->custom_widget_source = nullptr;
+                                break;
+                            }
+                            node->custom_widget_source = pin;
+                        }
+                    }
+                }
+            }
+            if (!opt.base64_dest.empty())
+            {
+                for (auto pin : node->input)
+                {
+                    if (pin->def_state.name == opt.base64_dest)
+                    {
+                        node->base64_widget_dest = pin;
+                        break;
                     }
                 }
             }

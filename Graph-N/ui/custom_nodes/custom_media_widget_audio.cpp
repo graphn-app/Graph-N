@@ -61,6 +61,11 @@ void CustomMediaWidget::draw_audio(WidgetItem& widget)
     }
     else
         ImGui::Dummy(ImVec2(m_widget_width, 10.0f));
+
+    if (m_node->obj_flags().has(NodeObjFlags::CustomMediaBase64) && !widget.base64_inserted)
+    {
+        insert_base64(widget);
+    }
 }
 
 void CustomMediaWidget::draw_audio_widget_from_output(OutputData& out)
@@ -107,6 +112,11 @@ void CustomMediaWidget::draw_audio_widget_from_source()
     if (widget.media_valid.value_or(false))
     {
         draw_audio(widget);
+
+        if (m_node->obj_flags().has(NodeObjFlags::CustomMediaBase64) && widget.base64_inserted)
+        {
+            reinsert_base64(*data_widget, index);
+        }
     }
     else if (!widget.temp_path.empty())
     {

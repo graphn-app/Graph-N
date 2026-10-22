@@ -116,7 +116,7 @@ void RenderDeferredCombo(DeferredAction& act)
     }
 }
 
-bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, const char* hint, std::string* str) noexcept
+bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, const char* hint, std::string* str, std::string* caption /*= nullptr*/) noexcept
 {
     const ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;
@@ -155,7 +155,11 @@ bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinI
     const ImVec2 text_pos = p_min + style.FramePadding;
 
     // Use RenderTextClipped instead of PushClipRect to prevent breaking ImDrawList channels
-    if (str != nullptr && !str->empty())
+    if (caption != nullptr)
+    {
+        ImGui::RenderTextClipped(text_pos, p_max, caption->c_str(), nullptr, nullptr);
+    }
+    else if (str != nullptr && !str->empty())
     {
         ImGui::RenderTextClipped(text_pos, p_max, str->c_str(), nullptr, nullptr);
     }

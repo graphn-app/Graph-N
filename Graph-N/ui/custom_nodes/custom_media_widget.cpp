@@ -470,4 +470,68 @@ bool CustomMediaWidget::check_open_def_app(data::NodeInstance* node, bool check_
     return false;
 }
 
+void CustomMediaWidget::insert_base64(WidgetItem& widget)
+{
+    if (nullptr == m_node->get_object()->base64_widget_dest || !tools::path::exists(widget.temp_path))
+        return;
+
+    if (!widget.base64)
+    {
+        widget.base64 = std::make_shared<Base64>();
+        widget.base64->ready.store(false, std::memory_order_relaxed);
+
+        std::thread([filepath = widget.temp_path, base64_weak = std::weak_ptr<Base64>(widget.base64)]() 
+        {
+            const auto data = tools::path::read_file(filepath, false);
+            auto str = tools::str::base64_encode(data, "data:" + tools::img::get_mime_type(filepath) + ";base64,");
+            auto ptr = base64_weak.lock();
+            if (ptr)
+            {
+                ptr->base64 = std::move(str);
+                ptr->ready.store(true, std::memory_order_release);
+            }
+        }).detach();
+
+        return;
+    }
+
+    if (!widget.base64->ready.load(std::memory_order_acquire))
+        return;
+
+    for (auto pin : m_node->get_inputs())
+    {
+        if (pin->get_object() == m_node->get_object()->base64_widget_dest)
+        {
+            *pin->state().value.get_string_ref() = widget.base64->base64;
+            pin->obj_flags().add(PinObjFlags::Base64Inside, PinObjFlags::DenyMultilineSwitch);
+            pin->flags().remove(PinInstFlags::Multiline, PinInstFlags::MultilineSet);
+            widget.base64_inserted = true;
+            Log("Base64 calculated and inserted into w:" << m_node->get_workflow_id() << ", n:" << m_node->get_instance_id() << ", p:" << pin->get_instance_id());
+            break;
+        }
+    }
+}
+
+void CustomMediaWidget::reinsert_base64(Widget& widget, size_t curr_index)
+{
+    if (widget.items[curr_index].base64_inserted &&
+        size_t(widget.base64_last_index) != curr_index &&
+        widget.items[curr_index].base64 &&
+        !widget.items[curr_index].base64->base64.empty())
+    {
+        widget.base64_last_index = cast::to_i64(curr_index);
+
+        for (auto pin : m_node->get_inputs())
+        {
+            if (pin->get_object() == m_node->get_object()->base64_widget_dest)
+            {
+                *pin->state().value.get_string_ref() =  widget.items[curr_index].base64->base64;
+                pin->obj_flags().add(PinObjFlags::Base64Inside, PinObjFlags::DenyMultilineSwitch);
+                pin->flags().remove(PinInstFlags::Multiline, PinInstFlags::MultilineSet);
+                break;
+            }
+        }
+    }
+}
+
 } // namespace ui

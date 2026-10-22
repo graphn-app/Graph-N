@@ -58,6 +58,7 @@ std::string NodeOptions::serialize() const noexcept
         u_json j;
         j["flags"] = flags.get_raw();
         j["display_source"] = display_source;
+        j["base64_dest"] = base64_dest;
         return j.dump();
     }
     catch (const std::exception& ex)
@@ -82,6 +83,8 @@ void NodeOptions::deserialize(const std::string& opts) noexcept
                 flags.set_raw(j["flags"].get<uint64_t>());
             if (j.contains("display_source") && j["display_source"].is_string())
                 display_source = j["display_source"].get<std::string>();
+            if (j.contains("base64_dest") && j["base64_dest"].is_string())
+                base64_dest = j["base64_dest"].get<std::string>();
         }
     }
     catch (const std::exception& ex)

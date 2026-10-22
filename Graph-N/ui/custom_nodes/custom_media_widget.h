@@ -59,6 +59,8 @@ private:
     void draw_image(WidgetItem& widget);
     void draw_video(WidgetItem& widget);
     void draw_audio(WidgetItem& widget);
+    void insert_base64(WidgetItem& widget);
+    void reinsert_base64(Widget& widget, size_t curr_index);
 
 private:
     data::NodeInstance* m_node = nullptr;
@@ -66,6 +68,12 @@ private:
     float m_widget_width = 0.0f;
 
     std::filesystem::path m_upload_file_path;
+
+    struct Base64 final
+    {
+        std::string base64;
+        std::atomic_bool ready = false;
+    };
 
     struct WidgetItem final
     {
@@ -81,6 +89,8 @@ private:
         mngr::VideoInfo video_info;
         mngr::AudioInfo audio_info;
         std::string text_info;
+        std::shared_ptr<Base64> base64;
+        bool base64_inserted = false;
     };
 
     struct Widget final
@@ -94,6 +104,7 @@ private:
         std::vector<std::string> names;
         int32_t list_version = -1;
         bool reset = false;
+        int64_t base64_last_index = -1;
     };
 
     Widget m_images_in, m_images_out;

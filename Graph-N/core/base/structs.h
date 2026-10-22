@@ -26,8 +26,9 @@ struct PinOptions final
 struct NodeOptions final
 {
     ObjectFlags<NodeObjFlags> flags;
-    static constexpr ObjectFlags<NodeObjFlags> mask { NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton, NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut };
+    static constexpr ObjectFlags<NodeObjFlags> mask { NodeObjFlags::CustomMediaAudio, NodeObjFlags::CustomMediaVideo, NodeObjFlags::CustomMediaImage, NodeObjFlags::CustomMediaUploadButton, NodeObjFlags::CustomMediaRefreshButton, NodeObjFlags::CustomMediaBase64, NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut };
     std::string display_source;
+    std::string base64_dest;
 
     std::string serialize() const noexcept;
     void deserialize(const std::string& opts) noexcept;

@@ -25,6 +25,7 @@ struct Node : public base::HashID
     std::vector<Pin*> output;
 
     Pin* custom_widget_source = nullptr;
+    Pin* base64_widget_dest = nullptr;
 
     std::string name;
     std::string node_class;

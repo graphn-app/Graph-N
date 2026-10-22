@@ -565,6 +565,8 @@ bool PanelWorkflow::show_node_menu()
 
 
     data::Pin* preffered_source_pin = nullptr;
+    data::Pin* preffered_base64_pin = nullptr;
+    bool add_base64_option = false;
     bool restricted = node->obj_flags().has(NodeObjFlags::RestrictCfg);
     if (!restricted)
     {
@@ -591,6 +593,25 @@ bool PanelWorkflow::show_node_menu()
             restricted = !has_combos;
         }
     }
+    if (!restricted)
+    {
+        if (node->get_object()->base64_widget_dest != nullptr)
+        {
+            preffered_base64_pin = node->get_object()->base64_widget_dest;
+            add_base64_option = true;
+        }
+        else
+        {
+            for (auto pin : node->get_object()->input)
+            {
+                if (PinType::STRING == pin->def_state.type)
+                {
+                    add_base64_option = true;
+                    break;
+                }
+            }
+        }
+    }
 
     if (!restricted)
     {
@@ -604,6 +625,7 @@ bool PanelWorkflow::show_node_menu()
                 mngr::NodeOptions opts;
                 opts.flags.copy_from_by_mask_obj(node->obj_flags(), opts.mask);
                 opts.display_source = (node->get_object()->custom_widget_source != nullptr ? node->get_object()->custom_widget_source->def_state.name : "");
+                opts.base64_dest = (node->get_object()->base64_widget_dest != nullptr ? node->get_object()->base64_widget_dest->def_state.name : "");
                 g::pOptsManager->items_node_save(node->get_object()->get_hash(), opts);
 
                 const bool has_media_opt = node->obj_flags().has_any_by_mask_obj(g_node_obj_all_custom_widget_mask);
@@ -695,6 +717,41 @@ bool PanelWorkflow::show_node_menu()
                         }
                     }
 
+                    if (add_base64_option)
+                    {
+                        ImGui::Separator();
+                        ImGui::MenuItem("Insert base64 string:", nullptr, nullptr, false);
+
+                        const std::string* base64_source = (nullptr == node->get_object()->base64_widget_dest ? nullptr : &node->get_object()->base64_widget_dest->def_state.name);
+                        if (nullptr == base64_source && preffered_base64_pin != nullptr)
+                            base64_source = &preffered_base64_pin->def_state.name;
+
+                        for (auto pin : node->get_object()->input)
+                        {
+                            if (PinType::STRING == pin->def_state.type)
+                            {
+                                const auto source = fmt::format(FMT_STRING("[{}]"), pin->def_state.name);
+                                if (ImGui::MenuItem(source.c_str(), nullptr, base64_source != nullptr && pin->def_state.name == *base64_source))
+                                {
+                                    if (node->obj_flags().has(NodeObjFlags::CustomMediaBase64))
+                                    {
+                                        if (node->get_object()->base64_widget_dest != nullptr)
+                                            node->get_object()->base64_widget_dest->flags.remove(PinObjFlags::Base64Inside, PinObjFlags::DenyMultilineSwitch);
+                                        node->get_object()->base64_widget_dest = nullptr;
+                                        node->obj_flags().remove(NodeObjFlags::CustomMediaBase64);
+                                    }
+                                    else
+                                    {
+                                        node->get_object()->base64_widget_dest = pin;
+                                        node->get_object()->base64_widget_dest->flags.add(PinObjFlags::Base64Inside, PinObjFlags::DenyMultilineSwitch);
+                                        node->obj_flags().add(NodeObjFlags::CustomMediaBase64);
+                                    }
+                                    save_opts();
+                                }
+                            }
+                        }
+                    }
+
                     ImGui::EndMenu();
                 }
             }
@@ -707,6 +764,10 @@ bool PanelWorkflow::show_node_menu()
                 g::pFlow->custom_media_widgets().reset_widgets();
                 g::pHostManager->kill_all();
                 node->obj_flags().remove_raw(g_node_obj_all_custom_widget_mask.get_raw());
+                if (node->get_object()->base64_widget_dest != nullptr)
+                    node->get_object()->base64_widget_dest->flags.remove(PinObjFlags::Base64Inside, PinObjFlags::DenyMultilineSwitch);
+                node->get_object()->base64_widget_dest = nullptr;
+                node->get_object()->custom_widget_source = nullptr;
                 save_opts();
                 close = true;
             }
@@ -1483,6 +1544,29 @@ bool PanelWorkflow::show_widget_menu()
         return false;
     };
 
+    const tools::path::FdSelectResultSg file_select_callback = [this, pin](bool result, std::filesystem::path&& path)
+    {
+        if (!result)
+            return;
+
+        Primitive old = pin->state().value;
+        *pin->state().value.get_string_ref() = path.generic_string();
+        m_action->set_pin_val(pin, std::move(old));
+    };
+    const tools::path::FdSelectResultSg file_select_callback_insert_content = [this, pin](bool result, std::filesystem::path&& path)
+    {
+        if (!result)
+            return;
+
+        auto file = tools::path::read_file(path, false);
+        if (file.empty())
+            return;
+
+        Primitive old = pin->state().value;
+        *pin->state().value.get_string_ref() = std::move(file);
+        m_action->set_pin_val(pin, std::move(old));
+    };
+
     switch (pin->state().type)
     {
     case PinType::INT:
@@ -1510,7 +1594,7 @@ bool PanelWorkflow::show_widget_menu()
         }
         break;
     case PinType::STRING:
-        if (pin->obj_flags().has_not(PinObjFlags::DenyMultilineSwitch))
+        if (pin->obj_flags().has_none(PinObjFlags::DenyMultilineSwitch, PinObjFlags::Base64Inside))
         {
             ImGui::MenuItem(m_menu_objs.caption.c_str(), nullptr, nullptr, false);
             ImGui::Separator();
@@ -1525,10 +1609,66 @@ bool PanelWorkflow::show_widget_menu()
                 close = true;
             }
         }
+        if (pin->obj_flags().has_not(PinObjFlags::Base64Inside))
+        {
+            ImGui::Separator();
+            if (ImGui::MenuItem("Insert file path..."))
+            {
+                tools::path::select_file_open(
+                    {
+                        { L"All files (*.*)", L"*.*" },
+                    },
+                    file_select_callback);
+                close = true;
+            }
+            if (ImGui::MenuItem("Insert folder path..."))
+            {
+                tools::path::select_dir(file_select_callback);
+                close = true;
+            }
+            if (ImGui::MenuItem("Load text from file..."))
+            {
+                tools::path::select_file_open(
+                    {
+                        { L"All files (*.*)", L"*.*" },
+                    },
+                    file_select_callback_insert_content);
+                close = true;
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Copy value"))
+            {
+                ImGui::SetClipboardText(pin->state().value.get_string().c_str());
+                close = true;
+            }
+            if (ImGui::MenuItem("Paste value"))
+            {
+                auto old = pin->state().value;
+                *pin->state().value.get_string_ref() = ImGui::GetClipboardText();
+                m_action->set_pin_val(pin, std::move(old));
+                close = true;
+            }
+            if (ImGui::MenuItem("Clear value"))
+            {
+                auto old = pin->state().value;
+                std::string t;
+                std::swap(t, *pin->state().value.get_string_ref());
+                m_action->set_pin_val(pin, std::move(old));
+                close = true;
+            }
+        }
+        else if (!pin->state().value.get_string().empty())
+        {
+            if (ImGui::MenuItem("Copy base64 value"))
+            {
+                ImGui::SetClipboardText(pin->state().value.get_string().c_str());
+                close = true;
+            }
+        }
         break;
     case PinType::COLOR:
         close = draw_color_menu();
-    break;
+        break;
     }
 
     return close;

@@ -239,6 +239,44 @@ std::string generate_uuid_v4()
     return ss.str();
 }
 
+std::string base64_encode(const std::string& raw_bytes, const std::string& prefix)
+{
+    constexpr const std::string_view base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    std::string out;
+    // pre-calculate exact output size to avoid reallocations
+    out.reserve(((raw_bytes.size() + 2) / 3) * 4 + prefix.size());
+    out = prefix;
+
+    int32_t val = 0;
+    int32_t valb = -6;
+
+    for (byte c : raw_bytes)
+    {
+        val = (val << 8) + c;
+        valb += 8;
+        while (valb >= 0)
+        {
+            out.push_back(base64_chars[(val >> valb) & 0x3F]);
+            valb -= 6;
+        }
+    }
+
+    // pad with leftover bits
+    if (valb > -6)
+    {
+        out.push_back(base64_chars[((val << 8) >> (valb + 8)) & 0x3F]);
+    }
+
+    // add standard '=' padding
+    while ((out.size() - prefix.size()) % 4)
+    {
+        out.push_back('=');
+    }
+
+    return out;
+}
+
 std::vector<byte> base64_decode(const std::string& base64)
 {
     constexpr const std::string_view base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

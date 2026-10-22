@@ -714,7 +714,7 @@ void SettingsManager::init_items_defaults()
     using namespace tools::str;
     item_save(hash_stable("LoadImage"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":335872})");
     item_save(hash_stable("LoadImageMask"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":335872})");
-    item_save(hash_stable("LoadImage //Inspire"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":335872})");
+    item_save(hash_stable("LoadImage //Inspire"), DbItemOptionType::Nodes, R"({"display_source":"image","base64_dest":"image_data","flags":335872})");
     item_save(hash_stable("Image Load"), DbItemOptionType::Nodes, R"({"display_source":"image_path","flags":335872})");
     item_save(hash_stable("LayerUtility: LoadImage"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":335872})");
     item_save(hash_stable("LayerUtility: LoadMask"), DbItemOptionType::Nodes, R"({"display_source":"image","flags":335872})");

@@ -44,6 +44,7 @@ uint32_t crc32(const std::string& data) noexcept;
 
 std::string generate_uuid_v4();
 
+std::string base64_encode(const std::string& raw_bytes, const std::string& prefix);
 std::vector<byte> base64_decode(const std::string& base64);
 std::vector<byte> base64_decode(const char* base64, size_t len);
 

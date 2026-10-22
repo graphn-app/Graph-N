@@ -324,6 +324,7 @@ enum class NodeObjFlags : uint64_t
     SpecSwitherRgthree          = 1ULL << 33,   // 8589934592           -  0x200000000
     NoHistoryOnPinValChange     = 1ULL << 34,   // 17179869184          -  0x400000000
     NoPinCagMenu                = 1ULL << 35,   // 34359738368          -  0x800000000
+    CustomMediaBase64           = 1ULL << 36,   // 68719476736          -  0x1000000000
 };
 
 inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_all_custom_widget_mask
@@ -334,6 +335,7 @@ inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_all_custom_widget_mask
     NodeObjFlags::CustomMediaText,
     NodeObjFlags::CustomMediaUploadButton,
     NodeObjFlags::CustomMediaRefreshButton,
+    NodeObjFlags::CustomMediaBase64,
     NodeObjFlags::CustomMediaFromSourceIn,
     NodeObjFlags::CustomMediaFromSourceOut,
     NodeObjFlags::CustomMediaFromOutput
@@ -349,6 +351,7 @@ inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_serializable_flags
     NodeObjFlags::RestrictCfg,
     NodeObjFlags::CustomMediaUploadButton,
     NodeObjFlags::CustomMediaRefreshButton,
+    NodeObjFlags::CustomMediaBase64,
     NodeObjFlags::CustomMediaFromSourceIn,
     NodeObjFlags::CustomMediaFromSourceOut,
     NodeObjFlags::CustomMediaFromOutput,
@@ -408,6 +411,7 @@ enum class PinObjFlags : uint64_t
     DisplAsColor              = 1ULL << 25, // 33554432           -  0x2000000
     DisplAsSlider             = 1ULL << 26, // 67108864           -  0x4000000
     DynamicPrompts            = 1ULL << 27, // 134217728          -  0x8000000
+    Base64Inside              = 1ULL << 28, // 268435456          -  0x10000000
 };
 
 inline constexpr ObjectFlags<PinObjFlags> g_pin_obj_serializable_flags
