@@ -411,23 +411,16 @@ std::string_view Reader::pop_string_ptr() noexcept
 
 std::wstring Reader::pop_wstring()
 {
-    std::wstring str(pop_wstring_ptr());
-    return str;
-}
-
-std::wstring_view Reader::pop_wstring_ptr() noexcept
-{
     const uint32_t len = pop_u32(); 
     if (0 == len || !test_len(len))
-    {
-        static const wchar_t* empty = L"";
-        return std::wstring_view(empty);
-    }
+        return {};
 
-    std::wstring_view view(cast::ptrs<wchar_t>(m_data + m_offset), len / sizeof(wchar_t));
+    std::wstring str;
+    str.resize(len / sizeof(wchar_t));
+
+    std::memcpy(str.data(), m_data + m_offset, len);
     m_offset += len;
-
-    return view;
+    return str;
 }
 
 #ifndef TOOLS_DETACHED_STATE
