@@ -1215,6 +1215,9 @@ void Workflow::apply_runtime_updates(iid node_id, const std::string& pin_name, P
     if (nullptr == target_node)
         return;
 
+    if (PinType::TEXT == pin_type)
+        pin_type = PinType::STRING;
+
     auto& target_ins = target_node->get_inputs();
     for (auto target_in : target_ins)
     {

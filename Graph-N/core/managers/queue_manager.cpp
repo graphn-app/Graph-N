@@ -236,6 +236,7 @@ void QueueManager::go_next_task()
         m_queued_wfs.erase(m_current->src_wf);
         m_queue_next.pop_front();
 
+        m_last_progress_node = 0;
         m_current_group.task.task_id = base::GlobalID::random();
         m_current_group.task.active = true;
         m_current_group.state = ExecGroup::State::Created;
@@ -247,6 +248,7 @@ void QueueManager::go_next_task()
 
     if (ExecGroup::State::Finished == m_current->state)
     {
+        m_last_progress_node = 0;
         m_task_active_time = 0.0f;
         Log("Task " << get_log_task_id(*m_current) << " is finished for wf " << m_current->src_wf << ", result " << get_result_name(m_current->task.result));
 
@@ -519,9 +521,11 @@ void QueueManager::check_ws_inbox()
 
     const auto callback = [this](bool is_binary, std::string& message)
     {
-        if (is_binary) [[unlikely]]
+        if (is_binary && m_last_progress_node != 0) [[unlikely]]
         {
-            Log("Binary message of " << message.size() << " bytes. Ignore in MVP"); // TODO: handle binary data
+            if (nullptr == m_current || m_current->state != ExecGroup::State::Executing)
+                return;
+            load_binary_output(m_current->src_wf, m_current->task, std::move(message));
             return;
         }
 
@@ -574,6 +578,7 @@ void QueueManager::check_ws_inbox()
                 task.time_ms = 0;
                 task.nodes_done = 0;
                 task.progress = 0.0f;
+                m_last_progress_node = 0;
                 return;
             }
 
@@ -645,7 +650,10 @@ void QueueManager::check_ws_inbox()
                 if (has_node && j["data"]["node"].is_number_integer())
                     task.current_node = j["data"]["node"].get<int32_t>();
                 else if (has_node && j["data"]["node"].is_string())
+                {
                     task.current_node = std::strtoul(j["data"]["node"].get<std::string>().c_str(), nullptr, 10);
+                    m_last_progress_node = task.current_node;
+                }
                 else if (has_node && j["data"]["node"].is_null())
                 {
                     task.nodes_done = m_current->nodes_count;
@@ -682,6 +690,7 @@ void QueueManager::check_ws_inbox()
 
                 if (node > 0)
                 {
+                    m_last_progress_node = task.current_node;
                     const auto completed_nodes = std::max(0, task.nodes_done - 1);
                     const float base_progress = cast::to_float(completed_nodes) / cast::to_float(m_current->nodes_count);
                     float node_progress = cast::to_float(val) / cast::to_float(max);
@@ -1073,6 +1082,62 @@ void QueueManager::check_current_task_is_done()
 
     const auto history_request = fmt::format(comfyui_http::history_, 100);
     g::pFlow->http_get(HttpRequestor::Queue_History, get_alive_callback(), history_request.c_str(), history_callback);
+}
+
+void QueueManager::load_binary_output(wid wf_id, ExecTask& task, std::string&& data)
+{
+    constexpr size_t binary_header_len = 8;
+    constexpr size_t binary_type_image = 1;
+    constexpr size_t binary_format_jpeg = 1;
+    constexpr size_t binary_format_png = 2;
+
+    const auto log_task_id = get_log_task_id(task);
+
+    if (data.size() <= binary_header_len)
+    {
+        Log("Task #" << log_task_id << ". Binary data too short");
+        return;
+    }
+
+    // copy header to avoid crash on ARM
+    uint32_t header[2] = {};
+    std::memcpy(header, data.data(), binary_header_len); 
+    const uint32_t type = ntohl(header[0]);
+    const uint32_t format = ntohl(header[1]);
+
+    if (type != binary_type_image)
+    {
+        Log("Task #" << log_task_id << ". Unknown binary type: " << type);
+        return;
+    }
+    std::string ext;
+    if (binary_format_jpeg == format)
+        ext = ".jpg";
+    else if (binary_format_png == format)
+        ext = ".png";
+    else
+    {
+        Log("Task #" << log_task_id << ". Unknown binary format: " << format);
+        return;
+    }
+
+    auto filename = fs::get_temp_filepath(ext);
+    const char* to_write = data.c_str() + binary_header_len;
+    if (!tools::path::make_file(filename, true, to_write, data.size() - binary_header_len))
+        return;
+
+    ExecTask::Output out;
+    out.type = ExecTask::OutputType::Image;
+    out.target_node = m_last_progress_node;
+    out.id = base::GlobalID::random();
+    out.exists = true;
+    out.ready = true;
+    out.binary_path = tools::path::path_to_string(filename);
+    out.media_id = g::pTextures->load_image_from_path(out.binary_path, QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
+    task.outputs.push_back(std::move(out));
+
+    g::pFlow->custom_media_widgets().add_output(wf_id, out.target_node, out.type, out.binary_path, out.filename, out.media_id);
+    Log("Task #" << log_task_id << ". Binary output saved to " << filename);
 }
 
 } // namespace mngr

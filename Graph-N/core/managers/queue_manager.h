@@ -87,6 +87,7 @@ private:
     void go_next_task();
     void load_outputs(wid wf_id, ExecTask& task);
     void load_output_data(wid wf_id, uint64_t task_id, uint64_t out_id, const std::string&& binary);
+    void load_binary_output(wid wf_id, ExecTask& task, std::string&& data);
     void check_current_task_is_done();
 
     // ServerRestartHandler
@@ -103,6 +104,7 @@ private:
     ExecGroup* m_current = nullptr;
     ExecGroup m_current_group;
     uint32_t m_run_no = 0;
+    iid m_last_progress_node = 0;
     std::list<ExecGroup> m_queue_next;
     std::vector<ExecGroup> m_queue_past;
     std::map<wid, ExecTask*> m_failed_wfs;

@@ -371,6 +371,7 @@ Primitive NodesParser::parse_value_from_pin_type(const u_json& j, PinType type)
     case PinType::BOOLEAN:
         return json_to_bool(j);
     case PinType::STRING:
+    case PinType::TEXT:
         return json_to_string(j);
     }
 

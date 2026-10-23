@@ -424,6 +424,7 @@ constexpr const char* RGTHREE_CONTEXT_MERGE_CLASS                       = "Conte
 constexpr const char* RGTHREE_CONTEXT_MERGE_BIG_CLASS                   = "Context Merge Big (rgthree)";
 constexpr const char* RGTHREE_CONTEXT_SWITCH_CLASS                      = "Context Switch (rgthree)";
 constexpr const char* RGTHREE_CONTEXT_SWITCH_BIG_CLASS                  = "Context Switch Big (rgthree)";
+constexpr const char* RGTHREE_IMAGE_OR_LATENT_SIZE_CLASS                = "Image or Latent Size (rgthree)";
 
 constexpr const char* IMPACT_SWITCH_CLASS                               = "ImpactSwitch";
 constexpr const char* IMPACT_LATENT_SWITCH_CLASS                        = "LatentSwitch";
@@ -461,6 +462,7 @@ constexpr hid RGTHREE_CONTEXT_MERGE                                     = tools:
 constexpr hid RGTHREE_CONTEXT_MERGE_BIG                                 = tools::str::hash_stable(RGTHREE_CONTEXT_MERGE_BIG_CLASS);
 constexpr hid RGTHREE_CONTEXT_SWITCH                                    = tools::str::hash_stable(RGTHREE_CONTEXT_SWITCH_CLASS);
 constexpr hid RGTHREE_CONTEXT_SWITCH_BIG                                = tools::str::hash_stable(RGTHREE_CONTEXT_SWITCH_BIG_CLASS);
+constexpr hid RGTHREE_IMAGE_OR_LATENT_SIZE                              = tools::str::hash_stable(RGTHREE_IMAGE_OR_LATENT_SIZE_CLASS);
 
 constexpr hid IMPACT_SWITCH                                             = tools::str::hash_stable(IMPACT_SWITCH_CLASS);
 constexpr hid IMPACT_LATENT_SWITCH                                      = tools::str::hash_stable(IMPACT_LATENT_SWITCH_CLASS);

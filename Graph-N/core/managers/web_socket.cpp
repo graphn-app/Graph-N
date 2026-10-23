@@ -182,7 +182,7 @@ void WebSocket::on_read(beast::error_code ec, std::size_t /*bytes_transferred*/)
         bool keep_msg = true;
         if (is_bin)
         {
-            Log("New binary message size: " << data.size() << " bytes");
+            Log("New binary message, size: " << data.size() << " bytes");
         }
         else
         {

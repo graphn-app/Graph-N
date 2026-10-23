@@ -40,6 +40,7 @@ const std::unordered_map<std::string, PinType> Pin::pin_type_map =
     { "HOOK_KEYFRAMES", PinType::HOOK_KEYFRAMES },      { "PHOTOMAKER", PinType::PHOTOMAKER },              { "SEG_ELT_control_net_wrapper", PinType::SEG_ELT_CONTROL_NET_WRAPPER },
     { "UPSCALER_HOOK", PinType::UPSCALER_HOOK },		{ "DETAILER_PIPE", PinType::DETAILER_PIPE },		{ "RGTHREE_CONTEXT", PinType::RGTHREE_CONTEXT },
     { "UPSCALE_STACK", PinType::UPSCALE_STACK },        { "GLIGEN", PinType::GLIGEN },		                { "OPENAI_CHAT_CONFIG", PinType::OPENAI_CHAT_CONFIG },
+    { "TEXT", PinType::TEXT },
 
     { REROUTE_SPLITTED_PIN, PinType::REROUTE_SPLITTED }
 };

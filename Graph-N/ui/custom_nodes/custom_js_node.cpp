@@ -34,6 +34,9 @@ void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
             manager->make_pin(node, "RGTHREE_CONTEXT", fmt::format(FMT_STRING("ctx_0{}"), i), -1);
         }
         break;
+    case js::RGTHREE_IMAGE_OR_LATENT_SIZE:
+        manager->make_pin(node, "*", "input", -1);
+        break;
     }
 }
 

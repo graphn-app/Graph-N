@@ -72,6 +72,7 @@ std::optional<std::filesystem::path> copy(const std::filesystem::path& from, con
 std::optional<std::filesystem::path> move(const std::filesystem::path& from, const std::filesystem::path& to, bool overwrite, bool rename);
 
 bool make_folder(const std::filesystem::path& dirpath);
+bool make_file(const std::filesystem::path& filepath, bool overwrite, const char* data_to_write, size_t data_len);
 bool make_file(const std::filesystem::path& filepath, bool overwrite);
 bool make_file(const std::filesystem::path& filepath, bool overwrite, const std::vector<byte>& data_to_write);
 bool make_file_path(const std::filesystem::path& filepath, bool overwrite, const std::vector<byte>& data_to_write);
