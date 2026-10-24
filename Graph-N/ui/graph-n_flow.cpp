@@ -844,6 +844,16 @@ void GraphN_Flow::txt_panel_clear(wid wf) noexcept
     }
 }
 
+std::pair<int32_t, int32_t> GraphN_Flow::txt_panel_get_selection(wid wf, data::NodeInstance* node, data::PinInstance* pin) const noexcept
+{
+    for (auto& ptr : m_panels_text_editor)
+    {
+        if (ptr->is_current(wf, node, pin))
+            return ptr->get_text_selection();
+    }
+    return {};
+}
+
 ImGuiID GraphN_Flow::find_def_txt_panel_dock() noexcept
 {
     const auto* wnd = ImGui::FindWindowByName(DlgObj_SID[cast::to_szt(DlgObj::PanelTextEditor)]);

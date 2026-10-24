@@ -412,6 +412,7 @@ enum class PinObjFlags : uint64_t
     DisplAsSlider             = 1ULL << 26, // 67108864           -  0x4000000
     DynamicPrompts            = 1ULL << 27, // 134217728          -  0x8000000
     Base64Inside              = 1ULL << 28, // 268435456          -  0x10000000
+    NoHistoryOnValChange      = 1ULL << 29, // 536870912          -  0x20000000
 };
 
 inline constexpr ObjectFlags<PinObjFlags> g_pin_obj_serializable_flags

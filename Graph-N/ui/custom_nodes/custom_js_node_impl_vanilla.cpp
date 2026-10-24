@@ -22,7 +22,7 @@ void CustomJsNode::draw_CustomCombo(data::NodeInstance* /*node*/, float /*off*/,
     //LogRAssert(data, "Wrong data type", );
 }
 
-void CustomJsNode::draw_load3d(data::NodeInstance* node, float off, float width)
+void CustomJsNode::draw_Load3D(data::NodeInstance* node, float off, float width)
 {
     const auto find_pin = [node]() -> data::PinInstance*
     {

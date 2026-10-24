@@ -40,6 +40,7 @@ void NodesManager::init_from_copy(NodesManager& copy)
     m_category_tree = std::move(copy.m_category_tree);
     m_module_tree = std::move(copy.m_module_tree);
     m_nodes_plain = std::move(copy.m_nodes_plain);
+    m_lora_list = std::move(copy.m_lora_list);
     calc_number_inside("", {}, {}, true);
 
     m_labels = g::pOptsManager->items_node_labels_load();

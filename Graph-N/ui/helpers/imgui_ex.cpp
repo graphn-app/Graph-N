@@ -251,6 +251,11 @@ int32_t InputTextCallback(ImGuiInputTextCallbackData* data)
         str->resize(data->BufTextLen);
         data->Buf = (char*)str->c_str();
     }
+    else if (ImGuiInputTextFlags_CallbackAlways == data->EventFlag)
+    {
+        m_data->diary_sel_b = pdata->SelectionStart;
+        m_data->diary_sel_e = pdata->SelectionEnd;		
+    }
     else if (user_data->ChainCallback) [[likely]]
     {
         // Forward to user callback, if any

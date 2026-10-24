@@ -70,6 +70,8 @@ public:
     bool rename_label(uint32_t label_id, const std::string& new_name);
     void remove_label(uint32_t label_id);
 
+    std::vector<std::string>& loras_list() { return m_lora_list; }
+
     void set_node_labels(data::NodeItem* node_item, std::set<uint32_t> labels);
 
 private:
@@ -89,6 +91,8 @@ private:
     std::vector<data::NodeItem*> m_category_tree;
     std::vector<data::NodeItem*> m_module_tree;
     std::vector<data::NodeItem*> m_nodes_plain;
+
+    std::vector<std::string> m_lora_list;
 
     LabelsList m_labels;
 };

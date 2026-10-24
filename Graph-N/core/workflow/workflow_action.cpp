@@ -12,6 +12,7 @@
 #include "core/workflow/link.h"
 #include "core/workflow/custom_nodes/cni_reroute.h"
 #include "ui/custom_nodes/custom_media_widget.h"
+#include "ui/custom_nodes/custom_js_node.h"
 #include "ui/node_drawer.h"
 #include "ui/graph-n_flow.h"
 
@@ -443,7 +444,13 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, int64_t old_idx)
     if (old_val == pin->state().value) [[unlikely]]
         return;
 
-    const auto* parent_node = m_wf->get_node_by_instance(pin->get_parent_node());
+    const auto parent_node = m_wf->get_node_by_instance(pin->get_parent_node());
+    if (parent_node->obj_flags().has(NodeObjFlags::CustomJsNode))
+        g::pFlow->custom_js_nodes().handle_pin_value_changed(parent_node, pin);
+
+    if (pin->obj_flags().has(PinObjFlags::NoHistoryOnValChange))
+        return;
+
     if (parent_node->obj_flags().has(NodeObjFlags::NoHistoryOnPinValChange))
         return;
 

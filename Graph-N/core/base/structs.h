@@ -425,6 +425,10 @@ constexpr const char* RGTHREE_CONTEXT_MERGE_BIG_CLASS                   = "Conte
 constexpr const char* RGTHREE_CONTEXT_SWITCH_CLASS                      = "Context Switch (rgthree)";
 constexpr const char* RGTHREE_CONTEXT_SWITCH_BIG_CLASS                  = "Context Switch Big (rgthree)";
 constexpr const char* RGTHREE_IMAGE_OR_LATENT_SIZE_CLASS                = "Image or Latent Size (rgthree)";
+constexpr const char* RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG_CLASS        = "SDXL Power Prompt - Simple / Negative (rgthree)";
+constexpr const char* RGTHREE_SDXL_POWER_PROMPT_POS_CLASS               = "SDXL Power Prompt - Positive (rgthree)";
+constexpr const char* RGTHREE_POWER_PROMPT_CLASS                        = "Power Prompt (rgthree)";
+constexpr const char* RGTHREE_POWER_PROMPT_SIMPLE_CLASS                 = "Power Prompt - Simple (rgthree)";
 
 constexpr const char* IMPACT_SWITCH_CLASS                               = "ImpactSwitch";
 constexpr const char* IMPACT_LATENT_SWITCH_CLASS                        = "LatentSwitch";
@@ -463,6 +467,10 @@ constexpr hid RGTHREE_CONTEXT_MERGE_BIG                                 = tools:
 constexpr hid RGTHREE_CONTEXT_SWITCH                                    = tools::str::hash_stable(RGTHREE_CONTEXT_SWITCH_CLASS);
 constexpr hid RGTHREE_CONTEXT_SWITCH_BIG                                = tools::str::hash_stable(RGTHREE_CONTEXT_SWITCH_BIG_CLASS);
 constexpr hid RGTHREE_IMAGE_OR_LATENT_SIZE                              = tools::str::hash_stable(RGTHREE_IMAGE_OR_LATENT_SIZE_CLASS);
+constexpr hid RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG                      = tools::str::hash_stable(RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG_CLASS);
+constexpr hid RGTHREE_SDXL_POWER_PROMPT_POS                             = tools::str::hash_stable(RGTHREE_SDXL_POWER_PROMPT_POS_CLASS);
+constexpr hid RGTHREE_POWER_PROMPT                                      = tools::str::hash_stable(RGTHREE_POWER_PROMPT_CLASS);
+constexpr hid RGTHREE_POWER_PROMPT_SIMPLE                               = tools::str::hash_stable(RGTHREE_POWER_PROMPT_SIMPLE_CLASS);
 
 constexpr hid IMPACT_SWITCH                                             = tools::str::hash_stable(IMPACT_SWITCH_CLASS);
 constexpr hid IMPACT_LATENT_SWITCH                                      = tools::str::hash_stable(IMPACT_LATENT_SWITCH_CLASS);

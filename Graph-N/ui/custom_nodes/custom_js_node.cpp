@@ -18,6 +18,21 @@ void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
     case js::VANILLA_LOAD3D:
         node->flags.add(NodeObjFlags::CustomJsNode);
         break;
+    case js::VANILLA_LORA_LOADER:
+        for (auto pin : node->input)
+        {
+            if (PinType::COMBO == pin->def_state.type && "lora_name" == pin->def_state.name)
+            {
+                auto& list = manager->loras_list();
+                list.reserve(pin->combo_items_str.size());
+                for (auto& lora : pin->combo_items_str)
+                {
+                    list.push_back(lora);
+                }
+                break;
+            }
+        }
+        break;
         // TODO
     //case js::CUSTOM_COMBO:
     //    if (!node->input.empty())
@@ -36,6 +51,35 @@ void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
         break;
     case js::RGTHREE_IMAGE_OR_LATENT_SIZE:
         manager->make_pin(node, "*", "input", -1);
+        break;
+    case js::RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG:
+    case js::RGTHREE_SDXL_POWER_PROMPT_POS:
+    case js::RGTHREE_POWER_PROMPT:
+    case js::RGTHREE_POWER_PROMPT_SIMPLE:
+        {
+            node->flags.add(NodeObjFlags::CustomJsNode);
+            auto pins = node->input;
+            for (auto pin : pins)
+            {
+                if ("insert_embedding"      == pin->def_state.name ||
+                    "insert_saved"          == pin->def_state.name ||
+                    "target_width"          == pin->def_state.name ||
+                    "target_height"         == pin->def_state.name ||
+                    "crop_width"            == pin->def_state.name ||
+                    "crop_height"           == pin->def_state.name ||
+                    "values_insert_saved"   == pin->def_state.name)
+                {
+                    manager->remove_pin(node, pin);
+                }
+                else if ("insert_lora"      == pin->def_state.name)
+                {
+                    pin->flags.add(PinObjFlags::NoHistoryOnValChange);
+                }
+            }
+        }
+        break;
+    case js::RGTHREE_POWER_LORA_LOADER:
+        node->flags.add(NodeObjFlags::CustomJsNode);
         break;
     }
 }
@@ -61,7 +105,7 @@ void CustomJsNode::draw(data::NodeInstance* node, float off, float width)
     switch (node->get_object()->get_hash())
     {
     case js::VANILLA_LOAD3D:
-        draw_load3d(node, off, width);
+        draw_Load3D(node, off, width);
         break;
         // TODO
     //case js::CUSTOM_COMBO:
@@ -70,7 +114,21 @@ void CustomJsNode::draw(data::NodeInstance* node, float off, float width)
     case js::RGTHREE_FAST_ACTIONS_BUTTON:
         draw_FastActionsButtonRgthree(node, off, width);
         break;
-    }    
+    }
+}
+
+void CustomJsNode::handle_pin_value_changed(data::NodeInstance* node, data::PinInstance* pin)
+{
+    switch (node->get_object()->get_hash())
+    {
+    case js::RGTHREE_SDXL_POWER_PROMPT_POS:
+    case js::RGTHREE_POWER_PROMPT:
+        handle_insert_lora_rgthree(node, pin);
+        break;
+    }
+}
+
+
 }
 
 } // namespace ui

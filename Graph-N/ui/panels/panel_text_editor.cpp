@@ -287,9 +287,17 @@ DlgCode PanelTextEditor::show(bool& focused)
                     disable = true;
                     buff = &BASE64_INSIDE_TEMPL;
                 }
+
+                const auto callback = [](ImGuiInputTextCallbackData* cb_data)
+                {
+                    auto* self = cast::strict<PanelTextEditor>(cb_data->UserData);
+                    self->m_selection_begin = cb_data->SelectionStart;
+                    self->m_selection_end = cb_data->SelectionEnd;
+                    return 0;
+                };
                 
                 ImGuiEx::InputTextMultilineWithHint("##TextEditorLabel", m_current->hint, buff, ImVec2(-FLT_MIN, -FLT_MIN),
-                    ImGuiInputTextFlags_AllowTabInput | (m_current->ro || disable ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None));
+                    ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackAlways | (m_current->ro || disable ? ImGuiInputTextFlags_ReadOnly : ImGuiInputTextFlags_None), callback, this);
 
                 if (!m_current->ro && !disable && m_current->pin != nullptr)
                     handle_text_editing();
