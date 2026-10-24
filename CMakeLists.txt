@@ -507,6 +507,25 @@ add_custom_command(TARGET Graph-N_Host POST_BUILD
 )
 
 # ------------------------------------------------------------------------------
+# Copy PDB files for debugging (MSVC only)
+# ------------------------------------------------------------------------------
+if(MSVC)
+    add_custom_command(TARGET Graph-N POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                "$<TARGET_PDB_FILE:Graph-N>" 
+                "${DEST_DIR}/"
+        COMMENT "Copying Graph-N.pdb to ${DEST_DIR}..."
+    )
+
+    add_custom_command(TARGET Graph-N_Host POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                "$<TARGET_PDB_FILE:Graph-N_Host>" 
+                "${DEST_DIR}/"
+        COMMENT "Copying Graph-N_Host.pdb to ${DEST_DIR}..."
+    )
+endif()
+
+# ------------------------------------------------------------------------------
 # Debug Workflow Automation
 # ------------------------------------------------------------------------------
 
