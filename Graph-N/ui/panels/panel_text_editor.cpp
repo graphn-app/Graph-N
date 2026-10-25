@@ -290,9 +290,12 @@ DlgCode PanelTextEditor::show(bool& focused)
 
                 const auto callback = [](ImGuiInputTextCallbackData* cb_data)
                 {
-                    auto* self = cast::strict<PanelTextEditor>(cb_data->UserData);
+                    auto* self = cast::ptrs<PanelTextEditor>(cb_data->UserData);
+                    if (self->m_selection_begin != cb_data->SelectionStart || self->m_selection_end != cb_data->SelectionEnd || self->m_position != cb_data->CursorPos)
+                        LogS("Selection. was: " << self->m_selection_begin << "/" << self->m_selection_end << "/" << self->m_position << ", now: " << cb_data->SelectionStart << "/" << cb_data->SelectionEnd << "/" << cb_data->CursorPos);
                     self->m_selection_begin = cb_data->SelectionStart;
                     self->m_selection_end = cb_data->SelectionEnd;
+                    self->m_position = cb_data->CursorPos;
                     return 0;
                 };
                 

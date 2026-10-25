@@ -125,6 +125,11 @@ void WfSerializerToBlob::serialize_node()
         serialize_pin();
     }
     block.end();
+
+    if (m_curr_node->flags().has(NodeInstFlags::BlobCustomSerltnWidgetsOnly))
+    {
+        serialize_cni_node();
+    }
 }
 
 void WfSerializerToBlob::serialize_pin()

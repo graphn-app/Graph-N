@@ -20,7 +20,7 @@ public:
     o_json serialize();
 
 private:
-    o_json serialize_custom_node(data::NodeInstance* node, int32_t& input_count);
+    void serialize_custom_node(data::NodeInstance* node, o_json& jinputs);
 
 private:
     const Workflow* m_wf = nullptr;

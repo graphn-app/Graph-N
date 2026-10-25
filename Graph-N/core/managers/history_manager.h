@@ -33,11 +33,12 @@ struct HPinCag final
 };
 
 // !! types order must remain the same due to serialization
-using HActionT = std::variant<std::string /*rename*/, ImU32 /*color*/, uint64_t /*flags*/, ImRect /*pos*/, Primitive /*pin val*/, HRerouteSplitted, HPinCag>;
+using HActionT = std::variant<blob::Blob, std::string /*rename*/, ImU32 /*color*/, uint64_t /*flags*/, ImRect /*pos*/, Primitive /*pin val*/, HRerouteSplitted, HPinCag>;
 
 enum class HistoryActionType : uint8_t
 {
     _none,
+    Blob,
     NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeCollapse, NodeRerouteSplit,
     PinRen, PinVal, PinCag, PinMultiline, PinColorConfig,
     LinkAdd, LinkDel,
@@ -93,6 +94,7 @@ struct ActOldNew : public HistoryStep
     ActOldNew(HistoryActionType t) noexcept : HistoryStep(t) { }
     ~ActOldNew() noexcept override = default;
 
+    uint64_t action_id = 0;
     HActionT old_val;
     HActionT new_val;
 };
@@ -132,6 +134,7 @@ struct ActPinMultiline final : public ActOldNew    { ActPinMultiline() noexcept 
 struct ActPinClrCfg final : public ActOldNew    { ActPinClrCfg() noexcept : ActOldNew(HistoryActionType::PinColorConfig) {} };
 struct ActLinkAdd final : public ActLink     { ActLinkAdd() noexcept : ActLink(HistoryActionType::LinkAdd) {} };
 struct ActLinkDel final : public ActLink     { ActLinkDel() noexcept : ActLink(HistoryActionType::LinkDel) {} };
+struct ActBlob final : public ActOldNew { ActBlob() noexcept : ActOldNew(HistoryActionType::Blob) {} };
 
 ////////// HISTORY - main interface  /////////////////////
 //////////////////////////////////////////////////////////
@@ -167,6 +170,7 @@ public:
     void multi_action_begin(wid wf_id, const char* action_name);
     void multi_action_end(wid wf_id);
 
+    void push_blob_action(wid wf_id, iid node_id, uint64_t action_id, blob::Blob&& new_value, blob::Blob&& old_value, const char* action_name);
     void push_node_action(const data::NodeInstance* node, HistoryActionType act); // add/delete only
     void push_node_action(const data::NodeInstance* node, HistoryActionType act, HActionT&& old_val);
     void push_pin_action(const data::PinInstance* pin, HistoryActionType act, HActionT&& old_val);
@@ -193,6 +197,7 @@ private:
     void pop_action(const HistoryAction* action, bool do_undo);
     void pop_action(data::Workflow* wf, const HistoryStep* step, bool do_undo);
 
+    void pop_blob(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_add(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_del(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_clr(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);

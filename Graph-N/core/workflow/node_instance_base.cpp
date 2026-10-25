@@ -226,6 +226,7 @@ float NodeInstanceBase::recalc_node_width(float new_width, bool ro, bool use_big
     new_width = std::max(m_ideal_w, new_width); // TODO: fix resizing
     new_width = std::max(new_width, m_min_possible_w);
     new_width = std::max(new_width, w_name + ImGui::GetStyle().ItemSpacing.x * 2);
+    new_width = std::max(new_width, get_additional_node_width());
 
     w_node = new_width;
     w_node_name_off = std::max(0.0f, (new_width / 2) - (w_name / 2));

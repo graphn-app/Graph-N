@@ -13,6 +13,8 @@
 #include "core/workflow/node.h"
 #include "core/workflow/pin.h"
 #include "core/workflow/custom_nodes/cni_reroute.h"
+#include "ui/custom_nodes/custom_js_node.h"
+#include "ui/graph-n_flow.h"
 
 namespace mngr
 {
@@ -335,6 +337,24 @@ void HistoryManager::multi_action_end(wid wf_id)
     close_action(wf_id);
 }
 
+void HistoryManager::push_blob_action(wid wf_id, iid node_id, uint64_t action_id, blob::Blob&& new_value, blob::Blob&& old_value, const char* action_name)
+{
+    LogRAssert(wf_id, "Zero wf", );
+    if (should_ignore_action(wf_id)) return;
+
+    HistoryAction* history = open_action(wf_id, action_name);
+    LogRAssert(history->wf == wf_id, "Wfs don't match. hw:" << history->wf << " != bw:" << wf_id, );
+
+    std::unique_ptr<ActBlob> step = std::make_unique<ActBlob>();
+    step->old_val = std::move(old_value);
+    step->new_val = std::move(new_value);
+    step->id = node_id;
+    step->action_id = action_id;
+    history->steps.push_back(std::move(step));
+
+    close_action(wf_id);
+}
+
 void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryActionType act)
 {
     LogRAssert(node, "Zero ptr", );
@@ -555,6 +575,9 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
 
     switch (step->type)
     {
+    case HistoryActionType::Blob:
+        pop_blob(wf, step, do_undo);
+        break;
     case HistoryActionType::NodeAdd:
         pop_node_add(wf, step, do_undo);
         break;
@@ -597,7 +620,7 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
     case HistoryActionType::PinColorConfig:
         pop_pin_clr_cfg(wf, step, do_undo);
         break;
-    case HistoryActionType::LinkAdd:
+    case HistoryActionType::LinkAdd: [[likely]]
         pop_link_add(wf, step, do_undo);
         break;
     case HistoryActionType::LinkDel:
@@ -824,5 +847,11 @@ void HistoryManager::pop_link_del(const data::Workflow* dest_wf, const HistorySt
     dest_wf->action()->link(p1, p2, real_step->id);
 }
 
-} // namespace mngr
+void HistoryManager::pop_blob(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+{
+    const ActBlob* real_step = cast::dynamic<const ActBlob>(step);
+    const blob::Blob& value = std::get<blob::Blob>(do_undo ? real_step->old_val : real_step->new_val);
+    g::pFlow->custom_js_nodes().handle_history(real_step->action_id, dest_wf->get_id(), real_step->id, value);
+}
 
+} // namespace mngr

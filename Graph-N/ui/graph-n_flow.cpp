@@ -844,7 +844,7 @@ void GraphN_Flow::txt_panel_clear(wid wf) noexcept
     }
 }
 
-std::pair<int32_t, int32_t> GraphN_Flow::txt_panel_get_selection(wid wf, data::NodeInstance* node, data::PinInstance* pin) const noexcept
+std::tuple<int32_t, int32_t, int32_t> GraphN_Flow::txt_panel_get_selection(wid wf, data::NodeInstance* node, data::PinInstance* pin) const noexcept
 {
     for (auto& ptr : m_panels_text_editor)
     {

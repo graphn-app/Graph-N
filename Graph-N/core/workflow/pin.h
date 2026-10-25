@@ -100,6 +100,9 @@ public:
 
     static PinShape get_shape(PinType type) noexcept;
 
+    static const char* cag_to_string(ControlAfterGenerate cag) noexcept;
+    static ControlAfterGenerate string_to_cag(const char* cag) noexcept;
+
 public:
     ObjectFlags<PinObjFlags> flags;
 

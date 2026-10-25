@@ -84,7 +84,7 @@ void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
     }
 }
 
-void CustomJsNode::init(data::NodeInstance* node)
+void CustomJsNode::init(data::NodeInstance* /*node*/)
 {
     //switch (node->get_object()->get_hash())
     //{
@@ -97,7 +97,7 @@ void CustomJsNode::init(data::NodeInstance* node)
     //    return;
     //}
 
-    Log("Custom JS node. " << node->get_instance_id() << ":" << node->get_object()->node_class << "/" << node->get_name());
+    //Log("Custom JS node. " << node->get_instance_id() << ":" << node->get_object()->node_class << "/" << node->get_name());
 }
 
 void CustomJsNode::draw(data::NodeInstance* node, float off, float width)

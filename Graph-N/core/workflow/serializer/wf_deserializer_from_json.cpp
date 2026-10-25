@@ -8,6 +8,7 @@
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
+#include "core/workflow/pin.h"
 #include "core/managers/nodes_manager.h"
 #include "ui/graph-n_flow.h"
 
@@ -415,134 +416,137 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
             }
         }
 
-        // values
-        if (j.contains("widgets_values") && j["widgets_values"].is_array())
+        if (!result.unrecognized_node_class && result.node_inst->flags().has(NodeInstFlags::JsonCustomSerltnWidgetsOnly))
+        { 
+            deserialize_cni_node(j, result);
+        }
+        else
         {
-            std::vector<PinInstance*> widgets;
-            for (auto pin : result.node_inst->get_inputs())
+            // values
+            if (j.contains("widgets_values") && j["widgets_values"].is_array())
             {
-                if (pin->get_object()->is_widget())
-                    widgets.push_back(pin);
-            }
-
-            size_t widget_index = 0;
-            bool next_cag = false;
-            for (const auto& jvalue : j["widgets_values"])
-            {
-                if (widget_index >= widgets.size())
-                    break;
-
-                Primitive pval;
-                if (jvalue.is_boolean())
-                    pval = jvalue.get<bool>();
-                else if (jvalue.is_number_float())
-                    pval = jvalue.get<double>();
-                else if (jvalue.is_string())
-                    pval = jvalue.get<std::string>();
-                else if (jvalue.is_number_integer())
-                    pval = jvalue.get<int64_t>();
-                else
+                std::vector<PinInstance*> widgets;
+                for (auto pin : result.node_inst->get_inputs())
                 {
-                    widget_index++;
-                    continue;
+                    if (pin->get_object()->is_widget())
+                        widgets.push_back(pin);
                 }
 
-                auto pin = widgets[widget_index++];
-                if (!next_cag && pin->obj_flags().has(PinObjFlags::CagRequire))
+                size_t widget_index = 0;
+                bool next_cag = false;
+                for (const auto& jvalue : j["widgets_values"])
                 {
-                    next_cag = true;
-                    widget_index--;
-                }
-                else if (next_cag)
-                {
-                    next_cag = false;
-                    if (pval.is_string())
-                    {
-                        const auto* cag_val = pval.get_string_ref();
-                        if (*cag_val == "fixed")    pin->state().cag_val = ControlAfterGenerate::Fixed;
-                        else if (*cag_val == "increment")    pin->state().cag_val = ControlAfterGenerate::Increment;
-                        else if (*cag_val == "decrement")    pin->state().cag_val = ControlAfterGenerate::Decrement;
-                        else if (*cag_val == "randomize")    pin->state().cag_val = ControlAfterGenerate::Randomize;
-                    }
-                    continue;
-                }
+                    if (widget_index >= widgets.size())
+                        break;
 
-                std::visit([pin](const auto& v)
-                {
-                    using T = std::decay_t<decltype(v)>;
+                    Primitive pval;
+                    if (jvalue.is_boolean())
+                        pval = jvalue.get<bool>();
+                    else if (jvalue.is_number_float())
+                        pval = jvalue.get<double>();
+                    else if (jvalue.is_string())
+                        pval = jvalue.get<std::string>();
+                    else if (jvalue.is_number_integer())
+                        pval = jvalue.get<int64_t>();
+                    else
+                    {
+                        widget_index++;
+                        continue;
+                    }
 
-                    if constexpr (std::is_same_v<T, int64_t>)
+                    auto pin = widgets[widget_index++];
+                    if (!next_cag && pin->obj_flags().has(PinObjFlags::CagRequire))
                     {
-                        if (PinType::INT == pin->get_object()->def_state.type ||
-                            PinType::COLOR == pin->get_object()->def_state.type)
-                        {
-                            pin->state().value = int64_t(v);
-                        }
-                        else if (PinType::FLOAT == pin->get_object()->def_state.type)
-                        {
-                            pin->state().value = double(v);
-                        }
-                        else if (PinType::NUMBER == pin->get_object()->def_state.type)
-                        {
-                            pin->state().value = number(number_t(v));
-                        }
-                        else if (PinType::BOOLEAN == pin->get_object()->def_state.type)
-                        {
-                            pin->state().value = bool(v != 0);
-                        }
+                        next_cag = true;
+                        widget_index--;
                     }
-                    if constexpr (std::is_same_v<T, double>)
+                    else if (next_cag)
                     {
-                        if (PinType::FLOAT == pin->get_object()->def_state.type)
+                        next_cag = false;
+                        if (pval.is_string())
                         {
-                            pin->state().value = v;
+                            pin->state().cag_val = Pin::string_to_cag(pval.get_string().c_str());
                         }
+                        continue;
                     }
-                    else if constexpr (std::is_same_v<T, bool>)
-                    {
-                        if (PinType::BOOLEAN == pin->get_object()->def_state.type)
-                        {
-                            pin->state().value = v;
-                        }
-                    }
-                    else if constexpr (std::is_same_v<T, std::string>)
-                    {
-                        if (PinType::STRING == pin->get_object()->def_state.type)
-                        {
-                            pin->state().value = v;
-                        }
-                        else if (PinType::COMBO == pin->get_object()->def_state.type)
-                        {
-                            pin->state().value = int64_t(0);
-                            pin->get_object()->def_state.value = int64_t(0);
 
-                            if (pin->get_object()->combo_items.empty() && !v.empty())
+                    std::visit([pin](const auto& v)
+                    {
+                        using T = std::decay_t<decltype(v)>;
+
+                        if constexpr (std::is_same_v<T, int64_t>)
+                        {
+                            if (PinType::INT == pin->get_object()->def_state.type ||
+                                PinType::COLOR == pin->get_object()->def_state.type)
                             {
-                                auto obj = pin->get_object();
-                                obj->combo_items.push_back(v);
-                                obj->combo_items_str.push_back(v);
-                                obj->combo_items_ptr.push_back(obj->combo_items_str.begin()->c_str());
-                                obj->def_state.min = int64_t(0);
-                                obj->def_state.max = cast::to_i64(obj->combo_items.size() - 1);
-                                obj->def_state.value = int64_t(0);
-                                pin->state().value = obj->def_state.value;
+                                pin->state().value = int64_t(v);
                             }
-                            else
+                            else if (PinType::FLOAT == pin->get_object()->def_state.type)
                             {
-                                int64_t combo_idx = 0;
-                                for (auto combo_item : pin->get_object()->combo_items_ptr)
+                                pin->state().value = double(v);
+                            }
+                            else if (PinType::NUMBER == pin->get_object()->def_state.type)
+                            {
+                                pin->state().value = number(number_t(v));
+                            }
+                            else if (PinType::BOOLEAN == pin->get_object()->def_state.type)
+                            {
+                                pin->state().value = bool(v != 0);
+                            }
+                        }
+                        if constexpr (std::is_same_v<T, double>)
+                        {
+                            if (PinType::FLOAT == pin->get_object()->def_state.type)
+                            {
+                                pin->state().value = v;
+                            }
+                        }
+                        else if constexpr (std::is_same_v<T, bool>)
+                        {
+                            if (PinType::BOOLEAN == pin->get_object()->def_state.type)
+                            {
+                                pin->state().value = v;
+                            }
+                        }
+                        else if constexpr (std::is_same_v<T, std::string>)
+                        {
+                            if (PinType::STRING == pin->get_object()->def_state.type)
+                            {
+                                pin->state().value = v;
+                            }
+                            else if (PinType::COMBO == pin->get_object()->def_state.type)
+                            {
+                                pin->state().value = int64_t(0);
+                                pin->get_object()->def_state.value = int64_t(0);
+
+                                if (pin->get_object()->combo_items.empty() && !v.empty())
                                 {
-                                    if (v == combo_item)
+                                    auto obj = pin->get_object();
+                                    obj->combo_items.push_back(v);
+                                    obj->combo_items_str.push_back(v);
+                                    obj->combo_items_ptr.push_back(obj->combo_items_str.begin()->c_str());
+                                    obj->def_state.min = int64_t(0);
+                                    obj->def_state.max = cast::to_i64(obj->combo_items.size() - 1);
+                                    obj->def_state.value = int64_t(0);
+                                    pin->state().value = obj->def_state.value;
+                                }
+                                else
+                                {
+                                    int64_t combo_idx = 0;
+                                    for (auto combo_item : pin->get_object()->combo_items_ptr)
                                     {
-                                        pin->state().value = combo_idx;
-                                        break;
+                                        if (v == combo_item)
+                                        {
+                                            pin->state().value = combo_idx;
+                                            break;
+                                        }
+                                        combo_idx++;
                                     }
-                                    combo_idx++;
                                 }
                             }
                         }
-                    }
-                }, pval.value());
+                    }, pval.value());
+                }
             }
         }
 

@@ -8,6 +8,7 @@
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
+#include "core/workflow/pin.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/workflows_manager.h"
 
@@ -121,7 +122,10 @@ iid WfSerializerToJson::serialize_nodes()
             jn["properties"]["Node name for S&R"] = m_curr_node->get_object()->node_class;
 
             serialize_pins(jn);
-            serialize_widgets(jn);
+            if (m_curr_node->flags().has(NodeInstFlags::JsonCustomSerltnWidgetsOnly))
+                serialize_cni_node(jn);
+            else
+                serialize_widgets(jn);
         }
 
         jarr.push_back(std::move(jn));
@@ -234,23 +238,7 @@ void WfSerializerToJson::serialize_widgets(o_json& j)
 
                         if (pin->obj_flags().has(PinObjFlags::CagRequire))
                         {
-                            switch (pin->state().cag_val)
-                            {
-                            case ControlAfterGenerate::Fixed:
-                                jarr.push_back("fixed");
-                                break;
-                            case ControlAfterGenerate::Increment:
-                                jarr.push_back("increment");
-                                break;
-                            case ControlAfterGenerate::Decrement:
-                                jarr.push_back("decrement");
-                                break;
-                            case ControlAfterGenerate::Randomize:
-                                jarr.push_back("randomize");
-                                break;
-                            default:
-                                LogErrorS("Invalid vag value");
-                            }
+                            jarr.push_back(Pin::cag_to_string(pin->state().cag_val));
                         }
                     }
                 }

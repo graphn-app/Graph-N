@@ -29,7 +29,7 @@ public:
     bool is_default() const noexcept { return m_default; }
     bool is_active() const noexcept { return m_current != nullptr && m_current->wf != 0; }
 
-    std::pair<int32_t, int32_t> get_text_selection() const noexcept { return std::make_pair(m_selection_begin, m_selection_end); }
+    std::tuple<int32_t, int32_t, int32_t> get_text_selection() const noexcept { return std::make_tuple(m_position, m_selection_begin, m_selection_end); }
 
     bool is_current(wid wf) const noexcept { return m_current != nullptr && m_current->wf == wf; }
     bool is_current(wid wf, const data::NodeInstance* node) const noexcept { return m_current != nullptr && m_current->wf == wf && m_current->node == node; }
@@ -79,6 +79,7 @@ private:
     data::PinInstance* m_was_edited = nullptr;
     int32_t m_selection_begin = 0;
     int32_t m_selection_end = 0;
+    int32_t m_position = 0;
 };
 
 

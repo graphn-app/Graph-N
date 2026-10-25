@@ -9,6 +9,7 @@ namespace data
 {
 struct Node;
 class NodeInstance;
+class PinInstance;
 }
 namespace mngr
 {
@@ -27,6 +28,8 @@ public:
     void init(data::NodeInstance* node);
     void draw(data::NodeInstance* node, float off, float width);
     void handle_pin_value_changed(data::NodeInstance* node, data::PinInstance* pin);
+    bool handle_context_menu();
+    void handle_history(uint64_t id, wid wf_id, iid node_id, const blob::Blob& value);
 
 private:
     void draw_FastActionsButtonRgthree(data::NodeInstance* node, float off, float width);

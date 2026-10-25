@@ -27,7 +27,10 @@ private:
         std::string node_id;
         iid node_iid = 0;
         std::string class_type;
+        hid node_hash = 0;
         std::string title;
+        o_json jinputs;
+        NodeInstance* node = nullptr;
 
         struct Input final
         {
@@ -45,11 +48,12 @@ private:
         std::string dump;
     };
 
-    NodeInstance* create_api_node(ApiNode& api_node);
+    void create_api_node(ApiNode& api_node);
     void check_api_node_definition(ApiNode& api_node);
     void link_api_nodes(const std::list<ApiNode>& api_nodes);
     void arrange_nodes();
 
+    void deserialize_custom_input(ApiNode& api_node);
 private:
     Workflow* m_wf = nullptr;
     const o_json& m_json;

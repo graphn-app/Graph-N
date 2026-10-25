@@ -239,6 +239,15 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
         return nullptr;
     }
 
+    if (!dummy && m_curr_node->flags().has(NodeInstFlags::BlobCustomSerltnWidgetsOnly))
+    {
+        if (nullptr == deserialize_cni_node(root))
+        {
+            m_wf->remove_node(m_curr_node);
+            LogRError("Dummy CNI node " << node_class, nullptr);
+        }
+    }
+
     return m_curr_node;
 }
 

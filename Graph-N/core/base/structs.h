@@ -398,7 +398,6 @@ struct KeyBinding
 ///////      js::CustomJsData             /////////////////////////
 ///////////////////////////////////////////////////////////////////
 
-namespace data { struct Pin; }
 namespace js
 {
 
@@ -485,12 +484,5 @@ constexpr hid IMPACT_SET_BYPASS                                         = tools:
 constexpr hid IMPACT_SET_MUTE                                           = tools::str::hash_stable(IMPACT_SET_MUTE_CLASS);
 constexpr hid IMPACT_SET_WIDGET_VALUE                                   = tools::str::hash_stable(IMPACT_SET_WIDGET_VALUE_CLASS);
 constexpr hid IMPACT_VALUE_RECEIVER                                     = tools::str::hash_stable(IMPACT_VALUE_RECEIVER_CLASS);
-
-
-struct Data {};
-struct CustomCombo_Data : public Data
-{
-    std::unique_ptr<data::Pin> pins;
-};
 
 } // namespace js

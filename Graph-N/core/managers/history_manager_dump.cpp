@@ -4,6 +4,7 @@
 
 #include "core/managers/history_manager.h"
 #include "core/managers/workflows_manager.h"
+#include "core/workflow/pin.h"
 
 namespace mngr
 {
@@ -30,6 +31,7 @@ const char* action_type_str(HistoryActionType t)
     case HistoryActionType::LinkAdd: return "LinkAdd";
     case HistoryActionType::LinkDel: return "LinkDel";
     case HistoryActionType::NodeRerouteSplit: return "RerouteSplit";
+    case HistoryActionType::Blob: return "Blob";
     }
     LogRErrorS("Unknown action type", "Unknown");
 }
@@ -69,6 +71,12 @@ std::string action_val_to_str(const HActionT& val)
                 return fmt::format(FMT_STRING("[{:.0f},{:.0f} {:.0f}x{:.0f}]"), v.Min.x, v.Min.y, v.GetWidth(), v.GetHeight());
             else if constexpr (std::is_same_v<T, ImVec4>)
                 return fmt::format(FMT_STRING("({:.2f},{:.2f},{:.2f},{:.2f})"), v.x, v.y, v.z, v.w);
+            else if constexpr (std::is_same_v<T, HRerouteSplitted>)
+                return fmt::format(FMT_STRING("RerouteSplt({})"), v.splitted);
+            else if constexpr (std::is_same_v<T, HPinCag>)
+                return fmt::format(FMT_STRING("CAG({})"), data::Pin::cag_to_string(v.cag));
+            else if constexpr (std::is_same_v<T, blob::Blob>)
+                return "Blob";
             else
                 return "?";
         }, val);

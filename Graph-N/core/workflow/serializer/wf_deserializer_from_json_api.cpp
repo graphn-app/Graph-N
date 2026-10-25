@@ -51,13 +51,15 @@ bool WfDeserializerFromJsonApi::deserialize()
                 nodes.push_back(std::move(api_node));
                 continue;
             }
+            api_node.node_hash = base::HashID::make_hash(api_node.class_type);
 
             if (jnode_data.contains("_meta") && jnode_data["_meta"].contains("title") && jnode_data["_meta"]["title"].is_string())
                 api_node.title = jnode_data["_meta"]["title"];
 
             if (jnode_data.contains("inputs") && jnode_data["inputs"].is_object())
             {
-                for (auto& [jinput_name, jinput_value] : jnode_data["inputs"].items())
+                auto& jinputs = jnode_data["inputs"];
+                for (auto& [jinput_name, jinput_value] : jinputs.items())
                 {
                     ApiNode::Input input;
                     input.pin_name = jinput_name;
@@ -93,6 +95,8 @@ bool WfDeserializerFromJsonApi::deserialize()
                     }
                     api_node.inputs.push_back(std::move(input));
                 }
+
+                api_node.jinputs = std::move(jinputs);
             }
 
             nodes.push_back(std::move(api_node));
@@ -122,6 +126,8 @@ bool WfDeserializerFromJsonApi::deserialize()
             {
                 unrecognized_node_definition.insert(std::move(api_node.dump));
             }
+            else if (api_node.node != nullptr)
+                deserialize_custom_input(api_node);
         }
 
         g::pFlow->stats_post_nodes(
@@ -143,8 +149,7 @@ bool WfDeserializerFromJsonApi::deserialize()
 
 void WfDeserializerFromJsonApi::check_api_node_definition(ApiNode& api_node)
 {
-    const auto node_hash = base::HashID::make_hash(api_node.class_type);
-    const auto* node = g::pNodesManager->find_node(node_hash);
+    const auto* node = g::pNodesManager->find_node(api_node.node_hash);
     if (nullptr == node)
     {
         api_node.unrecognized_class = true;
@@ -163,7 +168,7 @@ void WfDeserializerFromJsonApi::check_api_node_definition(ApiNode& api_node)
     }
 }
 
-NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonApi::ApiNode& api_node)
+void WfDeserializerFromJsonApi::create_api_node(ApiNode& api_node)
 {
     Node* node = nullptr;
     if (api_node.unrecognized_class)
@@ -180,22 +185,22 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
             node = g::pNodesManager->make_dummy_node(api_node.class_type);
         }  
     }
-    auto node_instance = m_wf->add_node(node, {});
+    api_node.node = m_wf->add_node(node, {});
 
     if (!api_node.title.empty())
-        node_instance->set_name(api_node.title);
+        api_node.node->set_name(api_node.title);
 
     if (api_node.unrecognized_definition)
-        return node_instance;
+        return;
 
     for (auto& input : api_node.inputs)
     {
         Pin* pin = nullptr;
-        const auto pin_hash = Pin::make_hash(node_instance->get_object(), input.pin_name, -1);
+        const auto pin_hash = Pin::make_hash(api_node.node->get_object(), input.pin_name, -1);
 
         if (api_node.unrecognized_class)
         {
-            pin = g::pNodesManager->make_dummy_pin(node_instance->get_object(), "*", input.pin_name, -1);
+            pin = g::pNodesManager->make_dummy_pin(api_node.node->get_object(), "*", input.pin_name, -1);
         }
         else
         {
@@ -203,9 +208,9 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
             if (nullptr == pin)
             {
                 api_node.unrecognized_definition = true;
-                m_wf->remove_node(node_instance);
-                node_instance = m_wf->add_node(node, {});
-                return node_instance;
+                m_wf->remove_node(api_node.node);
+                api_node.node = m_wf->add_node(node, {});
+                return;
             }
             pin->def_state.name = input.pin_name;
             pin->finalize();
@@ -214,19 +219,19 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
         PinInstance* pin_instance = nullptr;
         if (api_node.unrecognized_class)
         {
-            pin_instance = m_wf->add_pin(node_instance, pin, m_wf->get_new_child_id());
+            pin_instance = m_wf->add_pin(api_node.node, pin, m_wf->get_new_child_id());
             pin->def_state.copy_to(pin_instance->state());
-            node_instance->add_input(pin_instance);
+            api_node.node->add_input(pin_instance);
         }
         else
         {
-            pin_instance = m_wf->get_pin_by_hash(node_instance->get_instance_id(), pin_hash);
+            pin_instance = m_wf->get_pin_by_hash(api_node.node->get_instance_id(), pin_hash);
             if (nullptr == pin_instance)
             {
                 api_node.unrecognized_definition = true;
-                m_wf->remove_node(node_instance);
-                node_instance = m_wf->add_node(node, {});
-                return node_instance;
+                m_wf->remove_node(api_node.node);
+                api_node.node = m_wf->add_node(node, {});
+                return;
             }
         }
 
@@ -317,8 +322,7 @@ NodeInstance* WfDeserializerFromJsonApi::create_api_node(WfDeserializerFromJsonA
         input.pin_iid = pin_instance->get_instance_id();
     }
 
-    api_node.node_iid = node_instance->get_instance_id();
-    return node_instance;
+    api_node.node_iid = api_node.node->get_instance_id();
 }
 
 void WfDeserializerFromJsonApi::link_api_nodes(const std::list<ApiNode>& api_nodes)

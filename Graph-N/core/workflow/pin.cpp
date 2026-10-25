@@ -869,4 +869,29 @@ PinShape Pin::get_shape(PinType type) noexcept
     return PinShape::Circle;
 }
 
+const char* Pin::cag_to_string(ControlAfterGenerate cag) noexcept
+{
+    switch (cag)
+    {
+    case ControlAfterGenerate::Decrement:
+        return "decrement";
+    case ControlAfterGenerate::Increment:
+        return "increment";
+    case ControlAfterGenerate::Randomize:
+        return "randomize";
+    }
+    return "fixed";
+}
+
+ControlAfterGenerate Pin::string_to_cag(const char* cag) noexcept
+{
+    if (strcmp(cag, "decrement") == 0)
+        return ControlAfterGenerate::Decrement;
+    if (strcmp(cag, "increment") == 0)
+        return ControlAfterGenerate::Increment;
+    if (strcmp(cag, "randomize") == 0)
+        return ControlAfterGenerate::Randomize;
+    return ControlAfterGenerate::Fixed;
+}
+
 } // namespace data

@@ -231,37 +231,38 @@ private:
 
 enum class NodeInstFlags : uint64_t
 {
-    None                           = 0,            // 0                  -  0x00
-    Group                          = 1ULL << 0,    // 1                  -  0x01
-    CanBeDeleted                   = 1ULL << 1,    // 2                  -  0x02               // default
-    CNI                            = 1ULL << 2,    // 4                  -  0x04
-    __AVAILABLE__1                 = 1ULL << 3,    // 8                  -  0x08
-    RerouteSplitted                = 1ULL << 4,    // 16                 -  0x10
-    RerouteSplitted_R              = 1ULL << 5,    // 32                 -  0x20
-    Hidden                         = 1ULL << 6,    // 64                 -  0x40
-    PosSet                         = 1ULL << 7,    // 128                -  0x80
-    SizeSet                        = 1ULL << 8,    // 256                -  0x100
-    IgnoreSizeOnFrameEnd           = 1ULL << 9,    // 512                -  0x200
-    PinnedSet                      = 1ULL << 10,   // 1024               -  0x400
-    ShowHidden                     = 1ULL << 11,   // 2048               -  0x800
-    Deserialization                = 1ULL << 12,   // 4096               -  0x1000
-    Pinned                         = 1ULL << 13,   // 8192               -  0x2000
-    Collapsed                      = 1ULL << 14,   // 16384              -  0x4000
-    ModeOnEvent                    = 1ULL << 16,   // 65536              -  0x10000
-    ModeMute                       = 1ULL << 17,   // 131072             -  0x20000
-    ModeOnTrigger                  = 1ULL << 18,   // 262144             -  0x40000
-    ModeBypass                     = 1ULL << 19,   // 524288             -  0x80000
-    HasInPins                      = 1ULL << 20,   // 1048576            -  0x100000
-    HasOutPins                     = 1ULL << 21,   // 2097152            -  0x200000
-    HasWidgets                     = 1ULL << 22,   // 4194304            -  0x400000
-    JsonApiDontExport              = 1ULL << 23,   // 8388608            -  0x800000
-    JsonCustomSerialization        = 1ULL << 24,   // 16777216           -  0x1000000
-    BlobCustomSerialization        = 1ULL << 25,   // 33554432           -  0x2000000
-    JsonApiCustomSerialization     = 1ULL << 26,   // 67108864           -  0x4000000
-    MaskEditorReady                = 1ULL << 27,   // 134217728          -  0x8000000
-    PosEditorReady                 = 1ULL << 28,   // 268435456          -  0x10000000
-    MaskEditorRunning              = 1ULL << 29,   // 536870912          -  0x20000000
-    PosEditorRunning               = 1ULL << 30,   // 1073741824         -  0x40000000
+    None                           = 0,
+    Group                          = 1ULL << 0,
+    CanBeDeleted                   = 1ULL << 1,    // default
+    CNI                            = 1ULL << 2,
+    __AVAILABLE__1                 = 1ULL << 3,
+    RerouteSplitted                = 1ULL << 4,
+    RerouteSplitted_R              = 1ULL << 5,
+    Hidden                         = 1ULL << 6,
+    PosSet                         = 1ULL << 7,
+    SizeSet                        = 1ULL << 8,
+    IgnoreSizeOnFrameEnd           = 1ULL << 9,
+    PinnedSet                      = 1ULL << 10,
+    ShowHidden                     = 1ULL << 11,
+    Deserialization                = 1ULL << 12,
+    Pinned                         = 1ULL << 13,
+    Collapsed                      = 1ULL << 14,
+    ModeOnEvent                    = 1ULL << 16,
+    ModeMute                       = 1ULL << 17,
+    ModeOnTrigger                  = 1ULL << 18,
+    ModeBypass                     = 1ULL << 19,
+    HasInPins                      = 1ULL << 20,
+    HasOutPins                     = 1ULL << 21,
+    HasWidgets                     = 1ULL << 22,
+    JsonApiDontExport              = 1ULL << 23,
+    JsonCustomSerialization        = 1ULL << 24,
+    JsonCustomSerltnWidgetsOnly    = 1ULL << 25,
+    BlobCustomSerialization        = 1ULL << 26,
+    BlobCustomSerltnWidgetsOnly    = 1ULL << 27,
+    MaskEditorReady                = 1ULL << 28,
+    PosEditorReady                 = 1ULL << 29,
+    MaskEditorRunning              = 1ULL << 30,
+    PosEditorRunning               = 1ULL << 31,
 };
 
 inline constexpr ObjectFlags<NodeInstFlags> g_node_inst_all_modes_mask
@@ -287,44 +288,44 @@ inline constexpr ObjectFlags<NodeInstFlags> g_node_inst_seriallizable_flags
 
 enum class NodeObjFlags : uint64_t
 {
-    None                        = 0,            // 0                    -  0x00
-    HasInput                    = 1ULL << 0,    // 1                    -  0x01
-    HasOutput                   = 1ULL << 1,    // 2                    -  0x02
-    OutputNode                  = 1ULL << 2,    // 4                    -  0x04
-    Dummy                       = 1ULL << 3,    // 8                    -  0x08
-    CanBypass                   = 1ULL << 4,    // 16                   -  0x10                // default
-    CanMute                     = 1ULL << 5,    // 32                   -  0x20                // default
-    CanRename                   = 1ULL << 6,    // 64                   -  0x40                // default
-    Experimental                = 1ULL << 7,    // 128                  -  0x80
-    Deprecated                  = 1ULL << 8,    // 256                  -  0x100
-    ApiNode                     = 1ULL << 9,    // 512                  -  0x200
-    CustomMediaWidget           = 1ULL << 10,   // 1024                 -  0x400               // this flag is must if any of CustomWdgt** is set
-    CustomMediaAudio            = 1ULL << 11,   // 2048                 -  0x800
-    CustomMediaVideo            = 1ULL << 12,   // 4096                 -  0x1000
-    CustomMediaImage            = 1ULL << 13,   // 8192                 -  0x2000
-    CustomMediaText             = 1ULL << 14,   // 16384                -  0x4000
-    RestrictCfg                 = 1ULL << 15,   // 32768                -  0x8000              // disables custom widget config in menu
-    CustomMediaUploadButton     = 1ULL << 16,   // 65536                -  0x10000             // displays 'Upload' button
-    CustomMediaRefreshButton    = 1ULL << 17,   // 131072               -  0x20000             // displays 'Refresh' button
-    CustomMediaFromSourceIn     = 1ULL << 18,   // 262144               -  0x40000             // displays media from input source
-    CustomMediaFromSourceOut    = 1ULL << 19,   // 524288               -  0x80000             // displays media from output output
-    CustomMediaFromOutput       = 1ULL << 20,   // 1048576              -  0x100000            // displays media/text from output
-    DevOnly                     = 1ULL << 21,   // 2097152              -  0x200000
-    SpecNote                    = 1ULL << 22,   // 4194304              -  0x400000            // Note
-    SpecMdNote                  = 1ULL << 23,   // 8388608              -  0x800000            // MarkdownNote
-    SpecPrimitive               = 1ULL << 24,   // 16777216             -  0x1000000           // PrimitiveNode
-    SpecReroute                 = 1ULL << 25,   // 33554432             -  0x2000000           // Reroute, ReroutePrimitive|pysssss, Reroute (rgthree)
-    SpecFastBypasserRgthree     = 1ULL << 26,   // 67108864             -  0x4000000           // Fast Bypasser (rgthree)
-    SpecFastMuterRgthree        = 1ULL << 27,   // 134217728            -  0x8000000           // Fast Muter (rgthree)
-    SpecFastGMuterRgthree       = 1ULL << 28,   // 268435456            -  0x10000000          // Fast Groups Muter (rgthree)
-    SpecFastGBypasserRgthree    = 1ULL << 29,   // 536870912            -  0x20000000          // Fast Groups Bypasser (rgthree)
-    SpecFastActRgthree          = 1ULL << 30,   // 1073741824           -  0x40000000          // Fast Actions Button (rgthree)
-    SpecBookmarkRgthree         = 1ULL << 31,   // 2147483648           -  0x80000000          // Bookmark
-    CustomJsNode                = 1ULL << 32,   // 4294967296           -  0x100000000         // node has custom JS logic and need to be re-implemented
-    SpecSwitherRgthree          = 1ULL << 33,   // 8589934592           -  0x200000000
-    NoHistoryOnPinValChange     = 1ULL << 34,   // 17179869184          -  0x400000000
-    NoPinCagMenu                = 1ULL << 35,   // 34359738368          -  0x800000000
-    CustomMediaBase64           = 1ULL << 36,   // 68719476736          -  0x1000000000
+    None                        = 0,
+    HasInput                    = 1ULL << 0,
+    HasOutput                   = 1ULL << 1,
+    OutputNode                  = 1ULL << 2,
+    Dummy                       = 1ULL << 3,
+    CanBypass                   = 1ULL << 4,
+    CanMute                     = 1ULL << 5,
+    CanRename                   = 1ULL << 6,
+    Experimental                = 1ULL << 7,
+    Deprecated                  = 1ULL << 8,
+    ApiNode                     = 1ULL << 9,
+    CustomMediaWidget           = 1ULL << 10,   // this flag is must if any of CustomWdgt** is set
+    CustomMediaAudio            = 1ULL << 11,
+    CustomMediaVideo            = 1ULL << 12,
+    CustomMediaImage            = 1ULL << 13,
+    CustomMediaText             = 1ULL << 14,
+    RestrictCfg                 = 1ULL << 15,   // disables custom widget config in menu
+    CustomMediaUploadButton     = 1ULL << 16,   // displays 'Upload' button
+    CustomMediaRefreshButton    = 1ULL << 17,   // displays 'Refresh' button
+    CustomMediaFromSourceIn     = 1ULL << 18,   // displays media from input source
+    CustomMediaFromSourceOut    = 1ULL << 19,   // displays media from output output
+    CustomMediaFromOutput       = 1ULL << 20,   // displays media/text from output
+    DevOnly                     = 1ULL << 21,
+    SpecNote                    = 1ULL << 22,   // Note
+    SpecMdNote                  = 1ULL << 23,   // MarkdownNote
+    SpecPrimitive               = 1ULL << 24,   // PrimitiveNode
+    SpecReroute                 = 1ULL << 25,   // Reroute, ReroutePrimitive|pysssss, Reroute (rgthree)
+    SpecFastBypasserRgthree     = 1ULL << 26,   // Fast Bypasser (rgthree)
+    SpecFastMuterRgthree        = 1ULL << 27,   // Fast Muter (rgthree)
+    SpecFastGMuterRgthree       = 1ULL << 28,   // Fast Groups Muter (rgthree)
+    SpecFastGBypasserRgthree    = 1ULL << 29,   // Fast Groups Bypasser (rgthree)
+    SpecFastActRgthree          = 1ULL << 30,   // Fast Actions Button (rgthree)
+    SpecBookmarkRgthree         = 1ULL << 31,   // Bookmark
+    CustomJsNode                = 1ULL << 32,   // node has custom JS logic and need to be re-implemented
+    SpecSwitherRgthree          = 1ULL << 33,   
+    NoHistoryOnPinValChange     = 1ULL << 34,   
+    NoPinCagMenu                = 1ULL << 35,   
+    CustomMediaBase64           = 1ULL << 36,   
 };
 
 inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_all_custom_widget_mask
@@ -359,15 +360,15 @@ inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_serializable_flags
 
 enum class PinInstFlags : uint64_t
 {
-    None                      = 0,          // 0                  -  0x00
-    Hidden                    = 1ULL << 0,  // 1                  -  0x01
-    RerouteSplittingPin       = 1ULL << 1,  // 2                  -  0x02
-    Multiline                 = 1ULL << 2,  // 4                  -  0x04
-    MultilineSet              = 1ULL << 3,  // 8                  -  0x08
-    ColorHSV                  = 1ULL << 4,  // 16                 -  0x10
-    ColorHex                  = 1ULL << 5,  // 32                 -  0x20
-    ColorRaw                  = 1ULL << 6,  // 64                 -  0x40
-    ColorFloat                = 1ULL << 7,  // 128                -  0x80
+    None                      = 0,
+    Hidden                    = 1ULL << 0, 
+    RerouteSplittingPin       = 1ULL << 1, 
+    Multiline                 = 1ULL << 2, 
+    MultilineSet              = 1ULL << 3, 
+    ColorHSV                  = 1ULL << 4, 
+    ColorHex                  = 1ULL << 5, 
+    ColorRaw                  = 1ULL << 6, 
+    ColorFloat                = 1ULL << 7, 
 };
 
 inline constexpr ObjectFlags<PinInstFlags> g_pin_inst_serializable_flags
@@ -382,37 +383,37 @@ inline constexpr ObjectFlags<PinInstFlags> g_pin_inst_serializable_flags
 
 enum class PinObjFlags : uint64_t
 {
-    None                      = 0,          // 0                  -  0x00
-    ColorAsString             = 1ULL << 0,  // 1                  -  0x01
-    Input                     = 1ULL << 1,  // 2                  -  0x02                  // default for inputs
-    Output                    = 1ULL << 2,  // 4                  -  0x04                  // default for outputs
-    Required                  = 1ULL << 3,  // 8                  -  0x08
-    Optional                  = 1ULL << 4,  // 16                 -  0x10
-    CanLink                   = 1ULL << 5,  // 32                 -  0x20                  // default
-    CanUnlink                 = 1ULL << 6,  // 64                 -  0x40                  // default
-    CanRename                 = 1ULL << 7,  // 128                -  0x80                  // default
-    Advanced                  = 1ULL << 8,  // 256                -  0x100
-    InputCanBeWidget          = 1ULL << 9,  // 512                -  0x200                 // default for inputs
-    ImageUpload               = 1ULL << 10, // 1024               -  0x400
-    AudioUpload               = 1ULL << 11, // 2048               -  0x800
-    VideoUpload               = 1ULL << 12, // 4096               -  0x1000
-    FileUpload                = 1ULL << 13, // 8192               -  0x2000
-    TypeAny                   = 1ULL << 14, // 16384              -  0x4000
-    Multiline                 = 1ULL << 15, // 32768              -  0x8000
-    ClrAlphaEnabled           = 1ULL << 16, // 65536              -  0x10000               // default for inputs
-    CagRequire                = 1ULL << 17, // 131072             -  0x20000
-    DenyMultilineSwitch       = 1ULL << 18, // 262144             -  0x40000
-    OutputIsList              = 1ULL << 19, // 524288             -  0x80000
-    ForceInput                = 1ULL << 20, // 1048576            -  0x100000
-    DefInput                  = 1ULL << 21, // 2097152            -  0x200000             // TODO ??
-    Lazy                      = 1ULL << 22, // 4194304            -  0x400000             // TODO ??
-    Multiselect               = 1ULL << 23, // 8388608            -  0x800000
-    DisplAsNumber             = 1ULL << 24, // 16777216           -  0x1000000
-    DisplAsColor              = 1ULL << 25, // 33554432           -  0x2000000
-    DisplAsSlider             = 1ULL << 26, // 67108864           -  0x4000000
-    DynamicPrompts            = 1ULL << 27, // 134217728          -  0x8000000
-    Base64Inside              = 1ULL << 28, // 268435456          -  0x10000000
-    NoHistoryOnValChange      = 1ULL << 29, // 536870912          -  0x20000000
+    None                      = 0,
+    ColorAsString             = 1ULL << 0,
+    Input                     = 1ULL << 1,   // default for inputs
+    Output                    = 1ULL << 2,   // default for outputs
+    Required                  = 1ULL << 3,
+    Optional                  = 1ULL << 4,
+    CanLink                   = 1ULL << 5,   // default
+    CanUnlink                 = 1ULL << 6,   // default
+    CanRename                 = 1ULL << 7,   // default
+    Advanced                  = 1ULL << 8,  
+    InputCanBeWidget          = 1ULL << 9,   // default for inputs
+    ImageUpload               = 1ULL << 10, 
+    AudioUpload               = 1ULL << 11, 
+    VideoUpload               = 1ULL << 12, 
+    FileUpload                = 1ULL << 13, 
+    TypeAny                   = 1ULL << 14, 
+    Multiline                 = 1ULL << 15, 
+    ClrAlphaEnabled           = 1ULL << 16,  // default for inputs
+    CagRequire                = 1ULL << 17, 
+    DenyMultilineSwitch       = 1ULL << 18, 
+    OutputIsList              = 1ULL << 19, 
+    ForceInput                = 1ULL << 20, 
+    DefInput                  = 1ULL << 21, // TODO ??
+    Lazy                      = 1ULL << 22, // TODO ??
+    Multiselect               = 1ULL << 23, 
+    DisplAsNumber             = 1ULL << 24, 
+    DisplAsColor              = 1ULL << 25, 
+    DisplAsSlider             = 1ULL << 26, 
+    DynamicPrompts            = 1ULL << 27, 
+    Base64Inside              = 1ULL << 28, 
+    NoHistoryOnValChange      = 1ULL << 29, 
 };
 
 inline constexpr ObjectFlags<PinObjFlags> g_pin_obj_serializable_flags

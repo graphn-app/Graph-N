@@ -1069,9 +1069,12 @@ data::Node* add_internal_node(hid node_hash, std::unordered_map<hid, std::unique
     if (all_nodes.find(node_hash) == all_nodes.end())
     {
         auto node_ptr = data::CNI_BaseObj::cni_make_base_object(node_hash);
-        node = node_ptr.get();
-        all_nodes.emplace(node_hash, std::move(node_ptr));
-        LogS("Custom node added: " << node->node_class);
+        if (node_ptr)
+        {
+            node = node_ptr.get();
+            all_nodes.emplace(node_hash, std::move(node_ptr));
+            LogS("Custom node added: " << node->node_class);
+        }
     }
     return node;
 }
