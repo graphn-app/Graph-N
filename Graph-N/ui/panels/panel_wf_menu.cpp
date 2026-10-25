@@ -1843,8 +1843,8 @@ bool PanelWorkflow::show_new_node_menu()
     bool close = false;
 
     const bool is_input = pin_inst->obj_flags().has(PinObjFlags::Input);
-    const auto input_filter = is_input ? std::list<std::pair<PinType, std::string>>{{ PinType::_none, "" }} : node_inst->get_supported_pin_types(pin_inst);
-    const auto output_filter = is_input ? node_inst->get_supported_pin_types(pin_inst) : std::list<std::pair<PinType, std::string>>{{ PinType::_none, "" }};
+    const auto input_filter = is_input ? std::list<std::pair<PinType, std::string>>{{ PinType::ANY, "" }} : node_inst->get_supported_pin_types(pin_inst);
+    const auto output_filter = is_input ? node_inst->get_supported_pin_types(pin_inst) : std::list<std::pair<PinType, std::string>>{{ PinType::ANY, "" }};
     const auto node = show_nodes_menu(input_filter, output_filter);
     if (node != nullptr)
     {
