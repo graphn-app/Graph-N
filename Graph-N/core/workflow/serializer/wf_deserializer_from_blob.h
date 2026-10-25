@@ -42,6 +42,7 @@ private:
     NodeInstance* deserialize_cni_node_fast_group_switcher_rgthree(blob::Reader& reader);
     NodeInstance* deserialize_cni_node_fast_action_rgthree(blob::Reader& reader);
     NodeInstance* deserialize_cni_node_bookmark_rgthree(blob::Reader& reader);
+    NodeInstance* deserialize_cni_node_power_lora_loader_rgthree(blob::Reader& reader);
     NodeInstance* deserialize_cni_node_impact_switch(blob::Reader& reader);
     NodeInstance* deserialize_cni_node_impact_insversed_switch(blob::Reader& reader);
 

@@ -33,10 +33,27 @@ public:
 
 private:
     void draw_FastActionsButtonRgthree(data::NodeInstance* node, float off, float width);
+    void draw_PowerLoraLoaderRgthree(data::NodeInstance* node, float off, float width);
     void draw_CustomCombo(data::NodeInstance* node, float off, float width);
     void draw_Load3D(data::NodeInstance* node, float off, float width);
 
     void handle_insert_lora_rgthree(data::NodeInstance* node, data::PinInstance* pin);
+    bool handle_context_menu_lora_loader_rgthree();
+    void handle_history_lora_loader_rgthree(wid wf_id, iid node_id, const blob::Blob& value);
+
+private:
+    struct ContextMenuData
+    {
+        hid id = 0;
+        wid wf_id = 0;
+        data::NodeInstance* node = nullptr;
+        data::PinInstance* pin = nullptr;
+        const char* menu_id = nullptr;
+        bool menu_inited = false;
+        bool menu_open = false;
+    };
+
+    ContextMenuData m_js_context_menu_data;
 };
 
 } // namespace ui

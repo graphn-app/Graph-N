@@ -36,6 +36,8 @@ void WfSerializerToBlob::serialize_cni_node()
         return serialize_cni_node_fast_action_rgthree();
     case js::RGTHREE_BOOKMARK:
         return serialize_cni_node_bookmark_rgthree();
+    case js::RGTHREE_POWER_LORA_LOADER:
+        return serialize_cni_node_power_lora_loader_rgthree();
     case js::IMPACT_SWITCH:
         return serialize_cni_node_impact_switch();
     case js::IMPACT_INVERSED_SWITCH:
@@ -221,6 +223,24 @@ void WfSerializerToBlob::serialize_cni_node_bookmark_rgthree()
     blob::Block block(m_writer);
 
     // TODO: CNI_BookmarkRgthree
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    CNI_PowerLoraLoaderRgthree                     //////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToBlob::serialize_cni_node_power_lora_loader_rgthree()
+{
+    blob::Block block(m_writer);
+
+    const auto& loras = cast::strict<CNI_PowerLoraLoaderRgthree>(m_curr_node)->get_loras();
+    m_writer.push(cast::to_u64(loras.size()));
+    for (auto& lora : loras)
+    {
+        m_writer.push(lora.name + lora.ext);
+        m_writer.push(lora.enabled);
+        m_writer.push(lora.strength);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

@@ -5,6 +5,7 @@
 #include "core/workflow/serializer/wf_deserializer_from_json.h"
 #include "core/workflow/custom_nodes/all_impl.h"
 #include "core/workflow/pin_instance.h"
+#include "core/workflow/pin.h"
 #include "core/managers/nodes_manager.h"
 
 namespace data
@@ -41,6 +42,8 @@ void WfDeserializerFromJson::deserialize_cni_node(const o_json& j, ParseResult& 
         return deserialize_cni_fast_action_rgthree(j, result);
     case js::RGTHREE_BOOKMARK:
         return deserialize_cni_bookmark_rgthree(j, result);
+    case js::RGTHREE_POWER_LORA_LOADER:
+        return deserialize_cni_node_power_lora_loader_rgthree(j, result);
     case js::IMPACT_SWITCH:
         return deserialize_cni_node_impact_switch(j, result);
     case js::IMPACT_INVERSED_SWITCH:
@@ -59,6 +62,7 @@ void WfDeserializerFromJson::deserialize_cni_node(const o_json& j, ParseResult& 
 
 void WfDeserializerFromJson::deserialize_cni_node_primitive(const o_json& j, ParseResult& result)
 {
+    LogRAssert(result.node_inst, "Zero node", );
     const auto pin_hash = Pin::make_hash(result.node_inst->get_object(), "*", 0);
     auto pin = result.node_inst->get_object()->find_pin(pin_hash, false); // do not use pNodesManager
     if (nullptr == pin)
@@ -98,11 +102,7 @@ void WfDeserializerFromJson::deserialize_cni_node_primitive(const o_json& j, Par
             const auto& jvalue1 = j["widgets_values"][1];
             if (jvalue1.is_string())
             {
-                const auto cag_val = jvalue1.get<std::string>();
-                if (cag_val == "fixed")             cast::strict<CNI_DeserializedPrimitive>(data.get())->cag_value = ControlAfterGenerate::Fixed;
-                else if (cag_val == "increment")    cast::strict<CNI_DeserializedPrimitive>(data.get())->cag_value = ControlAfterGenerate::Increment;
-                else if (cag_val == "decrement")    cast::strict<CNI_DeserializedPrimitive>(data.get())->cag_value = ControlAfterGenerate::Decrement;
-                else if (cag_val == "randomize")    cast::strict<CNI_DeserializedPrimitive>(data.get())->cag_value = ControlAfterGenerate::Randomize;
+                cast::strict<CNI_DeserializedPrimitive>(data.get())->cag_value = Pin::string_to_cag(jvalue1.get<std::string>().c_str());
             }
         }
 
@@ -116,6 +116,7 @@ void WfDeserializerFromJson::deserialize_cni_node_primitive(const o_json& j, Par
 
 void WfDeserializerFromJson::deserialize_cni_node_reroute(const o_json& j, ParseResult& result)
 {
+    LogRAssert(result.node_inst, "Zero node", );
     auto reroute = cast::dynamic<CNI_Reroute>(result.node_inst);
     LogRAssert(reroute, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << result.node_inst->get_instance_id() << ", t:" << typeid(result.node_inst).name(), );
 
@@ -172,6 +173,7 @@ void WfDeserializerFromJson::deserialize_cni_node_reroute(const o_json& j, Parse
 template<typename N>
 void deserialize_cni_node_note_impl(Workflow* wf, const o_json& j, ParseResult& result)
 {
+    LogRAssertS(result.node_inst, "Zero node", );
     auto note = cast::dynamic<N>(result.node_inst);
     LogRAssertS(note, "Node is not CNI. w:" << wf->get_id() << ", n: " << result.node_inst->get_instance_id() << ", t:" << typeid(result.node_inst).name(), );
     LogRAssertS(note->get_inputs().size() == 1, "Invalid " << note->get_object()->node_class << " node definition. w:" << wf->get_id() << ", n: " << note->get_instance_id(), );
@@ -216,6 +218,7 @@ void WfDeserializerFromJson::deserialize_cni_node_markdownnote(const o_json& j, 
 
 void WfDeserializerFromJson::deserialize_cni_fast_switcher_rgthree(const o_json& j, ParseResult& result)
 {
+    LogRAssert(result.node_inst, "Zero node", );
     auto switcher = cast::dynamic<CNI_FastModeSwitcherRgthree>(result.node_inst);
     LogRAssert(switcher, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << result.node_inst->get_instance_id() << ", t:" << typeid(result.node_inst).name(), );
 
@@ -249,6 +252,7 @@ void WfDeserializerFromJson::deserialize_cni_fast_switcher_rgthree(const o_json&
 
 void WfDeserializerFromJson::deserialize_cni_fast_group_switcher_rgthree(const o_json& /*j*/, ParseResult& result)
 {
+    LogRAssert(result.node_inst, "Zero node", );
     auto switcher = cast::dynamic<CNI_FastGroupModeSwitcherRgthree>(result.node_inst);
     LogRAssert(switcher, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << result.node_inst->get_instance_id() << ", t:" << typeid(result.node_inst).name(), );
 
@@ -268,6 +272,7 @@ void WfDeserializerFromJson::deserialize_cni_fast_group_switcher_rgthree(const o
 
 void WfDeserializerFromJson::deserialize_cni_fast_action_rgthree(const o_json& j, ParseResult& result)
 {
+    LogRAssert(result.node_inst, "Zero node", );
     auto switcher = cast::dynamic<CNI_FastActionRgthree>(result.node_inst);
     LogRAssert(switcher, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << result.node_inst->get_instance_id() << ", t:" << typeid(result.node_inst).name(), );
 
@@ -321,11 +326,46 @@ void WfDeserializerFromJson::deserialize_cni_bookmark_rgthree(const o_json& /*j*
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
+///////////    CNI_PowerLoraLoaderRgthree                   ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfDeserializerFromJson::deserialize_cni_node_power_lora_loader_rgthree(const o_json& j, ParseResult& result)
+{
+    LogRAssert(result.node_inst, "Zero node", );
+    auto lora_loader = cast::dynamic<CNI_PowerLoraLoaderRgthree>(result.node_inst);
+    LogRAssert(lora_loader, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << result.node_inst->get_instance_id() << ", t:" << typeid(result.node_inst).name(), );
+
+    std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedPowerLoraLoaderRgthree>();
+    auto lora_data = cast::strict<CNI_DeserializedPowerLoraLoaderRgthree>(data.get());
+
+    if (j.contains("widgets_values") && j["widgets_values"].is_array())
+    {
+        for (const auto& jvalue : j["widgets_values"])
+        {
+            if (jvalue.is_object() &&
+                jvalue.contains("on") && jvalue["on"].is_boolean() &&
+                jvalue.contains("lora") && jvalue["lora"].is_string() &&
+                jvalue.contains("strength") && jvalue["strength"].is_number())
+            {
+                const bool on = jvalue["on"].get<bool>();
+                std::string lora = jvalue["lora"].get<std::string>();
+                const float strength = jvalue["strength"].get<float>();
+                lora_data->loras.push_back(std::make_tuple(std::move(lora), on, strength));
+            }
+        }
+    }
+
+    lora_loader->cni_save_deserialized_info(std::move(data));
+    lora_loader->cni_init();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
 ///////////    CNI_SwitchImpact                                       //////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 void WfDeserializerFromJson::deserialize_cni_node_impact_switch(const o_json& j, ParseResult& result)
 {
+    LogRAssert(result.node_inst, "Zero node", );
     auto switcher = cast::dynamic<CNI_SwitchImpact>(result.node_inst);
     LogRAssert(switcher, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << result.node_inst->get_instance_id() << ", t:" << typeid(result.node_inst).name(), );
 
@@ -369,6 +409,7 @@ void WfDeserializerFromJson::deserialize_cni_node_impact_switch(const o_json& j,
 
 void WfDeserializerFromJson::deserialize_cni_node_impact_insversed_switch(const o_json& j, ParseResult& result)
 {
+    LogRAssert(result.node_inst, "Zero node", );
     auto switcher = cast::dynamic<CNI_SwitchInversedImpact>(result.node_inst);
     LogRAssert(switcher, "Node is not CNI. w:" << m_wf->get_id() << ", n: " << result.node_inst->get_instance_id() << ", t:" << typeid(result.node_inst).name(), );
 

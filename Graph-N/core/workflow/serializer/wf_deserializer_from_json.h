@@ -54,6 +54,7 @@ private:
     void deserialize_cni_fast_group_switcher_rgthree(const o_json& j, ParseResult& result);
     void deserialize_cni_fast_action_rgthree(const o_json& j, ParseResult& result);
     void deserialize_cni_bookmark_rgthree(const o_json& j, ParseResult& result);
+    void deserialize_cni_node_power_lora_loader_rgthree(const o_json& j, ParseResult& result);
     void deserialize_cni_node_impact_switch(const o_json& j, ParseResult& result);
     void deserialize_cni_node_impact_insversed_switch(const o_json& j, ParseResult& result);
 

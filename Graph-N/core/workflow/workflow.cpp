@@ -101,6 +101,9 @@ std::unique_ptr<data::NodeInstance> create_custom(data::Node* node, wid wf_id, i
     //case js::RGTHREE_BOOKMARK:
     //    custom_node = std::make_unique<CNI_BookmarkRgthree>(node, wf_id, node_id);
     //    break;
+    case js::RGTHREE_POWER_LORA_LOADER:
+        custom_node = std::make_unique<CNI_PowerLoraLoaderRgthree>(node, wf_id, node_id);
+        break;
     case js::IMPACT_SWITCH:
     case js::IMPACT_LATENT_SWITCH:
     case js::IMPACT_SEGS_SWITCH:

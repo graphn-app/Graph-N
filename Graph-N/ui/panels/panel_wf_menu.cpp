@@ -4,10 +4,12 @@
 
 #include "ui/panels/panel_wf.h"
 #include "ui/custom_nodes/custom_media_widget.h"
+#include "ui/custom_nodes/custom_js_node.h"
 #include "ui/graph-n_flow.h"
 #include "core/workflow/node_instance.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/link.h"
+#include "core/workflow/pin.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/custom_nodes/cni_fast_action_rgthree.h"
 #include "core/managers/workflows_manager.h"
@@ -23,6 +25,9 @@ bool PanelWorkflow::context_menu_handler()
 {
     if (m_invalidation_state || m_wf->get_data().critical_failure)
         return false;
+
+    if (g::pFlow->custom_js_nodes().handle_context_menu())
+        return true;
 
     if (m_display_new_node_menu)
     {
@@ -1370,22 +1375,22 @@ bool PanelWorkflow::show_widget_menu()
 
         ImGui::MenuItem(caption.c_str(), nullptr, nullptr, false);
         ImGui::Separator();
-        if (ImGui::MenuItem("fixed", nullptr, ControlAfterGenerate::Fixed == cag_val, true))
+        if (ImGui::MenuItem(data::Pin::cag_to_string(ControlAfterGenerate::Fixed), nullptr, ControlAfterGenerate::Fixed == cag_val, true))
         {
             pin->state().cag_val = ControlAfterGenerate::Fixed;
             close = true;
         }
-        if (ImGui::MenuItem("increment", nullptr, ControlAfterGenerate::Increment == cag_val, true))
+        if (ImGui::MenuItem(data::Pin::cag_to_string(ControlAfterGenerate::Increment), nullptr, ControlAfterGenerate::Increment == cag_val, true))
         {        
             pin->state().cag_val = ControlAfterGenerate::Increment;
             close = true;
         }
-        if (ImGui::MenuItem("decrement", nullptr, ControlAfterGenerate::Decrement == cag_val, true))
+        if (ImGui::MenuItem(data::Pin::cag_to_string(ControlAfterGenerate::Decrement), nullptr, ControlAfterGenerate::Decrement == cag_val, true))
         {        
             pin->state().cag_val = ControlAfterGenerate::Decrement;
             close = true;
         }
-        if (ImGui::MenuItem("randomize", nullptr, ControlAfterGenerate::Randomize == cag_val, true))
+        if (ImGui::MenuItem(data::Pin::cag_to_string(ControlAfterGenerate::Randomize), nullptr, ControlAfterGenerate::Randomize == cag_val, true))
         {        
             pin->state().cag_val = ControlAfterGenerate::Randomize;
             close = true;

@@ -28,6 +28,8 @@ void WfSerializerToJson::serialize_cni_node(o_json& j)
         return serialize_cni_node_fast_action_rgthree(j);
     case js::RGTHREE_BOOKMARK:
         return serialize_cni_node_bookmark_rgthree(j);
+    case js::RGTHREE_POWER_LORA_LOADER:
+        return serialize_cni_node_power_lora_loader_rgthree(j);
     case js::IMPACT_SWITCH:
         return serialize_cni_node_impact_switch(j);
     case js::IMPACT_INVERSED_SWITCH:
@@ -347,6 +349,39 @@ void WfSerializerToJson::serialize_cni_node_fast_action_rgthree(o_json& j)
 void WfSerializerToJson::serialize_cni_node_bookmark_rgthree(o_json& /*j*/)
 {
     // TODO: CNI_BookmarkRgthree
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+///////////    CNI_PowerLoraLoaderRgthree                    ///////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void WfSerializerToJson::serialize_cni_node_power_lora_loader_rgthree(o_json& j)
+{
+    j["properties"]["cnr_id"] = "rgthree-comfy";
+    j["properties"]["ver"] = "d7297b42f0fa78bec1c0411478f887423c249502";
+    j["properties"]["Show Strengths"] = "Single Strength";
+    j["properties"]["Match"] = "";
+    j["properties"]["ue_properties"]["widget_ue_connectable"] = o_json::object();
+    j["properties"]["ue_properties"]["input_ue_unconnectable"] = o_json::object();
+
+    const auto& loras = cast::strict<CNI_PowerLoraLoaderRgthree>(m_curr_node)->get_loras();
+
+    auto& widgets = j["widgets_values"];
+    widgets.push_back(o_json::object());
+    widgets["type"] = "PowerLoraLoaderHeaderWidget";
+
+    for (auto& lora : loras)
+    {
+        auto o = o_json::object();
+        o["on"] = lora.enabled;
+        o["lora"] = lora.name + lora.ext;
+        o["strength"] = lora.strength;
+        o["strengthTwo"] = nullptr;
+        widgets.push_back(std::move(o));
+    }
+
+    widgets.push_back(o_json::object());
+    widgets.push_back("");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

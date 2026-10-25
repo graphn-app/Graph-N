@@ -407,6 +407,7 @@ constexpr const char* VANILLA_NOTE_CLASS                                = "Note"
 constexpr const char* VANILLA_MARKDOWN_NOTE_CLASS                       = "MarkdownNote";
 constexpr const char* VANILLA_CUSTOM_COMBO_CLASS                        = "CustomCombo";
 constexpr const char* VANILLA_LOAD3D_CLASS                              = "Load3D";
+constexpr const char* VANILLA_LORA_LOADER_CLASS                         = "LoraLoader";
 
 constexpr const char* PYSSSSS_REROUTE_CLASS                             = "ReroutePrimitive|pysssss";
 constexpr const char* PYSSSSS_REPEATER_CLASS                            = "Repeater|pysssss";
@@ -428,6 +429,7 @@ constexpr const char* RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG_CLASS        = "SDXL 
 constexpr const char* RGTHREE_SDXL_POWER_PROMPT_POS_CLASS               = "SDXL Power Prompt - Positive (rgthree)";
 constexpr const char* RGTHREE_POWER_PROMPT_CLASS                        = "Power Prompt (rgthree)";
 constexpr const char* RGTHREE_POWER_PROMPT_SIMPLE_CLASS                 = "Power Prompt - Simple (rgthree)";
+constexpr const char* RGTHREE_POWER_LORA_LOADER_CLASS                   = "Power Lora Loader (rgthree)";
 
 constexpr const char* IMPACT_SWITCH_CLASS                               = "ImpactSwitch";
 constexpr const char* IMPACT_LATENT_SWITCH_CLASS                        = "LatentSwitch";
@@ -449,6 +451,7 @@ constexpr hid VANILLA_NOTE                                              = tools:
 constexpr hid VANILLA_MARKDOWN_NOTE                                     = tools::str::hash_stable(VANILLA_MARKDOWN_NOTE_CLASS);
 constexpr hid VANILLA_CUSTOM_COMBO                                      = tools::str::hash_stable(VANILLA_CUSTOM_COMBO_CLASS);
 constexpr hid VANILLA_LOAD3D                                            = tools::str::hash_stable(VANILLA_LOAD3D_CLASS);
+constexpr hid VANILLA_LORA_LOADER                                       = tools::str::hash_stable(VANILLA_LORA_LOADER_CLASS);
 
 constexpr hid PYSSSSS_REROUTE                                           = tools::str::hash_stable(PYSSSSS_REROUTE_CLASS);
 constexpr hid PYSSSSS_REPEATER                                          = tools::str::hash_stable(PYSSSSS_REPEATER_CLASS);
@@ -470,6 +473,7 @@ constexpr hid RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG                      = tools:
 constexpr hid RGTHREE_SDXL_POWER_PROMPT_POS                             = tools::str::hash_stable(RGTHREE_SDXL_POWER_PROMPT_POS_CLASS);
 constexpr hid RGTHREE_POWER_PROMPT                                      = tools::str::hash_stable(RGTHREE_POWER_PROMPT_CLASS);
 constexpr hid RGTHREE_POWER_PROMPT_SIMPLE                               = tools::str::hash_stable(RGTHREE_POWER_PROMPT_SIMPLE_CLASS);
+constexpr hid RGTHREE_POWER_LORA_LOADER                                 = tools::str::hash_stable(RGTHREE_POWER_LORA_LOADER_CLASS);
 
 constexpr hid IMPACT_SWITCH                                             = tools::str::hash_stable(IMPACT_SWITCH_CLASS);
 constexpr hid IMPACT_LATENT_SWITCH                                      = tools::str::hash_stable(IMPACT_LATENT_SWITCH_CLASS);

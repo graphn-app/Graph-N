@@ -114,6 +114,9 @@ void CustomJsNode::draw(data::NodeInstance* node, float off, float width)
     case js::RGTHREE_FAST_ACTIONS_BUTTON:
         draw_FastActionsButtonRgthree(node, off, width);
         break;
+    case js::RGTHREE_POWER_LORA_LOADER:
+        draw_PowerLoraLoaderRgthree(node, off, width);
+        break;
     }
 }
 
@@ -128,7 +131,52 @@ void CustomJsNode::handle_pin_value_changed(data::NodeInstance* node, data::PinI
     }
 }
 
+bool CustomJsNode::handle_context_menu()
+{
+    if (0 == m_js_context_menu_data.id) [[likely]]
+        return false;
+    LogRAssert(m_js_context_menu_data.menu_id, "Zero menu id", false);
 
+    if (!m_js_context_menu_data.menu_inited)
+    {
+        m_js_context_menu_data.menu_inited = true;
+        ImGui::OpenPopup(m_js_context_menu_data.menu_id);
+    }
+
+    bool close_menu = false;
+    const bool menu_open = ImGui::BeginPopup(m_js_context_menu_data.menu_id);
+    if (menu_open)
+    {
+        switch (m_js_context_menu_data.id)
+        {
+        case js::RGTHREE_POWER_LORA_LOADER:
+            close_menu = handle_context_menu_lora_loader_rgthree();
+            break;
+        default:
+            close_menu = true;
+            LogError("Unhandled js menu");
+        }
+
+        if (close_menu)
+            ImGui::CloseCurrentPopup();
+
+        ImGui::EndPopup();
+    }
+
+    if (!menu_open || close_menu)
+        m_js_context_menu_data = {};
+
+    return true;
+}
+
+void CustomJsNode::handle_history(uint64_t id, wid wf_id, iid node_id, const blob::Blob& value)
+{
+    switch (id)
+    {
+    case js::RGTHREE_POWER_LORA_LOADER:
+        handle_history_lora_loader_rgthree(wf_id, node_id, value);
+        break;
+    }
 }
 
 } // namespace ui

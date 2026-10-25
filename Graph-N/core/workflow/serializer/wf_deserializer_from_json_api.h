@@ -54,6 +54,8 @@ private:
     void arrange_nodes();
 
     void deserialize_custom_input(ApiNode& api_node);
+    void deserialize_custom_input_rgthree_power_lora_loader(ApiNode& api_node);
+
 private:
     Workflow* m_wf = nullptr;
     const o_json& m_json;

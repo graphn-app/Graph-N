@@ -146,6 +146,9 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->flags.add(NodeObjFlags::SpecBookmarkRgthree, NodeObjFlags::CustomJsNode, NodeObjFlags::NoPinCagMenu);
         break;
 
+    case js::RGTHREE_POWER_LORA_LOADER:
+        return {};
+
     case js::IMPACT_SWITCH:
     case js::IMPACT_LATENT_SWITCH:
     case js::IMPACT_SEGS_SWITCH:

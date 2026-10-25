@@ -21,6 +21,7 @@ public:
 
 private:
     void serialize_custom_node(data::NodeInstance* node, o_json& jinputs);
+    void serialize_cni_node_power_lora_loader_rgthree(data::NodeInstance* node, o_json& jinputs);
 
 private:
     const Workflow* m_wf = nullptr;
