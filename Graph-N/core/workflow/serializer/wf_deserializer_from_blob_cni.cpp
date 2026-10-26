@@ -63,13 +63,9 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_primitive(blob::Reade
 
     auto block = root_block.pop_block();
 
-    /*const auto inputs_count = */block.pop_u32();
-    const auto outputs_count = block.pop_u32();
-    if (outputs_count != 1)
-        return nullptr;
-
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedPrimitive>();
     auto primitive_data = cast::strict<CNI_DeserializedPrimitive>(data.get());
+
     primitive_data->widget_value = block.pop_primitive();
     primitive_data->cag_value = cast::to_enum<ControlAfterGenerate>(block.pop_u8());
     primitive_data->widget_hash = block.pop_hid();

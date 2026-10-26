@@ -62,29 +62,29 @@ void WfSerializerToBlob::serialize_cni_node_primitive()
     auto& outputs = m_curr_node->get_outputs();
     if (outputs.size() != 1)
     {
-        LogWarn("Invalid node definition");
-        m_writer.push(uint32_t(0));
-        m_writer.push(uint32_t(0));
+        LogError("Invalid node definition");
         return;
     }
 
-    m_writer.push(cast::to_u32(inputs.size()));
-    m_writer.push(cast::to_u32(outputs.size()));
+    PinInstance* pin = nullptr;
 
-    if (inputs.size() >= 1)
+    if (!inputs.empty())
     {
-        m_writer.push(inputs[0]->state().value);
-        m_writer.push(cast::to_u8(inputs[0]->state().cag_val));
-        m_writer.push(inputs[0]->get_object()->get_hash());
-        m_writer.push(inputs[0]->get_instance_id());
+        pin = inputs[0];
+        m_writer.push(pin->state().value);
+        m_writer.push(cast::to_u8(pin->state().cag_val));
+        m_writer.push(pin->get_object()->get_hash());
+        m_writer.push(pin->get_instance_id());
     }
     else
     {
         m_writer.push(Primitive{});
         m_writer.push(cast::to_u8(ControlAfterGenerate::Fixed));
+        m_writer.push(hid(0));
+        m_writer.push(iid(0));
     }
 
-    auto pin = outputs[0];
+    pin = outputs[0];
     m_writer.push(pin->get_object()->get_hash());
     m_writer.push(pin->get_instance_id());
     m_writer.push(pin->get_object()->def_state.type_str);

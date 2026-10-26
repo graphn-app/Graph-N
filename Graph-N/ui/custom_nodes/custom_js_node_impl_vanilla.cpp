@@ -4,10 +4,10 @@
 
 #include "ui/custom_nodes/custom_js_node.h"
 #include "core/base/comfyui_web_paths.h"
-#include "core/workflow/custom_nodes/cni_fast_action_rgthree.h"
 #include "core/workflow/workflow.h"
 #include "core/workflow/workflow_action.h"
 #include "core/workflow/pin_instance.h"
+#include "core/workflow/custom_nodes/cni_primitive.h"
 #include "core/managers/workflows_manager.h"
 #include "ui/graph-n_flow.h"
 
@@ -148,6 +148,34 @@ void CustomJsNode::draw_Load3D(data::NodeInstance* node, float off, float width)
             *pin->state().value.get_int_ref() = cast::to_i64(0);
             action->set_pin_val(pin, std::move(old));         
         }
+    }
+}
+
+void CustomJsNode::draw_Primitive(data::NodeInstance* node, float off, float width)
+{
+    constexpr PinType types[] = { PinType::INT, PinType::NUMBER, PinType::FLOAT, PinType::BOOLEAN, PinType::STRING, PinType::COMBO, PinType::ANY };
+    constexpr size_t count = sizeof(types) / sizeof(types[0]);
+    constexpr const char* names[count] = { "INT", "NUMBER", "FLOAT", "BOOL", "STRING", "COMBO", "*" };
+    const PinType curr_type = cast::strict<data::CNI_Primitive>(node)->get_current_type();
+
+    ImGui::SetCursorPosX(off);
+    for (size_t i = 0; i < count; i++)
+    {
+        const auto w = (i <= 2 ? width / 3 : width / 4);
+        const bool new_line = (2 == i || i > count - 2);
+
+        if (curr_type != types[i])
+            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetColorU32(ImGuiCol_TextDisabled));
+        if (ImGui::Button(names[i], ImVec2(w, 0)))
+        {
+            cast::strict<data::CNI_Primitive>(node)->force_set_type(types[i]);
+        }
+        if (curr_type != types[i])
+            ImGui::PopStyleColor();
+        if (!new_line)
+            ImGui::SameLine(0, 0);
+        else if (i < count)
+            ImGui::SetCursorPosX(off);
     }
 }
 

@@ -41,6 +41,10 @@ public:
     std::list<std::pair<PinType, std::string>> get_supported_pin_types(PinInstance* pin) const override;
 
     void on_deserialization_ends() override;
+    //float get_additional_node_width() const noexcept override { return 400.0f; }
+
+    PinType get_current_type() const noexcept { return m_type; }
+    void force_set_type(PinType type);
 
 #ifdef _DEBUG
     const std::vector<PinInstance*>& get_linked_outs() const noexcept { return m_links; }
@@ -53,10 +57,7 @@ private:
 private:
     std::vector<PinInstance*> m_links; // linked outs
     bool m_linked = false;
-
-    // outputs[0] -> linked type
-    // inputs[0] -> input field: string, int, float, bool or combo
-    // inputs[1] -> for int, float and combo: cag
+    PinType m_type = PinType::ANY;
 };
 
 } // namespace data

@@ -36,6 +36,7 @@ private:
     void draw_PowerLoraLoaderRgthree(data::NodeInstance* node, float off, float width);
     void draw_CustomCombo(data::NodeInstance* node, float off, float width);
     void draw_Load3D(data::NodeInstance* node, float off, float width);
+    void draw_Primitive(data::NodeInstance* node, float off, float width);
 
     void handle_insert_lora_rgthree(data::NodeInstance* node, data::PinInstance* pin);
     bool handle_context_menu_lora_loader_rgthree();

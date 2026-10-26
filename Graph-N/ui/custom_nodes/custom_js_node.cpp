@@ -16,6 +16,7 @@ void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
     switch (node->get_hash())
     {
     case js::VANILLA_LOAD3D:
+    //case js::VANILLA_PRIMITIVE_NODE:
         node->flags.add(NodeObjFlags::CustomJsNode);
         break;
     case js::VANILLA_LORA_LOADER:
@@ -106,6 +107,9 @@ void CustomJsNode::draw(data::NodeInstance* node, float off, float width)
     {
     case js::VANILLA_LOAD3D:
         draw_Load3D(node, off, width);
+        break;
+    case js::VANILLA_PRIMITIVE_NODE:
+        draw_Primitive(node, off, width);
         break;
         // TODO
     //case js::CUSTOM_COMBO:

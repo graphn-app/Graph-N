@@ -63,7 +63,7 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->description = "Primitive values like numbers, strings, and booleans.";
         node->python_module = VANILLA;
         node->flags.remove(NodeObjFlags::CanBypass);
-        node->flags.add(NodeObjFlags::SpecPrimitive);
+        node->flags.add(NodeObjFlags::SpecPrimitive/*, NodeObjFlags::CustomJsNode*/);
         break;
 
     case js::VANILLA_NOTE:

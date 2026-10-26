@@ -51,41 +51,32 @@ void CNI_Primitive::cni_init()
 
         if (deserialized_values != nullptr)
             out_id = deserialized_values->out_id;
-        //{
-        //    auto& outs = get_outputs();
-        //    if (!outs.empty())
-        //    {
-        //        cni_remove_pin(outs[0]->get_object());
-        //        remove_pin(outs[0]);
-        //        wf->remove_pin(outs[0]);
-        //    }
-
-        //    auto obj = g::pNodesManager->make_pin_ptr(get_object(), "*", "*", 0);
-        //    auto instance = wf->add_pin(this, obj.get(), deserialized_values->out_id);
-        //    obj->can_rename = false;
-        //    add_output(instance);
-        //    cni_add_pin(std::move(obj));
-        //}
     }
 
+    m_type = PinType::ANY;
     auto obj = g::pNodesManager->make_pin_ptr(get_object(), "*", "connect to widget input", 0);
     auto instance = wf->add_pin(this, obj.get(), out_id);
     obj->flags.remove(PinObjFlags::CanRename);
     add_output(instance);
     cni_add_pin(std::move(obj));    
-
-    //obj = g::pNodesManager->make_pin_ptr(get_object(), "*", "*", 0);
-    //instance = wf->add_pin(this, obj.get());
-    //if (out_id != 0)
-    //    instance->set_instance_id(out_id);
-    //obj->can_rename = false;
-    //add_output(instance);
-    //cni_add_pin(std::move(obj));
 }
 
 void CNI_Primitive::on_deserialization_ends()
 {
     update();
+}
+
+void CNI_Primitive::force_set_type(PinType type)
+{
+    if (get_current_type() == type)
+        return;
+
+    if (m_linked)
+    {
+        auto wf = g::pWfsManager->access(get_workflow_id());
+        wf->unlink_node(this);
+    }
+    m_type = type;
 }
 
 bool CNI_Primitive::cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids)
@@ -138,90 +129,83 @@ bool test_ranges(TYPE src_min, TYPE src_max, TYPE dest_min, TYPE dest_max) noexc
 bool CNI_Primitive::cni_can_link(const PinInstance* p1, const PinInstance* p2) const noexcept
 {
     LogRAssert(p1 && p2, "Zero ptr", false);
-    auto& src_outputs = get_outputs();
-    LogRAssert(!src_outputs.empty(), "Empty outputs", false);
+    LogRAssert(!get_outputs().empty(), "Empty outputs", false);
 
-    auto out_pin = src_outputs[0];
-    const PinInstance* linking_pin = nullptr;
-    if (out_pin == p1)
-        linking_pin = p2;
+    const PinInstance* their_pin = nullptr;
+    if (p1 == get_outputs()[0])
+        their_pin = p2;
     else
-        linking_pin = p1;
+        their_pin = p1;
 
-    const auto dest_type = linking_pin->state().type;
+    const auto their_type = their_pin->state().type;
 
     if (m_links.empty())
-        return Pin::is_primitive_type(dest_type) /*|| PinType::ANY == dest_type*/; // TODO: allow ANY linkage
+        return Pin::is_primitive_type(their_type) /*|| PinType::ANY == dest_type*/; // TODO: allow ANY linkage
 
-    const auto& src_inputs = get_inputs();
-    LogRAssert(!src_inputs.empty(), "Empty inputs", false);
+    LogRAssert(!get_inputs().empty(), "Empty inputs", false);
 
-    const auto dest_obj = linking_pin->get_object();
-    const auto& dest_val = linking_pin->state().value;
+    const auto this_pin = get_inputs()[0];
+    const auto this_obj = this_pin->get_object();
+    const auto their_obj = their_pin->get_object();
 
-    const auto src_pin = src_inputs[0];
-    const auto& src_state = src_pin->state();
-    const auto& src_value = src_pin->state().value;
-    const auto src_obj = src_pin->get_object();
-
-    if (PinType::INT == dest_type && PinType::INT == src_state.type)
+    if (PinType::INT == their_type && PinType::INT == m_type)
     {
-        LogRAssert(src_inputs.size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
+        LogRAssert(get_inputs().size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << get_inputs().size(), false);
 
-        const bool dest_u = dest_val.is_int();
-        const bool src_u = src_value.is_int();
-        if (dest_u != src_u)
+        const bool their_u = their_pin->state().value.is_int();
+        const bool this_u = this_pin->state().value.is_int();
+
+        if (their_u != this_u)
             return false;
-        if (dest_u == src_u && src_u)
+        if (their_u == this_u && this_u)
             return true;
-        return test_ranges(src_obj->def_state.min.get_int(), src_obj->def_state.max.get_int(), dest_obj->def_state.min.get_int(), dest_obj->def_state.max.get_int());
+        return test_ranges(this_obj->def_state.min.get_int(), this_obj->def_state.max.get_int(), their_obj->def_state.min.get_int(), their_obj->def_state.max.get_int());
     }
 
-    if (PinType::FLOAT == dest_type && PinType::FLOAT == src_state.type)
+    if (PinType::FLOAT == their_type && PinType::FLOAT == m_type)
     {
-        LogRAssert(src_inputs.size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
-        return test_ranges(src_obj->def_state.min.get_float(), src_obj->def_state.max.get_float(), dest_obj->def_state.min.get_float(), dest_obj->def_state.max.get_float());
+        LogRAssert(get_inputs().size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << get_inputs().size(), false);
+        return test_ranges(this_obj->def_state.min.get_float(), this_obj->def_state.max.get_float(), their_obj->def_state.min.get_float(), their_obj->def_state.max.get_float());
     }
 
-    if (PinType::NUMBER == dest_type && PinType::NUMBER == src_state.type)
+    if (PinType::NUMBER == their_type && PinType::NUMBER == m_type)
     {
-        LogRAssert(src_inputs.size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
-        return test_ranges(src_obj->def_state.min.get_number(), src_obj->def_state.max.get_number(), dest_obj->def_state.min.get_number(), dest_obj->def_state.max.get_number());
+        LogRAssert(get_inputs().size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << get_inputs().size(), false);
+        return test_ranges(this_obj->def_state.min.get_number(), this_obj->def_state.max.get_number(), their_obj->def_state.min.get_number(), their_obj->def_state.max.get_number());
     }
 
-    if (PinType::COMBO == dest_type && PinType::COMBO == src_state.type)
+    if (PinType::COMBO == their_type && PinType::COMBO == m_type)
     {
-        LogRAssert(src_inputs.size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << src_inputs.size(), false);
+        LogRAssert(get_inputs().size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << get_inputs().size(), false);
 
-        if (dest_obj->combo_items_str.size() != src_obj->combo_items_str.size())
+        if (their_obj->combo_items_str.size() != this_obj->combo_items_str.size())
             return false;
-        for (size_t i = 0; i < dest_obj->combo_items_str.size(); i++)
+        for (size_t i = 0; i < their_obj->combo_items_str.size(); i++)
         {
-            if (dest_obj->combo_items_str[i] != src_obj->combo_items_str[i])
+            if (their_obj->combo_items_str[i] != this_obj->combo_items_str[i])
                 return false;
         }
         return true;
     }
 
-    if (PinType::STRING == dest_type && PinType::STRING == src_state.type)
+    if (PinType::STRING == their_type && PinType::STRING == m_type ||
+        PinType::BOOLEAN == their_type && PinType::BOOLEAN == m_type)
+    {
         return true;
-
-    if (PinType::BOOLEAN == dest_type && PinType::BOOLEAN == src_state.type)
-        return true;
+    }
 
     return false;
 }
 
 void CNI_Primitive::update()
 {
+    LogRAssert(!get_outputs().empty(), "Empty out pins", );
+    auto out_pin = get_outputs()[0];
+
     if (m_links.empty())
     {
-        auto& outs = get_outputs();
-        LogRAssert(!outs.empty(), "Empty out pins", );
-
-        auto pin = outs[0];
-        pin->obj_flags().remove(PinObjFlags::CanRename);
-        pin->state().name = pin->get_object()->def_state.name;
+        out_pin->obj_flags().remove(PinObjFlags::CanRename);
+        out_pin->state().name = out_pin->get_object()->def_state.name;
 
         auto& ins = get_inputs();
         if (!ins.empty())
@@ -229,7 +213,7 @@ void CNI_Primitive::update()
             auto wf = g::pWfsManager->access(get_workflow_id());
             while (!ins.empty())
             {
-                pin = ins.front();
+                auto pin = ins.front();
                 cni_remove_pin(pin->get_object());
                 remove_pin(pin);
                 wf->remove_pin(pin);
@@ -257,6 +241,7 @@ void CNI_Primitive::update()
     if (!m_linked)
     {
         auto this_node_obj = get_object();
+        m_type = src_type;
 
         if (PinType::INT == src_type)
         {
@@ -267,6 +252,7 @@ void CNI_Primitive::update()
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
+            out_pin->state().name = "INT";
 
             if (deserialized_values != nullptr && instance->state().value.is_int() && deserialized_values->widget_value.is_int())
                 instance->state().value = deserialized_values->widget_value;
@@ -284,6 +270,7 @@ void CNI_Primitive::update()
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
+            out_pin->state().name = "FLOAT";
 
             if (deserialized_values != nullptr && instance->state().value.is_float() && deserialized_values->widget_value.is_float())
                 instance->state().value = deserialized_values->widget_value;
@@ -301,6 +288,7 @@ void CNI_Primitive::update()
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
+            out_pin->state().name = "NUMBER";
 
             if (deserialized_values != nullptr && instance->state().value.is_number() && deserialized_values->widget_value.is_number())
                 instance->state().value = deserialized_values->widget_value;
@@ -318,6 +306,7 @@ void CNI_Primitive::update()
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
+            out_pin->state().name = "COMBO";
 
             if (deserialized_values != nullptr && instance->state().value.is_int() && deserialized_values->widget_value.is_int())
                 instance->state().value = deserialized_values->widget_value;
@@ -336,6 +325,7 @@ void CNI_Primitive::update()
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
             src_pin_inst->flags().add(PinInstFlags::Multiline, PinInstFlags::MultilineSet);
+            out_pin->state().name = "STRING";
 
             if (deserialized_values != nullptr && instance->state().value.is_string() && deserialized_values->widget_value.is_string())
                 instance->state().value = deserialized_values->widget_value;
@@ -352,6 +342,7 @@ void CNI_Primitive::update()
 
             auto instance = wf->add_pin(this, this_pin_obj.get());
             src_pin_inst->state().copy_to(instance->state());
+            out_pin->state().name = "BOOLEAN";
 
             if (deserialized_values != nullptr && instance->state().value.is_bool() && deserialized_values->widget_value.is_bool())
                 instance->state().value = deserialized_values->widget_value;
