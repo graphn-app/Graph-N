@@ -514,7 +514,7 @@ void PanelNodes::draw_popups()
     if (m_labels_mode && ImGui::BeginPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelNodes_LabelMenu)], ImGuiWindowFlags_NoMove))
     {
         bool close = false;
-        uint32_t current_label_id = m_active_popup_label_id;
+        const uint32_t current_label_id = m_active_popup_label_id;
 
         if (ImGui::MenuItem("Add new label"))
         {
@@ -576,7 +576,7 @@ void PanelNodes::draw_popups()
         {
             if (*m_new_label_buff != 0 && g::pNodesManager->find_label(m_new_label_buff) == 0)
             {
-                uint32_t new_id = g::pNodesManager->create_label(m_new_label_buff);
+                const uint32_t new_id = g::pNodesManager->create_label(m_new_label_buff);
                 m_active_popup_labels.insert(new_id);
                 g::pNodesManager->set_node_labels(cast::ptrs<data::NodeItem>(m_active_popup_ptr), m_active_popup_labels);
                 *m_new_label_buff = 0;

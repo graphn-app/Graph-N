@@ -22,11 +22,11 @@ struct CNI_DeserializedSwitchImpact final : public CNI_DeserializedData
 /////////        CNI_SwitchImpact                                       ///////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-class CNI_SwitchImpact : public CNI_BaseObj
+class CNI_SwitchImpact final : public CNI_BaseObj
 {
 public:
     CNI_SwitchImpact(Node* obj, wid workflow_id, iid instance_id) noexcept;
-    ~CNI_SwitchImpact() noexcept = default;
+    ~CNI_SwitchImpact() noexcept override = default;
 
     void cni_init() override;
     bool cni_is_applicable() const noexcept override { return true; }
@@ -35,10 +35,10 @@ public:
     void cni_pin_linked(PinInstance* p1, PinInstance* p2) override;
     void cni_pin_unlinked(const PinInstance* p1, const PinInstance* p2) override;
 
-    void cni_cleanup_base_object() override;
+    void cni_cleanup_base_object() noexcept override;
     bool cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
-    void on_deserialization_ends() override {}
-    void cni_mirror_value_to(const PinInstance* /*src*/, std::vector<PinInstance*>& /*append_pins*/) const override {}
+    void on_deserialization_ends() noexcept override {}
+    void cni_mirror_value_to(const PinInstance* /*src*/, std::vector<PinInstance*>& /*append_pins*/) const noexcept override {}
 
     CNI_DeserializedSwitchImpact dump() const noexcept;
 
@@ -59,11 +59,11 @@ private:
 /////////        CNI_SwitchInversedImpact                               ///////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-class CNI_SwitchInversedImpact : public CNI_BaseObj
+class CNI_SwitchInversedImpact final : public CNI_BaseObj
 {
 public:
     CNI_SwitchInversedImpact(Node* obj, wid workflow_id, iid instance_id) noexcept;
-    ~CNI_SwitchInversedImpact() noexcept = default;
+    ~CNI_SwitchInversedImpact() noexcept override = default;
 
     void cni_init() override;
     bool cni_is_applicable() const noexcept override { return true; }
@@ -72,10 +72,10 @@ public:
     void cni_pin_linked(PinInstance* p1, PinInstance* p2) override;
     void cni_pin_unlinked(const PinInstance* p1, const PinInstance* p2) override;
 
-    void cni_cleanup_base_object() override;
+    void cni_cleanup_base_object() noexcept override;
     bool cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
-    void on_deserialization_ends() override {}
-    void cni_mirror_value_to(const PinInstance* /*src*/, std::vector<PinInstance*>& /*append_pins*/) const override {}
+    void on_deserialization_ends() noexcept override {}
+    void cni_mirror_value_to(const PinInstance* /*src*/, std::vector<PinInstance*>& /*append_pins*/) const noexcept override {}
 
     CNI_DeserializedSwitchImpact dump() const noexcept;
 

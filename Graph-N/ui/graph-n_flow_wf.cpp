@@ -181,14 +181,14 @@ void GraphN_Flow::wf_reload()
     m_panel_wf_list->rebuild_items();
 }
 
-void GraphN_Flow::wf_rename() noexcept
+void GraphN_Flow::wf_rename()
 {
     const auto active = wf_get_active();
     if (active != 0)
         m_panel_wf_list->rename_project(active);
 }
 
-wid GraphN_Flow::wf_get_active(std::set<wid>* all_opened /*= nullptr*/) const noexcept
+wid GraphN_Flow::wf_get_active(std::set<wid>* all_opened /*= nullptr*/) const
 {
     const auto active = (nullptr == m_wf_focused ? 0 : m_wf_focused->get_workflow()->get_id());
     if (nullptr == all_opened)

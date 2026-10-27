@@ -16,8 +16,8 @@ inline constexpr uint32_t app_patch = 0;
 
 /* date of release commit (for UI only) */
 inline constexpr uint32_t release_year = 2026;
-inline constexpr uint32_t release_month = 11;
-inline constexpr uint32_t release_day = 1;
+inline constexpr uint32_t release_month = 10;
+inline constexpr uint32_t release_day = 27;
 
 inline constexpr bool beta = true;
 

@@ -43,9 +43,9 @@ struct ModuleColor final
 
 struct ModuleColors final
 {
-    bool get_colors(hid item, ImU32& body_bg, ImU32& head_bg, ImU32& head_capt) const noexcept;
+    bool get_colors(hid item, ImU32& body_bg, ImU32& head_bg, ImU32& head_capt) const;
     void set_colors(const std::list<hid>& items, ImU32 body_bg, ImU32 head_bg, ImU32 head_capt);
-    void delete_colors(const std::list<hid>& items);
+    void delete_colors(const std::list<hid>& items) noexcept;
 
     static void make_colors(ImVec4 initial_color, ImU32& bg_color, ImU32& head_bg, ImU32& caption, bool for_group) noexcept;
 
@@ -66,7 +66,7 @@ struct Label final
 
 struct LabelsList final
 {
-    const Label* get_label(uint32_t label_id) const;
+    const Label* get_label(uint32_t label_id) const noexcept;
     const std::list<Label>& get_label_list() const noexcept { return labels; };
 
     uint32_t add_label(bool auto_label= false, std::string name = "");
@@ -83,7 +83,7 @@ struct LabelsList final
     void deserialize(const std::string& opts) noexcept;
 
 private:
-    Label* get_label(uint32_t label_id);
+    Label* get_label(uint32_t label_id) noexcept;
     void sort_labels();
 
 private:
@@ -401,96 +401,96 @@ struct KeyBinding
 namespace js
 {
 
-constexpr const char* VANILLA_REROUTE_CLASS                             = "Reroute";
-constexpr const char* VANILLA_PRIMITIVE_NODE_CLASS                      = "PrimitiveNode";
-constexpr const char* VANILLA_NOTE_CLASS                                = "Note";
-constexpr const char* VANILLA_MARKDOWN_NOTE_CLASS                       = "MarkdownNote";
-constexpr const char* VANILLA_CUSTOM_COMBO_CLASS                        = "CustomCombo";
-constexpr const char* VANILLA_LOAD3D_CLASS                              = "Load3D";
-constexpr const char* VANILLA_LORA_LOADER_CLASS                         = "LoraLoader";
+inline constexpr const char* VANILLA_REROUTE_CLASS                             = "Reroute";
+inline constexpr const char* VANILLA_PRIMITIVE_NODE_CLASS                      = "PrimitiveNode";
+inline constexpr const char* VANILLA_NOTE_CLASS                                = "Note";
+inline constexpr const char* VANILLA_MARKDOWN_NOTE_CLASS                       = "MarkdownNote";
+inline constexpr const char* VANILLA_CUSTOM_COMBO_CLASS                        = "CustomCombo";
+inline constexpr const char* VANILLA_LOAD3D_CLASS                              = "Load3D";
+inline constexpr const char* VANILLA_LORA_LOADER_CLASS                         = "LoraLoader";
 
-constexpr const char* PYSSSSS_REROUTE_CLASS                             = "ReroutePrimitive|pysssss";
-constexpr const char* PYSSSSS_REPEATER_CLASS                            = "Repeater|pysssss";
+inline constexpr const char* PYSSSSS_REROUTE_CLASS                             = "ReroutePrimitive|pysssss";
+inline constexpr const char* PYSSSSS_REPEATER_CLASS                            = "Repeater|pysssss";
 
-constexpr const char* RGTHREE_REROUTE_CLASS                             = "Reroute (rgthree)";
-constexpr const char* RGTHREE_POWER_PRIMITIVE_CLASS                     = "Power Primitive (rgthree)";
-constexpr const char* RGTHREE_FAST_BYPASSER_CLASS                       = "Fast Bypasser (rgthree)";
-constexpr const char* RGTHREE_FAST_MUTER_CLASS                          = "Fast Muter (rgthree)";
-constexpr const char* RGTHREE_FAST_GROUPS_BYPASSER_CLASS                = "Fast Groups Bypasser (rgthree)";
-constexpr const char* RGTHREE_FAST_GROUPS_MUTER_CLASS                   = "Fast Groups Muter (rgthree)";
-constexpr const char* RGTHREE_FAST_ACTIONS_BUTTON_CLASS                 = "Fast Actions Button (rgthree)";
-constexpr const char* RGTHREE_BOOKMARK_CLASS                            = "Bookmark (rgthree)";
-constexpr const char* RGTHREE_CONTEXT_MERGE_CLASS                       = "Context Merge (rgthree)";
-constexpr const char* RGTHREE_CONTEXT_MERGE_BIG_CLASS                   = "Context Merge Big (rgthree)";
-constexpr const char* RGTHREE_CONTEXT_SWITCH_CLASS                      = "Context Switch (rgthree)";
-constexpr const char* RGTHREE_CONTEXT_SWITCH_BIG_CLASS                  = "Context Switch Big (rgthree)";
-constexpr const char* RGTHREE_IMAGE_OR_LATENT_SIZE_CLASS                = "Image or Latent Size (rgthree)";
-constexpr const char* RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG_CLASS        = "SDXL Power Prompt - Simple / Negative (rgthree)";
-constexpr const char* RGTHREE_SDXL_POWER_PROMPT_POS_CLASS               = "SDXL Power Prompt - Positive (rgthree)";
-constexpr const char* RGTHREE_POWER_PROMPT_CLASS                        = "Power Prompt (rgthree)";
-constexpr const char* RGTHREE_POWER_PROMPT_SIMPLE_CLASS                 = "Power Prompt - Simple (rgthree)";
-constexpr const char* RGTHREE_POWER_LORA_LOADER_CLASS                   = "Power Lora Loader (rgthree)";
+inline constexpr const char* RGTHREE_REROUTE_CLASS                             = "Reroute (rgthree)";
+inline constexpr const char* RGTHREE_POWER_PRIMITIVE_CLASS                     = "Power Primitive (rgthree)";
+inline constexpr const char* RGTHREE_FAST_BYPASSER_CLASS                       = "Fast Bypasser (rgthree)";
+inline constexpr const char* RGTHREE_FAST_MUTER_CLASS                          = "Fast Muter (rgthree)";
+inline constexpr const char* RGTHREE_FAST_GROUPS_BYPASSER_CLASS                = "Fast Groups Bypasser (rgthree)";
+inline constexpr const char* RGTHREE_FAST_GROUPS_MUTER_CLASS                   = "Fast Groups Muter (rgthree)";
+inline constexpr const char* RGTHREE_FAST_ACTIONS_BUTTON_CLASS                 = "Fast Actions Button (rgthree)";
+inline constexpr const char* RGTHREE_BOOKMARK_CLASS                            = "Bookmark (rgthree)";
+inline constexpr const char* RGTHREE_CONTEXT_MERGE_CLASS                       = "Context Merge (rgthree)";
+inline constexpr const char* RGTHREE_CONTEXT_MERGE_BIG_CLASS                   = "Context Merge Big (rgthree)";
+inline constexpr const char* RGTHREE_CONTEXT_SWITCH_CLASS                      = "Context Switch (rgthree)";
+inline constexpr const char* RGTHREE_CONTEXT_SWITCH_BIG_CLASS                  = "Context Switch Big (rgthree)";
+inline constexpr const char* RGTHREE_IMAGE_OR_LATENT_SIZE_CLASS                = "Image or Latent Size (rgthree)";
+inline constexpr const char* RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG_CLASS        = "SDXL Power Prompt - Simple / Negative (rgthree)";
+inline constexpr const char* RGTHREE_SDXL_POWER_PROMPT_POS_CLASS               = "SDXL Power Prompt - Positive (rgthree)";
+inline constexpr const char* RGTHREE_POWER_PROMPT_CLASS                        = "Power Prompt (rgthree)";
+inline constexpr const char* RGTHREE_POWER_PROMPT_SIMPLE_CLASS                 = "Power Prompt - Simple (rgthree)";
+inline constexpr const char* RGTHREE_POWER_LORA_LOADER_CLASS                   = "Power Lora Loader (rgthree)";
 
-constexpr const char* IMPACT_SWITCH_CLASS                               = "ImpactSwitch";
-constexpr const char* IMPACT_LATENT_SWITCH_CLASS                        = "LatentSwitch";
-constexpr const char* IMPACT_SEGS_SWITCH_CLASS                          = "SEGSSwitch";
-constexpr const char* IMPACT_INVERSED_SWITCH_CLASS                      = "ImpactInversedSwitch";
-constexpr const char* IMPACT_REMOTE_INT_CLASS                           = "ImpactRemoteInt";
-constexpr const char* IMPACT_REMOTE_BOOL_CLASS                          = "ImpactRemoteBoolean";
-constexpr const char* IMPACT_REMOTE_FLOAT_CLASS                         = "ImpactRemoteFloat";
-constexpr const char* IMPACT_REMOTE_STRING_CLASS                        = "ImpactRemoteString";
-constexpr const char* IMPACT_REMOTE_TEXT_CLASS                          = "ImpactRemoteText";
-constexpr const char* IMPACT_SET_BYPASS_CLASS                           = "ImpactNodeSetBypassState";
-constexpr const char* IMPACT_SET_MUTE_CLASS                             = "ImpactNodeSetMuteState";
-constexpr const char* IMPACT_SET_WIDGET_VALUE_CLASS                     = "ImpactSetWidgetValue";
-constexpr const char* IMPACT_VALUE_RECEIVER_CLASS                       = "ImpactValueReceiver";
-constexpr const char* IMPACT_PREVIEW_BRIDGE_CLASS                       = "PreviewBridge";
-constexpr const char* IMPACT_PREVIEW_BRIDGE_LATENT_CLASS                = "PreviewBridgeLatent";
+inline constexpr const char* IMPACT_SWITCH_CLASS                               = "ImpactSwitch";
+inline constexpr const char* IMPACT_LATENT_SWITCH_CLASS                        = "LatentSwitch";
+inline constexpr const char* IMPACT_SEGS_SWITCH_CLASS                          = "SEGSSwitch";
+inline constexpr const char* IMPACT_INVERSED_SWITCH_CLASS                      = "ImpactInversedSwitch";
+inline constexpr const char* IMPACT_REMOTE_INT_CLASS                           = "ImpactRemoteInt";
+inline constexpr const char* IMPACT_REMOTE_BOOL_CLASS                          = "ImpactRemoteBoolean";
+inline constexpr const char* IMPACT_REMOTE_FLOAT_CLASS                         = "ImpactRemoteFloat";
+inline constexpr const char* IMPACT_REMOTE_STRING_CLASS                        = "ImpactRemoteString";
+inline constexpr const char* IMPACT_REMOTE_TEXT_CLASS                          = "ImpactRemoteText";
+inline constexpr const char* IMPACT_SET_BYPASS_CLASS                           = "ImpactNodeSetBypassState";
+inline constexpr const char* IMPACT_SET_MUTE_CLASS                             = "ImpactNodeSetMuteState";
+inline constexpr const char* IMPACT_SET_WIDGET_VALUE_CLASS                     = "ImpactSetWidgetValue";
+inline constexpr const char* IMPACT_VALUE_RECEIVER_CLASS                       = "ImpactValueReceiver";
+inline constexpr const char* IMPACT_PREVIEW_BRIDGE_CLASS                       = "PreviewBridge";
+inline constexpr const char* IMPACT_PREVIEW_BRIDGE_LATENT_CLASS                = "PreviewBridgeLatent";
 
-constexpr hid VANILLA_REROUTE                                           = tools::str::hash_stable(VANILLA_REROUTE_CLASS);
-constexpr hid VANILLA_PRIMITIVE_NODE                                    = tools::str::hash_stable(VANILLA_PRIMITIVE_NODE_CLASS);
-constexpr hid VANILLA_NOTE                                              = tools::str::hash_stable(VANILLA_NOTE_CLASS);
-constexpr hid VANILLA_MARKDOWN_NOTE                                     = tools::str::hash_stable(VANILLA_MARKDOWN_NOTE_CLASS);
-constexpr hid VANILLA_CUSTOM_COMBO                                      = tools::str::hash_stable(VANILLA_CUSTOM_COMBO_CLASS);
-constexpr hid VANILLA_LOAD3D                                            = tools::str::hash_stable(VANILLA_LOAD3D_CLASS);
-constexpr hid VANILLA_LORA_LOADER                                       = tools::str::hash_stable(VANILLA_LORA_LOADER_CLASS);
+inline constexpr hid VANILLA_REROUTE                                           = tools::str::hash_stable(VANILLA_REROUTE_CLASS);
+inline constexpr hid VANILLA_PRIMITIVE_NODE                                    = tools::str::hash_stable(VANILLA_PRIMITIVE_NODE_CLASS);
+inline constexpr hid VANILLA_NOTE                                              = tools::str::hash_stable(VANILLA_NOTE_CLASS);
+inline constexpr hid VANILLA_MARKDOWN_NOTE                                     = tools::str::hash_stable(VANILLA_MARKDOWN_NOTE_CLASS);
+inline constexpr hid VANILLA_CUSTOM_COMBO                                      = tools::str::hash_stable(VANILLA_CUSTOM_COMBO_CLASS);
+inline constexpr hid VANILLA_LOAD3D                                            = tools::str::hash_stable(VANILLA_LOAD3D_CLASS);
+inline constexpr hid VANILLA_LORA_LOADER                                       = tools::str::hash_stable(VANILLA_LORA_LOADER_CLASS);
 
-constexpr hid PYSSSSS_REROUTE                                           = tools::str::hash_stable(PYSSSSS_REROUTE_CLASS);
-constexpr hid PYSSSSS_REPEATER                                          = tools::str::hash_stable(PYSSSSS_REPEATER_CLASS);
+inline constexpr hid PYSSSSS_REROUTE                                           = tools::str::hash_stable(PYSSSSS_REROUTE_CLASS);
+inline constexpr hid PYSSSSS_REPEATER                                          = tools::str::hash_stable(PYSSSSS_REPEATER_CLASS);
 
-constexpr hid RGTHREE_REROUTE                                           = tools::str::hash_stable(RGTHREE_REROUTE_CLASS);
-constexpr hid RGTHREE_POWER_PRIMITIVE                                   = tools::str::hash_stable(RGTHREE_POWER_PRIMITIVE_CLASS);
-constexpr hid RGTHREE_FAST_BYPASSER                                     = tools::str::hash_stable(RGTHREE_FAST_BYPASSER_CLASS);
-constexpr hid RGTHREE_FAST_MUTER                                        = tools::str::hash_stable(RGTHREE_FAST_MUTER_CLASS);
-constexpr hid RGTHREE_FAST_GROUPS_MUTER                                 = tools::str::hash_stable(RGTHREE_FAST_GROUPS_MUTER_CLASS);
-constexpr hid RGTHREE_FAST_GROUPS_BYPASSER                              = tools::str::hash_stable(RGTHREE_FAST_GROUPS_BYPASSER_CLASS);
-constexpr hid RGTHREE_FAST_ACTIONS_BUTTON                               = tools::str::hash_stable(RGTHREE_FAST_ACTIONS_BUTTON_CLASS);
-constexpr hid RGTHREE_BOOKMARK                                          = tools::str::hash_stable(RGTHREE_BOOKMARK_CLASS);
-constexpr hid RGTHREE_CONTEXT_MERGE                                     = tools::str::hash_stable(RGTHREE_CONTEXT_MERGE_CLASS);
-constexpr hid RGTHREE_CONTEXT_MERGE_BIG                                 = tools::str::hash_stable(RGTHREE_CONTEXT_MERGE_BIG_CLASS);
-constexpr hid RGTHREE_CONTEXT_SWITCH                                    = tools::str::hash_stable(RGTHREE_CONTEXT_SWITCH_CLASS);
-constexpr hid RGTHREE_CONTEXT_SWITCH_BIG                                = tools::str::hash_stable(RGTHREE_CONTEXT_SWITCH_BIG_CLASS);
-constexpr hid RGTHREE_IMAGE_OR_LATENT_SIZE                              = tools::str::hash_stable(RGTHREE_IMAGE_OR_LATENT_SIZE_CLASS);
-constexpr hid RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG                      = tools::str::hash_stable(RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG_CLASS);
-constexpr hid RGTHREE_SDXL_POWER_PROMPT_POS                             = tools::str::hash_stable(RGTHREE_SDXL_POWER_PROMPT_POS_CLASS);
-constexpr hid RGTHREE_POWER_PROMPT                                      = tools::str::hash_stable(RGTHREE_POWER_PROMPT_CLASS);
-constexpr hid RGTHREE_POWER_PROMPT_SIMPLE                               = tools::str::hash_stable(RGTHREE_POWER_PROMPT_SIMPLE_CLASS);
-constexpr hid RGTHREE_POWER_LORA_LOADER                                 = tools::str::hash_stable(RGTHREE_POWER_LORA_LOADER_CLASS);
+inline constexpr hid RGTHREE_REROUTE                                           = tools::str::hash_stable(RGTHREE_REROUTE_CLASS);
+inline constexpr hid RGTHREE_POWER_PRIMITIVE                                   = tools::str::hash_stable(RGTHREE_POWER_PRIMITIVE_CLASS);
+inline constexpr hid RGTHREE_FAST_BYPASSER                                     = tools::str::hash_stable(RGTHREE_FAST_BYPASSER_CLASS);
+inline constexpr hid RGTHREE_FAST_MUTER                                        = tools::str::hash_stable(RGTHREE_FAST_MUTER_CLASS);
+inline constexpr hid RGTHREE_FAST_GROUPS_MUTER                                 = tools::str::hash_stable(RGTHREE_FAST_GROUPS_MUTER_CLASS);
+inline constexpr hid RGTHREE_FAST_GROUPS_BYPASSER                              = tools::str::hash_stable(RGTHREE_FAST_GROUPS_BYPASSER_CLASS);
+inline constexpr hid RGTHREE_FAST_ACTIONS_BUTTON                               = tools::str::hash_stable(RGTHREE_FAST_ACTIONS_BUTTON_CLASS);
+inline constexpr hid RGTHREE_BOOKMARK                                          = tools::str::hash_stable(RGTHREE_BOOKMARK_CLASS);
+inline constexpr hid RGTHREE_CONTEXT_MERGE                                     = tools::str::hash_stable(RGTHREE_CONTEXT_MERGE_CLASS);
+inline constexpr hid RGTHREE_CONTEXT_MERGE_BIG                                 = tools::str::hash_stable(RGTHREE_CONTEXT_MERGE_BIG_CLASS);
+inline constexpr hid RGTHREE_CONTEXT_SWITCH                                    = tools::str::hash_stable(RGTHREE_CONTEXT_SWITCH_CLASS);
+inline constexpr hid RGTHREE_CONTEXT_SWITCH_BIG                                = tools::str::hash_stable(RGTHREE_CONTEXT_SWITCH_BIG_CLASS);
+inline constexpr hid RGTHREE_IMAGE_OR_LATENT_SIZE                              = tools::str::hash_stable(RGTHREE_IMAGE_OR_LATENT_SIZE_CLASS);
+inline constexpr hid RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG                      = tools::str::hash_stable(RGTHREE_SDXL_POWER_PROMPT_SIMPLE_NEG_CLASS);
+inline constexpr hid RGTHREE_SDXL_POWER_PROMPT_POS                             = tools::str::hash_stable(RGTHREE_SDXL_POWER_PROMPT_POS_CLASS);
+inline constexpr hid RGTHREE_POWER_PROMPT                                      = tools::str::hash_stable(RGTHREE_POWER_PROMPT_CLASS);
+inline constexpr hid RGTHREE_POWER_PROMPT_SIMPLE                               = tools::str::hash_stable(RGTHREE_POWER_PROMPT_SIMPLE_CLASS);
+inline constexpr hid RGTHREE_POWER_LORA_LOADER                                 = tools::str::hash_stable(RGTHREE_POWER_LORA_LOADER_CLASS);
 
-constexpr hid IMPACT_SWITCH                                             = tools::str::hash_stable(IMPACT_SWITCH_CLASS);
-constexpr hid IMPACT_LATENT_SWITCH                                      = tools::str::hash_stable(IMPACT_LATENT_SWITCH_CLASS);
-constexpr hid IMPACT_SEGS_SWITCH                                        = tools::str::hash_stable(IMPACT_SEGS_SWITCH_CLASS);
-constexpr hid IMPACT_INVERSED_SWITCH                                    = tools::str::hash_stable(IMPACT_INVERSED_SWITCH_CLASS);
-constexpr hid IMPACT_REMOTE_INT                                         = tools::str::hash_stable(IMPACT_REMOTE_INT_CLASS);
-constexpr hid IMPACT_REMOTE_BOOL                                        = tools::str::hash_stable(IMPACT_REMOTE_BOOL_CLASS);
-constexpr hid IMPACT_REMOTE_FLOAT                                       = tools::str::hash_stable(IMPACT_REMOTE_FLOAT_CLASS);
-constexpr hid IMPACT_REMOTE_STRING                                      = tools::str::hash_stable(IMPACT_REMOTE_STRING_CLASS);
-constexpr hid IMPACT_REMOTE_TEXT                                        = tools::str::hash_stable(IMPACT_REMOTE_TEXT_CLASS);
-constexpr hid IMPACT_SET_BYPASS                                         = tools::str::hash_stable(IMPACT_SET_BYPASS_CLASS);
-constexpr hid IMPACT_SET_MUTE                                           = tools::str::hash_stable(IMPACT_SET_MUTE_CLASS);
-constexpr hid IMPACT_SET_WIDGET_VALUE                                   = tools::str::hash_stable(IMPACT_SET_WIDGET_VALUE_CLASS);
-constexpr hid IMPACT_VALUE_RECEIVER                                     = tools::str::hash_stable(IMPACT_VALUE_RECEIVER_CLASS);
-constexpr hid IMPACT_PREVIEW_BRIDGE                                     = tools::str::hash_stable(IMPACT_PREVIEW_BRIDGE_CLASS);
-constexpr hid IMPACT_PREVIEW_BRIDGE_LATENT                              = tools::str::hash_stable(IMPACT_PREVIEW_BRIDGE_LATENT_CLASS);
+inline constexpr hid IMPACT_SWITCH                                             = tools::str::hash_stable(IMPACT_SWITCH_CLASS);
+inline constexpr hid IMPACT_LATENT_SWITCH                                      = tools::str::hash_stable(IMPACT_LATENT_SWITCH_CLASS);
+inline constexpr hid IMPACT_SEGS_SWITCH                                        = tools::str::hash_stable(IMPACT_SEGS_SWITCH_CLASS);
+inline constexpr hid IMPACT_INVERSED_SWITCH                                    = tools::str::hash_stable(IMPACT_INVERSED_SWITCH_CLASS);
+inline constexpr hid IMPACT_REMOTE_INT                                         = tools::str::hash_stable(IMPACT_REMOTE_INT_CLASS);
+inline constexpr hid IMPACT_REMOTE_BOOL                                        = tools::str::hash_stable(IMPACT_REMOTE_BOOL_CLASS);
+inline constexpr hid IMPACT_REMOTE_FLOAT                                       = tools::str::hash_stable(IMPACT_REMOTE_FLOAT_CLASS);
+inline constexpr hid IMPACT_REMOTE_STRING                                      = tools::str::hash_stable(IMPACT_REMOTE_STRING_CLASS);
+inline constexpr hid IMPACT_REMOTE_TEXT                                        = tools::str::hash_stable(IMPACT_REMOTE_TEXT_CLASS);
+inline constexpr hid IMPACT_SET_BYPASS                                         = tools::str::hash_stable(IMPACT_SET_BYPASS_CLASS);
+inline constexpr hid IMPACT_SET_MUTE                                           = tools::str::hash_stable(IMPACT_SET_MUTE_CLASS);
+inline constexpr hid IMPACT_SET_WIDGET_VALUE                                   = tools::str::hash_stable(IMPACT_SET_WIDGET_VALUE_CLASS);
+inline constexpr hid IMPACT_VALUE_RECEIVER                                     = tools::str::hash_stable(IMPACT_VALUE_RECEIVER_CLASS);
+inline constexpr hid IMPACT_PREVIEW_BRIDGE                                     = tools::str::hash_stable(IMPACT_PREVIEW_BRIDGE_CLASS);
+inline constexpr hid IMPACT_PREVIEW_BRIDGE_LATENT                              = tools::str::hash_stable(IMPACT_PREVIEW_BRIDGE_LATENT_CLASS);
 
 } // namespace js

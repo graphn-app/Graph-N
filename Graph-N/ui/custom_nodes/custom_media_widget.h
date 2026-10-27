@@ -5,7 +5,8 @@
 #pragma once
 #include "core/alive.h"
 
-namespace data {
+namespace data
+{
 struct Pin;
 class NodeInstance;
 }
@@ -18,11 +19,10 @@ class CustomMediaWidget final : public IsAlive
 public:
     CustomMediaWidget() noexcept;
     ~CustomMediaWidget() noexcept;
-    NO_COPY_MOVE(CustomMediaWidget);
 
     void draw_custom_widget(data::NodeInstance* node, float pos, float width);
-    void upload_edited_image(data::NodeInstance* node, std::filesystem::path&& image_path, bool image_is_mask, const std::function<void(const std::string&, const std::string&)>& callback = nullptr);
-    void reset_widgets();
+    void upload_edited_image(data::NodeInstance* node, const std::filesystem::path& image_path, bool image_is_mask, const std::function<void(const std::string&, const std::string&)>& callback = nullptr);
+    void reset_widgets() noexcept;
 
     bool get_current_image_paths(data::NodeInstance* node, std::filesystem::path& path, std::filesystem::path& server_name) const;
 
@@ -111,14 +111,14 @@ private:
     Widget m_videos_in, m_videos_out;
     Widget m_audios_in, m_audios_out;
 
-    struct OutputData
+    struct OutputData final
     {
         NodeObjFlags media_type;
         WidgetItem item;
     };
-    struct PairHash
+    struct PairHash final
     {
-        std::size_t operator()(const std::pair<wid, iid>& p) const
+        std::size_t operator()(const std::pair<wid, iid>& p) const noexcept
         {
             static_assert(std::is_same_v<wid, uint32_t>, "Update hash function");
             static_assert(std::is_same_v<iid, uint32_t>, "Update hash function");

@@ -36,14 +36,14 @@ public:
     void stop_and_cleanup() noexcept override;
 
     void rebuild_items();
-    void rename_project(wid id) noexcept;
+    void rename_project(wid id);
 
 private:
     DlgCode show(bool& focused) override;
     void show_wfs();
 
     void create_toolbar();
-    void handle_hotkeys_changed(); // HotkeysChangedHandler
+    void handle_hotkeys_changed() override; // HotkeysChangedHandler
 
     void rebuild_labels();
     void rebuild_trash();

@@ -106,7 +106,7 @@ bool CNI_FastModeSwitcherRgthree::cni_copy_from(const NodeInstance* copy_from_no
     return true;
 }
 
-void CNI_FastModeSwitcherRgthree::cni_cleanup_base_object()
+void CNI_FastModeSwitcherRgthree::cni_cleanup_base_object() noexcept
 {
     auto& ins = get_inputs();
     for (auto in : ins)
@@ -141,7 +141,7 @@ void CNI_FastModeSwitcherRgthree::add_pin()
 
 void CNI_FastModeSwitcherRgthree::refresh_switchers()
 {
-    auto wf = g::pWfsManager->access(get_workflow_id());
+    const auto* wf = g::pWfsManager->access(get_workflow_id());
     for (auto& sw : m_switches)
     {
         if (sw.linked_node != 0)
@@ -276,7 +276,7 @@ CNI_DeserializedFastActionRgthree CNI_FastModeSwitcherRgthree::dump() const noex
 
 iid CNI_FastModeSwitcherRgthree::node_from_widget(const PinInstance* widget) const noexcept
 {
-    for (auto sw : m_switches)
+    for (const auto sw : m_switches)
     {
         if (sw.widget == widget)
             return sw.linked_node;
@@ -339,7 +339,7 @@ void CNI_FastGroupModeSwitcherRgthree::on_deserialization_ends()
     m_deserialized_values.reset();
 }
 
-void CNI_FastGroupModeSwitcherRgthree::cni_cleanup_base_object()
+void CNI_FastGroupModeSwitcherRgthree::cni_cleanup_base_object() noexcept
 {
     auto& ins = get_inputs();
     for (auto in : ins)
@@ -356,7 +356,7 @@ void CNI_FastGroupModeSwitcherRgthree::cni_cleanup_base_object()
 
 void CNI_FastGroupModeSwitcherRgthree::refresh_switchers()
 {
-    auto wf = g::pWfsManager->access(get_workflow_id());
+    const auto* wf = g::pWfsManager->access(get_workflow_id());
     std::set<iid> added_groups;
     
     for (auto it = m_switches.begin(); it != m_switches.end(); )
@@ -456,7 +456,7 @@ std::list<std::pair<iid, NodeInstFlags>> CNI_FastGroupModeSwitcherRgthree::switc
     if (0 == sw->linked_group)
         return {};
 
-    auto wf = g::pWfsManager->access(get_workflow_id());
+    const auto* wf = g::pWfsManager->access(get_workflow_id());
     auto group = wf->get_node_by_instance(sw->linked_group);
     if (nullptr == group)
         return {};
@@ -486,7 +486,7 @@ CNI_DeserializedFastActionRgthree CNI_FastGroupModeSwitcherRgthree::dump() const
 
 iid CNI_FastGroupModeSwitcherRgthree::node_from_widget(const PinInstance* widget) const noexcept
 {
-    for (auto sw : m_switches)
+    for (const auto sw : m_switches)
     {
         if (sw.widget == widget)
             return sw.linked_group;
@@ -500,14 +500,14 @@ iid CNI_FastGroupModeSwitcherRgthree::node_from_widget(const PinInstance* widget
 
 namespace
 {
-enum ActionType
+enum ActionType : uint8_t
 {
     NoAction,
     DoMute,
     DoBypass,
     DoAlways
 };
-const char* action_name(ActionType act)
+const char* action_name(ActionType act) noexcept
 {
     switch (act)
     {
@@ -520,7 +520,7 @@ const char* action_name(ActionType act)
     }
     return "None";
 }
-bool action(ActionType act, NodeInstFlags& mode)
+bool action(ActionType act, NodeInstFlags& mode) noexcept
 {
     switch (act)
     {
@@ -639,7 +639,7 @@ bool CNI_FastActionRgthree::cni_copy_from(const NodeInstance* copy_from_node, bo
     return true;
 }
 
-void CNI_FastActionRgthree::cni_cleanup_base_object()
+void CNI_FastActionRgthree::cni_cleanup_base_object() noexcept
 {
     auto& ins = get_inputs();
     for (auto in : ins)
@@ -673,12 +673,12 @@ void CNI_FastActionRgthree::add_pin()
 
 void CNI_FastActionRgthree::refresh_switchers()
 {
-    auto wf = g::pWfsManager->access(get_workflow_id());
+    const auto* wf = g::pWfsManager->access(get_workflow_id());
     for (auto& sw : m_switches)
     {
         if (sw.linked_node != 0)
         {
-            auto node = wf->get_node_by_instance(sw.linked_node);
+            const auto* node = wf->get_node_by_instance(sw.linked_node);
             sw.widget->set_name("Enable " + node->get_name());
             sw.pin->set_name(node->get_name());
         }
@@ -729,7 +729,7 @@ void CNI_FastActionRgthree::cni_pin_linked(PinInstance* p1, PinInstance* p2)
     const bool last_switch = (index == m_switches.size() - 1);
 
     auto wf = g::pWfsManager->access(get_workflow_id());
-    auto node = wf->get_node_by_instance(external->get_parent_node());
+    const auto* node = wf->get_node_by_instance(external->get_parent_node());
     LogRAssert(node, "Node not found", );
 
     sw->linked_node = external->get_parent_node();
@@ -816,7 +816,7 @@ CNI_DeserializedFastActionRgthree CNI_FastActionRgthree::dump() const noexcept
 
 iid CNI_FastActionRgthree::node_from_widget(const PinInstance* widget) const noexcept
 {
-    for (auto sw : m_switches)
+    for (const auto sw : m_switches)
     {
         if (sw.widget == widget)
             return sw.linked_node;
@@ -903,7 +903,7 @@ void CNI_BookmarkRgthree::cni_init()
 #endif // #if 0
 }
 
-void CNI_BookmarkRgthree::cni_cleanup_base_object()
+void CNI_BookmarkRgthree::cni_cleanup_base_object() noexcept
 {
     auto& ins = get_inputs();
     for (auto in : ins)

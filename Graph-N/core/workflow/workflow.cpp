@@ -43,10 +43,14 @@ Workflow::Workflow(const char* uuid, const char* name)
 
 Workflow::~Workflow() noexcept
 {
-    if (g::pGraphN != nullptr && !m_wf_data.ro)
-        g::pGraphN->unsubscribe_comfyui_validity_state(this);
+    try
+    {
+        if (g::pGraphN != nullptr && !m_wf_data.ro)
+            g::pGraphN->unsubscribe_comfyui_validity_state(this);
 
-    clear_wf();
+        clear_wf();
+    }
+    catch (...) {}
 }
 
 void Workflow::init()
@@ -516,7 +520,7 @@ void Workflow::remove_node(NodeInstanceRo* node)
     m_nodes_ro.erase(n_it);
 }
 
-void Workflow::remove_pin(const PinInstance* pin, bool cleanup_ed /*= true*/) noexcept
+void Workflow::remove_pin(const PinInstance* pin, bool cleanup_ed /*= true*/)
 {
     LogRAssert(pin, "Zero ptr", );
     LogRAssert(pin->state().links == 0, "Links must be removed before pin removal. w:" << get_id() << ", p:" << pin->get_instance_id() << ", ls:" << pin->state().links, );
@@ -552,7 +556,7 @@ void Workflow::remove_link(const Link* link)
     m_links.erase(it);
 }
 
-void Workflow::unlink_node(NodeInstance* node)
+void Workflow::unlink_node(const NodeInstance* node)
 {
     std::vector<Link*> links;
     links.reserve(m_links.size());
@@ -1067,7 +1071,7 @@ void Workflow::reset_wf() noexcept
     }
 }
 
-void Workflow::clear_wf() noexcept
+void Workflow::clear_wf()
 {
     auto links = get_links_no_reroutes();
     for (auto link : links)
@@ -1175,7 +1179,7 @@ void Workflow::apply_pre_flight_mutations()
 
             if (node_id != 0)
             {
-                auto target_node = get_node_by_instance(node_id);
+                const auto* target_node = get_node_by_instance(node_id);
                 if (target_node != nullptr)
                 {
                     auto& target_ins = target_node->get_inputs();
@@ -1214,7 +1218,7 @@ void Workflow::apply_runtime_updates(iid node_id, const std::string& pin_name, P
 {
     if (0 == node_id)
         return;
-    auto target_node = get_node_by_instance(node_id);
+    const auto* target_node = get_node_by_instance(node_id);
     if (nullptr == target_node)
         return;
 

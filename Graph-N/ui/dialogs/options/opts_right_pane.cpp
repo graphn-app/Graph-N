@@ -54,8 +54,6 @@ enum : uint8_t
     _i_count
 };
 
-OptRightPane::~OptRightPane() noexcept = default;
-
 void OptRightPane::init(OptsData& data)
 {
     m_data = &data;

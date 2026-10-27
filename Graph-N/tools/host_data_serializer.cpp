@@ -35,7 +35,7 @@ Blob HostSerializer::serialize(const HostData& data)
 
     wr.push(data.host_id);
 
-    wr.push(static_cast<uint8_t>(data.cmd));
+    wr.push(cast::to_u8(data.cmd));
     wr.push(data.source_path.wstring());
     wr.push(data.dest_path.wstring());
     wr.push(data.sam_enabled);
@@ -70,7 +70,7 @@ HostData HostSerializer::deserialize(const Blob& blob)
 
     ret.host_id = rd.pop_u64();
 
-    ret.cmd = static_cast<HostData::Command>(rd.pop_u8());
+    ret.cmd = cast::to<HostData::Command>(rd.pop_u8());
     ret.source_path = rd.pop_wstring();
     ret.dest_path = rd.pop_wstring();
     ret.sam_enabled = rd.pop_bool();

@@ -378,7 +378,7 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
     }
 }
 
-void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed) noexcept
+void NodeDrawer::post_draw_node(const data::NodeInstance* node, bool execution_failed) noexcept
 {
     LogRAssert(node, "Zero ptr", );
     LogRAssert(node == m_active_node, "Invalid node ptr", );
@@ -410,7 +410,7 @@ void NodeDrawer::post_draw_node(data::NodeInstance* node, bool execution_failed)
     m_active_node = nullptr;
 }
 
-void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node_idx*/, const std::set<std::string>* failed_pins)
+void NodeDrawer::draw_node(const data::NodeInstance* node, float node_w, size_t /*node_idx*/, const std::set<std::string>* failed_pins)
 {
     LogRAssert(node, "Zero ptr", );
     LogRAssert(m_active_node == node, "Invalid node ptr", );
@@ -672,7 +672,7 @@ void NodeDrawer::draw_node(data::NodeInstance* node, float node_w, size_t /*node
         m_active_node->m_last_all_widgets_h = ImGui::GetCursorPosY() - y_off;
 }
 
-void NodeDrawer::draw_group(data::NodeInstance* node, size_t /*node_idx*/)
+void NodeDrawer::draw_group(const data::NodeInstance* node, size_t /*node_idx*/)
 {
     if (m_node_culled)
     {
@@ -1325,7 +1325,7 @@ void NodeDrawer::draw_widget_str(data::PinInstance* pin, float widget_name_width
     ImGui::PopID(2);
 }
 
-void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width) noexcept
+void NodeDrawer::draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width)
 {
     auto obj = pin->get_object();
 
@@ -1521,7 +1521,7 @@ bool NodeDrawer::draw_reroute_appender(float offset) noexcept
     return pressed;
 }
 
-void NodeDrawer::draw_cag_helper(const data::PinInstance* pin) const noexcept
+void NodeDrawer::draw_cag_helper(const data::PinInstance* pin) const
 {
     if (ControlAfterGenerate::Fixed == pin->state().cag_val) [[likely]]
         return;
@@ -2211,7 +2211,7 @@ void NodeDrawer::handle_node_collapsing(const data::NodeInstance* node)
 
 float NodeDrawer::get_zoomed_fade_alpha() const noexcept
 {
-    const float fade_range = ZOOMED_FADE - ZOOMED_MAX;
+    constexpr float fade_range = ZOOMED_FADE - ZOOMED_MAX;
     float alpha = 1.0f - ((m_zoom - ZOOMED_MAX) / fade_range);
     alpha = std::clamp(alpha, 0.0f, 1.0f);
     return std::max(0.2f, alpha);
@@ -2231,7 +2231,7 @@ void NodeDrawer::draw_zoomed_low_box(float width, float height) const noexcept
     ImGui::Dummy(ImVec2(width, height));
 }
 
-void NodeDrawer::calc_canvas_area()
+void NodeDrawer::calc_canvas_area() noexcept
 {
     if (m_first_frame) [[unlikely]]
         return;

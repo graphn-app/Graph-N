@@ -9,7 +9,7 @@
 namespace data
 {
 
-void WfSerializerToBlob::serialize_js_node()
+void WfSerializerToBlob::serialize_js_node() noexcept
 {
     //switch (m_curr_node->get_object()->get_hash())
     //{

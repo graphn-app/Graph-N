@@ -12,7 +12,7 @@ class NodeInstance;
 class PinInstance;
 class Link;
 
-struct ParseResult
+struct ParseResult final
 {
     Node* node_obj = nullptr;
     NodeInstance* node_inst = nullptr;
@@ -30,7 +30,7 @@ class WfDeserializerFromJson final
 {
 public:
     WfDeserializerFromJson(Workflow* wf, const o_json& j);
-    ~WfDeserializerFromJson() = default;
+    ~WfDeserializerFromJson() noexcept = default;
 
     NO_COPY_MOVE(WfDeserializerFromJson);
 
@@ -44,7 +44,7 @@ private:
     bool deserialize_links();
     bool handle_node_errors(const o_json& jnode, ParseResult& result);
 
-    void deserialize_js_node(const o_json& j, ParseResult& result);
+    void deserialize_js_node(const o_json& j, ParseResult& result) noexcept;
     void deserialize_cni_node(const o_json& j, ParseResult& result);
     void deserialize_cni_node_primitive(const o_json& j, ParseResult& result);
     void deserialize_cni_node_reroute(const o_json& j, ParseResult& result);

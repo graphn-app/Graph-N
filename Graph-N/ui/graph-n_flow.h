@@ -108,7 +108,7 @@ class GraphN_Flow final
 {
 public:
     GraphN_Flow() noexcept;
-    ~GraphN_Flow() noexcept;
+    ~GraphN_Flow() noexcept override;
 
     bool init();
     bool run();
@@ -123,7 +123,7 @@ public:
     ImGuiID get_main_dockspace_id() noexcept { return m_main_dock_id; }
 
     void reconnect();
-    void handle_comfyui_runserver_error(int32_t error, std::string&& title, std::string&& description) noexcept;
+    void handle_comfyui_runserver_error(int32_t error, std::string&& title, std::string&& description);
 
     void open_settings_dlg(OptPane section = OptPane::_count);
     void show_logs_panel(bool show) noexcept;
@@ -179,8 +179,8 @@ public:
     void wf_locate_node(wid id, data::NodeInstance* node);
     std::set<data::NodeInstance*> wf_get_nodes_in_group(wid wf_id, data::NodeInstance* group);
     void wf_reload();
-    void wf_rename() noexcept;
-    wid wf_get_active(std::set<wid>* all_opened = nullptr) const noexcept;
+    void wf_rename();
+    wid wf_get_active(std::set<wid>* all_opened = nullptr) const;
     bool wf_can_run() const noexcept;
     void wf_run(bool add_front) const;
     void wf_num_of_runs(int32_t num) const noexcept;
@@ -212,27 +212,27 @@ public:
     void on_menu_quit() noexcept;
     void on_menu_fullscreen();
     void on_menu_command() noexcept;
-    void on_menu_restart() noexcept;
+    void on_menu_restart();
     void on_menu_options();
     void on_menu_panel_toggle_active() noexcept;
     void on_menu_next_project(bool next);
     void on_menu_panel_window(ViewDialogs wnd, bool toggle = false);   
     void on_menu_activate_wf(const PanelWorkflow* wf_panel);
-    void on_menu_wf_rename() noexcept;
+    void on_menu_wf_rename();
     void on_menu_close_all_projects(bool keep_active);
     void on_menu_queue_pause() noexcept;
     void on_menu_queue_interrupt();
 
     // text editor panel public
     void txt_panel_create(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint);
-    void txt_panel_update(wid wf, data::NodeInstance* node);
+    void txt_panel_update(wid wf, const data::NodeInstance* node);
     void txt_panel_delete(wid wf, const data::NodeInstance* node = nullptr, const data::PinInstance* pin = nullptr) noexcept;
     void txt_panel_clear(wid wf) noexcept;
-    std::tuple<int32_t, int32_t, int32_t> txt_panel_get_selection(wid wf, data::NodeInstance* node, data::PinInstance* pin) const noexcept;
+    std::tuple<int32_t, int32_t, int32_t> txt_panel_get_selection(wid wf, const data::NodeInstance* node, const data::PinInstance* pin) const noexcept;
 
     // custom nodes handling
-    CustomMediaWidget& custom_media_widgets() { return *m_custom_media_widget.get(); }
-    CustomJsNode& custom_js_nodes() { return *m_custom_js_node.get(); }
+    CustomMediaWidget& custom_media_widgets() noexcept { return *m_custom_media_widget.get(); }
+    CustomJsNode& custom_js_nodes() noexcept { return *m_custom_js_node.get(); }
 
     // modal msg box
     void modal_begin(std::string&& caption, std::string&& message, int32_t buttons, ModalDlgCtrl def, const std::function<void(ModalDlgCtrl)>& callback);
@@ -244,7 +244,7 @@ public:
     void check_ws_message(const std::function<void(bool, std::string&)>& callback);
 
     // stats
-    mngr::StatsData& get_stats() { return m_stats; }
+    mngr::StatsData& get_stats() noexcept { return m_stats; }
 
 private:
     void check_connection();
@@ -267,7 +267,7 @@ private:
     void show_options_dlg();
     void show_sync_projs_dlg();
     void show_activity_bar();
-    void show_debug_windows() noexcept;
+    void show_debug_windows();
     void show_modal();
     void show_wf_debug_dlg();
 
@@ -289,8 +289,8 @@ private:
     void on_menu_export_json(bool api);
     void on_menu_export_json_all(bool api);
     void on_menu_sync_projects();
-    void on_menu_update() noexcept;
-    void on_menu_about() noexcept;
+    void on_menu_update();
+    void on_menu_about();
 
     // WF & WF panels
     PanelWorkflow* wf_panel_find(wid id) const noexcept;

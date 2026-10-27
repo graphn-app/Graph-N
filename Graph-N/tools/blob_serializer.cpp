@@ -237,7 +237,7 @@ Writer& Writer::push(const Writer& val)
     return *this;
 }
 
-void Writer::patch_begin() noexcept
+void Writer::patch_begin()
 {
     const auto off = m_buffer->size();
     m_patches.push_back(off);

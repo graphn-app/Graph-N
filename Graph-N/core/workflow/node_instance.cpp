@@ -107,7 +107,7 @@ uint64_t NodeInstance::reset_state() noexcept
 }
 
 template <typename T>
-T increment_t(T val, const T min, const T max, const T step)
+T increment_t(T val, const T min, const T max, const T step) noexcept
 {
     if (val + step > max)
         val = min;
@@ -117,7 +117,7 @@ T increment_t(T val, const T min, const T max, const T step)
 }
 
 template <typename T>
-T decrement_t(T val, const T min, const T max, const T step)
+T decrement_t(T val, const T min, const T max, const T step) noexcept
 {
     if (val - step < min)
         val = max;

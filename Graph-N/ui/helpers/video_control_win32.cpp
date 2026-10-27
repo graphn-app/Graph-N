@@ -406,7 +406,7 @@ int32_t VideoControl_Win32::load(const std::filesystem::path& filepath, uint32_t
     return m_video_id;
 }
 
-void VideoControl_Win32::play_impl(int32_t video_id) noexcept
+void VideoControl_Win32::play_impl(int32_t video_id)
 {
     LogRAssert(m_video_id == video_id, "Video must be loaded first", );
     if (m_gif_playing)
@@ -424,7 +424,7 @@ void VideoControl_Win32::play_impl(int32_t video_id) noexcept
     m_cv.notify_all();
 }
 
-void VideoControl_Win32::stop_impl(int32_t video_id) noexcept
+void VideoControl_Win32::stop_impl(int32_t video_id)
 {
     LogRAssert(m_video_id == video_id, "Video must be loaded first", );
     m_video_id = 0;
@@ -438,7 +438,7 @@ void VideoControl_Win32::stop_impl(int32_t video_id) noexcept
     Log("Video #" << video_id << ": stop playing");
 }
 
-void VideoControl_Win32::seek(int32_t video_id, float pos) noexcept
+void VideoControl_Win32::seek(int32_t video_id, float pos)
 {
     LogRAssert(m_video_id == video_id, "Video must be loaded first", );
     if (m_gif_playing)
@@ -516,7 +516,7 @@ ImTextureID VideoControl_Win32::get_frame_impl(int32_t video_id, float* out_w /*
 
 void VideoControl_Win32::decode_thread_loop(mngr::VideoInfo info)
 {
-    struct ComInitRAII 
+    struct ComInitRAII final
     {
         HRESULT hr = S_OK;
         ComInitRAII() { hr = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED); }

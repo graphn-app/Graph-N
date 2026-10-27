@@ -28,9 +28,9 @@ private:
     void serialize_link();
 
     void serialize_node_definition();
-    void serialize_cni_node_definition();
+    void serialize_cni_node_definition() noexcept;
 
-    void serialize_js_node();
+    void serialize_js_node() noexcept;
 
     void serialize_cni_node();
     void serialize_cni_node_primitive();

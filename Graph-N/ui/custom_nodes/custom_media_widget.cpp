@@ -78,7 +78,7 @@ void CustomMediaWidget::draw_custom_widget(data::NodeInstance* node, float pos, 
     m_node = nullptr;
 }
 
-void CustomMediaWidget::upload_edited_image(data::NodeInstance* node, std::filesystem::path&& image_path, bool image_is_mask, const std::function<void(const std::string&, const std::string&)>& callback /*= nullptr*/)
+void CustomMediaWidget::upload_edited_image(data::NodeInstance* node, const std::filesystem::path& image_path, bool image_is_mask, const std::function<void(const std::string&, const std::string&)>& callback /*= nullptr*/)
 {
     m_images_in.upload_target = 0;
     if (node != nullptr)
@@ -90,11 +90,9 @@ void CustomMediaWidget::draw_widget_message(const char* const lines[], size_t co
 {
     const auto text_centered = [avail = m_widget_width, pos = m_start_pos](const char *text) noexcept
     {
-        bool click = false;
         const float w = ImGui::CalcTextSize(text).x;
         ImGui::SetCursorPosX(pos + (avail - w) * 0.5f);
         ImGui::TextUnformatted(text);
-        return click;
     };
 
     ImGui::Dummy(ImVec2(10.0f, 20.0f));
@@ -343,7 +341,7 @@ const char* CustomMediaWidget::format_timeline(float duration, float pos)
     return buffer;
 }
 
-void CustomMediaWidget::reset_widgets()
+void CustomMediaWidget::reset_widgets() noexcept
 {
     m_images_in = {};
     m_images_out = {};
@@ -356,7 +354,7 @@ void CustomMediaWidget::reset_widgets()
 void CustomMediaWidget::add_output(
     wid wf_id, iid node_id, mngr::ExecTask::OutputType type, const std::string& data, const std::string& server_filename, int32_t preloaded_media_id)
 {
-    auto wf = g::pWfsManager->access(wf_id, true);
+    const auto* wf = g::pWfsManager->access(wf_id, true);
     if (nullptr == wf)   // zero wf is not an error, it could be closed already
         return;
     auto node = wf->get_node_by_instance(node_id);

@@ -21,7 +21,7 @@ class DbManager final : public Manager
 {
 public:
     DbManager();
-    ~DbManager() override;
+    ~DbManager() noexcept override;
 
     const DbMetadata& get_prev_db_metadata() const noexcept { return m_prev_meta; }
     static DbMetadata read_db_metadata();

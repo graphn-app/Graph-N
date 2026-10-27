@@ -397,13 +397,13 @@ void PanelToolbar::draw_background()
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     // 1. ImDrawList requires absolute screen coordinates
-    ImVec2 p_min = ImGui::GetCursorScreenPos();
+    const ImVec2 p_min = ImGui::GetCursorScreenPos();
 
     // 2. Define dimensions. Using GetFrameHeight() to match standard button heights
     const float width = ImGui::GetContentRegionAvail().x;
     const float height = ImGui::GetFrameHeight(); 
 
-    ImVec2 p_max = { p_min.x + width, p_min.y + height };
+    const ImVec2 p_max = { p_min.x + width, p_min.y + height };
 
     // 3. Background color in IM_COL32(RGBA) format
     //const ImU32 color = IM_COL32(128, 128, 128, 128); // Semi-transparent gray
@@ -635,7 +635,7 @@ void PanelToolbar::draw_toolbar()
 
         ImGui::PushID(&el);
 
-        float item_w = calc_item_layout_w(el);
+        const float item_w = calc_item_layout_w(el);
         start_pos -= item_w;
         ImGui::SetCursorPosX(start_pos);
 

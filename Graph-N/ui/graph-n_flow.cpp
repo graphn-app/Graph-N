@@ -417,7 +417,7 @@ void GraphN_Flow::cleanup_frame()
     for (auto panel : m_pending_cleanups.text_editors)
     {
         panel->stop_and_cleanup();
-        std::erase_if(m_panels_text_editor, [panel](const std::unique_ptr<PanelTextEditor>& ptr) { return ptr.get() == panel; });
+        std::erase_if(m_panels_text_editor, [panel](const std::unique_ptr<PanelTextEditor>& ptr) noexcept { return ptr.get() == panel; });
         m_all_dialogs.erase(panel);
     }
 
@@ -439,7 +439,7 @@ void GraphN_Flow::cleanup_frame()
 
         panel->stop_and_cleanup();
         m_all_dialogs.erase(panel);
-        std::erase_if(m_panels_wf, [panel](const std::unique_ptr<PanelWorkflow>& ptr) { return ptr.get() == panel; });
+        std::erase_if(m_panels_wf, [panel](const std::unique_ptr<PanelWorkflow>& ptr) noexcept { return ptr.get() == panel; });
     }
     if (reassign_sequential_numbers)
     {
@@ -821,7 +821,7 @@ void GraphN_Flow::txt_panel_create(wid wf, data::NodeInstance* node, data::PinIn
     current_panel->update(wf, node, pin, buffer, hint);
 }
 
-void GraphN_Flow::txt_panel_update(wid wf, data::NodeInstance* node)
+void GraphN_Flow::txt_panel_update(wid wf, const data::NodeInstance* node)
 {
     for (auto& ptr : m_panels_text_editor)
     {
@@ -845,7 +845,7 @@ void GraphN_Flow::txt_panel_clear(wid wf) noexcept
     }
 }
 
-std::tuple<int32_t, int32_t, int32_t> GraphN_Flow::txt_panel_get_selection(wid wf, data::NodeInstance* node, data::PinInstance* pin) const noexcept
+std::tuple<int32_t, int32_t, int32_t> GraphN_Flow::txt_panel_get_selection(wid wf, const data::NodeInstance* node, const data::PinInstance* pin) const noexcept
 {
     for (auto& ptr : m_panels_text_editor)
     {
@@ -970,7 +970,7 @@ void GraphN_Flow::show_activity_bar()
     }
 }
 
-void GraphN_Flow::show_debug_windows() noexcept
+void GraphN_Flow::show_debug_windows()
 {
 #ifdef _DEBUG
     if (m_windows & ViewDebugMetrics)
@@ -1187,7 +1187,7 @@ void GraphN_Flow::show_wf_debug_dlg()
 #endif
 }
 
-void GraphN_Flow::handle_comfyui_runserver_error(int32_t error, std::string&& title, std::string&& description) noexcept
+void GraphN_Flow::handle_comfyui_runserver_error(int32_t error, std::string&& title, std::string&& description)
 {
     description = fmt::format("{}\nAPI error: {}", description, error);
     modal_begin(std::move(title), std::move(description), ModalDlgCtrl::BtnOK | ModalDlgCtrl::IcoErr, ModalDlgCtrl::BtnOK, nullptr);
@@ -1977,9 +1977,9 @@ void GraphN_Flow::check_ws_message(const std::function<void(bool, std::string&)>
 }
 
 namespace {
-void host_open(CustomMediaWidget* wdgt, wid wf_id, iid node_id, HostType type)
+void host_open(const CustomMediaWidget* wdgt, wid wf_id, iid node_id, HostType type)
 {
-    auto wf = g::pWfsManager->access(wf_id);
+    const auto* wf = g::pWfsManager->access(wf_id);
     LogRAssertS(wf, "Wf not found. w:" << wf_id, );
 
     auto node = wf->get_node_by_instance(node_id);
@@ -2042,7 +2042,7 @@ void GraphN_Flow::host_handle_renaming(wid wf_id, iid node_id)
     auto wf = g::pWfsManager->access(wf_id);
     if (node_id != 0)
     {
-        auto node = wf->get_node_by_instance(node_id);
+        const auto* node = wf->get_node_by_instance(node_id);
         g::pHostManager->rename_host(wf_id, node_id, wf->get_data().name, node->get_name());
     }
     else
@@ -2064,7 +2064,7 @@ void GraphN_Flow::check_host_reply()
 
     Log("Host reply to w:" << wf_id << ", n:" << node_id << ", res:" << result << ", img:" << image_path);
 
-    data::Workflow* wf = g::pWfsManager->access(wf_id, true); // can be zero if already closed
+    const data::Workflow* wf = g::pWfsManager->access(wf_id, true); // can be zero if already closed
     if (nullptr == wf)
         return;
     data::NodeInstance* node = wf->get_node_by_instance(node_id); // can be zero if already closed
@@ -2087,7 +2087,7 @@ void GraphN_Flow::check_host_reply()
     };
 
     if (result)
-        m_custom_media_widget->upload_edited_image(node, std::move(image_path), true, callback);
+        m_custom_media_widget->upload_edited_image(node, image_path, true, callback);
 }
 
 }

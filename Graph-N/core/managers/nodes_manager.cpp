@@ -350,7 +350,7 @@ void NodesManager::remove_label(uint32_t label_id)
     g::pOptsManager->items_node_labels_save(m_labels);
 }
 
-void NodesManager::set_node_labels(data::NodeItem* node_item, std::set<uint32_t> labels)
+void NodesManager::set_node_labels(const data::NodeItem* node_item, std::set<uint32_t> labels)
 {
     auto& all_labels = m_labels.get_label_list();
     for (auto it = all_labels.begin(); it != all_labels.end(); ++it)
@@ -372,7 +372,7 @@ std::list<data::NodeItem*> NodesManager::get_nodes_in_label(uint32_t label_id) c
     std::list<data::NodeItem*> items;
     for (auto node_hash : label->members)
     {
-        auto item_it = std::ranges::find_if(m_node_items, [node_hash](const std::unique_ptr<data::NodeItem>& item) { return item->node != nullptr && item->node->get_hash() == node_hash; });
+        auto item_it = std::ranges::find_if(m_node_items, [node_hash](const std::unique_ptr<data::NodeItem>& item) noexcept { return item->node != nullptr && item->node->get_hash() == node_hash; });
         if (item_it != m_node_items.end())
         {
             items.push_back((*item_it).get());
@@ -382,7 +382,7 @@ std::list<data::NodeItem*> NodesManager::get_nodes_in_label(uint32_t label_id) c
     return items;
 }
 
-bool NodesManager::get_is_node_in_label(data::NodeItem* node_item, uint32_t label_id) const
+bool NodesManager::get_is_node_in_label(const data::NodeItem* node_item, uint32_t label_id) const
 {
     LogRAssert(node_item, "Zero ptr", false);
     LogRAssert(node_item->node, "Zero node ptr (groups not allowed here)", false);

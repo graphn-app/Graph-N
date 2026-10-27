@@ -95,7 +95,7 @@ private:
 
     void check_history();
     void create_toolbar();
-    void handle_hotkeys_changed(); // HotkeysChangedHandler
+    void handle_hotkeys_changed() override; // HotkeysChangedHandler
 
     void on_revert(PanelToolbar::Element& el);
     void on_pre_queue_status(PanelToolbar::Element& el); 

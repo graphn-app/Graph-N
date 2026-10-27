@@ -45,7 +45,7 @@ struct HostData final
     bool can_upload_to_node = true;
 };
 
-class HostSerializer
+class HostSerializer final
 {
 public:
     static Blob serialize(const HostData& data);

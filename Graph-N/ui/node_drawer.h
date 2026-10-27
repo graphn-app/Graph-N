@@ -31,7 +31,6 @@ class WorkflowAction;
 namespace ui
 {
 
-
 class NodeDrawer final
 {
 public:
@@ -51,9 +50,9 @@ public:
         const std::function<bool()>& hotkey_handler);
 
     void pre_draw_node(data::NodeInstance* node, bool execution_failed);
-    void draw_node(data::NodeInstance* node, float node_w, size_t node_idx, const std::set<std::string>* failed_pins);
-    void draw_group(data::NodeInstance* node, size_t node_idx);
-    void post_draw_node(data::NodeInstance* node, bool execution_failed) noexcept;
+    void draw_node(const data::NodeInstance* node, float node_w, size_t node_idx, const std::set<std::string>* failed_pins);
+    void draw_group(const data::NodeInstance* node, size_t node_idx);
+    void post_draw_node(const data::NodeInstance* node, bool execution_failed) noexcept;
 
     void draw_links(const std::vector<std::unique_ptr<data::Link>>& links);
     void query_new_item(const std::function<void(data::PinInstance*)>& unlink_handler, const std::function<void(data::PinInstance*, const ImVec2&)>& new_node_handler);
@@ -123,12 +122,12 @@ private:
     void draw_widget_number(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_bool(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_str(data::PinInstance* pin, float widget_name_width, float widget_value_width);
-    void draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width) noexcept;
+    void draw_widget_str_ml(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_combo(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_color(data::PinInstance* pin, float widget_name_width, float widget_value_width);
     void draw_widget_separator(float offset, bool& opened, bool& temp_open) noexcept;
     bool draw_reroute_appender(float offset) noexcept;
-    void draw_cag_helper(const data::PinInstance* pin) const noexcept;
+    void draw_cag_helper(const data::PinInstance* pin) const;
 
     void handle_widget_active_state(data::PinInstance* pin, const Primitive* backup = nullptr);
     bool handle_node_resize() noexcept;
@@ -150,7 +149,7 @@ private:
     bool zoomed_skip_captions() const noexcept { return (ZoomedVisibility::Low == m_zoomed_visibility || ZoomedVisibility::None == m_zoomed_visibility); }
     bool zoomed_skip_links() const noexcept { return ZoomedVisibility::None == m_zoomed_visibility; }
 
-    void calc_canvas_area();
+    void calc_canvas_area() noexcept;
     void cull_node() noexcept;
     void draw_meaningful_pins_only();
 

@@ -15,7 +15,7 @@
 namespace data
 {
 
-WfDeserializerFromJsonApi::WfDeserializerFromJsonApi(Workflow* wf, const o_json& j)
+WfDeserializerFromJsonApi::WfDeserializerFromJsonApi(Workflow* wf, const o_json& j) noexcept
     : m_wf(wf)
     , m_json(j)
 {}
@@ -96,7 +96,7 @@ bool WfDeserializerFromJsonApi::deserialize()
                     api_node.inputs.push_back(std::move(input));
                 }
 
-                api_node.jinputs = std::move(jinputs);
+                api_node.jinputs = jinputs;
             }
 
             nodes.push_back(std::move(api_node));
@@ -389,7 +389,7 @@ void WfDeserializerFromJsonApi::arrange_nodes()
         return;
     const auto& wf_links = m_wf->get_links_all();
 
-    struct NodeWithParents
+    struct NodeWithParents final
     {
         NodeInstance* node = nullptr;
         std::vector<NodeInstance*> parents;

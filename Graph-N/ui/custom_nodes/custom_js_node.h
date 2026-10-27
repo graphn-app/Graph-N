@@ -22,12 +22,13 @@ namespace ui
 class CustomJsNode final : public IsAlive
 {
 public:
-    NO_COPY_MOVE_CTORS(CustomJsNode);
+    CustomJsNode() noexcept = default;
+    ~CustomJsNode() noexcept = default;
 
     void test(mngr::NodesManager* manager, data::Node* node);
     void init(data::NodeInstance* node);
     void draw(data::NodeInstance* node, float off, float width);
-    void handle_pin_value_changed(data::NodeInstance* node, data::PinInstance* pin);
+    void handle_pin_value_changed(const data::NodeInstance* node, data::PinInstance* pin);
     bool handle_context_menu();
     void handle_history(uint64_t id, wid wf_id, iid node_id, const blob::Blob& value);
     void handle_edited_image(wid wf_id, iid node_id, const std::string& image_name, const std::string& image_dir);
@@ -39,14 +40,14 @@ private:
     void draw_Load3D(data::NodeInstance* node, float off, float width);
     void draw_Primitive(data::NodeInstance* node, float off, float width);
 
-    void handle_insert_lora_rgthree(data::NodeInstance* node, data::PinInstance* pin);
+    void handle_insert_lora_rgthree(const data::NodeInstance* node, data::PinInstance* pin);
     bool handle_context_menu_lora_loader_rgthree();
     void handle_history_lora_loader_rgthree(wid wf_id, iid node_id, const blob::Blob& value);
 
     void handle_impact_preview(wid wf_id, iid node_id, const std::string& image_name, const std::string& image_dir);
 
 private:
-    struct ContextMenuData
+    struct ContextMenuData final
     {
         hid id = 0;
         wid wf_id = 0;

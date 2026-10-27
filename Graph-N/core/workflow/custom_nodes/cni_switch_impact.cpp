@@ -167,7 +167,7 @@ bool CNI_SwitchImpact::cni_copy_from(const NodeInstance* copy_from_node, bool co
     return true;
 }
 
-void CNI_SwitchImpact::cni_cleanup_base_object()
+void CNI_SwitchImpact::cni_cleanup_base_object() noexcept
 {
     auto& ins = get_inputs();
     for (auto in : ins)
@@ -502,7 +502,7 @@ bool CNI_SwitchInversedImpact::cni_copy_from(const NodeInstance* copy_from_node,
     return true;
 }
 
-void CNI_SwitchInversedImpact::cni_cleanup_base_object()
+void CNI_SwitchInversedImpact::cni_cleanup_base_object() noexcept
 {
     auto& ins = get_inputs();
     for (auto in : ins)

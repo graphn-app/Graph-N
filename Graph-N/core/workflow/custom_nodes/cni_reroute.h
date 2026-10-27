@@ -55,7 +55,7 @@ struct LinkedPair final
     LinkedOut output;
 };
 
-struct RerouteData
+struct RerouteData final
 {
     std::list<LinkedPair> m_pairs;
     int32_t m_next_out_index = 1;
@@ -64,8 +64,8 @@ struct RerouteData
 class CNI_Reroute final : public CNI_BaseObj
 {
 public:
-    CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2) noexcept;
-    ~CNI_Reroute() noexcept;
+    CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2);
+    ~CNI_Reroute() noexcept override;
 
     void cni_init() override;
     bool cni_is_applicable() const noexcept override { return true; }
@@ -133,7 +133,7 @@ private:
     void cleanup_pairs(bool keep_linked);
     void refresh_pair_state(LinkedPair& pair);
     PinInstance* add_pin_internal(Workflow* wf, const std::string& type, const std::string& name, int32_t out_index, iid id, hid hash);
-    void remove_pin_internal(Workflow* wf, PinInstance* pin, bool force_cleanup) noexcept;
+    void remove_pin_internal(Workflow* wf, PinInstance* pin, bool force_cleanup);
     void refresh_names();
     void propagate_pair_type(const LinkedPair& pair);
     bool pair_is_hidden(const LinkedPair& pair) const noexcept;

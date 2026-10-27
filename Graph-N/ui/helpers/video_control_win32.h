@@ -29,9 +29,9 @@ protected:
     mngr::VideoInfo get_info(const std::filesystem::path& filepath, uint32_t max_side_len, std::optional<bool>& valid) override;
     int32_t load(const std::filesystem::path& filepath, uint32_t max_side_len) override;
 
-    void play_impl(int32_t video_id) noexcept override;
-    void stop_impl(int32_t video_id) noexcept override;
-    void seek(int32_t video_id, float pos) noexcept override;
+    void play_impl(int32_t video_id) override;
+    void stop_impl(int32_t video_id) override;
+    void seek(int32_t video_id, float pos) override;
 
     bool get_is_playing(int32_t video_id) const noexcept override;
     float get_position(int32_t video_id) const noexcept override;

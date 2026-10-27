@@ -13,10 +13,7 @@ namespace ui
 
 struct DlgData
 {
-    DlgData() noexcept = default;
-    virtual ~DlgData() noexcept = default;
-
-    NO_COPY_MOVE(DlgData);
+    NO_COPY_MOVE_VCTORS(DlgData);
 
     float x = 0;
     float y = 0;

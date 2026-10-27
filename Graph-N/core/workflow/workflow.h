@@ -26,7 +26,7 @@ public:
     Workflow();
     Workflow(const char* uuid, const char* name);
     Workflow(mngr::WfData&& data);
-    ~Workflow() noexcept;
+    ~Workflow() noexcept override;
 
     void init();
 
@@ -70,9 +70,9 @@ public:
     void remove_node(NodeInstance* node);
     void remove_node(NodeInstanceRo* node);
     void remove_link(const Link* link);
-    void remove_pin(const PinInstance* pin, bool cleanup_ed = true) noexcept;
+    void remove_pin(const PinInstance* pin, bool cleanup_ed = true);
 
-    void unlink_node(NodeInstance* node);
+    void unlink_node(const NodeInstance* node);
 
     void bundle_reroutes(std::set<data::NodeInstance*> nodes);
     void separate_reroutes(std::set<data::NodeInstance*> nodes);
@@ -88,7 +88,7 @@ public:
     void prepare_for_api();
 
     void reset_wf() noexcept;
-    void clear_wf() noexcept;
+    void clear_wf();
 
     void increment(const Workflow* copy_to);
     void apply_pre_flight_mutations();

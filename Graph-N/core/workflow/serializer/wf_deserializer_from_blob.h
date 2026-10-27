@@ -29,7 +29,7 @@ private:
     void deserialize_link(blob::Reader& block);
 
     bool check_node_definition(blob::Reader& block) const;
-    bool check_cni_node_definition(blob::Reader& block, const std::string& node_class) const;
+    bool check_cni_node_definition(blob::Reader& block, const std::string& node_class) const noexcept;
 
     NodeInstance* deserialize_js_node(blob::Reader& reader);
 

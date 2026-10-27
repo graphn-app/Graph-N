@@ -12,9 +12,7 @@ class VideoControl : public listener::Timer
 {
 public:
     VideoControl() noexcept = default;
-    virtual ~VideoControl() noexcept;
-
-    NO_COPY_MOVE(VideoControl);
+    virtual ~VideoControl() noexcept override;
 
     virtual void init();
     virtual void stop_and_cleanup();

@@ -9,7 +9,7 @@
 namespace data
 {
 
-void WfSerializerToBlob::serialize_cni_node_definition()
+void WfSerializerToBlob::serialize_cni_node_definition() noexcept
 {
     // do nothing
 }
@@ -121,7 +121,7 @@ void WfSerializerToBlob::serialize_cni_node_reroute()
     m_writer.push(m_curr_node->flags().has(NodeInstFlags::RerouteSplitted));
 
     auto reroute = cast::strict<const data::CNI_Reroute>(m_curr_node);
-    auto poses = reroute->get_splitted_nodes_poses();
+    const auto poses = reroute->get_splitted_nodes_poses();
 
     iid pin_in = 0, pin_out = 0, node = 0, link = 0;
     reroute->get_splitters(node, pin_in, pin_out, link);

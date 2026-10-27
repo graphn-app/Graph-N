@@ -104,6 +104,14 @@
     ClassName(ClassName&&) = delete; \
     ClassName& operator=(ClassName&&) = delete;
 
+#define NO_COPY_MOVE_VCTORS(ClassName) \
+	ClassName() noexcept = default; \
+	virtual ~ClassName() noexcept = default; \
+    ClassName(const ClassName&) = delete; \
+    ClassName& operator=(const ClassName&) = delete; \
+    ClassName(ClassName&&) = delete; \
+    ClassName& operator=(ClassName&&) = delete;
+
 #if defined (_DEBUG) && defined (_WIN32)
 #define BREAK_IF(cond_true)       if ((cond_true))    { __debugbreak(); }
 #else

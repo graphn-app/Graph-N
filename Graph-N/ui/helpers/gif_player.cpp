@@ -9,8 +9,6 @@
 namespace global
 {
 
-GifPlayer::~GifPlayer() noexcept = default;
-
 bool GifPlayer::path_is_gif(const std::filesystem::path& filepath) const
 {
     const auto ext = tools::str::to_lower_ascii(filepath.extension().string());
@@ -155,7 +153,7 @@ ImTextureID GifPlayer::get_frame(float* out_w /*= nullptr*/, float* out_h /*= nu
     }
 
     int32_t target_frame = 0;
-    int32_t total_frames = cast::to_i32(m_timestamps.size());
+    const int32_t total_frames = cast::to_i32(m_timestamps.size());
     for (int32_t i = total_frames - 1; i >= 0; --i)
     {
         if (m_current_time >= m_timestamps[i])

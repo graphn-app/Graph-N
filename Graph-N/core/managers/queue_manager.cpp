@@ -19,7 +19,7 @@ namespace mngr
 QueueManager::QueueManager() noexcept = default;
 QueueManager::~QueueManager() noexcept = default;
 
-void QueueManager::stop_and_cleanup() noexcept
+void QueueManager::stop_and_cleanup()
 {
     interrupt_task();
     dead();

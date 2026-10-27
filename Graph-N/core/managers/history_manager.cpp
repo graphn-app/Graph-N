@@ -847,7 +847,7 @@ void HistoryManager::pop_link_del(const data::Workflow* dest_wf, const HistorySt
     dest_wf->action()->link(p1, p2, real_step->id);
 }
 
-void HistoryManager::pop_blob(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+void HistoryManager::pop_blob(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
 {
     const ActBlob* real_step = cast::dynamic<const ActBlob>(step);
     const blob::Blob& value = std::get<blob::Blob>(do_undo ? real_step->old_val : real_step->new_val);

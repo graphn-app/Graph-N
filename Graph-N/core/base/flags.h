@@ -5,7 +5,7 @@
 #pragma once
 
 template <typename T>
-struct ObjectFlags
+struct ObjectFlags final
 {
     static_assert(std::is_enum_v<T>, "T must be an enum type");
     using U = std::underlying_type_t<T>;

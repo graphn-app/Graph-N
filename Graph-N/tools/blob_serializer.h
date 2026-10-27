@@ -25,7 +25,7 @@ public:
     Blob release() noexcept;
     void reset() noexcept { m_buffer->clear(); }
 
-    void patch_begin() noexcept;
+    void patch_begin();
     void patch_end(uint32_t val) noexcept;
 
     Writer& push(bool val);

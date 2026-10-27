@@ -255,7 +255,7 @@ int32_t InputTextCallback(ImGuiInputTextCallbackData* data)
     {
         // Forward to user callback, if any
         data->UserData = user_data->ChainCallbackUserData;
-        int32_t res = user_data->ChainCallback(data);
+        const int32_t res = user_data->ChainCallback(data);
         data->UserData = user_data;
         return res;
     }
@@ -505,24 +505,24 @@ bool DragIntSmart(const char* label, int64_t* value, int64_t min, int64_t max, c
 
 bool DragDoubleRange(ImGuiID id, double* v_current_min, double* v_current_max, double v_min, double v_max, const char* format_min, const char* format_max) noexcept
 {
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    const ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
         return false;
 
-    ImGuiContext& g = *GImGui;
+    const ImGuiContext& g = *GImGui;
     ImGui::PushID(id);
     ImGui::BeginGroup();
     ImGui::PushMultiItemsWidths(2, ImGui::CalcItemWidth());
 
-    double min_min = (v_min >= v_max) ? -FLT_MAX : v_min;
-    double min_max = (v_min >= v_max) ? *v_current_max : ImMin(v_max, *v_current_max);
+    const double min_min = (v_min >= v_max) ? -FLT_MAX : v_min;
+    const double min_max = (v_min >= v_max) ? *v_current_max : ImMin(v_max, *v_current_max);
     const ImGuiSliderFlags min_flags = ((min_min == min_max) ? ImGuiSliderFlags_ReadOnly : 0);
     bool value_changed = ImGui::DragScalar("##min", ImGuiDataType_Double, v_current_min, 1.0f, &min_min, &min_max, format_min, min_flags);
     ImGui::PopItemWidth();
     ImGui::SameLine(0, g.Style.ItemInnerSpacing.x);
 
-    double max_min = (v_min >= v_max) ? *v_current_min : ImMax(v_min, *v_current_min);
-    double max_max = (v_min >= v_max) ? FLT_MAX : v_max;
+    const double max_min = (v_min >= v_max) ? *v_current_min : ImMax(v_min, *v_current_min);
+    const double max_max = (v_min >= v_max) ? FLT_MAX : v_max;
     const ImGuiSliderFlags max_flags = ((max_min == max_max) ? ImGuiSliderFlags_ReadOnly : 0);
     value_changed |= ImGui::DragScalar("##max", ImGuiDataType_Double, v_current_max, 1.0f, &max_min, &max_max, format_max, max_flags);
     ImGui::PopItemWidth();
@@ -536,25 +536,25 @@ bool DragDoubleRange(ImGuiID id, double* v_current_min, double* v_current_max, d
 
 bool DragIntRange(ImGuiID id, int64_t* v_current_min, int64_t* v_current_max, int64_t v_min, int64_t v_max, const char* format_min, const char* format_max) noexcept
 {
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    const ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
         return false;
 
-    ImGuiContext& g = *GImGui;
+    const ImGuiContext& g = *GImGui;
     ImGui::PushID(id);
     ImGui::BeginGroup();
     ImGui::PushMultiItemsWidths(2, ImGui::CalcItemWidth());
 
-    int64_t min_min = (v_min >= v_max) ? INT_MIN : v_min;
-    int64_t min_max = (v_min >= v_max) ? *v_current_max : ImMin(v_max, *v_current_max);
-    ImGuiSliderFlags min_flags = ((min_min == min_max) ? ImGuiSliderFlags_ReadOnly : 0);
+    const int64_t min_min = (v_min >= v_max) ? INT_MIN : v_min;
+    const int64_t min_max = (v_min >= v_max) ? *v_current_max : ImMin(v_max, *v_current_max);
+    const ImGuiSliderFlags min_flags = ((min_min == min_max) ? ImGuiSliderFlags_ReadOnly : 0);
     bool value_changed = ImGui::DragScalar("##min", ImGuiDataType_S64, v_current_min, 1.0f, &min_min, &min_max, format_min, min_flags);
     ImGui::PopItemWidth();
     ImGui::SameLine(0, g.Style.ItemInnerSpacing.x);
 
-    int64_t max_min = (v_min >= v_max) ? *v_current_min : ImMax(v_min, *v_current_min);
-    int64_t max_max = (v_min >= v_max) ? INT_MAX : v_max;
-    ImGuiSliderFlags max_flags = ((max_min == max_max) ? ImGuiSliderFlags_ReadOnly : 0);
+    const int64_t max_min = (v_min >= v_max) ? *v_current_min : ImMax(v_min, *v_current_min);
+    const int64_t max_max = (v_min >= v_max) ? INT_MAX : v_max;
+    const ImGuiSliderFlags max_flags = ((max_min == max_max) ? ImGuiSliderFlags_ReadOnly : 0);
     value_changed |= ImGui::DragScalar("##max", ImGuiDataType_S64, v_current_max, 1.0f, &max_min, &max_max, format_max, max_flags);
     ImGui::PopItemWidth();
     ImGui::SameLine(0, g.Style.ItemInnerSpacing.x);

@@ -10,10 +10,7 @@ namespace global
 class GifPlayer final   // DO NOT USE, THIS WILL FREEZE ON BIG GIF
 {
 private: 
-    GifPlayer() noexcept = default;
-    ~GifPlayer() noexcept;
-
-    NO_COPY_MOVE(GifPlayer);
+    NO_COPY_MOVE_CTORS(GifPlayer);
 
     void stop_and_cleanup();
 

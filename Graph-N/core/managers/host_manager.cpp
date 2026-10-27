@@ -112,7 +112,7 @@ void HostManager::add_host(wid wf_id, iid node_id, HostType type, std::filesyste
     host.workflow_id = wf_id;
     host.wf_name = wf->get_data().name;
 
-    auto node = wf->get_node_by_instance(node_id);
+    const auto* node = wf->get_node_by_instance(node_id);
     LogRAssert(node, "Host #00: Node:" << node_id << ", wf:" << wf_id << ". Node not found", );
     host.node_id = node_id;
     host.node_name = node->get_name();

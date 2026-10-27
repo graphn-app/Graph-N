@@ -15,7 +15,7 @@ class MainRoutine_Apple final : public MainRoutine_Apple
 
 public:
     MainRoutine_Apple() noexcept = default;
-    ~MainRoutine_Apple() override noexcept = default;
+    ~MainRoutine_Apple() noexcept override = default;
 
 private:
     /*

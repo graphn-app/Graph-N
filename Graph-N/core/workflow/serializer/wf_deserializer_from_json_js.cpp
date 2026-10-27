@@ -7,7 +7,7 @@
 namespace data
 {
 
-void WfDeserializerFromJson::deserialize_js_node(const o_json& /*j*/, ParseResult& /*result*/)
+void WfDeserializerFromJson::deserialize_js_node(const o_json& /*j*/, ParseResult& /*result*/) noexcept
 {
 }
 

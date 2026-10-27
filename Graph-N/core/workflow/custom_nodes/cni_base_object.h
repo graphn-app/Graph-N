@@ -18,7 +18,7 @@ class CNI_BaseObj : public NodeInstance
 {
 public:
     using NodeInstance::NodeInstance;
-    ~CNI_BaseObj() = default;
+    ~CNI_BaseObj() noexcept override = default;
 
     void init() override;
     void init(const std::string& select) override;

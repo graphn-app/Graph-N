@@ -10,7 +10,7 @@
 namespace data
 {
 
-PinInstance::PinInstance(NodeInstanceBase* parent_node, Pin* obj, wid workflow_id, iid instance_id) noexcept
+PinInstance::PinInstance(NodeInstanceBase* parent_node, Pin* obj, wid workflow_id, iid instance_id)
     : Instance<Pin, PinInstFlags, PinObjFlags>(obj, workflow_id, instance_id)
     , m_parent_node(parent_node->get_instance_id())
 {

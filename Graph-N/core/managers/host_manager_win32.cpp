@@ -323,7 +323,7 @@ uint32_t HostManager_Win32::host_thread_worker(std::shared_ptr<HostProcess> host
     };
 
     bool client_ready = false;
-    auto start_time = std::chrono::steady_clock::now();
+    const auto start_time = std::chrono::steady_clock::now();
 
     while (!client_ready)
     {

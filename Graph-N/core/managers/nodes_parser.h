@@ -12,10 +12,7 @@ namespace mngr
 class NodesParser final
 {
 public:
-    NodesParser() noexcept = default;
-    ~NodesParser() noexcept;
-
-    NO_COPY_MOVE(NodesParser);
+    NO_COPY_MOVE_CTORS(NodesParser);
 
     void parse(std::string&& data);
     void stop_and_cleanup();

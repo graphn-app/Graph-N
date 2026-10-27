@@ -6,6 +6,7 @@
 
 namespace tools
 {
+
 namespace str
 {
 
@@ -23,7 +24,7 @@ std::string to_lower_ascii(const std::string& str);
 bool compare_no_case(const std::string& str1, const std::string& str2);
 
 // single-session hash
-size_t hash_runtime(const std::string& str);
+size_t hash_runtime(const std::string& str) noexcept;
 // stable platform-independent hash: fnv1a
 constexpr uint64_t hash_stable(std::string_view str) noexcept
 {
@@ -123,17 +124,20 @@ std::string& clear_filename(std::string& filename);
 
 namespace api
 {
+
 std::vector<std::string> scan_for_disks();
 
 } // namespace api
 
 namespace img
 {
+
 std::string extract_workflow_from_png(const std::filesystem::path& png_path);
 std::string extract_workflow_from_webp(const std::filesystem::path& webp_path);
 void scale(int32_t image_w, int32_t image_h, int32_t max_w, int32_t max_h, int32_t& res_w, int32_t& res_h) noexcept;
 std::string get_mime_type(const std::filesystem::path& filepath);
 std::string get_readable_aspect_ratio(int32_t w, int32_t h);
-}
 
-};	// namespace tools
+}   // namespace img
+
+}	// namespace tools

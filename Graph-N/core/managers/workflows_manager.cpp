@@ -537,7 +537,7 @@ void WfsManager::copy_del(data::NodeInstance* node)
     }
 }
 
-void WfsManager::copy_reset()
+void WfsManager::copy_reset() noexcept
 {
     m_copy_src = nullptr;
     m_copied_nodes.clear();
@@ -636,7 +636,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
             // for a virtual copy, we need to mirror all instance ids
             std::ranges::for_each(node->get_inputs(), [new_node](data::PinInstance* pin)
             {
-                const auto it = std::ranges::find_if(new_node->get_inputs(), [pin](data::PinInstance* new_pin) { return pin->get_object()->get_hash() == new_pin->get_object()->get_hash(); });
+                const auto it = std::ranges::find_if(new_node->get_inputs(), [pin](data::PinInstance* new_pin) noexcept { return pin->get_object()->get_hash() == new_pin->get_object()->get_hash(); });
                 if (it != new_node->get_inputs().end())
                     (*it)->set_instance_id(pin->get_instance_id());
                 else
@@ -645,7 +645,7 @@ void WfsManager::copy_end(data::Workflow* wf_dest, ImVec2 dest_point, bool cente
             });
             std::ranges::for_each(node->get_outputs(), [new_node](data::PinInstance* pin)
             {
-                const auto it = std::ranges::find_if(new_node->get_outputs(), [pin](data::PinInstance* new_pin) { return pin->get_object()->get_hash() == new_pin->get_object()->get_hash(); });
+                const auto it = std::ranges::find_if(new_node->get_outputs(), [pin](data::PinInstance* new_pin) noexcept { return pin->get_object()->get_hash() == new_pin->get_object()->get_hash(); });
                 if (it != new_node->get_outputs().end())
                     (*it)->set_instance_id(pin->get_instance_id());
                 else

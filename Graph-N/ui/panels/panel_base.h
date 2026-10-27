@@ -152,10 +152,7 @@ private:
 class PanelEmptyWithDescr
 {
 public:
-    PanelEmptyWithDescr() noexcept = default;
-    ~PanelEmptyWithDescr() noexcept = default;
-
-    NO_COPY_MOVE(PanelEmptyWithDescr);
+    NO_COPY_MOVE_CTORS(PanelEmptyWithDescr);
 
     void show_empty_panel_descr(
         const char* header_descr,
@@ -167,7 +164,7 @@ public:
 class PanelWithList
 {
 public:
-    struct TtCallbacks 
+    struct TtCallbacks final
     {
         std::function<void(int32_t)> on_alloc_tt_data;      // allocate tooltip data
         std::function<void(int32_t)> on_release_tt_data;    // release tooltiop data
@@ -176,7 +173,7 @@ public:
         std::function<void(int32_t)> on_post_tt;            // cleanup after tooltip
     };
 
-    struct DndCallbacks 
+    struct DndCallbacks final
     {
         const char* dnd_id = nullptr;                       // drag&drop identifier
         std::function<bool(int32_t)> on_dnd_allow;          // do need to start drag&drop
@@ -204,10 +201,7 @@ private:
 class PanelToolbar
 {
 public:
-    PanelToolbar() noexcept = default;
-    ~PanelToolbar() noexcept = default;
-
-    NO_COPY_MOVE(PanelToolbar);
+    NO_COPY_MOVE_CTORS(PanelToolbar);
 
     void draw_toolbar();
 

@@ -22,7 +22,7 @@ namespace
 {
 
 template<typename T>
-struct FlagDef
+struct FlagDef final
 {
     T flag;
     const char* name;
@@ -209,12 +209,12 @@ void DebugWfView::draw_validation()
     {
         check_active_iid(node->get_instance_id(), "Node");
 
-        for (auto* p : node->get_inputs())
+        for (const auto* p : node->get_inputs())
         {
             check_active_iid(p->get_instance_id(), "PinIn");
             active_pin_objects.insert(p->get_object());
         }
-        for (auto* p : node->get_outputs())
+        for (const auto* p : node->get_outputs())
         {
             check_active_iid(p->get_instance_id(), "PinOut");
             active_pin_objects.insert(p->get_object());
@@ -271,7 +271,7 @@ void DebugWfView::draw_validation()
     {
         ImGui::Spacing();
         ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Found %zu dangling pin objects (in all_cni_pins, unused by graph):", dangling_pin_objs.size());
-        for (auto* obj : dangling_pin_objs)
+        for (const auto* obj : dangling_pin_objs)
         {
             ImGui::BulletText("Name: %s | Hash: 0x%016llX", obj->def_state.name.c_str(), (unsigned long long)obj->get_hash());
         }
@@ -427,9 +427,9 @@ void DebugWfView::draw_links_list()
         {
             ImGui::Text("Ed ID: %llu", (unsigned long long)link->ed().id());
 
-            const auto print_pin = [this](const data::PinInstance* p, const char* prefix)
+            const auto print_pin = [this](const data::PinInstance* p, const char* prefix) noexcept
             {
-                const auto node = m_wf->get_node_by_instance(p->get_parent_node());
+                const auto* node = m_wf->get_node_by_instance(p->get_parent_node());
                 if (p) ImGui::Text("%s: | %s, IID: %u | Node: %s, IID: %u", prefix, p->state().name.c_str(), p->get_instance_id(), node->get_name().c_str(), p->get_parent_node());
                 else ImGui::TextColored(ImVec4(1,0,0,1), "%s: BROKEN (NULL)", prefix);
             };
@@ -443,7 +443,7 @@ void DebugWfView::draw_links_list()
     }
 }
 
-void DebugWfView::init(data::Workflow* wf) noexcept
+void DebugWfView::init(data::Workflow* wf)
 {
     LogRAssert(wf, "Wf zero ptr", );
 

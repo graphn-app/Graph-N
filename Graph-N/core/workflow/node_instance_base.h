@@ -14,7 +14,7 @@ struct Node;
 class NodeInstanceBase : public CNI_Base
 {
 public:
-    NodeInstanceBase(Node* obj, wid workflow_id, iid instance_id)
+    NodeInstanceBase(Node* obj, wid workflow_id, iid instance_id) noexcept
         : CNI_Base(obj, workflow_id, instance_id)
     {
         flags().add(NodeInstFlags::CanBeDeleted);

@@ -62,7 +62,7 @@ void PanelWfList::create_toolbar()
             el.icon = ICON_LC_PEN_LINE;
             el.tooltip = "Rename Project";
             el.tooltip_hotkey = g::pHotkeysManager->get_key_binding_name_str(KeyTarget::Project_Rename);
-            el.on_click = [this](PanelToolbar::Element& /*el*/) noexcept { rename_project(m_active); };
+            el.on_click = [this](PanelToolbar::Element& /*el*/) { rename_project(m_active); };
             el.on_preview = [this](PanelToolbar::Element& el) noexcept { el.enabled = (m_active != 0); };
             add_toolbar_element(std::move(el), false);
         }
@@ -541,7 +541,7 @@ void PanelWfList::draw_popups()
     ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(300, 400));
     if (m_active_wf_for_menu != 0 && ImGui::BeginPopup(DlgObj_IID[cast::to_szt(DlgObj::PanelWfList_ItemsMenu)], ImGuiWindowFlags_NoMove))
     {
-        auto wf = g::pWfsManager->access(m_active_wf_for_menu, true);
+        const auto* wf = g::pWfsManager->access(m_active_wf_for_menu, true);
         if (nullptr == wf)
         {
             ImGui::CloseCurrentPopup();
@@ -641,7 +641,7 @@ void PanelWfList::draw_popups()
         {
             if (*m_new_label_buff != 0 && g::pWfsManager->find_label(m_new_label_buff) == 0 && tools::str::to_lower_ascii(m_new_label_buff) != "all")
             {
-                uint32_t new_id = g::pWfsManager->create_label(m_new_label_buff);
+                const uint32_t new_id = g::pWfsManager->create_label(m_new_label_buff);
                 m_active_popup_labels.insert(new_id);
                 g::pWfsManager->set_wf_labels(active_wf, m_active_popup_labels);
                 *m_new_label_buff = 0;
@@ -660,7 +660,7 @@ void PanelWfList::on_show_tt(int32_t /*idx*/) noexcept
     }
 }
 
-void PanelWfList::rename_project(wid wf_id) noexcept
+void PanelWfList::rename_project(wid wf_id)
 {
     if (!g::pFlow->get_nodes_ready())
         return;

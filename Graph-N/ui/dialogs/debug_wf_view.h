@@ -15,12 +15,12 @@ class Link;
 namespace ui
 {
 
-class DebugWfView
+class DebugWfView final
 {
 public:
     NO_COPY_MOVE_CTORS(DebugWfView);
 
-    void init(data::Workflow* wf) noexcept;
+    void init(data::Workflow* wf);
     DlgCode show();
 
     const std::string& get_name() const noexcept { return m_name; }

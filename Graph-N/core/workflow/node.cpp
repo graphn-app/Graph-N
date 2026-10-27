@@ -77,7 +77,7 @@ Pin* Node::find_pin(hid pin_hash, bool search_input) noexcept
 {
     const auto find_pin = [](hid pin_hash, const std::vector<Pin*>& pins) -> Pin*
     {
-        const auto it = std::ranges::find_if(pins, [pin_hash](Pin* pin) { return pin->get_hash() == pin_hash; });
+        const auto it = std::ranges::find_if(pins, [pin_hash](Pin* pin) noexcept { return pin->get_hash() == pin_hash; });
         if (it != pins.end())
             return *it;
         return nullptr;

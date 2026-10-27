@@ -155,7 +155,7 @@ std::string to_lower_ascii(const std::string& str)
 {
     std::string lower;
     lower.resize(str.size()); 
-    std::ranges::transform(str, lower.begin(), [](unsigned char c)
+    std::ranges::transform(str, lower.begin(), [](unsigned char c) noexcept
     {
         return static_cast<char>(std::tolower(c));
     });
@@ -167,7 +167,7 @@ bool compare_no_case(const std::string& str1, const std::string& str2)
     return to_lower_ascii(str1) == to_lower_ascii(str2);
 }
 
-size_t hash_runtime(const std::string& str)
+size_t hash_runtime(const std::string& str) noexcept
 {
     return std::hash<std::string>{}(str);
 }
@@ -251,7 +251,7 @@ std::string base64_encode(const std::string& raw_bytes, const std::string& prefi
     int32_t val = 0;
     int32_t valb = -6;
 
-    for (byte c : raw_bytes)
+    for (const byte c : raw_bytes)
     {
         val = (val << 8) + c;
         valb += 8;

@@ -97,7 +97,7 @@ void NodeOptions::deserialize(const std::string& opts) noexcept
 ///////      ModuleColors         /////////////////////////////////
 ///////////////////////////////////////////////////////////////////
 
-bool ModuleColors::get_colors(hid item, ImU32& body_bg, ImU32& head_bg, ImU32& head_capt) const noexcept
+bool ModuleColors::get_colors(hid item, ImU32& body_bg, ImU32& head_bg, ImU32& head_capt) const
 {
     const auto it = colors.find(item);
     if (it == colors.end())
@@ -119,7 +119,7 @@ void ModuleColors::set_colors(const std::list<hid>& items, ImU32 body_bg, ImU32 
     }
 }
 
-void ModuleColors::delete_colors(const std::list<hid>& items)
+void ModuleColors::delete_colors(const std::list<hid>& items) noexcept
 {
     for (auto item : items)
     {
@@ -222,7 +222,7 @@ void ModuleColors::deserialize(const std::string& opts) noexcept
 ///////      LabelsList           /////////////////////////////////
 ///////////////////////////////////////////////////////////////////
 
-const Label* LabelsList::get_label(uint32_t label_id) const
+const Label* LabelsList::get_label(uint32_t label_id) const noexcept
 {
     for (const auto& label : labels)
     {
@@ -234,7 +234,7 @@ const Label* LabelsList::get_label(uint32_t label_id) const
     return nullptr;
 }
 
-Label* LabelsList::get_label(uint32_t label_id)
+Label* LabelsList::get_label(uint32_t label_id) noexcept
 {
     auto label = std::as_const(*this).get_label(label_id);
     return cast::remove_const<Label>(label);

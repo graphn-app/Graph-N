@@ -12,87 +12,88 @@ using hid               = size_t;		// hash id for pin/node, based on node/pin na
 using iid               = uint32_t;	    // node/pin instance id, unique for each workflow
 using wid               = uint32_t;     // workflow id - crc32 of uuid
 using byte_buff         = std::vector<byte>;
+using number_t          = double;
 
-using number_t = double;
-constexpr const number_t IM_NUM_MIN_WIDGET  = -DBL_MAX / 2.0;
-constexpr const number_t IM_NUM_MAX_WIDGET  = DBL_MAX / 2.0;
-constexpr const number_t NUMBER_ZERO        = 0.0;
-constexpr const number_t NUMBER_DEFAULT     = NUMBER_ZERO;
-constexpr const number_t NUMBER_STEP        = 0.1;
+using ImTextureIDPtr    = std::shared_ptr<std::remove_pointer_t<ImTextureID>>;
+using ImageData         = std::shared_ptr<byte>;
 
-using ImTextureIDPtr = std::shared_ptr<std::remove_pointer_t<ImTextureID>>;
-using ImageData = std::shared_ptr<byte>;
+using o_json            = nlohmann::ordered_json;
+using u_json            = nlohmann::json;
 
-using o_json = nlohmann::ordered_json;
-using u_json = nlohmann::json;
 
-constexpr double HTTP_REQUEST_LIFETIME = 30.0;  // seconds
-constexpr int32_t HIDDEN_VIDEO_PLAYING = 5;     // seconds
+inline constexpr number_t IM_NUM_MIN_WIDGET  = -DBL_MAX / 2.0;
+inline constexpr number_t IM_NUM_MAX_WIDGET  = DBL_MAX / 2.0;
+inline constexpr number_t NUMBER_ZERO        = 0.0;
+inline constexpr number_t NUMBER_DEFAULT     = NUMBER_ZERO;
+inline constexpr number_t NUMBER_STEP        = 0.1;
 
-constexpr int32_t DRAFT_DUMP_INTERVAL    = 10;  // seconds
+inline constexpr double HTTP_REQUEST_LIFETIME = 30.0;  // seconds
+inline constexpr int32_t HIDDEN_VIDEO_PLAYING = 5;     // seconds
 
-constexpr uint32_t MAX_VISIBLE_STRING    = 20 * 1024; // 20 kb
+inline constexpr int32_t DRAFT_DUMP_INTERVAL    = 10;  // seconds
+
+inline constexpr uint32_t MAX_VISIBLE_STRING    = 20 * 1024; // 20 kb
 inline std::string STRING_TOO_LONG_TEMPL = "<String too long>";
 inline std::string BASE64_INSIDE_TEMPL   = "<Base64 inside>";
 
-constexpr int32_t HTTP_RESP_UNDEFINED    = 0;
-constexpr int32_t HTTP_RESP_OK           = 200;
-constexpr int32_t HTTP_RESP_FAIL         = -1;
-constexpr int32_t HTTP_RESP_IN_PROGRESS  = -2;
-constexpr int32_t HTTP_RESP_TIMEOUT      = 408;
-constexpr int32_t HTTP_RESP_BAD_REQUEST  = 400;
-constexpr int32_t HTTP_RESP_NOT_FOUND    = 404;
-constexpr int32_t HTTP_RESP_NOT_ALLOWED  = 405;
-constexpr uint32_t HTTP_RETRY_MAX_COUNT  = 5;
+inline constexpr int32_t HTTP_RESP_UNDEFINED    = 0;
+inline constexpr int32_t HTTP_RESP_OK           = 200;
+inline constexpr int32_t HTTP_RESP_FAIL         = -1;
+inline constexpr int32_t HTTP_RESP_IN_PROGRESS  = -2;
+inline constexpr int32_t HTTP_RESP_TIMEOUT      = 408;
+inline constexpr int32_t HTTP_RESP_BAD_REQUEST  = 400;
+inline constexpr int32_t HTTP_RESP_NOT_FOUND    = 404;
+inline constexpr int32_t HTTP_RESP_NOT_ALLOWED  = 405;
+inline constexpr uint32_t HTTP_RETRY_MAX_COUNT  = 5;
 
-constexpr int32_t QUEUE_IMAGE_RECT          = 512;      // size
-constexpr int32_t QUEUE_AUDIO_RECT          = 20;       // size
-constexpr int32_t QUEUE_TEXT_RECT           = 50;       // size
-constexpr int32_t QUEUE_IMAGE_LIFETIME      = 30;       // seconds
-constexpr int32_t QUEUE_TT_IMAGE_LIFETIME   = 1;        // seconds
-constexpr int32_t QUEUE_MAX_RUNS            = 100;      // count
-constexpr int32_t QUEUE_DEAD_TASK           = 5 * 60;   // seconds
+inline constexpr int32_t QUEUE_IMAGE_RECT          = 512;      // size
+inline constexpr int32_t QUEUE_AUDIO_RECT          = 20;       // size
+inline constexpr int32_t QUEUE_TEXT_RECT           = 50;       // size
+inline constexpr int32_t QUEUE_IMAGE_LIFETIME      = 30;       // seconds
+inline constexpr int32_t QUEUE_TT_IMAGE_LIFETIME   = 1;        // seconds
+inline constexpr int32_t QUEUE_MAX_RUNS            = 100;      // count
+inline constexpr int32_t QUEUE_DEAD_TASK           = 5 * 60;   // seconds
 
-constexpr int32_t NODE_IMAGE_LIFETIME   = 30;   // seconds
-constexpr int32_t NODE_IMAGE_RECT       = 256;  // size
+inline constexpr int32_t NODE_IMAGE_LIFETIME   = 30;   // seconds
+inline constexpr int32_t NODE_IMAGE_RECT       = 256;  // size
 
-constexpr double PLAYING_AUDIO_LIFETIME = 5.0; // seconds
-constexpr double PLAYING_VIDEO_LIFETIME = 5.0; // seconds
+inline constexpr double PLAYING_AUDIO_LIFETIME = 5.0; // seconds
+inline constexpr double PLAYING_VIDEO_LIFETIME = 5.0; // seconds
 
-constexpr int32_t ABOUT_ICON_RECT           = 128;  // size
-constexpr int32_t ABOUT_ICON_LIFETIME       = 2;    // seconds
-constexpr const char* WEB_APP_HOME          = "https://github.com/graphn-app/Graph-N";
-constexpr const char* UPDATE_PATH           = "https://github.com/graphn-app/Graph-N";
-constexpr const char* UPDATE_SERVER         = "api.github.com";
-constexpr const char* UPDATE_URL            = "/repos/graphn-app/Graph-N/releases/latest";
-constexpr int32_t     UPDATE_PORT           = 443;
-constexpr int32_t     FIRST_UPD_ATTEMPT     = 10;   // second
+inline constexpr int32_t ABOUT_ICON_RECT           = 128;  // size
+inline constexpr int32_t ABOUT_ICON_LIFETIME       = 2;    // seconds
+inline constexpr const char* WEB_APP_HOME          = "https://github.com/graphn-app/Graph-N";
+inline constexpr const char* UPDATE_PATH           = "https://github.com/graphn-app/Graph-N";
+inline constexpr const char* UPDATE_SERVER         = "api.github.com";
+inline constexpr const char* UPDATE_URL            = "/repos/graphn-app/Graph-N/releases/latest";
+inline constexpr int32_t     UPDATE_PORT           = 443;
+inline constexpr int32_t     FIRST_UPD_ATTEMPT     = 10;   // second
 
-constexpr float WIDGET_STRING_W         = 200.0f;
-constexpr float WIDGET_STRING_ML_H      = 4.0f;
-constexpr float WIDGET_COMBO_W          = 150.0f;
-constexpr float WIDGET_BOOL_W           = 100.0f;
-constexpr float WIDGET_NUM_W            = 150.0f;
-constexpr float WIDGET_COLOR_RGB_W      = 240.0f;
-constexpr float WIDGET_COLOR_RGBA_W     = 270.0f;
-constexpr float WIDGET_OUT_TEXT_MAX_H   = 200.0f;
+inline constexpr float WIDGET_STRING_W         = 200.0f;
+inline constexpr float WIDGET_STRING_ML_H      = 4.0f;
+inline constexpr float WIDGET_COMBO_W          = 150.0f;
+inline constexpr float WIDGET_BOOL_W           = 100.0f;
+inline constexpr float WIDGET_NUM_W            = 150.0f;
+inline constexpr float WIDGET_COLOR_RGB_W      = 240.0f;
+inline constexpr float WIDGET_COLOR_RGBA_W     = 270.0f;
+inline constexpr float WIDGET_OUT_TEXT_MAX_H   = 200.0f;
 
-constexpr const char* VANILLA                   = "Vanilla";
+inline constexpr const char* VANILLA                   = "Vanilla";
 
-constexpr const char* TEMP_LABEL_COMPLETED      = "Completed tasks";
-constexpr const char* TEMP_LABEL_IMPORTED       = "Imported";
+inline constexpr const char* TEMP_LABEL_COMPLETED      = "Completed tasks";
+inline constexpr const char* TEMP_LABEL_IMPORTED       = "Imported";
 
-constexpr const char* DND_FROM_NODES_LIBRARY    = "F86C637FBBC3";
-constexpr const char* DND_FROM_SYSTEM           = "770C64EA9B66";
-constexpr const char* DND_REORDER_QUEUE         = "79C13B4685DA";
+inline constexpr const char* DND_FROM_NODES_LIBRARY    = "F86C637FBBC3";
+inline constexpr const char* DND_FROM_SYSTEM           = "770C64EA9B66";
+inline constexpr const char* DND_REORDER_QUEUE         = "79C13B4685DA";
 
-constexpr const char* CAG_PIN_NAME              = "E742ADEF-156C-45DF-90EC-AA36CA21A9B2";
-constexpr const char* REROUTE_SPLITTED_PIN      = "32DB533B-64D6-4F95-A90A-A50B17B59CDB";
+inline constexpr const char* CAG_PIN_NAME              = "E742ADEF-156C-45DF-90EC-AA36CA21A9B2";
+inline constexpr const char* REROUTE_SPLITTED_PIN      = "32DB533B-64D6-4F95-A90A-A50B17B59CDB";
 
-constexpr const char* STATS_API_KEY             = GRAPHN_STATS_API_KEY;
-constexpr const char* STATS_SERVER              = "eu.i.posthog.com";
-constexpr const char* STATS_URL                 = "/batch";
-constexpr int32_t     STATS_PORT                = 443;
+inline constexpr const char* STATS_API_KEY             = GRAPHN_STATS_API_KEY;
+inline constexpr const char* STATS_SERVER              = "eu.i.posthog.com";
+inline constexpr const char* STATS_URL                 = "/batch";
+inline constexpr int32_t     STATS_PORT                = 443;
 
 using HttpResponseCb = std::function<void(int32_t, std::string&&)>; // http code, data
 
@@ -172,7 +173,7 @@ enum class DlgObj : uint8_t
 };
 
 // in sync with DlgObj
-constexpr const char* DlgObj_SID[static_cast<size_t>(DlgObj::_count)] = 
+inline constexpr const char* DlgObj_SID[static_cast<size_t>(DlgObj::_count)] = 
 {
     ICON_LC_INFO " About " APP_CAPTION "###C4BC72A9-8DF8-4B44-8A3C-AD7C1C80BD20",    // AboutDlg: with caption
 
@@ -213,7 +214,7 @@ constexpr const char* DlgObj_SID[static_cast<size_t>(DlgObj::_count)] =
     "###AF8A388B-E45E-4E33-B1B5-21DDA1E608C3",                     // PanelDebugWf
 };
 
-constexpr ImGuiID DlgObj_IID[static_cast<size_t>(DlgObj::_count)] = 
+inline constexpr ImGuiID DlgObj_IID[static_cast<size_t>(DlgObj::_count)] = 
 {
     0x00,                           // AboutDlg: with caption
     0x00,                           // OptionsDlg: with caption
@@ -659,11 +660,11 @@ enum class ZoomedVisibility : uint8_t
     Fade,             // apply alpha fading
     Max,              // full content
 };
-constexpr float ZOOMED_MAX = 1.7f;
-constexpr float ZOOMED_FADE = 2.0f;
-constexpr float ZOOMED_MEDIUM = 2.3f;
-constexpr float ZOOMED_LOW = 3.0f;
-constexpr float ZOOMED_NONE = 5.0f;
+inline constexpr float ZOOMED_MAX = 1.7f;
+inline constexpr float ZOOMED_FADE = 2.0f;
+inline constexpr float ZOOMED_MEDIUM = 2.3f;
+inline constexpr float ZOOMED_LOW = 3.0f;
+inline constexpr float ZOOMED_NONE = 5.0f;
 
 namespace w
 {

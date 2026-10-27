@@ -76,7 +76,7 @@ void PanelNodeInspector::remove_inspecting_node(data::Node* node)
     m_inspecting.erase(it);    
 }
 
-void PanelNodeInspector::reset_inspecting_nodes() noexcept
+void PanelNodeInspector::reset_inspecting_nodes()
 {
     Log("Remove all nodes");
     m_wf->clear_wf();
@@ -94,7 +94,7 @@ bool PanelNodeInspector::is_node_inspecting(const data::Node* node) const noexce
     return false;
 }
 
-void PanelNodeInspector::invalidate_comfyui_objects() noexcept
+void PanelNodeInspector::invalidate_comfyui_objects()
 {
     reset_inspecting_nodes();
 }

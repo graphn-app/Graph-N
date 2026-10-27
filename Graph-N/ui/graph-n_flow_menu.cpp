@@ -386,13 +386,13 @@ void GraphN_Flow::on_menu_quit() noexcept
     g::pGraphN->handle_wnd_on_close();
 }
 
-void GraphN_Flow::on_menu_update() noexcept
+void GraphN_Flow::on_menu_update()
 {
     m_windows |= ViewAbout;
     show_about_dlg(true);
 }
 
-void GraphN_Flow::on_menu_about() noexcept
+void GraphN_Flow::on_menu_about()
 {
     m_windows |= ViewAbout;
     show_about_dlg(false);
@@ -477,14 +477,14 @@ void GraphN_Flow::on_menu_activate_wf(const PanelWorkflow* wf_panel)
     }
 }
 
-void GraphN_Flow::on_menu_wf_rename() noexcept
+void GraphN_Flow::on_menu_wf_rename()
 {
     wf_rename();
 }
 
 void GraphN_Flow::on_menu_close_all_projects(bool keep_active)
 {
-    const auto active = (keep_active ? wf_get_active_panel() : nullptr);
+    const auto* active = (keep_active ? wf_get_active_panel() : nullptr);
     for (auto it = m_panels_wf.begin(); it != m_panels_wf.end(); ++it)
     {
         if (it->get() != active)
@@ -505,7 +505,7 @@ void GraphN_Flow::on_menu_next_project(bool next)
     wf_panel_activate_next(next);
 }
 
-void GraphN_Flow::on_menu_restart() noexcept
+void GraphN_Flow::on_menu_restart()
 {
     const auto restart_handler = [this](ModalDlgCtrl res)
     {

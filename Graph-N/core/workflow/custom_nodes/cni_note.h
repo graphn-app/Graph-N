@@ -19,7 +19,7 @@ class CNI_NoteBase : public CNI_BaseObj
 {
 public:
     CNI_NoteBase(Node* obj, wid workflow_id, iid instance_id) noexcept;
-    ~CNI_NoteBase() noexcept = default;
+    ~CNI_NoteBase() noexcept override = default;
 
     void cni_cleanup_base_object() noexcept override;
     bool cni_is_applicable() const noexcept override { return true; }
@@ -31,14 +31,14 @@ class CNI_Note final : public CNI_NoteBase
 {
 public:
     using CNI_NoteBase::CNI_NoteBase;
-    ~CNI_Note() noexcept = default;
+    ~CNI_Note() noexcept override = default;
 };
 
 struct CNI_MarkdownNote final : public CNI_NoteBase
 {
 public:
     using CNI_NoteBase::CNI_NoteBase;
-    ~CNI_MarkdownNote() noexcept = default;
+    ~CNI_MarkdownNote() noexcept override = default;
 };
 
 } // namespace data

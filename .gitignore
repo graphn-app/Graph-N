@@ -19,6 +19,7 @@ work_dir/
 copy/
 dump/
 doc/
+releases/
 
 *.vcxproj*
 *.user

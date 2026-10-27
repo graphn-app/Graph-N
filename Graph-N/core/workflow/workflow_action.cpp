@@ -519,7 +519,7 @@ void WorkflowAction::set_pin_multiline(data::PinInstance* pin, bool multiline)
 void WorkflowAction::set_pin_color_config(data::PinInstance* pin, ObjectFlags<PinInstFlags> old_flags)
 {
     LogRAssert(pin, "Zero ptr", );
-    auto new_flags_raw = pin->flags().get_by_mask(PinInstFlags::ColorHSV, PinInstFlags::ColorHex, PinInstFlags::ColorRaw, PinInstFlags::ColorFloat);
+    const auto new_flags_raw = pin->flags().get_by_mask(PinInstFlags::ColorHSV, PinInstFlags::ColorHex, PinInstFlags::ColorRaw, PinInstFlags::ColorFloat);
     auto old_flags_raw = old_flags.get_by_mask(PinInstFlags::ColorHSV, PinInstFlags::ColorHex, PinInstFlags::ColorRaw, PinInstFlags::ColorFloat);
     if (new_flags_raw == old_flags_raw)
         return;

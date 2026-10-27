@@ -7,7 +7,7 @@
 namespace ui
 {
 
-class ModalMessage
+class ModalMessage final
 {
 public:
     NO_COPY_MOVE_CTORS(ModalMessage);

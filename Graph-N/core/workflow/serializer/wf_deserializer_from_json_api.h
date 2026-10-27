@@ -14,8 +14,8 @@ class Link;
 class WfDeserializerFromJsonApi final
 {
 public:
-    WfDeserializerFromJsonApi(Workflow* wf, const o_json& j);
-    ~WfDeserializerFromJsonApi() = default;
+    WfDeserializerFromJsonApi(Workflow* wf, const o_json& j) noexcept;
+    ~WfDeserializerFromJsonApi() noexcept = default;
 
     NO_COPY_MOVE(WfDeserializerFromJsonApi);
 

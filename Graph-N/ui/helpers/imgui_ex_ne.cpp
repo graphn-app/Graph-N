@@ -118,7 +118,7 @@ void RenderDeferredCombo(DeferredAction& act)
     }
 }
 
-bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, const char* hint, std::string* str, std::string* caption /*= nullptr*/) noexcept
+bool InputTextWithHint(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin, const char* label, const char* hint, std::string* str, const std::string* caption /*= nullptr*/) noexcept
 {
     const ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;

@@ -11,10 +11,7 @@ namespace ui
 class OptRightPane final
 {
 public:
-    OptRightPane() noexcept = default;
-    ~OptRightPane() noexcept;
-
-    NO_COPY_MOVE(OptRightPane);
+    NO_COPY_MOVE_CTORS(OptRightPane);
 
     void init(OptsData& data);
     void init_sizes() noexcept;

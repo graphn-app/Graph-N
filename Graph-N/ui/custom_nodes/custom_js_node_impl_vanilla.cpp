@@ -24,7 +24,7 @@ void CustomJsNode::draw_CustomCombo(data::NodeInstance* /*node*/, float /*off*/,
 
 void CustomJsNode::draw_Load3D(data::NodeInstance* node, float off, float width)
 {
-    const auto find_pin = [node]() -> data::PinInstance*
+    const auto find_pin = [node]() noexcept -> data::PinInstance*
     {
         for (auto pin : node->get_inputs())
         {
@@ -51,10 +51,10 @@ void CustomJsNode::draw_Load3D(data::NodeInstance* node, float off, float width)
                 auto pin = find_pin();
                 if (pin != nullptr)
                 {
-                    auto wf = g::pWfsManager->access(node->get_workflow_id());
+                    const auto* wf = g::pWfsManager->access(node->get_workflow_id());
                     auto action = wf->action();
 
-                    size_t count = pin->get_object()->combo_items.size();
+                    const size_t count = pin->get_object()->combo_items.size();
                     for (size_t i = 0; i < count; i++)
                     {
                         auto& val = pin->get_object()->combo_items[i];
@@ -130,7 +130,7 @@ void CustomJsNode::draw_Load3D(data::NodeInstance* node, float off, float width)
         auto pin = find_pin();
         if (pin != nullptr)
         {
-            auto wf = g::pWfsManager->access(node->get_workflow_id());
+            const auto* wf = g::pWfsManager->access(node->get_workflow_id());
             auto action = wf->action();
 
             if (!pin->get_object()->combo_items.empty() && pin->get_object()->combo_items[0].get_string().empty())

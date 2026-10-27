@@ -11,9 +11,7 @@
 namespace platform
 {
 
-VideoControl_Win32_Gif::VideoControl_Win32_Gif() noexcept
-{
-}
+VideoControl_Win32_Gif::VideoControl_Win32_Gif() noexcept = default;
 
 VideoControl_Win32_Gif::~VideoControl_Win32_Gif() noexcept
 {
@@ -41,7 +39,7 @@ T get_wic_meta(::IWICMetadataQueryReader* meta, const wchar_t* path, T def)
     return res;
 }
 
-bool VideoControl_Win32_Gif::path_is_gif(const std::filesystem::path& filepath) const noexcept
+bool VideoControl_Win32_Gif::path_is_gif(const std::filesystem::path& filepath) const
 {
     const auto low = tools::str::to_lower_ascii(tools::path::path_to_string(filepath.extension()));
     return low == ".gif";

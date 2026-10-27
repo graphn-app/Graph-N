@@ -102,7 +102,7 @@ HashID::HashID(const std::string& unique) noexcept
 
 HashID::~HashID() noexcept = default;
 
-hid HashID::make_hash(const std::string& unique)
+hid HashID::make_hash(const std::string& unique) noexcept
 {
     return tools::str::hash_stable(unique);
 }

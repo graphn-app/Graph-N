@@ -35,7 +35,7 @@ void CNI_PowerLoraLoaderRgthree::cni_init()
     }
 }
 
-void CNI_PowerLoraLoaderRgthree::on_deserialization_ends()
+void CNI_PowerLoraLoaderRgthree::on_deserialization_ends() noexcept
 {
     m_deserialized_values.reset();
 }

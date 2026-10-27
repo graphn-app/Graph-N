@@ -12,10 +12,7 @@ using DragAndDropCallback = std::function<void(std::list<std::filesystem::path>&
 class MainRoutine
 {
 public:
-    MainRoutine() noexcept = default;
-    virtual ~MainRoutine() noexcept = 0;
-
-    NO_COPY_MOVE(MainRoutine);
+    NO_COPY_MOVE_VCTORS(MainRoutine);
 
     virtual bool init() = 0;
     virtual void stop_and_cleanup() = 0;

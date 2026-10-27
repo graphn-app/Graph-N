@@ -37,7 +37,7 @@ void ConnectManager::send_https(std::shared_ptr<RequestData> req)
 
     const auto url = tools::str::utf8_to_wide(req->url);
     const wchar_t* method = (req->type == RequestData::Type::PostRawPayload) ? L"POST" : L"GET";
-    InternetHandle hrequest(::WinHttpOpenRequest(hconnect.get(), method, url.c_str(), NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE), ::WinHttpCloseHandle);
+    InternetHandle hrequest(::WinHttpOpenRequest(hconnect.get(), method, url.c_str(), nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE), ::WinHttpCloseHandle);
     if (!hrequest)
         return reply("WinHttpOpenRequest failed");
 
@@ -59,11 +59,11 @@ void ConnectManager::send_https(std::shared_ptr<RequestData> req)
     }
 
     LPVOID payload_ptr = req->post_payload.empty() ? WINHTTP_NO_REQUEST_DATA : (LPVOID)req->post_payload.data();
-    DWORD payload_size = cast::to<DWORD>(req->post_payload.size());
+    const DWORD payload_size = cast::to<DWORD>(req->post_payload.size());
     BOOL results = ::WinHttpSendRequest(hrequest.get(), WINHTTP_NO_ADDITIONAL_HEADERS, 0, payload_ptr, payload_size, payload_size, 0);
 
     if (results)
-        results = ::WinHttpReceiveResponse(hrequest.get(), NULL);
+        results = ::WinHttpReceiveResponse(hrequest.get(), nullptr);
     if (!results)
         return reply("WinHttpReceiveResponse/Send failed");
 

@@ -13,11 +13,11 @@ struct CNI_DeserializedPowerLoraLoaderRgthree final : public CNI_DeserializedDat
     std::list<std::tuple<std::string /*lora*/, bool /*enabled*/, double /*strength*/>> loras;
 };
 
-class CNI_PowerLoraLoaderRgthree : public CNI_BaseObj
+class CNI_PowerLoraLoaderRgthree final : public CNI_BaseObj
 {
 public:
     CNI_PowerLoraLoaderRgthree(Node* obj, wid workflow_id, iid instance_id) noexcept;
-    ~CNI_PowerLoraLoaderRgthree() noexcept = default;
+    ~CNI_PowerLoraLoaderRgthree() noexcept override = default;
 
     void cni_init() override;
     bool cni_is_applicable() const noexcept override { return true; }
@@ -29,7 +29,7 @@ public:
 
     void cni_cleanup_base_object() noexcept override {}
     bool cni_copy_from(const NodeInstance* copy_from_node, bool copy_pin_ids) override;
-    void on_deserialization_ends() override;
+    void on_deserialization_ends() noexcept override;
     float get_additional_node_width() const noexcept override;
 
     void add_lora(std::string lora, bool enabled, double strength = 1.0, bool add_to_history = false);
@@ -37,7 +37,7 @@ public:
     void enable_lora(size_t lora_index, bool enable);
     void set_strength(size_t lora_index, double prev_value);
 
-    struct Lora
+    struct Lora final
     {
         bool enabled = true;
         double strength = 1.0;
@@ -45,7 +45,7 @@ public:
         std::string name;
         std::string ext;
     };
-    std::vector<Lora>& get_loras() { return m_loras; }
+    std::vector<Lora>& get_loras() noexcept { return m_loras; }
     const std::vector<Lora>& get_loras() const noexcept { return m_loras; }
     const bool get_toggler() const noexcept { return m_toggler; }
 

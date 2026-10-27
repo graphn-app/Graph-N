@@ -38,14 +38,15 @@ public:
     void write(LogWriter& writer) noexcept;
 
 private:
-    Logger() noexcept;
+    Logger();
     ~Logger() noexcept;
+
     NO_COPY_MOVE(Logger);
 
     static void check_log_file_mark();
     static void set_log_enabled(bool enable, const char* log_mark);
 
-    void log_start() noexcept;
+    void log_start();
     void log_stop() noexcept;
 
     void working_thread();
@@ -78,7 +79,7 @@ private:
 ////////////////////////////////////////////////////
 ///////////////        LogWriter
 
-class LogLineEnd { };
+class LogLineEnd final { };
 
 struct LogHex final
 {
@@ -118,6 +119,7 @@ public:
     void log_line_start(const void* this_, const char* foo, int32_t line);
 
     LogWriter& operator << (const char* str);
+    LogWriter& operator << (const wchar_t* str);
     LogWriter& operator << (const std::string& str);
     LogWriter& operator << (std::string_view str);
     LogWriter& operator << (const std::filesystem::path& path);
@@ -161,11 +163,11 @@ private:
 
 struct LogGuard final
 {
-    LogGuard()
+    LogGuard() noexcept
     {
         Logger::instance();
     }
-    ~LogGuard()
+    ~LogGuard() noexcept
     {
         glog::Logger::cleanup();
         Logger::instance().stop();

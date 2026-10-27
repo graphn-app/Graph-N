@@ -167,12 +167,12 @@ public:
 
     // items
     void items_pins_preload_all();
-    void items_pins_release_all() { m_item_pin_opts.clear(); m_item_pin_opts_preloaded = false; }
+    void items_pins_release_all() noexcept { m_item_pin_opts.clear(); m_item_pin_opts_preloaded = false; }
     const PinOptions& items_pin_load(hid pin_hash);    // will use preloaded map if <items_pins_preload_all> was called first
     void items_pin_save(hid pin_hash, const PinOptions& opt) const { item_save(pin_hash, DbItemOptionType::Pins, opt.serialize()); }
 
     void items_nodes_preload_all();
-    void items_nodes_release_all() { m_item_node_opts.clear(); m_item_node_opts_preloaded = false; }
+    void items_nodes_release_all() noexcept { m_item_node_opts.clear(); m_item_node_opts_preloaded = false; }
     const NodeOptions& items_node_load(hid node_hash);    // will use preloaded map if <items_nodes_preload_all> was called first
     void items_node_save(hid node_hash, const NodeOptions& opt) const { item_save(node_hash, DbItemOptionType::Nodes, opt.serialize()); }
 

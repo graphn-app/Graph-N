@@ -13,8 +13,6 @@
 namespace mngr
 {
 
-NodesParser::~NodesParser() noexcept = default;
-
 void NodesParser::check_status(size_t& parsed_item, size_t& parse_total)
 {
     if (!m_parse_finished.load(std::memory_order_relaxed) && m_future.wait_for(0ms) == std::future_status::ready)
@@ -1094,7 +1092,7 @@ void NodesParser::add_internal_nodes(NodesManager& manager)
 }
 
 template <size_t N>
-struct CompileTimeSet
+struct CompileTimeSet final
 {
     std::array<hid, N> data;
     constexpr bool contains(hid hash) const noexcept

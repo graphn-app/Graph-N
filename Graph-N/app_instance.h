@@ -4,7 +4,10 @@
 
 #pragma once
 
-namespace httplib { class Server; }
+namespace httplib
+{
+class Server;
+}
 
 class AppInstance final
 {

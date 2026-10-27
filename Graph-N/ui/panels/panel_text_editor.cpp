@@ -68,7 +68,7 @@ void PanelTextEditor::update(wid wf, data::NodeInstance* node, data::PinInstance
     create_toolbar();
 }
 
-void PanelTextEditor::update_node_name(wid wf, data::NodeInstance* node)
+void PanelTextEditor::update_node_name(wid wf, const data::NodeInstance* node)
 {
     for (auto& ed : m_editors)
     {

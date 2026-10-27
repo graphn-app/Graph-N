@@ -18,7 +18,7 @@ namespace tools
 {
 
 // Inheriting from std::exception is standard practice, even for SEH wrappers
-class SehException : public std::exception
+class SehException final : public std::exception
 {
 private:
     uint32_t nSE = 0;
@@ -26,13 +26,10 @@ private:
 public:
     SehException() noexcept = default;
     SehException(uint32_t n) noexcept : nSE(n) {}
-    ~SehException() noexcept = default;
+    ~SehException() noexcept override = default;
 
-    // No need for NO_COPY_MOVE usually, exception needs to be copyable mostly
     uint32_t getSeNumber() const noexcept { return nSE; }
-
     const char* what() const noexcept override { return "SEH Exception (Access Violation, etc.)"; }
-
     static wchar_t dump_path[MAX_PATH * 2 + 1];
 };
 

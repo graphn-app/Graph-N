@@ -14,7 +14,7 @@ struct PinState;
 class PinInstance final : public Instance<Pin, PinInstFlags, PinObjFlags>
 {
 public:
-    PinInstance(NodeInstanceBase* parent_node, Pin* obj, wid workflow_id, iid instance_id) noexcept;
+    PinInstance(NodeInstanceBase* parent_node, Pin* obj, wid workflow_id, iid instance_id);
     ~PinInstance() noexcept override;
 
     void init() override;

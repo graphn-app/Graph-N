@@ -49,7 +49,7 @@ public:
     ~QueueManager() noexcept override;
 
     bool init() override;
-    void stop_and_cleanup() noexcept override;
+    void stop_and_cleanup() override;
 
     void process();
 

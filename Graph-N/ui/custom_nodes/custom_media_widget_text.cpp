@@ -26,7 +26,7 @@ void CustomMediaWidget::draw_text_widget_from_output(OutputData& out)
         g::pFlow->txt_panel_create(m_node->get_workflow_id(), m_node, nullptr, &out.item.text_info, nullptr);
 
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
-    ImVec4 clip_rect(start_pos.x, start_pos.y, start_pos.x + m_widget_width, start_pos.y + final_height);
+    const ImVec4 clip_rect(start_pos.x, start_pos.y, start_pos.x + m_widget_width, start_pos.y + final_height);
     draw_list->AddText(ImGui::GetFont(), ImGui::GetFontSize(), start_pos, ImGui::GetColorU32(ImGuiCol_Text), out.item.text_info.c_str(), nullptr, m_widget_width, &clip_rect);
 
     if (is_truncated)
@@ -75,7 +75,7 @@ void CustomMediaWidget::view_text_output(wid wf_id, iid node_id)
     const auto it = m_outputs.find(std::make_pair(wf_id, node_id));
     if (it != m_outputs.end() && NodeObjFlags::CustomMediaText == it->second.media_type && !it->second.item.text_info.empty())
     {
-        auto wf = g::pWfsManager->access(wf_id);
+        const auto* wf = g::pWfsManager->access(wf_id);
         LogRAssert(wf, "wf:" << wf_id << " not found", );
         auto node = wf->get_node_by_instance(node_id);
         LogRAssert(node, "wf:" << wf_id << ", n:" << node_id << " not found", );

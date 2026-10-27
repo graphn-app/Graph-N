@@ -24,7 +24,7 @@ public:
 
     NO_COPY_MOVE(VideoControl_Win32_Gif);
 
-    bool path_is_gif(const std::filesystem::path& filepath) const noexcept;
+    bool path_is_gif(const std::filesystem::path& filepath) const;
 
     bool init() noexcept;
     void stop_and_cleanup();
@@ -47,7 +47,7 @@ private:
 private:
     bool m_initialized = false;
 
-    struct FrameMeta 
+    struct FrameMeta final
     {
         float timestamp_sec = 0.0f;
         int32_t delay_ms = 0;

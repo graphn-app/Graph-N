@@ -37,11 +37,11 @@ public:
 
     void add_inspecting_node(data::Node* node);
     void remove_inspecting_node(data::Node* node);
-    void reset_inspecting_nodes() noexcept;
+    void reset_inspecting_nodes();
     bool is_node_inspecting(const data::Node* node) const noexcept;
 
     //ComfyUiObjectValidityListener
-    void invalidate_comfyui_objects() noexcept override;
+    void invalidate_comfyui_objects() override;
 
 private:
     DlgCode show(bool& focused) override;

@@ -11,7 +11,7 @@
 namespace data
 {
 
-CNI_Reroute::CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2) noexcept
+CNI_Reroute::CNI_Reroute(Node* obj, wid workflow_id, iid instance_id, iid instance_id2)
     : CNI_BaseObj(obj, workflow_id, instance_id)
 {
     flags().add(NodeInstFlags::CNI, NodeInstFlags::JsonApiDontExport, NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
@@ -253,7 +253,7 @@ PinInstance* CNI_Reroute::add_pin_internal(Workflow* wf, const std::string& type
     return instance;
 }
 
-void CNI_Reroute::remove_pin_internal(Workflow* wf, PinInstance* pin, bool force_cleanup) noexcept
+void CNI_Reroute::remove_pin_internal(Workflow* wf, PinInstance* pin, bool force_cleanup)
 {
     // `force_cleanup` can be set if the pin has never had a link, so we can safely destroy it
     if (force_cleanup)
@@ -556,7 +556,7 @@ void CNI_Reroute::refresh_pair_state(LinkedPair& pair)
 
 void CNI_Reroute::propagate_pair_type(const LinkedPair& pair)
 {
-    const auto find_pair = [](RerouteData& all_pairs, const data::PinInstance* pin) -> LinkedPair*
+    const auto find_pair = [](RerouteData& all_pairs, const data::PinInstance* pin) noexcept -> LinkedPair*
     {
         for (auto& pair : all_pairs.m_pairs)
         {
@@ -566,7 +566,7 @@ void CNI_Reroute::propagate_pair_type(const LinkedPair& pair)
         return nullptr;
     };
 
-    auto wf = g::pWfsManager->access(get_workflow_id());
+    const auto* wf = g::pWfsManager->access(get_workflow_id());
     std::list<const PinInstance*> ext_pins;
     ext_pins.push_back(pair.input.external);
     ext_pins.insert(ext_pins.end(), pair.output.external.begin(), pair.output.external.end());

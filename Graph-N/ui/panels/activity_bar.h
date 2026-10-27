@@ -15,7 +15,7 @@ class ActivityBar final : public listener::HotkeysChangedHandler
 {
 public:
     ActivityBar() noexcept;
-    ~ActivityBar() noexcept;
+    ~ActivityBar() noexcept override;
 
     void register_panels(const std::vector<DlgObj>& panels);
     void show(ActivityBarMode mode);
@@ -36,7 +36,7 @@ private:
     void show_tooltip(FontGuard* fg, const char* text, const std::string& hotkey) noexcept;
 
     // HotkeysChangedHandler
-    void handle_hotkeys_changed();
+    void handle_hotkeys_changed() override;
 
 private:
     ImU32 m_clr_bg = 0;

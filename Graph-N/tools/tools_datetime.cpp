@@ -60,7 +60,7 @@ dt dt::from_current_date() noexcept
     const auto now = std::chrono::system_clock::now();
     const std::time_t t = std::chrono::system_clock::to_time_t(now);
     const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() % 1000;
-    return create_from_raw(t, static_cast<uint16_t>(millis), false);
+    return create_from_raw(t, cast::to_u16(millis), false);
 }
 
 dt dt::from_current_date_utc() noexcept
@@ -68,7 +68,7 @@ dt dt::from_current_date_utc() noexcept
     const auto now = std::chrono::system_clock::now();
     const std::time_t t = std::chrono::system_clock::to_time_t(now);
     const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() % 1000;
-    return create_from_raw(t, static_cast<uint16_t>(millis), true);
+    return create_from_raw(t, cast::to_u16(millis), true);
 }
 
 dt dt::from_time(time_t raw) noexcept

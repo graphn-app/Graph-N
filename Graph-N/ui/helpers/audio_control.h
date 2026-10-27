@@ -13,9 +13,7 @@ class AudioControl final : public listener::Timer
 {
 public:
     AudioControl() noexcept = default;
-    ~AudioControl() noexcept;
-
-    NO_COPY_MOVE(AudioControl);
+    ~AudioControl() noexcept override;
 
     void init();
     void stop_and_cleanup();

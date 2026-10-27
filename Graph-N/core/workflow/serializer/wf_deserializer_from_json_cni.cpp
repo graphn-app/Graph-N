@@ -171,7 +171,7 @@ void WfDeserializerFromJson::deserialize_cni_node_reroute(const o_json& j, Parse
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename N>
-void deserialize_cni_node_note_impl(Workflow* wf, const o_json& j, ParseResult& result)
+void deserialize_cni_node_note_impl(const Workflow* wf, const o_json& j, ParseResult& result)
 {
     LogRAssertS(result.node_inst, "Zero node", );
     auto note = cast::dynamic<N>(result.node_inst);
@@ -187,7 +187,7 @@ void deserialize_cni_node_note_impl(Workflow* wf, const o_json& j, ParseResult& 
     }
     pin->finalize();
 
-    const auto pin_instance = wf->get_pin_by_hash(note->get_instance_id(), pin_hash);    
+    const auto* pin_instance = wf->get_pin_by_hash(note->get_instance_id(), pin_hash);    
     if (nullptr == pin_instance)
     {
         result.unrecognized_node_definition = true;

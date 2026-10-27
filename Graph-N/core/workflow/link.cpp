@@ -105,9 +105,9 @@ Link* Link::link(PinInstance* i1, PinInstance* i2, iid instance_id /*= 0*/)
     NodeInstance* n1 = wf->get_node_by_instance(i1->get_parent_node());
     NodeInstance* n2 = wf->get_node_by_instance(i2->get_parent_node());
 
-    if (p1->flags.has(PinObjFlags::Advanced))
+    if (n1 != nullptr && p1->flags.has(PinObjFlags::Advanced))
         n1->flags().add(NodeInstFlags::ShowHidden);
-    if (p2->flags.has(PinObjFlags::Advanced))
+    if (n2 != nullptr && p2->flags.has(PinObjFlags::Advanced))
         n2->flags().add(NodeInstFlags::ShowHidden);
 
     if (i1->flags().has_not(PinInstFlags::RerouteSplittingPin) && !(PinType::ANY == i1->state().type && PinType::ANY == i2->state().type))

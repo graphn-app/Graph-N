@@ -11,7 +11,7 @@
 namespace data
 {
 
-struct Node : public base::HashID
+struct Node final : public base::HashID
 {
     Node(const std::string& class_name);
     ~Node() noexcept override;

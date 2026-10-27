@@ -48,7 +48,7 @@ private:
     void show_video(mngr::ExecTask::Output& output, ImVec2 rect, bool& show_stub);
     void show_asset_info(const mngr::ExecTask::Output& output, size_t out_idx);
     void create_toolbar();
-    void handle_hotkeys_changed(); // HotkeysChangedHandler
+    void handle_hotkeys_changed() override; // HotkeysChangedHandler
 
     void init_history();
     void load_history();

@@ -124,7 +124,7 @@ void CustomJsNode::draw(data::NodeInstance* node, float off, float width)
     }
 }
 
-void CustomJsNode::handle_pin_value_changed(data::NodeInstance* node, data::PinInstance* pin)
+void CustomJsNode::handle_pin_value_changed(const data::NodeInstance* node, data::PinInstance* pin)
 {
     switch (node->get_object()->get_hash())
     {
@@ -185,10 +185,10 @@ void CustomJsNode::handle_history(uint64_t id, wid wf_id, iid node_id, const blo
 
 void CustomJsNode::handle_edited_image(wid wf_id, iid node_id, const std::string& image_name, const std::string& image_dir)
 {
-    auto wf = g::pWfsManager->access(wf_id, true);
+    const auto* wf = g::pWfsManager->access(wf_id, true);
     if (nullptr == wf)
         return;
-    auto node = wf->get_node_by_instance(node_id);
+    const auto* node = wf->get_node_by_instance(node_id);
     if (nullptr == node || !node->has_object())
         return;
 

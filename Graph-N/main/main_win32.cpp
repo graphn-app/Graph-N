@@ -76,7 +76,7 @@ bool MainRoutine_Win32::init()
     ::SendMessage(m_hwnd, WM_SETICON, ICON_BIG, (LPARAM)m_hicon.get());
     ::SendMessage(m_hwnd, WM_SETICON, ICON_SMALL, (LPARAM)m_hicon.get());
 
-    BOOL dark = TRUE;
+    constexpr BOOL dark = TRUE;
     ::DwmSetWindowAttribute(m_hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof(dark));
 
     ::ShowWindow(m_hwnd, SW_SHOWMAXIMIZED);
@@ -330,7 +330,7 @@ namespace
 {
 MainRoutine_Win32* from_user_data(HWND hWnd)
 {
-    auto user_data = ::GetWindowLongPtr(hWnd, GWLP_USERDATA);
+    const auto user_data = ::GetWindowLongPtr(hWnd, GWLP_USERDATA);
     return cast::ptrs<MainRoutine_Win32>(user_data);
 }
 } // namespace
@@ -430,7 +430,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         return 0;
     case WM_DROPFILES:
         {
-            auto routine = from_user_data(hWnd);
+            const auto* routine = from_user_data(hWnd);
             if (routine != nullptr && routine->m_dnd_callback != nullptr)
             {
                 HDROP hdrop = (HDROP)wParam;
@@ -557,13 +557,13 @@ void MainRoutine_Win32::calc_current_monitor_refresh_rate() noexcept
     if (nullptr == m_hwnd)
         return;
 
-    const auto fallback = [this]()
+    const auto fallback = [this]() noexcept
     {
         m_frame_budget = 1000.0f / 60.0f;
         LogS("Failed to calc current monitor refresh rate, err " << LogApiERR << ". Reset to default 60Hz and default frame budget " << m_frame_budget << "ms. Warning " << get_frame_budget_warn() << ", critical " << get_frame_budget_crit());
     };
 
-    const auto calculated = [this](DWORD monitor_freq)
+    const auto calculated = [this](DWORD monitor_freq) noexcept
     {
         m_monitor_frequency = cast::to_u32(monitor_freq);
         m_frame_budget = cast::to_float(1000.0f / monitor_freq);
@@ -580,7 +580,7 @@ void MainRoutine_Win32::calc_current_monitor_refresh_rate() noexcept
 
     DEVMODE dev_mode = {};
     dev_mode.dmSize = sizeof(DEVMODE);
-    if (EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dev_mode))
+    if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &dev_mode))
     {
         m_monitor_x = cast::to_u32(dev_mode.dmPelsWidth);
         m_monitor_y = cast::to_u32(dev_mode.dmPelsHeight);

@@ -50,9 +50,9 @@ struct HashID
 
     NO_COPY_MOVE(HashID);
 
-    static hid make_hash(const std::string& unique);
+    static hid make_hash(const std::string& unique) noexcept;
     hid get_hash() const noexcept { return m_hash; }
-    void force_replace_hash(hid hash) { m_hash = hash; }
+    void force_replace_hash(hid hash) noexcept { m_hash = hash; }
 
 private:
     hid m_hash = 0;

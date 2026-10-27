@@ -25,7 +25,7 @@ class CNI_Primitive final : public CNI_BaseObj
 {
 public:
     CNI_Primitive(Node* obj, wid workflow_id, iid instance_id) noexcept;
-    ~CNI_Primitive() noexcept = default;
+    ~CNI_Primitive() noexcept override = default;
 
     void cni_cleanup_base_object() noexcept override;
     bool cni_is_applicable() const noexcept override { return true; }

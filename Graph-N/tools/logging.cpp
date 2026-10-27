@@ -140,7 +140,7 @@ void Logger::stop() noexcept
     log_stop();
 }
 
-Logger::Logger() noexcept
+Logger::Logger()
 {
     log_start();
 }
@@ -156,7 +156,7 @@ void Logger::force_flush() noexcept
     m_cv.notify_one();
 }
 
-void Logger::log_start() noexcept
+void Logger::log_start()
 {
     check_log_file_mark();
     if (get_log_started() || !get_log_enabled())
@@ -364,6 +364,13 @@ LogWriter& LogWriter::operator << (const char* str)
 {
     if (str != nullptr)
         fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), str);
+    return *this;
+}
+
+LogWriter& LogWriter::operator << (const wchar_t* str)
+{
+    if (str != nullptr)
+        fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), tools::str::wide_to_utf8(str));
     return *this;
 }
 

@@ -61,7 +61,7 @@ struct PinState final
     }
 };
 
-struct Pin : public base::HashID
+struct Pin final : public base::HashID
 {
 public:
     // ctor for input pin

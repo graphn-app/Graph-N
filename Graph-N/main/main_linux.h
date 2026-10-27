@@ -15,7 +15,7 @@ class MainRoutine_Linux final : public global::MainRoutine
 
 public:
     MainRoutine_Linux() noexcept = default;
-    ~MainRoutine_Linux() override noexcept = default;
+    ~MainRoutine_Linux() noexcept override = default;
 
 private:
     /*

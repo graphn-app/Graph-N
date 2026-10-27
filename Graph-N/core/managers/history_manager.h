@@ -197,7 +197,7 @@ private:
     void pop_action(const HistoryAction* action, bool do_undo);
     void pop_action(data::Workflow* wf, const HistoryStep* step, bool do_undo);
 
-    void pop_blob(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_blob(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_add(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_del(data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_clr(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);

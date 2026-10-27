@@ -1424,7 +1424,7 @@ bool PanelWorkflow::show_widget_menu()
                 if ((ControlAfterGenerate::Increment == pin->state().cag_val || ControlAfterGenerate::Decrement == pin->state().cag_val) && PinType::INT == pin->state().type)
                 {
                     int64_t* step = pin->state().step.get_int_ref();
-                    const int64_t step_min = 1;
+                    constexpr int64_t step_min = 1;
                     const int64_t step_max = *max / 2;
                     ImGui::DragScalar("##step", ImGuiDataType_S64, step, 1.0f, &step_min, &step_max, "Step: %lld");
                     handle_updated();
@@ -1440,7 +1440,7 @@ bool PanelWorkflow::show_widget_menu()
                 if (ControlAfterGenerate::Increment == pin->state().cag_val || ControlAfterGenerate::Decrement == pin->state().cag_val)
                 {
                     double* step = pin->state().step.get_float_ref();
-                    const double step_min = 0.01f;
+                    constexpr double step_min = 0.01f;
                     const double step_max = *max / 2;
                     ImGui::DragScalar("##step", ImGuiDataType_Double, step, 1.0f, &step_min, &step_max, "Step: %.2f");
                     handle_updated();
@@ -1459,7 +1459,7 @@ bool PanelWorkflow::show_widget_menu()
                 {
                     number* step_num = pin->state().step.get_number_ref();
                     double* step = step_num->underlying_type_ref();
-                    const double step_min = 0.01f;
+                    constexpr double step_min = 0.01f;
                     const double step_max = *max / 2;
                     ImGui::DragScalar("##step", ImGuiDataType_Double, step, 1.0f, &step_min, &step_max, "Step: %.2f");
                     handle_updated();

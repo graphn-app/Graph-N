@@ -10,7 +10,7 @@
 namespace data
 {
 
-bool WfDeserializerFromBlob::check_cni_node_definition(blob::Reader& /*block*/, const std::string& /*node_class*/) const
+bool WfDeserializerFromBlob::check_cni_node_definition(blob::Reader& /*block*/, const std::string& /*node_class*/) const noexcept
 {
     // do nothing
     return true;
@@ -128,7 +128,7 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_reroute(blob::Reader&
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename N>
-NodeInstance* deserialize_cni_node_note_impl(blob::Reader& root_block, Workflow* wf, NodeInstance* curr_node)
+NodeInstance* deserialize_cni_node_note_impl(blob::Reader& root_block, const Workflow* wf, NodeInstance* curr_node)
 {
     auto note = cast::dynamic<N>(curr_node);
     LogRAssertS(note, "Node is not CNI. w:" << wf->get_id() << ", n: " << curr_node->get_instance_id() << ", t:" << typeid(curr_node).name(), curr_node);

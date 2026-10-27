@@ -30,7 +30,7 @@ void CustomJsNode::draw_FastActionsButtonRgthree(data::NodeInstance* node, float
     }
 }
 
-void CustomJsNode::handle_insert_lora_rgthree(data::NodeInstance* node, data::PinInstance* pin)
+void CustomJsNode::handle_insert_lora_rgthree(const data::NodeInstance* node, data::PinInstance* pin)
 {
     if (pin->get_object()->def_state.name != "insert_lora" || g::pNodesManager->loras_list().empty())
         return;
@@ -63,7 +63,7 @@ void CustomJsNode::handle_insert_lora_rgthree(data::NodeInstance* node, data::Pi
                     auto old = prompt->state().value;
                     buffer->replace(b, n, "<lora:" + lora + ":1.0>");
 
-                    auto wf = g::pWfsManager->access(node->get_workflow_id());
+                    const auto* wf = g::pWfsManager->access(node->get_workflow_id());
                     wf->action()->multi_action_on("Insert Lora");
                     wf->action()->set_pin_val(prompt, std::move(old));
                     wf->action()->multi_action_off();
@@ -195,9 +195,9 @@ bool CustomJsNode::handle_context_menu_lora_loader_rgthree()
 
 void CustomJsNode::handle_history_lora_loader_rgthree(wid wf_id, iid node_id, const blob::Blob& value)
 {
-    auto wf = g::pWfsManager->access(wf_id);
+    const auto* wf = g::pWfsManager->access(wf_id);
     LogRAssert(wf, "Zero wf. w:" << wf_id, );
-    auto node = wf->get_node_by_instance(node_id);
+    const auto node = wf->get_node_by_instance(node_id);
     LogRAssert(node, "Zero node. w:" << wf_id << ", n:" << node_id, );
     cast::strict<data::CNI_PowerLoraLoaderRgthree>(node)->deserialize(value);
 }

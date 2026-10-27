@@ -68,7 +68,7 @@ bool WfDeserializerFromJson::handle_node_errors(const o_json& jnode, ParseResult
 {
     if (result.invalid_definition)
     {
-        const auto dump = jnode.dump();
+        auto dump = jnode.dump();
         LogWarn("Json contains invalid node: " << dump);
         m_stat_invalid_definition.insert(std::move(dump));
         if (result.node_inst != nullptr && result.node_inst->has_object())

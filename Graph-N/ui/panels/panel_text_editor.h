@@ -36,7 +36,7 @@ public:
     bool is_current(wid wf, const data::NodeInstance* node, const data::PinInstance* pin) const noexcept { return m_current != nullptr && m_current->wf == wf && m_current->node == node && m_current->pin == pin; }
 
     void update(wid wf, data::NodeInstance* node, data::PinInstance* pin, std::string* buffer, const char* hint);
-    void update_node_name(wid wf, data::NodeInstance* node);
+    void update_node_name(wid wf, const data::NodeInstance* node);
 
     bool activate(wid wf);
 
