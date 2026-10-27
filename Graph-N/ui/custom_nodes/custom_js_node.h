@@ -30,6 +30,7 @@ public:
     void handle_pin_value_changed(data::NodeInstance* node, data::PinInstance* pin);
     bool handle_context_menu();
     void handle_history(uint64_t id, wid wf_id, iid node_id, const blob::Blob& value);
+    void handle_edited_image(wid wf_id, iid node_id, const std::string& image_name, const std::string& image_dir);
 
 private:
     void draw_FastActionsButtonRgthree(data::NodeInstance* node, float off, float width);
@@ -41,6 +42,8 @@ private:
     void handle_insert_lora_rgthree(data::NodeInstance* node, data::PinInstance* pin);
     bool handle_context_menu_lora_loader_rgthree();
     void handle_history_lora_loader_rgthree(wid wf_id, iid node_id, const blob::Blob& value);
+
+    void handle_impact_preview(wid wf_id, iid node_id, const std::string& image_name, const std::string& image_dir);
 
 private:
     struct ContextMenuData

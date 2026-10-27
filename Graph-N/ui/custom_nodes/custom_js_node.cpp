@@ -183,4 +183,22 @@ void CustomJsNode::handle_history(uint64_t id, wid wf_id, iid node_id, const blo
     }
 }
 
+void CustomJsNode::handle_edited_image(wid wf_id, iid node_id, const std::string& image_name, const std::string& image_dir)
+{
+    auto wf = g::pWfsManager->access(wf_id, true);
+    if (nullptr == wf)
+        return;
+    auto node = wf->get_node_by_instance(node_id);
+    if (nullptr == node || !node->has_object())
+        return;
+
+    switch (node->get_object()->get_hash())
+    {
+    case js::IMPACT_PREVIEW_BRIDGE:
+    case js::IMPACT_PREVIEW_BRIDGE_LATENT:
+        handle_impact_preview(wf_id, node_id, image_name, image_dir);
+        break;
+    }
+}
+
 } // namespace ui

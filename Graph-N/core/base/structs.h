@@ -444,6 +444,8 @@ constexpr const char* IMPACT_SET_BYPASS_CLASS                           = "Impac
 constexpr const char* IMPACT_SET_MUTE_CLASS                             = "ImpactNodeSetMuteState";
 constexpr const char* IMPACT_SET_WIDGET_VALUE_CLASS                     = "ImpactSetWidgetValue";
 constexpr const char* IMPACT_VALUE_RECEIVER_CLASS                       = "ImpactValueReceiver";
+constexpr const char* IMPACT_PREVIEW_BRIDGE_CLASS                       = "PreviewBridge";
+constexpr const char* IMPACT_PREVIEW_BRIDGE_LATENT_CLASS                = "PreviewBridgeLatent";
 
 constexpr hid VANILLA_REROUTE                                           = tools::str::hash_stable(VANILLA_REROUTE_CLASS);
 constexpr hid VANILLA_PRIMITIVE_NODE                                    = tools::str::hash_stable(VANILLA_PRIMITIVE_NODE_CLASS);
@@ -488,5 +490,7 @@ constexpr hid IMPACT_SET_BYPASS                                         = tools:
 constexpr hid IMPACT_SET_MUTE                                           = tools::str::hash_stable(IMPACT_SET_MUTE_CLASS);
 constexpr hid IMPACT_SET_WIDGET_VALUE                                   = tools::str::hash_stable(IMPACT_SET_WIDGET_VALUE_CLASS);
 constexpr hid IMPACT_VALUE_RECEIVER                                     = tools::str::hash_stable(IMPACT_VALUE_RECEIVER_CLASS);
+constexpr hid IMPACT_PREVIEW_BRIDGE                                     = tools::str::hash_stable(IMPACT_PREVIEW_BRIDGE_CLASS);
+constexpr hid IMPACT_PREVIEW_BRIDGE_LATENT                              = tools::str::hash_stable(IMPACT_PREVIEW_BRIDGE_LATENT_CLASS);
 
 } // namespace js

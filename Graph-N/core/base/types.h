@@ -118,6 +118,7 @@ enum class HttpRequestor : uint8_t
     UploadMedia,
     Upload3d,
     RefreshMedia,
+    ImpactPreview,
     Restart,
     Ext_Update,
     Ext_Stat_Session,
@@ -125,7 +126,7 @@ enum class HttpRequestor : uint8_t
     Ext_Stat_Hardware,
     Ext_Stat_Nodes,
     Ext_Stat_Host,
-    Ext_Stat_Config
+    Ext_Stat_Config,
 };
 
 enum class DlgObj : uint8_t

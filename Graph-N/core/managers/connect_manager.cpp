@@ -231,6 +231,9 @@ uint32_t ConnectManager::register_http_request(std::shared_ptr<RequestData> req)
     case HttpRequestor::RefreshMedia:
         who_is_asking = "RefreshMedia";
         break;
+    case HttpRequestor::ImpactPreview:
+        who_is_asking = "ImpactPreview";
+        break;
     case HttpRequestor::Restart:
         who_is_asking = "Reboot";
         break;

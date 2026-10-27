@@ -29,6 +29,7 @@ constexpr const char* upload_mask       = "/api/upload/mask";                   
 constexpr const char* refresh_inputs    = "/internal/files/input";                                                       // get
 constexpr const char* refresh_outputs   = "/internal/files/output";                                                      // get
 constexpr const char* reboot            = "/api/manager/reboot";                                                         // get
+constexpr const char* impact_image      = "/api/impact/set/pb_id_image?node_id={}&filename={}&type=input&subfolder={}";  // get
 
 constexpr const char* clipbuffer_subfolder = "clipspace";
 }

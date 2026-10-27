@@ -2082,6 +2082,7 @@ void GraphN_Flow::check_host_reply()
             g::pFlow->custom_media_widgets().add_output(wf_id, node_id, mngr::ExecTask::OutputType::Image, image_path, "", 0);
         }
 
+        m_custom_js_node->handle_edited_image(wf_id, node_id, image_name, image_dir);
     };
 
     if (result)
