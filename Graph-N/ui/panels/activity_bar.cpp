@@ -156,6 +156,11 @@ void ActivityBar::show(ActivityBarMode mode)
     const ImGuiDockNode* root_node = ImGui::DockBuilderGetNode(g::pFlow->get_main_dockspace_id());
     const ImGuiDockNode* central_node = get_central_node(root_node);
 
+    // fetch the correct viewport ID again for SetNextWindowViewport
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    if (root_node != nullptr && root_node->HostWindow && root_node->HostWindow->Viewport)
+        viewport = root_node->HostWindow->Viewport;
+
     size_t l_panels = 0, r_panels = 0;
     for (auto& [id, direction, hotkey] : m_panels)
     {
@@ -172,13 +177,16 @@ void ActivityBar::show(ActivityBarMode mode)
 
     ImGui::PushStyleColor(ImGuiCol_WindowBg, m_clr_bg);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0.0f, 0.0f));
 
     bool l_shown = false, r_shown = false;
 
     if (show_left && l_panels > 0 || left_include_all)
     {
         ImGui::SetNextWindowPos(m_left_rc.Min, ImGuiCond_Always);
-        ImGui::SetNextWindowSize(m_left_rc.Max, ImGuiCond_Always);
+        ImGui::SetNextWindowSize(m_left_rc.GetSize(), ImGuiCond_Always);
+        ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 
         bool opened = true;
         if (ImGui::Begin(DlgObj_SID[cast::to_szt(DlgObj::ActivityBarL)], &opened,
@@ -207,6 +215,7 @@ void ActivityBar::show(ActivityBarMode mode)
     {
         ImGui::SetNextWindowPos(m_right_rc.Min, ImGuiCond_Always);
         ImGui::SetNextWindowSize(m_right_rc.Max, ImGuiCond_Always);
+        ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 
         bool opened = true;
         if (ImGui::Begin(DlgObj_SID[cast::to_szt(DlgObj::ActivityBarR)], &opened,
@@ -232,7 +241,7 @@ void ActivityBar::show(ActivityBarMode mode)
     }
 
     ImGui::PopStyleColor();
-    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(3);
 
     recalc_viewport_size(l_shown, r_shown);
 }
@@ -242,6 +251,17 @@ ActivityBar::Direction ActivityBar::get_panel_direction(DlgObj panel_obj, ImRect
     const auto panel_id = DlgObj_SID[cast::to_szt(panel_obj)];
     const ImGuiWindow* win = ImGui::FindWindowByName(panel_id);
     if (nullptr == win || nullptr == win->DockNode)
+        return Direction::None;
+
+    // traverse up the dock tree to the root
+    ImGuiDockNode* root = win->DockNode;
+    while (root->ParentNode != nullptr)
+    {
+        root = root->ParentNode;
+    }
+
+    // if the root ID does not match the main dockspace, the panel is floating in a separate OS window
+    if (root->ID != g::pFlow->get_main_dockspace_id())
         return Direction::None;
 
     const ImRect panel_rc = win->DockNode->Rect();

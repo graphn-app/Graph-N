@@ -576,6 +576,9 @@ bool    ImGui_ImplDX11_Init(ID3D11Device* device, ID3D11DeviceContext* device_co
     bd->pd3dDevice->AddRef();
     bd->pd3dDeviceContext->AddRef();
 
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        ImGui_ImplDX11_InitPlatformInterface();
+
     return true;
 }
 

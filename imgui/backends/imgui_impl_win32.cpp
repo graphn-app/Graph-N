@@ -153,6 +153,8 @@ static bool ImGui_ImplWin32_InitEx(void* hwnd, bool platform_has_own_dc)
     // Our mouse update function expect PlatformHandle to be filled for the main viewport
     ImGuiViewport* main_viewport = ImGui::GetMainViewport();
     main_viewport->PlatformHandle = main_viewport->PlatformHandleRaw = (void*)bd->hWnd;
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        ImGui_ImplWin32_InitPlatformInterface(platform_has_own_dc);
 
     // Dynamically load XInput library
 #ifndef IMGUI_IMPL_WIN32_DISABLE_GAMEPAD
@@ -949,13 +951,19 @@ void ImGui_ImplWin32_EnableAlphaCompositing(void* hwnd)
 struct ImGui_ImplWin32_ViewportData
 {
     HWND    Hwnd;
+    HICON   Hicon;
     HWND    HwndParent;
     bool    HwndOwned;
     DWORD   DwStyle;
     DWORD   DwExStyle;
 
-    ImGui_ImplWin32_ViewportData() { Hwnd = HwndParent = nullptr; HwndOwned = false;  DwStyle = DwExStyle = 0; }
-    ~ImGui_ImplWin32_ViewportData() { IM_ASSERT(Hwnd == nullptr); }
+    ImGui_ImplWin32_ViewportData() { Hwnd = HwndParent = nullptr; Hicon = nullptr; HwndOwned = false;  DwStyle = DwExStyle = 0; }
+    ~ImGui_ImplWin32_ViewportData()
+    {
+        if (Hicon)
+            ::DestroyIcon(Hicon);
+        IM_ASSERT(Hwnd == nullptr);
+    }
 };
 
 static void ImGui_ImplWin32_GetWin32StyleFromViewportFlags(ImGuiViewportFlags flags, DWORD* out_style, DWORD* out_ex_style)
@@ -963,7 +971,7 @@ static void ImGui_ImplWin32_GetWin32StyleFromViewportFlags(ImGuiViewportFlags fl
     if (flags & ImGuiViewportFlags_NoDecoration)
         *out_style = WS_POPUP;
     else
-        *out_style = WS_OVERLAPPEDWINDOW;
+        *out_style = WS_OVERLAPPEDWINDOW | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 
     if (flags & ImGuiViewportFlags_NoTaskBarIcon)
         *out_ex_style = WS_EX_TOOLWINDOW;
@@ -972,6 +980,9 @@ static void ImGui_ImplWin32_GetWin32StyleFromViewportFlags(ImGuiViewportFlags fl
 
     if (flags & ImGuiViewportFlags_TopMost)
         *out_ex_style |= WS_EX_TOPMOST;
+
+    if (!(flags & ImGuiViewportFlags_NoDecoration))
+        *out_ex_style &= ~WS_EX_TOPMOST;
 }
 
 static HWND ImGui_ImplWin32_GetHwndFromViewportID(ImGuiID viewport_id)
@@ -989,15 +1000,29 @@ static void ImGui_ImplWin32_CreateWindow(ImGuiViewport* viewport)
 
     // Select style and parent window
     ImGui_ImplWin32_GetWin32StyleFromViewportFlags(viewport->Flags, &vd->DwStyle, &vd->DwExStyle);
-    vd->HwndParent = ImGui_ImplWin32_GetHwndFromViewportID(viewport->ParentViewportId);
+    if (!(viewport->Flags & ImGuiViewportFlags_NoDecoration))
+        vd->HwndParent = ::GetDesktopWindow();
+    else
+        vd->HwndParent = ImGui_ImplWin32_GetHwndFromViewportID(viewport->ParentViewportId);
 
     // Create window
     RECT rect = { (LONG)viewport->Pos.x, (LONG)viewport->Pos.y, (LONG)(viewport->Pos.x + viewport->Size.x), (LONG)(viewport->Pos.y + viewport->Size.y) };
     ::AdjustWindowRectEx(&rect, vd->DwStyle, FALSE, vd->DwExStyle);
     vd->Hwnd = ::CreateWindowEx(
-        vd->DwExStyle, _T("ImGui Platform"), _T("Untitled"), vd->DwStyle,       // Style, class name, window name
+        vd->DwExStyle, "ImGui Platform", viewport->Caption, vd->DwStyle,       // Style, class name, window name
         rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,    // Window area
         vd->HwndParent, nullptr, ::GetModuleHandle(nullptr), nullptr);          // Owner window, Menu, Instance, Param
+
+    vd->Hicon = (HICON)::LoadImage(::GetModuleHandle(nullptr), MAKEINTRESOURCE(101), IMAGE_ICON, 32, 32, LR_LOADTRANSPARENT);
+    ::SendMessage(vd->Hwnd, WM_SETICON, ICON_BIG, (LPARAM)vd->Hicon);
+    ::SendMessage(vd->Hwnd, WM_SETICON, ICON_SMALL, (LPARAM)vd->Hicon);
+
+    if (!(viewport->Flags & ImGuiViewportFlags_NoDecoration))
+    {
+        BOOL dark = TRUE;
+        ::DwmSetWindowAttribute(vd->Hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof(dark));
+    }
+
     vd->HwndOwned = true;
     viewport->PlatformRequestResize = false;
     viewport->PlatformHandle = viewport->PlatformHandleRaw = vd->Hwnd;
@@ -1221,6 +1246,8 @@ static LRESULT CALLBACK ImGui_ImplWin32_WndProcHandler_PlatformWindow(HWND hWnd,
             if (viewport->Flags & ImGuiViewportFlags_NoInputs)
                 return HTTRANSPARENT;
             break;
+        case WM_ERASEBKGND:
+            return 1;
         }
     }
 
@@ -1238,7 +1265,7 @@ static void ImGui_ImplWin32_InitPlatformInterface(bool platform_has_own_dc)
     wcex.hInstance = ::GetModuleHandle(nullptr);
     wcex.hIcon = nullptr;
     wcex.hCursor = nullptr;
-    wcex.hbrBackground = (HBRUSH)(COLOR_BACKGROUND + 1);
+    wcex.hbrBackground = nullptr;// (HBRUSH)(COLOR_BACKGROUND + 1);
     wcex.lpszMenuName = nullptr;
     wcex.lpszClassName = _T("ImGui Platform");
     wcex.hIconSm = nullptr;

@@ -22,6 +22,7 @@
 #include <wrl.h>
 #include <WebView2.h>
 #include <shlwapi.h>
+#include <dwmapi.h>
 
 #pragma warning(push, 0)
 #include <httplib.h>

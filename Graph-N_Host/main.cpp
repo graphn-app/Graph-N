@@ -659,6 +659,9 @@ int32_t main(int32_t, char**)
     ::SendMessage(g_data.hwnd, WM_SETICON, ICON_BIG, (LPARAM)hicon.get());
     ::SendMessage(g_data.hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hicon.get());
 
+    BOOL dark = TRUE;
+    ::DwmSetWindowAttribute(g_data.hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof(dark));
+
     ::ShowWindow(g_data.hwnd, SW_SHOWMAXIMIZED);
     ::UpdateWindow(g_data.hwnd);
 

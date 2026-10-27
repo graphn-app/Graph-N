@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #include <windows.h>
 #include <shellapi.h>
+#include <dwmapi.h>
 #include <shobjidl_core.h>
 #include <atlbase.h>
 #include <lmcons.h>

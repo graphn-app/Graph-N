@@ -56,9 +56,10 @@ bool MainRoutine_Win32::init()
     const auto initial_left = screen_w / 2 - initial_width / 2;
     const auto initial_top = screen_y / 2 - initial_height / 2;
 
-    const std::wstring caption = fmt::format(FMT_STRING(L"{} {}"), APP_CAPTION_W, tools::str::utf8_to_wide(ver::ver_as_caption()));
+    const std::string caption = fmt::format(FMT_STRING("{} {}"), APP_CAPTION, ver::ver_as_caption());
+    const std::wstring caption_w = fmt::format(FMT_STRING(L"{} {}"), APP_CAPTION_W, tools::str::utf8_to_wide(ver::ver_as_caption()));
 
-    m_hwnd = ::CreateWindowW(m_wc.lpszClassName, caption.c_str(), WS_OVERLAPPEDWINDOW | WS_MAXIMIZE,
+    m_hwnd = ::CreateWindowW(m_wc.lpszClassName, caption_w.c_str(), WS_OVERLAPPEDWINDOW | WS_MAXIMIZE,
         initial_left, initial_top, initial_width, initial_height, nullptr, nullptr,
         m_wc.hInstance, nullptr);
     LogCriticalIf(m_hwnd, "Failed to create main window, err " << LogApiERR);
@@ -75,6 +76,9 @@ bool MainRoutine_Win32::init()
     ::SendMessage(m_hwnd, WM_SETICON, ICON_BIG, (LPARAM)m_hicon.get());
     ::SendMessage(m_hwnd, WM_SETICON, ICON_SMALL, (LPARAM)m_hicon.get());
 
+    BOOL dark = TRUE;
+    ::DwmSetWindowAttribute(m_hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof(dark));
+
     ::ShowWindow(m_hwnd, SW_SHOWMAXIMIZED);
     ::UpdateWindow(m_hwnd);
     calc_current_monitor_refresh_rate();
@@ -85,12 +89,15 @@ bool MainRoutine_Win32::init()
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
+
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;		// Enable Keyboard navigation
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;			// Enabled docking
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
     io.ConfigWindowsMoveFromTitleBarOnly = true;
+    //io.ConfigViewportsNoTaskBarIcon = true;
+    io.ConfigViewportsNoDecoration = false;
     io.IniFilename = APP_CAPTION_LOW ".ini";
     io.LogFilename = nullptr;
+    strcpy(io.Caption, caption.c_str());
     m_ini_config_exists = tools::path::exists(fs::get_root_directory_path() / io.IniFilename);
 
     // Setup Dear ImGui style
@@ -191,6 +198,12 @@ bool MainRoutine_Win32::render_frame(bool done)
         m_d3d_device_context->ClearRenderTargetView(target_view, clear_color_with_alpha);
     }
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
 
     const auto end_tick = std::chrono::high_resolution_clock::now();
     m_frame_render_time = std::chrono::duration<double, std::milli>(end_tick - start_tick).count();

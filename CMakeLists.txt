@@ -385,6 +385,7 @@ if(WIN32)
         fmt::fmt
         "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host/res/WebView2Loader.dll.lib"
         shlwapi
+		dwmapi
     )
 endif()
 
