@@ -368,7 +368,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         {
             if (SIZE_MINIMIZED == wParam)
             {
-                if (g::pGraphN)
+                if (g::pGraphN != nullptr)
                     g::pGraphN->handle_wnd_minimized();
                 return 0;
             }
@@ -394,7 +394,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
                 }
             }
 
-            if (SIZE_RESTORED == wParam && g::pGraphN)
+            if (SIZE_RESTORED == wParam && g::pGraphN != nullptr)
             {
                 g::pGraphN->handle_wnd_restored();
             }
@@ -403,7 +403,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
     case WM_SYSCOMMAND:
         if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
             return 0;
-        if (SC_CLOSE == wParam && g::pGraphN)
+        if (SC_CLOSE == wParam && g::pGraphN != nullptr)
         {
             LogS("Exit by pressing X button");
             g::pGraphN->handle_wnd_on_close();
@@ -415,7 +415,7 @@ LRESULT WINAPI MainRoutine_Win32::wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, L
         ::PostQuitMessage(0);
         return 0;
     case WM_TIMER:
-        if (g::pGraphN)
+        if (g::pGraphN != nullptr)
             g::pGraphN->handle_1sec_timer(++m_seconds_elapsed);
         break;
     case USER_MESSAGE:

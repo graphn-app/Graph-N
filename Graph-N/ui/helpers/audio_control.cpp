@@ -23,7 +23,8 @@ void AudioControl::stop_and_cleanup()
 {
     if (m_initialized)
     {
-        g::pGraphN->unsubscribe_timers(this);
+        if (g::pGraphN != nullptr)
+            g::pGraphN->unsubscribe_timers(this);
         cleanup_current();
         ma_engine_uninit(&m_engine);
         m_initialized = false;

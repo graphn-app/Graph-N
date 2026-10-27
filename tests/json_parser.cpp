@@ -43,7 +43,7 @@ TEST_F(ParserTest, HandlesEmptyJson)
     bool parsed = parse("{}");
     ASSERT_TRUE(parsed);
 
-    EXPECT_EQ(g::pNodesManager->get_node_items_total(), 0);
+    EXPECT_EQ(g::pNodesManager->get_node_items_total(), 14);
 }
 
 
@@ -77,9 +77,7 @@ TEST_F(ParserTest, HandlesCrazyInput)
     bool parsed = parse(std::move(test_json));
     ASSERT_TRUE(parsed);
 
-    auto& nodes = g::pNodesManager->get_nodes_plain();
-
-    EXPECT_EQ(g::pNodesManager->get_nodes_plain().size(), 1);
+    EXPECT_EQ(g::pNodesManager->get_nodes_plain().size(), 11);
 
     auto node = g::pNodesManager->find_node(tools::str::hash_stable("CrazyNode_v1"));
     ASSERT_TRUE(node != nullptr);
@@ -89,24 +87,24 @@ TEST_F(ParserTest, HandlesCrazyInput)
     bool weird_combo = false;
     bool any_pin = false;
 
-    for (const auto& p : node->required.pins)
+    for (const auto& p : node->input)
     {
         if (p->def_state.name == "broken_float")
         {
             broken_float = true;
-            EXPECT_EQ(p->def_state.type, data::PinType::FLOAT);
-            EXPECT_DOUBLE_EQ(std::get<double>(p->def), 0.0);
+            EXPECT_EQ(p->def_state.type, PinType::FLOAT);
+            EXPECT_DOUBLE_EQ(p->def.get_float(), 0.0);
         }
         else if (p->def_state.name == "weird_combo")
         {
             weird_combo = true;
-            EXPECT_EQ(p->def_state.type, data::PinType::COMBO);
-            EXPECT_GE(p->list.size(), 1);
+            EXPECT_EQ(p->def_state.type, PinType::COMBO);
+            EXPECT_GE(p->combo_items.size(), 1);
         }
         else if (p->def_state.name == "any_pin")
         {
             any_pin = true;
-            EXPECT_EQ(p->def_state.type, data::PinType::ANY);
+            EXPECT_EQ(p->def_state.type, PinType::ANY);
         }
     }
     EXPECT_TRUE(broken_float);

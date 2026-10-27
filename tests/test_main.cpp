@@ -73,7 +73,7 @@ public:
         ImGui::End();
         ImGui::Render();
         ImGui::DestroyContext();
-
+        g::pGraphN->prepare_to_quit();
         g::pGraphN->exit_graphn();
     }
 };

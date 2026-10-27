@@ -20,7 +20,8 @@ void VideoControl::init()
 
 void VideoControl::stop_and_cleanup()
 {
-    g::pGraphN->unsubscribe_timers(this);
+    if (g::pGraphN != nullptr)
+        g::pGraphN->unsubscribe_timers(this);
     m_initialized = false;
     Log("Video engine deinitialized");
 }

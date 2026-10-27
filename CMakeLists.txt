@@ -9,7 +9,7 @@ project(Graph-N)
 # ANALYZERS & SANITIZERS SETTINGS
 # ------------------------------------------------------------------------------
 option(ANALYZERS_ON "Enable MSVC and Clang-Tidy static analyzers" OFF)
-option(USE_ASAN "Enable AddressSanitizer" ON)
+option(USE_ASAN "Enable AddressSanitizer" OFF)
 
 # ------------------------------------------------------------------------------
 # Global Settings
@@ -553,108 +553,110 @@ set_target_properties(Graph-N_Host PROPERTIES
 # ------------------------------------------------------------------------------
 
 # create unit tests file, if not exists
-# if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_main.cpp")
-    # file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
-    # file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_main.cpp" 
-    # "#include <gtest/gtest.h>\n\nTEST(SanityCheck, TrueIsTrue) {\n    EXPECT_EQ(true, true);\n}\n")
-# endif()
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_main.cpp")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_main.cpp" 
+    "#include <gtest/gtest.h>\n\nTEST(SanityCheck, TrueIsTrue) {\n    EXPECT_EQ(true, true);\n}\n")
+endif()
 
-# file(GLOB TEST_ONLY_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
+file(GLOB TEST_ONLY_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
 
-# # list of files for testing (we take all app sources)
-# set(TEST_SOURCES ${GRAPHN_SOURCES})
+# list of files for testing (we take all app sources)
+set(TEST_SOURCES ${GRAPHN_SOURCES})
 
-# # exclude ONLY the entry point (main/WinMain) so it doesn't conflict with gtest_main
-# list(REMOVE_ITEM TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N/entry.cpp")
+# exclude ONLY the entry point (main/WinMain) so it doesn't conflict with gtest_main
+list(REMOVE_ITEM TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N/entry.cpp")
 
-# # Combine test files, app sources (without entry.cpp), and headers
-# set(ALL_TEST_FILES ${TEST_ONLY_SOURCES} ${TEST_SOURCES} ${GRAPHN_HEADERS})
+# Combine test files, app sources (without entry.cpp), and headers
+set(ALL_TEST_FILES ${TEST_ONLY_SOURCES} ${TEST_SOURCES} ${GRAPHN_HEADERS})
 
-# # Visual Studio source groups
-# source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/tests" PREFIX "Test Files" FILES ${TEST_ONLY_SOURCES})
+# Visual Studio source groups
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/tests" PREFIX "Test Files" FILES ${TEST_ONLY_SOURCES})
 
 # make unit test app
-#add_executable(UnitTests ${ALL_TEST_FILES})
+add_executable(UnitTests ${ALL_TEST_FILES})
 
-# if(MSVC)
-    # target_compile_options(UnitTests PRIVATE /bigobj)
+if(MSVC)
+    target_compile_options(UnitTests PRIVATE /bigobj)
     
-    # # STRICT MODE: Warnings as Errors (/WX), High Warning Level (/W4)
-    # target_compile_options(UnitTests PRIVATE /W4 /WX /utf-8)
-# endif()
+    # STRICT MODE: Warnings as Errors (/WX), High Warning Level (/W4)
+    target_compile_options(UnitTests PRIVATE /W4 /WX /EHa /utf-8)
+	target_compile_options(UnitTests PRIVATE /wd4702) # disable 'warning C4702: unreachable code' because of fmt:: library
+endif()
 
-# target_include_directories(UnitTests SYSTEM PRIVATE
-    # "json/include"
-    # "stb"
-    # "cpp-httplib"
-    # "${BOOST_ROOT}"
-    # "${CMAKE_CURRENT_SOURCE_DIR}/SQLiteCpp/include"
-    # "${CMAKE_CURRENT_SOURCE_DIR}/sqlite"
-    # "${NODE_EDITOR_DIR}"
-    # "${IMGUI_DIR}" 
-    # "${IMGUI_DIR}/backends"
-    # "${MINIAUDIO_DIR}"
-# )
+target_include_directories(UnitTests SYSTEM PRIVATE
+    "json/include"
+    "stb"
+    "cpp-httplib"
+    "${BOOST_ROOT}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SQLiteCpp/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sqlite"
+    "${NODE_EDITOR_DIR}"
+    "${IMGUI_DIR}" 
+    "${IMGUI_DIR}/backends"
+    "${MINIAUDIO_DIR}"
+)
 
-# target_include_directories(UnitTests PRIVATE "Graph-N")
+target_include_directories(UnitTests PRIVATE "Graph-N")
 
-# target_compile_definitions(UnitTests PRIVATE 
-    # _CRT_SECURE_NO_WARNINGS
-    # _CRT_NON_CONFORMING_SWPRINTFS
-    # IMGUI_USE_WCHAR32
-    # BOOST_ASIO_NO_LIB
-    # _WIN32_WINNT=0x0A00
-    # WIN32_LEAN_AND_MEAN
-    # NOMINMAX
-    # SKIP_DEBUG_CATCH
-# )
+target_compile_definitions(UnitTests PRIVATE 
+    _CRT_SECURE_NO_WARNINGS
+    _CRT_NON_CONFORMING_SWPRINTFS
+    IMGUI_USE_WCHAR32
+    BOOST_ASIO_NO_LIB
+    _WIN32_WINNT=0x0A00
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+    SKIP_DEBUG_CATCH
+	GRAPHN_STATS_API_KEY="${GRAPHN_STATS_API_KEY}"
+)
 
-# target_precompile_headers(UnitTests PRIVATE "Graph-N/pch.h")
+target_precompile_headers(UnitTests PRIVATE "Graph-N/pch.h")
 
-# # Link your app's dependencies PLUS Google Test
-# target_link_libraries(UnitTests PRIVATE 
-    # ImGuiLib
-    # NodeEditorLib
-    # SQLiteCpp
-    # sqlite3
-    # MiniAudioLib
-    # fmt::fmt
-    # Shell32
-    # wbemuuid
-    # gtest
-    # gtest_main
-# )
+# Link your app's dependencies PLUS Google Test
+target_link_libraries(UnitTests PRIVATE 
+    ImGuiLib
+    NodeEditorLib
+    SQLiteCpp
+    sqlite3
+    MiniAudioLib
+    fmt::fmt
+    Shell32
+    wbemuuid
+    gtest
+    gtest_main
+)
 
-# if(WIN32)
-    # target_link_libraries(UnitTests PRIVATE 
-        # ws2_32 
-        # crypt32 
-        # d3d11 
-        # d3dcompiler 
-        # dwmapi
-        # mfplat mfreadwrite mfuuid propsys
-    # )
-# endif()
+if(WIN32)
+    target_link_libraries(UnitTests PRIVATE 
+        ws2_32 
+        crypt32 
+        d3d11 
+        d3dcompiler 
+        dwmapi
+        mfplat mfreadwrite mfuuid propsys
+    )
+endif()
 
-# include(GoogleTest)
-# gtest_discover_tests(UnitTests)
+include(GoogleTest)
+gtest_discover_tests(UnitTests)
 
 # ------------------------------------------------------------------------------
 # Debug Workflow Automation
 # ------------------------------------------------------------------------------
 
 # copying to work_dir
-# add_custom_command(TARGET UnitTests POST_BUILD
-    # COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:UnitTests> ${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>
-    # COMMENT "Copying UnitTests to work_dir..."
-# )
+add_custom_command(TARGET UnitTests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:UnitTests> ${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>
+    COMMENT "Copying UnitTests to work_dir..."
+)
 
-# # debug run - Visual Studio (F5)
-# set_target_properties(UnitTests PROPERTIES 
-    # # run from work_dir
-    # VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
+# debug run - Visual Studio (F5)
+set_target_properties(UnitTests PROPERTIES 
+    # run from work_dir
+    VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
     
-    # # Debug -> run from work_dir/UnitTests.exe
-    # # Release -> run from bin/UnitTests.exe
-    # VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:UnitTests>>"
-# )
+    # Debug -> run from work_dir/UnitTests.exe
+    # Release -> run from bin/UnitTests.exe
+    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:UnitTests>>"
+)

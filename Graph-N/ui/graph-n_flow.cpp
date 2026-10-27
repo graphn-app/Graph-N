@@ -478,7 +478,8 @@ void GraphN_Flow::prepare_to_quit()
     LogIn;
 
     stats_save_session_end();
-    g::pGraphN->unsubscribe_timers(this);
+    if (g::pGraphN != nullptr)
+        g::pGraphN->unsubscribe_timers(this);
 
     dead();
     g::block_hotkeys_mask = 0xffffffff;

@@ -188,12 +188,14 @@ void GraphN::prepare_to_quit()
     m_video->stop_and_cleanup();
     m_textures->stop_and_cleanup();
     m_audio->stop_and_cleanup();
+
     LogOut;
 }
 
 void GraphN::exit_graphn()
 {
     LogIn;
+    g::pGraphN = nullptr;
 
     m_video.reset();
     g::pVideoControl = nullptr;

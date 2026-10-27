@@ -56,7 +56,7 @@ int32_t do_main(std::atomic_bool& request_focus)
         };
 
         ret = main_app->run(flow_callback, cleanup_callback, request_focus);
-        if (0 == ret)
+        if (0 == ret && g::pGraphN != nullptr)
             ret = g::pGraphN->override_exit_code();
         LogS("App exit code: " << ret);
     }
