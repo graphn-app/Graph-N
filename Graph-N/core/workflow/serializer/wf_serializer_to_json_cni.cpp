@@ -367,8 +367,12 @@ void WfSerializerToJson::serialize_cni_node_power_lora_loader_rgthree(o_json& j)
     const auto& loras = cast::strict<CNI_PowerLoraLoaderRgthree>(m_curr_node)->get_loras();
 
     auto& widgets = j["widgets_values"];
+    widgets = o_json::array();
     widgets.push_back(o_json::object());
-    widgets["type"] = "PowerLoraLoaderHeaderWidget";
+
+    o_json header = o_json::object();
+    header["type"] = "PowerLoraLoaderHeaderWidget";
+    widgets.push_back(std::move(header));
 
     for (auto& lora : loras)
     {

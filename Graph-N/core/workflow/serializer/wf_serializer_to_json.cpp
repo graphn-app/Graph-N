@@ -35,39 +35,51 @@ o_json WfSerializerToJson::serialize()
 {
     LogRAssert(m_wf, "Zero ptr", o_json{});
 
-    std::shared_ptr<Workflow> virt_wf = g::pWfsManager->create_copy_virtual(m_wf);
-    m_wf = virt_wf.get();
-
-    auto& all_nodes = m_wf->get_nodes_all();
-    std::set<NodeInstance*> reroutes;
-
-    for (auto& node : all_nodes)
+    try
     {
-        if (node->flags().has_not(NodeInstFlags::RerouteSplitted_R))
+        std::shared_ptr<Workflow> virt_wf = g::pWfsManager->create_copy_virtual(m_wf);
+        m_wf = virt_wf.get();
+
+        auto& all_nodes = m_wf->get_nodes_all();
+        std::set<NodeInstance*> reroutes;
+
+        for (auto& node : all_nodes)
         {
-            reroutes.insert(node.get());
+            if (node->flags().has_not(NodeInstFlags::RerouteSplitted_R))
+            {
+                reroutes.insert(node.get());
+            }
         }
+        if (!reroutes.empty())
+            cast::remove_const(m_wf)->separate_reroutes(reroutes);
+
+        m_json = o_json();
+        m_json["id"] = m_wf->get_uuid();
+        m_json["revision"] = 0;
+        m_json["version"] = 0.4;
+        m_json["last_node_id"] = serialize_nodes();
+        m_json["last_link_id"] = serialize_links();
+
+        m_json["extra"]["workflowRendererVersion"] = "LG";
+        m_json["extra"]["ds"]["scale"] = 1.0f;
+        m_json["extra"]["ds"]["offset"] = { 0.0f, 0.0f };
+
+        serialize_groups();
+
+        m_wf = nullptr;
+        g::pWfsManager->erase_wf(virt_wf->get_id());
+        return std::move(m_json);
     }
-    if (!reroutes.empty())
-        cast::remove_const(m_wf)->separate_reroutes(reroutes);
+    catch (const std::exception& ex)
+    {
+        LogExcep("Wf json serialize ex:" << ex.what());
+    }
+    catch(...)
+    { 
+        LogExcep("Wf json serialize");
+    }
 
-    m_json = o_json();
-    m_json["id"] = m_wf->get_uuid();
-    m_json["revision"] = 0;
-    m_json["version"] = 0.4;
-    m_json["last_node_id"] = serialize_nodes();
-    m_json["last_link_id"] = serialize_links();
-
-    m_json["extra"]["workflowRendererVersion"] = "LG";
-    m_json["extra"]["ds"]["scale"] = 1.0f;
-    m_json["extra"]["ds"]["offset"] = { 0.0f, 0.0f };
-
-    serialize_groups();
-
-    m_wf = nullptr;
-    g::pWfsManager->erase_wf(virt_wf->get_id());
-
-    return std::move(m_json);
+    return {};
 }
 
 iid WfSerializerToJson::serialize_nodes()
