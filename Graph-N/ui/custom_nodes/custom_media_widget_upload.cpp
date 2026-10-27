@@ -35,7 +35,7 @@ void CustomMediaWidget::draw_widget_upload_button()
         if (ModalDlgCtrl::BtnYes == res)
         {
             widget->upload_target = target;
-            upload_media(*widget, m_upload_file_path, false, true);
+            upload_media(*widget, m_upload_file_path, false, true, nullptr);
         }
         m_upload_file_path.clear();
     };
@@ -81,7 +81,7 @@ void CustomMediaWidget::draw_widget_upload_button()
         else
         {
             widget->upload_target = target;
-            upload_media(*widget, path, false, true);
+            upload_media(*widget, path, false, true, nullptr);
         }
     };
 
@@ -128,13 +128,13 @@ void CustomMediaWidget::draw_widget_upload_button()
     LogError("Unhandled upload media type");
 }
 
-void CustomMediaWidget::upload_media(Widget& widget, const std::filesystem::path& path, bool mask, bool overwrite)
+void CustomMediaWidget::upload_media(Widget& widget, const std::filesystem::path& path, bool mask, bool overwrite, const std::function<void(std::string, std::string)>& callback)
 {
     auto buffer = tools::path::read_file(path, false);
     if (buffer.empty())
         return;
 
-    const auto post_callback = [this, path, &widget](int32_t result, std::string&& data)
+    const auto post_callback = [this, path, &widget, callback](int32_t result, std::string&& data)
     {
         if (result != HTTP_RESP_OK || data.empty()) [[unlikely]] // TODO: show error
             return;
@@ -146,10 +146,11 @@ void CustomMediaWidget::upload_media(Widget& widget, const std::filesystem::path
                 j.contains("name") && j["name"].is_string() /*&&
                 j.contains("type") && j["type"].is_string()*/)
             {
-                widget.uploaded_media = j["name"].get<std::string>();
+                std::string dir, name = j["name"].get<std::string>();
+                widget.uploaded_media = name;
                 if (j.contains("subfolder") && j["subfolder"].is_string())
                 {
-                    const auto dir = j["subfolder"].get<std::string>();
+                    dir = j["subfolder"].get<std::string>();
                     if (!dir.empty())
                         widget.uploaded_media = dir + "/" + widget.uploaded_media;
                 }
@@ -171,6 +172,9 @@ void CustomMediaWidget::upload_media(Widget& widget, const std::filesystem::path
 
                 if (!found)
                     widget.names.push_back(widget.uploaded_media);
+
+                if (callback != nullptr)
+                    callback(name, dir);
             }
         }
         catch (const std::exception& ex)

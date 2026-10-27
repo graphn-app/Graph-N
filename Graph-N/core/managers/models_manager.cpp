@@ -66,7 +66,7 @@ void ModelsManager::load_models_th()
 
         for (auto& req : requests)
         {
-            std::string model_req = models_req + "/" + req;
+            std::string model_req = tools::str::url_encode(models_req + "/" + req);
             http_res = g::pFlow->http_get_and_wait(HttpRequestor::Models_Model, model_req.c_str(), {}, {}, false,
                 [stop_flag = m_stop_flag.get_token()]() noexcept { return stop_flag.stop_requested(); }, data);
 
@@ -102,6 +102,7 @@ void ModelsManager::load_models_th()
 
                         model_req = comfyui_http::model_meta;
                         model_req += "/" + req;
+                        model_req = tools::str::url_encode(model_req);
 
                         httplib::Params params;
                         params.emplace("filename", tools::path::path_to_string(filename.filename()));

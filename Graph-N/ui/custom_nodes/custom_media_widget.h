@@ -21,7 +21,7 @@ public:
     NO_COPY_MOVE(CustomMediaWidget);
 
     void draw_custom_widget(data::NodeInstance* node, float pos, float width);
-    void upload_edited_image(data::NodeInstance* node, std::filesystem::path&& image_path, bool image_is_mask);
+    void upload_edited_image(data::NodeInstance* node, std::filesystem::path&& image_path, bool image_is_mask, const std::function<void(const std::string&, const std::string&)>& callback = nullptr);
     void reset_widgets();
 
     bool get_current_image_paths(data::NodeInstance* node, std::filesystem::path& path, std::filesystem::path& server_name) const;
@@ -47,7 +47,7 @@ private:
     struct Widget;
     void draw_widget_upload_button();
     void draw_widget_refresh_button();
-    void upload_media(Widget& widget, const std::filesystem::path& path, bool mask, bool overwrite);
+    void upload_media(Widget& widget, const std::filesystem::path& path, bool mask, bool overwrite, const std::function<void(std::string, std::string)>& callback);
     void check_media_list_version(Widget& widget);
     void draw_widget_message(const char* const lines[], size_t count);
     void draw_load_result_message(int32_t load_result);

@@ -158,12 +158,15 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
             </div>
         </div>
 
-        <div class="bar-right">
-            <div class="tool-group" style="border: none;">
-                <button id="btnSaveHost" class="btn-output" title="Send back to Graph-N">Save to node</button>
-                <button id="btnExport" class="btn-output" title="Save as PNG to disk">Export to file</button>
-            </div>
-        </div>
+		<div class="bar-right">
+			<div class="tool-group" style="border: none;">
+				<label style="font-size: 11px; margin-right: 10px; display: flex; align-items: center; cursor: pointer;">
+					<input type="checkbox" id="chkSaveMaskOnly" style="margin-right: 4px;"> Save mask only
+				</label>
+				<button id="btnSaveHost" class="btn-output" title="Send back to Graph-N">Save to node</button>
+				<button id="btnExport" class="btn-output" title="Save as PNG to disk">Export to file</button>
+			</div>
+		</div>
     </div>
 
     <div id="workspace">
@@ -962,55 +965,65 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
             syncUI();
             updateCursor();
         };
+		
+		function generateOutput(asBase64) {
+			const tmpCanvas = document.createElement('canvas');
+			tmpCanvas.width = maskCanvas.width;
+			tmpCanvas.height = maskCanvas.height;
+			const tCtx = tmpCanvas.getContext('2d');
+			
+			const saveMaskOnly = document.getElementById('chkSaveMaskOnly').checked;
 
-        function generateOutput(asBase64) {
-            const tmpCanvas = document.createElement('canvas');
-            tmpCanvas.width = maskCanvas.width;
-            tmpCanvas.height = maskCanvas.height;
-            const tCtx = tmpCanvas.getContext('2d');
-            
-            tCtx.fillStyle = "white";
-            tCtx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
+			if (saveMaskOnly) {
+				tCtx.fillStyle = "white";
+				tCtx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
 
-            tCtx.globalCompositeOperation = "destination-in";
-            tCtx.drawImage(maskCanvas, 0, 0);
+				tCtx.globalCompositeOperation = "destination-in";
+				tCtx.drawImage(maskCanvas, 0, 0);
 
-            tCtx.globalCompositeOperation = "destination-over";
-            tCtx.fillStyle = "black";
-            tCtx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
-            
-            tCtx.globalCompositeOperation = "source-over";
+				tCtx.globalCompositeOperation = "destination-over";
+				tCtx.fillStyle = "black";
+				tCtx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
+				
+				tCtx.globalCompositeOperation = "source-over";
+			} else {
+				tCtx.drawImage(imgCanvas, 0, 0);
+				
+				tCtx.globalCompositeOperation = "destination-out";
+				tCtx.drawImage(maskCanvas, 0, 0);
+				
+				tCtx.globalCompositeOperation = "source-over";
+			}
 
-            if (asBase64) return tmpCanvas.toDataURL("image/png");
-            
-            tmpCanvas.toBlob(async (blob) => {
-                if (!blob) return;
-                try {
-                    const currentSettings = {
-                        shape: state.shape,
-                        maskColor: state.maskColor,
-                        brushSize: state.brushSize,
-                        brushHardness: state.brushHardness,
-                        brushOpacity: state.brushOpacity,
-						
+			if (asBase64) return tmpCanvas.toDataURL("image/png");
+			
+			tmpCanvas.toBlob(async (blob) => {
+				if (!blob) return;
+				try {
+					const currentSettings = {
+						shape: state.shape,
+						maskColor: state.maskColor,
+						brushSize: state.brushSize,
+						brushHardness: state.brushHardness,
+						brushOpacity: state.brushOpacity,
 						confidence: state.confidence,
 						samPointSize: state.samPointSize,
 						samColorPos: state.samColorPos,
 						samColorNeg: state.samColorNeg,
-                    };
+					};
 
-                    await fetch(`${API_BASE}/save_mask`, {
-                        method: "POST",
-                        body: blob,
-                        headers: { 
-                            "Content-Type": "image/png",
-                            "X-Editor-Settings": JSON.stringify(currentSettings)
-                        }
-                    });
-                } catch (e) { console.error(e); }
-            }, "image/png");
-        }
-
+					await fetch(`${API_BASE}/save_mask`, {
+						method: "POST",
+						body: blob,
+						headers: { 
+							"Content-Type": "image/png",
+							"X-Editor-Settings": JSON.stringify(currentSettings)
+						}
+					});
+				} catch (e) { console.error(e); }
+			}, "image/png");
+		}
+		
         document.getElementById('btnSaveHost').onclick = () => generateOutput(false);
         document.getElementById('btnExport').onclick = () => {
             const a = document.createElement('a'); a.href = generateOutput(true); a.download = 'mask_export.png'; a.click();

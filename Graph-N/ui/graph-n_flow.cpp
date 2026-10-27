@@ -2066,14 +2066,26 @@ void GraphN_Flow::check_host_reply()
     data::Workflow* wf = g::pWfsManager->access(wf_id, true); // can be zero if already closed
     if (nullptr == wf)
         return;
-
     data::NodeInstance* node = wf->get_node_by_instance(node_id); // can be zero if already closed
-    if (nullptr == node)
-        return;
+    bool is_output_node = false;
+    if (node != nullptr)
+    {
+        node->flags().remove(NodeInstFlags::MaskEditorRunning, NodeInstFlags::PosEditorRunning);
+        is_output_node = node->obj_flags().has(NodeObjFlags::CustomMediaFromOutput);
+    }
 
-    node->flags().remove(NodeInstFlags::MaskEditorRunning, NodeInstFlags::PosEditorRunning);
+    const auto callback = [this, wf_id, node_id, is_output_node, image_path = tools::path::path_to_string(image_path)]
+            (const std::string& image_name, const std::string& image_dir)
+    {
+        if (is_output_node)
+        {
+            g::pFlow->custom_media_widgets().add_output(wf_id, node_id, mngr::ExecTask::OutputType::Image, image_path, "", 0);
+        }
+
+    };
+
     if (result)
-        m_custom_media_widget->upload_edited_image(node, std::move(image_path), true);
+        m_custom_media_widget->upload_edited_image(node, std::move(image_path), true, callback);
 }
 
 }

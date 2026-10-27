@@ -78,12 +78,12 @@ void CustomMediaWidget::draw_custom_widget(data::NodeInstance* node, float pos, 
     m_node = nullptr;
 }
 
-void CustomMediaWidget::upload_edited_image(data::NodeInstance* node, std::filesystem::path&& image_path, bool image_is_mask)
+void CustomMediaWidget::upload_edited_image(data::NodeInstance* node, std::filesystem::path&& image_path, bool image_is_mask, const std::function<void(const std::string&, const std::string&)>& callback /*= nullptr*/)
 {
     m_images_in.upload_target = 0;
     if (node != nullptr)
         m_images_in.upload_target = (node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceIn) ? node->get_instance_id() : 0);
-    upload_media(m_images_in, image_path, image_is_mask, image_is_mask);
+    upload_media(m_images_in, image_path, image_is_mask, image_is_mask, callback);
 }
 
 void CustomMediaWidget::draw_widget_message(const char* const lines[], size_t count)
@@ -362,7 +362,6 @@ void CustomMediaWidget::add_output(
     auto node = wf->get_node_by_instance(node_id);
     if (nullptr == node)   // zero node is not an error, it could be removed
         return;
-
 
     OutputData out;
     out.item.media_id = preloaded_media_id;
