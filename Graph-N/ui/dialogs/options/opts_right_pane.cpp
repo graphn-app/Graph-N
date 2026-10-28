@@ -458,6 +458,12 @@ void OptRightPane::show_local_server(const char*& help_text)
     if (show_full_row_button("Start " APP_COMFYUI,
         !m_data->buffer_s[BuffMainpy].empty() && !m_data->buffer_s[BuffPython].empty() && !m_data->buffer_s[BuffWorkDir].empty(), true, false))
     {
+        g::pOptsManager->comfyui_workdir_save(m_data->buffer_s[BuffWorkDir]);
+        g::pOptsManager->comfyui_python_save(m_data->buffer_s[BuffPython]);
+        g::pOptsManager->comfyui_python_args_save(m_data->buffer_s[BuffPythonArgs]);
+        g::pOptsManager->comfyui_main_py_save(m_data->buffer_s[BuffMainpy]);
+        g::pOptsManager->comfyui_comfyui_args_save(m_data->buffer_s[BuffComfyUIArgs]);
+
         g::pComfyUIManager->run(true);
     }
     std::string caption = "Stop " APP_COMFYUI;

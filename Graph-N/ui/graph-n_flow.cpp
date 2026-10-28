@@ -80,6 +80,14 @@ bool GraphN_Flow::init()
     // Background: Dark Grey (Opaque) - Lighter than main window
     style.Colors[ImGuiCol_PopupBg] = ImColor(g::pOptsManager->color_load(AppColor::PopupBg));
     style.Colors[ImGuiCol_MenuBarBg] = ImColor(g::pOptsManager->color_load(AppColor::MenubarBg));
+    //ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = ImGui::GetStyle().Colors[ImGuiCol_TitleBg];
+    ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = ImGui::GetStyle().Colors[ImGuiCol_TitleBg];
+    ImGui::GetStyle().Colors[ImGuiCol_Tab] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabInactive));
+    ImGui::GetStyle().Colors[ImGuiCol_TabUnfocused] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabInactive));
+    ImGui::GetStyle().Colors[ImGuiCol_TabUnfocusedActive] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabInactive));
+    ImGui::GetStyle().Colors[ImGuiCol_TabHovered] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabHovered));
+    ImGui::GetStyle().Colors[ImGuiCol_TabActive] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabActive));
+    ImGui::GetStyle().Colors[ImGuiCol_HeaderHovered] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::ActivityBarActive));
 
     m_custom_media_widget = std::make_unique<CustomMediaWidget>();
     m_custom_js_node = std::make_unique<CustomJsNode>();
@@ -143,14 +151,6 @@ bool GraphN_Flow::init()
         m_windows |= ViewPanelsResetAll;
 
     Log("Panels created");
-
-    //ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = ImGui::GetStyle().Colors[ImGuiCol_TitleBg];
-    ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = ImGui::GetStyle().Colors[ImGuiCol_TitleBg];
-    ImGui::GetStyle().Colors[ImGuiCol_Tab] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabInactive));
-    ImGui::GetStyle().Colors[ImGuiCol_TabUnfocused] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabInactive));
-    ImGui::GetStyle().Colors[ImGuiCol_TabUnfocusedActive] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabInactive));
-    ImGui::GetStyle().Colors[ImGuiCol_TabHovered] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabHovered));
-    ImGui::GetStyle().Colors[ImGuiCol_TabActive] = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::TabActive));
 
     const auto dnd_callback = [this](std::list<std::filesystem::path>&& files)
     {

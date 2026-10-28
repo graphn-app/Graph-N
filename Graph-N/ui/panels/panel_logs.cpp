@@ -230,54 +230,79 @@ void PanelServerLogs::show_logs()
     ImGui::Spacing();
     if (ImGui::BeginChild(0xC514DD0A, ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
     {
+        auto& path = g::pComfyUIManager->get_log_filepath();
+        if (path.empty())
+            ImGui::Selectable("##stub", false);
+        else
+        {
+            if (ImGuiEx::UrlButton(tools::path::path_to_string(path).c_str(), "Open log file"))
+            {
+                tools::path::open_file(g::pComfyUIManager->get_log_filepath(), false);
+            }
+            ImGui::SameLine();
+
+            ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(0, 0, 0, 0));
+            if (ImGui::Button(ICON_LC_COPY))
+            {
+                ImGui::SetClipboardText(g::pComfyUIManager->get_log_filepath().string().c_str());
+                g::pFlow->set_toast(ImGuiEx::toast_prepare("Path copied", g::pOptsManager->color_load(AppColor::SelectedItem)));
+            }
+            ImGui::PopStyleColor(2);
+        }
+
+        const float text_start_y = ImGui::GetCursorPosY();
+        const auto hover_clr = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_Text]);
+
         ImGuiListClipper clipper;
-        clipper.Begin(m_logs.empty() ? 1 : cast::to_i32(m_logs.size()) + 2);
+        clipper.Begin(cast::to_i32(m_logs.size()) + 1);
+
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(0, 0, 0, 0));
 
         while (clipper.Step())
         {
             for (int32_t line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd; line_no++)
             {
-                if (0 == line_no)
-                {
-                    auto& path = g::pComfyUIManager->get_log_filepath();
-                    if (path.empty())
-                        ImGui::Selectable("##stub", false);
-                    else
-                    {
-                        if (ImGuiEx::UrlButton(tools::path::path_to_string(path).c_str(), "Open log file"))
-                        {
-                            tools::path::open_file(g::pComfyUIManager->get_log_filepath(), false);
-                        }
-                    }
-                    continue;
-                }
-
                 if (line_no >= m_logs.size())
                 {
                     ImGui::Selectable("##empty", false);
                     continue;
                 }
 
-                if (m_found_index == line_no - 1)
+                if (m_found_index == line_no)
                     ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::SelectedItem));
 
                 ImGui::PushID(line_no);
-                const std::string& line_text = m_logs[line_no - 1];
-                if (ImGui::Selectable(line_text.c_str(), false) || ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                const ImVec2 start_pos = ImGui::GetCursorPos();
+                const std::string& line_text = m_logs[line_no];
+
+                if (ImGui::Selectable("##line", false) || ImGui::IsItemClicked(ImGuiMouseButton_Right))
                 {
                     ImGui::SetClipboardText(line_text.c_str());
                     g::pFlow->set_toast(ImGuiEx::toast_prepare("Line copied", g::pOptsManager->color_load(AppColor::SelectedItem)));
                 }
+
+                if (ImGui::IsItemHovered())
+                    ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), hover_clr, 2.0f);
+
+                ImGui::SetCursorPos(start_pos);
+                ImGui::TextUnformatted(line_text.c_str(), line_text.c_str() + line_text.size());
+
                 ImGui::PopID();
 
-                if (m_found_index == line_no - 1)
+                if (m_found_index == line_no)
                     ImGui::PopStyleColor();
             }
         }
 
+        ImGui::PopStyleColor(2);
+
+        clipper.End();
+
         if (m_found_index >= 0 && m_scroll_to_found)
         {
-            const float scroll_y = (m_found_index * ImGui::GetTextLineHeightWithSpacing()) - (ImGui::GetWindowHeight() / 2.0f);
+            const float scroll_y = text_start_y + (m_found_index * clipper.ItemsHeight) - (ImGui::GetWindowHeight() / 2.0f);
             ImGui::SetScrollY(std::max(0.0f, scroll_y));
             m_scroll_to_found = false;
         }

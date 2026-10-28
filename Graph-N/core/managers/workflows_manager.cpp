@@ -954,7 +954,7 @@ wid WfsManager::import_wf_from_json(const std::string& jdata, const std::string&
         {
             if (!virt)
             {
-                Log("Import project success, wf id set to " << wf->get_uuid() << " -> " << wf->get_id());
+                Log("Import project success, wf id set to " << wf->get_uuid() << " -> " << wf->get_id() << ", nodes: " << wf->get_nodes_all().size());
                 g::pDbManager->wf_update_meta(wf->get_data());
                 wf->get_data().dirty = true;
                 wf->get_data().draft = true;
