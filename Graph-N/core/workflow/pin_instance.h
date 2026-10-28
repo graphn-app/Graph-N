@@ -20,6 +20,7 @@ public:
     void init() override;
 
     iid get_parent_node() const noexcept { return m_parent_node; }
+    void set_parent_node(iid node_id) noexcept { m_parent_node = node_id; }
 
     PinState& state() noexcept { return m_state; }
     const PinState& state() const noexcept { return m_state; }

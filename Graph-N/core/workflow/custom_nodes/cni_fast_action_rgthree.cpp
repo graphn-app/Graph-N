@@ -147,6 +147,7 @@ void CNI_FastModeSwitcherRgthree::refresh_switchers()
         if (sw.linked_node != 0)
         {
             auto node = wf->get_node_by_instance(sw.linked_node);
+            LogCAssert(node, "Node not found");
             sw.widget->set_name("Enable " + node->get_name());
             sw.pin->set_name(node->get_name());
             const bool enabled = node->flags().has_not(m_action_mode);
@@ -679,6 +680,7 @@ void CNI_FastActionRgthree::refresh_switchers()
         if (sw.linked_node != 0)
         {
             const auto* node = wf->get_node_by_instance(sw.linked_node);
+            LogCAssert(node, "Node not found");
             sw.widget->set_name("Enable " + node->get_name());
             sw.pin->set_name(node->get_name());
         }

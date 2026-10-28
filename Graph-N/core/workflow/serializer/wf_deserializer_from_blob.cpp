@@ -190,6 +190,8 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
     }
     m_curr_node->reset_pins();
 
+    //BREAK_IF(m_curr_node->get_name() == "CLIP Conditioning");
+
     if (!dummy && m_curr_node->flags().has(NodeInstFlags::BlobCustomSerialization))
     {
         if (nullptr == deserialize_cni_node(root))
@@ -218,7 +220,8 @@ NodeInstance* WfDeserializerFromBlob::deserialize_node(blob::Reader& root_block,
             else
             {
                 pin = g::pNodesManager->find_pin(h_id);
-                LogRAssertS(pin != nullptr, "Dummy pin " << def_name << "/" << def_type, false);
+                if (nullptr == pin)
+                    pin = g::pNodesManager->make_pin(m_curr_node->get_object(), def_type, def_name, input_pin ? -1 : idx);
             }
 
             m_curr_pin = m_wf->add_pin(m_curr_node, pin, i_id);

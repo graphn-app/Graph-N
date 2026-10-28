@@ -429,9 +429,12 @@ void DebugWfView::draw_links_list()
 
             const auto print_pin = [this](const data::PinInstance* p, const char* prefix) noexcept
             {
-                const auto* node = m_wf->get_node_by_instance(p->get_parent_node());
-                if (p) ImGui::Text("%s: | %s, IID: %u | Node: %s, IID: %u", prefix, p->state().name.c_str(), p->get_instance_id(), node->get_name().c_str(), p->get_parent_node());
-                else ImGui::TextColored(ImVec4(1,0,0,1), "%s: BROKEN (NULL)", prefix);
+                if (p != nullptr)
+                {
+                    const auto* node = m_wf->get_node_by_instance(p->get_parent_node());
+                    if (node != nullptr) ImGui::Text("%s: | %s, IID: %u | Node: %s, IID: %u", prefix, p->state().name.c_str(), p->get_instance_id(), node->get_name().c_str(), p->get_parent_node());
+                    else ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s: BROKEN (NULL)", prefix);
+                }
             };
 
             print_pin(output, "Src out pin");

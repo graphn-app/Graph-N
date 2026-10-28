@@ -407,6 +407,7 @@ void WorkflowAction::set_pin_name(data::PinInstance* pin, const std::string& nam
         return;
 
     auto node = m_wf->get_node_by_instance(pin->get_parent_node());
+    LogRAssert(node, "Node not found", );
     node->reset_width();
     node->flags().add(NodeInstFlags::IgnoreSizeOnFrameEnd);
 
@@ -426,10 +427,13 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, Primitive&& old_val)
         return;
 
     const auto* parent_node = m_wf->get_node_by_instance(pin->get_parent_node());
-    if (parent_node->obj_flags().has(NodeObjFlags::SpecSwitherRgthree))
-        m_wf->handle_rgthree_switchers(pin);
-    if (parent_node->obj_flags().has(NodeObjFlags::NoHistoryOnPinValChange))
-        return;
+    if (parent_node != nullptr)
+    {
+        if (parent_node->obj_flags().has(NodeObjFlags::SpecSwitherRgthree))
+            m_wf->handle_rgthree_switchers(pin);
+        if (parent_node->obj_flags().has(NodeObjFlags::NoHistoryOnPinValChange))
+            return;
+    }
 
     multi_action_on("Set value");
     g::pHistoryManager->push_pin_action(pin, mngr::HistoryActionType::PinVal, mngr::HActionT(std::move(old_val)));
@@ -445,13 +449,13 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, int64_t old_idx)
         return;
 
     const auto parent_node = m_wf->get_node_by_instance(pin->get_parent_node());
-    if (parent_node->obj_flags().has(NodeObjFlags::CustomJsNode))
+    if (parent_node != nullptr && parent_node->obj_flags().has(NodeObjFlags::CustomJsNode))
         g::pFlow->custom_js_nodes().handle_pin_value_changed(parent_node, pin);
 
     if (pin->obj_flags().has(PinObjFlags::NoHistoryOnValChange))
         return;
 
-    if (parent_node->obj_flags().has(NodeObjFlags::NoHistoryOnPinValChange))
+    if (parent_node != nullptr && parent_node->obj_flags().has(NodeObjFlags::NoHistoryOnPinValChange))
         return;
 
     multi_action_on("Set value");
@@ -469,7 +473,7 @@ void WorkflowAction::set_pin_val(data::PinInstance* pin, const float* new_colors
         return;
 
     const auto* parent_node = m_wf->get_node_by_instance(pin->get_parent_node());
-    if (parent_node->obj_flags().has(NodeObjFlags::NoHistoryOnPinValChange))
+    if (parent_node != nullptr && parent_node->obj_flags().has(NodeObjFlags::NoHistoryOnPinValChange))
         return;
 
     pin->state().value = new_colors_v;
@@ -531,7 +535,9 @@ void WorkflowAction::mirror_pin_value(data::PinInstance* pin)
 {
     LogRAssert(pin, "Zero ptr", );
     const auto* wf = g::pWfsManager->access(pin->get_workflow_id());
+    LogRAssert(wf, "Wf not found, w:" << pin->get_workflow_id(), );
     const auto* node = wf->get_node_by_instance(pin->get_parent_node());
+    LogRAssert(node, "Node not found, n:" << pin->get_parent_node(), );
     if (node->flags().has_not(NodeInstFlags::CNI)) [[likely]]
         return;
 
@@ -546,7 +552,7 @@ void WorkflowAction::mirror_pin_value(data::PinInstance* pin)
         set_pin_val(dest_pin, std::move(old));
 
         node = wf->get_node_by_instance(dest_pin->get_parent_node()); 
-        if (node->flags().has(NodeInstFlags::CNI))
+        if (node != nullptr && node->flags().has(NodeInstFlags::CNI))
             node->cni_mirror_value_to(dest_pin, mirrored_pins);
     }
 }

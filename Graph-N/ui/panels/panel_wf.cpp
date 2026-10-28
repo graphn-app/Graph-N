@@ -337,9 +337,11 @@ void PanelWorkflow::insert_reroute(data::Link* link, ImVec2 pos)
         if (links.empty())
             return;
         link = *links.begin();
+        LogRAssert(link, "Zero ptr", );
 
         const auto* n1 = m_wf->get_node_by_instance(link->get_input()->get_parent_node());
         const auto* n2 = m_wf->get_node_by_instance(link->get_output()->get_parent_node());
+        LogRAssert(n1 && n2, "Node not found, n1:" << link->get_input()->get_parent_node() << ", n2:" << link->get_output()->get_parent_node(), );
 
         const auto p1_x = n1->m_rc.Min.x + n1->m_rc.Max.x;
         const auto p1_y = n1->m_rc.Min.y;
@@ -464,12 +466,15 @@ void PanelWorkflow::draw_wf()
         [this](data::PinInstance* pin, const ImVec2& pt)
             {
                 const auto parent = m_wf->get_node_by_instance(pin->get_parent_node());
-                m_menu_objs = {};
-                m_menu_objs.click_pos = pt;
-                m_menu_objs.pins.insert(pin);
-                m_menu_objs.nodes.insert(parent);
-                m_context_menu_type = MenuType::SpawnNode;
-                m_handle_context_menu = true;
+                if (parent != nullptr)
+                {
+                    m_menu_objs = {};
+                    m_menu_objs.click_pos = pt;
+                    m_menu_objs.pins.insert(pin);
+                    m_menu_objs.nodes.insert(parent);
+                    m_context_menu_type = MenuType::SpawnNode;
+                    m_handle_context_menu = true;
+                }
             }
     );
 

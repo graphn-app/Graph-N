@@ -1983,7 +1983,7 @@ void host_open(const CustomMediaWidget* wdgt, wid wf_id, iid node_id, HostType t
     LogRAssertS(wf, "Wf not found. w:" << wf_id, );
 
     auto node = wf->get_node_by_instance(node_id);
-    LogRAssertS(wf, "Wf not found. w:" << wf_id << ", n:" << node_id, );
+    LogRAssertS(node, "Node not found. w:" << wf_id << ", n:" << node_id, );
 
     std::filesystem::path source_path, dest_path, server_name;
     if (!wdgt->get_current_image_paths(node, source_path, server_name))
@@ -2040,10 +2040,12 @@ void GraphN_Flow::host_handle_wf_closure(wid wf_id)
 void GraphN_Flow::host_handle_renaming(wid wf_id, iid node_id)
 {
     auto wf = g::pWfsManager->access(wf_id);
+    LogRAssert(wf, "Wf not found, w:" << wf_id, );
     if (node_id != 0)
     {
         const auto* node = wf->get_node_by_instance(node_id);
-        g::pHostManager->rename_host(wf_id, node_id, wf->get_data().name, node->get_name());
+        if (node != nullptr)
+            g::pHostManager->rename_host(wf_id, node_id, wf->get_data().name, node->get_name());
     }
     else
         g::pHostManager->rename_host(wf_id, node_id, wf->get_data().name, "");

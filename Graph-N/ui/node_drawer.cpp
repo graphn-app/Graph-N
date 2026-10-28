@@ -1594,8 +1594,8 @@ void NodeDrawer::draw_cag_helper(const data::PinInstance* pin) const
 
 void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& links)
 {
-    if (zoomed_skip_links()) [[unlikely]]
-        return;
+    //if (zoomed_skip_links()) [[unlikely]]
+    //    return;
 
     for (auto& link : links)
     {
@@ -1622,12 +1622,14 @@ void NodeDrawer::query_new_item(
 
             if (allow)
             {
-                auto linked_node = m_wf->get_node_by_instance(p1->get_parent_node());
-                allow = linked_node->flags().has_not(NodeInstFlags::Collapsed) && linked_node->obj_flags().has_not(NodeObjFlags::Dummy);
+                const auto* linked_node = m_wf->get_node_by_instance(p1->get_parent_node());
+                if (linked_node != nullptr) allow = linked_node->flags().has_not(NodeInstFlags::Collapsed) && linked_node->obj_flags().has_not(NodeObjFlags::Dummy);
+                else allow = false;
                 if (allow)
                 {
                     linked_node = m_wf->get_node_by_instance(p2->get_parent_node());
-                    allow = linked_node->flags().has_not(NodeInstFlags::Collapsed) && linked_node->obj_flags().has_not(NodeObjFlags::Dummy);
+                    if (linked_node != nullptr) allow = linked_node->flags().has_not(NodeInstFlags::Collapsed) && linked_node->obj_flags().has_not(NodeObjFlags::Dummy);
+                    else allow = false;
                 }
             }
             if (allow && data::Link::can_link(p1, p2))
@@ -1645,14 +1647,20 @@ void NodeDrawer::query_new_item(
                     m_wf->action()->multi_action_off();
 
                     auto node = m_wf->get_node_by_instance(p1->get_parent_node());
-                    node->reset_width();
-                    if (p1->obj_flags().has(PinObjFlags::Input))
-                        g::pFlow->txt_panel_delete(m_wf->get_id(), node, p1);
+                    if (node != nullptr)
+                    {
+                        node->reset_width();
+                        if (p1->obj_flags().has(PinObjFlags::Input))
+                            g::pFlow->txt_panel_delete(m_wf->get_id(), node, p1);
 
-                    node = m_wf->get_node_by_instance(p2->get_parent_node());
-                    node->reset_width();
-                    if (p2->obj_flags().has(PinObjFlags::Input))
-                        g::pFlow->txt_panel_delete(m_wf->get_id(), node, p2);
+                        node = m_wf->get_node_by_instance(p2->get_parent_node());
+                        if (node != nullptr)
+                        {
+                            node->reset_width();
+                            if (p2->obj_flags().has(PinObjFlags::Input))
+                                g::pFlow->txt_panel_delete(m_wf->get_id(), node, p2);
+                        }
+                    }
                 }
             }
             else
@@ -1666,7 +1674,7 @@ void NodeDrawer::query_new_item(
             if (ed::AcceptNewItem())
             {
                 const auto parent = m_wf->get_node_by_instance(m_querying_pin->get_parent_node());
-                if (m_querying_pin != nullptr && parent->obj_flags().has_not(NodeObjFlags::Dummy) && m_querying_pin->flags().has_not(PinInstFlags::RerouteSplittingPin))
+                if (parent != nullptr && m_querying_pin != nullptr && parent->obj_flags().has_not(NodeObjFlags::Dummy) && m_querying_pin->flags().has_not(PinInstFlags::RerouteSplittingPin))
                     new_node_handler(m_querying_pin, ed::ScreenToCanvas(ImGui::GetMousePos()));
                 m_querying_pin = nullptr;
             }

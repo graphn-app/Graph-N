@@ -53,7 +53,7 @@ o_json WfSerializerToJsonApi::serialize()
                     {
                         const auto* output_pin = (*links.begin())->get_output();
                         const auto* output_node = m_wf->get_node_by_instance(output_pin->get_parent_node());
-                        if (output_node->flags().has(NodeInstFlags::JsonApiDontExport))
+                        if (output_node != nullptr && output_node->flags().has(NodeInstFlags::JsonApiDontExport))
                             has_links = false;
                     }
                 }

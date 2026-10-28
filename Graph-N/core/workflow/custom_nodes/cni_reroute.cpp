@@ -128,7 +128,11 @@ void CNI_Reroute::cni_init()
             }
             m_data->m_next_out_index = std::max(m_data->m_next_out_index, deserialized_values->next_out_index);
 
-            if (deserialized_values->splitted_node != 0)    m_splitted_part->set_instance_id(deserialized_values->splitted_node);
+            if (deserialized_values->splitted_node != 0)
+            {
+                m_splitted_part->set_instance_id(deserialized_values->splitted_node);
+                m_splitted_part->m_splitted_pin->set_parent_node(deserialized_values->splitted_node);
+            }
             if (deserialized_values->splitter_out != 0)     m_splitted_pin->set_instance_id(deserialized_values->splitter_out);
             if (deserialized_values->splitter_in != 0)      m_splitted_part->m_splitted_pin->set_instance_id(deserialized_values->splitter_in);
             if (deserialized_values->splitter_link != 0)    m_splitter_link_id = deserialized_values->splitter_link;
@@ -422,7 +426,7 @@ void CNI_Reroute::refresh_pair_state(LinkedPair& pair)
         visited_pins.insert(current_pin);
 
         NodeInstance* ext_node = wf->get_node_by_instance(current_pin->get_parent_node());
-        if (nullptr != ext_node && ext_node->obj_flags().has(NodeObjFlags::SpecReroute))
+        if (ext_node != nullptr && ext_node->obj_flags().has(NodeObjFlags::SpecReroute))
         {
             // it is a reroute, ignore its type and pass through it to find what lies beyond
             auto* reroute = cast::strict<CNI_Reroute>(ext_node);
@@ -576,7 +580,7 @@ void CNI_Reroute::propagate_pair_type(const LinkedPair& pair)
         if (nullptr == ext_pin)
             continue;
         auto node = wf->get_node_by_instance(ext_pin->get_parent_node());
-        if (node->obj_flags().has(NodeObjFlags::SpecReroute))
+        if (node != nullptr && node->obj_flags().has(NodeObjFlags::SpecReroute))
         {
             auto ext_reroute = cast::strict<CNI_Reroute>(cast::strict<CNI_Reroute>(node)->get_splitted_base());
             auto ext_pair = find_pair(*ext_reroute->m_data, ext_pin);

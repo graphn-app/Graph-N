@@ -86,16 +86,19 @@ bool PanelWorkflow::context_menu_handler()
             PinType::BOOLEAN == pin->state().type))
         {
             const auto parent = m_wf->get_node_by_instance(pin->get_parent_node());
-            
-            m_handle_context_menu = true;
-            m_menu_objs = {};
-            m_context_menu_type = MenuType::Widget;
-            m_menu_objs.caption = fmt::format(FMT_STRING("Widget [{}]: {}"), pin->get_instance_id(), pin->state().name);
-            m_menu_objs.pins.insert(pin);
-            m_menu_objs.nodes.insert(parent);
-            m_menu_objs.click_pos = m_drawer.get_mouse_pos();
-            Log("Menu: " << m_menu_objs.caption);
-            return true;
+            if (parent != nullptr)
+            {
+                m_handle_context_menu = true;
+                m_menu_objs = {};
+                m_context_menu_type = MenuType::Widget;
+                m_menu_objs.caption = fmt::format(FMT_STRING("Widget [{}]: {}"), pin->get_instance_id(), pin->state().name);
+                m_menu_objs.pins.insert(pin);
+                m_menu_objs.nodes.insert(parent);
+                m_menu_objs.click_pos = m_drawer.get_mouse_pos();
+                Log("Menu: " << m_menu_objs.caption);
+                return true;
+            }
+            return false;
         }
     }
 
@@ -104,7 +107,7 @@ bool PanelWorkflow::context_menu_handler()
         if (pin != nullptr)
         {
             const auto parent = m_wf->get_node_by_instance(pin->get_parent_node());
-            if (parent->flags().has_not(NodeInstFlags::Collapsed) && parent->obj_flags().has_not(NodeObjFlags::Dummy))
+            if (parent != nullptr && parent->flags().has_not(NodeInstFlags::Collapsed) && parent->obj_flags().has_not(NodeObjFlags::Dummy))
             {
                 m_handle_context_menu = true;
                 m_menu_objs = {};
@@ -116,6 +119,7 @@ bool PanelWorkflow::context_menu_handler()
                 Log("Menu: " << m_menu_objs.caption);
                 return true;
             }
+            return false;
         }
     }
 
@@ -1753,7 +1757,7 @@ bool PanelWorkflow::show_pin_menu()
                 for (auto id : targets)
                 {
                     auto node = m_wf->get_node_by_instance(id);
-                    if (ImGui::MenuItem(node->get_name().c_str()))
+                    if (node != nullptr && ImGui::MenuItem(node->get_name().c_str()))
                     {
                         locate_node(node);
                         break;

@@ -44,7 +44,7 @@ bool WfDeserializerFromJsonApi::deserialize()
             }
 
             if (jnode_data.contains("class_type") && jnode_data["class_type"].is_string())
-                api_node.class_type = jnode_data["class_type"].get<std::string>();
+                api_node.class_type = tools::str::trim_their(jnode_data["class_type"].get<std::string>());
             else
             {
                 api_node.invalid_definition = true;
@@ -407,7 +407,9 @@ void WfDeserializerFromJsonApi::arrange_nodes()
     std::unordered_map<void*, NodeInstance*> pin_to_parent_node; 
     for (const auto& link : wf_links)
     {
-        pin_to_parent_node[link->get_input()] = m_wf->get_node_by_instance(link->get_output()->get_parent_node());
+        auto node = m_wf->get_node_by_instance(link->get_output()->get_parent_node());
+        LogCAssert(node, "Node not found");
+        pin_to_parent_node[link->get_input()] = node;
     }
 
     for (auto& node : wf_nodes)

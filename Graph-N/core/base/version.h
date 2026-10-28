@@ -12,12 +12,12 @@ inline constexpr uint32_t app_major = 0;
 /* app version (new backward-compatible features) */
 inline constexpr uint32_t app_minor = 7;
 /* app patch (bugfixes) */
-inline constexpr uint32_t app_patch = 0;
+inline constexpr uint32_t app_patch = 1;
 
 /* date of release commit (for UI only) */
 inline constexpr uint32_t release_year = 2026;
 inline constexpr uint32_t release_month = 10;
-inline constexpr uint32_t release_day = 27;
+inline constexpr uint32_t release_day = 28;
 
 inline constexpr bool beta = true;
 

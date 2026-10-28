@@ -859,7 +859,7 @@ void Workflow::handle_rgthree_switchers(const data::PinInstance* pin)
     if (pin != nullptr)
     {
         auto parent_node = get_node_by_instance(pin->get_parent_node());
-        if (parent_node->obj_flags().has_not(NodeObjFlags::SpecSwitherRgthree))
+        if (nullptr == parent_node || parent_node->obj_flags().has_not(NodeObjFlags::SpecSwitherRgthree))
             LogError("Pin is not from Rgthree node");
         else
         {

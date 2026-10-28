@@ -192,7 +192,7 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
     if (j["id"].is_string())                node_id_from_json = j["id"];
     else if (j["id"].is_number_integer())   node_id_from_json = std::to_string(j["id"].get<int32_t>());
 
-    std::string node_type = j["type"];
+    std::string node_type = tools::str::trim_their(j["type"].get<std::string>());
     //BREAK_IF(node_class == "LoadAudio" || node_class == "SaveAudioMP3");
 
     // position
@@ -229,6 +229,8 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
     // name
     if (j.contains("title") && j["title"].is_string())
         result.node_inst->set_name(j["title"]);
+
+    //BREAK_IF(result.node_inst->get_name() == "CLIP Conditioning");
 
     // mode
     result.node_inst->set_mode(NodeInstFlags::None);
@@ -313,8 +315,7 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
                         pin = g::pNodesManager->find_pin(pin_hash);
                         if (nullptr == pin)
                         {
-                            result.unrecognized_node_definition = true;
-                            return result;
+                            pin = g::pNodesManager->make_pin(result.node_inst->get_object(), type, name, -1);
                         }
                     }
 
@@ -330,9 +331,9 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
                         pin_instance = m_wf->get_pin_by_hash(result.node_inst->get_instance_id(), pin_hash);
                         if (nullptr == pin_instance)
                         {
-                            LogError("Pin(i) instance not found in wf. w:" << m_wf->get_id() << ", n:" << result.node_inst->get_instance_id() << ", ph:" << pin_hash);
-                            result.unrecognized_node_definition = true;
-                            return result;
+                            pin_instance = m_wf->add_pin(result.node_inst, pin, m_wf->get_new_child_id());
+                            pin->def_state.copy_to(pin_instance->state());
+                            result.node_inst->add_input(pin_instance);
                         }
                     }
 
@@ -352,8 +353,21 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
             {
                 if (joutput.is_object())
                 {
-                    const std::string name = joutput["name"];
-                    const std::string type = joutput["type"];
+                    std::string name, type;
+                    if (joutput.contains("name") && joutput["name"].is_string())
+                        name = joutput["name"];
+                    else
+                        name = "UNDEFINED";
+
+                    if (joutput.contains("type"))
+                    {
+                        if (joutput["type"].is_string())
+                            type = joutput["type"];
+                        else if (joutput["type"].is_array())
+                            type = "COMBO";
+                        else
+                            type = "STRING";
+                    }
                     if (m_ignore_pin_types.contains(type))
                         continue;
 
@@ -383,8 +397,7 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
                         pin = g::pNodesManager->find_pin(pin_hash);
                         if (nullptr == pin)
                         {
-                            result.unrecognized_node_definition = true;
-                            return result;
+                            pin = g::pNodesManager->make_pin(result.node_inst->get_object(), type, name, -1);
                         }
                     }
 
@@ -400,9 +413,9 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
                         pin_instance = m_wf->get_pin_by_hash(result.node_inst->get_instance_id(), pin_hash);
                         if (nullptr == pin_instance)
                         {
-                            LogError("Pin(o) instance not found in wf. w:" << m_wf->get_id() << ", n:" << result.node_inst->get_instance_id() << ", ph:" << pin_hash);
-                            result.unrecognized_node_definition = true;
-                            return result;
+                            pin_instance = m_wf->add_pin(result.node_inst, pin, m_wf->get_new_child_id());
+                            pin->def_state.copy_to(pin_instance->state());
+                            result.node_inst->add_input(pin_instance);
                         }
                     }
 
