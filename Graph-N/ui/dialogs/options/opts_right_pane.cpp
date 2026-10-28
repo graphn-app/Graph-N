@@ -575,23 +575,23 @@ void OptRightPane::show_local_server(const char*& help_text)
         "Attempt to find the listening IP and port by parsing the server startup logs.\n\n"
         "Overrides manual Connection settings if successful.");
 
-    ImGui::Spacing();
+    //ImGui::Spacing();
 
-    // output folder
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Output directory:");
-    show_help_mark(help_text,
-        "Optional.\n"
-        "Path to the " APP_COMFYUI " output folder. Enables direct disk access for instant image loading, bypassing network requests.");
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(m_data->input_offset_x);
-    ImGui::SetNextItemWidth(m_data->input_with_browse_w);
-    ImGuiEx::InputTextWithHint("##output", "C:\\" APP_COMFYUI "_install\\" APP_COMFYUI "\\output", &m_data->buffer_s[BuffOutput], ImGuiInputTextFlags_None);
-    if (ImGui::IsItemDeactivatedAfterEdit())
-        g::pOptsManager->comfyui_output_save(m_data->buffer_s[BuffOutput]);
-    ImGui::SameLine();
-    if (ImGui::Button("...##browseoutput", ImVec2(m_data->browse_btn_w, 0)))
-        browse_for_outputdir();
+    //// output folder
+    //ImGui::AlignTextToFramePadding();
+    //ImGui::TextUnformatted("Output directory:");
+    //show_help_mark(help_text,
+    //    "Optional.\n"
+    //    "Path to the " APP_COMFYUI " output folder. Enables direct disk access for instant image loading, bypassing network requests.");
+    //ImGui::SameLine();
+    //ImGui::SetCursorPosX(m_data->input_offset_x);
+    //ImGui::SetNextItemWidth(m_data->input_with_browse_w);
+    //ImGuiEx::InputTextWithHint("##output", "C:\\" APP_COMFYUI "_install\\" APP_COMFYUI "\\output", &m_data->buffer_s[BuffOutput], ImGuiInputTextFlags_None);
+    //if (ImGui::IsItemDeactivatedAfterEdit())
+    //    g::pOptsManager->comfyui_output_save(m_data->buffer_s[BuffOutput]);
+    //ImGui::SameLine();
+    //if (ImGui::Button("...##browseoutput", ImVec2(m_data->browse_btn_w, 0)))
+    //    browse_for_outputdir();
 }
 
 // input styles
