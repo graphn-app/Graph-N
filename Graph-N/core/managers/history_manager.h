@@ -39,7 +39,7 @@ enum class HistoryActionType : uint8_t
 {
     _none,
     Blob,
-    NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeCollapse, NodeRerouteSplit,
+    NodeAdd, NodeDel, NodeRen, NodeRect, NodePin, NodeMode, NodeClr, NodeCollapse, NodeRerouteSplit, NodeBookmark,
     PinRen, PinVal, PinCag, PinMultiline, PinColorConfig,
     LinkAdd, LinkDel,
 
@@ -123,6 +123,7 @@ struct ActNodeDel final : public ActNodeBlob { ActNodeDel() noexcept : ActNodeBl
 struct ActNodeRen final : public ActOldNew   { ActNodeRen() noexcept : ActOldNew(HistoryActionType::NodeRen) {} };
 struct ActNodeRect final : public ActOldNew  { ActNodeRect() noexcept : ActOldNew(HistoryActionType::NodeRect) {} };
 struct ActNodePin final : public ActOldNew   { ActNodePin() noexcept : ActOldNew(HistoryActionType::NodePin) {} };
+struct ActNodeBookmark final : public ActOldNew   { ActNodeBookmark() noexcept : ActOldNew(HistoryActionType::NodeBookmark) {} };
 struct ActNodeMode final : public ActOldNew  { ActNodeMode() noexcept : ActOldNew(HistoryActionType::NodeMode) {} };
 struct ActNodeClr final : public ActOldNew   { ActNodeClr() noexcept : ActOldNew(HistoryActionType::NodeClr) {} };
 struct ActNodeCollapse final : public ActOldNew   { ActNodeCollapse() noexcept : ActOldNew(HistoryActionType::NodeCollapse) {} };
@@ -205,6 +206,7 @@ private:
     void pop_node_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_mode(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_pin(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
+    void pop_node_bookmarked(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_rect(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_node_reroute_split(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);
     void pop_pin_ren(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo);

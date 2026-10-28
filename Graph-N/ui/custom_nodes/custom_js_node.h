@@ -41,6 +41,7 @@ private:
     void draw_Primitive(data::NodeInstance* node, float off, float width);
 
     void handle_insert_lora_rgthree(const data::NodeInstance* node, data::PinInstance* pin);
+    void handle_bookmark_rgthree(const data::NodeInstance* node, data::PinInstance* pin);
     bool handle_context_menu_lora_loader_rgthree();
     void handle_history_lora_loader_rgthree(wid wf_id, iid node_id, const blob::Blob& value);
 

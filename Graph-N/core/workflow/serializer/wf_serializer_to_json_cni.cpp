@@ -26,8 +26,6 @@ void WfSerializerToJson::serialize_cni_node(o_json& j)
         return serialize_cni_node_fast_group_switcher_rgthree(j);
     case js::RGTHREE_FAST_ACTIONS_BUTTON:
         return serialize_cni_node_fast_action_rgthree(j);
-    case js::RGTHREE_BOOKMARK:
-        return serialize_cni_node_bookmark_rgthree(j);
     case js::RGTHREE_POWER_LORA_LOADER:
         return serialize_cni_node_power_lora_loader_rgthree(j);
     case js::IMPACT_SWITCH:
@@ -340,15 +338,6 @@ void WfSerializerToJson::serialize_cni_node_fast_action_rgthree(o_json& j)
     j["inputs"] = std::move(jins);
     j["widgets_values"] = std::move(jwidgets);
     j["outputs"] = o_json::array();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////
-///////////    BookmarkRgthree                               ///////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-
-void WfSerializerToJson::serialize_cni_node_bookmark_rgthree(o_json& /*j*/)
-{
-    // TODO: CNI_BookmarkRgthree
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

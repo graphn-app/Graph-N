@@ -1161,6 +1161,7 @@ void OptRightPane::show_keys(const char*& help_text)
         "Queue prompt (Front)", "Add the current workflow to the front of the queue",
         "Close workflow",   "Close the current workflow tab",
         "New node",         "Open the 'Add Node' search menu",
+        "Bookmarks",        "Show bookmarks menu",
         "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // reserved
         "", "", // last
 
@@ -1168,6 +1169,7 @@ void OptRightPane::show_keys(const char*& help_text)
         "", "", // first
         "Pin/unpin",        "Toggle pin state for selected nodes",
         "Collapse/expand",  "Toggle collapse state for selected nodes",
+        "Bookmark",         "Toggle bookmarked state for selected nodes",
         "Group nodes",      "Wrap selected nodes in a group",
         "Enable nodes",     "Set selected nodes state to 'Always'",
         "Mute nodes",       "Toggle mute state (node will not execute)",

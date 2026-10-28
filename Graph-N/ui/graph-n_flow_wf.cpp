@@ -418,7 +418,15 @@ void GraphN_Flow::wf_new_node() noexcept
 {
     if (m_wf_focused != nullptr)
     {
-        m_wf_focused->display_new_node_menu();
+        m_wf_focused->open_new_node_menu();
+    }
+}
+
+void GraphN_Flow::wf_bookmarks() noexcept
+{
+    if (m_wf_focused != nullptr)
+    {
+        m_wf_focused->open_bookmarks_menu();
     }
 }
 
@@ -452,13 +460,16 @@ void GraphN_Flow::wf_node_select_all() noexcept
 }
 
 void GraphN_Flow::wf_node_action_on_selected(
+    const std::function<void(std::set<data::NodeInstance*>&)>& filter_nodes,
     const std::function<const char*(bool)>& action_name_cb,
     const std::function<bool(data::NodeInstance*)>& first_cb,
     const std::function<void(data::NodeInstance*, data::WorkflowAction*, bool)>& action_cb)
 {
     if (m_wf_focused != nullptr)
     {        
-        const auto selected = m_wf_focused->get_selected_nodes(false);
+        auto selected = m_wf_focused->get_selected_nodes(false);
+        if (filter_nodes != nullptr)
+            filter_nodes(selected);
         if (!selected.empty())
         {
             const bool first = first_cb(*selected.begin());
@@ -488,11 +499,15 @@ void GraphN_Flow::wf_node_toggle_pin()
     {
         action->set_node_pinning(node, !first);
     };
-    wf_node_action_on_selected(action_name_cb, first_cb, action_cb);
+    wf_node_action_on_selected(nullptr, action_name_cb, first_cb, action_cb);
 }
 
 void GraphN_Flow::wf_node_toggle_collapse()
 {
+    const auto filter = [](std::set<data::NodeInstance*>& selected)
+    {
+        std::erase_if(selected, [](const data::NodeInstance* node) noexcept { return node->flags().has(NodeInstFlags::Group); });
+    };
     const auto action_name_cb = [](bool first) noexcept
     {
         return first ? "Collapse" : "Expand";
@@ -505,7 +520,28 @@ void GraphN_Flow::wf_node_toggle_collapse()
     {
         action->set_node_collapsed(node, first);
     };
-    wf_node_action_on_selected(action_name_cb, first_cb, action_cb);
+    wf_node_action_on_selected(filter, action_name_cb, first_cb, action_cb);
+}
+
+void GraphN_Flow::wf_node_toggle_bookmark()
+{
+    const auto filter = [](std::set<data::NodeInstance*>& selected)
+    {
+        std::erase_if(selected, [](const data::NodeInstance* node) noexcept { return node->has_object() && node->get_object()->get_hash() == js::RGTHREE_BOOKMARK; });
+    };
+    const auto action_name_cb = [](bool /*first*/) noexcept
+    {
+        return "Bookmark";
+    };
+    const auto first_cb = [](data::NodeInstance* node) noexcept
+    {
+        return node->flags().has_not(NodeInstFlags::Bookmarked);
+    };
+    const auto action_cb = [](data::NodeInstance* node, data::WorkflowAction* action, bool first)
+    {
+        action->set_node_bookmarked(node, first);
+    };
+    wf_node_action_on_selected(filter, action_name_cb, first_cb, action_cb);
 }
 
 void GraphN_Flow::wf_node_group()
@@ -519,6 +555,10 @@ void GraphN_Flow::wf_node_group()
 
 void GraphN_Flow::wf_node_always()
 {
+    const auto filter = [](std::set<data::NodeInstance*>& selected)
+    {
+        std::erase_if(selected, [](const data::NodeInstance* node) noexcept { return node->flags().has(NodeInstFlags::Group); });
+    };
     const auto action_name_cb = [](bool /*first*/)
     {
         return "Set mode";
@@ -531,11 +571,15 @@ void GraphN_Flow::wf_node_always()
     {
         action->set_node_mode(node, NodeInstFlags::None);
     };
-    wf_node_action_on_selected(action_name_cb, first_cb, action_cb);
+    wf_node_action_on_selected(filter, action_name_cb, first_cb, action_cb);
 }
 
 void GraphN_Flow::wf_node_toggle_mute()
 {
+    const auto filter = [](std::set<data::NodeInstance*>& selected)
+    {
+        std::erase_if(selected, [](const data::NodeInstance* node) noexcept { return node->flags().has(NodeInstFlags::Group); });
+    };
     const auto action_name_cb = [](bool /*first*/) noexcept
     {
         return "Set mode";
@@ -548,11 +592,15 @@ void GraphN_Flow::wf_node_toggle_mute()
     {
         action->set_node_mode(node, first ? NodeInstFlags::None : NodeInstFlags::ModeMute);
     };
-    wf_node_action_on_selected(action_name_cb, first_cb, action_cb);
+    wf_node_action_on_selected(filter, action_name_cb, first_cb, action_cb);
 }
 
 void GraphN_Flow::wf_node_toggle_bypass()
 {
+    const auto filter = [](std::set<data::NodeInstance*>& selected)
+    {
+        std::erase_if(selected, [](const data::NodeInstance* node) noexcept { return node->flags().has(NodeInstFlags::Group); });
+    };
     const auto action_name_cb = [](bool /*first*/) noexcept
     {
         return "Set mode";
@@ -565,7 +613,7 @@ void GraphN_Flow::wf_node_toggle_bypass()
     {
         action->set_node_mode(node, first ? NodeInstFlags::None : NodeInstFlags::ModeBypass);
     };
-    wf_node_action_on_selected(action_name_cb, first_cb, action_cb);
+    wf_node_action_on_selected(filter, action_name_cb, first_cb, action_cb);
 }
 
 void GraphN_Flow::wf_node_remove()
@@ -602,6 +650,10 @@ void GraphN_Flow::wf_node_duplicate()
 
 void GraphN_Flow::wf_node_move(bool left, bool right, bool up, bool down)
 {
+    const auto filter = [](std::set<data::NodeInstance*>& selected)
+    {
+        std::erase_if(selected, [](const data::NodeInstance* node) noexcept { return node->flags().has(NodeInstFlags::Pinned); });
+    };
     const auto action_name_cb = [left, right, up, down](bool /*first*/) noexcept
     {
         if (left) return "Move left";
@@ -622,7 +674,7 @@ void GraphN_Flow::wf_node_move(bool left, bool right, bool up, bool down)
         else            rc.Min.y++;
         action->set_node_rect(node, rc);
     };
-    wf_node_action_on_selected(action_name_cb, first_cb, action_cb);
+    wf_node_action_on_selected(filter, action_name_cb, first_cb, action_cb);
 }
 
 void GraphN_Flow::wf_node_align(bool left, bool top)
@@ -707,6 +759,14 @@ void GraphN_Flow::wf_insert_reroute()
 {
     if (m_wf_focused != nullptr)
         m_wf_focused->insert_reroute(nullptr, {});
+}
+
+void GraphN_Flow::wf_handle_bookmark(const ui::PanelWorkflow* wf_panel, ImGuiKey key)
+{
+    if (m_wf_focused != nullptr && m_wf_focused == wf_panel)
+    {
+        m_wf_focused->get_workflow()->handle_bookmark(key);
+    }
 }
 
 }

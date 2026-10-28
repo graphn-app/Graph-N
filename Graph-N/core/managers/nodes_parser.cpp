@@ -1079,16 +1079,17 @@ data::Node* add_internal_node(hid node_hash, std::unordered_map<hid, std::unique
 
 void NodesParser::add_internal_nodes(NodesManager& manager)
 {
-    put_in_tree(manager, add_internal_node(js::VANILLA_REROUTE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::VANILLA_PRIMITIVE_NODE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::VANILLA_NOTE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::VANILLA_MARKDOWN_NOTE, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::RGTHREE_FAST_BYPASSER, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::RGTHREE_FAST_MUTER, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::RGTHREE_FAST_GROUPS_MUTER, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::RGTHREE_FAST_GROUPS_BYPASSER, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::RGTHREE_FAST_ACTIONS_BUTTON, manager.m_nodes));
-    put_in_tree(manager, add_internal_node(js::RGTHREE_BOOKMARK, manager.m_nodes));
+    constexpr hid classes[] =
+    {
+        js::VANILLA_REROUTE, js::VANILLA_PRIMITIVE_NODE, js::VANILLA_NOTE, js::VANILLA_MARKDOWN_NOTE, js::RGTHREE_FAST_BYPASSER, js::RGTHREE_FAST_MUTER,
+        js::RGTHREE_FAST_GROUPS_MUTER, js::RGTHREE_FAST_GROUPS_BYPASSER, js::RGTHREE_FAST_ACTIONS_BUTTON, js::RGTHREE_BOOKMARK
+    };
+    for (auto hash : classes)
+    {
+        auto node = add_internal_node(hash, manager.m_nodes);
+        g::pFlow->custom_js_nodes().test(&manager, node);
+        put_in_tree(manager, node);
+    }
 }
 
 template <size_t N>

@@ -417,6 +417,11 @@ void HistoryManager::push_node_action(const data::NodeInstance* node, HistoryAct
         step = std::make_unique<ActNodePin>();
         step->new_val = node->flags().get_by_mask(NodeInstFlags::Pinned);
         break;
+    case HistoryActionType::NodeBookmark:
+        history = open_action(node->get_workflow_id(), "Bookmark node");
+        step = std::make_unique<ActNodeBookmark>();
+        step->new_val = node->flags().get_by_mask(NodeInstFlags::Bookmarked);
+        break;
     case HistoryActionType::NodeRect: [[likely]]
         history = open_action(node->get_workflow_id(), "Move");
         step = std::make_unique<ActNodeRect>();
@@ -596,6 +601,9 @@ void HistoryManager::pop_action(data::Workflow* wf, const HistoryStep* step, boo
     case HistoryActionType::NodePin:
         pop_node_pin(wf, step, do_undo);
         break;
+    case HistoryActionType::NodeBookmark:
+        pop_node_bookmarked(wf, step, do_undo);
+        break;
     case HistoryActionType::NodeRect: [[likely]]
         pop_node_rect(wf, step, do_undo);
         break;
@@ -724,6 +732,17 @@ void HistoryManager::pop_node_pin(const data::Workflow* dest_wf, const HistorySt
     ObjectFlags<NodeInstFlags> obj_flag;
     obj_flag.set_raw(*std::get_if<uint64_t>(do_undo ? &real_step->old_val : &real_step->new_val));
     dest_wf->action()->set_node_pinning(node, obj_flag.has(NodeInstFlags::Pinned));
+}
+
+void HistoryManager::pop_node_bookmarked(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)
+{
+    const ActNodeBookmark* real_step = cast::dynamic<const ActNodeBookmark>(step);
+    auto node = dest_wf->get_node_by_instance(step->id);
+    LogRAssert(node != nullptr, "Node not found in wf. w:" << dest_wf->get_id() << ", n:" << step->id, );
+
+    ObjectFlags<NodeInstFlags> obj_flag;
+    obj_flag.set_raw(*std::get_if<uint64_t>(do_undo ? &real_step->old_val : &real_step->new_val));
+    dest_wf->action()->set_node_bookmarked(node, obj_flag.has(NodeInstFlags::Bookmarked));
 }
 
 void HistoryManager::pop_node_rect(const data::Workflow* dest_wf, const HistoryStep* step, bool do_undo)

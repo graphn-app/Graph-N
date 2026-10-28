@@ -20,6 +20,7 @@ const char* action_type_str(HistoryActionType t)
     case HistoryActionType::NodeRen: return "NodeRen";
     case HistoryActionType::NodeRect: return "NodeRect";
     case HistoryActionType::NodePin: return "NodePin";
+    case HistoryActionType::NodeBookmark: return "NodeBookmark";
     case HistoryActionType::NodeMode: return "NodeMode";
     case HistoryActionType::NodeClr: return "NodeClr";
     case HistoryActionType::NodeCollapse: return "NodeCollapse";

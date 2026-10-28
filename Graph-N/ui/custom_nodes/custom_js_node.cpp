@@ -34,12 +34,6 @@ void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
             }
         }
         break;
-        // TODO
-    //case js::CUSTOM_COMBO:
-    //    if (!node->input.empty())
-    //        node->input[0]->flags.remove(PinObjFlags::CanLink, PinObjFlags::CanUnlink, PinObjFlags::CanRename);
-    //    node->flags.add(NodeObjFlags::CustomJsNode);
-    //    break;
 
     case js::RGTHREE_CONTEXT_MERGE:
     case js::RGTHREE_CONTEXT_MERGE_BIG:
@@ -82,23 +76,42 @@ void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
     case js::RGTHREE_POWER_LORA_LOADER:
         node->flags.add(NodeObjFlags::CustomJsNode);
         break;
+    case js::RGTHREE_BOOKMARK:    
+        {
+            auto pin = manager->make_pin(node, "COMBO", "hotkey", -1);
+            pin->combo_items.reserve(43);
+            for (char key[2] = { '0' }; key[0] <= '9'; key[0]++)
+            {
+                pin->combo_items.emplace_back(std::string(key));
+            }
+            for (char key[2] = { 'a' }; key[0] <= 'z'; key[0]++)
+            {
+                pin->combo_items.emplace_back(std::string(key));
+            }
+            pin->finalize();
+            pin->flags.remove(PinObjFlags::CanRename, PinObjFlags::CanLink, PinObjFlags::CanUnlink);
+
+            pin = manager->make_pin(node, "STRING", "note", -1);
+            pin->finalize();
+            pin->flags.remove(PinObjFlags::CanRename, PinObjFlags::CanLink, PinObjFlags::CanUnlink);
+            pin->flags.add(PinObjFlags::Advanced);
+        }  
+        break;
     }
 }
 
-void CustomJsNode::init(data::NodeInstance* /*node*/)
+void CustomJsNode::init(data::NodeInstance* node)
 {
-    //switch (node->get_object()->get_hash())
-    //{
-    //    // TODO
-    ////case js::CUSTOM_COMBO:
-    ////    node->flags().add(NodeInstFlags::JsonCustomSerialization, NodeInstFlags::BlobCustomSerialization);
-    ////    node->m_js_data = std::make_unique<js::CustomCombo_Data>();
-    ////    break;
-    //default:
-    //    return;
-    //}
+    switch (node->get_object()->get_hash())
+    {
+    case js::RGTHREE_BOOKMARK:
+        node->flags().add(NodeInstFlags::JsonApiDontExport);
+        break;
+    default:
+        return;
+    }
 
-    //Log("Custom JS node. " << node->get_instance_id() << ":" << node->get_object()->node_class << "/" << node->get_name());
+    Log("Custom JS node. " << node->get_instance_id() << ":" << node->get_object()->node_class << "/" << node->get_name());
 }
 
 void CustomJsNode::draw(data::NodeInstance* node, float off, float width)
@@ -111,10 +124,6 @@ void CustomJsNode::draw(data::NodeInstance* node, float off, float width)
     case js::VANILLA_PRIMITIVE_NODE:
         draw_Primitive(node, off, width);
         break;
-        // TODO
-    //case js::CUSTOM_COMBO:
-    //    draw_CustomCombo(node, off, width);
-    //    break;
     case js::RGTHREE_FAST_ACTIONS_BUTTON:
         draw_FastActionsButtonRgthree(node, off, width);
         break;
@@ -131,6 +140,9 @@ void CustomJsNode::handle_pin_value_changed(const data::NodeInstance* node, data
     case js::RGTHREE_SDXL_POWER_PROMPT_POS:
     case js::RGTHREE_POWER_PROMPT:
         handle_insert_lora_rgthree(node, pin);
+        break;
+    case js::RGTHREE_BOOKMARK:
+        handle_bookmark_rgthree(node, pin);
         break;
     }
 }

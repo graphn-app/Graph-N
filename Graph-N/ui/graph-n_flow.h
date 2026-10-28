@@ -192,8 +192,10 @@ public:
     void wf_node_select_all() noexcept;
     void wf_panel_close(PanelWorkflow* wf_panel);
     void wf_new_node() noexcept;
+    void wf_bookmarks() noexcept;
     void wf_node_toggle_pin();
     void wf_node_toggle_collapse();
+    void wf_node_toggle_bookmark();
     void wf_node_group();
     void wf_node_always();
     void wf_node_toggle_mute();
@@ -206,6 +208,7 @@ public:
     void wf_node_align(bool left, bool top);
     void wf_node_unlink();
     void wf_insert_reroute();
+    void wf_handle_bookmark(const ui::PanelWorkflow* wf_panel, ImGuiKey key);
 
     // menu
     void on_menu_import();
@@ -301,6 +304,7 @@ private:
     void wf_assign_sequential_numbers();
     void wf_node_get_any_selected(bool& sel_nodes, bool& sel_groups) noexcept;
     void wf_node_action_on_selected(
+        const std::function<void(std::set<data::NodeInstance*>&)>& filter_nodes,
         const std::function<const char*(bool)>& action_name_cb,
         const std::function<bool(data::NodeInstance*)>& first_cb,
         const std::function<void(data::NodeInstance*, data::WorkflowAction*, bool)>& action_cb);

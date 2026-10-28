@@ -58,6 +58,7 @@ public:
 
     void set_node_collapsed(data::NodeInstance* node, bool collapsed);
     void set_node_pinning(data::NodeInstance* node, bool pin);
+    void set_node_bookmarked(data::NodeInstance* node, bool bookmarked);
     void set_node_mode(data::NodeInstance* node, NodeInstFlags mode);
 
     void begin_nodes_move(const std::set<data::NodeInstance*>& nodes);

@@ -3,6 +3,7 @@
 */
 
 #include "core/workflow/custom_nodes/cni_base_object.h"
+#include "core/managers/nodes_manager.h"
 
 namespace data
 {
@@ -51,7 +52,7 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
         node->category = "utils";
         node->description = "Reroute Node Purpose: Mainly used to organize the logic of overly long connection lines in the " APP_COMFYUI " workflow.";
         node->python_module = VANILLA;
-        node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanRename);
+        node->flags.remove(NodeObjFlags::CanBypass);
         node->flags.add(NodeObjFlags::SpecReroute);
         break;
 
@@ -138,12 +139,12 @@ std::unique_ptr<Node> CNI_BaseObj::cni_make_base_object(hid hash)
 
     case js::RGTHREE_BOOKMARK:
         node = std::make_unique<data::Node>(js::RGTHREE_BOOKMARK_CLASS);
-        node->name = node->display_name = "Bookmark (rgthree)";
+        node->name = node->display_name = ICON_LC_BOOKMARK " Bookmark (rgthree)";
         node->category = "rgthree";
         node->description = "A navigational node that saves a specific canvas location and zoom level, allowing users to quickly jump (pan and zoom) to this area of the workflow using an assigned shortcut key";
         node->python_module = "frontend-only";
-        node->flags.remove(NodeObjFlags::CanBypass, NodeObjFlags::CanMute);
-        node->flags.add(NodeObjFlags::SpecBookmarkRgthree, NodeObjFlags::CustomJsNode, NodeObjFlags::NoPinCagMenu);
+        node->flags.remove(NodeObjFlags::CanBypass);
+        node->flags.add(NodeObjFlags::CustomJsNode, NodeObjFlags::NoPinCagMenu);
         break;
 
     case js::RGTHREE_POWER_LORA_LOADER:

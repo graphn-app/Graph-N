@@ -85,10 +85,12 @@ std::vector<ui::KeyBinding> HotkeysManager::get_default_key_bindings() const
     { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_RunBack;   kb.key = ImGuiKey::ImGuiKey_Enter;      kb.ctrl = true;                     hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_RunFront;  kb.key = ImGuiKey::ImGuiKey_Enter;      kb.shift = true;                    hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_Close;     kb.key = ImGuiKey::ImGuiKey_Escape;     kb.shift = true;                    hks.push_back(kb); }
-    { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_NewNode;   kb.key = ImGuiKey::ImGuiKey_Space;                                          hks.push_back(kb); }    
+    { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_NewNode;   kb.key = ImGuiKey::ImGuiKey_Space;                                          hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Workspace_Bookmarks; kb.key = ImGuiKey::ImGuiKey_B;                                              hks.push_back(kb); }
 
     { ui::KeyBinding kb; kb.target = KeyTarget::Node_Pin;            kb.key = ImGuiKey::ImGuiKey_P;          kb.ctrl = true;                     kb.node_related = true;  hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Node_Collapse;       kb.key = ImGuiKey::ImGuiKey_E;          kb.ctrl = true;                     kb.node_related = true;  hks.push_back(kb); }
+    { ui::KeyBinding kb; kb.target = KeyTarget::Node_Bookmark;       kb.key = ImGuiKey::ImGuiKey_B;          kb.ctrl = true; kb.shift = true;    kb.node_related = true;  hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Node_Group;          kb.key = ImGuiKey::ImGuiKey_G;          kb.ctrl = true;                     kb.node_related = true;  hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Node_Always;         kb.key = ImGuiKey::ImGuiKey_None;      kb.enabled = false;                  kb.node_related = true;  hks.push_back(kb); }
     { ui::KeyBinding kb; kb.target = KeyTarget::Node_Mute;           kb.key = ImGuiKey::ImGuiKey_M;          kb.ctrl = true;                     kb.node_related = true;  hks.push_back(kb); }
@@ -240,24 +242,6 @@ const std::vector<std::pair<ImGuiKey, const char*>>& HotkeysManager::get_key_nam
     return key_names;
 }
 
-const std::vector<std::pair<ImGuiKey, const char*>>& HotkeysManager::get_key_names_for_bookmark() const
-{
-    static std::vector<std::pair<ImGuiKey, const char*>> key_names =
-    {
-        { ImGuiKey_None, "" },
-
-        { ImGuiKey_1, "1" }, { ImGuiKey_2, "2" }, { ImGuiKey_3, "3" }, { ImGuiKey_4, "4" }, { ImGuiKey_5, "5" }, { ImGuiKey_6, "6" },
-        { ImGuiKey_7, "7" }, { ImGuiKey_8, "8" }, { ImGuiKey_9, "9" }, { ImGuiKey_0, "0" }, 
-
-        { ImGuiKey_A, "A" }, { ImGuiKey_B, "B" }, { ImGuiKey_C, "C" }, { ImGuiKey_D, "D" }, { ImGuiKey_E, "E" }, { ImGuiKey_F, "F" }, { ImGuiKey_G, "G" },
-        { ImGuiKey_H, "H" }, { ImGuiKey_I, "I" }, { ImGuiKey_J, "J" }, { ImGuiKey_K, "K" }, { ImGuiKey_L, "L" }, { ImGuiKey_M, "M" }, { ImGuiKey_N, "N" },
-        { ImGuiKey_O, "O" }, { ImGuiKey_P, "P" }, { ImGuiKey_Q, "Q" }, { ImGuiKey_R, "R" }, { ImGuiKey_S, "S" }, { ImGuiKey_T, "T" }, { ImGuiKey_U, "U" },
-        { ImGuiKey_V, "V" }, { ImGuiKey_W, "W" }, { ImGuiKey_X, "X" }, { ImGuiKey_Y, "Y" }, { ImGuiKey_Z, "Z" },
-    };
-
-    return key_names;
-}
-
 std::string HotkeysManager::get_key_binding_name_str(KeyTarget target) const
 {
     const auto* ptr = get_key_binding_name(target);
@@ -352,11 +336,46 @@ bool HotkeysManager::should_skip_target(KeyTarget target) const
     return skip.contains(target);
 }
 
+ImGuiKey HotkeysManager::char_to_key(char key) const noexcept
+{
+    if (key >= '0' && key <= '9')
+    {
+        const int32_t offset = key - '0';
+        return ImGuiKey(ImGuiKey_0 + offset);
+    }
+    if (key >= 'a' && key <= 'z')
+    {
+        const int32_t offset = key - 'a';
+        return ImGuiKey(ImGuiKey_A + offset);
+    }
+    if (key >= 'A' && key <= 'Z')
+    {
+        const int32_t offset = key - 'A';
+        return ImGuiKey(ImGuiKey_A + offset);
+    }
+    return ImGuiKey_None;
+}
+
+char HotkeysManager::key_to_char(ImGuiKey key) const noexcept
+{
+    if (key >= ImGuiKey_0 && key <= ImGuiKey_9)
+    {
+        const int32_t offset = key - ImGuiKey_0;
+        return cast::to_char('0' + offset);
+    }
+    if (key >= ImGuiKey_A && key <= ImGuiKey_Z)
+    {
+        const int32_t offset = key - ImGuiKey_A;
+        return cast::to_char('a' + offset);
+    }
+    return '\0';
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //////////     handling                                   /////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-const ui::KeyBinding* HotkeysManager::get_active_key_binding() const
+const ui::KeyBinding* HotkeysManager::get_active_key_binding(const ui::PanelWorkflow* wf_panel) const
 {
     const ImGuiIO& io = ImGui::GetIO();
     if (g::block_hotkeys_mask > 0 || io.WantTextInput)
@@ -369,23 +388,23 @@ const ui::KeyBinding* HotkeysManager::get_active_key_binding() const
 
         switch (kb.key)
         {
-        case ImGuiKey_0:      case ImGuiKey_Keypad0:        return ImGui::IsKeyPressed(ImGuiKey_0, false)      || ImGui::IsKeyPressed(ImGuiKey_Keypad0, false);
-        case ImGuiKey_1:      case ImGuiKey_Keypad1:        return ImGui::IsKeyPressed(ImGuiKey_1, false)      || ImGui::IsKeyPressed(ImGuiKey_Keypad1, false);
-        case ImGuiKey_2:      case ImGuiKey_Keypad2:        return ImGui::IsKeyPressed(ImGuiKey_2, false)      || ImGui::IsKeyPressed(ImGuiKey_Keypad2, false);
-        case ImGuiKey_3:      case ImGuiKey_Keypad3:        return ImGui::IsKeyPressed(ImGuiKey_3, false)      || ImGui::IsKeyPressed(ImGuiKey_Keypad3, false);
-        case ImGuiKey_4:      case ImGuiKey_Keypad4:        return ImGui::IsKeyPressed(ImGuiKey_4, false)      || ImGui::IsKeyPressed(ImGuiKey_Keypad4, false);
-        case ImGuiKey_5:      case ImGuiKey_Keypad5:        return ImGui::IsKeyPressed(ImGuiKey_5, false)      || ImGui::IsKeyPressed(ImGuiKey_Keypad5, false);
-        case ImGuiKey_6:      case ImGuiKey_Keypad6:        return ImGui::IsKeyPressed(ImGuiKey_6, false)      || ImGui::IsKeyPressed(ImGuiKey_Keypad6, false);
-        case ImGuiKey_7:      case ImGuiKey_Keypad7:        return ImGui::IsKeyPressed(ImGuiKey_7, false)      || ImGui::IsKeyPressed(ImGuiKey_Keypad7, false);
-        case ImGuiKey_8:      case ImGuiKey_Keypad8:        return ImGui::IsKeyPressed(ImGuiKey_8, false)      || ImGui::IsKeyPressed(ImGuiKey_Keypad8, false);
-        case ImGuiKey_9:      case ImGuiKey_Keypad9:        return ImGui::IsKeyPressed(ImGuiKey_9, false)      || ImGui::IsKeyPressed(ImGuiKey_Keypad9, false);
-        case ImGuiKey_Period: case ImGuiKey_KeypadDecimal:  return ImGui::IsKeyPressed(ImGuiKey_Period, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadDecimal, false);
-        case ImGuiKey_Slash:  case ImGuiKey_KeypadDivide:   return ImGui::IsKeyPressed(ImGuiKey_Slash, false)  || ImGui::IsKeyPressed(ImGuiKey_KeypadDivide, false);
-        case ImGuiKey_Minus:  case ImGuiKey_KeypadSubtract: return ImGui::IsKeyPressed(ImGuiKey_Minus, false)  || ImGui::IsKeyPressed(ImGuiKey_KeypadSubtract, false);
-        case ImGuiKey_Enter:  case ImGuiKey_KeypadEnter:    return ImGui::IsKeyPressed(ImGuiKey_Enter, false)  || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false);
-        case ImGuiKey_Equal:  case ImGuiKey_KeypadEqual:    return ImGui::IsKeyPressed(ImGuiKey_Equal, false)  || ImGui::IsKeyPressed(ImGuiKey_KeypadEqual, false);        
+        case ImGuiKey_0:      case ImGuiKey_Keypad0:        return ImGui::IsKeyPressed(ImGuiKey_Keypad0, false);
+        case ImGuiKey_1:      case ImGuiKey_Keypad1:        return ImGui::IsKeyPressed(ImGuiKey_Keypad1, false);
+        case ImGuiKey_2:      case ImGuiKey_Keypad2:        return ImGui::IsKeyPressed(ImGuiKey_Keypad2, false);
+        case ImGuiKey_3:      case ImGuiKey_Keypad3:        return ImGui::IsKeyPressed(ImGuiKey_Keypad3, false);
+        case ImGuiKey_4:      case ImGuiKey_Keypad4:        return ImGui::IsKeyPressed(ImGuiKey_Keypad4, false);
+        case ImGuiKey_5:      case ImGuiKey_Keypad5:        return ImGui::IsKeyPressed(ImGuiKey_Keypad5, false);
+        case ImGuiKey_6:      case ImGuiKey_Keypad6:        return ImGui::IsKeyPressed(ImGuiKey_Keypad6, false);
+        case ImGuiKey_7:      case ImGuiKey_Keypad7:        return ImGui::IsKeyPressed(ImGuiKey_Keypad7, false);
+        case ImGuiKey_8:      case ImGuiKey_Keypad8:        return ImGui::IsKeyPressed(ImGuiKey_Keypad8, false);
+        case ImGuiKey_9:      case ImGuiKey_Keypad9:        return ImGui::IsKeyPressed(ImGuiKey_Keypad9, false);
+        case ImGuiKey_Period: case ImGuiKey_KeypadDecimal:  return ImGui::IsKeyPressed(ImGuiKey_KeypadDecimal, false);
+        case ImGuiKey_Slash:  case ImGuiKey_KeypadDivide:   return ImGui::IsKeyPressed(ImGuiKey_KeypadDivide, false);
+        case ImGuiKey_Minus:  case ImGuiKey_KeypadSubtract: return ImGui::IsKeyPressed(ImGuiKey_KeypadSubtract, false);
+        case ImGuiKey_Enter:  case ImGuiKey_KeypadEnter:    return ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false);
+        case ImGuiKey_Equal:  case ImGuiKey_KeypadEqual:    return ImGui::IsKeyPressed(ImGuiKey_KeypadEqual, false);
+        default: return false;
         }
-        return false;
     };
 
     const ui::KeyBinding* active_bind = nullptr;
@@ -401,12 +420,35 @@ const ui::KeyBinding* HotkeysManager::get_active_key_binding() const
         }
     }
 
-    return active_bind;
+    if (active_bind != nullptr)
+        return active_bind;
+
+    if (nullptr == wf_panel || io.KeyAlt || io.KeySuper || io.KeyCtrl || io.KeyShift)
+        return nullptr;
+
+    const auto check_bookmark_range = [wf_panel](ImGuiKey start_key, ImGuiKey end_key)
+    {
+        for (int key = start_key; key <= end_key; ++key)
+        {
+            if (ImGui::IsKeyPressed(cast::to<ImGuiKey>(key), false))
+            {
+                g::pFlow->wf_handle_bookmark(wf_panel, cast::to<ImGuiKey>(key));
+                return true;
+            }
+        }
+        return false;
+    };
+
+    if (check_bookmark_range(ImGuiKey_0, ImGuiKey_9)) return nullptr;
+    if (check_bookmark_range(ImGuiKey_A, ImGuiKey_Z)) return nullptr;
+    if (check_bookmark_range(ImGuiKey_Keypad0, ImGuiKey_Keypad9)) return nullptr;
+
+    return nullptr;
 }
 
 bool HotkeysManager::process_hotkey() const
 {
-    const ui::KeyBinding* active_bind = get_active_key_binding();
+    const ui::KeyBinding* active_bind = get_active_key_binding(nullptr);
     if (nullptr == active_bind || active_bind->node_related) [[likely]]
         return false;
 
@@ -537,6 +579,9 @@ bool HotkeysManager::process_hotkey() const
     case KeyTarget::Workspace_NewNode:
         g::pFlow->wf_new_node();
         return true;
+    case KeyTarget::Workspace_Bookmarks:
+        g::pFlow->wf_bookmarks();
+        return true;
     }
 
     LogRError("Unhandled global hotkey target " << cast::to_i32(active_bind->target), false);
@@ -547,7 +592,7 @@ bool HotkeysManager::process_node_hotkey(const ui::PanelWorkflow* wf_panel) cons
     if (g::pFlow->wf_get_active_panel() != wf_panel)
         return false;
 
-    const ui::KeyBinding* active_bind = get_active_key_binding();
+    const ui::KeyBinding* active_bind = get_active_key_binding(wf_panel);
     if (nullptr == active_bind || !active_bind->node_related) [[likely]]
         return false;
 
@@ -558,6 +603,9 @@ bool HotkeysManager::process_node_hotkey(const ui::PanelWorkflow* wf_panel) cons
         return true;
     case KeyTarget::Node_Collapse:
         g::pFlow->wf_node_toggle_collapse();
+        return true;
+    case KeyTarget::Node_Bookmark:
+        g::pFlow->wf_node_toggle_bookmark();
         return true;
     case KeyTarget::Node_Group:
         g::pFlow->wf_node_group();

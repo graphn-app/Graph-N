@@ -57,7 +57,7 @@ constexpr FlagDef<NodeObjFlags> g_node_obj_flags[] =
     DEF_FLAG(NodeObjFlags, HasInput), DEF_FLAG(NodeObjFlags, HasOutput), DEF_FLAG(NodeObjFlags, OutputNode),
     DEF_FLAG(NodeObjFlags, SpecReroute), DEF_FLAG(NodeObjFlags, SpecPrimitive), DEF_FLAG(NodeObjFlags, SpecNote), DEF_FLAG(NodeObjFlags, SpecMdNote),
     DEF_FLAG(NodeObjFlags, SpecFastBypasserRgthree), DEF_FLAG(NodeObjFlags, SpecFastMuterRgthree), DEF_FLAG(NodeObjFlags, SpecFastGMuterRgthree),
-    DEF_FLAG(NodeObjFlags, SpecFastGBypasserRgthree), DEF_FLAG(NodeObjFlags, SpecFastActRgthree), DEF_FLAG(NodeObjFlags, SpecBookmarkRgthree),
+    DEF_FLAG(NodeObjFlags, SpecFastGBypasserRgthree), DEF_FLAG(NodeObjFlags, SpecFastActRgthree), 
     DEF_FLAG(NodeObjFlags, SpecSwitherRgthree), 
     DEF_FLAG(NodeObjFlags, Dummy), DEF_FLAG(NodeObjFlags, CanBypass), DEF_FLAG(NodeObjFlags, CanMute),
     DEF_FLAG(NodeObjFlags, CanRename), DEF_FLAG(NodeObjFlags, Experimental), DEF_FLAG(NodeObjFlags, Deprecated),

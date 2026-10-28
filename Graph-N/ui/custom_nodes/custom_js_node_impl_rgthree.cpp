@@ -9,6 +9,7 @@
 #include "core/managers/nodes_manager.h"
 #include "core/managers/settings_manager.h"
 #include "core/managers/history_manager.h"
+#include "core/workflow/workflow.h"
 #include "core/workflow/pin_instance.h"
 #include "core/workflow/workflow_action.h"
 #include "ui/graph-n_flow.h"
@@ -81,6 +82,14 @@ void CustomJsNode::handle_insert_lora_rgthree(const data::NodeInstance* node, da
             }            
         }
     }
+}
+
+void CustomJsNode::handle_bookmark_rgthree(const data::NodeInstance* node, data::PinInstance* /*pin*/)
+{
+    LogRAssert(node, "Zero ptr", );
+    auto wf = g::pWfsManager->access(node->get_workflow_id());
+    wf->unregister_bookmark(node);
+    wf->register_bookmark(node);
 }
 
 void CustomJsNode::draw_PowerLoraLoaderRgthree(data::NodeInstance* node, float off, float width)

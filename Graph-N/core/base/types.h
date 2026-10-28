@@ -621,6 +621,7 @@ enum class KeyTarget : uint16_t
     Workspace_RunFront,
     Workspace_Close,
     Workspace_NewNode,
+    Workspace_Bookmarks,
     Workspace_ReservedFirst, // skip
     Workspace_ReservedLast = Workspace_ReservedFirst + 8, // skip
     Workspace_Last,
@@ -628,6 +629,7 @@ enum class KeyTarget : uint16_t
     Node_First,
     Node_Pin,
     Node_Collapse,
+    Node_Bookmark,
     Node_Group,
     Node_Always,
     Node_Mute,

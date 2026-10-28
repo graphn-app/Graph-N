@@ -51,7 +51,8 @@ public:
 
     void set_wf_view(std::optional<ImRect> wf_rc, std::optional<float> wf_zoom);
 
-    void display_new_node_menu() noexcept { m_display_new_node_menu = true; }
+    void open_new_node_menu() noexcept { m_show_new_node_menu = true; }
+    void open_bookmarks_menu() noexcept { m_show_bookmarks_menu = true; }
 
     bool can_run() const noexcept;
     void run(bool add_front);
@@ -105,6 +106,7 @@ private:
     bool show_context_menu();
     bool show_canvas_menu();
     bool show_canvas_nodes_menu();
+    bool show_bookmarks_menu(const std::string& caption);
     bool show_node_menu();
     bool show_group_menu();
     bool show_multinode_menu();
@@ -144,14 +146,15 @@ private:
     const ImGuiID m_context_menuid;
     bool m_handle_context_menu = false;
     bool m_context_menu_nodes_need_focus = false;
-    bool m_display_new_node_menu = false;
+    bool m_show_new_node_menu = false;
+    bool m_show_bookmarks_menu = false;
     std::string m_context_menu_nodes_filter;
     fmt::memory_buffer m_fmt_buffer;
     fmt::memory_buffer m_module_clr_buffer;
     fmt::memory_buffer m_status_buffer;
     const std::map<iid, std::set<std::string>>* m_failed_nodes = nullptr;
 
-    enum class MenuType : uint8_t { _none, Back, BackDblClick, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink, SpawnNode, Widget };
+    enum class MenuType : uint8_t { _none, Back, BackDblClick, BackBookmarks, Node, Group, Multinode, Multigroup, Multiobj, Pin, Link, Multilink, SpawnNode, Widget };
     struct MenuObjects final
     {
         std::string caption;

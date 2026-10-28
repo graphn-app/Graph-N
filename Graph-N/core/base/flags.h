@@ -263,6 +263,7 @@ enum class NodeInstFlags : uint64_t
     PosEditorReady                 = 1ULL << 29,
     MaskEditorRunning              = 1ULL << 30,
     PosEditorRunning               = 1ULL << 31,
+    Bookmarked                     = 1ULL << 32,
 };
 
 inline constexpr ObjectFlags<NodeInstFlags> g_node_inst_all_modes_mask
@@ -283,7 +284,24 @@ inline constexpr ObjectFlags<NodeInstFlags> g_node_inst_seriallizable_flags
     NodeInstFlags::Group,
     NodeInstFlags::ShowHidden,
     NodeInstFlags::Collapsed,
-    NodeInstFlags::Pinned
+    NodeInstFlags::Pinned,
+    NodeInstFlags::Bookmarked,
+};
+
+inline constexpr ObjectFlags<NodeInstFlags> g_copy_attributes_flags
+{
+    NodeInstFlags::Group,
+    NodeInstFlags::Pinned,
+    NodeInstFlags::Collapsed,
+    NodeInstFlags::ModeOnEvent,
+    NodeInstFlags::ModeMute,
+    NodeInstFlags::ModeOnTrigger,
+    NodeInstFlags::ModeBypass,
+    NodeInstFlags::JsonApiDontExport,
+    NodeInstFlags::JsonCustomSerialization,
+    NodeInstFlags::JsonCustomSerltnWidgetsOnly,
+    NodeInstFlags::BlobCustomSerialization,
+    NodeInstFlags::BlobCustomSerltnWidgetsOnly,
 };
 
 enum class NodeObjFlags : uint64_t
@@ -320,12 +338,11 @@ enum class NodeObjFlags : uint64_t
     SpecFastGMuterRgthree       = 1ULL << 28,   // Fast Groups Muter (rgthree)
     SpecFastGBypasserRgthree    = 1ULL << 29,   // Fast Groups Bypasser (rgthree)
     SpecFastActRgthree          = 1ULL << 30,   // Fast Actions Button (rgthree)
-    SpecBookmarkRgthree         = 1ULL << 31,   // Bookmark
-    CustomJsNode                = 1ULL << 32,   // node has custom JS logic and need to be re-implemented
-    SpecSwitherRgthree          = 1ULL << 33,   
-    NoHistoryOnPinValChange     = 1ULL << 34,   
-    NoPinCagMenu                = 1ULL << 35,   
-    CustomMediaBase64           = 1ULL << 36,   
+    CustomJsNode                = 1ULL << 31,   // node has custom JS logic and need to be re-implemented
+    SpecSwitherRgthree          = 1ULL << 32,   
+    NoHistoryOnPinValChange     = 1ULL << 33,   
+    NoPinCagMenu                = 1ULL << 34,   
+    CustomMediaBase64           = 1ULL << 35,   
 };
 
 inline constexpr ObjectFlags<NodeObjFlags> g_node_obj_all_custom_widget_mask

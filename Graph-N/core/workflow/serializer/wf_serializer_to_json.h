@@ -36,7 +36,6 @@ private:
     void serialize_cni_node_fast_switcher_rgthree(o_json& j);
     void serialize_cni_node_fast_group_switcher_rgthree(o_json& j);
     void serialize_cni_node_fast_action_rgthree(o_json& j);
-    void serialize_cni_node_bookmark_rgthree(o_json& j);
     void serialize_cni_node_power_lora_loader_rgthree(o_json& j);
     void serialize_cni_node_impact_switch(o_json& j);
     void serialize_cni_node_impact_insversed_switch(o_json& j);

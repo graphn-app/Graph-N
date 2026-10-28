@@ -262,6 +262,8 @@ bool WfsManager::load(wid wf_id, blob::Blob& drawer_state)
     if (!blob->empty())
     {
         const bool result = data::WfDeserializerFromBlob(wf, blob).deserialize(drawer_state);
+        if (result)
+            wf->register_bookmarks();
         data.draft = !load_saved || !result;
         return true;
     }

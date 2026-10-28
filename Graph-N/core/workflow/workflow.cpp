@@ -11,6 +11,7 @@
 #include "core/workflow/custom_nodes/all_impl.h"
 #include "core/managers/nodes_manager.h"
 #include "core/managers/workflows_manager.h"
+#include "core/managers/hotkeys_manager.h"
 #include "ui/graph-n_flow.h"
 #include "ui/custom_nodes/custom_js_node.h"
 
@@ -101,10 +102,6 @@ std::unique_ptr<data::NodeInstance> create_custom(data::Node* node, wid wf_id, i
     case js::RGTHREE_FAST_ACTIONS_BUTTON:
         custom_node = std::make_unique<CNI_FastActionRgthree>(node, wf_id, node_id);
         break;
-    // TODO: CNI_BookmarkRgthree
-    //case js::RGTHREE_BOOKMARK:
-    //    custom_node = std::make_unique<CNI_BookmarkRgthree>(node, wf_id, node_id);
-    //    break;
     case js::RGTHREE_POWER_LORA_LOADER:
         custom_node = std::make_unique<CNI_PowerLoraLoaderRgthree>(node, wf_id, node_id);
         break;
@@ -173,6 +170,7 @@ NodeInstance* Workflow::add_node(data::Node* node, const ImRect& rc /*= ImRect(0
     instance->m_rc = rc;
     auto ptr = instance.get();
     ptr->init(select);
+    register_bookmark(ptr);
     m_nodes.push_back(std::move(instance));
     test_duplicates();
     ed_create(ptr);
@@ -195,6 +193,7 @@ NodeInstance* Workflow::add_node(const NodeInstance* copy_from_source, bool copy
     auto ptr = instance.get();
     ptr->init(copy_from_source, copy_id);
     copy_from_source->copy_attributes(ptr);
+    register_bookmark(ptr);
     m_nodes.push_back(std::move(instance));
     test_duplicates();
     ed_create(ptr);
@@ -437,6 +436,8 @@ void Workflow::remove_node(NodeInstance* node)
 
     LogRAssert(n_it != m_nodes.end(), "Node not found. w:" << get_id() << ", n:" << node->get_instance_id(), );
 
+    unregister_bookmark(node);
+
     if (node->flags().has(NodeInstFlags::RerouteSplitted_R))
     {
         ed_delete(ids);
@@ -573,6 +574,78 @@ void Workflow::unlink_node(const NodeInstance* node)
             m_action->unlink(link);
         }
     }    
+}
+
+void Workflow::register_bookmarks()
+{
+    for (auto& node : m_nodes)
+    {
+        if (node != nullptr && node->has_object() && node->get_object()->get_hash() == js::RGTHREE_BOOKMARK)
+        {
+            unregister_bookmark(node.get());
+            register_bookmark(node.get());
+        }
+    }
+}
+
+void Workflow::register_bookmark(const NodeInstance* node)
+{
+    if (nullptr == node || !node->has_object() || node->get_object()->get_hash() != js::RGTHREE_BOOKMARK)
+        return;
+
+    LogRAssert(!node->get_inputs().empty() && PinType::COMBO == node->get_inputs()[0]->state().type, "Invalid node definition", );
+
+    PinInstance* pin = node->get_inputs()[0];
+    const auto index = pin->state().value.get_int();
+    const auto& hotkeys = pin->get_object()->combo_items;
+    LogRAssert(size_t(index) < hotkeys.size(), "Index out of bounds", );
+    const auto& hotkey = hotkeys[index].get_string();
+    LogRAssert(hotkey.size() >= 1, "Empty hotkey", );
+
+    const auto key = g::pHotkeysManager->char_to_key(hotkey[0]);
+    LogRAssert(key != ImGuiKey_None, "Invalid hotkey", );
+
+    auto& bookmarks = m_bookmarks[key];
+    bookmarks.nodes.insert(node->get_instance_id());
+    Log("Bookmark registered, w:" << get_id() << ", n:" << node->get_instance_id() << ", bm:" << hotkey[0]);
+}
+
+void Workflow::unregister_bookmark(const NodeInstance* node)
+{
+    if (nullptr == node || !node->has_object() || node->get_object()->get_hash() != js::RGTHREE_BOOKMARK)
+        return;
+
+    for (auto& [key, bm] : m_bookmarks)
+    {
+        bm.nodes.erase(node->get_instance_id());
+    }
+}
+
+void Workflow::handle_bookmark(ImGuiKey key) noexcept
+{
+    const auto it = m_bookmarks.find(key);
+    if (it == m_bookmarks.end())
+        return;
+    auto& bookmark = it->second;
+    if (bookmark.nodes.empty())
+    {
+        m_bookmarks.erase(it);
+        return;
+    }
+
+    auto node_it = bookmark.nodes.find(bookmark.active);
+    if (node_it != bookmark.nodes.end())
+        ++node_it;
+    if (node_it == bookmark.nodes.end())
+        node_it = bookmark.nodes.begin();
+    bookmark.active = *node_it;
+
+    if (0 == bookmark.active)
+        return;
+    const auto node = get_node_by_instance(bookmark.active);
+    if (nullptr == node)
+        return;
+    g::pFlow->wf_locate_node(get_id(), node);
 }
 
 std::set<data::NodeInstance*> Workflow::filter_reroutes(const std::set<data::NodeInstance*>& nodes) const

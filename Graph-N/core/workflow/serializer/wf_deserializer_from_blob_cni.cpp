@@ -36,8 +36,6 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node(blob::Reader& block)
         return deserialize_cni_node_fast_group_switcher_rgthree(block);
     case js::RGTHREE_FAST_ACTIONS_BUTTON:
         return deserialize_cni_node_fast_action_rgthree(block);
-    case js::RGTHREE_BOOKMARK:
-        return deserialize_cni_node_bookmark_rgthree(block);
     case js::RGTHREE_POWER_LORA_LOADER:
         return deserialize_cni_node_power_lora_loader_rgthree(block);
     case js::IMPACT_SWITCH:
@@ -229,18 +227,6 @@ NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_fast_action_rgthree(b
 
     m_curr_node->cni_save_deserialized_info(std::move(data));
     m_curr_node->cni_init();
-
-    return m_curr_node;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////
-///////////    CNI_BookmarkRgthree                             /////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-
-NodeInstance* WfDeserializerFromBlob::deserialize_cni_node_bookmark_rgthree(blob::Reader& /*root_block*/)
-{
-    // TODO: CNI_BookmarkRgthree
-    //LogRAssert(m_curr_node->obj_flags().has(NodeObjFlags::SpecBookmarkRgthree), "Node is not CNI. w:" << m_wf->get_id() << ", n: " << m_curr_node->get_instance_id() << ", t:" << typeid(m_curr_node).name(), m_curr_node);
 
     return m_curr_node;
 }

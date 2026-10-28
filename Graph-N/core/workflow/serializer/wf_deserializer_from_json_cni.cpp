@@ -40,8 +40,6 @@ void WfDeserializerFromJson::deserialize_cni_node(const o_json& j, ParseResult& 
         return deserialize_cni_fast_group_switcher_rgthree(j, result);
     case js::RGTHREE_FAST_ACTIONS_BUTTON:
         return deserialize_cni_fast_action_rgthree(j, result);
-    case js::RGTHREE_BOOKMARK:
-        return deserialize_cni_bookmark_rgthree(j, result);
     case js::RGTHREE_POWER_LORA_LOADER:
         return deserialize_cni_node_power_lora_loader_rgthree(j, result);
     case js::IMPACT_SWITCH:
@@ -314,15 +312,6 @@ void WfDeserializerFromJson::deserialize_cni_fast_action_rgthree(const o_json& j
 
     switcher->cni_save_deserialized_info(std::move(data));
     switcher->cni_init();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////
-///////////    BookmarkRgthree                              ////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-
-void WfDeserializerFromJson::deserialize_cni_bookmark_rgthree(const o_json& /*j*/, ParseResult& /*result*/)
-{
-    // TODO: CNI_BookmarkRgthree
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

@@ -74,6 +74,12 @@ public:
 
     void unlink_node(const NodeInstance* node);
 
+    void register_bookmarks();
+    void register_bookmark(const NodeInstance* node);
+    void unregister_bookmark(const NodeInstance* node);
+    void handle_bookmark(ImGuiKey key) noexcept;
+    const std::map<ImGuiKey, ui::Bookmark>& get_bookmarks() const noexcept { return m_bookmarks; }
+
     void bundle_reroutes(std::set<data::NodeInstance*> nodes);
     void separate_reroutes(std::set<data::NodeInstance*> nodes);
     void insert_reroute(data::Link* link, const ImVec2& pos);
@@ -148,6 +154,8 @@ private:
     std::vector<std::unique_ptr<NodeInstanceRo>> m_nodes_ro;
     std::vector<std::unique_ptr<PinInstance>> m_pins;
     std::vector<std::unique_ptr<Link>> m_links;
+
+    std::map<ImGuiKey, ui::Bookmark> m_bookmarks; // std::map (not unordered_map) required for sorting purposes
 
     // maps EdType.id to object
     // sorted vector is still faster than a map; 1000 objects will fit into the L1/L2 cache

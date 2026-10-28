@@ -29,13 +29,35 @@ bool PanelWorkflow::context_menu_handler()
     if (g::pFlow->custom_js_nodes().handle_context_menu())
         return true;
 
-    if (m_display_new_node_menu)
+    if (m_show_new_node_menu)
     {
-        m_display_new_node_menu = false;
+        m_show_new_node_menu = false;
         m_handle_context_menu = true;
         m_menu_objs = {};
         m_context_menu_type = MenuType::BackDblClick;
         m_menu_objs.caption = fmt::format(FMT_STRING("New node | Dbl Click | {}"), g::pHotkeysManager->get_key_binding_name(KeyTarget::Workspace_NewNode));
+        if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_RootWindow | ImGuiHoveredFlags_ChildWindows))
+        {
+            const ImVec2 win_pos = ImGui::GetWindowPos();
+            const ImVec2 start_pos = ImGui::GetCursorStartPos();
+            const auto offset = ImGui::GetTextLineHeight() + ImGui::GetStyle().FramePadding.y + 10.0f;
+            m_menu_objs.click_pos = ImVec2(win_pos.x + start_pos.x + 10.0f, win_pos.y + start_pos.y + offset);
+            m_menu_objs.align_menu_pos = true;
+        }
+        else
+            m_menu_objs.click_pos = m_drawer.get_mouse_pos();
+
+        Log("Menu: " << m_menu_objs.caption);
+        return true;
+    }
+
+    if (m_show_bookmarks_menu)
+    {
+        m_show_bookmarks_menu = false;
+        m_handle_context_menu = true;
+        m_menu_objs = {};
+        m_context_menu_type = MenuType::BackBookmarks;
+        m_menu_objs.caption = fmt::format(FMT_STRING("Bookmarks | {}"), g::pHotkeysManager->get_key_binding_name(KeyTarget::Workspace_Bookmarks));
         if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_RootWindow | ImGuiHoveredFlags_ChildWindows))
         {
             const ImVec2 win_pos = ImGui::GetWindowPos();
@@ -255,6 +277,9 @@ bool PanelWorkflow::show_context_menu()
         case MenuType::BackDblClick:
             close = show_canvas_nodes_menu();
             break;
+        case MenuType::BackBookmarks:
+            close = show_bookmarks_menu(m_menu_objs.caption);
+            break;
         case MenuType::Group:
             close = show_group_menu();
             break;
@@ -378,6 +403,13 @@ bool PanelWorkflow::show_canvas_menu()
         close = true;
     }
     ImGui::Separator();
+    if (ImGui::BeginMenu(ICON_LC_BOOKMARK " Bookmarks"))
+    {
+        const auto caption = fmt::format(FMT_STRING("Bookmarks | {}"), g::pHotkeysManager->get_key_binding_name(KeyTarget::Workspace_Bookmarks));
+        close = show_bookmarks_menu(caption);
+        ImGui::EndMenu();
+    }
+    ImGui::Separator();
     if (ImGui::MenuItem("Duplicate workflow", nullptr, nullptr, !m_wf->get_nodes_all().empty() && m_wf->get_data().valid))
     {
         g::pFlow->wf_create_copy_from(m_wf->get_id(), m_drawer.get_viewport_rect(), m_drawer.get_zoom());
@@ -401,6 +433,98 @@ bool PanelWorkflow::show_canvas_nodes_menu()
     {
         close = true;
         m_action->add_node(node, "", ImRect(m_menu_objs.click_pos, ImVec2(-1, -1)));
+    }
+    return close;
+}
+
+bool PanelWorkflow::show_bookmarks_menu(const std::string& caption)
+{
+    ImGui::MenuItem(caption.c_str(), nullptr, nullptr, false);
+
+    ImGui::Separator();
+    if (ImGui::MenuItem(ICON_LC_BOOKMARK " Add new bookmark"))
+    {
+        auto node = g::pNodesManager->find_node(js::RGTHREE_BOOKMARK);
+        const auto* inst = m_action->add_node(node, "", ImRect(m_drawer.get_mouse_pos(), ImVec2(-1, -1)));
+        Log("Node '" << inst->get_name() << "' dropped");
+        return true;
+    }
+
+    bool close = false;
+
+    ImGui::Separator();
+    if (ImGui::BeginMenu("Bookmarked nodes"))
+    {
+        auto& nodes = m_wf->get_nodes_all();
+        for (auto& node : nodes)
+        {
+            if (node->flags().has(NodeInstFlags::Bookmarked))
+            {
+                if (ImGui::MenuItem(node->get_name().c_str()))
+                {
+                    locate_node(node.get());
+                    close = true;
+                }
+            }
+        }
+        ImGui::EndMenu();
+    }
+
+    const auto& bookmarks = m_wf->get_bookmarks();
+    if (close || bookmarks.empty())
+        return close;
+
+    const auto create_name = [](char key, data::NodeInstance* node)
+    {
+        constexpr std::string_view prefix = ICON_LC_BOOKMARK " ";
+        const auto& bm_name = node->get_name();
+        const bool prefixed = bm_name.starts_with(prefix);
+        if (0 == key)
+        {
+            if (prefixed)
+                return bm_name.substr(prefix.size());
+            return bm_name;
+        }
+        if (prefixed)
+            return fmt::format(FMT_STRING("{}: {}"), key, bm_name.substr(prefix.size()));
+        return fmt::format(FMT_STRING("{}: {}"), key, bm_name);
+    };
+
+    ImGui::Separator();
+    for (const auto& bm : bookmarks)
+    {
+        const auto key = g::pHotkeysManager->key_to_char(bm.first);
+        if (!bm.second.nodes.empty() && key != '\0')
+        {
+            if (bm.second.nodes.size() == 1)
+            {
+                auto node = m_wf->get_node_by_instance(*bm.second.nodes.begin());
+                if (node != nullptr && ImGui::MenuItem(create_name(key, node).c_str()))
+                {
+                    locate_node(node);
+                    close = true;
+                }
+            }
+            else
+            {
+                if (ImGui::BeginMenu(fmt::format(FMT_STRING("{}: [{}]"), key, bm.second.nodes.size()).c_str()))
+                {
+                    for (const auto id : bm.second.nodes)
+                    {
+                        auto node = m_wf->get_node_by_instance(id);
+                        if (node != nullptr)
+                        {
+                            if (ImGui::MenuItem(create_name(0, node).c_str()))
+                            {
+                                locate_node(node);
+                                close = true;
+                            }
+                        }
+                    }
+                    ImGui::EndMenu();
+                }
+            }
+        }
     }
     return close;
 }
@@ -463,11 +587,6 @@ bool PanelWorkflow::show_node_menu()
             close = true;
         }
     }
-    //if (ImGui::MenuItem("Fit"))   // TODO:FIX resizing
-    //{
-    //    node->reset_width();
-    //    close = true;
-    //}
     if (ImGui::MenuItem(node->flags().has(NodeInstFlags::Pinned) ? "Unpin" : "Pin", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Pin)))
     {
         m_action->set_node_pinning(node, node->flags().has_not(NodeInstFlags::Pinned));
@@ -477,6 +596,14 @@ bool PanelWorkflow::show_node_menu()
     {
         m_action->set_node_collapsed(node, node->flags().has_not(NodeInstFlags::Collapsed));
         close = true;
+    }
+    if (node->get_object()->get_hash() != js::RGTHREE_BOOKMARK)
+    {
+        if (ImGui::MenuItem("Bookmark node", nullptr, node->flags().has(NodeInstFlags::Bookmarked)))
+        {
+            m_action->set_node_bookmarked(node, node->flags().has_not(NodeInstFlags::Bookmarked));
+            close = true;
+        }
     }
     if (ImGui::MenuItem("Group", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Group)))
     {
@@ -903,6 +1030,17 @@ bool PanelWorkflow::show_group_menu()
             set_group_mode(group, NodeInstFlags::ModeMute);
             close = true;
         }
+    }
+    ImGui::Separator();
+    if (ImGui::MenuItem(group->flags().has(NodeInstFlags::Pinned) ? "Unpin" : "Pin", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Pin)))
+    {
+        m_action->set_node_pinning(group, group->flags().has_not(NodeInstFlags::Pinned));
+        close = true;
+    }
+    if (ImGui::MenuItem("Bookmark group", nullptr, group->flags().has(NodeInstFlags::Bookmarked)))
+    {
+        m_action->set_node_bookmarked(group, group->flags().has_not(NodeInstFlags::Bookmarked));
+        close = true;
     }
     ImGui::Separator();
     if (ImGui::MenuItem("Copy", g::pHotkeysManager->get_key_binding_name(KeyTarget::Node_Copy)))

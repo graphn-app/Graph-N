@@ -243,12 +243,6 @@ void NodeDrawer::pre_draw_all(const char* id, size_t /*nodes_count*/, bool first
     else if (m_zoom <= ZOOMED_MEDIUM)       m_zoomed_visibility = ZoomedVisibility::Medium;
     else if (m_zoom <= ZOOMED_LOW)          m_zoomed_visibility = ZoomedVisibility::Low;
     else                                    m_zoomed_visibility = ZoomedVisibility::None;
-
-    // TODO: CNI_BookmarkRgthree
-    //static float z = 0.0f;
-    //if (z != m_zoom)
-    //    Log("Zoom: " << z);
-    //z = m_zoom;
 }
 
 void NodeDrawer::post_draw_all(
@@ -726,14 +720,32 @@ void NodeDrawer::draw_group(const data::NodeInstance* node, size_t /*node_idx*/)
 
         if (m_active_node != m_renaming_node && !zoomed_skip_captions()) [[likely]]
         {
-            ImGui::SetCursorPosX(text_lt.x);
+            float offset = text_lt.x;
+            if (m_active_node->flags().has(NodeInstFlags::Bookmarked))
+            {
+                const auto pos = ImGui::GetCursorPosX();
+                ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
+                ImGui::TextUnformatted(" " ICON_LC_BOOKMARK);
+                ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered())
+                    tooltip_suspended([]() { return "Group is bookmarked."; });
+                ImGui::SameLine();
+                offset += ImGui::GetCursorPosX() - pos;
+            }
+
+            ImGui::SetCursorPosX(offset);
             ImGui::PushStyleColor(ImGuiCol_Text, color_capt);
             ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
 
-            //width = m_active_node->m_rc.Max.x - ImGui::GetStyle().ItemSpacing.x * 4; // TODO:FIX name too long: use draw_list->AddText
-            //const char* pend = nullptr;
-            //const char* pbeg = ImGuiEx::cut_text_with_ellipsis(m_active_node->get_name(), width, pend);
-            //ImGui::TextUnformatted(pbeg, pend);
+            if (m_active_node->flags().has(NodeInstFlags::Pinned))
+            {
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
+                ImGui::TextUnformatted(" " ICON_LC_PIN);
+                ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered())
+                    tooltip_suspended([]() { return "Group is pinned."; });
+            }
 
             ImGui::PopStyleColor();
             if (zoomed_allow_renaming() && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -816,7 +828,20 @@ void NodeDrawer::draw_node_header()
     {
         if (!zoomed_skip_captions()) [[likely]]
         {
-            ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_name_off);
+            float add_offset = 0.0f;
+            if (m_active_node->flags().has(NodeInstFlags::Bookmarked))
+            {
+                const auto pos = ImGui::GetCursorPosX();
+                ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderIcon));
+                ImGui::TextUnformatted(" " ICON_LC_BOOKMARK);
+                ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered())
+                    tooltip_suspended([]() { return "Node is bookmarked."; });
+                ImGui::SameLine();
+                add_offset = ImGui::GetCursorPosX() - pos;
+            }
+
+            ImGui::SetCursorPosX(m_curr_node_left_offset + m_active_node->w_node_name_off + add_offset);
             ImGui::PushStyleColor(ImGuiCol_Text, m_active_node->obj_flags().has(NodeObjFlags::Dummy) ? g::pOptsManager->color_load(AppColor::DummyNode) : m_clr_node_header_text);
             ImGui::TextUnformatted(m_active_node->get_name().c_str(), m_active_node->get_name().c_str() + m_active_node->get_name().size());
             ImGui::PopStyleColor();
@@ -826,7 +851,16 @@ void NodeDrawer::draw_node_header()
                 if (m_active_node->has_object() && m_active_node->obj_flags().has(NodeObjFlags::CanRename))
                 {
                     m_renaming_node = m_active_node;
-                    m_renaming_buff = m_active_node->get_name();
+                    if (m_active_node->get_object()->get_hash() == js::RGTHREE_BOOKMARK)
+                    {
+                        const auto pos = m_active_node->get_name().find("Bookmark");
+                        if (pos != std::string::npos)
+                            m_renaming_buff = m_active_node->get_name().substr(pos);
+                        else
+                            m_renaming_buff = m_active_node->get_name();
+                    }
+                    else
+                        m_renaming_buff = m_active_node->get_name();
                     m_need_renaming_focus = true;
                 }
             }
@@ -920,7 +954,9 @@ void NodeDrawer::draw_node_header()
         }
         else
         {
-            ImGui::Dummy(ImVec2(ImGui::GetStyle().ItemSpacing.x * 2, 0));
+            const float pos_x = m_curr_node_left_offset + m_active_node->w_node - w::pin_l_offset_rw - w::ico_circle;
+            ImGui::SetCursorPosX(pos_x);
+            ImGui::Dummy(ImVec2(w::ico_circle, 0));
         }
         ImGui::EndDisabled();
     }
@@ -930,7 +966,7 @@ void NodeDrawer::draw_collapsed_pins(bool input)
 {
     float pos_x = 0.0f;
     if (input)
-        pos_x = m_curr_node_left_offset + w::pin_l_offset_rw;        
+        pos_x = m_curr_node_left_offset + w::pin_l_offset_rw;
     else
         pos_x = m_curr_node_left_offset + m_active_node->w_node - w::pin_l_offset_rw - w::ico_circle;
     ImGui::SetCursorPosX(pos_x);
@@ -2019,7 +2055,17 @@ void NodeDrawer::rename_node(data::NodeInstance* node) noexcept
     LogRAssert(node, "Zero ptr", );
     m_renaming_node = node;
     m_renaming_pin = nullptr;
-    m_renaming_buff = node->get_name();
+
+    if (node->get_object()->get_hash() == js::RGTHREE_BOOKMARK)
+    {
+        const auto pos = node->get_name().find("Bookmark");
+        if (pos != std::string::npos)
+            m_renaming_buff = node->get_name().substr(pos);
+        else
+            m_renaming_buff = node->get_name();
+    }
+    else
+        m_renaming_buff = node->get_name();
     m_need_renaming_focus = true;
 }
 

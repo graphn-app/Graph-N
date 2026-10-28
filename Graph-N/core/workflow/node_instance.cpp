@@ -59,20 +59,8 @@ void NodeInstance::init(const NodeInstance* copy_from_node, bool copy_pin_ids)
     NodeInstanceBase::init();
 
     m_rc = copy_from_node->m_rc;
-  //  if (copy_from_node->flags().has(NodeInstFlags::Group))
-  //      m_rc.Max.y -= ImGui::GetTextLineHeight() + ImGui::GetStyle().ItemSpacing.y * 4;
-    m_clr_node = copy_from_node->m_clr_node;
-    m_clr_group = copy_from_node->m_clr_group;
-    m_clr_head = copy_from_node->m_clr_head;
-    m_clr_group_capt = copy_from_node->m_clr_group_capt;
     m_name = copy_from_node->m_name;
-
-    flags().copy_from_by_mask_flags(copy_from_node->flags(),
-        NodeInstFlags::Group,
-        NodeInstFlags::Collapsed,
-        NodeInstFlags::Pinned
-    );
-    flags().copy_from_by_mask_obj(copy_from_node->flags(), g_node_inst_all_modes_mask);
+    copy_from_node->copy_attributes(this);
 
     if (flags().has(NodeInstFlags::Group))
         return;
@@ -304,12 +292,7 @@ void NodeInstance::collect_search_data(std::stringstream& data) const
 
 void NodeInstance::copy_attributes(NodeInstance* dest) const noexcept
 {
-    dest->flags().add_remove_if(NodeInstFlags::Pinned, flags().has(NodeInstFlags::Pinned));
-    dest->flags().add_remove_if(NodeInstFlags::Collapsed, flags().has(NodeInstFlags::Collapsed));
-    dest->flags().add_remove_if(NodeInstFlags::ModeOnEvent, flags().has(NodeInstFlags::ModeOnEvent));
-    dest->flags().add_remove_if(NodeInstFlags::ModeMute, flags().has(NodeInstFlags::ModeMute));
-    dest->flags().add_remove_if(NodeInstFlags::ModeOnTrigger, flags().has(NodeInstFlags::ModeOnTrigger));
-    dest->flags().add_remove_if(NodeInstFlags::ModeBypass, flags().has(NodeInstFlags::ModeBypass));
+    dest->flags().copy_from_by_mask_obj(flags(), g_copy_attributes_flags);
     dest->m_clr_head = m_clr_head;
     dest->m_clr_node = m_clr_node;
     dest->m_clr_group = m_clr_group;
@@ -430,6 +413,8 @@ float NodeInstance::get_additional_name_width() const noexcept
         add += ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
     if (!get_mode_always())
         add += ImGui::CalcTextSize(ICON_LC_X).x + ImGui::GetStyle().ItemSpacing.x * 2;
+    if (flags().has(NodeInstFlags::Bookmarked) || has_object() && get_object()->get_hash() == js::RGTHREE_BOOKMARK)
+        add += ImGui::CalcTextSize(ICON_LC_BOOKMARK " ").x + ImGui::GetStyle().ItemSpacing.x;
     return add;
 }
 

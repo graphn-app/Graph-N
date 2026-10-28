@@ -34,8 +34,6 @@ void WfSerializerToBlob::serialize_cni_node()
         return serialize_cni_node_fast_group_switcher_rgthree();
     case js::RGTHREE_FAST_ACTIONS_BUTTON:
         return serialize_cni_node_fast_action_rgthree();
-    case js::RGTHREE_BOOKMARK:
-        return serialize_cni_node_bookmark_rgthree();
     case js::RGTHREE_POWER_LORA_LOADER:
         return serialize_cni_node_power_lora_loader_rgthree();
     case js::IMPACT_SWITCH:
@@ -212,17 +210,6 @@ void WfSerializerToBlob::serialize_cni_node_fast_action_rgthree()
         m_writer.push(id);
         m_writer.push(mode);
     }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////
-///////////    BookmarkRgthree                                //////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-
-void WfSerializerToBlob::serialize_cni_node_bookmark_rgthree()
-{
-    blob::Block block(m_writer);
-
-    // TODO: CNI_BookmarkRgthree
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

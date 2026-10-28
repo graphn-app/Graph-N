@@ -210,6 +210,10 @@ void GraphN_Flow::show_menu_bar()
             {
                 wf_new_node();
             }
+            if (ImGui::MenuItem(ICON_LC_BOOKMARK " Bookmarks##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Bookmarks), nullptr, m_wf_focused != nullptr))
+            {
+                wf_bookmarks();
+            }
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_LC_X " Close workflow##Workspace", hk->get_key_binding_name(KeyTarget::Workspace_Close), nullptr, m_wf_focused != nullptr))
             {

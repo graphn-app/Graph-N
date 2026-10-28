@@ -278,7 +278,10 @@ void WorkflowAction::set_node_name(data::NodeInstance* node, const std::string& 
     if (old_name == new_name)
         return;
 
-    node->set_name(new_name);
+    if (node->get_object()->get_hash() == js::RGTHREE_BOOKMARK && !new_name.starts_with(ICON_LC_BOOKMARK))
+        node->set_name(ICON_LC_BOOKMARK " " + new_name);
+    else
+        node->set_name(new_name);
     if (node->flags().has_not(NodeInstFlags::Group))
     {
         g::pFlow->host_handle_renaming(node->get_workflow_id(), node->get_instance_id());
@@ -342,11 +345,24 @@ void WorkflowAction::set_node_pinning(data::NodeInstance* node, bool pin)
     LogRAssert(node, "Zero ptr", );
     if (node->flags().has(NodeInstFlags::Pinned) == pin)
         return;
-    const uint64_t old_mode = node->flags().get_by_mask(NodeInstFlags::Pinned);
+    const uint64_t old_pin = node->flags().get_by_mask(NodeInstFlags::Pinned);
     node->pin_node(pin);
     if (m_drawer != nullptr)
         m_drawer->pin_node(node);
-    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodePin, mngr::HActionT(old_mode));
+    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodePin, mngr::HActionT(old_pin));
+}
+
+void WorkflowAction::set_node_bookmarked(data::NodeInstance* node, bool bookmarked)
+{
+    LogRAssert(node, "Zero ptr", );
+    if (node->flags().has(NodeInstFlags::Bookmarked) == bookmarked)
+        return;
+    if (node->has_object() && node->get_object()->get_hash() == js::RGTHREE_BOOKMARK)
+        return;
+    const uint64_t old_bm = node->flags().get_by_mask(NodeInstFlags::Bookmarked);
+    node->flags().add_remove_if(NodeInstFlags::Bookmarked, bookmarked);
+    node->reset_width();
+    g::pHistoryManager->push_node_action(node, mngr::HistoryActionType::NodeBookmark, mngr::HActionT(old_bm));
 }
 
 void WorkflowAction::set_node_mode(data::NodeInstance* node, NodeInstFlags mode)

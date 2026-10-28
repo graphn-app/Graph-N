@@ -40,7 +40,6 @@ private:
     void serialize_cni_node_fast_switcher_rgthree();
     void serialize_cni_node_fast_group_switcher_rgthree();
     void serialize_cni_node_fast_action_rgthree();
-    void serialize_cni_node_bookmark_rgthree();
     void serialize_cni_node_power_lora_loader_rgthree();
     void serialize_cni_node_impact_switch();
     void serialize_cni_node_impact_insversed_switch();
