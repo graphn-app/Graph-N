@@ -396,8 +396,12 @@ DlgCode PanelStats::show(bool& focused)
         else
             show_this_pc_as_text(val_text_offset);        
 
-        ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepCapt), 0.0f, performance.data(), performance.size(), performance_wid);
-        show_app_performance(val_text_offset);
+        if (g::pOptsManager->app_show_fps_load())
+        {
+            ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepCapt), 0.0f, performance.data(), performance.size(), performance_wid);
+            //show_app_performance(val_text_offset);
+            print_fps(val_text_offset);
+        }
 
         ImGui::EndGroup();
         if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
@@ -527,9 +531,15 @@ void PanelStats::print_fps(float val_offset)
 
     if (color != 0)
         ImGui::PushStyleColor(ImGuiCol_Text, color);
+
     ImGui::TextUnformatted("Latency");
     ImGui::SameLine(val_offset);
-    ImGui::Text("%.1f ms, FPS: %u", latency, m_fps);
+    ImGui::Text("%.1f ms", latency);
+
+    ImGui::TextUnformatted("FPS");
+    ImGui::SameLine(val_offset);
+    ImGui::Text("%u", m_fps);
+
     if (color != 0)
         ImGui::PopStyleColor();
 }
@@ -573,9 +583,9 @@ void PanelStats::print_ping(float val_offset) noexcept
 
 void PanelStats::show_app_performance(float val_offset)
 {
-    ImGui::TextUnformatted("V-Sync");
-    ImGui::SameLine(val_offset);
-    ImGui::TextUnformatted(g::pOptsManager->app_vsync_load() ? "enabled" : "disabled");
+    //ImGui::TextUnformatted("V-Sync");
+    //ImGui::SameLine(val_offset);
+    //ImGui::TextUnformatted(g::pOptsManager->app_vsync_load() ? "enabled" : "disabled");
 
     print_fps(val_offset);
 }

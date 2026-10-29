@@ -49,10 +49,10 @@ public:
         const std::function<bool()>& move_handler,
         const std::function<bool()>& hotkey_handler);
 
-    void pre_draw_node(data::NodeInstance* node, bool execution_failed);
+    void pre_draw_node(data::NodeInstance* node, bool execution_in_progress, bool execution_failed);
     void draw_node(const data::NodeInstance* node, float node_w, size_t node_idx, const std::set<std::string>* failed_pins);
     void draw_group(const data::NodeInstance* node, size_t node_idx);
-    void post_draw_node(const data::NodeInstance* node, bool execution_failed) noexcept;
+    void post_draw_node(const data::NodeInstance* node, bool execution_in_progress, bool execution_failed) noexcept;
 
     void draw_links(const std::vector<std::unique_ptr<data::Link>>& links);
     void query_new_item(const std::function<void(data::PinInstance*)>& unlink_handler, const std::function<void(data::PinInstance*, const ImVec2&)>& new_node_handler);

@@ -253,7 +253,7 @@ void PanelQueue::create_toolbar()
 
 int32_t PanelQueue::show_tasks_num(int32_t curr) noexcept
 {
-    if (curr < 0) curr = -1;
+    if (curr < 0 || curr > 0xfffff) curr = -1;
     int32_t imgui_idx = curr + 1;
     if (ImGui::Combo("", &imgui_idx,
         [](void* /*data*/, int32_t idx, const char** out_text) noexcept
@@ -351,7 +351,10 @@ void PanelQueue::show_current_task()
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
     const auto new_num = show_tasks_num(group->tasks_num);
     if (new_num != group->tasks_num)
-        g::pQueueManager->modify_group(group->group_id, new_num);
+    {
+        if (!(-1 == new_num && group->tasks_num > 0xfffff))
+            g::pQueueManager->modify_group(group->group_id, new_num);
+    }
 }
 
 void PanelQueue::show_external_task()
@@ -939,7 +942,7 @@ void PanelQueue::show_asset_info(const mngr::ExecTask::Output& output, size_t ou
         const bool is_video = (mngr::ExecTask::OutputType::Gif == output.type);
         const bool is_image = (mngr::ExecTask::OutputType::Image == output.type);        
 
-        if (!output.binary_path.empty()) [[likely]]
+        if (!output.binary_path.empty() && !output.filename.empty()) [[likely]]
         {
             if (ImGuiEx::UrlButton(ICON_LC_COPY, "Copy file...",
                     g::pOptsManager->color_load(AppColor::ActivityBarInactive),
@@ -963,8 +966,8 @@ void PanelQueue::show_asset_info(const mngr::ExecTask::Output& output, size_t ou
 
             ImGui::SameLine();
             if (ImGuiEx::UrlButton(output.filename.c_str(), "Open in default app",
-                    g::pOptsManager->color_load(AppColor::ActivityBarInactive),
-                    g::pOptsManager->color_load(AppColor::SelectedItem), false))
+                g::pOptsManager->color_load(AppColor::ActivityBarInactive),
+                g::pOptsManager->color_load(AppColor::SelectedItem), false))
             {
                 tools::path::open_file(output.binary_path, false);
             }

@@ -102,6 +102,8 @@ void CustomJsNode::test(mngr::NodesManager* manager, data::Node* node)
 
 void CustomJsNode::init(data::NodeInstance* node)
 {
+    LogRAssert(node, "Zero ptr", );
+    LogRAssert(node->has_object(), "No object", );
     switch (node->get_object()->get_hash())
     {
     case js::RGTHREE_BOOKMARK:
@@ -116,6 +118,8 @@ void CustomJsNode::init(data::NodeInstance* node)
 
 void CustomJsNode::draw(data::NodeInstance* node, float off, float width)
 {
+    LogRAssert(node, "Zero ptr", );
+    LogRAssert(node->has_object(), "No object", );
     switch (node->get_object()->get_hash())
     {
     case js::VANILLA_LOAD3D:
@@ -135,6 +139,8 @@ void CustomJsNode::draw(data::NodeInstance* node, float off, float width)
 
 void CustomJsNode::handle_pin_value_changed(const data::NodeInstance* node, data::PinInstance* pin)
 {
+    LogRAssert(node && pin, "Zero ptr", );
+    LogRAssert(node->has_object(), "No object", );
     switch (node->get_object()->get_hash())
     {
     case js::RGTHREE_SDXL_POWER_PROMPT_POS:

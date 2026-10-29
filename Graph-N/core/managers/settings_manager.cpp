@@ -27,6 +27,7 @@ bool SettingsManager::init()
 
     // app
     m_app_vsync =                                      { "vsync_enabled",           bool(true) };
+    m_app_show_fps =                                   { "show_fps",                bool(false) };
     m_app_fps_limit =                                  { "fps_limit",               bool(false) };
     m_app_fps_limit_val =                              { "fps_limit_value",         int64_t(30) };
     m_app_scale =                                      { "ui_scale",                int64_t(100) };
@@ -176,6 +177,7 @@ bool SettingsManager::init()
     m_ui_colors[cast::to_szt(AppColor::TabHovered)] =                        { "color_tab_hovered",  int64_t(IM_COL32(0, 150, 150, 255)) };
     m_ui_colors[cast::to_szt(AppColor::DummyNode)] =                         { "color_dummy_node",  int64_t(IM_COL32(255, 0, 0, 255)) };
     m_ui_colors[cast::to_szt(AppColor::NodeNote)] =                          { "color_note_node",  int64_t(IM_COL32(30, 47, 64, 212)) };
+    m_ui_colors[cast::to_szt(AppColor::RunningNode)] =                       { "color_progress_node",  int64_t(IM_COL32(255, 215, 0, 240)) };
 
     // stats
     m_stat_limits_warn.resize(cast::to_szt(MetricLimit::_count));
@@ -201,6 +203,7 @@ bool SettingsManager::init()
     std::vector<OptionValue*> values;
     values.reserve(200);
     values.push_back(&m_app_vsync);
+    values.push_back(&m_app_show_fps);
     values.push_back(&m_app_fps_limit);
     values.push_back(&m_app_fps_limit_val);
     values.push_back(&m_app_scale);

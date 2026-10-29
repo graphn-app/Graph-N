@@ -134,7 +134,7 @@ bool PanelWorkflow::context_menu_handler()
                 m_handle_context_menu = true;
                 m_menu_objs = {};
                 m_context_menu_type = MenuType::Pin;
-                m_menu_objs.caption = fmt::format(FMT_STRING("Pin [{}]: {}"), pin->get_instance_id(), pin->state().name);
+                m_menu_objs.caption = fmt::format(FMT_STRING("Pin [{}]: {} / {}"), pin->get_instance_id(), pin->state().name, (PinType::ANY == pin->state().type ? "*" : pin->state().type_str));
                 m_menu_objs.pins.insert(pin);
                 m_menu_objs.nodes.insert(parent);
                 m_menu_objs.click_pos = m_drawer.get_mouse_pos();
@@ -541,7 +541,7 @@ bool PanelWorkflow::show_node_menu()
             g::pFlow->host_open_mask_editor(get_workflow()->get_id(), node->get_instance_id());
             close = true;
         }
-        if (ImGui::MenuItem("Open in 3D Pos Editor", nullptr, nullptr, node->flags().has_and_has_not(NodeInstFlags::MaskEditorReady, NodeInstFlags::MaskEditorRunning)))
+        if (ImGui::MenuItem("Open in 3D Pose Editor", nullptr, nullptr, node->flags().has_and_has_not(NodeInstFlags::MaskEditorReady, NodeInstFlags::MaskEditorRunning)))
         {
             g::pFlow->host_open_3dpos_editor(get_workflow()->get_id(), node->get_instance_id());
             close = true;
@@ -1985,8 +1985,8 @@ bool PanelWorkflow::show_new_node_menu()
     bool close = false;
 
     const bool is_input = pin_inst->obj_flags().has(PinObjFlags::Input);
-    const auto input_filter = is_input ? std::list<std::pair<PinType, std::string>>{{ PinType::ANY, "" }} : node_inst->get_supported_pin_types(pin_inst);
-    const auto output_filter = is_input ? node_inst->get_supported_pin_types(pin_inst) : std::list<std::pair<PinType, std::string>>{{ PinType::ANY, "" }};
+    const auto input_filter = is_input ? std::list<std::pair<PinType, std::string>>{{ PinType::_none, "" }} : node_inst->get_supported_pin_types(pin_inst);
+    const auto output_filter = is_input ? node_inst->get_supported_pin_types(pin_inst) : std::list<std::pair<PinType, std::string>>{{ PinType::_none, "" }};
     const auto node = show_nodes_menu(input_filter, output_filter);
     if (node != nullptr)
     {
@@ -2022,6 +2022,19 @@ bool PanelWorkflow::show_new_node_menu()
                     linked = true;
                     break;
                 }
+            }
+            if (!linked && 0 == pin_inst->state().links) // didn't find exact match, link with ANY if exists
+            {
+                for (auto pin : oppo)
+                {
+                    if (PinType::ANY == pin->state().type)
+                    {
+                        m_action->link(pin, pin_inst);
+                        linked = true;
+                        break;
+                    }
+                }
+
             }
         }
         if (!linked)

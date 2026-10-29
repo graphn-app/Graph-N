@@ -66,6 +66,7 @@ using byte_buff = std::vector<byte>;
 
 #include "tools/tools_datetime.h"
 #include "core/base/blob.h"
+#include "core/base/version.h"
 #include "tools/cast.h"
 #include "core/base/filesystem.h"
 #include "tools/tools.h"

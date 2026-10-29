@@ -24,6 +24,9 @@ public:
     bool app_vsync_load() const noexcept { return *std::get_if<bool>(&m_app_vsync.value); }
     void app_vsync_save(bool enabled) { save_option(m_app_vsync, bool(enabled)); }
 
+    bool app_show_fps_load() const noexcept { return *std::get_if<bool>(&m_app_show_fps.value); }
+    void app_show_fps_save(bool show) { save_option(m_app_show_fps, bool(show)); }
+
     bool app_fps_limit_load() const noexcept { return *std::get_if<bool>(&m_app_fps_limit.value); }
     void app_fps_limit_save(bool enabled) { save_option(m_app_fps_limit, bool(enabled)); }
 
@@ -251,6 +254,7 @@ private:
 
     // app
     OptionValue m_app_vsync; // int
+    OptionValue m_app_show_fps; // int
     OptionValue m_app_fps_limit; // int
     OptionValue m_app_fps_limit_val; // int
     OptionValue m_app_scale; // int

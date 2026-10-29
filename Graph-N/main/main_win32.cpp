@@ -28,7 +28,6 @@ MainRoutine_Win32::MainRoutine_Win32() noexcept
     , m_d3d_device_context(nullptr, [](ID3D11DeviceContext* p) { if (p) p->Release(); })
     , m_swap_chain(nullptr, [](IDXGISwapChain* p) { if (p) p->Release(); })
     , m_main_render_target_view(nullptr, [](ID3D11RenderTargetView* p) { if (p) p->Release(); })
-    , m_hicon(nullptr, ::DestroyIcon)
     , m_clear_color(0.45f, 0.55f, 0.60f, 1.00f)
 {}
 
@@ -46,6 +45,9 @@ bool MainRoutine_Win32::init()
 
     m_wc = { sizeof(WNDCLASSEXW), CS_CLASSDC, MainRoutine_Win32::wnd_proc, 0L, 0L, ::GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, APP_CAPTION_W, nullptr };
     m_wc.hbrBackground = nullptr;
+    m_wc.hIcon = (HICON)::LoadImage(m_wc.hInstance, MAKEINTRESOURCE(101), IMAGE_ICON, ::GetSystemMetrics(SM_CXICON), ::GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR | LR_SHARED);
+    m_wc.hIconSm = (HICON)::LoadImage(m_wc.hInstance, MAKEINTRESOURCE(101), IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR | LR_SHARED);
+
     ::RegisterClassExW(&m_wc);
 
     const int32_t screen_w = ::GetSystemMetrics(SM_CXSCREEN);
@@ -71,10 +73,6 @@ bool MainRoutine_Win32::init()
         ::UnregisterClassW(m_wc.lpszClassName, m_wc.hInstance);
         LogCritical("Create_device_d3d failed with err: " << LogApiERR);
     }
-
-    m_hicon.reset((HICON)::LoadImage(m_wc.hInstance, MAKEINTRESOURCE(101), IMAGE_ICON, 32, 32, LR_LOADTRANSPARENT));
-    ::SendMessage(m_hwnd, WM_SETICON, ICON_BIG, (LPARAM)m_hicon.get());
-    ::SendMessage(m_hwnd, WM_SETICON, ICON_SMALL, (LPARAM)m_hicon.get());
 
     constexpr BOOL dark = TRUE;
     ::DwmSetWindowAttribute(m_hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof(dark));

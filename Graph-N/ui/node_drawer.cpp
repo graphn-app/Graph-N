@@ -294,7 +294,7 @@ void NodeDrawer::post_draw_all(
     ImGui::GetIO().MouseWheel = m_mouse_wheel;
 }
 
-void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
+void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_in_progress, bool execution_failed)
 {
     LogRAssert(node, "Zero ptr", );
     LogRAssert(nullptr == m_active_node, "Active node must be zero ptr", );
@@ -316,6 +316,17 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
             ed::PushStyleColor(ed::StyleColor_SelNodeBorder, clr);
             ed::PushStyleColor(ed::StyleColor_NodeSelRect, clr);
             ed::PushStyleColor(ed::StyleColor_NodeSelRectBorder, clr);
+            ed::PushStyleVar(ed::StyleVar_NodeBorderWidth, 2.0f);
+        }
+        else if (execution_in_progress)
+        {
+            const auto clr = ImGui::ColorConvertU32ToFloat4(g::pOptsManager->color_load(AppColor::RunningNode));
+            ed::PushStyleColor(ed::StyleColor_NodeBorder, clr);
+            ed::PushStyleColor(ed::StyleColor_HovNodeBorder, clr);
+            ed::PushStyleColor(ed::StyleColor_SelNodeBorder, clr);
+            ed::PushStyleColor(ed::StyleColor_NodeSelRect, clr);
+            ed::PushStyleColor(ed::StyleColor_NodeSelRectBorder, clr);
+            ed::PushStyleVar(ed::StyleVar_NodeBorderWidth, 2.0f);
         }
 
         if (m_active_node->m_clr_node != m_active_node->get_default_color())
@@ -372,7 +383,7 @@ void NodeDrawer::pre_draw_node(data::NodeInstance* node, bool execution_failed)
     }
 }
 
-void NodeDrawer::post_draw_node(const data::NodeInstance* node, bool execution_failed) noexcept
+void NodeDrawer::post_draw_node(const data::NodeInstance* node, bool execution_in_progress, bool execution_failed) noexcept
 {
     LogRAssert(node, "Zero ptr", );
     LogRAssert(node == m_active_node, "Invalid node ptr", );
@@ -390,8 +401,11 @@ void NodeDrawer::post_draw_node(const data::NodeInstance* node, bool execution_f
 
     if (m_active_node->flags().has(NodeInstFlags::Group))
         ed::PopStyleColor(3);
-    else if (m_active_node->obj_flags().has(NodeObjFlags::Dummy) || execution_failed)
+    else if (m_active_node->obj_flags().has(NodeObjFlags::Dummy) || execution_failed || execution_in_progress)
+    {
         ed::PopStyleColor(6);
+        ed::PopStyleVar();
+    }
     else
         ed::PopStyleColor();
 
@@ -2056,7 +2070,7 @@ void NodeDrawer::rename_node(data::NodeInstance* node) noexcept
     m_renaming_node = node;
     m_renaming_pin = nullptr;
 
-    if (node->get_object()->get_hash() == js::RGTHREE_BOOKMARK)
+    if (node->has_object() && node->get_object()->get_hash() == js::RGTHREE_BOOKMARK)
     {
         const auto pos = node->get_name().find("Bookmark");
         if (pos != std::string::npos)

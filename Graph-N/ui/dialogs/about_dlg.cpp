@@ -24,10 +24,10 @@ void AboutDlg::init()
     BaseDlgWithData::init();
 
     const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-    dlg_data()->x = main_viewport->WorkSize.x / 2 - 300;
-    dlg_data()->y = main_viewport->WorkSize.y / 2 - 400;
+    dlg_data()->x = main_viewport->WorkSize.x / 2 - 400;
+    dlg_data()->y = main_viewport->WorkSize.y / 2 - 350;
     dlg_data()->width = 800;
-    dlg_data()->height = 500;
+    dlg_data()->height = 700;
 
     dlg_data()->clr_title = g::pOptsManager->color_load(AppColor::MiscDlgTitleBg);
     dlg_data()->clr_bg = g::pOptsManager->color_load(AppColor::MiscDlgBg);
@@ -71,6 +71,24 @@ DlgCode AboutDlg::show(bool& /*focused*/)
         m_new_version = fmt::format(FMT_STRING("{} ({})"), version, date);
     };
 
+    const auto crypto_link = [](const char* address)
+    {
+        ImGui::PushID(address);
+        ImGui::PushItemWidth(400.0f);
+        ImGui::InputText("##crypt", cast::remove_const<char>(address), strlen(address), ImGuiInputTextFlags_ReadOnly);
+        ImGui::PopItemWidth();
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(0, 0, 0, 0));
+        if (ImGui::Button(ICON_LC_COPY))
+        {
+            ImGui::SetClipboardText(address);
+            g::pFlow->set_toast(ImGuiEx::toast_prepare("Copied"));
+        }
+        ImGui::PopStyleColor(2);
+        ImGui::PopID();
+    };
+
     bool opened = true;
     if (ImGui::Begin(DlgObj_SID[cast::to_szt(DlgObj::AboutDlg)], &opened,
         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
@@ -87,6 +105,7 @@ DlgCode AboutDlg::show(bool& /*focused*/)
         {
             ImGui::TableSetupColumn("Icon", ImGuiTableColumnFlags_WidthFixed, ABOUT_ICON_RECT + 50.0f);
             ImGui::TableSetupColumn("Info", ImGuiTableColumnFlags_WidthStretch);
+
             ImGui::TableNextRow();
 
             ImGui::TableSetColumnIndex(0);
@@ -103,53 +122,109 @@ DlgCode AboutDlg::show(bool& /*focused*/)
 
             if (ImGui::BeginTable("##info_table", 2, ImGuiTableFlags_None))
             {
-                ImGui::TableSetupColumn("Key", ImGuiTableColumnFlags_WidthFixed, 70.0f);
+                ImGui::TableSetupColumn("Key", ImGuiTableColumnFlags_WidthFixed, 120.0f);
                 ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
                 ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Version:");
-                ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted(m_version.c_str());
 
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Date:");
-                ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted(m_release_date.c_str());
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Version:");
 
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Website:");
-                ImGui::TableSetColumnIndex(1); 
-                if (ImGuiEx::UrlButton(WEB_APP_HOME))
-                    tools::path::open_file(WEB_APP_HOME, true);
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextUnformatted(m_version.c_str());
 
-                ImGui::TableNextRow();
-                if (m_upd_found) ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderText));
-                ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Update:");
-                if (m_upd_found) ImGui::PopStyleColor();
-                ImGui::TableSetColumnIndex(1); 
+                ImGui::SameLine(250);
 
-                if (m_upd_checked)
+                if (m_upd_found)
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::NodeHeaderText));
+                    if (ImGuiEx::UrlButton(m_new_version.c_str(), "Download new version"))
+                        tools::path::open_file(UPDATE_PATH, true);
+                    ImGui::PopStyleColor();
+                }
+                else if (m_upd_checked)
                 {
                     if (!m_http_result)
-                        ImGui::TextUnformatted("failed to check");
-                    else if (!m_upd_found)
-                        ImGui::TextUnformatted("no updates");
+                        ImGui::TextUnformatted("failed to check for updates");
                     else
-                    {
-                        if (ImGuiEx::UrlButton(m_new_version.c_str(), "Download new version"))
-                            tools::path::open_file(UPDATE_PATH, true);
-                    }
+                        ImGui::TextUnformatted("no updates");
+                }
+                else if (m_upd_checking)
+                {
+                    ImGui::TextUnformatted("checking...");
                 }
                 else
                 {
-                    const bool checking = m_upd_checking;
-                    if (checking) ImGui::BeginDisabled();
-                    if (ImGui::Button(checking ? "Checking..." : "Check for updates") || m_autocheck)
+                    if (ImGui::Button("Check for updates") || m_autocheck)
                     {
                         m_autocheck = false;
+                        m_upd_checked = false;
+                        m_upd_found = false;
                         m_upd_checking = true;
                         g::pFlow->check_for_updates(upd_callback);
                     }
-                    if (checking) ImGui::EndDisabled();
                 }
+
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Date:");
+
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextUnformatted(m_release_date.c_str());
+
+                ImGui::Spacing();
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Website:");
+
+                ImGui::TableSetColumnIndex(1); 
+                if (ImGuiEx::UrlButton(HOME_GITHUB))
+                    tools::path::open_file(HOME_GITHUB, true);
+                if (ImGuiEx::UrlButton(HOME_YOUTUBE))
+                    tools::path::open_file(HOME_YOUTUBE, true);
+                if (ImGuiEx::UrlButton(HOME_EMAIL))
+                {
+                    ImGui::SetClipboardText(HOME_EMAIL);
+                    g::pFlow->set_toast(ImGuiEx::toast_prepare("Copied"));
+                }
+
+                ImGui::Spacing();
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Report issues:");
+
+                ImGui::TableSetColumnIndex(1); 
+                if (ImGuiEx::UrlButton(HOME_ISSUES))
+                    tools::path::open_file(HOME_ISSUES, true);
+
+                ImGui::Spacing();
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Fiat donates:");
+
+                ImGui::TableSetColumnIndex(1); 
+                if (ImGuiEx::UrlButton(HOME_DONATE1))
+                    tools::path::open_file(HOME_DONATE1, true);
+                if (ImGuiEx::UrlButton(HOME_DONATE2))
+                    tools::path::open_file(HOME_DONATE2, true);
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextUnformatted("Crypto BTC:");
+                ImGui::TableSetColumnIndex(1); 
+                crypto_link(HOME_CRYPTO_BTC);
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextUnformatted("Crypto SOL:");
+                ImGui::TableSetColumnIndex(1); 
+                crypto_link(HOME_CRYPTO_SOL);
 
                 ImGui::EndTable();
             }

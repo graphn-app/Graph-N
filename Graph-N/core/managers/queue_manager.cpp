@@ -124,7 +124,7 @@ void QueueManager::add_to_queue(data::Workflow* wf, int32_t count, bool push_fro
 {
     LogRAssert(wf, "Zero ptr", );
     if (count <= 0)
-        count = -1;
+        count = 0x7fffffff;
 
     ExecGroup group;
     group.tasks_num = count;
@@ -181,6 +181,7 @@ void QueueManager::process()
             task.time_start = tools::dt::from_current_date().time();
             task.time_start_s = tools::dt::from_time(task.time_start).as_full_date_readable(false);
             task.result = TaskResult::InProgress;
+            m_current->tasks_num--;
 
             o_json j;
             j["client_id"] = base::GlobalID::client_id();
@@ -225,6 +226,14 @@ void QueueManager::go_next_task()
         wf->increment(src_wf);
     };
 
+    const auto drop_current_group = [this]()
+    {
+        Log("Finished all tasks for wf " << m_current_group.src_wf);
+        g::pWfsManager->erase_wf(m_current->wf->get_id());
+        m_current = nullptr;
+        m_current_group = {};
+    };
+
     if (nullptr == m_current)
     {
         if (m_queue_next.empty() || is_paused())
@@ -235,6 +244,9 @@ void QueueManager::go_next_task()
         m_current = &m_current_group;
         m_queued_wfs.erase(m_current->src_wf);
         m_queue_next.pop_front();
+
+        if (m_current->tasks_num <= 0)
+            return drop_current_group();
 
         m_last_progress_node = 0;
         m_current_group.task.task_id = base::GlobalID::random();
@@ -284,21 +296,15 @@ void QueueManager::go_next_task()
 
         g::pDbManager->history_add(t);
 
-        if (0 == m_current->tasks_num || --m_current->tasks_num == 0)
-        {
-            Log("Finished all tasks for wf " << m_current_group.src_wf);
-            g::pWfsManager->erase_wf(m_current->wf->get_id());
-            m_current = nullptr;            
-            m_current_group = {};
-            return;
-        }
-
         if (is_paused()) [[unlikely]]
         {
             m_queue_next.push_front(std::move(m_current_group));
             m_current = nullptr;
             return;
         }
+
+        if (m_current->tasks_num <= 0)
+            return drop_current_group();
 
         m_current_group.task.task_id = base::GlobalID::random();
         m_current_group.task.active = true;
@@ -322,6 +328,9 @@ const ExecTask* QueueManager::get_is_failed(wid wf_id) const
 
 void QueueManager::modify_group(uint64_t group_id, int32_t num_of_tasks)
 {
+    if (num_of_tasks < 0)
+        num_of_tasks = 0x7fffffff;
+
     auto it = std::ranges::find_if(m_queue_next, [group_id](const ExecGroup& g) { return g.group_id == group_id; });
     if (it != m_queue_next.end())
     {
@@ -1125,6 +1134,7 @@ void QueueManager::load_binary_output(wid wf_id, ExecTask& task, std::string&& d
     const char* to_write = data.c_str() + binary_header_len;
     if (!tools::path::make_file(filename, true, to_write, data.size() - binary_header_len))
         return;
+    const std::string binary_path = tools::path::path_to_string(filename);
 
     ExecTask::Output out;
     out.type = ExecTask::OutputType::Image;
@@ -1132,11 +1142,12 @@ void QueueManager::load_binary_output(wid wf_id, ExecTask& task, std::string&& d
     out.id = base::GlobalID::random();
     out.exists = true;
     out.ready = true;
-    out.binary_path = tools::path::path_to_string(filename);
+    out.binary_path = binary_path;
     out.media_id = g::pTextures->load_image_from_path(out.binary_path, QUEUE_IMAGE_RECT, QUEUE_IMAGE_RECT, QUEUE_IMAGE_LIFETIME);
+    const int32_t media_id = out.media_id;
     task.outputs.push_back(std::move(out));
 
-    g::pFlow->custom_media_widgets().add_output(wf_id, out.target_node, out.type, out.binary_path, out.filename, out.media_id);
+    g::pFlow->custom_media_widgets().add_output(wf_id, m_last_progress_node, ExecTask::OutputType::Image, binary_path, "", media_id);
     Log("Task #" << log_task_id << ". Binary output saved to " << filename);
 }
 

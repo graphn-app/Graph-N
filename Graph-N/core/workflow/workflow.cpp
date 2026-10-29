@@ -327,7 +327,7 @@ NodeInstance* Workflow::get_node_by_hash(hid hash) const noexcept
     const auto it = std::ranges::find_if(m_nodes,
         [hash](const std::unique_ptr<NodeInstance>& node) noexcept
         {
-            if (!node || !node->get_object())
+            if (!node || !node->has_object())
                 return false;
             return node->get_object()->get_hash() == hash;
         }
@@ -755,6 +755,63 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
         return;
 
     nodes = filter_reroutes(nodes);
+    const auto or_count = nodes.size();
+
+    // remove daisy-chained reroutes
+    std::set<data::NodeInstance*> valid_reroutes;
+    for (auto node : nodes) 
+    {
+        bool has_internal_link = false;
+
+        for (auto in_pin : node->get_inputs()) 
+        {
+            for (auto& link : get_links_all()) 
+            {
+                if (link->get_input()->get_instance_id() == in_pin->get_instance_id()) 
+                {
+                    if (nodes.contains(get_node_by_instance(link->get_output()->get_parent_node()))) 
+                    {
+                        has_internal_link = true;
+                        break;
+                    }
+                }
+            }
+            if (has_internal_link)
+                break;
+        }
+
+        if (!has_internal_link) 
+        {
+            for (auto out_pin : node->get_outputs()) 
+            {
+                for (auto& link : get_links_all()) 
+                {
+                    if (link->get_output()->get_instance_id() == out_pin->get_instance_id()) 
+                    {
+                        if (nodes.contains(get_node_by_instance(link->get_input()->get_parent_node()))) 
+                        {
+                            has_internal_link = true;
+                            break;
+                        }
+                    }
+                }
+                if (has_internal_link)
+                    break;
+            }
+        }
+
+        if (!has_internal_link) 
+            valid_reroutes.insert(node);
+    }
+
+    nodes = std::move(valid_reroutes);
+    if (nodes.size() <= 1)
+    {
+        g::pFlow->set_toast(ImGuiEx::toast_prepare("Sequential reroutes cannot be bundled", 0, 2000.0f));
+        return;
+    }
+    if (nodes.size() != or_count)
+        g::pFlow->set_toast(ImGuiEx::toast_prepare("Skipped daisy-chained reroutes", 0, 2000.0f));
 
     m_action->multi_action_on("Bundle reroutes");
 
@@ -769,8 +826,6 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
         if (nullptr == dest_node)
         {
             dest_node = cast::strict<data::CNI_Reroute>(cast::strict<data::CNI_Reroute>(node)->get_splitted_base());
-            //if (node->flags().has(NodeInstFlags::RerouteSplitted))
-              //  m_action->merge_reroute(cast::strict<data::CNI_Reroute>(node)->get_splitted_base(), true);
             continue;
         }
 
@@ -778,9 +833,6 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
         const size_t count = node->get_inputs().size();
         for (size_t i = 0; i < count; i++)
         {
-            if (node->flags().has(NodeInstFlags::RerouteSplitted))
-                m_action->merge_reroute(cast::strict<data::CNI_Reroute>(node)->get_splitted_base(), true);
-
             const auto in_pin = node->get_inputs()[i];
             const auto out_pin = node->get_outputs()[i];
 
@@ -788,36 +840,45 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
                 continue;
 
             data::PinInstance* left_pin = nullptr;
-            data::PinInstance* right_pin = nullptr;
             data::Link* left_link = nullptr;
-            data::Link* right_link = nullptr;
+            std::vector<std::pair<data::PinInstance*, data::Link*>> right_connections;
+
+            bool self_link = false;
 
             // look up nodes wired to the merged pin and rewire them into the bundle
             for (auto& link : get_links_all())
             {
                 if (link->get_input()->get_instance_id() == in_pin->get_instance_id())
                 {
-                    left_pin = link->get_output();
-                    left_link = link.get();
+                    LogAssert(nullptr == left_pin && nullptr == left_link, "Left link already found");
+                    if (link->get_output()->get_parent_node() == dest_node->get_instance_id())
+                        self_link = true;
+                    else
+                    {
+                        left_pin = link->get_output();
+                        left_link = link.get();
+                    }
                 }
                 else if (link->get_output()->get_instance_id() == out_pin->get_instance_id())
                 {
-                    right_pin = link->get_input();
-                    right_link = link.get();
+                    if (link->get_input()->get_parent_node() == dest_node->get_instance_id())
+                        self_link = true;
+                    else
+                    {
+                        right_connections.push_back(std::make_pair(link->get_input(), link.get()));
+                    }
                 }
-                if (left_pin != nullptr && right_pin != nullptr)
-                    break;
             }
 
             // valid state: reroute pin has no active links
-            if (nullptr == left_pin && nullptr == right_pin)
+            if (nullptr == left_pin && right_connections.empty())
                 continue;
 
             // ignore direct links to destination reroutes (reroute daisy-chaining)
-            if (left_pin != nullptr && left_pin->get_parent_node() == dest_node->get_instance_id() ||
-                right_pin != nullptr && right_pin->get_parent_node() == dest_node->get_instance_id())
+            if (self_link)
             {
                 delete_node = false;
+                LogError("daisy-chained reroute");
                 break;
             }
 
@@ -828,8 +889,11 @@ void Workflow::bundle_reroutes(std::set<data::NodeInstance*> nodes)
                 m_action->unlink(left_link);
                 m_action->link(left_pin, new_pair.first);
             }
-            if (right_pin != nullptr)
+
+            for (const auto pair : right_connections)
             {
+                auto right_pin = pair.first;
+                auto right_link = pair.second;
                 m_action->unlink(right_link);
                 m_action->link(right_pin, new_pair.second);
             }

@@ -18,7 +18,7 @@ public:
     virtual void stop_and_cleanup() = 0;
 
     void set_vsync_enabled(bool enable) noexcept { m_vsync = enable; }
-    bool get_vsync_enabled() noexcept { return m_vsync; }
+    bool get_vsync_enabled() const noexcept { return true; /*m_vsync;*/ }
 
     virtual double get_frame_render_time() const noexcept = 0;
     virtual int64_t get_seconds_elapsed() const noexcept = 0;

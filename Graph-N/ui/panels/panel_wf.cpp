@@ -433,12 +433,12 @@ void PanelWorkflow::draw_wf()
 
         ImGui::PushID(node);        
 
-        m_drawer.pre_draw_node(node, failed_node);
+        m_drawer.pre_draw_node(node, m_running_node == node->get_instance_id(), failed_node);
         if (node->flags().has(NodeInstFlags::Group))
             m_drawer.draw_group(node, node_idx);
         else
             m_drawer.draw_node(node, node->get_object()->w_fit, node_idx, failed_pins);
-        m_drawer.post_draw_node(node, failed_node);
+        m_drawer.post_draw_node(node, m_running_node == node->get_instance_id(), failed_node);
 
         ImGui::PopID();
 
@@ -807,7 +807,7 @@ void PanelWorkflow::create_toolbar()
                 m_queue_num_input_id = "##num_" + m_wf->get_uuid();
                 el.id = m_queue_num_input_id.c_str();
                 el.input_w = 150.0f;
-                el.cb_items = { "Infinite", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "15", "20" };
+                el.cb_items = { "Infinite", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "15", "20", "30", "40", "50", "100", "200", "500"};
                 el.cb_item_sel = 1;
                 el.on_preview = [this](PanelToolbar::Element& el) noexcept
                 {
@@ -954,6 +954,7 @@ void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
     m_failed_nodes = nullptr;
     el.blinking = false;
     el.text_clr = 0;
+    m_running_node = 0;
 
     auto failed = g::pQueueManager->get_is_failed(m_wf->get_id());
     if (failed != nullptr) [[unlikely]]
@@ -990,11 +991,12 @@ void PanelWorkflow::on_pre_queue_status(PanelToolbar::Element& el)
     {
         m_status_buffer.clear();
         if (0 == group->task.current_node)
-        {
+        {            
             fmt::format_to(std::back_inserter(m_status_buffer), FMT_COMPILE("Progress: {:.0f}%"), group->task.progress * 100);
         }
         else
         {
+            m_running_node = group->task.current_node;
             const auto* node = group->wf->get_node_by_instance(group->task.current_node);
             if (node != nullptr)
                 fmt::format_to(std::back_inserter(m_status_buffer), FMT_COMPILE("Progress: {:.0f}%: {}"), group->task.progress * 100, node->get_name());

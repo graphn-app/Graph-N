@@ -171,6 +171,7 @@ private:
 
     int32_t m_tasks_num = 1;
     std::string m_queue_num_input_id;
+    iid m_running_node = 0;
 
     bool m_can_save = false;
     bool m_can_revert = false;

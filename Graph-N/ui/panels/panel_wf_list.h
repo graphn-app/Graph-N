@@ -65,6 +65,7 @@ private:
     uint32_t m_new_label = 0;
     PanelWithList::TtCallbacks m_tt_callbacks;
     std::set<uint32_t> m_curr_labels;
+    bool m_first_run = true;
 
     void* m_active_popup_ptr = nullptr;
     std::set<uint32_t> m_active_popup_labels;

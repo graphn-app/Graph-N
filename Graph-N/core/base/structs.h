@@ -250,13 +250,6 @@ struct ExecTask final
     enum class OutputType : uint8_t { Unknown, Gif, Audio, Image, Text };
     struct Output final
     {
-        Output() noexcept = default;
-        ~Output() noexcept
-        {
-            if (tools::path::exists(binary_path))
-                tools::path::remove(binary_path);
-        }
-
         bool preparing = false;
         bool ready = false;
         bool exists = false;

@@ -69,7 +69,6 @@ private:
     // win32
     WNDCLASSEXW m_wc = {};
     HWND m_hwnd = nullptr;
-    std::unique_ptr<HICON__, decltype(&DestroyIcon)> m_hicon;
     bool m_moving = false;
 
     // ImGui

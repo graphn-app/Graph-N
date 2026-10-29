@@ -7,7 +7,6 @@
 using namespace std::chrono_literals;
 
 using byte              = uint8_t;
-using app_version_type  = uint32_t;
 using hid               = size_t;		// hash id for pin/node, based on node/pin name
 using iid               = uint32_t;	    // node/pin instance id, unique for each workflow
 using wid               = uint32_t;     // workflow id - crc32 of uuid
@@ -62,7 +61,15 @@ inline constexpr double PLAYING_VIDEO_LIFETIME = 5.0; // seconds
 
 inline constexpr int32_t ABOUT_ICON_RECT           = 128;  // size
 inline constexpr int32_t ABOUT_ICON_LIFETIME       = 2;    // seconds
-inline constexpr const char* WEB_APP_HOME          = "https://github.com/graphn-app/Graph-N";
+inline constexpr const char* HOME_GITHUB           = "https://github.com/graphn-app/Graph-N";
+inline constexpr const char* HOME_YOUTUBE          = "https://www.youtube.com/@graphn-app";
+inline constexpr const char* HOME_YOUTUBE_SRVCFG   = "https://youtu.be/Ut5G3jWY77Y";
+inline constexpr const char* HOME_EMAIL            = "graph.n.app@gmail.com";
+inline constexpr const char* HOME_ISSUES           = "https://github.com/graphn-app/Graph-N/issues";
+inline constexpr const char* HOME_DONATE1          = "https://github.com/sponsors/elgeminy";
+inline constexpr const char* HOME_DONATE2          = "https://ko-fi.com/graphn_app";
+inline constexpr const char* HOME_CRYPTO_BTC       = "bc1q59rxm745wkwp6sxj36dhknh4253uvslrnfpy6c";
+inline constexpr const char* HOME_CRYPTO_SOL       = "AiBADrwaHGTqt62yRw1NH8rkpZvrf631ZqazjB9ThM3k";
 inline constexpr const char* UPDATE_PATH           = "https://github.com/graphn-app/Graph-N";
 inline constexpr const char* UPDATE_SERVER         = "api.github.com";
 inline constexpr const char* UPDATE_URL            = "/repos/graphn-app/Graph-N/releases/latest";
@@ -468,6 +475,7 @@ enum class AppColor : uint16_t
     TabHovered,
     DummyNode,
     NodeNote,
+    RunningNode,
 
     Pin_Int,
     Pin_Float,

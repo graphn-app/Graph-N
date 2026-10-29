@@ -87,7 +87,9 @@ void NodeInstanceBase::set_name(std::string name) noexcept
 std::list<std::pair<PinType, std::string>> NodeInstanceBase::get_supported_pin_types(PinInstance* pin) const
 {
     LogRAssert(pin, "Zero ptr",{});
-    return {{ pin->state().type, pin->state().type_str }};
+    if (PinType::ANY == pin->state().type)
+        return {{ PinType::ANY, ""}};
+    return {{ pin->state().type, pin->state().type_str }, { PinType::ANY, ""}};
 }
 
 void NodeInstanceBase::add_input(PinInstance* pin)

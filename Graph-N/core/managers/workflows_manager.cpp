@@ -852,9 +852,12 @@ void WfsManager::revert(wid wf_id, blob::Blob& drawer_state, bool& restore_drawe
     }
 
     wf->invalidate_current();
+
     data.dirty = false;
     data.draft = false;
     data.saved_exist = true;
+    data.draft_exist = false;
+    g::pDbManager->wf_update_meta(data);
 }
 
 void WfsManager::dump(wid wf_id) const

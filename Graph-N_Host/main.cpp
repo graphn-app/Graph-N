@@ -8,8 +8,8 @@
 #define IDI_POSEDITOR           102
 #define IDI_MASKEDITOR          103
 
-#define APPCAPT_POSEDITOR       "Graph-N 3DPos Editor"
-#define APPCAPT_POSEDITOR_W     L"Graph-N 3DPos Editor"
+#define APPCAPT_POSEDITOR       "Graph-N 3D Pose Editor"
+#define APPCAPT_POSEDITOR_W     L"Graph-N 3D Pose Editor"
 #define APPCAPT_MASKEDITOR      "Graph-N Mask Editor"
 #define APPCAPT_MASKEDITOR_W    L"Graph-N Mask Editor"
 
@@ -639,25 +639,30 @@ int32_t main(int32_t, char**)
     wcex.style = CS_HREDRAW | CS_VREDRAW;
     wcex.lpfnWndProc = WndProc;
     wcex.hCursor = ::LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.hbrBackground = nullptr;
     wcex.lpszClassName = L"GraphN_Shim_Host_ME";
+    wcex.hInstance = ::GetModuleHandle(nullptr);
+
+    if (Mode::MaskEditor == g_data.mode)
+    {
+        wcex.hIcon = (HICON)::LoadImage(wcex.hInstance, MAKEINTRESOURCE(IDI_MASKEDITOR), IMAGE_ICON, ::GetSystemMetrics(SM_CXICON), ::GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR | LR_SHARED);
+        wcex.hIconSm = (HICON)::LoadImage(wcex.hInstance, MAKEINTRESOURCE(IDI_MASKEDITOR), IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR | LR_SHARED);
+    }
+    else
+    {
+        wcex.hIcon = (HICON)::LoadImage(wcex.hInstance, MAKEINTRESOURCE(IDI_POSEDITOR), IMAGE_ICON, ::GetSystemMetrics(SM_CXICON), ::GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR | LR_SHARED);
+        wcex.hIconSm = (HICON)::LoadImage(wcex.hInstance, MAKEINTRESOURCE(IDI_POSEDITOR), IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR | LR_SHARED);
+    }
+    
     ::RegisterClassExW(&wcex);
 
-    const wchar_t* editor = (Mode::MaskEditor == g_data.mode ? APPCAPT_MASKEDITOR_W : APPCAPT_POSEDITOR_W);
-    g_data.hwnd = ::CreateWindowW(L"GraphN_Shim_Host_ME", editor, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, 1280, 800, nullptr, nullptr, wcex.hInstance, nullptr);
+    const std::wstring caption = fmt::format(FMT_STRING(L"{}: {}"), tools::str::utf8_to_wide(ver::ver_as_caption()), (Mode::MaskEditor == g_data.mode ? APPCAPT_MASKEDITOR_W : APPCAPT_POSEDITOR_W));
+    g_data.hwnd = ::CreateWindowW(L"GraphN_Shim_Host_ME", caption.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, 1280, 800, nullptr, nullptr, wcex.hInstance, nullptr);
     if (nullptr == g_data.hwnd)
     {
         LogS("Failed to create app window. api code: " << LogApiERR);
         return 1;
     }
-
-    std::unique_ptr<HICON__, decltype(&::DestroyIcon)> hicon(nullptr, ::DestroyIcon);
-    if (Mode::MaskEditor == g_data.mode)
-        hicon.reset((HICON)::LoadImage(wcex.hInstance, MAKEINTRESOURCE(IDI_MASKEDITOR), IMAGE_ICON, 32, 32, LR_LOADTRANSPARENT));
-    else
-        hicon.reset((HICON)::LoadImage(wcex.hInstance, MAKEINTRESOURCE(IDI_POSEDITOR), IMAGE_ICON, 32, 32, LR_LOADTRANSPARENT));
-    ::SendMessage(g_data.hwnd, WM_SETICON, ICON_BIG, (LPARAM)hicon.get());
-    ::SendMessage(g_data.hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hicon.get());
 
     constexpr BOOL dark = TRUE;
     ::DwmSetWindowAttribute(g_data.hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof(dark));

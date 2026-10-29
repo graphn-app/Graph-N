@@ -324,16 +324,18 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host" PREFIX "Source File
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host" PREFIX "Header Files" FILES ${HOST_HEADERS})
 
 set(HOST_SHARED_SOURCES
+    "Graph-N/core/base/blob.h"
+	"Graph-N/core/base/version.h"
+	"Graph-N/core/base/version.cpp"
+	"Graph-N/core/base/filesystem.h"	
+	"Graph-N/core/base/filesystem.cpp"
 	"Graph-N/tools/cast.h"
 	"Graph-N/tools/logging.h"
 	"Graph-N/tools/logging.cpp"
 	"Graph-N/tools/tools.h"
 	"Graph-N/tools/tools.cpp"
-	"Graph-N/core/base/filesystem.h"
-	"Graph-N/core/base/filesystem.cpp"
 	"Graph-N/tools/tools_datetime.h"
 	"Graph-N/tools/tools_datetime.cpp"
-    "Graph-N/core/base/blob.h"
     "Graph-N/tools/blob_serializer.cpp"
     "Graph-N/tools/blob_serializer.h"
     "Graph-N/tools/host_data_serializer.cpp"

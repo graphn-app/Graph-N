@@ -141,6 +141,7 @@
 #include "tools/blob_serializer.h"
 #include "ui/helpers/imgui_ex.h"
 #include "graph-n.h"
+#include "core/base/version.h"
 
 #if defined __APPLE__
 #error Not implemented

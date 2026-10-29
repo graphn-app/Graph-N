@@ -125,7 +125,7 @@ void OptRightPane::show(OptsData& /*data*/)
     {
     case OptPane::Application:
         show_general(help_text);
-        show_rendering(help_text);
+        //show_rendering(help_text);
         show_diagnostics(help_text);
         break;
     case OptPane::Connection:
@@ -173,18 +173,29 @@ void OptRightPane::show_rendering(const char*& help_text)
     ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, "Rendering");
     ImGui::Spacing();
 
-    // vsync
-    bool b_val = g::pOptsManager->app_vsync_load();
-    if (ImGui::Checkbox("Enable VSync", &b_val))
+    // vsync & fps
+
+    //bool b_val = g::pOptsManager->app_vsync_load();
+    //if (ImGui::Checkbox("Enable VSync", &b_val))
+    //{
+    //    g::pOptsManager->app_vsync_save(b_val);
+    //    g::pFlow->stats_post_config("vsync", b_val ? "on" : "off");
+    //}
+    //show_help_mark(help_text,
+    //    "Synchronizes the frame rate with your monitor's refresh rate.\n"
+    //    "Keep this enabled for a smooth, tear-free image.\n"
+    //    "Disable it only if you have a weak GPU and experience stuttering, as it allows the interface to run at its own pace.\n\n"
+    //    "Note: Disabling vsync will show artificially high FPS and increase GPU load; refer to Latency for real performance.");
+
+    bool b_val = g::pOptsManager->app_show_fps_load();
+    if (ImGui::Checkbox("Show performance metrics in Stats panel", &b_val))
     {
-        g::pOptsManager->app_vsync_save(b_val);
-        g::pFlow->stats_post_config("vsync", b_val ? "on" : "off");
+        g::pOptsManager->app_show_fps_save(b_val);
+        g::pFlow->stats_post_config("fps", b_val ? "on" : "off");
     }
     show_help_mark(help_text,
-        "Synchronizes the frame rate with your monitor's refresh rate.\n"
-        "Keep this enabled for a smooth, tear-free image.\n"
-        "Disable it only if you have a weak GPU and experience stuttering, as it allows the interface to run at its own pace.\n\n"
-        "Note: Disabling vsync will show artificially high FPS and increase GPU load; refer to Latency for real performance.");
+        "Displays the current latency and frame rate in the Stats panel.\n"
+        APP_CAPTION " automatically lowers FPS when the interface is idle to save system resources and power.");
 
     // TODO
     //// frame rate limit
@@ -224,8 +235,18 @@ void OptRightPane::show_rendering(const char*& help_text)
 
 void OptRightPane::show_diagnostics(const char*& help_text)
 {
-    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, "Diagnostics (" APP_CAPTION " restart required)");
+    ImGuiEx::Separator(m_clr_subsep, m_clr_subsep, "Diagnostics");
     ImGui::Spacing();
+
+    bool b_fps = g::pOptsManager->app_show_fps_load();
+    if (ImGui::Checkbox("Show performance metrics in Stats panel", &b_fps))
+    {
+        g::pOptsManager->app_show_fps_save(b_fps);
+        g::pFlow->stats_post_config("fps", b_fps ? "on" : "off");
+    }
+    show_help_mark(help_text,
+        "Displays the current latency and frame rate in the Stats panel.\n"
+        APP_CAPTION " automatically lowers FPS when the interface is idle to save system resources and power.");
 
     // logs
     bool log_on = glog::Logger::get_log_enabled();
@@ -234,7 +255,8 @@ void OptRightPane::show_diagnostics(const char*& help_text)
         glog::Logger::set_log_enabled(log_on);
         g::pFlow->stats_post_config("log", log_on ? "on" : "off");
     }
-    show_help_mark(help_text, "Writes application events and errors to the log\\ directory.\nOlder log files are automatically deleted");
+    show_help_mark(help_text, "Writes application events and errors to the log\\ directory.\nOlder log files are automatically deleted.\n"
+        APP_CAPTION " restart required.");
 
     if (!log_on)
         ImGui::BeginDisabled();
@@ -245,12 +267,14 @@ void OptRightPane::show_diagnostics(const char*& help_text)
         glog::Logger::set_log_web_response_enabled(adv_log_on);
         g::pFlow->stats_post_config("log_web", adv_log_on ? "on" : "off");
     }
-    show_help_mark(help_text, "Includes full raw HTTP responses from the server in the log files.\nSignificantly increases log size.");
+    show_help_mark(help_text, "Includes full raw HTTP responses from the server in the log files.\nSignificantly increases log size.\n"
+        APP_CAPTION " restart required.");
 
     adv_log_on = glog::Logger::get_log_dump_invalid_json_enabled();
     if (ImGui::Checkbox("Log node parsing errors", &adv_log_on))
         glog::Logger::set_log_dump_invalid_json_enabled(adv_log_on);
-    show_help_mark(help_text, "Records detailed errors encountered while reading or validating node definitions from the server.");
+    show_help_mark(help_text, "Records detailed errors encountered while reading or validating node definitions from the server.\n"
+        APP_CAPTION " restart required.");
 
     if (!log_on)
         ImGui::EndDisabled();
@@ -261,7 +285,8 @@ void OptRightPane::show_diagnostics(const char*& help_text)
         glog::Logger::set_log_object_info_enabled(adv_log_on);
         g::pFlow->stats_post_config("log_objects", adv_log_on ? "on" : "off");
     }
-    show_help_mark(help_text, "Saves a raw copy of the server's node data to the log\\object_info.json for manual inspection.");
+    show_help_mark(help_text, "Saves a raw copy of the server's node data to the log\\object_info.json for manual inspection.\n"
+        APP_CAPTION " restart required.");
 
     ImGui::Spacing();
 
@@ -365,6 +390,8 @@ void OptRightPane::show_local_server(const char*& help_text)
     // Detect
     ImGui::TextWrapped("These settings allow " APP_CAPTION " to launch and manage the " APP_COMFYUI " server automatically.\n"
         "You can configure the paths manually below, or launch " APP_COMFYUI " externally and click 'Import Config from Active Process' to auto-detect the settings.");
+    if (ImGuiEx::UrlButton("How to configure engine for auto start and stop"))
+        tools::path::open_file(HOME_YOUTUBE_SRVCFG, true);
     if (show_full_row_button("Detect and import config from active process", true, false, false))
     {
         import_from_comfyui();

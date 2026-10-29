@@ -278,7 +278,7 @@ void WorkflowAction::set_node_name(data::NodeInstance* node, const std::string& 
     if (old_name == new_name)
         return;
 
-    if (node->get_object()->get_hash() == js::RGTHREE_BOOKMARK && !new_name.starts_with(ICON_LC_BOOKMARK))
+    if (node->has_object() && node->get_object()->get_hash() == js::RGTHREE_BOOKMARK && !new_name.starts_with(ICON_LC_BOOKMARK))
         node->set_name(ICON_LC_BOOKMARK " " + new_name);
     else
         node->set_name(new_name);
