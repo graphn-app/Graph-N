@@ -155,8 +155,6 @@ public:
 
     void check_for_updates(const std::function<void(bool /*http_result*/, bool /*upd_found*/, const std::string& /*version*/, const std::string& /*date*/)>& callback);
     bool get_updates_info(std::string& upd_version, std::string& upd_date) const;
-    void stats_post_nodes(std::unordered_set<std::string>&& invalid_definition, std::unordered_set<std::string>&& unrecognized_class, std::unordered_set<std::string>&& unrecognized_definition, std::unordered_set<std::string>&& python_modules);
-    void stats_post_config(const char* property, const char* value);
 
     // host manager
     void host_open_mask_editor(wid wf_id, iid node_id);
@@ -316,15 +314,6 @@ private:
 
     // timer
     void on_1s_lazy_timer(int64_t total_seconds_elapsed) override;
-
-    // stats
-    void post_stats_event(HttpRequestor requestor, int64_t session_id, const char* ev_type, uint64_t ev_time, const char* prop_type, nlohmann::json&& event_props, bool callback_needed, mngr::StatsData::Progress* progress = nullptr);
-    void stats_post_session_start();
-    void stats_save_session_end();
-    void stats_post_session_end();
-    void stats_post_monitor_data();
-    void stats_post_user_data();
-    void stats_post_host(HostType host_type);
 
 private:
     std::thread::id m_ui_thread_id;

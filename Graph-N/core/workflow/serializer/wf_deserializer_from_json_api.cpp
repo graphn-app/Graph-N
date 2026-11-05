@@ -130,12 +130,6 @@ bool WfDeserializerFromJsonApi::deserialize()
                 deserialize_custom_input(api_node);
         }
 
-        g::pFlow->stats_post_nodes(
-            std::move(invalid_definition),
-            std::move(unrecognized_node_class),
-            std::move(unrecognized_node_definition),
-            {});
-
         link_api_nodes(nodes);
         arrange_nodes();
         return true;

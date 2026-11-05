@@ -61,14 +61,6 @@ cmake --build build --config Release
 
 ---
 
-## Privacy & Telemetry
-
-Graph-N collects basic, completely anonymous telemetry data (such as hardware specifications, screen resolution, and session duration) to help improve the application. We do not collect, read, or transmit your personal data, prompts, generated images, or API keys.
-
-For full details, please read our [PRIVACY.md](PRIVACY.md).
-
----
-
 ## License
 
 This open-source version of Graph-N is distributed under the GNU General Public License v3.0 (GPLv3). See the [EULA.txt](EULA.txt) file for more details.

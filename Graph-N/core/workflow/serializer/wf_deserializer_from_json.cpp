@@ -163,12 +163,6 @@ bool WfDeserializerFromJson::deserialize()
             }
         }
 
-        g::pFlow->stats_post_nodes(
-            std::move(m_stat_invalid_definition),
-            std::move(m_stat_unrecognized_node_class),
-            std::move(m_stat_unrecognized_node_definition),
-            std::move(m_stat_python_modules));
-
         if (!deserialize_links())
             return false;
 

@@ -477,7 +477,6 @@ void GraphN_Flow::prepare_to_quit()
 {
     LogIn;
 
-    stats_save_session_end();
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_timers(this);
 
@@ -1561,225 +1560,6 @@ uint32_t GraphN_Flow::http_post(HttpRequestor requestor, const StillAliveCallbac
     return req_id;
 }
 
-void GraphN_Flow::post_stats_event(
-    HttpRequestor requestor, 
-    int64_t session_id, 
-    const char* ev_type, uint64_t ev_time,
-    const char* prop_type, nlohmann::json&& event_props,
-    bool callback_needed, mngr::StatsData::Progress* progress /*= nullptr*/)
-{
-    LogRAssert(ev_type, "Zero ptr", );
-
-    if (m_stats.customer_id.empty())
-        m_stats.customer_id = g::pDbManager->read_db_metadata().customer_id;
-
-    if (session_id != 0)
-        m_stats.session_id = session_id;
-    if (0 == m_stats.session_id)
-        m_stats.session_id = tools::dt::from_current_date_utc().time();
-
-    nlohmann::json j;
-    j["api_key"] = STATS_API_KEY;
-
-    nlohmann::json event;
-    event["event"] = ev_type; 
-
-    nlohmann::json props;
-    props["distinct_id"] = m_stats.customer_id;
-    props["session_id"] = m_stats.session_id;
-    props["app_version"] = ver::ver_as_string();
-
-#if defined _WIN32
-    props["os_name"] = "Windows";
-#elif defined __linux__
-    props["os_name"] = "Linux";
-#elif defined __APPLE__
-    props["os_name"] = "MacOS";
-#endif
-
-    if (prop_type != nullptr)
-    {
-        if (std::string_view(prop_type) == "user_properties")
-        {
-            props["$set"] = std::move(event_props);
-        }
-        else
-        {
-            props.update(event_props);
-        }
-    }
-
-    event["properties"] = std::move(props);
-
-    //if (0 == ev_time)
-    //    ev_time = tools::dt::from_current_date_utc().time();
-    if (ev_time != 0)
-    {
-        const auto time = tools::dt::from_time_utc(ev_time).as_iso8601();
-        event["timestamp"] = time;
-    }
-    //event["timestamp"] = time;
-
-    j["batch"] = nlohmann::json::array({ std::move(event) });
-
-    const auto callback = [this, progress, ev_type](int32_t result, std::string&& payload)
-    {
-        if (progress != nullptr)
-        {
-            if (HTTP_RESP_OK == result)
-                progress->sent = true;
-            else
-            {
-                progress->in_progress = progress->sent = false;
-                progress->next_attempt = g::pMain->get_seconds_elapsed() + 60 * 5;
-            }
-        }
-
-        LogS("Session#" << m_stats.session_id << ":" << ev_type << ". res " << result << ", payload sz " << payload.size());
-    };
-
-    auto payload = j.dump();
-    if (progress != nullptr) progress->in_progress = true;
-    std::unique_lock<std::mutex> lock(m_http_req_mutex);
-
-    const auto req_id = g::pConnectManager->send_http_post_request_ext(requestor, STATS_SERVER, STATS_PORT, STATS_URL, std::move(payload), true);
-    if (callback_needed)
-        m_http_requests[req_id] = { .alive = get_alive_callback(), .callback = callback, .time = ImGui::GetTime(), .retry = false, .force_drop = false };
-}
-
-void GraphN_Flow::stats_post_session_start()
-{
-    if (!g::pOptsManager->app_metrics_load())
-        return;
-
-    g::pDbManager->session_nodes_load(m_stats.invalid_definition, m_stats.unrecognized_class, m_stats.unrecognized_definition, m_stats.python_modules);
-    post_stats_event(HttpRequestor::Ext_Stat_Session, 0 /*session_id*/, "session", 0 /*ev_time*/, nullptr /*prop_type*/, {} /*event_props*/, true /*callback_needed*/, &m_stats.app_start_sent);
-}
-
-void GraphN_Flow::stats_save_session_end()
-{
-    g::pDbManager->session_end_save(m_stats.session_id, std::to_string(g::pMain->get_seconds_elapsed()));
-}
-
-void GraphN_Flow::stats_post_session_end()
-{
-    if (!g::pOptsManager->app_metrics_load())
-        return;
-
-    const auto meta = g::pDbManager->read_db_metadata();
-    const auto duration = std::strtoll(meta.last_session_duration.c_str(), nullptr, 10);
-    if (0 == duration)
-    {
-        m_stats.app_end_sent.sent = true;
-        return;
-    }
-
-    u_json prop;
-    prop["duration"] = duration;
-
-    //const auto session_time = (0 == duration ? 0 : meta.last_session_id + duration);
-    post_stats_event(HttpRequestor::Ext_Stat_Session, meta.last_session_id, "session", 0 /*session_time*/, "event_properties", std::move(prop), true /*callback_needed*/, &m_stats.app_end_sent);
-}
-
-void GraphN_Flow::stats_post_monitor_data()
-{
-    if (!g::pOptsManager->app_metrics_load())
-        return;
-
-    if (0 == g::pMain->get_monitor_frequency() || 0 == g::pMain->get_monitor_x())
-        return;
-
-    u_json prop;
-    prop["monitor_frequency"] = std::to_string(g::pMain->get_monitor_frequency());
-    prop["monitor_resolution"] = fmt::format(FMT_STRING("{}x{}"), g::pMain->get_monitor_x(), g::pMain->get_monitor_y());
-    prop["monitor_dpi_scale"] = std::to_string(g::pMain->get_monitor_dpi());
-
-    post_stats_event(HttpRequestor::Ext_Stat_Hardware, 0 /*session_id*/, "hardware", 0 /*ev_time*/, "event_properties", std::move(prop), true /*callback_needed*/, &m_stats.monitor_sent);
-}
-
-void GraphN_Flow::stats_post_user_data()
-{
-    if (!g::pOptsManager->app_metrics_load())
-        return;
-
-    std::string ram, vram;
-    if (!m_panel_stats || !m_panel_stats->collect_metrics(m_stats.comfyui_ver, ram, vram))
-        return;
-
-    const auto host = g::pOptsManager->comfyui_host_load();
-    const auto type = (host.starts_with("127.") || host == "localhost" ? "local" : "remote");
-    u_json comfyui_prop;
-    comfyui_prop["comfyui_ver"] = m_stats.comfyui_ver;
-    comfyui_prop["comfyui_type"] = type;
-    post_stats_event(HttpRequestor::Ext_Stat_Comfyui, 0 /*session_id*/, "comfyui", 0 /*ev_time*/, "event_properties", std::move(comfyui_prop), true /*callback_needed*/, &m_stats.user_sent);
-
-    u_json hardware_prop;
-    hardware_prop["ram"] = ram;
-    hardware_prop["vram"] = vram;
-    post_stats_event(HttpRequestor::Ext_Stat_Hardware, 0 /*session_id*/, "hardware", 0 /*ev_time*/, "event_properties", std::move(hardware_prop), true /*callback_needed*/, &m_stats.user_sent);
-}
-
-void GraphN_Flow::stats_post_nodes(
-    std::unordered_set<std::string>&& invalid_definition,
-    std::unordered_set<std::string>&& unrecognized_class,
-    std::unordered_set<std::string>&& unrecognized_definition,
-    std::unordered_set<std::string>&& python_modules)
-{
-    if (!g::pOptsManager->app_metrics_load())
-        return;
-
-    std::erase_if(invalid_definition, [&saved = m_stats.invalid_definition](const std::string& node) { return saved.contains(node); });
-    std::erase_if(unrecognized_class, [&saved = m_stats.unrecognized_class](const std::string& node) { return saved.contains(node); });
-    std::erase_if(unrecognized_definition, [&saved = m_stats.unrecognized_definition](const std::string& node) { return saved.contains(node); });
-    std::erase_if(python_modules, [&saved = m_stats.python_modules](const std::string& module) { return saved.contains(module); });
-    if (invalid_definition.empty() && unrecognized_class.empty() && unrecognized_definition.empty() && python_modules.empty())
-        return;
-
-    u_json prop;
-    prop["invalid_definition"] = invalid_definition;
-    prop["unrecognized_class"] = unrecognized_class;
-    prop["unrecognized_definition"] = unrecognized_definition;
-    prop["python_modules"] = python_modules;
-    post_stats_event(HttpRequestor::Ext_Stat_Nodes, 0 /*session_id*/, "nodes", 0 /*ev_time*/, "event_properties", std::move(prop), false /*callback_needed*/, nullptr /*progress*/);
-
-    m_stats.invalid_definition.merge(invalid_definition);
-    m_stats.unrecognized_class.merge(unrecognized_class);
-    m_stats.unrecognized_definition.merge(unrecognized_definition);
-    m_stats.python_modules.merge(python_modules);
-    g::pDbManager->session_nodes_save(m_stats.invalid_definition, m_stats.unrecognized_class, m_stats.unrecognized_definition, m_stats.python_modules);
-}
-
-void GraphN_Flow::stats_post_host(HostType host_type)
-{
-    if (!g::pOptsManager->app_metrics_load())
-        return;
-
-    u_json prop;
-    switch (host_type)
-    {
-    case HostType::MaskEditor:
-        prop["type"] = "mask_editor";
-        break;
-    case HostType::PosEditor:
-        prop["type"] = "3dpos_editor";
-        break;
-    default:
-        LogRError("Unknown host type", );
-    }
-    post_stats_event(HttpRequestor::Ext_Stat_Host, 0 /*session_id*/, "host", 0 /*ev_time*/, "event_properties", std::move(prop), false /*callback_needed*/, nullptr /*progress*/);
-}
-
-void GraphN_Flow::stats_post_config(const char* property, const char* value)
-{
-    if (!g::pOptsManager->app_metrics_load())
-        return;
-
-    u_json prop;
-    prop[property] = value;
-
-    post_stats_event(HttpRequestor::Ext_Stat_Config, 0 /*session_id*/, "config", 0 /*ev_time*/, "event_properties", std::move(prop), false /*callback_needed*/, nullptr /*progress*/);
-}
-
 void GraphN_Flow::check_for_updates(const std::function<void(bool /*http_result*/, bool /*upd_found*/, const std::string& /*version*/, const std::string& /*date*/)>& callback)
 {
     if (m_upd_checked)
@@ -1848,22 +1628,6 @@ bool GraphN_Flow::get_updates_info(std::string& upd_version, std::string& upd_da
 
 void GraphN_Flow::on_1s_lazy_timer(int64_t total_seconds_elapsed)
 {
-    if (g::pOptsManager->app_metrics_load())
-    {
-        if (!m_stats.all_sent())
-        {
-            if (total_seconds_elapsed > m_stats.app_end_sent.next_attempt && !m_stats.app_end_sent.in_progress && !m_stats.app_end_sent.sent)
-                stats_post_session_end();
-            if (total_seconds_elapsed > m_stats.app_start_sent.next_attempt && !m_stats.app_start_sent.in_progress && !m_stats.app_start_sent.sent)
-                stats_post_session_start();
-            if (total_seconds_elapsed > m_stats.monitor_sent.next_attempt && !m_stats.monitor_sent.in_progress && !m_stats.monitor_sent.sent)
-                stats_post_monitor_data();
-        }
-
-        if (!m_stats.user_sent.in_progress && !m_stats.user_sent.sent && get_online())
-            stats_post_user_data();
-    }
-
     if (!m_upd_found && m_last_update_check >= 0 && g::pOptsManager->app_upd_check_load())
     {
         // next check in 24h or next app restart
@@ -2017,13 +1781,11 @@ void host_open(const CustomMediaWidget* wdgt, wid wf_id, iid node_id, HostType t
 
 void GraphN_Flow::host_open_mask_editor(wid wf_id, iid node_id)
 {
-    stats_post_host(HostType::MaskEditor);
     host_open(m_custom_media_widget.get(), wf_id, node_id, HostType::MaskEditor);
 }
 
 void GraphN_Flow::host_open_3dpos_editor(wid wf_id, iid node_id)
 {
-    stats_post_host(HostType::PosEditor);
     host_open(m_custom_media_widget.get(), wf_id, node_id, HostType::PosEditor);
 }
 
