@@ -1,6 +1,6 @@
 # Graph-N
 
-A fast, lightweight native C++ client for [ComfyUI](https://comfy.org/).
+A fast, lightweight native C++ client for [ComfyUI](https://comfy.org/)
 
 **ComfyUI** ([GitHub](https://github.com/comfyanonymous/ComfyUI)) is a powerful node-based backend and GUI for Stable Diffusion and generative AI models.  
 
