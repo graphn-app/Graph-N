@@ -390,7 +390,7 @@ bool connect_pipe()
 bool load_html()
 {
     const char* html_name = (Mode::MaskEditor == g_data.mode ? MASKEDITOR_HTML : POSEDITOR_HTML);
-    const auto path = fs::get_root_directory_path() / html_name;
+    const auto path = fs::get_res_directory_path() / html_name;
     if (!tools::path::exists(path))
     {
         LogS("HTML file not found: " << path);
@@ -918,6 +918,18 @@ int32_t main(int32_t, char**)
                 {
                     LogS("ICoreWebView2::add_WebResourceRequested failed. HR: " << LogHRES(hres));
                     return hres;
+                }
+
+                ::Microsoft::WRL::ComPtr<::ICoreWebView2_3> webview3;
+                if (SUCCEEDED(g_data.webview.As(&webview3)))
+                {
+                    const std::wstring res_path = fs::get_res_directory_path().wstring();
+                    hres = webview3->SetVirtualHostNameToFolderMapping(L"app.res", res_path.c_str(), COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_ALLOW);
+                    if (FAILED(hres))
+                    {
+                        LogS("SetVirtualHostNameToFolderMapping failed. HR: " << LogHRES(hres));
+                        return hres;
+                    }
                 }
 
                 LogS("Navigating to html: " << g_data.html_data.size() << " bytes");

@@ -500,12 +500,37 @@ add_custom_command(TARGET Graph-N_Host POST_BUILD
     # Copy HTML editors
     COMMAND ${CMAKE_COMMAND} -E copy_if_different 
             "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/mask_editor.html"
-            "${DEST_DIR}/mask_editor.html"
+            "${DEST_DIR}/res/mask_editor.html"
             
     COMMAND ${CMAKE_COMMAND} -E copy_if_different 
             "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/3dpos_editor.html"
-            "${DEST_DIR}/3dpos_editor.html"
+            "${DEST_DIR}/res/3dpos_editor.html"
 
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+            "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/OrbitControls.js"
+            "${DEST_DIR}/res/OrbitControls.js"
+
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+            "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/three.min.js"
+            "${DEST_DIR}/res/three.min.js"
+
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+            "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/TransformControls.js"
+            "${DEST_DIR}/res/TransformControls.js"
+
+    # Copy licenses
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+            "${CMAKE_SOURCE_DIR}/EULA.txt"
+            "${DEST_DIR}/EULA.txt"
+			
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+            "${CMAKE_SOURCE_DIR}/README.md"
+            "${DEST_DIR}/README.md"
+			
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+            "${CMAKE_SOURCE_DIR}/THIRD-PARTY-NOTICES.txt"
+            "${DEST_DIR}/THIRD-PARTY-NOTICES.txt"
+            
     COMMENT "Copying Graph-N_Host executable and dependencies for $<CONFIG>..."
 )
 
