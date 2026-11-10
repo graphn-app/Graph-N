@@ -1,0 +1,53 @@
+name: 🐛 Bug Report
+description: Report a bug or crash in Graph-N
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### ⚠️ Important: Logs and Crash Dumps
+        If the application crashed or behaved unexpectedly, you **MUST** attach the log file and crash dump (if generated). Drag and drop the `.log` and `.dmp` files directly into the text box below.
+  - type: input
+    id: version
+    attributes:
+      label: Graph-N Version
+      description: Which version of Graph-N are you using?
+      placeholder: e.g., 0.7.3-beta
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows 11
+        - Windows 10
+        - Other (specify in description)
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what went wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start Graph-N
+        2. Load workflow 'X'
+        3. Click on 'Y'
+        4. Crash happens
+    validations:
+      required: true
+  - type: checkboxes
+    id: attachments
+    attributes:
+      label: Required Files
+      options:
+        - label: I have attached the necessary log and/or dump files.
+          required: true
