@@ -326,7 +326,8 @@ int32_t VideoControl_Win32::load(const std::filesystem::path& filepath, uint32_t
         if (FAILED(hr)) return hr;
 
         // always enable video processor for YUV -> RGB conversion
-        attributes->SetUINT32(MF_SOURCE_READER_ENABLE_VIDEO_PROCESSING, TRUE);
+        hr = attributes->SetUINT32(MF_SOURCE_READER_ENABLE_VIDEO_PROCESSING, TRUE);
+        if (FAILED(hr)) return hr;
 
         if (use_gpu)
         {
@@ -345,21 +346,26 @@ int32_t VideoControl_Win32::load(const std::filesystem::path& filepath, uint32_t
         if (FAILED(hr)) return hr;
 
         UINT32 w = 0, h = 0;
-        ::MFGetAttributeSize(native_type.Get(), MF_MT_FRAME_SIZE, &w, &h);
+        hr = ::MFGetAttributeSize(native_type.Get(), MF_MT_FRAME_SIZE, &w, &h);
+        if (FAILED(hr)) return hr;
         scale(w, h, max_side_len);
 
         // create clean uncompressed media type
         ComPtr<::IMFMediaType> target_type;
-        ::MFCreateMediaType(&target_type);
-        target_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
-        target_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
-        ::MFSetAttributeSize(target_type.Get(), MF_MT_FRAME_SIZE, w, h);
-
+        hr = ::MFCreateMediaType(&target_type);
+        if (FAILED(hr)) return hr;
+        hr = target_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+        if (FAILED(hr)) return hr;
+        hr = target_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
+        if (FAILED(hr)) return hr;
+        hr = ::MFSetAttributeSize(target_type.Get(), MF_MT_FRAME_SIZE, w, h);
+        if (FAILED(hr)) return hr;
         hr = safe_reader->SetCurrentMediaType(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), nullptr, target_type.Get());
         if (FAILED(hr)) return hr;
-
-        safe_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_ALL_STREAMS), FALSE);
-        safe_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), TRUE);
+        hr = safe_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_ALL_STREAMS), FALSE);
+        if (FAILED(hr)) return hr;
+        hr = safe_reader->SetStreamSelection(cast::to_u32(MF_SOURCE_READER_FIRST_VIDEO_STREAM), TRUE);
+        if (FAILED(hr)) return hr;
 
         final_w = w;
         final_h = h;
