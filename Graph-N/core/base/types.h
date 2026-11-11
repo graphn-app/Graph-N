@@ -70,7 +70,7 @@ inline constexpr const char* HOME_DONATE1          = "https://github.com/sponsor
 inline constexpr const char* HOME_DONATE2          = "https://ko-fi.com/graphn_app";
 inline constexpr const char* HOME_CRYPTO_BTC       = "bc1q59rxm745wkwp6sxj36dhknh4253uvslrnfpy6c";
 inline constexpr const char* HOME_CRYPTO_SOL       = "AiBADrwaHGTqt62yRw1NH8rkpZvrf631ZqazjB9ThM3k";
-inline constexpr const char* UPDATE_PATH           = "https://github.com/graphn-app/Graph-N";
+inline constexpr const char* UPDATE_PATH           = "https://github.com/graphn-app/Graph-N/releases";
 inline constexpr const char* UPDATE_SERVER         = "api.github.com";
 inline constexpr const char* UPDATE_URL            = "/repos/graphn-app/Graph-N/releases/latest";
 inline constexpr int32_t     UPDATE_PORT           = 443;
@@ -335,21 +335,21 @@ enum class OptPane : uint8_t
     _last = Diagnostics
 };
 
-enum ModalDlgCtrl : uint8_t
+enum ModalDlgCtrl : uint16_t
 {
     _btn_none   = 0,
 
-    BtnOK       = 0x00001,
-    BtnCancel   = 0x00002,
-    BtnYes      = 0x00004,
-    BtnNo       = 0x00008,
+    BtnOK       = 0x001,
+    BtnCancel   = 0x002,
+    BtnYes      = 0x004,
+    BtnNo       = 0x008,
 
-    IcoErr      = 0x10000,
-    IcoInfo     = 0x20000,
-    IcoWarn     = 0x40000,
-    IcoQues     = 0x80000,
+    IcoErr      = 0x010,
+    IcoInfo     = 0x020,
+    IcoWarn     = 0x040,
+    IcoQues     = 0x080,
 
-    Continue    = 0x100000,
+    Continue    = 0x100,
 
     _btn_count = 4,
     _ico_count = 4,

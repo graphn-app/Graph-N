@@ -60,7 +60,7 @@ AppInstance::AppInstance(WakeUpCallback on_wake_up)
     }
 }
 
-AppInstance::~AppInstance()
+AppInstance::~AppInstance() noexcept
 {
     if (m_server)
     {

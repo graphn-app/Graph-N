@@ -26,7 +26,10 @@ void ConnectManager::send_https(std::shared_ptr<RequestData> req)
 
     using InternetHandle = std::unique_ptr<void, decltype(&::WinHttpCloseHandle)>;
 
-    InternetHandle hsession(::WinHttpOpen(L"Graph-N/1.0", WINHTTP_ACCESS_TYPE_NO_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0), ::WinHttpCloseHandle);
+    // honor system/corporate proxy settings (WPAD/PAC)
+    InternetHandle hsession(::WinHttpOpen(L"Graph-N/1.0", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0), ::WinHttpCloseHandle);
+    if (!hsession)
+        hsession.reset(::WinHttpOpen(L"Graph-N/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0));
     if (!hsession)
         return reply("WinHttpOpen failed");
 

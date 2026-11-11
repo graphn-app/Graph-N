@@ -51,8 +51,6 @@
 // 3rd party
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
 #include <nlohmann/json.hpp>
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <httplib.h>

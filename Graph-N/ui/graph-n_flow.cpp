@@ -1562,7 +1562,9 @@ uint32_t GraphN_Flow::http_post(HttpRequestor requestor, const StillAliveCallbac
 
 void GraphN_Flow::check_for_updates(const std::function<void(bool /*http_result*/, bool /*upd_found*/, const std::string& /*version*/, const std::string& /*date*/)>& callback)
 {
-    if (m_upd_checked)
+    constexpr int64_t cache_seconds = 3600 * 24;
+    const bool cache_valid = m_upd_checked && (m_upd_found || m_last_update_check < 0 || g::pMain->get_seconds_elapsed() - m_last_update_check < cache_seconds);
+    if (cache_valid)
     {
         if (callback != nullptr)
             callback(true, m_upd_found, m_upd_version, m_upd_date);
@@ -1855,4 +1857,3 @@ void GraphN_Flow::check_host_reply()
 }
 
 }
-
