@@ -29,6 +29,7 @@ public:
     void save(std::vector<ui::KeyBinding>&& hotkeys);
 
     void add_listener(listener::HotkeysChangedHandler* listener) { m_change_listeners.push_back(listener); }
+    void remove_listener(listener::HotkeysChangedHandler* listener) noexcept { std::erase(m_change_listeners, listener); }
 
     const std::vector<ui::KeyBinding>& get_key_bindings() const noexcept { return m_key_binding; }
     std::vector<ui::KeyBinding> get_default_key_bindings() const;

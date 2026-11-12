@@ -214,7 +214,7 @@ void ActivityBar::show(ActivityBarMode mode)
     if (show_right && r_panels > 0 || right_include_all)
     {
         ImGui::SetNextWindowPos(m_right_rc.Min, ImGuiCond_Always);
-        ImGui::SetNextWindowSize(m_right_rc.Max, ImGuiCond_Always);
+        ImGui::SetNextWindowSize(m_right_rc.GetSize(), ImGuiCond_Always);
         ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 
         bool opened = true;
@@ -289,7 +289,7 @@ void ActivityBar::show_tooltip(FontGuard* fg, const char* text, const std::strin
             if (!hotkey.empty())
             {
                 ImGui::SameLine();
-                ImGui::TextDisabled(hotkey.c_str());
+                ImGui::TextDisabled("%s", hotkey.c_str());
             }
             ImGui::EndTooltip();
         }

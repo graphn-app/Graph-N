@@ -85,7 +85,7 @@ int32_t Textures::load_image(const std::filesystem::path& path, std::string&& bu
         return -1;
 
     std::shared_ptr<ImageAsync> image = std::make_shared<ImageAsync>();
-    image->image_id = ++m_id_counter;
+    image->image_id = m_id_counter.fetch_add(1, std::memory_order_relaxed) + 1;
     image->path = tools::path::path_to_string(path);
     image->buffer = std::move(buffer);
     image->width = max_width;
@@ -152,25 +152,32 @@ void Textures::worker_thread()
 
         try
         {
+            int32_t w_or = 0, h_or = 0;
             if (image->buffer.empty())
-                image_data.reset(stbi_load(image->path.c_str(), &image->width_or, &image->height_or, nullptr, 4));
+                image_data.reset(stbi_load(image->path.c_str(), &w_or, &h_or, nullptr, 4));
             else
-                image_data.reset(stbi_load_from_memory((stbi_uc*)image->buffer.data(), cast::to_i32(image->buffer.size()), &image->width_or, &image->height_or, nullptr, 4));
+                image_data.reset(stbi_load_from_memory((stbi_uc*)image->buffer.data(), cast::to_i32(image->buffer.size()), &w_or, &h_or, nullptr, 4));
 
-            if (!image_data || image->width_or <= 0 || image->height_or <= 0 || image->width_or > 16384 || image->height_or > 16384)
             {
-                Log("Image load failed. ID: " << image->image_id << ". w=" << image->width_or << ", h=" << image->height_or);
+                std::unique_lock<std::mutex> lock(m_mutex);
+                image->width_or = w_or;
+                image->height_or = h_or;
+            }
+
+            if (!image_data || w_or <= 0 || h_or <= 0 || w_or > 16384 || h_or > 16384)
+            {
+                Log("Image load failed. ID: " << image->image_id << ". w=" << w_or << ", h=" << h_or);
                 image->load_failed.store(true, std::memory_order_release);
             }
             else [[likely]]
             {
                 int32_t final_w, final_h;
-                tools::img::scale(image->width_or, image->height_or, image->width, image->height, final_w, final_h);
+                tools::img::scale(w_or, h_or, image->width, image->height, final_w, final_h);
 
-                if (final_w != image->width_or || final_h != image->height_or)
+                if (final_w != w_or || final_h != h_or)
                 {
                     ImageData image_data_resized(nullptr, [](unsigned char* p) { STBIR_FREE(p, nullptr); });
-                    image_data_resized.reset(stbir_resize_uint8_linear(image_data.get(), image->width_or, image->height_or, 0, nullptr, final_w, final_h, 0, STBIR_RGBA));
+                    image_data_resized.reset(stbir_resize_uint8_linear(image_data.get(), w_or, h_or, 0, nullptr, final_w, final_h, 0, STBIR_RGBA));
 
                     if (!image_data_resized) [[unlikely]]
                     {
@@ -187,8 +194,8 @@ void Textures::worker_thread()
                 }
                 else
                 {
-                    image->width = image->width_or;
-                    image->height = image->height_or;
+                    image->width = w_or;
+                    image->height = h_or;
                     image->image_data = image_data;
                 }
             }

@@ -281,7 +281,13 @@ data::Pin* NodesManager::make_pin(data::Node* parent, const std::string& type, c
     auto pin = make_pin_ptr(parent, type, name, out_index);
     auto ptr = pin.get();
     const auto hash = pin->get_hash();
-    LogRAssert(m_pins.try_emplace(hash, std::move(pin)).second, "Pin duplicate. n:" << parent->name << ", p:" << pin->def_state.type_str, nullptr);
+    const auto type_str = pin->def_state.type_str;
+    if (!m_pins.try_emplace(hash, std::move(pin)).second)
+    {
+        std::erase(parent->input, ptr);
+        std::erase(parent->output, ptr);
+        LogRAssert(false, "Pin duplicate. n:" << parent->name << ", p:" << type_str, nullptr);
+    }
     Log("Pin " << parent->name << "/" << name << "/" << ptr->get_hash() << " created");
     return ptr;
 }
@@ -409,8 +415,10 @@ bool sort_callback(const data::NodeItem* lhs, const data::NodeItem* rhs)
     if (lhs->is_node && !rhs->is_node)
         return false;
 
-    if (VANILLA == lhs->name_or_category) return true;
-    if (VANILLA == rhs->name_or_category) return false;
+    const bool lhs_vanilla = (VANILLA == lhs->name_or_category);
+    const bool rhs_vanilla = (VANILLA == rhs->name_or_category);
+    if (lhs_vanilla || rhs_vanilla)
+        return lhs_vanilla && !rhs_vanilla;
 
     const char* lhs_sort = find_first_sortable(lhs->name_or_category.c_str());
     const char* rhs_sort = find_first_sortable(rhs->name_or_category.c_str());

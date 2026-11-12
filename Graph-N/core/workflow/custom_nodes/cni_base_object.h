@@ -28,7 +28,15 @@ public:
     static std::unique_ptr<Node> cni_make_base_object(hid hash);
 
     static void cni_add_pin(std::unique_ptr<Pin>&& pin) { m_pins.push_back(std::move(pin)); }
-    static void cni_remove_pin(Pin* pin) noexcept { m_pins.remove_if([pin](const std::unique_ptr<Pin>& element) noexcept { return pin == element.get(); }); }
+    void cni_remove_pin(Pin* pin) noexcept
+    {
+        if (m_base_obj)
+        {
+            std::erase(m_base_obj->input, pin);
+            std::erase(m_base_obj->output, pin);
+        }
+        m_pins.remove_if([pin](const std::unique_ptr<Pin>& element) noexcept { return pin == element.get(); });
+    }
 
 #ifdef _DEBUG
     static std::list<std::unique_ptr<Pin>>& get_all_pins() noexcept { return m_pins; }

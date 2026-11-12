@@ -63,7 +63,16 @@ void WebSocket::stop_and_forget()
     if (m_th_working.joinable())
     {
         Log("WebSocket thread to stop");
-        net::post(m_ioc, [this] { m_ioc.stop(); });
+        // close the socket first (on the strand) so the TCP connection doesn't stay open and pending handlers are released, then stop the loop
+        net::post(m_ws.get_executor(), [weak = weak_from_this()]
+            {
+                const auto self = weak.lock();
+                if (!self)
+                    return;
+                self->m_resolver.cancel();
+                beast::get_lowest_layer(self->m_ws).close();
+                net::post(self->m_ioc, [self] { self->m_ioc.stop(); });
+            });
         // same here, detaching working thread during teardown is risky
         m_th_working.detach();
     }

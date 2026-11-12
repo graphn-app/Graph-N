@@ -88,6 +88,15 @@ ModalDlgCtrl ModalMessage::show()
     if (!ImGui::BeginPopupModal(m_caption.c_str(), &show, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
     {
         ImGui::PopStyleColor(5);
+        
+        for (const auto code : { ModalDlgCtrl::BtnCancel, ModalDlgCtrl::BtnNo })
+        {
+            for (const auto& btn : m_buttons)
+            {
+                if (btn.code == code)
+                    return code;
+            }
+        }
         return m_return;
     }
 
@@ -113,7 +122,7 @@ ModalDlgCtrl ModalMessage::show()
     // text
     ImGui::BeginGroup();
     ImGui::Dummy(ImVec2(0, 10));
-    ImGui::TextWrapped(m_message.c_str());
+    ImGui::TextWrapped("%s", m_message.c_str());
     ImGui::EndGroup();
 
     ImGuiEx::Spacing(10);

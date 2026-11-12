@@ -183,7 +183,7 @@ bool MainRoutine_Win32::render_frame(bool done)
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    const bool ret_value = (*m_run_callback)(done);  // main Graph-N flow
+    const bool ret_value = (*m_run_callback)(done);  // main flow
 
     // rendering
     ImGui::Render();

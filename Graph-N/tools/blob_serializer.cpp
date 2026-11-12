@@ -62,6 +62,8 @@ Writer& Writer::operator=(Writer&& other) noexcept
         return *this;
 
     m_buffer = std::move(other.m_buffer);
+    m_patches = std::move(other.m_patches);
+    other.m_patches.clear();
     return *this;
 }
 
@@ -418,7 +420,7 @@ std::wstring Reader::pop_wstring()
     std::wstring str;
     str.resize(len / sizeof(wchar_t));
 
-    std::memcpy(str.data(), m_data + m_offset, len);
+    std::memcpy(str.data(), m_data + m_offset, str.size() * sizeof(wchar_t));
     m_offset += len;
     return str;
 }

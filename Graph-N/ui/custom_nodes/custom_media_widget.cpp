@@ -236,6 +236,8 @@ bool CustomMediaWidget::check_source_and_get_pin(Widget& widget, int64_t& index,
     LogRAssert(source_pin_inst, "Source pin instance not found. w: " << m_node->get_workflow_id() << ", n:" << m_node->get_instance_id(), false);
 
     index = source_pin_inst->state().value.get_int();
+    if (index < 0 || cast::to_szt(index) >= source_pin->combo_items_str.size())
+        return false;
     const auto& str = source_pin->combo_items_str[index];
 
     if (cast::to_szt(index) >= widget.names.size() || widget.names[index] != str)

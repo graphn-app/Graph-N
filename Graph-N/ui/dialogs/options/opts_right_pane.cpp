@@ -121,30 +121,38 @@ void OptRightPane::show(OptsData& /*data*/)
     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(230, 230, 230, 255));
 
     const char* help_text = nullptr;
-    switch (cast::to_enum<OptPane>(m_data->left_selected_item))
+    try
     {
-    case OptPane::Application:
-        show_general(help_text);
-        //show_rendering(help_text);
-        show_diagnostics(help_text);
-        break;
-    case OptPane::Connection:
-        show_connection(help_text);
-        break;
-    case OptPane::LocalServer:
-        show_local_server(help_text);
-        break;
-    case OptPane::Interface:
-        show_widget_input(help_text);
-        show_canvas(help_text);
-        show_activity_bar(help_text);
-        break;
-    case OptPane::Diagnostics:
-        show_thresholds(help_text);
-        break;
-    case OptPane::KeyBindings:
-        show_keys(help_text);
-        break;
+        switch (cast::to_enum<OptPane>(m_data->left_selected_item))
+        {
+        case OptPane::Application:
+            show_general(help_text);
+            //show_rendering(help_text);
+            show_diagnostics(help_text);
+            break;
+        case OptPane::Connection:
+            show_connection(help_text);
+            break;
+        case OptPane::LocalServer:
+            show_local_server(help_text);
+            break;
+        case OptPane::Interface:
+            show_widget_input(help_text);
+            show_canvas(help_text);
+            show_activity_bar(help_text);
+            break;
+        case OptPane::Diagnostics:
+            show_thresholds(help_text);
+            break;
+        case OptPane::KeyBindings:
+            show_keys(help_text);
+            break;
+        }
+    }
+    catch (...)
+    {
+        ImGui::PopStyleColor();
+        throw;
     }
 
     ImGui::PopStyleColor();
@@ -381,7 +389,7 @@ void OptRightPane::show_local_server(const char*& help_text)
     if (m_data->buffer_i[BuffShowDetectRes])
     {
         ImGui::PushStyleColor(ImGuiCol_Text, m_data->buffer_i[BuffDetectResOK] ? IM_COL32(0, 150, 0, 255) : IM_COL32(200, 0, 0, 255));
-        ImGui::TextWrapped(m_data->buffer_s[BuffDetectRes].c_str());
+        ImGui::TextWrapped("%s", m_data->buffer_s[BuffDetectRes].c_str());
         ImGui::PopStyleColor();
     }
     ImGui::Spacing();
@@ -977,8 +985,8 @@ void OptRightPane::show_thresholds(const char*& help_text)
             if (ImGui::Checkbox(disk.first.c_str(), &disk.second))
                 g::pOptsManager->stat_disks_enabled_save();
         }
-        ImGui::EndChild();
     }
+    ImGui::EndChild();
 
 
     //int32_t disks = 1;
@@ -1776,9 +1784,9 @@ void OptRightPane::import_from_comfyui()
             m_data->buffer_s[BuffOutput] = tools::path::path_to_string(output_dir);
             g::pOptsManager->comfyui_output_save(m_data->buffer_s[BuffOutput]);
         }
-        m_data->buffer_s[BuffPythonArgs] = _bstr_t(python_args_tmp.c_str());
+        m_data->buffer_s[BuffPythonArgs] = tools::str::wide_to_utf8(python_args_tmp);
         g::pOptsManager->comfyui_python_args_save(m_data->buffer_s[BuffPythonArgs]);
-        m_data->buffer_s[BuffComfyUIArgs] = _bstr_t(comfyui_args.c_str());
+        m_data->buffer_s[BuffComfyUIArgs] = tools::str::wide_to_utf8(comfyui_args);
         g::pOptsManager->comfyui_comfyui_args_save(m_data->buffer_s[BuffComfyUIArgs]);
 
         m_data->buffer_i[BuffDetectResOK] = 1;

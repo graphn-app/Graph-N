@@ -50,10 +50,9 @@ float CNI_PowerLoraLoaderRgthree::get_additional_node_width() const noexcept
 
 bool CNI_PowerLoraLoaderRgthree::cni_copy_from(const NodeInstance* copy_from_node, bool /*copy_pin_ids*/)
 {
-    if (m_loras.empty())
-        return true;
-
     const auto* that_node = cast::strict<CNI_PowerLoraLoaderRgthree>(copy_from_node);
+    if (!that_node || that_node->m_loras.empty())
+        return true;
 
     std::unique_ptr<CNI_DeserializedData> data = std::make_unique<CNI_DeserializedPowerLoraLoaderRgthree>();
     auto loras_data = cast::strict<CNI_DeserializedPowerLoraLoaderRgthree>(data.get());
@@ -74,9 +73,18 @@ void CNI_PowerLoraLoaderRgthree::add_lora(std::string lora, bool enabled, double
     Lora new_lora;
     new_lora.enabled = enabled;
     new_lora.strength = strength;
-    std::filesystem::path path(lora);
-    new_lora.name = path.stem().string();
-    new_lora.ext = path.extension().string();
+    // keep the directory part in the name, split only the extension of the file name
+    const auto sep_pos = lora.find_last_of("/\\");
+    const auto dot_pos = lora.find_last_of('.');
+    if (dot_pos != std::string::npos && dot_pos > 0 && (sep_pos == std::string::npos || dot_pos > sep_pos + 1))
+    {
+        new_lora.name = lora.substr(0, dot_pos);
+        new_lora.ext = lora.substr(dot_pos);
+    }
+    else
+    {
+        new_lora.name = std::move(lora);
+    }
     m_loras.push_back(std::move(new_lora));
 
     if (add_to_history)

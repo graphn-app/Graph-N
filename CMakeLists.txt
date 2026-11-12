@@ -291,7 +291,6 @@ else()
         SQLiteCpp
         sqlite3
         MiniAudioLib
-        opengl32
         fmt::fmt
     )
 endif()

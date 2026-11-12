@@ -37,28 +37,32 @@ int32_t do_main(std::atomic_bool& request_focus)
         GraphN graphn;
         g::pGraphN = &graphn;
         if (!g::pGraphN->init_graphn())
-            return 1;
-
-        const global::MainRoutine::cleanup_callback cleanup_callback = []()
         {
-            g::pGraphN->cleanup_frame();
-        };
-
-        const global::MainRoutine::flow_callback flow_callback = [](bool do_exit)
+            ret = 1;
+        }
+        else
         {
-            const bool res = g::pGraphN->flow();
-            if (!res || do_exit)
+            const global::MainRoutine::cleanup_callback cleanup_callback = []()
             {
-                if (g::pGraphN != nullptr)
-                    g::pGraphN->exit_graphn();
-            }
-            return res;
-        };
+                g::pGraphN->cleanup_frame();
+            };
 
-        ret = main_app->run(flow_callback, cleanup_callback, request_focus);
-        if (0 == ret && g::pGraphN != nullptr)
-            ret = g::pGraphN->override_exit_code();
-        LogS("App exit code: " << ret);
+            const global::MainRoutine::flow_callback flow_callback = [](bool do_exit)
+            {
+                const bool res = g::pGraphN->flow();
+                if (!res || do_exit)
+                {
+                    if (g::pGraphN != nullptr)
+                        g::pGraphN->exit_graphn();
+                }
+                return res;
+            };
+
+            ret = main_app->run(flow_callback, cleanup_callback, request_focus);
+            if (0 == ret && g::pGraphN != nullptr)
+                ret = g::pGraphN->override_exit_code();
+            LogS("App exit code: " << ret);
+        }
     }
     
     g::pGraphN = nullptr;

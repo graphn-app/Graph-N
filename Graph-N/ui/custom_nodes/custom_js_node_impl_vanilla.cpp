@@ -24,9 +24,11 @@ void CustomJsNode::draw_CustomCombo(data::NodeInstance* /*node*/, float /*off*/,
 
 void CustomJsNode::draw_Load3D(data::NodeInstance* node, float off, float width)
 {
-    const auto find_pin = [node]() noexcept -> data::PinInstance*
+    const auto find_pin = [](data::NodeInstance* n) noexcept -> data::PinInstance*
     {
-        for (auto pin : node->get_inputs())
+        if (nullptr == n)
+            return nullptr;
+        for (auto pin : n->get_inputs())
         {
             if ("model_file" == pin->get_object()->def_state.name && PinType::COMBO == pin->state().type)
                 return pin;
@@ -34,7 +36,7 @@ void CustomJsNode::draw_Load3D(data::NodeInstance* node, float off, float width)
         return nullptr;
     };
 
-    const auto post_callback = [find_pin, node](int32_t result, std::string&& data)
+    const auto post_callback = [find_pin, wf_id = node->get_workflow_id(), node_id = node->get_instance_id()](int32_t result, std::string&& data)
     {
         if (result != HTTP_RESP_OK || data.empty())
             return;
@@ -48,10 +50,12 @@ void CustomJsNode::draw_Load3D(data::NodeInstance* node, float off, float width)
                 j.contains("subfolder") && j["subfolder"].is_string())
             {
                 const std::string file = j["subfolder"].get<std::string>() + "/" + j["name"].get<std::string>();
-                auto pin = find_pin();
+                const auto* wf = g::pWfsManager->access(wf_id, true);
+                if (nullptr == wf)
+                    return;
+                auto pin = find_pin(wf->get_node_by_instance(node_id));
                 if (pin != nullptr)
                 {
-                    const auto* wf = g::pWfsManager->access(node->get_workflow_id());
                     auto action = wf->action();
 
                     const size_t count = pin->get_object()->combo_items.size();
@@ -82,7 +86,7 @@ void CustomJsNode::draw_Load3D(data::NodeInstance* node, float off, float width)
         }
     };
 
-    tools::path::FdSelectResultSg file_select_callback = [this, post_callback](bool result, std::filesystem::path&& path)
+    tools::path::FdSelectResultSg file_select_callback = [alive_cb = get_alive_callback(), post_callback](bool result, std::filesystem::path&& path)
     {
         if (!result)
             return;
@@ -101,7 +105,7 @@ void CustomJsNode::draw_Load3D(data::NodeInstance* node, float off, float width)
             { "overwrite", "true", "", "" }
         };
 
-        g::pFlow->http_post(HttpRequestor::Upload3d, get_alive_callback(), comfyui_http::upload_media, std::move(items), post_callback);
+        g::pFlow->http_post(HttpRequestor::Upload3d, alive_cb, comfyui_http::upload_media, std::move(items), post_callback);
     };
 
     ImGui::Spacing();
@@ -127,10 +131,10 @@ void CustomJsNode::draw_Load3D(data::NodeInstance* node, float off, float width)
     ImGui::SetCursorPosX(off);
     if (ImGui::Button("Clear", ImVec2(width, 0)))
     {
-        auto pin = find_pin();
+        auto pin = find_pin(node);
+        const auto* wf = g::pWfsManager->access(node->get_workflow_id());
         if (pin != nullptr)
         {
-            const auto* wf = g::pWfsManager->access(node->get_workflow_id());
             auto action = wf->action();
 
             if (!pin->get_object()->combo_items.empty() && pin->get_object()->combo_items[0].get_string().empty())

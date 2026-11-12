@@ -13,7 +13,7 @@ namespace ui
 {
 
 SyncProjectsDlg::SyncProjectsDlg() noexcept
-    : BaseDlgWithData(DlgObj::OptionsDlg)
+    : BaseDlgWithData(DlgObj::SyncProjects)
 {
 }
 
@@ -199,7 +199,20 @@ DlgCode SyncProjectsDlg::show(bool& /*focused*/)
                     ImGui::TableNextColumn();
                     if (SyncAction::UploadRename == row.selected_action || SyncAction::DownloadRename == row.selected_action)
                     {
-                        row.new_name_invalid = (SyncAction::UploadRename == row.selected_action && row.new_name == row.name);                            
+                        const bool is_upload_rename = (SyncAction::UploadRename == row.selected_action);
+                        row.new_name_invalid = row.new_name.empty() || row.new_name.find_first_of("/\\:*?\"<>|") != std::string::npos ||
+                            (is_upload_rename && row.new_name == row.name) || (!is_upload_rename && row.exists_local && row.new_name == row.name);
+                        if (!row.new_name_invalid)
+                        {
+                            for (const auto& other : m_rows)
+                            {
+                                if (&other != &row && other.name == row.new_name && (is_upload_rename ? other.exists_server : other.exists_local))
+                                {
+                                    row.new_name_invalid = true;
+                                    break;
+                                }
+                            }
+                        }
                         if (row.new_name_invalid)
                         {
                             allow_apply = false;
@@ -510,6 +523,8 @@ void SyncProjectsDlg::sync()
 
     const auto download = [this](int32_t result, std::string&& payload)
     {
+        if (m_current_row >= m_rows.size())
+            return;
         auto& row = m_rows[m_current_row++];
         Log("Downloaded project " << row.name);
 
@@ -556,6 +571,8 @@ void SyncProjectsDlg::sync()
 
     const auto upload = [this](int32_t result, std::string&&)
     {
+        if (m_current_row >= m_rows.size())
+            return;
         auto& row = m_rows[m_current_row++];
         Log("Uploaded project " << row.name);
         row.selected_action = SyncAction::Skip;
@@ -564,7 +581,11 @@ void SyncProjectsDlg::sync()
             if (0 == row.local_id)
                 LogError("Invalid wf id");
             else
-                g::pWfsManager->access(row.local_id)->clear_wf();
+            {
+                auto* wf = g::pWfsManager->access(row.local_id, true);
+                if (wf != nullptr)
+                    wf->clear_wf();
+            }
         }
         row.cleanup_wf = false;
         if (HTTP_RESP_OK == result)
@@ -648,10 +669,19 @@ void SyncProjectsDlg::sync()
                             LogError("Invalid wf id");
                         else
                         {
-                            auto j = data::WfSerializerToJson(g::pWfsManager->access(row.local_id)).serialize();
-                            const auto project_name = (SyncAction::UploadRename == row.selected_action ? row.new_name : row.name);
-                            const auto url = fmt::format(comfyui_http::wf_upload_, tools::str::url_encode(project_name) + ".json");
-                            g::pFlow->http_post(HttpRequestor::Sync_Action, get_alive_callback(), url.c_str(), j.dump(), upload);
+                            auto* local_wf = g::pWfsManager->access(row.local_id, true);
+                            if (nullptr == local_wf)
+                            {
+                                LogError("Workflow already closed. w:" << row.local_id);
+                                row.status = SyncStatus::Error;
+                            }
+                            else
+                            {
+                                auto j = data::WfSerializerToJson(local_wf).serialize();
+                                const auto project_name = (SyncAction::UploadRename == row.selected_action ? row.new_name : row.name);
+                                const auto url = fmt::format(comfyui_http::wf_upload_, tools::str::url_encode(project_name) + ".json");
+                                g::pFlow->http_post(HttpRequestor::Sync_Action, get_alive_callback(), url.c_str(), j.dump(), upload);
+                            }
                         }
                     }
                 }

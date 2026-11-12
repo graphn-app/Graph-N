@@ -211,7 +211,7 @@ void PanelServerLogs::search_for_address(size_t from, size_t to)
             if (host_pos != std::string::npos)
             {
                 const auto port_pos = line.find(":", host_pos + key_address.size());
-                if (host_pos != std::string::npos)
+                if (port_pos != std::string::npos)
                 {
                     m_host = line.substr(host_pos, port_pos - host_pos);
                     m_port = strtoll(line.c_str() + port_pos + 1, nullptr, 10);

@@ -198,7 +198,7 @@ void QueueManager::process()
 
             Log("Task #" << log_task_id << " posted. Wf #" << m_current->src_wf);
             m_can_check_ws = false;
-            g::pFlow->http_post(HttpRequestor::Queue_Task, get_alive_callback(), comfyui_http::prompt, j.dump(), callback);
+            g::pFlow->http_post(HttpRequestor::Queue_Task, get_alive_callback(), comfyui_http::prompt, j.dump(-1, ' ', false, o_json::error_handler_t::replace), callback);
             m_current->state = ExecGroup::State::Prompted;
         }
         break;
@@ -597,7 +597,7 @@ void QueueManager::check_ws_inbox()
                     task.time_end = j["data"]["timestamp"].get<uint64_t>();
                 else task.time_end = tools::dt::from_current_date().time();
 
-                task.time_ms = task.time_end - task.time_start;
+                task.time_ms = (task.time_end > task.time_start ? task.time_end - task.time_start : 0);
                 task.nodes_done = m_current->nodes_count;
                 task.progress = 1.0f;
                 task.result = TaskResult::Success;
@@ -612,7 +612,7 @@ void QueueManager::check_ws_inbox()
                     task.time_end = j["data"]["timestamp"].get<uint64_t>();
                 else task.time_end = tools::dt::from_current_date().time();
 
-                task.time_ms = task.time_end - task.time_start;
+                task.time_ms = (task.time_end > task.time_start ? task.time_end - task.time_start : 0);
                 task.nodes_done = m_current->nodes_count;
                 task.progress = 1.0f;
                 task.result = (type == "execution_error" ? TaskResult::Failed : TaskResult::Interrupted);
@@ -1024,7 +1024,7 @@ void QueueManager::load_output_data(wid wf_id, uint64_t task_id, uint64_t out_id
                 continue;
             }
 
-            const auto temp_filename = fs::get_temp_filepath(tools::path::path_to_string(std::filesystem::path(out.filename).extension()));
+            const auto temp_filename = fs::get_temp_filepath(fs::sanitize_media_ext(tools::path::path_to_string(std::filesystem::path(out.filename).extension())));
             if (temp_filename.empty())
                 continue;
             if (!tools::path::make_file(temp_filename, false, binary))
@@ -1086,6 +1086,12 @@ void QueueManager::check_current_task_is_done()
         catch (const std::exception& ex)
         {
             LogExcepS("History parsing err " << ex.what());
+            if (m_current != nullptr)
+            {
+                m_current->state = ExecGroup::State::Finished;
+                m_current->task.result = TaskResult::Failed;
+            }
+            go_next_task();
         }
     };
 

@@ -56,15 +56,15 @@ void dump_mini_dump(HANDLE hdumpfile, PEXCEPTION_POINTERS excp_info) noexcept
 // In a real strict handler, use wchar_t buffer[MAX_PATH] and GetModuleFileName
 int32_t __cdecl record_exception_info(PEXCEPTION_POINTERS pExceptPtrs) noexcept
 {
-    static std::atomic_flag bFirstTime = ATOMIC_FLAG_INIT;
-    if (bFirstTime.test_and_set(std::memory_order_acquire))
-        return EXCEPTION_CONTINUE_SEARCH; // Prevent recursive crashes
-
     if (pExceptPtrs && pExceptPtrs->ExceptionRecord)
     {
         if (pExceptPtrs->ExceptionRecord->ExceptionCode == STATUS_SINGLE_STEP)
             return EXCEPTION_CONTINUE_EXECUTION;
     }
+
+    static std::atomic_flag bFirstTime = ATOMIC_FLAG_INIT;
+    if (bFirstTime.test_and_set(std::memory_order_acquire))
+        return EXCEPTION_CONTINUE_SEARCH; // Prevent recursive crashes
 
     // Attempt to flush logs. Wrap in try-catch because logger might use heap.
     try {

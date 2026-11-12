@@ -57,14 +57,21 @@ void ConnectManager::reconnect()
     drop_ws_connection();
 
     const auto* opt = g::pOptsManager;
-    m_ws = WebSocket::create_and_connect(opt->comfyui_host_load(),  opt->comfyui_port_load(), opt->comfyui_connect_timeout_load(), opt->comfyui_ping_interval_load());
+    auto ws = WebSocket::create_and_connect(opt->comfyui_host_load(),  opt->comfyui_port_load(), opt->comfyui_connect_timeout_load(), opt->comfyui_ping_interval_load());
+    std::lock_guard<std::mutex> lock(m_ws_mutex);
+    m_ws = std::move(ws);
 }
 
 void ConnectManager::drop_ws_connection()
 {
-    if (m_ws != nullptr)
-        m_ws->stop_and_forget();
-    m_ws.reset();
+    std::shared_ptr<WebSocket> ws;
+    {
+        std::lock_guard<std::mutex> lock(m_ws_mutex);
+        ws = std::move(m_ws);
+        m_ws.reset();
+    }
+    if (ws != nullptr)
+        ws->stop_and_forget();
 }
 
 ConnectState ConnectManager::get_status(int64_t* latency /*= nullptr*/) noexcept
@@ -72,13 +79,19 @@ ConnectState ConnectManager::get_status(int64_t* latency /*= nullptr*/) noexcept
     if (latency)
         *latency = -1;
 
-    if (m_ws != nullptr)
+    std::shared_ptr<WebSocket> ws;
     {
-        const auto state = m_ws->get_state();
+        std::lock_guard<std::mutex> lock(m_ws_mutex);
+        ws = m_ws;
+    }
+
+    if (ws != nullptr)
+    {
+        const auto state = ws->get_state();
         if (ConnectState::Connected == state)
         {
             if (latency)
-                *latency = m_ws->get_latency();
+                *latency = ws->get_latency();
         }
         return state;
     }
@@ -361,6 +374,9 @@ void ConnectManager::http_worker()
             {
                 force_reconnect = false;
                 m_reconnect = false;
+                m_prev_host = m_host;
+                m_prev_port = m_port;
+                m_prev_timeout = m_timeout;
                 connect();
             }
 
@@ -497,6 +513,10 @@ void ConnectManager::http_worker_external()
             }
             else
             {
+                if (res.error() == httplib::Error::Connection || res.error() == httplib::Error::Read)
+                    req->status = HTTP_RESP_TIMEOUT;
+                else
+                    req->status = HTTP_RESP_FAIL;
                 Log("HTTP-Req-Ext#" << req->req_id << ". Failed. Error: " << httplib::to_string(res.error()));
             }
         }
@@ -581,10 +601,15 @@ bool ConnectManager::pickup_http_response(uint32_t& req_id, int32_t& result, std
 
 bool ConnectManager::pickup_ws_message(bool& is_binary, std::string& message)
 {
-    if (m_ws != nullptr) [[likely]]
+    std::shared_ptr<WebSocket> ws;
+    {
+        std::lock_guard<std::mutex> lock(m_ws_mutex);
+        ws = m_ws;
+    }
+    if (ws != nullptr) [[likely]]
     {
         // moving ws internal inbox to manager level
-        auto msgs = m_ws->get();
+        auto msgs = ws->get();
         for (auto& msg : msgs)
         {
             m_ws_pickup.push_back({ msg.binary, std::move(msg.message) });
@@ -604,9 +629,15 @@ void ConnectManager::drop_all_messages()
 {
     {
         std::unique_lock<std::mutex> lock(m_http_pickup_mutex);
-        std::queue<std::shared_ptr<RequestData>> temp;
-        m_http_pickup.swap(temp);
-        m_http_pickup_empty.store(true, std::memory_order_release);
+        std::queue<std::shared_ptr<RequestData>> kept;
+        while (!m_http_pickup.empty())
+        {
+            if (m_http_pickup.front()->external)
+                kept.push(std::move(m_http_pickup.front()));
+            m_http_pickup.pop();
+        }
+        m_http_pickup.swap(kept);
+        m_http_pickup_empty.store(m_http_pickup.empty(), std::memory_order_release);
     }
     {
         std::unique_lock<std::mutex> lock(m_http_inbox_mutex);

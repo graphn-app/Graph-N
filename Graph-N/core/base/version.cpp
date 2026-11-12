@@ -18,7 +18,10 @@ app_version_type from_string(const std::string& version) noexcept
     if (std::sscanf(str, "%u.%u.%u", &major, &minor, &patch) != 3)
         return 0;
 
-    LogRAssert(major < 0xff && minor < 0xff && patch < 0xffff, "Check version range", 0);
+    // build_version() packs 8/8/16 bits; the string comes from the network, so don't assert - just reject
+    if (major > 0xFF || minor > 0xFF || patch > 0xFFFF)
+        return 0;
+
     return ver::build_version(major, minor, patch);
 }
 

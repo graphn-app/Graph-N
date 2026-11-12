@@ -28,7 +28,8 @@ void CNI_FastModeSwitcherRgthree::cni_init()
 {
     auto wf = g::pWfsManager->access(get_workflow_id());
 
-    auto& inputs = get_inputs();
+    m_switches.clear();
+    const auto inputs = get_inputs();
     for (auto input : inputs)
     {
         cni_remove_pin(input->get_object());
@@ -36,7 +37,7 @@ void CNI_FastModeSwitcherRgthree::cni_init()
         wf->remove_pin(input);
     }
 
-    auto& outputs = get_outputs();
+    const auto outputs = get_outputs();
     for (auto output : outputs)
     {
         cni_remove_pin(output->get_object());
@@ -299,8 +300,9 @@ CNI_FastGroupModeSwitcherRgthree::CNI_FastGroupModeSwitcherRgthree(Node* obj, wi
 void CNI_FastGroupModeSwitcherRgthree::cni_init()
 {
     auto wf = g::pWfsManager->access(get_workflow_id());
+    m_switches.clear();
 
-    auto& inputs = get_inputs();
+    auto inputs = get_inputs();
     for (auto input : inputs)
     {
         cni_remove_pin(input->get_object());
@@ -308,7 +310,7 @@ void CNI_FastGroupModeSwitcherRgthree::cni_init()
         wf->remove_pin(input);
     }
 
-    auto& outputs = get_outputs();
+    auto outputs = get_outputs();
     for (auto output : outputs)
     {
         cni_remove_pin(output->get_object());
@@ -556,7 +558,7 @@ uint8_t CNI_FastActionRgthree::mode_from_string(const std::string& string_mode) 
 
 std::string CNI_FastActionRgthree::string_from_mode(const Primitive& value) noexcept
 {
-    LogRAssertS(value.is_number(), "Not a combo value", "");
+    LogRAssertS(value.is_int(), "Not a combo value", "");
     return action_name(cast::to<ActionType>(value.get_int()));
 }
 
@@ -568,9 +570,10 @@ CNI_FastActionRgthree::CNI_FastActionRgthree(Node* obj, wid workflow_id, iid ins
 
 void CNI_FastActionRgthree::cni_init()
 {
+    m_switches.clear();
     auto wf = g::pWfsManager->access(get_workflow_id());
 
-    auto& inputs = get_inputs();
+    auto inputs = get_inputs();
     for (auto input : inputs)
     {
         cni_remove_pin(input->get_object());
@@ -578,7 +581,7 @@ void CNI_FastActionRgthree::cni_init()
         wf->remove_pin(input);
     }
 
-    auto& outputs = get_outputs();
+    auto outputs = get_outputs();
     for (auto output : outputs)
     {
         cni_remove_pin(output->get_object());

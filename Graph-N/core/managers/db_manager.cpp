@@ -474,6 +474,10 @@ void DbManager::session_nodes_load(
     {
         LogSqlDbErr("Load nodes from meta: " << LOG_EXP(ex));
     }
+    catch (const std::exception& ex)
+    {
+        LogSqlDbErr("Load nodes from meta (parse): " << ex.what());
+    }
 }
 
 void DbManager::session_nodes_save(
@@ -678,7 +682,7 @@ std::vector<std::pair<hid, DbValue>> DbManager::item_option_load_all(DbItemOptio
                 continue;
 
             const std::string hash = query.getColumn(0).getString();
-            DbValue v(query.getColumn(1).getString(), query.getColumn(2).getInt());
+            DbValue v(query.getColumn(1).getString(), query.getColumn(2).getInt64());
             ret.emplace_back(std::strtoull(hash.c_str(), nullptr, 10), std::move(v));
         }
 
@@ -961,7 +965,7 @@ std::vector<ExecTask> DbManager::history_load_all()
             try
             {
                 const auto data = query.getColumn(2).getString();
-                const auto j = u_json::parse(data);
+                auto j = u_json::parse(data);
                 task.prompt_id = j["prompt_id"];
                 task.run_no = j["run_no"];
                 task.err_message = j["err_message"];
@@ -1012,7 +1016,7 @@ std::vector<ExecTask> DbManager::history_load_all()
 
                     if (!o.filename.empty())
                     {
-                        const auto temp_filename = fs::get_temp_filepath(tools::path::path_to_string(std::filesystem::path(o.filename).extension()));
+                        const auto temp_filename = fs::get_temp_filepath(fs::sanitize_media_ext(tools::path::path_to_string(std::filesystem::path(o.filename).extension())));
                         if (!temp_filename.empty())
                             o.binary_path = tools::path::path_to_string(temp_filename);
                     }
@@ -1115,8 +1119,10 @@ void DbManager::backup_thread(std::filesystem::path db_path, std::unique_ptr<SQL
         if (db_path.empty())
             return;
 
-        while (!g::pOptsManager->get_ready())
+        while (nullptr == g::pOptsManager || !g::pOptsManager->get_ready())
         {
+            if (m_stop_flag.stop_requested())
+                return;
             std::this_thread::sleep_for(100ms);
         }
 

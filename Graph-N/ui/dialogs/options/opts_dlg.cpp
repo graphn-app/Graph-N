@@ -116,7 +116,7 @@ void OptionsDlgs::show_right_pane()
                 }
                 catch (const std::exception& ex)
                 {
-                    LogRError("Options pane ex: " << ex.what(), );
+                    LogError("Options pane ex: " << ex.what());
                 }
             }
             ImGui::EndChild();

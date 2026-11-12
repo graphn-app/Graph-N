@@ -3,6 +3,7 @@
 */
 
 #include "core/managers/connect_manager.h"
+#include "core/base/version.h"
 
 #ifdef _WIN32
 #include <winhttp.h>
@@ -26,10 +27,12 @@ void ConnectManager::send_https(std::shared_ptr<RequestData> req)
 
     using InternetHandle = std::unique_ptr<void, decltype(&::WinHttpCloseHandle)>;
 
+    const auto agent = fmt::format(FMT_STRING(L"{}/{}.{}"), APP_CAPTION_W, ver::app_major, ver::app_minor);
+
     // honor system/corporate proxy settings (WPAD/PAC)
-    InternetHandle hsession(::WinHttpOpen(L"Graph-N/1.0", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0), ::WinHttpCloseHandle);
+    InternetHandle hsession(::WinHttpOpen(agent.c_str(), WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0), ::WinHttpCloseHandle);
     if (!hsession)
-        hsession.reset(::WinHttpOpen(L"Graph-N/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0));
+        hsession.reset(::WinHttpOpen(agent.c_str(), WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0));
     if (!hsession)
         return reply("WinHttpOpen failed");
 

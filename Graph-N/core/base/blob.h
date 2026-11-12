@@ -18,7 +18,8 @@ public:
     Blob(const void* buffer, size_t len)
     {
         m_blob.resize(len);
-        memcpy(m_blob.data(), buffer, len);
+        if (len > 0 && buffer != nullptr)
+            memcpy(m_blob.data(), buffer, len);
     }
     ~Blob() noexcept = default;
 

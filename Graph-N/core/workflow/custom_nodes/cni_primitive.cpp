@@ -24,7 +24,7 @@ void CNI_Primitive::cni_init()
 {
     auto wf = g::pWfsManager->access(get_workflow_id());
 
-    auto& inputs = get_inputs();
+    const auto inputs = get_inputs();
     for (auto input : inputs)
     {
         cni_remove_pin(input->get_object());
@@ -32,7 +32,7 @@ void CNI_Primitive::cni_init()
         wf->remove_pin(input);
     }
 
-    auto& outputs = get_outputs();
+    const auto outputs = get_outputs();
     for (auto output : outputs)
     {
         cni_remove_pin(output->get_object());
@@ -152,13 +152,6 @@ bool CNI_Primitive::cni_can_link(const PinInstance* p1, const PinInstance* p2) c
     {
         LogRAssert(get_inputs().size() == 1, "Inputs wrong size. w: " << get_workflow_id() << ", n:" << get_instance_id() << ", sz: " << get_inputs().size(), false);
 
-        const bool their_u = their_pin->state().value.is_int();
-        const bool this_u = this_pin->state().value.is_int();
-
-        if (their_u != this_u)
-            return false;
-        if (their_u == this_u && this_u)
-            return true;
         return test_ranges(this_obj->def_state.min.get_int(), this_obj->def_state.max.get_int(), their_obj->def_state.min.get_int(), their_obj->def_state.max.get_int());
     }
 
@@ -407,7 +400,8 @@ void CNI_Primitive::update()
             this_pin_obj->def_state.max = this_max;
 
             auto& val = inputs[0]->state().value;
-            val = std::clamp(val.get_int(), this_min, this_max);
+            if (this_min <= this_max)
+                val = std::clamp(val.get_int(), this_min, this_max);
         }
         else if (src_val.is_float())
         {
@@ -426,7 +420,8 @@ void CNI_Primitive::update()
             this_pin_obj->def_state.max = this_max;
 
             auto& val = inputs[0]->state().value;
-            val = std::clamp(val.get_float(), this_min, this_max);
+            if (this_min <= this_max)
+                val = std::clamp(val.get_float(), this_min, this_max);
         }
         else if (src_val.is_number())
         {
@@ -447,7 +442,8 @@ void CNI_Primitive::update()
             this_pin_obj->def_state.max = this_max;
 
             auto& val = inputs[0]->state().value;
-            val = std::clamp(val.get_number(), this_min, this_max);
+            if (this_min <= this_max)
+                val = std::clamp(val.get_number(), this_min, this_max);
         }
     }
     reset_width();

@@ -417,6 +417,7 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
             const img = new Image();
             img.crossOrigin = "Anonymous";
             img.src = TEST_IMAGE;
+            img.onerror = () => { ui.resInfo.innerText = "Failed to load image"; };
             img.onload = () => {
                 const w = img.width;
                 const h = img.height;
@@ -441,11 +442,14 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
                 if (res.ok) {
                     const maskImg = new Image();
                     maskImg.crossOrigin = "Anonymous";
-                    maskImg.src = URL.createObjectURL(await res.blob());
+                    const maskUrl = URL.createObjectURL(await res.blob());
                     maskImg.onload = () => {
+                        URL.revokeObjectURL(maskUrl);
                         ctxMask.drawImage(maskImg, 0, 0);
                         saveHistory(); 
                     };
+                    maskImg.onerror = () => { URL.revokeObjectURL(maskUrl); saveHistory(); };
+                    maskImg.src = maskUrl;
                 } else {
                     ctxMask.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
                     saveHistory(); 
@@ -532,6 +536,7 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
              }
              const snapshot = JSON.parse(JSON.stringify(state.samPoints));
              state.samHistory.push(snapshot);
+             if (state.samHistory.length > 100) state.samHistory.shift();
              state.samHistoryStep = state.samHistory.length - 1;
              updateHistoryButtons();
         }
@@ -594,6 +599,7 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
 
         function getLocalCoords(e) {
             const rect = maskCanvas.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
             const scaleX = maskCanvas.width / rect.width;
             const scaleY = maskCanvas.height / rect.height;
             let x = (e.clientX - rect.left) * scaleX;
@@ -703,8 +709,9 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
                 if (res.ok) {
                     const blob = await res.blob();
                     const maskImg = new Image();
+                    const maskUrl = URL.createObjectURL(blob);
                     maskImg.onload = () => {
-                        saveHistory(); 
+                        URL.revokeObjectURL(maskUrl);
                         
                         // Process Transparent
                         const tempCanvas = document.createElement('canvas');
@@ -736,9 +743,11 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
                         }
                         ctxMask.globalCompositeOperation = 'source-over';
                         
+                        saveHistory();
                         if(state.previewMode) renderPreview();
                     };
-                    maskImg.src = URL.createObjectURL(blob);
+                    maskImg.onerror = () => { URL.revokeObjectURL(maskUrl); alert("SAM returned an invalid mask image"); };
+                    maskImg.src = maskUrl;
                 } else { 
                     if(res.status === 500) {
                         alert("SAM Failed: Check ComfyUI is running and Impact Pack is installed");
@@ -773,9 +782,10 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
             const c = getLocalCoords(e);
 
             if (state.appMode === 'sam') {
-                saveSamHistory();
                 if (e.button === 0) state.samPoints.push({ x: c.x, y: c.y, positive: true });
                 else if (e.button === 2) state.samPoints.push({ x: c.x, y: c.y, positive: false });
+                else return;
+                saveSamHistory();
                 
                 if(state.previewMode) renderPreview(); 
                 else renderSamPoints();
@@ -783,7 +793,6 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
             }
 
             if (state.appMode === 'editor' && e.button === 0) {
-                saveHistory(); 
                 state.isDrawing = true;
                 state.lastX = c.x;
                 state.lastY = c.y;
@@ -792,6 +801,7 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
         });
 
         window.addEventListener('mouseup', () => {
+            if (state.isDrawing) saveHistory();
             state.isDrawing = false;
             state.isPanning = false;
             if(state.isSpacePressed) workspace.style.cursor = 'grab';
@@ -835,7 +845,14 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
             }
         }, { passive: false });
 
+        function isTyping(e) {
+            const t = e.target;
+            return !!t && (t.isContentEditable || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' ||
+                (t.tagName === 'INPUT' && /^(text|number|search|password|email|url)$/i.test(t.type)));
+        }
+
         window.addEventListener('keydown', (e) => {
+            if (isTyping(e)) return;
             if (e.code === 'Space' && !e.repeat) {
                 state.isSpacePressed = true;
                 workspace.style.cursor = 'grab';
@@ -886,10 +903,10 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
         function bindDualInput(slider, number, stateKey, maxVal, isFloat = false) {
             const update = (val) => {
                 let v = parseFloat(val);
-                if (isNaN(v)) v = isFloat ? 100 : 0;
+                if (isNaN(v)) v = (isFloat && !slider.id.includes('Conf')) ? 100 : (isFloat ? 0.5 : 0);
                 
                 if(isFloat && slider.id.includes("Conf")) { 
-                     if (val > 1) v = val / 100; 
+                     if (v > 1) v = v / 100; v = Math.max(0, Math.min(1, v)); 
                      state[stateKey] = v;
                      slider.value = Math.round(v * 100);
                      number.value = v.toFixed(2);
@@ -937,22 +954,22 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
         document.getElementById('btnRotR').onclick = () => { state.rotation += 90; updateTransform(); };
         
         ui.btnClearMask.onclick = () => {
-             saveHistory(); ctxMask.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+             ctxMask.clearRect(0, 0, maskCanvas.width, maskCanvas.height); saveHistory();
              if(state.previewMode) renderPreview();
         };
         ui.btnClearDots.onclick = () => {
-             saveSamHistory(); state.samPoints = []; 
+             state.samPoints = []; saveSamHistory(); 
              if(state.previewMode) renderPreview(); else renderSamPoints();
         };
 
         document.getElementById('btnInvert').onclick = () => {
-            saveHistory();
             const id = ctxMask.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
             const d = id.data;
             for (let i = 0; i < d.length; i += 4) {
                 d[i] = 255 - d[i]; d[i+1] = 255 - d[i+1]; d[i+2] = 255 - d[i+2]; d[i+3] = 255 - d[i+3]; 
             }
             ctxMask.putImageData(id, 0, 0);
+            saveHistory();
             if(state.previewMode) renderPreview();
         };
         
@@ -1012,15 +1029,18 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
 						samColorNeg: state.samColorNeg,
 					};
 
-					await fetch(`${API_BASE}/save_mask`, {
+					// HTTP header values must be Latin-1: escape non-ASCII (still valid JSON)
+					const settingsHeader = JSON.stringify(currentSettings).replace(/[\u007f-\uffff]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+					const saveRes = await fetch(`${API_BASE}/save_mask`, {
 						method: "POST",
 						body: blob,
 						headers: { 
 							"Content-Type": "image/png",
-							"X-Editor-Settings": JSON.stringify(currentSettings)
+							"X-Editor-Settings": settingsHeader
 						}
 					});
-				} catch (e) { console.error(e); }
+					if (!saveRes.ok) alert("Save failed (HTTP " + saveRes.status + ")");
+				} catch (e) { console.error(e); alert("Save failed: " + e.message); }
 			}, "image/png");
 		}
 		

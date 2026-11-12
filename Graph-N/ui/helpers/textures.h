@@ -44,7 +44,7 @@ private:
 
 private:
     std::mutex m_mutex;
-    int32_t m_id_counter = 0;
+    std::atomic<int32_t> m_id_counter = 0;
     size_t m_seconds_passed = 0;
     int64_t m_frames_passed = 0;
 

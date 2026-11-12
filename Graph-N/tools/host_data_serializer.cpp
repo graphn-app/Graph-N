@@ -19,7 +19,7 @@ size_t HostSerializer::get_max_size()
 {
     return
         get_min_size() +
-        MAX_PATH * 2 /* image pathes */ + 500 /* wf and node names */ + 20 /*comfyui host*/ + 500 /*settings*/;
+        (MAX_PATH * sizeof(wchar_t) + sizeof(uint32_t)) * 2 /* image pathes (wide chars + length prefix) */ + 500 /* wf and node names */ + 20 /*comfyui host*/ + 500 /*settings*/;
 }
 
 Blob HostSerializer::serialize(const HostData& data)

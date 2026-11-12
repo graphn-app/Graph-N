@@ -223,9 +223,10 @@ const WfData& WfsManager::create_temp(const blob::Blob& source, const std::strin
 
     blob::Blob drawer_state;
     data::WfDeserializerFromBlob(wf, source).deserialize(drawer_state);
-    data.draft = true;
-    data.draft_exist = false;
-    data.saved_exist = false;
+    auto& new_data = wf->get_data();
+    new_data.draft = true;
+    new_data.draft_exist = false;
+    new_data.saved_exist = false;
 
     if (!label.empty())
     {

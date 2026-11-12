@@ -97,21 +97,43 @@ uint64_t NodeInstance::reset_state() noexcept
 template <typename T>
 T increment_t(T val, const T min, const T max, const T step) noexcept
 {
-    if (val + step > max)
-        val = min;
+    if constexpr (std::same_as<T, number>)
+    {
+        return number(increment_t(val.underlying_type(), min.underlying_type(), max.underlying_type(), step.underlying_type()));
+    }
+    else if constexpr (std::same_as<T, int64_t>)
+    {
+        if (step > 0 ? val > max - step : (step < 0 && val > max))
+            return min;
+        return val + step;
+    }
     else
-        val = val + step;
-    return val;
+    {
+        if (val + step > max)
+            return min;
+        return val + step;
+    }
 }
 
 template <typename T>
 T decrement_t(T val, const T min, const T max, const T step) noexcept
 {
-    if (val - step < min)
-        val = max;
+    if constexpr (std::same_as<T, number>)
+    {
+        return number(decrement_t(val.underlying_type(), min.underlying_type(), max.underlying_type(), step.underlying_type()));
+    }
+    else if constexpr (std::same_as<T, int64_t>)
+    {
+        if (step > 0 ? val < min + step : (step < 0 && val < min))
+            return max;
+        return val - step;
+    }
     else
-        val = val - step;
-    return val;
+    {
+        if (val - step < min)
+            return max;
+        return val - step;
+    }
 }
 
 void NodeInstance::increment(const NodeInstance* copy_to, WorkflowAction* wf_action)

@@ -375,10 +375,10 @@ bool GraphN::init()
 {
     _tzset();
 
-    Log("Creating Graph-N flow");
+    Log("Creating " APP_CAPTION " flow");
     m_graphn_flow = std::make_unique<ui::GraphN_Flow>();
     g::pFlow = m_graphn_flow.get();
-    LogCriticalIf(g::pFlow->init(), "Graph-N flow initialization failed");
+    LogCriticalIf(g::pFlow->init(), APP_CAPTION " flow initialization failed");
 
     g::pTextures->init_ui_ready();
 
@@ -428,7 +428,7 @@ bool GraphN::start_server()
             fmt::format(FMT_STRING(APP_CAPTION " detected a running " APP_COMFYUI "\nprocess (PID: {}).\n"
             "This might be another " APP_COMFYUI " instance running, or a zombie process.\n"
             "Do you want to launch a new server instance anyway?"), running_proc_id),
-            ModalDlgCtrl::BtnYes | ModalDlgCtrl::BtnNo | ModalDlgCtrl::IcoQues, ModalDlgCtrl::BtnNo, handler);
+            ModalDlgCtrl::BtnYes | ModalDlgCtrl::BtnNo | ModalDlgCtrl::IcoWarn, ModalDlgCtrl::BtnNo, handler);
         m_question_mode = true;
         m_question_replied = false;
         return true;

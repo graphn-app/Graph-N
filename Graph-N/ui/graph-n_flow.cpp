@@ -567,14 +567,18 @@ void GraphN_Flow::import_user_projects()
 {
     if (m_wf_imported || !m_nodes_ready.load(std::memory_order_relaxed))
         return;
+    if (ImGui::GetTime() < m_wf_import_retry_time)
+        return;
     m_wf_imported = true;
 
     auto projects = std::make_shared<std::list<std::pair<std::string, tools::dt>>>();
 
     const auto all_names = [this, projects](int32_t result, std::string&& payload)
     {
+        constexpr double import_retry_delay = 5.0;
         if (result != HTTP_RESP_OK) [[unlikely]]
         {
+            m_wf_import_retry_time = ImGui::GetTime() + import_retry_delay;
             m_wf_imported = false;
             m_projects_ready.store(true, std::memory_order_relaxed);
             return;
@@ -583,6 +587,7 @@ void GraphN_Flow::import_user_projects()
         if (!data::WfDeserializerFromJson::deserialize_all_wf_names(payload, *projects)) [[unlikely]]
         {
             Log("All project names deserializarion failed");
+            m_wf_import_retry_time = ImGui::GetTime() + import_retry_delay;
             m_wf_imported = false;
             m_projects_ready.store(true, std::memory_order_relaxed);
             return;
@@ -1245,7 +1250,7 @@ void GraphN_Flow::show_menu_bar_net_status()
         fmt::format_to(std::back_inserter(text), FMT_STRING("Connected to " APP_COMFYUI " on {}:{}"), g::pOptsManager->comfyui_host_load(), g::pOptsManager->comfyui_port_load());
     }
 
-    const float text_width = ImGui::CalcTextSize(text.data()).x;
+    const float text_width = ImGui::CalcTextSize(text.data(), text.data() + text.size()).x;
     const float spacing = ImGui::GetStyle().ItemSpacing.x;
     const float right_align_pos = ImGui::GetWindowWidth() - (text_width + spacing + 10.0f);
     if (right_align_pos > ImGui::GetCursorPosX())
@@ -1289,7 +1294,10 @@ void GraphN_Flow::show_panels()
     const bool opened = ImGui::Begin("MainWorkspaceHost", &open, host_window_flags);
     ImGui::PopStyleVar(3);
     if (!opened)
+    {
+        ImGui::End();
         return;
+    }
 
     m_main_dock_id = ImGui::GetID(APP_CAPTION "_MainDockSpace");
     ImGui::DockSpace(m_main_dock_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
@@ -1560,10 +1568,10 @@ uint32_t GraphN_Flow::http_post(HttpRequestor requestor, const StillAliveCallbac
     return req_id;
 }
 
-void GraphN_Flow::check_for_updates(const std::function<void(bool /*http_result*/, bool /*upd_found*/, const std::string& /*version*/, const std::string& /*date*/)>& callback)
+void GraphN_Flow::check_for_updates(const std::function<void(bool /*http_result*/, bool /*upd_found*/, const std::string& /*version*/, const std::string& /*date*/)>& callback, bool force /*= false*/)
 {
     constexpr int64_t cache_seconds = 3600 * 24;
-    const bool cache_valid = m_upd_checked && (m_upd_found || m_last_update_check < 0 || g::pMain->get_seconds_elapsed() - m_last_update_check < cache_seconds);
+    const bool cache_valid = !force && m_upd_checked && (m_upd_found || m_last_update_check < 0 || g::pMain->get_seconds_elapsed() - m_last_update_check < cache_seconds);
     if (cache_valid)
     {
         if (callback != nullptr)
@@ -1615,7 +1623,8 @@ void GraphN_Flow::check_for_updates(const std::function<void(bool /*http_result*
     };
 
     const auto req_id = g::pConnectManager->send_http_get_request_ext(HttpRequestor::Ext_Update, UPDATE_SERVER, UPDATE_PORT, UPDATE_URL, true);
-    m_http_requests[req_id] = { .alive = get_alive_callback(), .callback = ver_callback, .time = ImGui::GetTime(), .retry = false, .force_drop = false };
+    std::unique_lock<std::mutex> lock(m_http_req_mutex);
+    m_http_requests[req_id] = { .alive = get_alive_callback(), .callback = ver_callback, .time = ImGui::GetTime(), .retry = false, .force_drop = false, .external = true };
 }
 
 bool GraphN_Flow::get_updates_info(std::string& upd_version, std::string& upd_date) const
@@ -1646,7 +1655,7 @@ void GraphN_Flow::check_http_reply()
         return;
 
     bool drop_all = false;
-    if (!get_online())
+    if (!get_online()) [[unlikely]]
     {
         g::pConnectManager->drop_all_messages();
         drop_all = true;
@@ -1684,6 +1693,8 @@ void GraphN_Flow::check_http_reply()
     const double now = ImGui::GetTime();
     if (drop_all || now - last_dead_http_check > HTTP_REQUEST_LIFETIME / 2.0) [[unlikely]]
     {
+        using timeout_entry_t = std::pair<decltype(m_http_requests.begin()->second.alive), decltype(m_http_requests.begin()->second.callback)>;
+        std::vector<timeout_entry_t> timed_out;
         std::unique_lock<std::mutex> lock(m_http_req_mutex);
         for (auto it = m_http_requests.begin(); it != m_http_requests.end(); )
         {
@@ -1692,21 +1703,21 @@ void GraphN_Flow::check_http_reply()
                 it = m_http_requests.erase(it);
                 continue;
             }
+
+            const bool drop_this = drop_all && !it->second.external;
             if (!drop_all && it->second.retry)
             {
                 ++it;
                 continue;
             }
 
-            if (drop_all || now - it->second.time > HTTP_REQUEST_LIFETIME)
+            if (drop_this || now - it->second.time > HTTP_REQUEST_LIFETIME)
             {
-                if (drop_all)   Log("HTTP-Req#" << it->first << ". Force timeout as server disconnected");
-                else            Log("HTTP-Req#" << it->first << ". Force timeout after " << HTTP_REQUEST_LIFETIME << " seconds");
+                if (drop_this)   Log("HTTP-Req#" << it->first << ". Force timeout as server disconnected");
+                else             Log("HTTP-Req#" << it->first << ". Force timeout after " << HTTP_REQUEST_LIFETIME << " seconds");
 
-                const auto alive = it->second.alive;
-                const auto callback = it->second.callback;
-                if (alive && callback && alive())
-                    callback(HTTP_RESP_TIMEOUT, "");
+                if (it->second.alive && it->second.callback)
+                    timed_out.emplace_back(it->second.alive, it->second.callback);
 
                 it = m_http_requests.erase(it);
             }
@@ -1714,6 +1725,13 @@ void GraphN_Flow::check_http_reply()
                 ++it;
         }
         last_dead_http_check = now;
+        lock.unlock();
+
+        for (const auto& [alive, callback] : timed_out)
+        {
+            if (alive())
+                callback(HTTP_RESP_TIMEOUT, "");
+        }
     }
 }
 

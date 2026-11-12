@@ -1440,7 +1440,10 @@ void NodeDrawer::draw_widget_combo(data::PinInstance* pin, float widget_name_wid
     else handle_widget_active_state(pin);
 
     if (m_deffered_action->active_pin == pin && m_deffered_action->combo.is_changed)
+    {
         m_wf->action()->set_pin_val(pin, m_deffered_action->combo.old_value);
+        m_deffered_action->combo.is_changed = false;
+    }
 
     tooltip_suspended(obj->tooltip);
     draw_cag_helper(pin);
@@ -1639,7 +1642,7 @@ void NodeDrawer::draw_cag_helper(const data::PinInstance* pin) const
         return tooltip.data();
     };
 
-    tooltip_suspended(tooltip_handler());
+    tooltip_suspended(tooltip_handler);
 }
 
 void NodeDrawer::draw_links(const std::vector<std::unique_ptr<data::Link>>& links)
@@ -1721,10 +1724,10 @@ void NodeDrawer::query_new_item(
         else if (ed::QueryNewNode(pin) && pin > 0)
         {
             m_querying_pin = m_wf->ed_get_pin(pin);
-            if (ed::AcceptNewItem())
+            if (m_querying_pin != nullptr && ed::AcceptNewItem())
             {
                 const auto parent = m_wf->get_node_by_instance(m_querying_pin->get_parent_node());
-                if (parent != nullptr && m_querying_pin != nullptr && parent->obj_flags().has_not(NodeObjFlags::Dummy) && m_querying_pin->flags().has_not(PinInstFlags::RerouteSplittingPin))
+                if (parent != nullptr && parent->obj_flags().has_not(NodeObjFlags::Dummy) && m_querying_pin->flags().has_not(PinInstFlags::RerouteSplittingPin))
                     new_node_handler(m_querying_pin, ed::ScreenToCanvas(ImGui::GetMousePos()));
                 m_querying_pin = nullptr;
             }
@@ -1887,7 +1890,9 @@ void NodeDrawer::draw_pin_shape(data::PinInstance* pin, bool collapsed_mode, boo
     }
 
     ImGui::Dummy(ImVec2(w::ico_circle, w::ico_circle));
-    tooltip_suspended(pin->get_object()->tooltip, m_clr_node_pin_text);
+        
+    const bool text_color_pushed = !collapsed_mode && !align_to_widget;
+    tooltip_suspended(pin->get_object()->tooltip, text_color_pushed ? m_clr_node_pin_text : 0);
 }
 
 bool NodeDrawer::handle_node_resize() noexcept
@@ -2240,7 +2245,7 @@ void NodeDrawer::handle_node_collapsing(const data::NodeInstance* node)
     if (m_renaming_node == node)
     {
         m_wf->action()->set_node_name(m_renaming_node, m_renaming_buff);
-        g::pFlow->txt_panel_update(m_wf->get_id(), m_active_node);
+        g::pFlow->txt_panel_update(m_wf->get_id(), node);
         m_renaming_buff.clear();
         m_renaming_buff.shrink_to_fit();
         m_renaming_node = nullptr;

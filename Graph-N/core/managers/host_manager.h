@@ -49,6 +49,7 @@ private:
     std::atomic_bool m_do_cleanups = false;
     std::thread::id m_ui_thread_id;
     std::map<uint64_t, std::thread> m_threads;
+    std::vector<std::thread> m_finished_threads;
 };
 
 } // namespace mngr

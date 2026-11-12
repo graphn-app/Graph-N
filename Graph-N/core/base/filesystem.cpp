@@ -3,6 +3,10 @@
 */
 
 #include "core/base/filesystem.h"
+#if defined __linux__ || defined __APPLE__
+#include <unistd.h>
+#include <limits.h>
+#endif
 
 namespace fs
 {
@@ -25,11 +29,9 @@ std::filesystem::path get_this_app_filepath()
     return {};
 
 #elif defined __linux__ || defined __APPLE__
-#include <unistd.h>
-#include <limits.h>	
     std::error_code ec;
-    std::filesystem::path p = std::filesystem::read_symlink("/proc/self/exe", ec);
-    LogCriticalIfS(!ec, "std::filesystem::read_symlink(/proc/self/exe) failed. Err " << ex.value() << ": " << err.message());    
+    std::filesystem::path p = std::filesystem::read_symlink("/proc/self/exe", ec); // note: /proc/self/exe exists on Linux only
+    LogCriticalIfS(!ec, "std::filesystem::read_symlink(/proc/self/exe) failed. Err " << ec.value() << ": " << ec.message());
     return p;
 #endif
 }
@@ -73,6 +75,24 @@ std::filesystem::path get_temp_filepath(const std::string& ext)
         path = dir / (tools::str::generate_uuid_v4() + ext);
     }
     return path;
+}
+
+std::string sanitize_media_ext(const std::string& ext)
+{
+    // extension comes from a server-provided filename: allow only known media/text types, anything else becomes .bin
+    static const std::unordered_set<std::string> allowed =
+    {
+        ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".tiff", ".svg", ".ico", ".avif", ".apng",
+        ".mp4", ".webm", ".mkv", ".avi", ".mov", ".m4v",
+        ".wav", ".mp3", ".flac", ".ogg", ".opus", ".m4a", ".aac",
+        ".glb", ".gltf", ".obj", ".fbx", ".stl", ".ply", ".usdz",
+        ".json", ".txt", ".csv", ".md", ".image"
+    };
+
+    const auto lower = tools::str::to_lower_ascii(ext);
+    if (allowed.contains(lower))
+        return lower;
+    return ".bin";
 }
 
 std::filesystem::path get_backup_directory_path()

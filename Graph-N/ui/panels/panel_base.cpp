@@ -25,7 +25,7 @@ void PanelEmptyWithDescr::show_empty_panel_descr(
     // --- Static Description (Top of the window) ---
     // Make it slightly dimmed to act as a "subtitle"
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGui::TextWrapped(header_descr);
+    ImGui::TextWrapped("%s", header_descr);
     ImGui::PopStyleColor();
 
     if (*header_descr)
@@ -443,7 +443,7 @@ void PanelToolbar::draw_toolbar()
                     if (separator != nullptr && *separator != 0)
                         ImGui::TextDisabled("%s%s", separator, hotkey.c_str());
                     else
-                        ImGui::TextDisabled(hotkey.c_str());
+                        ImGui::TextDisabled("%s", hotkey.c_str());
                 }
                 ImGui::EndTooltip();
             }
@@ -519,6 +519,7 @@ void PanelToolbar::draw_toolbar()
 
         const bool enabled = el.enabled;
         if (!enabled) ImGui::BeginDisabled();
+        pressed = false;
 
         float item_w = calc_item_layout_w(el);
 

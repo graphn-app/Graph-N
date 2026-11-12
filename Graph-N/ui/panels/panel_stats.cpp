@@ -110,9 +110,8 @@ void PanelStats::th_api()
                 ULARGE_INTEGER free_bytes = {}, total_bytes = {}, total_free = {};
                 if (::GetDiskFreeSpaceExA(disk.disk_opt->first.c_str(), &free_bytes, &total_bytes, &total_free))
                 {
-                    std::lock_guard<std::mutex> lock(m_lock);
-                    disk.free = free_bytes.QuadPart;
-                    disk.total = total_bytes.QuadPart;
+                    disk.free.store(free_bytes.QuadPart, std::memory_order_relaxed);
+                    disk.total.store(total_bytes.QuadPart, std::memory_order_relaxed);
                 }
             }
 #elif defined __APPLE__
@@ -157,24 +156,23 @@ void PanelStats::th_comfyui()
             {
                 try
                 {
+                    auto stats = std::make_shared<ServerStats>();
                     const auto j = u_json::parse(data);
                     if (j.contains("system") && j["system"].contains("ram_free") && j["system"]["ram_free"].is_number_integer())
                     {
                         auto& jsystem = j["system"];
                         if (jsystem.contains("ram_free") && jsystem["ram_free"].is_number_integer())
-                            m_sram_free.store(jsystem["ram_free"].get<uint64_t>(), std::memory_order_relaxed);
+                            stats->sram_free = jsystem["ram_free"].get<uint64_t>();
                         if (jsystem.contains("ram_total") && jsystem["ram_total"].is_number_integer())
-                            m_sram_total.store(jsystem["ram_total"].get<uint64_t>(), std::memory_order_relaxed);
+                            stats->sram_total = jsystem["ram_total"].get<uint64_t>();
                     }
                     if (j.contains("system") && j["system"].contains("comfyui_version") && j["system"]["comfyui_version"].is_string())
                     {
                         auto& jsystem = j["system"];
-                        m_comfy_ver = jsystem["comfyui_version"].get<std::string>();
+                        stats->comfy_ver = jsystem["comfyui_version"].get<std::string>();
                     }
                     if (j.contains("devices") && j["devices"].is_array())
                     {
-                        std::list<VideoDevice> list;
-
                         auto& jdevices = j["devices"];
                         for (auto& jdevice : jdevices)
                         {
@@ -212,12 +210,11 @@ void PanelStats::th_comfyui()
                             {
                                 vd.pytorch_free = jdevice["torch_vram_free"];
                             }
-                            list.push_back(std::move(vd));
+                            stats->video_devices.push_back(std::move(vd));
                         }
-
-                        std::lock_guard<std::mutex> lock(m_lock);
-                        m_video_devices = std::move(list);
                     }
+
+                    m_server_stats.store(std::move(stats), std::memory_order_release);
                 }
                 catch (const std::exception& ex)
                 {
@@ -227,7 +224,7 @@ void PanelStats::th_comfyui()
                 }
             }
 
-            m_queue_remaining.store(0, std::memory_order_relaxed);
+            uint32_t queue_remaining = 0;
 
             http_res = g::pFlow->http_get_and_wait(HttpRequestor::Stats_Prompt, comfyui_http::prompt, {}, {}, false,
                 []() noexcept { return g::app_global_stop_all_threads.stop_requested(); }, data);
@@ -239,7 +236,7 @@ void PanelStats::th_comfyui()
                     const auto j = u_json::parse(data);
                     if (j.contains("exec_info") && j["exec_info"].contains("queue_remaining") && j["exec_info"]["queue_remaining"].is_number_integer())
                     {
-                        m_queue_remaining.store(j["exec_info"]["queue_remaining"].get<uint32_t>(), std::memory_order_relaxed);
+                        queue_remaining = j["exec_info"]["queue_remaining"].get<uint32_t>();
                     }
                 }
                 catch (const std::exception& ex)
@@ -249,6 +246,7 @@ void PanelStats::th_comfyui()
                     prompt_err = true;
                 }
             }
+            m_queue_remaining.store(queue_remaining, std::memory_order_relaxed);
 
             accumulated_time = 0ms;
         }
@@ -299,21 +297,6 @@ ImU32 PanelStats::get_color(int64_t value, bool& stay_default, int64_t lim_warn,
 
     stay_default = true;
     return g::pOptsManager->color_load(AppColor::StatNorm);
-}
-
-bool PanelStats::collect_metrics(std::string& ver, std::string& ram, std::string& vram)
-{
-    if (0 == m_lram_total.load(std::memory_order_relaxed) || m_comfy_ver.empty() || m_video_devices.empty())
-        return false;
-
-    ver = m_comfy_ver;
-    ram = std::to_string(m_lram_total.load(std::memory_order_relaxed));
-    for (auto& v : m_video_devices)
-    {
-        vram = std::to_string(v.vram_total) + " ";
-    }
-
-    return true;
 }
 
 void PanelStats::format_bytes(uint64_t bytes)
@@ -377,16 +360,22 @@ DlgCode PanelStats::show(bool& focused)
             else
                 ImGui::TextUnformatted("Idle");
 
+            auto stats = m_server_stats.load(std::memory_order_acquire);
+
             ImGui::TextUnformatted("Version");
             ImGui::SameLine(val_text_offset);
-            ImGui::TextUnformatted(m_comfy_ver.c_str());
+            if (stats)
+                ImGui::TextUnformatted(stats->comfy_ver.c_str());
 
             print_ping(val_text_offset);
 
-            if (show_bar)
-                show_server_as_bar(val_text_offset);
-            else
-                show_server_as_text(val_text_offset);
+            if (stats)
+            {
+                if (show_bar)
+                    show_server_as_bar(val_text_offset, stats.get());
+                else
+                    show_server_as_text(val_text_offset, stats.get());
+            }
         }
 
         ImGuiEx::Separator(g::pOptsManager->color_load(AppColor::StatSepCapt), 0.0f, this_pc.data(), this_pc.size(), this_pc_wid);
@@ -427,7 +416,7 @@ void PanelStats::print_text_stat(const char* stat_name, float val_offset, uint64
     if (do_format_bytes)
         ImGui::TextUnformatted(m_buffer.data(), m_buffer.data() + m_buffer.size());
     else
-        ImGui::Text("%u", value);
+        ImGui::Text("%llu", value);
     if (!def_clr)
         ImGui::PopStyleColor();
 };
@@ -443,7 +432,8 @@ void PanelStats::show_this_pc_as_text(float val_offset)
     {
         if (disk.disk_opt->second)
         {
-            print_text_stat(disk.format_path.c_str(), val_offset, disk.free,
+            const uint64_t disk_free = disk.free.load(std::memory_order_relaxed);
+            print_text_stat(disk.format_path.c_str(), val_offset, disk_free,
                 g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalDisk),
                 g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalDisk),
                 false, true);
@@ -451,23 +441,18 @@ void PanelStats::show_this_pc_as_text(float val_offset)
     }
 }
 
-void PanelStats::show_server_as_text(float val_offset)
+void PanelStats::show_server_as_text(float val_offset, const ServerStats* stats)
 {
-    if (m_sram_free.load(std::memory_order_relaxed) > 0)
+    if (stats->sram_free > 0)
     {
         print_text_stat("RAM", val_offset,
-            m_sram_free.load(std::memory_order_relaxed),
+            stats->sram_free,
             g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerRAM),
             g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerRAM),
             false, true);
     }
 
-    std::list<VideoDevice> devices;
-    {
-        std::lock_guard<std::mutex> lock(m_lock);
-        devices = m_video_devices;
-    }
-    for (auto& vd : devices)
+    for (auto& vd : stats->video_devices)
     {
         if (vd.pytorch_total > 0 || vd.pytorch_free > 0 || vd.vram_free > 0)
         {
@@ -538,7 +523,7 @@ void PanelStats::print_fps(float val_offset)
 
     ImGui::TextUnformatted("FPS");
     ImGui::SameLine(val_offset);
-    ImGui::Text("%u", m_fps);
+    ImGui::Text("%llu", m_fps);
 
     if (color != 0)
         ImGui::PopStyleColor();
@@ -630,7 +615,9 @@ void PanelStats::show_this_pc_as_bar(float val_offset)
     {
         if (disk.disk_opt->second)
         {
-            print_bar_stat(disk.format_path.c_str(), val_offset, disk.free, disk.total,
+            const uint64_t disk_free = disk.free.load(std::memory_order_relaxed);
+            const uint64_t disk_total = disk.total.load(std::memory_order_relaxed);
+            print_bar_stat(disk.format_path.c_str(), val_offset, disk_free, disk_total,
                 g::pOptsManager->stat_threshold_warn_load(MetricLimit::LocalDisk),
                 g::pOptsManager->stat_threshold_crit_load(MetricLimit::LocalDisk),
                 disk.format_path.c_str());
@@ -638,21 +625,15 @@ void PanelStats::show_this_pc_as_bar(float val_offset)
     }
 }
 
-void PanelStats::show_server_as_bar(float val_offset)
+void PanelStats::show_server_as_bar(float val_offset, const ServerStats* stats)
 {
     print_bar_stat("RAM", val_offset,
-        m_sram_free.load(std::memory_order_relaxed),
-        m_sram_total.load(std::memory_order_relaxed),
+        stats->sram_free, stats->sram_total,
         g::pOptsManager->stat_threshold_warn_load(MetricLimit::ServerRAM),
         g::pOptsManager->stat_threshold_crit_load(MetricLimit::ServerRAM),
         "Server RAM");
 
-    std::list<VideoDevice> devices;
-    {
-        std::lock_guard<std::mutex> lock(m_lock);
-        devices = m_video_devices;
-    }
-    for (auto& vd : devices)
+    for (auto& vd : stats->video_devices)
     {
         if (vd.pytorch_total > 0 || vd.pytorch_free > 0 || vd.vram_free > 0)
         {

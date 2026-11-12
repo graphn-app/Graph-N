@@ -320,6 +320,13 @@ void GraphN_Flow::wf_panel_close(PanelWorkflow* wf_panel)
     if (nullptr == wf_panel)
         wf_panel = m_wf_focused;
 
+    if (nullptr == wf_panel)
+        return;
+
+    const auto& pending = m_pending_cleanups.wf_panels;
+    if (std::ranges::find(pending, wf_panel) != pending.end())
+        return;
+
     if (m_wf_focused == wf_panel)
     {
         if (!wf_panel_activate_next(false))

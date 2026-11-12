@@ -102,15 +102,15 @@ void scale(UINT32& size_w, UINT32& size_h, UINT32 max_size) noexcept
             size_w = cast::to_u32(max_size * ratio);
         }
 
-        size_w = (size_w / 2) * 2;
-        size_h = (size_h / 2) * 2;
+        size_w = std::max<UINT32>((size_w / 2) * 2, 2);
+        size_h = std::max<UINT32>((size_h / 2) * 2, 2);
     }
 }
 } // namespace
 
 mngr::VideoInfo VideoControl_Win32::get_info(const std::filesystem::path& filepath, uint32_t max_side_len, std::optional<bool>& valid)
 {
-    if (m_gif_player->path_is_gif(filepath))
+    if (m_initialized && m_gif_player && m_gif_player->path_is_gif(filepath))
         return m_gif_player->get_info(filepath, valid);
 
     valid = false;
@@ -195,6 +195,8 @@ mngr::VideoInfo VideoControl_Win32::get_info(const std::filesystem::path& filepa
     UINT32 scaled_w = orig_w;
     UINT32 scaled_h = orig_h;
     scale(scaled_w, scaled_h, max_side_len);
+    if (0 == scaled_w || 0 == scaled_h)
+        return info;
 
     ComPtr<::IMFMediaType> target_type;
     hr = ::MFCreateMediaType(&target_type);
@@ -246,7 +248,11 @@ mngr::VideoInfo VideoControl_Win32::get_info(const std::filesystem::path& filepa
                 BYTE* data = nullptr;
                 DWORD length = 0;
                 hr = buffer->Lock(&data, nullptr, &length);
-                if (SUCCEEDED(hr))
+                if (SUCCEEDED(hr) && length < output_pixels.size())
+                {
+                    buffer->Unlock();
+                }
+                else if (SUCCEEDED(hr))
                 {
                     const size_t pixels = scaled_w * scaled_h;
                     const uint32_t* src = cast::ptrs<uint32_t>(data);
@@ -292,7 +298,7 @@ mngr::VideoInfo VideoControl_Win32::get_info(const std::filesystem::path& filepa
 int32_t VideoControl_Win32::load(const std::filesystem::path& filepath, uint32_t max_side_len)
 {
     m_gif_playing = false;
-    if (m_gif_player->path_is_gif(filepath))
+    if (m_initialized && m_gif_player && m_gif_player->path_is_gif(filepath))
     {
         if (!m_gif_player->load(filepath))
             return 0;

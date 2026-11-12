@@ -181,7 +181,7 @@ void CustomMediaWidget::draw_video_widget_from_source()
     {
         widget.or_size.clear();
         widget.video_info = g::pVideoControl->get_info(widget.temp_path, NODE_IMAGE_RECT, widget.media_valid);
-        if (!widget.media_valid.value() || widget.temp_path.empty())
+        if (!widget.media_valid.value() || widget.video_info.thumbnail.empty())
         {
             widget.media_valid = false;
             return;

@@ -161,7 +161,7 @@ DlgCode AboutDlg::show(bool& /*focused*/)
                         m_upd_checked = false;
                         m_upd_found = false;
                         m_upd_checking = true;
-                        g::pFlow->check_for_updates(upd_callback);
+                        g::pFlow->check_for_updates(upd_callback, true);
                     }
                 }
 

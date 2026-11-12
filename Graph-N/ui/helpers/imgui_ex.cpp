@@ -700,7 +700,16 @@ bool BooleanButtons2(const char* id_label, const char* label, bool* value) noexc
     uint8_t u8val = *value;
     constexpr uint8_t min = 0, max = 1;
     if (false == *value) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImGui::GetColorU32(ImGuiCol_TextDisabled));
-    const bool clicked = ImGui::SliderScalar(id_label, ImGuiDataType_U8, &u8val, &min, &max, label, ImGuiSliderFlags_NoInput);
+    
+    static thread_local std::string safe_label;
+    safe_label.clear();
+    for (const char* c = label; c != nullptr && *c != '\0'; ++c)
+    {
+        safe_label.push_back(*c);
+        if ('%' == *c)
+            safe_label.push_back('%');
+    }
+    const bool clicked = ImGui::SliderScalar(id_label, ImGuiDataType_U8, &u8val, &min, &max, safe_label.c_str(), ImGuiSliderFlags_NoInput);
     if (false == *value) ImGui::PopStyleColor();
     if (clicked)
     {
@@ -931,8 +940,8 @@ void toast_show(Toast& toast) noexcept
         constexpr float rounding = 7.0f;
 
         float alpha = 1.0f;
-        if (elapsed > toast.duration * 0.5f)
-            alpha = 1.0f - cast::to_float(((elapsed - toast.duration * 0.7f) / (toast.duration * 0.3f)));
+        if (elapsed > toast.duration * 0.7)
+            alpha = std::clamp(1.0f - cast::to_float(((elapsed - toast.duration * 0.7) / (toast.duration * 0.3))), 0.0f, 1.0f);
 
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
 

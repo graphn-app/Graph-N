@@ -28,7 +28,7 @@ void CNI_NoteBase::cni_cleanup_base_object() noexcept
 void CNI_NoteBase::cni_init()
 {
     auto wf = g::pWfsManager->access(this->get_workflow_id());
-    auto& inputs = this->get_inputs();
+    auto inputs = this->get_inputs();
     for (auto input : inputs)
     {
         this->cni_remove_pin(input->get_object());

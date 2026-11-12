@@ -153,7 +153,7 @@ public:
     uint32_t http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, std::string&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);
     uint32_t http_post(HttpRequestor requestor, const StillAliveCallback& alive, const char* request, httplib::UploadFormDataItems&& payload, const HttpResponseCb& callback, bool retry_on_timeout = false);    
 
-    void check_for_updates(const std::function<void(bool /*http_result*/, bool /*upd_found*/, const std::string& /*version*/, const std::string& /*date*/)>& callback);
+    void check_for_updates(const std::function<void(bool /*http_result*/, bool /*upd_found*/, const std::string& /*version*/, const std::string& /*date*/)>& callback, bool force = false);
     bool get_updates_info(std::string& upd_version, std::string& upd_date) const;
 
     // host manager
@@ -359,6 +359,7 @@ private:
     PanelWorkflow* m_wf_focused = nullptr;
     std::list<std::unique_ptr<PanelWorkflow>> m_panels_wf;
     bool m_wf_imported = false;
+    double m_wf_import_retry_time = 0.0;
 
 #ifdef _DEBUG
     std::list<std::unique_ptr<DebugWfView>> m_wf_debug_panels;
@@ -372,6 +373,7 @@ private:
         double time = 0.0;
         bool retry = false;
         bool force_drop = false;
+        bool external = false;
     };
     std::unordered_map<uint32_t, HttpRequestInfo> m_http_requests;
 

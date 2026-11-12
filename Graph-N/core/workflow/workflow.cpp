@@ -149,7 +149,7 @@ std::unique_ptr<NodeInstanceRo> Workflow::create_node_ro(data::Node* node, iid n
         }
     }
     auto instance = std::make_unique<NodeInstanceRo>(node, get_id(), node_id);
-    Log("Node(RO) created. w:" << get_id() << ", n:" << instance->get_instance_id() << ":" << node->node_class);
+    Log("Node(RO) created. w:" << get_id() << ", n:" << instance->get_instance_id() << ":" << (node != nullptr ? node->node_class : "group"));
     return instance;
 }
 
@@ -718,7 +718,7 @@ void Workflow::separate_reroutes(std::set<data::NodeInstance*> nodes)
 
             // valid state: the pin has no connections
             if (nullptr == left_pin && nullptr == right_pin)
-                break;
+                continue;
 
             auto* new_node = m_action->add_node(node->get_object(), "", rect);
             LogCAssert(new_node->obj_flags().has(NodeObjFlags::SpecReroute), "New node is not reroute. w:" << get_id() << ", n:" << new_node->get_instance_id() << ", t:" << typeid(new_node).name());
@@ -1147,7 +1147,16 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
 
     LogRAssert(link, "Zero ptr", );
 
-    m_action->multi_action_on("Reroute");
+    struct MultiActionGuard final
+    {
+        explicit MultiActionGuard(WorkflowAction* action) : m_action(action) 
+        { m_action->multi_action_on("Reroute"); }
+        ~MultiActionGuard() { m_action->multi_action_off(); }
+        MultiActionGuard(const MultiActionGuard&) = delete;
+        MultiActionGuard& operator=(const MultiActionGuard&) = delete;
+        WorkflowAction* m_action;
+    };
+    const MultiActionGuard multi_action_guard(m_action.get());
 
     auto left = link->get_output();
     auto right = link->get_input();
@@ -1183,8 +1192,6 @@ void Workflow::insert_reroute(data::Link* link, const ImVec2& pos)
     m_action->unlink(link);
     m_action->link(left, reroute_in);
     m_action->link(right, reroute_out);
-
-    m_action->multi_action_off();
 }
 
 void Workflow::reset_wf() noexcept
@@ -1327,7 +1334,7 @@ void Workflow::apply_pre_flight_mutations()
                             if (target_in->state().value.value().index() == value.value().index())
                             {
                                 auto old = target_in->state().value;
-                                target_in->state().value = std::move(value);
+                                target_in->state().value = value;
                                 m_action->set_pin_val(target_in, std::move(old));
                                 Log("Applied value for n:" << node_id << ", p:" << pin_name);
                             }
@@ -1371,7 +1378,7 @@ void Workflow::apply_runtime_updates(iid node_id, const std::string& pin_name, P
                 target_in->state().value.value().index() == value.value().index())
             {
                 auto old = target_in->state().value;
-                target_in->state().value = std::move(value);
+                target_in->state().value = value;
                 m_action->set_pin_val(target_in, std::move(old));
                 Log("Applied value for n:" << node_id << ", p:" << pin_name);
             }
@@ -1401,7 +1408,7 @@ void Workflow::apply_runtime_updates(uint32_t link_id, std::string value)
                 pin_link != nullptr && pin_link->state().value.is_int() && pin_link->state().value.get_int() == cast::to_u32(link_id))
             {
                 auto old = pin_value->state().value;
-                *pin_value->state().value.get_string_ref() = std::move(value);
+                *pin_value->state().value.get_string_ref() = value;
                 m_action->set_pin_val(pin_value, std::move(old));
                 Log("Applied value for n:" << node->get_instance_id() << ", l:" << link_id);
             }

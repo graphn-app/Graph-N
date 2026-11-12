@@ -798,10 +798,12 @@ void NodesParser::parse_output(NodesManager& manager, data::Node& node, const o_
 
                 pin->finalize();
                 auto ptr = pin.get();
-                node.output.push_back(pin.get());
-                if (!manager.m_pins.emplace(pin->get_hash(), std::move(pin)).second) [[unlikely]]
+                const auto pin_name = pin->def_state.name;
+                if (manager.m_pins.emplace(pin->get_hash(), std::move(pin)).second) [[likely]]
+                    node.output.push_back(ptr);
+                else [[unlikely]]
                 {
-                    LogUnhandledJson("/output/. Pin name duplicate. Node=" << node.name << ", pin=" << ptr->def_state.name << ", idx=" << index);
+                    LogUnhandledJson("/output/. Pin name duplicate. Node=" << node.name << ", pin=" << pin_name << ", idx=" << index);
                 }
             }
         }

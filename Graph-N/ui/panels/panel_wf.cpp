@@ -40,6 +40,9 @@ void PanelWorkflow::stop_and_cleanup() noexcept
     if (g::pGraphN != nullptr)
         g::pGraphN->unsubscribe_comfyui_validity_state(this);
 
+    if (g::pHotkeysManager != nullptr)
+        g::pHotkeysManager->remove_listener(this);
+
     if (m_wf != nullptr)
     {
         m_wf->get_data().activated = false;        
@@ -570,9 +573,14 @@ void PanelWorkflow::handle_dnd()
             ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
             const hid node_hash = *(const hid*)payload->Data;
             auto node = g::pNodesManager->find_node(node_hash);
-            const auto* inst = m_action->add_node(node, "", ImRect(m_drawer.get_mouse_pos(), ImVec2(-1, -1)));
-            Log("Node '" << inst->get_name() << "' dropped");
-            g::pFlow->wf_activate(m_wf->get_id());
+            if (node != nullptr)
+            {
+                const auto* inst = m_action->add_node(node, "", ImRect(m_drawer.get_mouse_pos(), ImVec2(-1, -1)));
+                Log("Node '" << inst->get_name() << "' dropped");
+                g::pFlow->wf_activate(m_wf->get_id());
+            }
+            else
+                LogWarn("Dropped node not found: " << node_hash);
         }
         ImGui::EndDragDropTarget();
     }
@@ -812,7 +820,17 @@ void PanelWorkflow::create_toolbar()
                 el.on_preview = [this](PanelToolbar::Element& el) noexcept
                 {
                     if (-1 == m_tasks_num || 0 == m_tasks_num)  el.cb_item_sel = 0;
-                    else                                        el.cb_item_sel = m_tasks_num;
+                    else
+                    {
+                        for (size_t i = 1; i < el.cb_items.size(); ++i)
+                        {
+                            if (std::strtol(el.cb_items[i], nullptr, 10) == m_tasks_num)
+                            {
+                                el.cb_item_sel = cast::to_i32(i);
+                                break;
+                            }
+                        }
+                    }
                 };
                 el.on_click = [this](PanelToolbar::Element& el)
                 {
@@ -872,12 +890,12 @@ void PanelWorkflow::check_history()
 
     if (history.undo_name != nullptr)
     {
-        end_ptr = fmt::format_to_n(m_undo_name, sizeof(m_undo_name), FMT_STRING("Undo: {}"), *history.undo_name).out;
+        end_ptr = fmt::format_to_n(m_undo_name, sizeof(m_undo_name) - 1, FMT_STRING("Undo: {}"), *history.undo_name).out;
         *end_ptr = 0;
     }
     if (history.redo_name != nullptr)
     {
-        end_ptr = fmt::format_to_n(m_redo_name, sizeof(m_redo_name), FMT_STRING("Redo: {}"), *history.redo_name).out;
+        end_ptr = fmt::format_to_n(m_redo_name, sizeof(m_redo_name) - 1, FMT_STRING("Redo: {}"), *history.redo_name).out;
         *end_ptr = 0;
     }
 
@@ -885,7 +903,7 @@ void PanelWorkflow::check_history()
     {
         if (0 == diff)
         {
-            end_ptr = fmt::format_to_n(m_tt_revert, sizeof(m_tt_revert),
+            end_ptr = fmt::format_to_n(m_tt_revert, sizeof(m_tt_revert) - 1,
                 FMT_COMPILE("Revert to saved state\n"
                     "Last saved: {:02} {} {}, {:02}:{:02}"),
                 data.saved_time.day(), data.saved_time.month_name(3), data.saved_time.year(), data.saved_time.hour(), data.saved_time.minute()
@@ -893,7 +911,7 @@ void PanelWorkflow::check_history()
         }
         else
         {
-            end_ptr = fmt::format_to_n(m_tt_revert, sizeof(m_tt_revert),
+            end_ptr = fmt::format_to_n(m_tt_revert, sizeof(m_tt_revert) - 1,
                 FMT_COMPILE("Revert to saved state\n"
                     "Last saved: {:02} {} {}, {:02}:{:02}\n"
                     "Will {} {} {}"),
@@ -908,17 +926,17 @@ void PanelWorkflow::check_history()
     {
         if (diff != 0 && data.saved_exist)
         {
-            end_ptr = fmt::format_to_n(m_history_status, sizeof(m_history_status), FMT_STRING("Draft: {}{}"), (diff > 0 ? "+" : ""), diff).out;
+            end_ptr = fmt::format_to_n(m_history_status, sizeof(m_history_status) - 1, FMT_STRING("Draft: {}{}"), (diff > 0 ? "+" : ""), diff).out;
         }
         else
         {
-            end_ptr = fmt::format_to_n(m_history_status, sizeof(m_history_status), "Draft").out;
+            end_ptr = fmt::format_to_n(m_history_status, sizeof(m_history_status) - 1, "Draft").out;
         }
         *end_ptr = 0;
 
         if (!data.draft_time.null())
         {
-            end_ptr = fmt::format_to_n(m_tt_history_status, sizeof(m_tt_history_status),
+            end_ptr = fmt::format_to_n(m_tt_history_status, sizeof(m_tt_history_status) - 1,
                 FMT_COMPILE("Autosaved as draft at {:02} {} {}, {:02}:{:02}"),
                 data.draft_time.day(), data.draft_time.month_name(3), data.draft_time.year(), data.draft_time.hour(), data.draft_time.minute()
             ).out;
@@ -927,10 +945,10 @@ void PanelWorkflow::check_history()
     }
     else
     {
-        end_ptr = fmt::format_to_n(m_history_status, sizeof(m_history_status), "Saved").out;
+        end_ptr = fmt::format_to_n(m_history_status, sizeof(m_history_status) - 1, "Saved").out;
         *end_ptr = 0;
 
-        end_ptr = fmt::format_to_n(m_tt_history_status, sizeof(m_tt_history_status),
+        end_ptr = fmt::format_to_n(m_tt_history_status, sizeof(m_tt_history_status) - 1,
             FMT_COMPILE("Saved at {:02} {} {}, {:02}:{:02}"),
             data.saved_time.day(), data.saved_time.month_name(3), data.saved_time.year(), data.saved_time.hour(), data.saved_time.minute()
         ).out;

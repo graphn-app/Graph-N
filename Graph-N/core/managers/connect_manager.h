@@ -97,8 +97,9 @@ private:
 
     std::mutex m_http_pickup_mutex;
     std::queue<std::shared_ptr<RequestData>> m_http_pickup;
-    std::atomic_bool m_http_pickup_empty;
+    std::atomic_bool m_http_pickup_empty = true;
 
+    std::mutex m_ws_mutex;
     std::shared_ptr<WebSocket> m_ws;
     std::list<std::pair<bool, std::string>> m_ws_pickup;
 };

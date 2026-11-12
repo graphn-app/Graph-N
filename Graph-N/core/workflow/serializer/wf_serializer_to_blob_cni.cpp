@@ -186,7 +186,7 @@ void WfSerializerToBlob::serialize_cni_node_fast_group_switcher_rgthree()
 {
     blob::Block block(m_writer);
 
-    auto sw_node = cast::strict<CNI_FastModeSwitcherRgthree>(m_curr_node);
+    auto sw_node = cast::strict<CNI_FastSwitcherBaseRgthree>(m_curr_node);
     auto data = sw_node->dump();
 
     m_writer.push(data.out_id);
@@ -200,7 +200,7 @@ void WfSerializerToBlob::serialize_cni_node_fast_action_rgthree()
 {
     blob::Block block(m_writer);
 
-    auto sw_node = cast::strict<CNI_FastModeSwitcherRgthree>(m_curr_node);
+    auto sw_node = cast::strict<CNI_FastSwitcherBaseRgthree>(m_curr_node);
     auto data = sw_node->dump();
 
     m_writer.push(cast::to_u64(data.in_ids.size()));

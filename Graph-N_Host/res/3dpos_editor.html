@@ -216,7 +216,7 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
 
         // === STATE & HISTORY ===
 		const state = {
-            thickness: INJECTED_SETTINGS?.thickness ?? defaultSettings.thickness,
+            thickness: Math.max(0.1, Math.min(1.0, Number(INJECTED_SETTINGS?.thickness ?? defaultSettings.thickness) || defaultSettings.thickness)),
             skeletonVisible: INJECTED_SETTINGS?.skeletonVisible ?? defaultSettings.skeletonVisible,
             imageVisible: INJECTED_SETTINGS?.imageVisible ?? defaultSettings.imageVisible,
             gridVisible: INJECTED_SETTINGS?.gridVisible ?? defaultSettings.gridVisible,
@@ -321,10 +321,12 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
             resizeWorkspace();
             saveHistory(); 
         };
+        bgImage.onerror = () => { resInfo.innerText = "Failed to load image"; resizeWorkspace(); saveHistory(); };
         bgImage.src = `${API_BASE}/input.png?t=` + Date.now();
 
         function resizeWorkspace() {
-            if (state.imgWidth === 0) return;
+            if (!state.imgWidth || !state.imgHeight) return;
+            if (workspace.clientWidth <= 0 || workspace.clientHeight <= 0) return;
             const wsAspect = workspace.clientWidth / workspace.clientHeight;
             const imgAspect = state.imgWidth / state.imgHeight;
             
@@ -337,6 +339,7 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
                 h = w / imgAspect;
             }
 
+            w = Math.max(1, w); h = Math.max(1, h);
             container.style.width = `${w}px`;
             container.style.height = `${h}px`;
             camera.aspect = w / h;
@@ -378,6 +381,9 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
         }, { capture: true });
 
         window.addEventListener('keydown', (e) => {
+            const t = e.target;
+            if (t && (t.isContentEditable || t.tagName === 'TEXTAREA' ||
+                (t.tagName === 'INPUT' && /^(text|number|search|password|email|url)$/i.test(t.type)))) return;
             if (e.key === 'Escape') transformControl.detach();
             if (e.ctrlKey && e.code === 'KeyZ') { undo(); e.preventDefault(); }
             if (e.ctrlKey && e.code === 'KeyY') { redo(); e.preventDefault(); }
@@ -385,15 +391,17 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
 
         // === HISTORY SYSTEM ===
         function saveHistory() {
-            if (state.historyStep < state.history.length - 1) {
-                state.history = state.history.slice(0, state.historyStep + 1);
-            }
-            if (state.history.length > 30) state.history.shift(); 
-            
             const snapshot = {
                 groupPos: skeletonGroup.position.toArray(),
                 joints: joints.map(j => j.position.toArray())
             };
+            // skip no-op entries (e.g. gizmo dragged without actual movement)
+            const cur = state.history[state.historyStep];
+            if (cur && JSON.stringify(cur) === JSON.stringify(snapshot)) return;
+            if (state.historyStep < state.history.length - 1) {
+                state.history = state.history.slice(0, state.historyStep + 1);
+            }
+            if (state.history.length > 30) state.history.shift(); 
             
             state.history.push(snapshot);
             state.historyStep = state.history.length - 1;
@@ -510,8 +518,6 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
         function generateOutput(asBase64) {
             transformControl.detach();
             
-            const oldWidth = container.clientWidth;
-            const oldHeight = container.clientHeight;
             const oldClearColor = renderer.getClearColor(new THREE.Color());
             const oldClearAlpha = renderer.getClearAlpha();
             
@@ -533,15 +539,14 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
             renderer.setClearColor(oldClearColor, oldClearAlpha);
             gridHelper.visible = gridWasVisible;
             skeletonGroup.visible = skeletonWasVisible;
-            camera.aspect = oldWidth / oldHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(oldWidth, oldHeight);
+            resizeWorkspace();
             renderer.render(scene, camera); 
 
             if (asBase64) return dataUrl;
 
             fetch(dataUrl).then(res => res.blob()).then(async (blob) => {
                 const btn = document.getElementById('btnSaveHost');
+                const btnText = btn.innerText;
                 btn.innerText = "SAVING...";
                 try {
                     const currentSettings = {
@@ -551,17 +556,20 @@ Copyright (c) 2026 Serhii Kalenchuk. Licensed under the GPLv3. See LICENSE file.
                         gridVisible: state.gridVisible
                     };
 
-                    await fetch(`${API_BASE}/save_mask`, {
+                    // HTTP header values must be Latin-1: escape non-ASCII (still valid JSON)
+                    const settingsHeader = JSON.stringify(currentSettings).replace(/[\u007f-\uffff]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+                    const saveRes = await fetch(`${API_BASE}/save_mask`, {
                         method: "POST",
                         body: blob,
                         headers: { 
                             "Content-Type": "image/png",
-                            "X-Editor-Settings": JSON.stringify(currentSettings)
+                            "X-Editor-Settings": settingsHeader
                         }
                     });
-                } catch (e) { console.error(e); } 
-                finally { btn.innerText = "Save to node"; }
-            });
+                    if (!saveRes.ok) alert("Save failed (HTTP " + saveRes.status + ")");
+                } catch (e) { console.error(e); alert("Save failed: " + e.message); } 
+                finally { btn.innerText = btnText; }
+            }).catch(e => { console.error(e); alert("Save failed: " + e.message); });
         }
 
         document.getElementById('btnSaveHost').onclick = () => generateOutput(false);

@@ -40,9 +40,17 @@ void CustomMediaWidget::draw_text_widget_from_output(OutputData& out)
     ImGui::SetCursorPosX(m_start_pos + m_widget_width - button_size * 0.5f);
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4.0f); // top padding
 
-    const ImGuiID btn_id = ImGui::GetID(out.item.text_info.c_str()); 
+    ImGui::PushID(&out.item);
+    const ImGuiID btn_id = ImGui::GetID("##copy");
     static std::map<ImGuiID, double> copy_timestamps;
-    const bool is_copied = (ImGui::GetTime() - copy_timestamps[btn_id]) < 1.0;
+    constexpr size_t max_timestamps = 256;
+    if (copy_timestamps.size() > max_timestamps) [[unlikely]]
+    {
+        const double now = ImGui::GetTime();
+        std::erase_if(copy_timestamps, [now](const auto& kv) noexcept { return now - kv.second >= 1.0; });
+    }
+    const auto ts_it = copy_timestamps.find(btn_id);
+    const bool is_copied = (ts_it != copy_timestamps.end()) && (ImGui::GetTime() - ts_it->second) < 1.0;
     const char* icon = is_copied ? ICON_LC_CHECK : ICON_LC_CLIPBOARD_COPY;
 
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 0, 0, 0));
@@ -59,6 +67,7 @@ void CustomMediaWidget::draw_text_widget_from_output(OutputData& out)
 
     ImGui::PopStyleVar();
     ImGui::PopStyleColor(4);
+    ImGui::PopID();
 }
 
 void CustomMediaWidget::copy_text_output(wid wf_id, iid node_id)

@@ -25,6 +25,14 @@ o_json WfSerializerToJsonApi::serialize()
     try
     {
         std::shared_ptr<Workflow> virt_wf = g::pWfsManager->create_copy_virtual(m_wf);
+
+        struct VirtWfGuard final
+        {
+            wid id = 0;
+            ~VirtWfGuard() { g::pWfsManager->erase_wf(id); }
+        };
+        const VirtWfGuard virt_wf_guard{ virt_wf->get_id() };
+
         virt_wf->prepare_for_api();
         m_wf = virt_wf.get();
 
@@ -69,6 +77,10 @@ o_json WfSerializerToJsonApi::serialize()
                         if constexpr (std::is_same_v<T, double> || std::is_same_v<T, bool>)
                         {
                             input = v;
+                        }
+                        else if constexpr (std::is_same_v<T, number>)
+                        {
+                            input = v.underlying_type();
                         }
                         else if constexpr (std::is_same_v<T, int64_t>)
                         {
@@ -138,7 +150,6 @@ o_json WfSerializerToJsonApi::serialize()
         }
 
         m_wf = nullptr;
-        g::pWfsManager->erase_wf(virt_wf->get_id());
         return j;
     }
     catch (const std::exception& ex)

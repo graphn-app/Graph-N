@@ -33,7 +33,15 @@ PanelQueue::PanelQueue()
     : PanelBase(DlgObj::PanelQueue, "Queue")
 {}
 
-PanelQueue::~PanelQueue() noexcept = default;
+PanelQueue::~PanelQueue() noexcept
+{
+    if (m_load_history_stop)
+        m_load_history_stop->store(true, std::memory_order_relaxed);
+    for (int32_t i = 0; i < 500 && m_history_loading_active.load(std::memory_order_relaxed); ++i)
+    {
+        std::this_thread::sleep_for(10ms);
+    }
+}
 
 void PanelQueue::init()
 {
@@ -531,7 +539,7 @@ void PanelQueue::show_completed_tasks()
 
     for (auto it = past.rbegin(); it != past.rend(); ++it)
     {
-        if (count > m_current_history_displays)
+        if (count > m_current_completed_displays)
             break;
 
         auto& g = *it;
@@ -565,7 +573,6 @@ void PanelQueue::show_completed_tasks()
 
         for (auto& t : g.completed)
         {
-            count++;
             if (count++ > m_current_completed_displays)
                 break;
 
@@ -676,7 +683,7 @@ void PanelQueue::show_completed_task(uint64_t group_id, mngr::ExecTask* task, co
     }
 
     char run_no_txt[15] = {};
-    auto end_ptr = fmt::format_to_n(run_no_txt, sizeof(run_no_txt), FMT_STRING("Run {}."), task->run_no).out;
+    auto end_ptr = fmt::format_to_n(run_no_txt, sizeof(run_no_txt) - 1, FMT_STRING("Run {}."), task->run_no).out;
     *end_ptr = 0;
     ImGui::SameLine();
     const float off1 = ImGui::GetCursorPosX();
@@ -770,10 +777,10 @@ void PanelQueue::show_completed_task(uint64_t group_id, mngr::ExecTask* task, co
 
         if (!hidden)
         {
-            int32_t o_pushid = 0;
             for (auto it = task->outputs.rbegin(); it != task->outputs.rend(); ++it)
             {
                 auto& o = *it;
+                const int32_t o_pushid = cast::to_i32(std::distance(task->outputs.rbegin(), it)) + 1;
                 if (!o.ready && !task->loaded_from_server && !task->loaded_from_db)
                     continue;
 
@@ -811,7 +818,7 @@ void PanelQueue::show_completed_task(uint64_t group_id, mngr::ExecTask* task, co
                     continue;
                 }
 
-                ImGui::PushID(++o_pushid);
+                ImGui::PushID(o_pushid);
                 ImGui::SetCursorPosX(off1);
 
                 show_asset_info(o, task->outputs.size() > 1 ? o_pushid : 0);
@@ -906,7 +913,7 @@ void PanelQueue::show_asset_info(const mngr::ExecTask::Output& output, size_t ou
         ImGui::PushStyleColor(ImGuiCol_Separator, sep_color);
         ImGui::PushStyleColor(ImGuiCol_Text, sep_color);
 
-        *fmt::format_to_n(buffer, sizeof(buffer), FMT_STRING("{}"), out_idx).out = 0;
+        *fmt::format_to_n(buffer, sizeof(buffer) - 1, FMT_STRING("{}"), out_idx).out = 0;
         ImGui::SeparatorText(buffer);
 
         ImGui::PopStyleColor(2);
@@ -920,7 +927,7 @@ void PanelQueue::show_asset_info(const mngr::ExecTask::Output& output, size_t ou
     {
         if (!output.text_info.line.empty())
         {
-            *fmt::format_to_n(buffer, sizeof(buffer), FMT_STRING(ICON_LC_CLIPBOARD_COPY " {} bytes"), output.text_info.line.size()).out = 0;
+            *fmt::format_to_n(buffer, sizeof(buffer) - 1, FMT_STRING(ICON_LC_CLIPBOARD_COPY " {} bytes"), output.text_info.line.size()).out = 0;
             if (ImGuiEx::UrlButton(buffer, "Copy to clipboard",
                 g::pOptsManager->color_load(AppColor::ActivityBarInactive),
                 g::pOptsManager->color_load(AppColor::SelectedItem), false))
@@ -984,15 +991,15 @@ void PanelQueue::show_asset_info(const mngr::ExecTask::Output& output, size_t ou
             ImGui::SetCursorPosX(pos);
             if (is_image)
             {
-                *fmt::format_to_n(buffer, sizeof(buffer), FMT_STRING("w: {}px, h: {}px"), output.image_info.width, output.image_info.height).out = 0;
+                *fmt::format_to_n(buffer, sizeof(buffer) - 1, FMT_STRING("w: {}px, h: {}px"), output.image_info.width, output.image_info.height).out = 0;
             }
             else if (is_audio)
             {
-                *fmt::format_to_n(buffer, sizeof(buffer), FMT_STRING("d: {:.3f}s, sr: {}Hz, ch: {}"), output.audio_info.duration_sec, output.audio_info.sample_rate, output.audio_info.channels).out = 0;
+                *fmt::format_to_n(buffer, sizeof(buffer) - 1, FMT_STRING("d: {:.3f}s, sr: {}Hz, ch: {}"), output.audio_info.duration_sec, output.audio_info.sample_rate, output.audio_info.channels).out = 0;
             }
             else
             {
-                *fmt::format_to_n(buffer, sizeof(buffer), FMT_STRING("w: {}px, h: {}px, fps: {}, d: {:.3f}s"), output.video_info.width, output.video_info.height, output.video_info.fps, output.video_info.duration_sec).out = 0;
+                *fmt::format_to_n(buffer, sizeof(buffer) - 1, FMT_STRING("w: {}px, h: {}px, fps: {}, d: {:.3f}s"), output.video_info.width, output.video_info.height, output.video_info.fps, output.video_info.duration_sec).out = 0;
             }
             ImGui::PushStyleColor(ImGuiCol_Text, g::pOptsManager->color_load(AppColor::ActivityBarInactive));
             ImGui::TextUnformatted(buffer);
@@ -1030,7 +1037,7 @@ void PanelQueue::show_image(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
             }
 
             ImGui::Image(textures, rect);
-            if (tools::path::exists(output.binary_path))
+            if (!output.binary_path.empty())
             {
                 ImGuiEx::TooltipOnLastControl([out = &output]()
                 {
@@ -1058,7 +1065,7 @@ void PanelQueue::show_image(mngr::ExecTask::Output& output, ImVec2 rect, bool& s
 
 namespace
 {
-const char* format_timeline(char buffer[32], float duration, float pos)
+const char* format_timeline(char (&buffer)[32], float duration, float pos)
 {
     const auto get_times = [](const float time, int32_t& h, int32_t& m, int32_t& s, int32_t& ms) noexcept
     {
@@ -1076,11 +1083,11 @@ const char* format_timeline(char buffer[32], float duration, float pos)
     get_times(pos, curr_h, curr_m, curr_s, curr_ms);
 
     if (total_h > 0)
-        *fmt::format_to_n(buffer, sizeof(buffer), FMT_STRING("{:02}:{:02}:{:02}.{:03}"), curr_h, curr_m, curr_s, curr_ms).out = 0;
+        *fmt::format_to_n(buffer, sizeof(buffer) - 1, FMT_STRING("{:02}:{:02}:{:02}.{:03}"), curr_h, curr_m, curr_s, curr_ms).out = 0;
     else if (total_m > 0)
-        *fmt::format_to_n(buffer, sizeof(buffer), FMT_STRING("{:02}:{:02}.{:03}"), curr_m, curr_s, curr_ms).out = 0;
+        *fmt::format_to_n(buffer, sizeof(buffer) - 1, FMT_STRING("{:02}:{:02}.{:03}"), curr_m, curr_s, curr_ms).out = 0;
     else
-        *fmt::format_to_n(buffer, sizeof(buffer), FMT_STRING("{:02}.{:03}"), curr_s, curr_ms).out = 0;
+        *fmt::format_to_n(buffer, sizeof(buffer) - 1, FMT_STRING("{:02}.{:03}"), curr_s, curr_ms).out = 0;
 
     return buffer;
 }

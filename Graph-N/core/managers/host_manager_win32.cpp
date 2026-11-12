@@ -182,7 +182,7 @@ uint32_t HostManager_Win32::host_thread_worker(std::shared_ptr<HostProcess> host
     const auto min_size = cast::to<DWORD>(blob::HostSerializer::get_min_size());
     const auto max_size = cast::to<DWORD>(blob::HostSerializer::get_max_size());
 
-    const HANDLE hpipe = ::CreateNamedPipeW(pipe_name.c_str(), PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+    const HANDLE hpipe = ::CreateNamedPipeW(pipe_name.c_str(), PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
         1, std::max(max_size, DWORD(4096)), std::max(max_size, DWORD(4096)), 0, nullptr);
     if (INVALID_HANDLE_VALUE == hpipe)
         return notify_start_failed("Can't create IPC pipe");
@@ -217,7 +217,10 @@ uint32_t HostManager_Win32::host_thread_worker(std::shared_ptr<HostProcess> host
     ov.hEvent = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
     if (::ResumeThread(pi.hThread) == DWORD(-1))
+    {
+        ::CloseHandle(ov.hEvent);
         return notify_start_failed("Failed to resume process");
+    }
     hthread.reset();
 
     Log("Starting " << host_path << " " << command_line);
@@ -237,7 +240,12 @@ uint32_t HostManager_Win32::host_thread_worker(std::shared_ptr<HostProcess> host
         if (apierr == ERROR_IO_PENDING)
         {
             if (::WaitForSingleObject(ov.hEvent, pipe_timeout) != WAIT_OBJECT_0)
+            {
+                ::CancelIoEx(host_proc->hpipe.get(), &ov);
+                DWORD transferred = 0;
+                ::GetOverlappedResult(host_proc->hpipe.get(), &ov, &transferred, TRUE);
                 result = notify_start_failed("Pipe wasn't connected by client");
+            }
         }
         else if (apierr != ERROR_PIPE_CONNECTED)
             result = notify_start_failed("Can't connect pipe");

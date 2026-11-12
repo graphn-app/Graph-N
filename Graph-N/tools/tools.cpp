@@ -82,6 +82,12 @@ std::vector<std::string> split(std::string_view str, std::string_view separator,
     if (str.empty())
         return out;
 
+    if (separator.empty())
+    {
+        out.emplace_back(str);
+        return out;
+    }
+
     out.reserve(str.size() / 3);
 
     size_t start = 0;
@@ -322,7 +328,7 @@ std::vector<byte> base64_decode(const char* base64, size_t len)
     int32_t val = 0, valb = -8;
     for (size_t idx = 0; idx < len; idx++)
     {
-        const char c = base64[idx];
+        const auto c = static_cast<unsigned char>(base64[idx]);
         if (T[c] == -1)
             break;
         val = (val << 6) + T[c];
@@ -389,7 +395,7 @@ std::string sha256(const std::vector<byte>& src)
         {
             if (j < 16)
             {
-                w[j] = (buffer[i + j * 4] << 24) | (buffer[i + j * 4 + 1] << 16) | (buffer[i + j * 4 + 2] << 8) | buffer[i + j * 4 + 3];
+                w[j] = (uint32_t(buffer[i + j * 4]) << 24) | (uint32_t(buffer[i + j * 4 + 1]) << 16) | (uint32_t(buffer[i + j * 4 + 2]) << 8) | uint32_t(buffer[i + j * 4 + 3]);
             }
             else
             {
@@ -517,7 +523,7 @@ std::optional<std::filesystem::path> copy(const std::filesystem::path& from, con
         return std::nullopt;
     }
 
-    const bool exists = std::filesystem::exists(to);
+    const bool exists = std::filesystem::exists(to, ec);
     if (exists && !overwrite && !rename)
     {
         LogS("Can't copy file from '" << from << "' to '" << to << "' - dest file exists, overwrite & rename weren't set");
@@ -559,7 +565,7 @@ std::optional<std::filesystem::path> move(const std::filesystem::path& from, con
         return std::nullopt;
     }
 
-    const bool exists = std::filesystem::exists(to);
+    const bool exists = std::filesystem::exists(to, ec);
     if (exists && !overwrite && !rename)
     {
         LogS("Can't move file from '" << from << "' to '" << to << "' - dest file exists, overwrite & rename weren't set");
@@ -1209,13 +1215,17 @@ std::string& clear_filename(std::string& filename)
     tools::str::replace_this(filename, ">", "_");
     tools::str::replace_this(filename, "|", "_");
 
+    // Windows reserves device names even with an extension ("con.txt"), so compare the stem only
     auto low = tools::str::to_lower_ascii(filename);
+    const auto dot = low.find('.');
+    if (dot != std::string::npos)
+        low.resize(dot);
     if ("con" == low || "prn" == low || "aux" == low || "nul" == low || "com1" == low || "com2" == low || "com3" == low ||
         "com4" == low || "com5" == low || "com6" == low || "com7" == low || "com8" == low || "com9" == low || "lpt1" == low ||
         "lpt2" == low || "lpt3" == low || "lpt4" == low || "lpt5" == low || "lpt6" == low || "lpt7" == low || "lpt8" == low ||
         "lpt9" == low)
     {
-        filename += "_";
+        filename.insert(low.size(), "_"); // before the extension: "con.txt" -> "con_.txt"
     }
 
     return filename;
@@ -1322,7 +1332,7 @@ std::string cleanup_json(const std::string& buffer, size_t offset)
 
 uint32_t read_be32(const unsigned char* data) noexcept
 {
-    return (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+    return (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) | (uint32_t(data[2]) << 8) | uint32_t(data[3]);
 }
 
 size_t extract_png_tEXt(const std::string& file_data, bool search_api) noexcept
@@ -1385,7 +1395,7 @@ namespace
 {
 uint32_t read_le32(const unsigned char* data) noexcept
 {
-    return data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
+    return uint32_t(data[0]) | (uint32_t(data[1]) << 8) | (uint32_t(data[2]) << 16) | (uint32_t(data[3]) << 24);
 }
 
 size_t extract_webp_exif(const std::string& file_data, bool search_api) noexcept

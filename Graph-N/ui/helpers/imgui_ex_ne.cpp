@@ -98,8 +98,12 @@ void Combo(DeferredAction& act, data::NodeInstance* node, data::PinInstance* pin
     ImGui::RenderFrameBorder(bb.Min, bb.Max, style.FrameRounding);
 
     // Render preview and label
-    if (items != nullptr)
-        ImGui::RenderTextClipped(bb.Min + style.FramePadding, ImVec2(value_x2, bb.Max.y), items[*current_item], nullptr, nullptr);
+    if (items != nullptr && current_item != nullptr && items_count > 0)
+    {
+        const auto cur = *current_item;
+        const char* preview = (cur >= 0 && cur < items_count && items[cur]) ? items[cur] : "";
+        ImGui::RenderTextClipped(bb.Min + style.FramePadding, ImVec2(value_x2, bb.Max.y), preview, nullptr, nullptr);
+    }
     if (label_size.x > 0)
         ImGui::RenderText(ImVec2(bb.Max.x + style.ItemInnerSpacing.x, bb.Min.y + style.FramePadding.y), label);
 }

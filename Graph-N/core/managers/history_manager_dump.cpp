@@ -86,7 +86,9 @@ std::string action_val_to_str(const HActionT& val)
 
 void HistoryManager::LogAction(const HistoryAction& action, const char* state, int32_t pos /*= 0*/, int32_t saved_pos /*= 0*/, size_t total /*= 0*/) const
 {
-    const auto& wf_data = g::pWfsManager->access(action.wf)->get_data();
+    const auto* wf = g::pWfsManager->access(action.wf, true);
+    static const mngr::WfData empty_data;
+    const auto& wf_data = wf != nullptr ? wf->get_data() : empty_data;
     const std::string pos_info = total > 0 ? fmt::format(FMT_STRING(" [Pos:{}/{}, Saved:{}]"), pos, total, saved_pos) : "";
     Log(fmt::format(FMT_STRING("[Wf:{}, {}, {}] Act #{} '{}'{} | Sts:{} Cntr:{} -> {}"), 
         action.wf, (wf_data.dirty ? "dirty" : "stable"), (wf_data.draft ? "draft" : "saved"),
@@ -96,7 +98,9 @@ void HistoryManager::LogAction(const HistoryAction& action, const char* state, i
 
 void HistoryManager::LogAction(wid wf_id, const char* state, int32_t pos /*= 0*/, int32_t saved_pos /*= 0*/, size_t total /*= 0*/) const
 {
-    const auto& wf_data = g::pWfsManager->access(wf_id)->get_data();
+    const auto* wf = g::pWfsManager->access(wf_id, true);
+    static const mngr::WfData empty_data;
+    const auto &wf_data = wf != nullptr ? wf->get_data() : empty_data;
     Log(fmt::format(FMT_STRING("[Wf:{}, {}] [Pos:{}/{}, Saved:{}] -> {}"), 
         wf_id, (wf_data.dirty ? "dirty" : "stable"),
         pos, total, saved_pos,
@@ -127,4 +131,3 @@ void HistoryManager::LogStep(const HistoryStep* step, bool is_undo /*= false*/) 
 }
 
 } // namespace mngr
-

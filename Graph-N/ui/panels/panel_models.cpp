@@ -443,7 +443,9 @@ void PanelModels::on_show_tt(int32_t idx)
     ImGui::TextUnformatted(model->name.c_str(), model->name.c_str() + model->name.size());
     fg.pop();
     ImGui::Separator();
-    ImGui::TextWrapped(model->info.descr.c_str(), model->info.descr.c_str() + model->info.descr.size());
+    ImGui::PushTextWrapPos(0.0f);
+    ImGui::TextUnformatted(model->info.descr.c_str(), model->info.descr.c_str() + model->info.descr.size());
+    ImGui::PopTextWrapPos();
     ImGui::Separator();
     ImGui::TextUnformatted(model->info.info.c_str(), model->info.info.c_str() + model->info.info.size());
 

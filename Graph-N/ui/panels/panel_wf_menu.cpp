@@ -445,6 +445,11 @@ bool PanelWorkflow::show_bookmarks_menu(const std::string& caption)
     if (ImGui::MenuItem(ICON_LC_BOOKMARK " Add new bookmark"))
     {
         auto node = g::pNodesManager->find_node(js::RGTHREE_BOOKMARK);
+        if (node == nullptr)
+        {
+            LogWarn("Bookmark node is not installed");
+            return true;
+        }
         const auto* inst = m_action->add_node(node, "", ImRect(m_drawer.get_mouse_pos(), ImVec2(-1, -1)));
         Log("Node '" << inst->get_name() << "' dropped");
         return true;
@@ -541,7 +546,7 @@ bool PanelWorkflow::show_node_menu()
             g::pFlow->host_open_mask_editor(get_workflow()->get_id(), node->get_instance_id());
             close = true;
         }
-        if (ImGui::MenuItem("Open in 3D Pose Editor", nullptr, nullptr, node->flags().has_and_has_not(NodeInstFlags::MaskEditorReady, NodeInstFlags::MaskEditorRunning)))
+        if (ImGui::MenuItem("Open in 3D Pose Editor", nullptr, nullptr, node->flags().has_and_has_not(NodeInstFlags::PosEditorReady, NodeInstFlags::MaskEditorRunning)))
         {
             g::pFlow->host_open_3dpos_editor(get_workflow()->get_id(), node->get_instance_id());
             close = true;

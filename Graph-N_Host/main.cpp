@@ -8,10 +8,10 @@
 #define IDI_POSEDITOR           102
 #define IDI_MASKEDITOR          103
 
-#define APPCAPT_POSEDITOR       "Graph-N 3D Pose Editor"
-#define APPCAPT_POSEDITOR_W     L"Graph-N 3D Pose Editor"
-#define APPCAPT_MASKEDITOR      "Graph-N Mask Editor"
-#define APPCAPT_MASKEDITOR_W    L"Graph-N Mask Editor"
+#define APPCAPT_POSEDITOR       APP_CAPTION " 3D Pose Editor"
+#define APPCAPT_POSEDITOR_W     APP_CAPTION_W L" 3D Pose Editor"
+#define APPCAPT_MASKEDITOR      APP_CAPTION " Mask Editor"
+#define APPCAPT_MASKEDITOR_W    APP_CAPTION_W L" Mask Editor"
 
 #define ARG_PIPE_NAME           L"-pipe"
 #define ARG_ID                  L"-id"
@@ -61,6 +61,7 @@ struct EditorData final
     std::atomic_bool image_ready = false;
 
     // server data
+    std::mutex settings_mutex;
     blob::HostData host_data;
 
     EditorData() noexcept
@@ -194,11 +195,19 @@ void listen_thread(std::promise<bool> promise)
     };
 
     const auto min_size = cast::to<DWORD>(blob::HostSerializer::get_min_size());
-    const auto get_data_ready = [min_size]() -> DWORD
+    bool pipe_broken = false;
+    const auto get_data_ready = [min_size, &pipe_broken]() -> DWORD
     {
         DWORD bytes_avail = 0;
         const BOOL peek_status = ::PeekNamedPipe(g_data.hpipe.get(), nullptr, 0, nullptr, nullptr, &bytes_avail);
-        if (peek_status && bytes_avail >= min_size)
+        if (!peek_status)
+        {
+            const DWORD err = ::GetLastError();
+            if (ERROR_BROKEN_PIPE == err || ERROR_PIPE_NOT_CONNECTED == err || ERROR_INVALID_HANDLE == err)
+                pipe_broken = true;
+            return 0;
+        }
+        if (bytes_avail >= min_size)
         {
             LogS("Message ready: " << bytes_avail << " bytes");
             return bytes_avail;
@@ -232,9 +241,10 @@ void listen_thread(std::promise<bool> promise)
 
         ::CloseHandle(read_ov.hEvent);
 
-        if (!success || bytes_read != data_size)
+        if (!success || 0 == bytes_read || bytes_read > data_size)
             return false;
 
+        buffer.resize(bytes_read);
         blob::Blob blob(std::move(buffer));
         data = blob::HostSerializer::deserialize(blob);
 
@@ -258,6 +268,8 @@ void listen_thread(std::promise<bool> promise)
     while (0 == bytes_ready)
     {
         bytes_ready = get_data_ready();
+        if (pipe_broken)
+            return set_reply(false, "Pipe closed while waiting for init data");
         if (0 == bytes_ready)
             std::this_thread::sleep_for(100ms);
     }
@@ -296,6 +308,12 @@ void listen_thread(std::promise<bool> promise)
     while (true)
     {
         bytes_ready = get_data_ready();
+        if (pipe_broken)
+        {
+            LogS("Pipe closed by the server, exiting");
+            ::PostMessage(g_data.hwnd, WM_DESTROY, 0, 0);
+            return;
+        }
         if (bytes_ready > 0)
         {
             read_data = blob::HostData{};
@@ -314,7 +332,11 @@ void listen_thread(std::promise<bool> promise)
                         strcpy_s(wf_buff, read_data.wf_name.size() + 1, read_data.wf_name.c_str());
                         char* node_buff = new char[read_data.node_name.size() + 2];
                         strcpy_s(node_buff, read_data.node_name.size() + 1, read_data.node_name.c_str());
-                        ::PostMessage(g_data.hwnd, USER_MSG_RENAME, cast::from_ptr<WPARAM>(wf_buff), cast::from_ptr<LPARAM>(node_buff));
+                        if (!::PostMessage(g_data.hwnd, USER_MSG_RENAME, cast::from_ptr<WPARAM>(wf_buff), cast::from_ptr<LPARAM>(node_buff)))
+                        {
+                            delete[] wf_buff;
+                            delete[] node_buff;
+                        }
                     }
                     break;
                 case blob::HostData::Cmd_Terminate:
@@ -334,12 +356,15 @@ void listen_thread(std::promise<bool> promise)
                 LogS("Pipe data ready(" << bytes_ready << " bytes), but reading failed. api code: " << LogApiERR);
             }
         }
-        else if (g_data.image_ready.load(std::memory_order_relaxed))
+        else if (g_data.image_ready.load(std::memory_order_acquire))
         {
             blob::HostData apply_data;
             apply_data.host_id = g_data.host_data.host_id;
             apply_data.cmd = blob::HostData::Cmd_Apply;
-            apply_data.settings = g_data.host_data.settings;
+            {
+                std::lock_guard<std::mutex> lock(g_data.settings_mutex);
+                apply_data.settings = g_data.host_data.settings;
+            }
             LogS("Send: apply");
             write_pipe(apply_data);
         }
@@ -353,7 +378,7 @@ void build_caption()
     const char* editor = (Mode::MaskEditor == g_data.mode ? APPCAPT_MASKEDITOR : APPCAPT_POSEDITOR);
     const auto caption = fmt::format(FMT_STRING("{}. {}: {}"), editor, g_data.host_data.wf_name, g_data.host_data.node_name);
     if (g_data.hwnd != nullptr)
-        ::SetWindowTextA(g_data.hwnd, caption.c_str());
+        ::SetWindowTextW(g_data.hwnd, tools::str::utf8_to_wide(caption).c_str());
     LogS("Caption rebuilt: " << caption);
 }
 
@@ -408,7 +433,13 @@ bool load_html()
     if (g_data.host_data.settings.empty())
         tools::str::replace_this(html, "/*APP_SETTINGS_TOKEN*/", "null");
     else
-        tools::str::replace_this(html, "/*APP_SETTINGS_TOKEN*/", g_data.host_data.settings);
+    {
+        std::string settings = g_data.host_data.settings;
+        tools::str::replace_this(settings, "<", "\\u003c");
+        tools::str::replace_this(settings, "\xE2\x80\xA8", "\\u2028");
+        tools::str::replace_this(settings, "\xE2\x80\xA9", "\\u2029");
+        tools::str::replace_this(html, "/*APP_SETTINGS_TOKEN*/", settings);
+    }
     g_data.html_data.assign(html.begin(), html.end());
     return true;
 }
@@ -488,7 +519,10 @@ std::string sam_detect(const std::string& request_data)
         auto res = cli.Post("/api/sam/prepare", prepare_payload.dump(), "application/json");
         if (!res || res->status != 200)
         {
-            LogS("/api/sam/prepare returned code " << res->status);
+            if (res)
+                LogS("/api/sam/prepare returned code " << res->status);
+            else
+                LogS("/api/sam/prepare failed, httplib error " << cast::to_i32(res.error()));
             return {};
         }
 
@@ -496,13 +530,13 @@ std::string sam_detect(const std::string& request_data)
         json neg_points = json::array();
 
         const nlohmann::json request_json = json::parse(request_data);
-        auto& points = request_json["points"];
+        const auto& points = request_json.at("points");
         std::stringstream pt_str_pos, pt_str_neg;
-        for (auto& pt : points)
+        for (const auto& pt : points)
         {
-            const float x = pt["x"];
-            const float y = pt["y"];
-            const int32_t pos = pt["label"];
+            const float x = pt.at("x");
+            const float y = pt.at("y");
+            const int32_t pos = pt.at("label");
 
             if (1 == pos)
             {
@@ -521,7 +555,7 @@ std::string sam_detect(const std::string& request_data)
         }
         LogS("SAM points. Pos: " << pt_str_pos.str() << ", Neg: " << pt_str_neg.str());
 
-        const float threshold = request_json["threshold"];
+        const float threshold = request_json.at("threshold");
         const nlohmann::json detect_payload =
         {
             { "positive_points", pos_points },
@@ -531,7 +565,10 @@ std::string sam_detect(const std::string& request_data)
         res = cli.Post("/api/sam/detect", detect_payload.dump(), "application/json");
         if (!res || res->status != 200 || res->body.empty())
         {
-            LogS("/api/sam/detect returned code " << res->status << " and body size " << res->body.size());
+            if (res)
+                LogS("/api/sam/detect returned code " << res->status << " and body size " << res->body.size());
+            else
+                LogS("/api/sam/detect failed, httplib error " << static_cast<int32_t>(res.error()));
             return {};
         }
 
@@ -820,7 +857,7 @@ int32_t main(int32_t, char**)
                     if (uri.starts_with(L"http://app.local/save_mask") && L"POST" == method)
                     {
                         ::Microsoft::WRL::ComPtr<::ICoreWebView2HttpRequestHeaders> headers;
-                        g_data.host_data.settings.clear();
+                        std::string new_settings;
                         if (SUCCEEDED(req->get_Headers(&headers)) && headers)
                         {
                             LPWSTR header_value = nullptr;
@@ -828,9 +865,13 @@ int32_t main(int32_t, char**)
                             {
                                 std::wstring wsettings(header_value);
                                 ::CoTaskMemFree(header_value);
-                                g_data.host_data.settings = tools::str::wide_to_utf8(wsettings);
-                                LogS("Settings loaded: " << g_data.host_data.settings);
+                                new_settings = tools::str::wide_to_utf8(wsettings);
+                                LogS("Settings loaded: " << new_settings);
                             }
+                        }
+                        {
+                            std::lock_guard<std::mutex> lock(g_data.settings_mutex);
+                            g_data.host_data.settings = std::move(new_settings);
                         }
 
                         ::Microsoft::WRL::ComPtr<::IStream> content_stream;
@@ -844,7 +885,7 @@ int32_t main(int32_t, char**)
                                 if (save_dest_image())
                                 {
                                     hres = send_response(false, nullptr, env, args, 200, L"OK", "save_mask");
-                                    g_data.image_ready.store(true, std::memory_order_relaxed);
+                                    g_data.image_ready.store(true, std::memory_order_release);
                                     return hres;
                                 }
 
@@ -969,4 +1010,3 @@ int32_t main(int32_t, char**)
 
     return 0;
 }
-

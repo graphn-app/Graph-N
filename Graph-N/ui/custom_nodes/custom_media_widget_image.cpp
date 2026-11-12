@@ -120,6 +120,8 @@ bool CustomMediaWidget::get_current_image_paths(data::NodeInstance* node, std::f
     if (node->obj_flags().has(NodeObjFlags::CustomMediaImage) && node->obj_flags().has_any(NodeObjFlags::CustomMediaFromSourceIn, NodeObjFlags::CustomMediaFromSourceOut))
     {
         auto source_pin_obj = node->get_object()->custom_widget_source;
+        if (nullptr == source_pin_obj)
+            return false;
         data::PinInstance* source_pin_inst = nullptr;
         for (auto& input : node->get_inputs())
         {
@@ -135,6 +137,8 @@ bool CustomMediaWidget::get_current_image_paths(data::NodeInstance* node, std::f
         LogRAssert(index >= 0 && cast::to_szt(index) < source_pin_obj->combo_items_ptr.size(), "Indext out of bounds. w: " << node->get_workflow_id() << ", n:" << node->get_instance_id() << ", p:" << source_pin_inst->get_instance_id(), false);
 
         auto data_widget = node->obj_flags().has(NodeObjFlags::CustomMediaFromSourceIn) ? &m_images_in : &m_images_out;
+        if (cast::to_szt(index) >= data_widget->items.size())
+            return false;
         if (g::pTextures->get_image_alive(data_widget->items[index].media_id))
         {
             path = data_widget->items[index].temp_path;

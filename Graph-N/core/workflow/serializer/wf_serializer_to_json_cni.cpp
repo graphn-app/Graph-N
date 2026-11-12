@@ -446,7 +446,7 @@ void WfSerializerToJson::serialize_cni_node_impact_switch(o_json& j)
                 }
             }
 
-            jins.push_back(std::move(jout));
+            jouts.push_back(std::move(jout));
         }
     }
     j["outputs"] = std::move(jouts);
@@ -526,7 +526,7 @@ void WfSerializerToJson::serialize_cni_node_impact_insversed_switch(o_json& j)
                 }
             }
 
-            jins.push_back(std::move(jout));
+            jouts.push_back(std::move(jout));
         }
     }
     j["outputs"] = std::move(jouts);

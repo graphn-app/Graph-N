@@ -19,14 +19,15 @@ public:
 
     void init() override;
     void stop_and_cleanup() override;
-    bool collect_metrics(std::string& ver, std::string& ram, std::string& vram);
 
 private:
+    struct ServerStats;
+
     DlgCode show(bool& focused) override;
     void show_this_pc_as_text(float val_offset);
-    void show_server_as_text(float val_offset);
+    void show_server_as_text(float val_offset, const ServerStats* stats);
     void show_this_pc_as_bar(float val_offset);
-    void show_server_as_bar(float val_offset);
+    void show_server_as_bar(float val_offset, const ServerStats* stats);
     void show_app_performance(float val_offset);
 
     void th_api();
@@ -70,21 +71,34 @@ private:
     {
         const std::pair<std::string, bool>* disk_opt = nullptr;
         std::string format_path;
-        uint64_t free = 0;
-        uint64_t total = 0;
+        std::atomic_uint64_t free = 0;
+        std::atomic_uint64_t total = 0;
+
+        Disks() = default;
+        Disks(Disks&& other) noexcept
+            : disk_opt(other.disk_opt)
+            , format_path(std::move(other.format_path))
+            , free(other.free.load(std::memory_order_relaxed))
+            , total(other.total.load(std::memory_order_relaxed))
+        {}
     };
 
-    std::mutex m_lock;
-    std::list<VideoDevice> m_video_devices;         // comfyui api /system_stats 
-    std::vector<Disks> m_disks;                     // os api
-    std::atomic_uint64_t m_lram_free = 0;           // os api
-    std::atomic_uint64_t m_lram_total = 0;          // os api
-    std::atomic_uint64_t m_sram_free = 0;           // comfyui api /system_stats
-    std::atomic_uint64_t m_sram_total = 0;          // comfyui api /system_stats
-    std::atomic_uint32_t m_queue_remaining = 0;     // comfyui api /prompt
-    uint64_t m_fps = 0;                             // imgui
+    struct ServerStats final    
+    {
+        std::string comfy_ver;
+        std::list<VideoDevice> video_devices;
+        uint64_t sram_free = 0;
+        uint64_t sram_total = 0;
+    };
+
+    std::vector<Disks> m_disks;                                     // os api
+    std::atomic<std::shared_ptr<const ServerStats>> m_server_stats; // comfyui api /system_stats 
+    std::atomic_uint64_t m_lram_free = 0;                           // os api
+    std::atomic_uint64_t m_lram_total = 0;                          // os api
+    std::atomic_uint32_t m_queue_remaining = 0;                     // comfyui api /prompt
+    uint64_t m_fps = 0;                                             // imgui
     int64_t m_ping_mk = 0;
-    std::string m_comfy_ver;
+
 
     fmt::memory_buffer m_buffer;
 };

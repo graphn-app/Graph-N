@@ -18,7 +18,7 @@ namespace
 {
 std::string color_to_string(const ImVec4& color)
 {
-    return fmt::format(FMT_STRING("#{:02X}{:02X}{:02X}"), cast::to_i32(color.x * 255.0f), cast::to_i32(color.y * 255.0f), cast::to_i32(color.z * 255.0f));
+    return fmt::format(FMT_STRING("#{:02X}{:02X}{:02X}"), cast::to_i32(std::lround(color.x * 255.0f)), cast::to_i32(std::lround(color.y * 255.0f)), cast::to_i32(std::lround(color.z * 255.0f)));
 }
 
 std::string color_to_string(ImU32 color)
@@ -39,6 +39,13 @@ o_json WfSerializerToJson::serialize()
     {
         std::shared_ptr<Workflow> virt_wf = g::pWfsManager->create_copy_virtual(m_wf);
         m_wf = virt_wf.get();
+
+        struct VirtWfGuard final
+        {
+            wid id = 0;
+            ~VirtWfGuard() { g::pWfsManager->erase_wf(id); }
+        };
+        const VirtWfGuard virt_wf_guard{ virt_wf->get_id() };
 
         auto& all_nodes = m_wf->get_nodes_all();
         std::set<NodeInstance*> reroutes;
@@ -67,7 +74,6 @@ o_json WfSerializerToJson::serialize()
         serialize_groups();
 
         m_wf = nullptr;
-        g::pWfsManager->erase_wf(virt_wf->get_id());
         return std::move(m_json);
     }
     catch (const std::exception& ex)
@@ -141,9 +147,6 @@ iid WfSerializerToJson::serialize_nodes()
         }
 
         jarr.push_back(std::move(jn));
-
-        node_pos.x += 10;
-        node_pos.y += 10;
     }
 
     m_json["nodes"] = std::move(jarr);
@@ -232,6 +235,14 @@ void WfSerializerToJson::serialize_widgets(o_json& j)
                               std::is_same_v<T, bool> || std::is_same_v<T, std::string>)
                 {
                     jarr.push_back(v);
+                }
+                else if constexpr (std::is_same_v<T, number>)
+                {
+                    jarr.push_back(v.underlying_type());
+                }
+                else if constexpr (std::is_same_v<T, std::monostate>)
+                {
+                    jarr.push_back(nullptr); // keep widgets_values positions
                 }
                 else if constexpr (std::is_same_v<T, int64_t>)
                 {

@@ -13,8 +13,11 @@ namespace base
 /////////////////////////////////////////////
 
 GlobalID::GlobalID()
-    : m_gen(std::random_device{}())
 {
+    // mt19937_64 has 64-bit state words: seed it with enough entropy, not with a single 32-bit value
+    std::random_device rd;
+    std::seed_seq seq{ rd(), rd(), rd(), rd(), rd(), rd(), rd(), rd() };
+    m_gen.seed(seq);
 }
 
 std::string GlobalID::client_id()

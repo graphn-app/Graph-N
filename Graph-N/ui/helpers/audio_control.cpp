@@ -114,16 +114,22 @@ int32_t AudioControl::load(const std::string& filepath)
 
     // EOF callback
     result = ma_sound_set_end_callback(&m_sound, end_callback, this);
+    if (MA_SUCCESS != result)
+        ma_sound_uninit(&m_sound);
     LogRAssert(MA_SUCCESS == result, "Failed to init audio '" << filepath << "', err " << result, 0);
 
     // get track length and sample rate for the timeline
     ma_uint64 length_pcm = 0;
     result = ma_sound_get_length_in_pcm_frames(&m_sound, &length_pcm);
+    if (MA_SUCCESS != result)
+        ma_sound_uninit(&m_sound);
     LogRAssert(MA_SUCCESS == result, "Failed to init audio '" << filepath << "', err " << result, 0);
 
     ma_format format;
     uint32_t channels;
     result = ma_sound_get_data_format(&m_sound, &format, &channels, &m_sample_rate, nullptr, 0);
+    if (MA_SUCCESS != result)
+        ma_sound_uninit(&m_sound);
     LogRAssert(MA_SUCCESS == result, "Failed to init audio '" << filepath << "', err " << result, 0);
 
     //ma_sound_seek_to_pcm_frame(&m_sound, 0);

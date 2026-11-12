@@ -142,7 +142,7 @@ private:
     {
         if (0 == id) return nullptr;
         const auto it = std::ranges::lower_bound(map, id, {}, &std::pair<uint64_t, T*>::first);
-        if (it != map.end()) return it->second;
+        if (it != map.end() && it->first == id) return it->second;
         return nullptr;
     }
 

@@ -12,8 +12,10 @@
 #include <functional>
 #include <future>
 #include <memory>
+#include <mutex>
 #include <queue>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <vector>
 

@@ -28,6 +28,12 @@ void HostManager::stop_and_cleanup()
             th.join();
     }
     m_threads.clear();
+    for (auto& th : m_finished_threads)
+    {
+        if (th.joinable())
+            th.join();
+    }
+    m_finished_threads.clear();
 
     m_replies_exists.store(false, std::memory_order_relaxed);
     m_do_cleanups.store(false, std::memory_order_relaxed);
@@ -270,6 +276,8 @@ void HostManager::on_host_finished_job(uint64_t id, bool success)
         auto& host = *it;
         if (host.host_id == id)
         {
+            if (host.cleanup)
+                break;
             Log("Host #" << host.host_id << ": finished. w:" << host.workflow_id << ", n:" << host.node_id << ", success: " << success);
             m_hosts_finished.push(std::make_pair(host, success));
             host.alive = false;
@@ -294,9 +302,8 @@ bool HostManager::pickup_finished_host(wid& wf_id, iid& node_id, bool& result, s
                 auto it = m_threads.find(host.host_id);
                 if (it != m_threads.end())
                 {
-                    auto& th = it->second;
-                    if (th.joinable())
-                        th.detach();
+                    if (it->second.joinable())
+                        m_finished_threads.push_back(std::move(it->second));
                     m_threads.erase(it);
                 }
                 return true;

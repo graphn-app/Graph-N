@@ -19,7 +19,17 @@
 namespace mngr
 {
 
-/////////////////////////////////////////////////////
+struct RollbackGuard final
+{
+    explicit RollbackGuard(bool& flag) noexcept : 
+        m_flag(flag) 
+    { m_flag = true; }
+    ~RollbackGuard() noexcept { m_flag = false; }
+    RollbackGuard(const RollbackGuard&) = delete;
+    RollbackGuard& operator=(const RollbackGuard&) = delete;
+private:
+    bool& m_flag;
+};
 
 HistoryStep::HistoryStep(HistoryActionType t) noexcept
     : type(t)
@@ -122,7 +132,7 @@ const HistoryAction* HistoryManager::get_redo(wid wf_id, const Meta** meta) cons
 void HistoryManager::undo(wid wf_id)
 {
     LogAssert(!m_rollback, "Rollback already in progress");
-    m_rollback = true;
+    RollbackGuard guard(m_rollback);
 
     const Meta* meta = nullptr;
     auto h = get_undo(wf_id, &meta);
@@ -131,7 +141,6 @@ void HistoryManager::undo(wid wf_id)
     pop_action(h, true);
     (*cast::remove_const<Meta>(meta)).pos--;
     sync_wf_state(wf_id, meta);
-    m_rollback = false;
 
     LogAction(*h, "DONE", meta->pos, meta->saved, m_history[h->wf].size());
 }
@@ -139,7 +148,7 @@ void HistoryManager::undo(wid wf_id)
 void HistoryManager::redo(wid wf_id)
 {
     LogAssert(!m_rollback, "Rollback already in progress");
-    m_rollback = true;
+    RollbackGuard guard(m_rollback);
 
     const Meta* meta = nullptr;
     auto h = get_redo(wf_id, &meta);
@@ -148,7 +157,6 @@ void HistoryManager::redo(wid wf_id)
     pop_action(h, false);
     (*cast::remove_const<Meta>(meta)).pos++;
     sync_wf_state(wf_id, meta);
-    m_rollback = false;
 
     LogAction(*h, "DONE", meta->pos, meta->saved, m_history[h->wf].size());
 }
@@ -199,7 +207,7 @@ void HistoryManager::rollback(wid wf_id)
 {
     LogAssert(!m_rollback, "Rollback already in progress");
     LogRAssert(can_rollback(wf_id), "Can't rollback", );
-    m_rollback = true;
+    RollbackGuard guard(m_rollback);
 
     auto& meta = m_meta[wf_id];
     auto& h = m_history[wf_id];
@@ -218,7 +226,6 @@ void HistoryManager::rollback(wid wf_id)
     }
 
     sync_wf_state(wf_id, &meta);
-    m_rollback = false;
 
     LogAction(wf_id, "ROLLBACK DONE", meta.pos, meta.saved, h.size());
 }

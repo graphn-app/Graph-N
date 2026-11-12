@@ -179,7 +179,7 @@ DlgCode PanelWfList::show(bool& focused)
                 {
                     "Your library of saved graphs.",
                     "Here you can create, rename, label,",
-                    "and delete your Projects."
+                    "and delete your Projects.",
                     "",
                     "Deleted Projects will be",
                     "auto-purged on exit",

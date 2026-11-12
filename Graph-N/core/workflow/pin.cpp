@@ -642,7 +642,8 @@ void Pin::generate_pin_color() noexcept
     }
 
     // golden ratio
-    double hue = cast::to_u64(tools::str::hash_stable(def_state.type_str)) * 0.618033988749895;
+    // reduce the hash first, otherwise fmod of a huge value always returns 0
+    double hue = cast::to_double(cast::to_u64(tools::str::hash_stable(def_state.type_str)) % 1000003ull) * 0.618033988749895;
     hue = std::fmod(hue, 1.0);
 
     // fix hue (S) & brightness (V)

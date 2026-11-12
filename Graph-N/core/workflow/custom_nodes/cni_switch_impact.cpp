@@ -24,7 +24,7 @@ void CNI_SwitchImpact::cni_init()
 {
     auto wf = g::pWfsManager->access(get_workflow_id());
 
-    auto& inputs = get_inputs();
+    const auto inputs = get_inputs();
     for (auto input : inputs)
     {
         cni_remove_pin(input->get_object());
@@ -32,7 +32,7 @@ void CNI_SwitchImpact::cni_init()
         wf->remove_pin(input);
     }
 
-    auto& outputs = get_outputs();
+    const auto outputs = get_outputs();
     for (auto output : outputs)
     {
         cni_remove_pin(output->get_object());
@@ -380,7 +380,7 @@ void CNI_SwitchInversedImpact::cni_init()
 {
     auto wf = g::pWfsManager->access(get_workflow_id());
 
-    auto& inputs = get_inputs();
+    auto inputs = get_inputs();
     for (auto input : inputs)
     {
         cni_remove_pin(input->get_object());
@@ -388,7 +388,7 @@ void CNI_SwitchInversedImpact::cni_init()
         wf->remove_pin(input);
     }
 
-    auto& outputs = get_outputs();
+    auto outputs = get_outputs();
     for (auto output : outputs)
     {
         cni_remove_pin(output->get_object());

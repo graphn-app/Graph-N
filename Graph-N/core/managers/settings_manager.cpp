@@ -553,7 +553,7 @@ void SettingsManager::ui_host_settings_save(const std::string& settings)
 {
     try
     {
-        const auto& existing = *std::get_if<std::string>(&m_ui_host_settings.value);
+        const std::string existing = ui_host_settings_load();
         if (existing.empty())
         {
             save_option(m_ui_host_settings, settings);
@@ -697,6 +697,10 @@ void SettingsManager::wf_imported_save(const std::string& project)
                     return;
                 }
             }
+
+            j[addr] = u_json::array();
+            j[addr].push_back(project);
+            save_option(m_wf_imported, j.dump());
         }
     }
     catch (const std::exception& ex)

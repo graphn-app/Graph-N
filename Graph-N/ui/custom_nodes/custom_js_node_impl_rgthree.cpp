@@ -38,9 +38,16 @@ void CustomJsNode::handle_insert_lora_rgthree(const data::NodeInstance* node, da
 
     if (PinType::COMBO == pin->state().type)
     {
-        const auto& lora = pin->get_object()->combo_items_str[pin->state().value.get_int()];
+        const auto& lora_items = pin->get_object()->combo_items_str;
+        const auto lora_idx = pin->state().value.get_int();
+        if (lora_idx < 0 || cast::to_szt(lora_idx) >= lora_items.size())
+            return;
+
+        const auto& lora = lora_items[lora_idx];
         if (!lora.empty() && lora != "CHOOSE" && lora != "DISABLE LORAS")
         {
+            const auto* wf = g::pWfsManager->access(node->get_workflow_id());
+
             for (auto prompt : node->get_inputs())
             {
                 if ("prompt" == prompt->get_object()->def_state.name)
@@ -61,10 +68,13 @@ void CustomJsNode::handle_insert_lora_rgthree(const data::NodeInstance* node, da
                     else
                         b = pos;
 
+                    const auto buf_size = cast::to_i64(buffer->size());
+                    b = cast::to_i32(std::clamp<int64_t>(b, 0, buf_size));
+                    n = cast::to_i32(std::clamp<int64_t>(n, 0, buf_size - b));
+
                     auto old = prompt->state().value;
                     buffer->replace(b, n, "<lora:" + lora + ":1.0>");
 
-                    const auto* wf = g::pWfsManager->access(node->get_workflow_id());
                     wf->action()->multi_action_on("Insert Lora");
                     wf->action()->set_pin_val(prompt, std::move(old));
                     wf->action()->multi_action_off();

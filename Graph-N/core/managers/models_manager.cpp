@@ -114,7 +114,16 @@ void ModelsManager::load_models_th()
                             return;
                         }
                         if (HTTP_RESP_OK == http_res)
-                            parse_file_info(item.get(), std::move(data));
+                        {
+                            try
+                            {
+                                parse_file_info(item.get(), std::move(data));
+                            }
+                            catch (const std::exception& ex)
+                            {
+                                LogExcep("Model metadata parse: " << ex.what());
+                            }
+                        }
 
                         models.push_back(std::move(item));
                     }
@@ -199,7 +208,7 @@ void ModelsManager::parse_file_info(data::ModelItem* item, std::string&& info)
     const auto j = o_json::parse(info);
     const auto append_info = [item, &j](const char* key, const char* title)
     {
-        if (j.contains(key))
+        if (j.contains(key) && j[key].is_string())
         {
             if (!item->info.info.empty()) item->info.info += "\n";
             item->info.info += title + std::string(j[key]);
@@ -207,13 +216,13 @@ void ModelsManager::parse_file_info(data::ModelItem* item, std::string&& info)
     };
     const auto append_info_to = [&j](const char* key, std::string& to)
     {
-        if (j.contains(key))
+        if (j.contains(key) && j[key].is_string())
         {
             to = std::string(j[key]);
         }
     };
 
-    if (j.contains("modelspec.title"))
+    if (j.contains("modelspec.title") && j["modelspec.title"].is_string())
     {
         item->info.info = "Filename: " + item->name;
         item->file_name = item->name;
@@ -230,7 +239,7 @@ void ModelsManager::parse_file_info(data::ModelItem* item, std::string&& info)
     append_info_to("modelspec.tags", item->info.tags);
     append_info_to("modelspec.trigger_phrase", item->info.trigger_phrase);
 
-    if (j.contains("modelspec.thumbnail") && j.contains("modelspec.hash_sha256"))
+    if (j.contains("modelspec.thumbnail") && j["modelspec.thumbnail"].is_string() && j.contains("modelspec.hash_sha256"))
     {
         const auto temp_filename = fs::get_temp_filepath(".image");
         if (!temp_filename.empty())
@@ -261,15 +270,21 @@ void ModelsManager::rebuild_models(std::vector<std::unique_ptr<data::ModelItem>>
     std::function<void(std::vector<std::unique_ptr<data::ModelItem>>&, std::vector<std::unique_ptr<data::ModelItem>>&)> merge_trees;
     merge_trees = [&merge_trees](std::vector<std::unique_ptr<data::ModelItem>>& src, std::vector<std::unique_ptr<data::ModelItem>>& dst)
     {
+        const auto key_of = [](const data::ModelItem& item) -> std::string
+        {
+            return (item.is_model && !item.file_name.empty()) ? item.file_name : item.name;
+        };
+
         std::unordered_map<std::string, data::ModelItem*> dst_map;
         for (const auto& item : dst)
         {
-            dst_map[item->name] = item.get();
+            dst_map[key_of(*item)] = item.get();
         }
 
         for (auto& src_item : src)
         {
-            auto it = dst_map.find(src_item->name);
+            const auto src_key = key_of(*src_item);
+            auto it = dst_map.find(src_key);
             data::ModelItem* target_item = nullptr;
 
             if (it == dst_map.end())
@@ -283,7 +298,7 @@ void ModelsManager::rebuild_models(std::vector<std::unique_ptr<data::ModelItem>>
                 new_item->info = std::move(src_item->info);
 
                 target_item = new_item.get();
-                dst_map[target_item->name] = target_item;
+                dst_map[src_key] = target_item;
                 dst.push_back(std::move(new_item));
             }
             else

@@ -290,13 +290,15 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
                 {
                     std::string name, type;
 
-                    if (jinput["type"].is_string()) type = jinput["type"];
-                    else                            type = jinput["type"].dump();
+                    if (!jinput.contains("type"))        type = "";
+                    else if (jinput["type"].is_string()) type = jinput["type"];
+                    else                                 type = jinput["type"].dump();
                     if (m_ignore_pin_types.contains(type))
                         continue;
 
-                    if (jinput["name"].is_string()) name = jinput["name"];
-                    else                            name = jinput["name"].dump();
+                    if (!jinput.contains("name"))        name = "UNDEFINED";
+                    else if (jinput["name"].is_string()) name = jinput["name"];
+                    else                                 name = jinput["name"].dump();
 
                     Pin* pin = nullptr;
                     const auto pin_hash = Pin::make_hash(result.node_inst->get_object(), name, -1);
@@ -391,7 +393,7 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
                         pin = g::pNodesManager->find_pin(pin_hash);
                         if (nullptr == pin)
                         {
-                            pin = g::pNodesManager->make_pin(result.node_inst->get_object(), type, name, -1);
+                            pin = g::pNodesManager->make_pin(result.node_inst->get_object(), type, name, index);
                         }
                     }
 
@@ -409,7 +411,7 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
                         {
                             pin_instance = m_wf->add_pin(result.node_inst, pin, m_wf->get_new_child_id());
                             pin->def_state.copy_to(pin_instance->state());
-                            result.node_inst->add_input(pin_instance);
+                            result.node_inst->add_output(pin_instance);
                         }
                     }
 
@@ -506,6 +508,14 @@ ParseResult WfDeserializerFromJson::deserialize_node(const o_json& j, std::strin
                             if (PinType::FLOAT == pin->get_object()->def_state.type)
                             {
                                 pin->state().value = v;
+                            }
+                            else if (PinType::NUMBER == pin->get_object()->def_state.type)
+                            {
+                                pin->state().value = number(number_t(v));
+                            }
+                            else if (PinType::INT == pin->get_object()->def_state.type)
+                            {
+                                pin->state().value = cast::to_i64(std::llround(v));
                             }
                         }
                         else if constexpr (std::is_same_v<T, bool>)
