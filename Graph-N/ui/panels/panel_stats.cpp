@@ -8,6 +8,10 @@
 #include "core/base/comfyui_web_paths.h"
 #include "main.h"
 
+#if defined __linux__
+#include <sys/statvfs.h>
+#endif
+
 namespace ui
 {
 
@@ -45,7 +49,7 @@ void PanelStats::init_disks()
 #ifdef _WIN32
         d.format_path = fmt::format(FMT_STRING("Disk {}"), d.disk_opt->first);
 #else
-        d.format_path = d.path;
+        d.format_path = d.disk_opt->first;
 #endif
         m_disks.push_back(std::move(d));
     }
@@ -92,7 +96,24 @@ void PanelStats::th_api()
                 m_lram_total.store(info.ullTotalPhys, std::memory_order_relaxed);
             }
 #elif defined __linux__
-#error Not implemented
+    {
+        std::ifstream meminfo("/proc/meminfo");
+        std::string key;
+        uint64_t total_kb = 0;
+        uint64_t avail_kb = 0;
+        while (meminfo >> key)
+        {
+            uint64_t value = 0;
+            std::string unit;
+            meminfo >> value >> unit;
+            if ("MemTotal:" == key)
+                total_kb = value;
+            else if ("MemAvailable:" == key)
+                avail_kb = value;
+        }
+        m_lram_free.store(avail_kb * 1024, std::memory_order_relaxed);
+        m_lram_total.store(total_kb * 1024, std::memory_order_relaxed);
+    }
 #elif defined __APPLE__
 #error Not implemented
 #endif
@@ -117,7 +138,18 @@ void PanelStats::th_api()
 #elif defined __APPLE__
 #error Not implemented
 #elif defined __linux__
-#error Not implemented
+    for (auto& disk : m_disks)
+    {
+        if (!disk.disk_opt->second)
+            continue;
+
+        struct ::statvfs vfs = {};
+        if (0 == ::statvfs(disk.disk_opt->first.c_str(), &vfs))
+        {
+            disk.free.store(cast::to_u64(vfs.f_bavail * vfs.f_frsize), std::memory_order_relaxed);
+            disk.total.store(cast::to_u64(vfs.f_blocks * vfs.f_frsize), std::memory_order_relaxed);
+        }
+    }
 #endif
 
             accumulated_time_disk = 0ms;

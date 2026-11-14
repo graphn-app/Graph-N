@@ -12,6 +12,7 @@
 #include <compare>
 #include <concepts>
 #include <condition_variable>
+#include <cstdio>
 #include <cstdint>
 #include <deque>
 #include <filesystem>
@@ -27,6 +28,7 @@
 #include <stack>
 #include <string>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -118,10 +120,9 @@
 
 #ifdef _WIN32
 #define ERROR_MESSAGE(message)       ::MessageBox(nullptr, message, APP_CAPTION, MB_ICONSTOP)
-#elif defined __APPLE__
-#error Not implemented
-#elif defined __linux__
-#error Not implemented
+#else
+// Linux / other platforms: report to stderr
+#define ERROR_MESSAGE(message)       do { fprintf(stderr, "CRITICAL: %s\n", message); } while(false)
 #endif
 
 #include "icons_lucide.h"
@@ -142,7 +143,5 @@
 #include "core/base/version.h"
 
 #if defined __APPLE__
-#error Not implemented
-#elif defined __linux__
 #error Not implemented
 #endif

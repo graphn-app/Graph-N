@@ -4,12 +4,16 @@
 
 #pragma once
 
+#include <cerrno>
+
 #ifndef TOOLS_DETACHED_STATE
 class number;
 #endif // TOOLS_DETACHED_STATE
 
 namespace glog
 {
+
+class LogWriter;
 
 class Logger final
 {
@@ -150,7 +154,7 @@ public:
     LogWriter& operator << (DlgCode code);
 #endif // TOOLS_DETACHED_STATE
 
-    LogWriter& operator << (const type_info& type);
+    LogWriter& operator << (const std::type_info& type);
 
     LogWriter& operator << (const LogLineEnd&);
     LogWriter& operator << (const LogHex& hex_item);
@@ -387,10 +391,8 @@ struct LogGuard final
 
 #ifdef _WIN32
 #define LogApiERR                    uint32_t(::GetLastError())
-#elif defined __APPLE__
-#error Not implemented
-#elif defined __linux__
-#error Not implemented
+#else
+#define LogApiERR                    uint32_t(errno)
 #endif
 
 #define LogHEX(h)                    glog::LogHex(h)

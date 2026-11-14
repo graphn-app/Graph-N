@@ -41,6 +41,18 @@ if(MSVC)
     if(USE_ASAN)
     	add_compile_options(/fsanitize=address)
     endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    # ------------------------------------------------------------------------------
+    # GNU / Clang settings (Linux x86_64 is the primary target)
+    # ------------------------------------------------------------------------------
+    find_package(Threads REQUIRED)
+
+    add_compile_options(-Wall -Wextra -pthread)
+
+    if(USE_ASAN)
+        add_compile_options(-fsanitize=address)
+        add_link_options(-fsanitize=address)
+    endif()
 endif()
 
 # Define the working directory variable
@@ -58,7 +70,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
 # Google Test (Unit Tests Framework)
 # ------------------------------------------------------------------------------
 # Force shared CRT for Windows
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+if(WIN32)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+endif()
 add_subdirectory(googletest)
 enable_testing()
 
@@ -144,7 +158,13 @@ else()
 endif()
 
 if(UNIX)
-    target_link_libraries(ImGuiLib PRIVATE glfw)
+    if(EXISTS "/tmp/opencode/deps/glfw-install/lib64/libglfw.so")
+        # Temporary local glfw for build verification on this box (no system glfw-devel)
+        target_link_libraries(ImGuiLib PRIVATE "/tmp/opencode/deps/glfw-install/lib64/libglfw.so")
+        target_include_directories(ImGuiLib PRIVATE "/tmp/opencode/deps/glfw-install/include")
+    else()
+        target_link_libraries(ImGuiLib PRIVATE glfw)
+    endif()
 endif()
 
 # ------------------------------------------------------------------------------
@@ -214,15 +234,28 @@ endif()
 file(GLOB_RECURSE GRAPHN_SOURCES "Graph-N/*.cpp")
 file(GLOB_RECURSE GRAPHN_HEADERS "Graph-N/*.h")
 
-# resources
-set(GRAPHN_RESOURCES "Graph-N/res/graph-n.rc")
+# resources (Windows only: the .rc file is compiled into the executable)
+if(WIN32)
+    set(GRAPHN_RESOURCES "Graph-N/res/graph-n.rc")
+else()
+    set(GRAPHN_RESOURCES "")
+endif()
 
 # source tree for Visual Studio
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N" PREFIX "Source Files" FILES ${GRAPHN_SOURCES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N" PREFIX "Header Files" FILES ${GRAPHN_HEADERS})
 
 # app
-add_executable(Graph-N WIN32 ${GRAPHN_SOURCES} ${GRAPHN_HEADERS} ${GRAPHN_RESOURCES})
+add_executable(Graph-N ${GRAPHN_SOURCES} ${GRAPHN_HEADERS} ${GRAPHN_RESOURCES})
+
+if(EXISTS "/tmp/opencode/deps/glfw-install/lib64/libglfw.so")
+    # Temporary local glfw for build verification on this box (no system glfw-devel)
+    target_include_directories(Graph-N PRIVATE "/tmp/opencode/deps/glfw-install/include")
+endif()
+
+if(EXISTS "/tmp/opencode/deps/glfw-install/lib64/libglfw.so")
+    target_include_directories(Graph-N PRIVATE "/tmp/opencode/deps/glfw-install/include")
+endif()
 
 if(MSVC)
     # enable /EHa, this will override /EHsc
@@ -245,14 +278,18 @@ endif()
 
 # defines
 target_compile_definitions(Graph-N PRIVATE 
-    _CRT_SECURE_NO_WARNINGS
-    _CRT_NON_CONFORMING_SWPRINTFS
     IMGUI_USE_WCHAR32
     BOOST_ASIO_NO_LIB
-    _WIN32_WINNT=0x0A00
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
 )
+if(WIN32)
+    target_compile_definitions(Graph-N PRIVATE 
+        _CRT_SECURE_NO_WARNINGS
+        _CRT_NON_CONFORMING_SWPRINTFS
+        _WIN32_WINNT=0x0A00
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+    )
+endif()
 
 # --- Include Directories ---
 # SYSTEM flag tells compiler to ignore warnings in these headers
@@ -283,8 +320,11 @@ if(WIN32)
         Shell32
         wbemuuid
         mfplat mfreadwrite mfuuid propsys
+        ws2_32 crypt32
+        d3d11 d3dcompiler dwmapi
     )
 else()
+    find_package(OpenGL REQUIRED)
     target_link_libraries(Graph-N PRIVATE
         ImGuiLib
         NodeEditorLib
@@ -292,26 +332,21 @@ else()
         sqlite3
         MiniAudioLib
         fmt::fmt
+        OpenGL::GL
+        Threads::Threads
     )
-endif()
-
-if(WIN32)
-    # Link system network libs for httplib
-    target_link_libraries(Graph-N PRIVATE ws2_32 crypt32)
-    target_link_libraries(Graph-N PRIVATE d3d11 d3dcompiler dwmapi)
-else()
-    find_package(OpenGL REQUIRED)
-    target_link_libraries(Graph-N PRIVATE glfw OpenGL::GL)
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        target_link_libraries(Graph-N PRIVATE dl pthread)
+        target_link_libraries(Graph-N PRIVATE dl)
     endif()
 endif()
 
 # ------------------------------------------------------------------------------
 # Host
+# The host is a Windows-only executable (WebView2); skip on other platforms.
 # ------------------------------------------------------------------------------
-file(GLOB_RECURSE HOST_SOURCES "Graph-N_Host/*.cpp")
+if(WIN32)
+    file(GLOB_RECURSE HOST_SOURCES "Graph-N_Host/*.cpp")
 file(GLOB_RECURSE HOST_HEADERS "Graph-N_Host/*.h")
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host" PREFIX "Source Files" FILES ${HOST_SOURCES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host" PREFIX "Header Files" FILES ${HOST_HEADERS})
@@ -382,6 +417,8 @@ if(WIN32)
 		dwmapi
     )
 endif()
+
+endif() # if(WIN32) - Host
 
 # ------------------------------------------------------------------------------
 # ANALYZERS SETTINGS
@@ -478,7 +515,8 @@ endforeach()
 
 
 # Graph-N_Host POST_BUILD commands (Host Executable & Dependencies)
-add_custom_command(TARGET Graph-N_Host POST_BUILD
+if(WIN32)
+    add_custom_command(TARGET Graph-N_Host POST_BUILD
     # Copy Host Executable
     COMMAND ${CMAKE_COMMAND} -E copy_if_different 
             $<TARGET_FILE:Graph-N_Host> 
@@ -525,6 +563,7 @@ add_custom_command(TARGET Graph-N_Host POST_BUILD
             
     COMMENT "Copying Graph-N_Host executable and dependencies for $<CONFIG>..."
 )
+endif() # if(WIN32) - Graph-N_Host POST_BUILD
 
 # ------------------------------------------------------------------------------
 # Copy PDB files for debugging (MSVC only)
@@ -550,23 +589,6 @@ endif()
 # ------------------------------------------------------------------------------
 
 # debug run - Visual Studio (F5)
-set_target_properties(Graph-N PROPERTIES 
-    # run from work_dir
-    VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
-    
-    # Debug -> run from work_dir/Graph-N.exe
-    # Release -> run from bin/Graph-N.exe
-    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N>>"
-)
-set_target_properties(Graph-N_Host PROPERTIES 
-    # run from work_dir
-    VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
-    
-    # Debug -> run from work_dir/Graph-N.exe
-    # Release -> run from bin/Graph-N.exe
-    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N_Host>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N_Host>>"
-)
-
 # ------------------------------------------------------------------------------
 # UNIT TESTS
 # ------------------------------------------------------------------------------
@@ -619,41 +641,58 @@ target_include_directories(UnitTests SYSTEM PRIVATE
 target_include_directories(UnitTests PRIVATE "Graph-N")
 
 target_compile_definitions(UnitTests PRIVATE 
-    _CRT_SECURE_NO_WARNINGS
-    _CRT_NON_CONFORMING_SWPRINTFS
     IMGUI_USE_WCHAR32
     BOOST_ASIO_NO_LIB
-    _WIN32_WINNT=0x0A00
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
     SKIP_DEBUG_CATCH
 )
+if(WIN32)
+    target_compile_definitions(UnitTests PRIVATE 
+        _CRT_SECURE_NO_WARNINGS
+        _CRT_NON_CONFORMING_SWPRINTFS
+        _WIN32_WINNT=0x0A00
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+    )
+endif()
 
 target_precompile_headers(UnitTests PRIVATE "Graph-N/pch.h")
 
 # Link your app's dependencies PLUS Google Test
-target_link_libraries(UnitTests PRIVATE 
-    ImGuiLib
-    NodeEditorLib
-    SQLiteCpp
-    sqlite3
-    MiniAudioLib
-    fmt::fmt
-    Shell32
-    wbemuuid
-    gtest
-    gtest_main
-)
-
 if(WIN32)
-    target_link_libraries(UnitTests PRIVATE 
-        ws2_32 
-        crypt32 
-        d3d11 
-        d3dcompiler 
+    target_link_libraries(UnitTests PRIVATE
+        ImGuiLib
+        NodeEditorLib
+        SQLiteCpp
+        sqlite3
+        MiniAudioLib
+        fmt::fmt
+        Shell32
+        wbemuuid
+        gtest
+        gtest_main
+        ws2_32
+        crypt32
+        d3d11
+        d3dcompiler
         dwmapi
         mfplat mfreadwrite mfuuid propsys
     )
+else()
+    target_link_libraries(UnitTests PRIVATE
+        ImGuiLib
+        NodeEditorLib
+        SQLiteCpp
+        sqlite3
+        MiniAudioLib
+        fmt::fmt
+        gtest
+        gtest_main
+        Threads::Threads
+    )
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_libraries(UnitTests PRIVATE dl OpenGL::GL)
+    endif()
 endif()
 
 include(GoogleTest)
@@ -667,14 +706,4 @@ gtest_discover_tests(UnitTests)
 add_custom_command(TARGET UnitTests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:UnitTests> ${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>
     COMMENT "Copying UnitTests to work_dir..."
-)
-
-# debug run - Visual Studio (F5)
-set_target_properties(UnitTests PROPERTIES 
-    # run from work_dir
-    VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
-    
-    # Debug -> run from work_dir/UnitTests.exe
-    # Release -> run from bin/UnitTests.exe
-    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:UnitTests>>"
 )
