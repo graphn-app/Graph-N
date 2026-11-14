@@ -454,7 +454,42 @@ std::string wide_to_utf8(const std::wstring& wide_str)
     ::WideCharToMultiByte(CP_UTF8, 0, wide_str.c_str(), cast::to_i32(wide_str.size()), utf8_str.data(), size_needed, nullptr, nullptr);
     return utf8_str;
 }
-#endif // #ifdef _WIN32
+#else
+std::string wide_to_utf8(const std::wstring& wide_str)
+{
+    // wchar_t is 32-bit on Linux: encode code points to UTF-8 manually
+    std::string utf8_str;
+    utf8_str.reserve(wide_str.size() * 2);
+
+    for (const wchar_t wc : wide_str)
+    {
+        const auto cp = static_cast<uint32_t>(wc);
+
+        if (cp < 0x80)
+            utf8_str += static_cast<char>(cp);
+        else if (cp < 0x0800)
+        {
+            utf8_str += static_cast<char>(0xC0 | (cp >> 6));
+            utf8_str += static_cast<char>(0x80 | (cp & 0x3F));
+        }
+        else if (cp < 0x10000)
+        {
+            utf8_str += static_cast<char>(0xE0 | (cp >> 12));
+            utf8_str += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+            utf8_str += static_cast<char>(0x80 | (cp & 0x3F));
+        }
+        else
+        {
+            utf8_str += static_cast<char>(0xF0 | (cp >> 18));
+            utf8_str += static_cast<char>(0x80 | ((cp >> 12) & 0x3F));
+            utf8_str += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+            utf8_str += static_cast<char>(0x80 | (cp & 0x3F));
+        }
+    }
+
+    return utf8_str;
+}
+#endif
 
 std::string u8_to_string(const std::u8string& u8_str)
 {
@@ -1039,6 +1074,7 @@ void select_files_th(std::unique_ptr<FdData> data)
 
 #endif // #ifdef _WIN32
 
+#ifdef _WIN32
 void select_file_open(std::list<std::pair<std::wstring, std::wstring>>&& filters, const FdSelectResultSg& callback)
 {
     auto data = std::make_unique<FdData>();
@@ -1097,6 +1133,34 @@ void select_dirs(const FdSelectResultMt& callback)
     data->callback_mt = callback;
     std::thread(select_files_th, std::move(data)).detach();
 }
+#else
+// File dialogs are Windows-only (Win32 IFileDialog). Stubs for other platforms: report failure via callback.
+void select_file_open(std::list<std::pair<std::wstring, std::wstring>>&& /*filters*/, const FdSelectResultSg& callback)
+{
+    callback(false, {});
+}
+
+void select_files_open(std::list<std::pair<std::wstring, std::wstring>>&& /*filters*/, const FdSelectResultMt& callback)
+{
+    callback(false, {});
+}
+
+void select_file_save(std::list<std::pair<std::wstring, std::wstring>>&& /*filters*/, std::filesystem::path /*init_file*/, const FdSelectResultSg& callback)
+{
+    callback(false, {});
+}
+
+void select_dir(const FdSelectResultSg& callback)
+{
+    callback(false, {});
+}
+
+void select_dirs(const FdSelectResultMt& callback)
+{
+    callback(false, {});
+}
+#endif
+
 #endif // TOOLS_DETACHED_STATE
 
 #ifdef _WIN32
@@ -1258,7 +1322,20 @@ std::vector<std::string> scan_for_disks()
         drive += strlen(drive) + 1;
     }
 #elif defined __linux__
-#error Not implemented
+    std::ifstream mounts("/proc/mounts");
+    std::string device, mount_point, fstype;
+    std::set<std::string> seen;
+    while (mounts >> device >> mount_point >> fstype)
+    {
+        // Skip virtual / special filesystems, keep real mount points
+        if ("proc" == fstype || "sysfs" == fstype || "devtmpfs" == fstype ||
+            "tmpfs" == fstype || "devpts" == fstype || "cgroup" == fstype ||
+            "pstore" == fstype || "bpf" == fstype)
+            continue;
+
+        if (seen.insert(mount_point).second)
+            ret.push_back(mount_point);
+    }
 #elif defined __APPLE__
 #error Not implemented
 #endif

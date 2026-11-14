@@ -18,6 +18,13 @@ public:
     bool init() override;
     void stop_and_cleanup() override;
 
+    uint32_t check_existing_process() const noexcept override;
+    bool get_process_started() const noexcept override;
+    uint32_t get_started_proc_id() const noexcept override;
+    void kill(bool force_kill) override;
+    void setup_auto_kill(bool enable) override;
+    void append_log(std::deque<std::string>& logs) override;
+
 protected:
     void run_server() override;
 };
