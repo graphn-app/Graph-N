@@ -19,7 +19,11 @@ size_t HostSerializer::get_max_size()
 {
     return
         get_min_size() +
+<<<<<<< HEAD
+        (260 * sizeof(wchar_t) + sizeof(uint32_t)) * 2 /* image pathes (wide chars + length prefix) */ + 500 /* wf and node names */ + 20 /*comfyui host*/ + 500 /*settings*/;
+=======
         (MAX_PATH * sizeof(wchar_t) + sizeof(uint32_t)) * 2 /* image pathes (wide chars + length prefix) */ + 500 /* wf and node names */ + 20 /*comfyui host*/ + 500 /*settings*/;
+>>>>>>> 68a88e9 (docs: detail Linux/GNU build changes)
 }
 
 Blob HostSerializer::serialize(const HostData& data)

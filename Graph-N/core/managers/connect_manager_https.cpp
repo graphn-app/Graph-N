@@ -102,12 +102,7 @@ void ConnectManager::send_https(std::shared_ptr<RequestData> req)
 #else
 void ConnectManager::send_https(std::shared_ptr<RequestData> req)
 {
-    if (req->port != INTERNET_DEFAULT_HTTPS_PORT)
-    {
-        req->status = HTTP_RESP_FAIL;
-        LogError("HTTP-Req-Ext#" << req->req_id << ". Failed: invalid request", );
-        return;
-    }
+    // HTTPS requests via WinINet are Windows-only; not implemented on Linux yet.
     req->status = HTTP_RESP_FAIL;
     Log("HTTP-Req-Ext#" << req->req_id << ". Failed: not implemented");
 }
