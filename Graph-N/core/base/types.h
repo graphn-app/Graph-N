@@ -42,6 +42,7 @@ inline constexpr int32_t HTTP_RESP_IN_PROGRESS  = -2;
 inline constexpr int32_t HTTP_RESP_TIMEOUT      = 408;
 inline constexpr int32_t HTTP_RESP_BAD_REQUEST  = 400;
 inline constexpr int32_t HTTP_RESP_NOT_FOUND    = 404;
+inline constexpr int32_t HTTPS_DEFAULT_PORT     = 443;
 inline constexpr int32_t HTTP_RESP_NOT_ALLOWED  = 405;
 inline constexpr uint32_t HTTP_RETRY_MAX_COUNT  = 5;
 

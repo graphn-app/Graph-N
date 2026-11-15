@@ -454,7 +454,55 @@ std::string wide_to_utf8(const std::wstring& wide_str)
     ::WideCharToMultiByte(CP_UTF8, 0, wide_str.c_str(), cast::to_i32(wide_str.size()), utf8_str.data(), size_needed, nullptr, nullptr);
     return utf8_str;
 }
-#endif // #ifdef _WIN32
+#else
+std::string wide_to_utf8(const std::wstring& wide_str)
+{
+    // wchar_t is 32-bit on Linux: encode code points to UTF-8 manually
+    std::string utf8_str;
+    utf8_str.reserve(wide_str.size() * 2);
+
+    for (const wchar_t wc : wide_str)
+    {
+        const auto cp = static_cast<uint32_t>(wc);
+
+        // Surrogate range (0xD800-0xDFFF) and above 0x10FFFF produce invalid UTF-8.
+        // Replace with U+FFFD (replacement character).
+        if (cp >= 0xD800 && cp <= 0xDFFF)
+        {
+            utf8_str += "\xEF\xBF\xBD";
+            continue;
+        }
+        if (cp > 0x10FFFF)
+        {
+            utf8_str += "\xEF\xBF\xBD";
+            continue;
+        }
+
+        if (cp < 0x80)
+            utf8_str += static_cast<char>(cp);
+        else if (cp < 0x0800)
+        {
+            utf8_str += static_cast<char>(0xC0 | (cp >> 6));
+            utf8_str += static_cast<char>(0x80 | (cp & 0x3F));
+        }
+        else if (cp < 0x10000)
+        {
+            utf8_str += static_cast<char>(0xE0 | (cp >> 12));
+            utf8_str += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+            utf8_str += static_cast<char>(0x80 | (cp & 0x3F));
+        }
+        else
+        {
+            utf8_str += static_cast<char>(0xF0 | (cp >> 18));
+            utf8_str += static_cast<char>(0x80 | ((cp >> 12) & 0x3F));
+            utf8_str += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+            utf8_str += static_cast<char>(0x80 | (cp & 0x3F));
+        }
+    }
+
+    return utf8_str;
+}
+#endif
 
 std::string u8_to_string(const std::u8string& u8_str)
 {
@@ -1039,6 +1087,7 @@ void select_files_th(std::unique_ptr<FdData> data)
 
 #endif // #ifdef _WIN32
 
+#ifdef _WIN32
 void select_file_open(std::list<std::pair<std::wstring, std::wstring>>&& filters, const FdSelectResultSg& callback)
 {
     auto data = std::make_unique<FdData>();
@@ -1097,6 +1146,34 @@ void select_dirs(const FdSelectResultMt& callback)
     data->callback_mt = callback;
     std::thread(select_files_th, std::move(data)).detach();
 }
+#else
+// File dialogs are Windows-only (Win32 IFileDialog). Stubs for other platforms: report failure via callback.
+void select_file_open(std::list<std::pair<std::wstring, std::wstring>>&& /*filters*/, const FdSelectResultSg& callback)
+{
+    callback(false, {});
+}
+
+void select_files_open(std::list<std::pair<std::wstring, std::wstring>>&& /*filters*/, const FdSelectResultMt& callback)
+{
+    callback(false, {});
+}
+
+void select_file_save(std::list<std::pair<std::wstring, std::wstring>>&& /*filters*/, std::filesystem::path /*init_file*/, const FdSelectResultSg& callback)
+{
+    callback(false, {});
+}
+
+void select_dir(const FdSelectResultSg& callback)
+{
+    callback(false, {});
+}
+
+void select_dirs(const FdSelectResultMt& callback)
+{
+    callback(false, {});
+}
+#endif
+
 #endif // TOOLS_DETACHED_STATE
 
 #ifdef _WIN32
@@ -1258,7 +1335,65 @@ std::vector<std::string> scan_for_disks()
         drive += strlen(drive) + 1;
     }
 #elif defined __linux__
-#error Not implemented
+    // Decode /proc/mounts octal escapes (e.g. "\040" for space), otherwise
+    // statvfs() will fail for paths containing escaped characters.
+    auto decode_mount_path = [](const std::string& s) -> std::string {
+        std::string out;
+        out.reserve(s.size());
+        for (size_t i = 0; i < s.size(); ++i)
+        {
+            if (s[i] == '\\' && i + 3 <= s.size() &&
+                std::isdigit(static_cast<unsigned char>(s[i + 1])) &&
+                std::isdigit(static_cast<unsigned char>(s[i + 2])) &&
+                std::isdigit(static_cast<unsigned char>(s[i + 3])))
+            {
+                const int code =
+                    (s[i + 1] - '0') * 64 +
+                    (s[i + 2] - '0') * 8 +
+                    (s[i + 3] - '0');
+                out.push_back(static_cast<char>(code));
+                i += 3;
+            }
+            else
+            {
+                out.push_back(s[i]);
+            }
+        }
+        return out;
+    };
+
+    std::ifstream mounts("/proc/mounts");
+    std::string line;
+    std::set<std::string> seen;
+    while (std::getline(mounts, line))
+    {
+        // /proc/mounts has 6 fields: device mount_point fstype options dump pass
+        std::istringstream iss(line);
+        std::string device, mount_point, fstype, options, dump, pass;
+        if (!(iss >> device >> mount_point >> fstype >> options >> dump >> pass))
+            continue;
+
+        device = decode_mount_path(device);
+        mount_point = decode_mount_path(mount_point);
+
+        // Keep only real block devices (/dev/*, skip /dev/loop*) plus
+        // optionally network filesystems (nfs, cifs).
+        bool keep = false;
+        if (device.rfind("/dev/", 0) == 0)
+        {
+            if (device.rfind("/dev/loop", 0) != 0)
+                keep = true;
+        }
+        else if (fstype == "nfs" || fstype == "cifs")
+        {
+            keep = true;
+        }
+        if (!keep)
+            continue;
+
+        if (seen.insert(mount_point).second)
+            ret.push_back(mount_point);
+    }
 #elif defined __APPLE__
 #error Not implemented
 #endif

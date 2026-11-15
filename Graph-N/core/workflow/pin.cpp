@@ -301,8 +301,8 @@ void Pin::finalize_int()
     {
         if (0 == def_state.step.get_int())
             def_state.step = int64_t(1);
-        def_state.min = std::max(def_state.min.get_int(), IM_S64_MIN_WIDGET);
-        def_state.max = std::min(def_state.max.get_int(), IM_S64_MAX_WIDGET);
+        def_state.min = std::max<int64_t>(def_state.min.get_int(), IM_S64_MIN_WIDGET);
+        def_state.max = std::min<int64_t>(def_state.max.get_int(), IM_S64_MAX_WIDGET);
     }
 
     if (def_state.min.get_int() == def_state.max.get_int())
@@ -727,12 +727,20 @@ bool Pin::color_to_val(const std::string& clr, int64_t& val, bool& alpha_in_stri
         if (clr.size() == 7)
         {
             alpha_in_string = false;
+#ifdef _WIN32
             sscanf_s(clr.c_str(), "#%02x%02x%02x", &r, &g, &b);
+#else
+            sscanf(clr.c_str(), "#%02x%02x%02x", &r, &g, &b);
+#endif
         }
         else
         {
             alpha_in_string = true;
+#ifdef _WIN32
             sscanf_s(clr.c_str(), "#%02x%02x%02x%02x", &r, &g, &b, &a);
+#else
+            sscanf(clr.c_str(), "#%02x%02x%02x%02x", &r, &g, &b, &a);
+#endif
         }
         val = cast::to_i64(IM_COL32(r, g, b, a));
         return true;

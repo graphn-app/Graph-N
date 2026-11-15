@@ -5,6 +5,12 @@
 cmake_minimum_required(VERSION 3.24)
 project(Graph-N)
 
+# Default build type: Release if none given (avoids unoptimized GNU builds
+# and empty CONFIG producing "bin/" instead of "bin/Release")
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 # ------------------------------------------------------------------------------
 # ANALYZERS & SANITIZERS SETTINGS
 # ------------------------------------------------------------------------------
@@ -41,6 +47,32 @@ if(MSVC)
     if(USE_ASAN)
     	add_compile_options(/fsanitize=address)
     endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    # ------------------------------------------------------------------------------
+    # GNU / Clang settings (Linux x86_64 is the primary target)
+    # ------------------------------------------------------------------------------
+    find_package(Threads REQUIRED)
+
+    # OpenGL - needed by Graph-N and UnitTests (non-Windows). Call once near top
+    # so it is available regardless of section ordering.
+    find_package(OpenGL REQUIRED)
+
+    # GLFW - prefer imported target glfw::GLFW; fall back to manual detection
+    # (RHEL/Fedora glfw-devel provides headers + lib but no GLFWConfig.cmake)
+    if(NOT TARGET glfw::GLFW)
+        find_library(GLFW_LIBRARY NAMES glfw REQUIRED)
+        find_path(GLFW_INCLUDE_DIR NAMES GLFW/glfw3.h REQUIRED)
+        add_library(glfw::GLFW INTERFACE IMPORTED)
+        set_target_properties(glfw::GLFW PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${GLFW_INCLUDE_DIR}"
+            INTERFACE_LINK_LIBRARIES "${GLFW_LIBRARY}"
+        )
+    endif()
+
+    if(USE_ASAN)
+        add_compile_options(-fsanitize=address)
+        add_link_options(-fsanitize=address)
+    endif()
 endif()
 
 # Define the working directory variable
@@ -58,7 +90,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
 # Google Test (Unit Tests Framework)
 # ------------------------------------------------------------------------------
 # Force shared CRT for Windows
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+if(WIN32)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+endif()
 add_subdirectory(googletest)
 enable_testing()
 
@@ -144,7 +178,7 @@ else()
 endif()
 
 if(UNIX)
-    target_link_libraries(ImGuiLib PRIVATE glfw)
+    target_link_libraries(ImGuiLib PRIVATE glfw::GLFW)
 endif()
 
 # ------------------------------------------------------------------------------
@@ -214,15 +248,24 @@ endif()
 file(GLOB_RECURSE GRAPHN_SOURCES "Graph-N/*.cpp")
 file(GLOB_RECURSE GRAPHN_HEADERS "Graph-N/*.h")
 
-# resources
-set(GRAPHN_RESOURCES "Graph-N/res/graph-n.rc")
+# resources (Windows only: the .rc file is compiled into the executable)
+if(WIN32)
+    set(GRAPHN_RESOURCES "Graph-N/res/graph-n.rc")
+else()
+    set(GRAPHN_RESOURCES "")
+endif()
 
 # source tree for Visual Studio
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N" PREFIX "Source Files" FILES ${GRAPHN_SOURCES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N" PREFIX "Header Files" FILES ${GRAPHN_HEADERS})
 
 # app
-add_executable(Graph-N WIN32 ${GRAPHN_SOURCES} ${GRAPHN_HEADERS} ${GRAPHN_RESOURCES})
+add_executable(Graph-N ${GRAPHN_SOURCES} ${GRAPHN_HEADERS} ${GRAPHN_RESOURCES})
+
+if(WIN32)
+    # GUI subsystem (no console window)
+    set_target_properties(Graph-N PROPERTIES WIN32_EXECUTABLE ON)
+endif()
 
 if(MSVC)
     # enable /EHa, this will override /EHsc
@@ -243,16 +286,25 @@ if(MSVC)
 	target_compile_options(Graph-N PRIVATE /wd4702) # disable 'warning C4702: unreachable code' because of fmt:: library
 endif()
 
+# -Wall -Wextra applied only to our targets (not third-party subprojects)
+if(NOT MSVC)
+    target_compile_options(Graph-N PRIVATE -Wall -Wextra)
+endif()
+
 # defines
 target_compile_definitions(Graph-N PRIVATE 
-    _CRT_SECURE_NO_WARNINGS
-    _CRT_NON_CONFORMING_SWPRINTFS
     IMGUI_USE_WCHAR32
     BOOST_ASIO_NO_LIB
-    _WIN32_WINNT=0x0A00
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
 )
+if(WIN32)
+    target_compile_definitions(Graph-N PRIVATE 
+        _CRT_SECURE_NO_WARNINGS
+        _CRT_NON_CONFORMING_SWPRINTFS
+        _WIN32_WINNT=0x0A00
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+    )
+endif()
 
 # --- Include Directories ---
 # SYSTEM flag tells compiler to ignore warnings in these headers
@@ -283,6 +335,8 @@ if(WIN32)
         Shell32
         wbemuuid
         mfplat mfreadwrite mfuuid propsys
+        ws2_32 crypt32
+        d3d11 d3dcompiler dwmapi
     )
 else()
     target_link_libraries(Graph-N PRIVATE
@@ -292,96 +346,92 @@ else()
         sqlite3
         MiniAudioLib
         fmt::fmt
+        OpenGL::GL
+        Threads::Threads
+        glfw::GLFW
     )
-endif()
-
-if(WIN32)
-    # Link system network libs for httplib
-    target_link_libraries(Graph-N PRIVATE ws2_32 crypt32)
-    target_link_libraries(Graph-N PRIVATE d3d11 d3dcompiler dwmapi)
-else()
-    find_package(OpenGL REQUIRED)
-    target_link_libraries(Graph-N PRIVATE glfw OpenGL::GL)
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        target_link_libraries(Graph-N PRIVATE dl pthread)
+        target_link_libraries(Graph-N PRIVATE dl)
     endif()
 endif()
 
 # ------------------------------------------------------------------------------
 # Host
+# The host is a Windows-only executable (WebView2); skip on other platforms.
 # ------------------------------------------------------------------------------
-file(GLOB_RECURSE HOST_SOURCES "Graph-N_Host/*.cpp")
-file(GLOB_RECURSE HOST_HEADERS "Graph-N_Host/*.h")
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host" PREFIX "Source Files" FILES ${HOST_SOURCES})
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host" PREFIX "Header Files" FILES ${HOST_HEADERS})
-
-set(HOST_SHARED_SOURCES
-    "Graph-N/core/base/blob.h"
-	"Graph-N/core/base/version.h"
-	"Graph-N/core/base/version.cpp"
-	"Graph-N/core/base/filesystem.h"	
-	"Graph-N/core/base/filesystem.cpp"
-	"Graph-N/tools/cast.h"
-	"Graph-N/tools/logging.h"
-	"Graph-N/tools/logging.cpp"
-	"Graph-N/tools/tools.h"
-	"Graph-N/tools/tools.cpp"
-	"Graph-N/tools/tools_datetime.h"
-	"Graph-N/tools/tools_datetime.cpp"
-    "Graph-N/tools/blob_serializer.cpp"
-    "Graph-N/tools/blob_serializer.h"
-    "Graph-N/tools/host_data_serializer.cpp"
-    "Graph-N/tools/host_data_serializer.h"
-)
-
-list(APPEND HOST_SOURCES ${HOST_SHARED_SOURCES})
-
-# resources
-set(HOST_RESOURCES "Graph-N_Host/res/host.rc")
-
-# app
-add_executable(Graph-N_Host WIN32 ${HOST_HEADERS} ${HOST_SOURCES} ${HOST_RESOURCES})
-
-if(MSVC)
-    # Force main() entry point even for GUI subsystem (fixes linker error in Release)
-    target_link_options(Graph-N_Host PRIVATE "/ENTRY:mainCRTStartup")
-
-    # STRICT MODE: Warnings as Errors (/WX), High Warning Level (/W4)
-    target_compile_options(Graph-N_Host PRIVATE /W4 /WX /utf-8)
-endif()
-
-# --- Include Directories ---
-target_include_directories(Graph-N_Host SYSTEM PRIVATE
-	"Graph-N"
-    "WebView"
-    "cpp-httplib"
-    "json/include"
-)
-
-target_include_directories(Graph-N_Host PRIVATE "Graph-N_Host")
-
-target_compile_definitions(Graph-N_Host PRIVATE 	
-	_CRT_SECURE_NO_WARNINGS
-    _CRT_NON_CONFORMING_SWPRINTFS
-    _WIN32_WINNT=0x0A00
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
-	TOOLS_DETACHED_STATE
-	CLEAR_LOG_MODE
-)
-
-target_precompile_headers(Graph-N_Host PRIVATE "Graph-N_Host/pch.h")
-
-# --- Linking ---
 if(WIN32)
+    file(GLOB_RECURSE HOST_SOURCES "Graph-N_Host/*.cpp")
+    file(GLOB_RECURSE HOST_HEADERS "Graph-N_Host/*.h")
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host" PREFIX "Source Files" FILES ${HOST_SOURCES})
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host" PREFIX "Header Files" FILES ${HOST_HEADERS})
+
+    set(HOST_SHARED_SOURCES
+        "Graph-N/core/base/blob.h"
+    	"Graph-N/core/base/version.h"
+    	"Graph-N/core/base/version.cpp"
+    	"Graph-N/core/base/filesystem.h"	
+    	"Graph-N/core/base/filesystem.cpp"
+    	"Graph-N/tools/cast.h"
+    	"Graph-N/tools/logging.h"
+    	"Graph-N/tools/logging.cpp"
+    	"Graph-N/tools/tools.h"
+    	"Graph-N/tools/tools.cpp"
+    	"Graph-N/tools/tools_datetime.h"
+    	"Graph-N/tools/tools_datetime.cpp"
+        "Graph-N/tools/blob_serializer.cpp"
+        "Graph-N/tools/blob_serializer.h"
+        "Graph-N/tools/host_data_serializer.cpp"
+        "Graph-N/tools/host_data_serializer.h"
+    )
+
+    list(APPEND HOST_SOURCES ${HOST_SHARED_SOURCES})
+
+    # resources
+    set(HOST_RESOURCES "Graph-N_Host/res/host.rc")
+
+    # app
+    add_executable(Graph-N_Host WIN32 ${HOST_HEADERS} ${HOST_SOURCES} ${HOST_RESOURCES})
+
+    if(MSVC)
+        # Force main() entry point even for GUI subsystem (fixes linker error in Release)
+        target_link_options(Graph-N_Host PRIVATE "/ENTRY:mainCRTStartup")
+
+        # STRICT MODE: Warnings as Errors (/WX), High Warning Level (/W4)
+        target_compile_options(Graph-N_Host PRIVATE /W4 /WX /utf-8)
+        target_compile_options(Graph-N_Host PRIVATE /wd4702) # disable 'warning C4702: unreachable code' because of fmt:: library
+    endif()
+
+    # --- Include Directories ---
+    target_include_directories(Graph-N_Host SYSTEM PRIVATE
+    	"Graph-N"
+        "WebView"
+        "cpp-httplib"
+        "json/include"
+    )
+
+    target_include_directories(Graph-N_Host PRIVATE "Graph-N_Host")
+
+    target_compile_definitions(Graph-N_Host PRIVATE 	
+    	_CRT_SECURE_NO_WARNINGS
+        _CRT_NON_CONFORMING_SWPRINTFS
+        _WIN32_WINNT=0x0A00
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+    	TOOLS_DETACHED_STATE
+    	CLEAR_LOG_MODE
+    )
+
+    target_precompile_headers(Graph-N_Host PRIVATE "Graph-N_Host/pch.h")
+
+    # --- Linking ---
     target_link_libraries(Graph-N_Host PRIVATE
         fmt::fmt
         "${CMAKE_CURRENT_SOURCE_DIR}/Graph-N_Host/res/WebView2Loader.dll.lib"
         shlwapi
-		dwmapi
+        dwmapi
     )
-endif()
+endif() # if(WIN32) - Host
 
 # ------------------------------------------------------------------------------
 # ANALYZERS SETTINGS
@@ -454,18 +504,36 @@ add_custom_command(TARGET Graph-N POST_BUILD
             $<TARGET_FILE:Graph-N> 
             "${DEST_DIR}/$<TARGET_FILE_NAME:Graph-N>"
 
-    # Copy Main Executable to root (CMAKE_SOURCE_DIR)
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            $<TARGET_FILE:Graph-N> 
-            "${CMAKE_SOURCE_DIR}/$<TARGET_FILE_NAME:Graph-N>"
-
     # Copy __log_enabled__ to log directory
     COMMAND ${CMAKE_COMMAND} -E copy_if_different 
             "${CMAKE_SOURCE_DIR}/Graph-N/res/__log_enabled__"
             "${DEST_DIR}/log/__log_enabled__"
 
+    # Copy license/notice files next to the binary (all platforms)
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+            "${CMAKE_SOURCE_DIR}/EULA.txt"
+            "${DEST_DIR}/EULA.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+            "${CMAKE_SOURCE_DIR}/README.md"
+            "${DEST_DIR}/README.md"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+            "${CMAKE_SOURCE_DIR}/THIRD-PARTY-NOTICES.txt"
+            "${DEST_DIR}/THIRD-PARTY-NOTICES.txt"
+
     COMMENT "Copying Graph-N executable and setting up directories for $<CONFIG>..."
 )
+
+# Copy Main Executable to root (CMAKE_SOURCE_DIR) - Windows only.
+# On Linux the target file name is "Graph-N" (no extension), which would
+# collide with the Graph-N/ source directory.
+if(WIN32)
+add_custom_command(TARGET Graph-N POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+            $<TARGET_FILE:Graph-N> 
+            "${CMAKE_SOURCE_DIR}/$<TARGET_FILE_NAME:Graph-N>"
+    COMMENT "Copying Graph-N executable to repo root..."
+)
+endif() # if(WIN32)
 
 # Copy each resource file to DEST_DIR/res/
 foreach(RES_FILE IN LISTS RES_FILES)
@@ -478,53 +546,55 @@ endforeach()
 
 
 # Graph-N_Host POST_BUILD commands (Host Executable & Dependencies)
-add_custom_command(TARGET Graph-N_Host POST_BUILD
-    # Copy Host Executable
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            $<TARGET_FILE:Graph-N_Host> 
-            "${DEST_DIR}/$<TARGET_FILE_NAME:Graph-N_Host>"
+if(WIN32)
+    add_custom_command(TARGET Graph-N_Host POST_BUILD
+        # Copy Host Executable
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                $<TARGET_FILE:Graph-N_Host> 
+                "${DEST_DIR}/$<TARGET_FILE_NAME:Graph-N_Host>"
 
-    # Copy WebView2Loader.dll
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/WebView2Loader.dll"
-            "${DEST_DIR}/WebView2Loader.dll"
-            
-    # Copy HTML editors
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/mask_editor.html"
-            "${DEST_DIR}/res/mask_editor.html"
-            
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/3dpos_editor.html"
-            "${DEST_DIR}/res/3dpos_editor.html"
+        # Copy WebView2Loader.dll
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/WebView2Loader.dll"
+                "${DEST_DIR}/WebView2Loader.dll"
+                
+        # Copy HTML editors
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/mask_editor.html"
+                "${DEST_DIR}/res/mask_editor.html"
+                
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/3dpos_editor.html"
+                "${DEST_DIR}/res/3dpos_editor.html"
 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/OrbitControls.js"
-            "${DEST_DIR}/res/OrbitControls.js"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/OrbitControls.js"
+                "${DEST_DIR}/res/OrbitControls.js"
 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/three.min.js"
-            "${DEST_DIR}/res/three.min.js"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/three.min.js"
+                "${DEST_DIR}/res/three.min.js"
 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/TransformControls.js"
-            "${DEST_DIR}/res/TransformControls.js"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                "${CMAKE_SOURCE_DIR}/Graph-N_Host/res/TransformControls.js"
+                "${DEST_DIR}/res/TransformControls.js"
 
-    # Copy licenses
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            "${CMAKE_SOURCE_DIR}/EULA.txt"
-            "${DEST_DIR}/EULA.txt"
-			
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            "${CMAKE_SOURCE_DIR}/README.md"
-            "${DEST_DIR}/README.md"
-			
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-            "${CMAKE_SOURCE_DIR}/THIRD-PARTY-NOTICES.txt"
-            "${DEST_DIR}/THIRD-PARTY-NOTICES.txt"
-            
-    COMMENT "Copying Graph-N_Host executable and dependencies for $<CONFIG>..."
-)
+        # Copy licenses
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                "${CMAKE_SOURCE_DIR}/EULA.txt"
+                "${DEST_DIR}/EULA.txt"
+    			
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                "${CMAKE_SOURCE_DIR}/README.md"
+                "${DEST_DIR}/README.md"
+    			
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                "${CMAKE_SOURCE_DIR}/THIRD-PARTY-NOTICES.txt"
+                "${DEST_DIR}/THIRD-PARTY-NOTICES.txt"
+                
+        COMMENT "Copying Graph-N_Host executable and dependencies for $<CONFIG>..."
+    )
+endif() # if(WIN32) - Graph-N_Host POST_BUILD
 
 # ------------------------------------------------------------------------------
 # Copy PDB files for debugging (MSVC only)
@@ -550,22 +620,24 @@ endif()
 # ------------------------------------------------------------------------------
 
 # debug run - Visual Studio (F5)
-set_target_properties(Graph-N PROPERTIES 
-    # run from work_dir
-    VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
-    
-    # Debug -> run from work_dir/Graph-N.exe
-    # Release -> run from bin/Graph-N.exe
-    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N>>"
-)
-set_target_properties(Graph-N_Host PROPERTIES 
-    # run from work_dir
-    VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
-    
-    # Debug -> run from work_dir/Graph-N.exe
-    # Release -> run from bin/Graph-N.exe
-    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N_Host>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N_Host>>"
-)
+if(WIN32)
+    set_target_properties(Graph-N PROPERTIES
+        # run from work_dir
+        VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
+
+        # Debug -> run from work_dir/Graph-N.exe
+        # Release -> run from bin/Graph-N.exe
+        VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N>>"
+    )
+    set_target_properties(Graph-N_Host PROPERTIES
+        # run from work_dir
+        VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
+
+        # Debug -> run from work_dir/Graph-N_Host.exe
+        # Release -> run from bin/Graph-N_Host.exe
+        VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:Graph-N_Host>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:Graph-N_Host>>"
+    )
+endif()
 
 # ------------------------------------------------------------------------------
 # UNIT TESTS
@@ -619,41 +691,64 @@ target_include_directories(UnitTests SYSTEM PRIVATE
 target_include_directories(UnitTests PRIVATE "Graph-N")
 
 target_compile_definitions(UnitTests PRIVATE 
-    _CRT_SECURE_NO_WARNINGS
-    _CRT_NON_CONFORMING_SWPRINTFS
     IMGUI_USE_WCHAR32
     BOOST_ASIO_NO_LIB
-    _WIN32_WINNT=0x0A00
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
     SKIP_DEBUG_CATCH
 )
+if(WIN32)
+    target_compile_definitions(UnitTests PRIVATE 
+        _CRT_SECURE_NO_WARNINGS
+        _CRT_NON_CONFORMING_SWPRINTFS
+        _WIN32_WINNT=0x0A00
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+    )
+endif()
 
 target_precompile_headers(UnitTests PRIVATE "Graph-N/pch.h")
 
-# Link your app's dependencies PLUS Google Test
-target_link_libraries(UnitTests PRIVATE 
-    ImGuiLib
-    NodeEditorLib
-    SQLiteCpp
-    sqlite3
-    MiniAudioLib
-    fmt::fmt
-    Shell32
-    wbemuuid
-    gtest
-    gtest_main
-)
+# -Wall -Wextra applied only to our targets (not third-party subprojects)
+if(NOT MSVC)
+    target_compile_options(UnitTests PRIVATE -Wall -Wextra)
+endif()
 
+# Link your app's dependencies PLUS Google Test
 if(WIN32)
-    target_link_libraries(UnitTests PRIVATE 
-        ws2_32 
-        crypt32 
-        d3d11 
-        d3dcompiler 
+    target_link_libraries(UnitTests PRIVATE
+        ImGuiLib
+        NodeEditorLib
+        SQLiteCpp
+        sqlite3
+        MiniAudioLib
+        fmt::fmt
+        Shell32
+        wbemuuid
+        gtest
+        gtest_main
+        ws2_32
+        crypt32
+        d3d11
+        d3dcompiler
         dwmapi
         mfplat mfreadwrite mfuuid propsys
     )
+else()
+    target_link_libraries(UnitTests PRIVATE
+        ImGuiLib
+        NodeEditorLib
+        SQLiteCpp
+        sqlite3
+        MiniAudioLib
+        fmt::fmt
+        gtest
+        gtest_main
+        Threads::Threads
+        glfw::GLFW
+    )
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_libraries(UnitTests PRIVATE dl OpenGL::GL)
+    endif()
 endif()
 
 include(GoogleTest)
@@ -670,11 +765,13 @@ add_custom_command(TARGET UnitTests POST_BUILD
 )
 
 # debug run - Visual Studio (F5)
-set_target_properties(UnitTests PROPERTIES 
-    # run from work_dir
-    VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
-    
-    # Debug -> run from work_dir/UnitTests.exe
-    # Release -> run from bin/UnitTests.exe
-    VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:UnitTests>>"
-)
+if(WIN32)
+    set_target_properties(UnitTests PROPERTIES
+        # run from work_dir
+        VS_DEBUGGER_WORKING_DIRECTORY "${WORK_DIR}"
+
+        # Debug -> run from work_dir/UnitTests.exe
+        # Release -> run from bin/UnitTests.exe
+        VS_DEBUGGER_COMMAND "$<$<CONFIG:Debug>:${WORK_DIR}/$<TARGET_FILE_NAME:UnitTests>>$<$<NOT:$<CONFIG:Debug>>:$<TARGET_FILE:UnitTests>>"
+    )
+endif()
