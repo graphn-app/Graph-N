@@ -6,16 +6,11 @@
 #include "main/main_linux.h"
 #include "graph-n.h"
 #include "main.h"
-#include "core/base/version.h"
-#include "tools/logging.h"
 
-#include <GLFW/glfw3.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
 #include <GL/gl.h>
-
-#include <chrono>
 
 namespace platform
 {

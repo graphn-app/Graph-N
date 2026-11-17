@@ -13,8 +13,7 @@ HostManager_Linux::~HostManager_Linux() noexcept = default;
 
 void HostManager_Linux::stop_and_cleanup()
 {
-    // Host processes are a Windows-only feature (WebView2 host).
-    // On Linux hosts are not available: nothing to clean up.
+    HostManager::stop_and_cleanup();
 }
 
 bool HostManager_Linux::init()
@@ -27,7 +26,9 @@ bool HostManager_Linux::init()
 
 std::thread HostManager_Linux::run_host(const blob::HostData& /*host*/)
 {
-    // Host processes are a Windows-only feature (WebView2 host).
+    // The host process should be implemented via native web-view support,
+    //      e.g. WebKitGTK.
+    // When implemented, please set PanelWorkflow::show_node_menu::platform_host_implemented to true.
     return std::thread();
 }
 

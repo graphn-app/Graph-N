@@ -96,24 +96,24 @@ void PanelStats::th_api()
                 m_lram_total.store(info.ullTotalPhys, std::memory_order_relaxed);
             }
 #elif defined __linux__
-    {
-        std::ifstream meminfo("/proc/meminfo");
-        std::string key;
-        uint64_t total_kb = 0;
-        uint64_t avail_kb = 0;
-        while (meminfo >> key)
-        {
-            uint64_t value = 0;
-            std::string unit;
-            meminfo >> value >> unit;
-            if ("MemTotal:" == key)
-                total_kb = value;
-            else if ("MemAvailable:" == key)
-                avail_kb = value;
-        }
-        m_lram_free.store(avail_kb * 1024, std::memory_order_relaxed);
-        m_lram_total.store(total_kb * 1024, std::memory_order_relaxed);
-    }
+            {
+                std::ifstream meminfo("/proc/meminfo");
+                std::string key;
+                uint64_t total_kb = 0;
+                uint64_t avail_kb = 0;
+                while (meminfo >> key)
+                {
+                    uint64_t value = 0;
+                    std::string unit;
+                    meminfo >> value >> unit;
+                    if ("MemTotal:" == key)
+                        total_kb = value;
+                    else if ("MemAvailable:" == key)
+                        avail_kb = value;
+                }
+                m_lram_free.store(avail_kb * 1024, std::memory_order_relaxed);
+                m_lram_total.store(total_kb * 1024, std::memory_order_relaxed);
+            }
 #elif defined __APPLE__
 #error Not implemented
 #endif

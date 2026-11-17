@@ -7,6 +7,12 @@
 namespace blob
 {
 
+#ifdef _WIN32
+inline constexpr uint32_t MAX_PATH_LENGTH    = MAX_PATH;
+#else
+inline constexpr uint32_t MAX_PATH_LENGTH    = PATH_MAX;
+#endif
+
 constexpr uint64_t g_version_1 = 292734122346942481;
 constexpr uint64_t g_current_version = g_version_1;
 
@@ -19,11 +25,7 @@ size_t HostSerializer::get_max_size()
 {
     return
         get_min_size() +
-<<<<<<< HEAD
-        (260 * sizeof(wchar_t) + sizeof(uint32_t)) * 2 /* image pathes (wide chars + length prefix) */ + 500 /* wf and node names */ + 20 /*comfyui host*/ + 500 /*settings*/;
-=======
-        (MAX_PATH * sizeof(wchar_t) + sizeof(uint32_t)) * 2 /* image pathes (wide chars + length prefix) */ + 500 /* wf and node names */ + 20 /*comfyui host*/ + 500 /*settings*/;
->>>>>>> 68a88e9 (docs: detail Linux/GNU build changes)
+        (MAX_PATH_LENGTH * sizeof(wchar_t) + sizeof(uint32_t)) * 2 /* image pathes (wide chars + length prefix) */ + 500 /* wf and node names */ + 20 /*comfyui host*/ + 500 /*settings*/;
 }
 
 Blob HostSerializer::serialize(const HostData& data)

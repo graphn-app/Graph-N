@@ -505,11 +505,19 @@ LogWriter& LogWriter::operator << (DlgCode code)
 }
 #endif // TOOLS_DETACHED_STATE
 
+#ifdef _WIN32
+LogWriter& LogWriter::operator << (const type_info& type)
+{
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}/{}"), type.name(), type.raw_name());
+    return *this;
+}
+#else
 LogWriter& LogWriter::operator << (const std::type_info& type)
 {
     fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), type.name());
     return *this;
 }
+#endif
 
 LogWriter& LogWriter::operator << (const LogLineEnd&)
 {

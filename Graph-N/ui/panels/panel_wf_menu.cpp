@@ -539,7 +539,16 @@ bool PanelWorkflow::show_node_menu()
     bool close = false;
     auto node = *m_menu_objs.nodes.begin();
 
-    if (node->flags().has_any(NodeInstFlags::MaskEditorReady, NodeInstFlags::PosEditorReady))
+    // TODO: MaskEditor and PosEditor are platform-dependent features, currently Windows-only
+#if defined _WIN32
+    constexpr bool platform_host_implemented = true;
+#elif defined __linux__
+    constexpr bool platform_host_implemented = false;
+#elif defined __APPLE__
+    constexpr bool platform_host_implemented = false;
+#endif
+
+    if (platform_host_implemented && node->flags().has_any(NodeInstFlags::MaskEditorReady, NodeInstFlags::PosEditorReady))
     {
         if (ImGui::MenuItem("Open in Mask Editor | SAM Detector", nullptr, nullptr, node->flags().has_and_has_not(NodeInstFlags::MaskEditorReady, NodeInstFlags::PosEditorRunning)))
         {

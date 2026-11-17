@@ -5,8 +5,6 @@
 #pragma once
 #ifdef __linux__
 #include "main.h"
-
-#include <chrono>
 #include <GLFW/glfw3.h>
 
 namespace platform

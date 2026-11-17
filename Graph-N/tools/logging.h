@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <cerrno>
-
 #ifndef TOOLS_DETACHED_STATE
 class number;
 #endif // TOOLS_DETACHED_STATE
@@ -154,7 +152,11 @@ public:
     LogWriter& operator << (DlgCode code);
 #endif // TOOLS_DETACHED_STATE
 
+#ifdef _WIN32
+    LogWriter& operator << (const type_info& type);
+#else
     LogWriter& operator << (const std::type_info& type);
+#endif
 
     LogWriter& operator << (const LogLineEnd&);
     LogWriter& operator << (const LogHex& hex_item);

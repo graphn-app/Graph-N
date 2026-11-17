@@ -28,7 +28,6 @@
 #include <stack>
 #include <string>
 #include <type_traits>
-#include <typeinfo>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -48,6 +47,9 @@
 #else
 #include <unistd.h>
 #include <pwd.h>
+#include <cerrno>
+#include <climits>
+#include <typeinfo>
 #endif
 
 // 3rd party

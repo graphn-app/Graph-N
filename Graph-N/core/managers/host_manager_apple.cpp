@@ -13,6 +13,7 @@ HostManager_Apple::~HostManager_Apple() noexcept = default;
 
 void HostManager_Apple::stop_and_cleanup()
 {
+    HostManager::stop_and_cleanup();
 #error Not implemented
 }
 
@@ -26,6 +27,9 @@ bool HostManager_Apple::init()
 
 void HostManager_Apple::run_host(const blob::HostData& /*host*/)
 {
+    // The host process should be implemented via native web-view support,
+    //      e.g. WKWebView.
+    // When implemented, please set PanelWorkflow::show_node_menu::platform_host_implemented to true.
 #error Not implemented
 }
 
