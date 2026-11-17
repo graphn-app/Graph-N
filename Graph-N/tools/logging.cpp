@@ -177,7 +177,7 @@ void Logger::log_start()
             std::ofstream unilog;
             unilog.open(m_log_path.c_str(), std::ios::out | std::ios::binary);
 
-            unilog << (BYTE)0xEF << (BYTE)0xBB << (BYTE)0xBF;
+            unilog << (uint8_t)0xEF << (uint8_t)0xBB << (uint8_t)0xBF;
             unilog.flush();
             unilog.close();
         }
@@ -204,10 +204,10 @@ void Logger::log_start()
                 << "Process ID: " << cast::to_u32(::GetCurrentProcessId()) << "\n"
                 << "Main thread ID: " << cast::to_u32(::GetCurrentThreadId()) << "\n"
                 << "Command line: " << " " << ::GetCommandLineA() << "\n"
-#elif defined __APPLE__
-#error Not implemented
-#elif defined __linux__
-#error Not implemented
+#else
+                << "Process ID: " << cast::to_u32(::getpid()) << "\n"
+                << "Main thread ID: " << cast::to_u32(std::hash<std::thread::id>{}(std::this_thread::get_id())) << "\n"
+                << "Command line: \"\"\n"
 #endif
                 << "\n"
             ;
@@ -337,10 +337,12 @@ void LogWriter::log_line_start(const void* this_, const char* foo, int32_t line)
             cast::to_ptr(this_),
             tools::dt::from_current_date().as_log_line(),
             line);
-#elif defined __APPLE__
-#error Not implemented
-#elif defined __linux__
-#error Not implemented
+#else
+        fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("[{:0>5} {:0>12X} {} ln:{}] "),
+            cast::to_u32(std::hash<std::thread::id>{}(std::this_thread::get_id())),
+            cast::to_ptr(this_),
+            tools::dt::from_current_date().as_log_line(),
+            line);
 #endif
     }
     else [[likely]]
@@ -351,10 +353,12 @@ void LogWriter::log_line_start(const void* this_, const char* foo, int32_t line)
             cast::to_ptr(this_),
             tools::dt::from_current_date().as_log_line(),
             foo, line);
-#elif defined __APPLE__
-#error Not implemented
-#elif defined __linux__
-#error Not implemented
+#else
+        fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("[{:0>5} {:0>12X} {} {}:{}] "),
+            cast::to_u32(std::hash<std::thread::id>{}(std::this_thread::get_id())),
+            cast::to_ptr(this_),
+            tools::dt::from_current_date().as_log_line(),
+            foo, line);
 #endif
     }
 #endif // CLEAR_LOG_MODE
@@ -501,11 +505,19 @@ LogWriter& LogWriter::operator << (DlgCode code)
 }
 #endif // TOOLS_DETACHED_STATE
 
+#ifdef _WIN32
 LogWriter& LogWriter::operator << (const type_info& type)
 {
     fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}/{}"), type.name(), type.raw_name());
     return *this;
 }
+#else
+LogWriter& LogWriter::operator << (const std::type_info& type)
+{
+    fmt::format_to(std::back_inserter(m_buffer), FMT_STRING("{}"), type.name());
+    return *this;
+}
+#endif
 
 LogWriter& LogWriter::operator << (const LogLineEnd&)
 {

@@ -11,6 +11,8 @@ class number;
 namespace glog
 {
 
+class LogWriter;
+
 class Logger final
 {
     friend class LogWriter;
@@ -150,7 +152,11 @@ public:
     LogWriter& operator << (DlgCode code);
 #endif // TOOLS_DETACHED_STATE
 
+#ifdef _WIN32
     LogWriter& operator << (const type_info& type);
+#else
+    LogWriter& operator << (const std::type_info& type);
+#endif
 
     LogWriter& operator << (const LogLineEnd&);
     LogWriter& operator << (const LogHex& hex_item);
@@ -387,10 +393,8 @@ struct LogGuard final
 
 #ifdef _WIN32
 #define LogApiERR                    uint32_t(::GetLastError())
-#elif defined __APPLE__
-#error Not implemented
-#elif defined __linux__
-#error Not implemented
+#else
+#define LogApiERR                    uint32_t(errno)
 #endif
 
 #define LogHEX(h)                    glog::LogHex(h)

@@ -46,11 +46,6 @@ public:
 
     virtual bool get_ini_config_exists() const = 0;
 
-    uint32_t get_monitor_frequency() const noexcept { return m_monitor_frequency; }
-    uint32_t& get_monitor_x() noexcept { return m_monitor_x; }
-    uint32_t& get_monitor_y() noexcept { return m_monitor_y; }
-    float& get_monitor_dpi() noexcept { return m_monitor_dpi; }
-
     float get_frame_budget() const noexcept { return m_frame_budget; }
     float get_frame_budget_warn() const noexcept { return m_frame_budget / 2.0f; }
     float get_frame_budget_crit() const noexcept { return m_frame_budget - 2.0f; }

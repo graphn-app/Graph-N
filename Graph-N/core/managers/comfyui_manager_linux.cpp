@@ -24,9 +24,37 @@ bool ComfyUIManager_Linux::init()
     return true;
 }
 
+uint32_t ComfyUIManager_Linux::check_existing_process() const noexcept
+{
+    return 0;
+}
+
+bool ComfyUIManager_Linux::get_process_started() const noexcept
+{
+    return false;
+}
+
+uint32_t ComfyUIManager_Linux::get_started_proc_id() const noexcept
+{
+    return 0;
+}
+
+void ComfyUIManager_Linux::kill(bool /*force_kill*/)
+{
+}
+
+void ComfyUIManager_Linux::setup_auto_kill(bool /*enable*/)
+{
+}
+
+void ComfyUIManager_Linux::append_log(std::deque<std::string>& /*logs*/)
+{
+}
+
 void ComfyUIManager_Linux::run_server()
 {
-#error Not implemented
+    // ComfyUI server integration is a Windows-only feature for now.
+    // On Linux this stays a no-op stub.
 }
 
 } // namespace mngr

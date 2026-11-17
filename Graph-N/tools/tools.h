@@ -53,8 +53,8 @@ std::string sha256(const std::vector<byte>& src);
 
 #ifdef _WIN32
 std::wstring utf8_to_wide(const std::string& utf8_str);
+#endif
 std::string wide_to_utf8(const std::wstring& wide_str);
-#endif // _WIN32
 
 std::string u8_to_string(const std::u8string& u8_str);
 

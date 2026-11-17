@@ -35,6 +35,7 @@ inline constexpr uint32_t MAX_VISIBLE_STRING    = 20 * 1024; // 20 kb
 inline std::string STRING_TOO_LONG_TEMPL = "<String too long>";
 inline std::string BASE64_INSIDE_TEMPL   = "<Base64 inside>";
 
+inline constexpr int32_t HTTPS_DEFAULT_PORT     = 443;
 inline constexpr int32_t HTTP_RESP_UNDEFINED    = 0;
 inline constexpr int32_t HTTP_RESP_OK           = 200;
 inline constexpr int32_t HTTP_RESP_FAIL         = -1;

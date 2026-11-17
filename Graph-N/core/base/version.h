@@ -12,9 +12,9 @@ namespace ver
 /* app main version (breaking changes) */
 inline constexpr uint32_t app_major = 0;
 /* app version (new backward-compatible features) */
-inline constexpr uint32_t app_minor = 7;
+inline constexpr uint32_t app_minor = 8;
 /* app patch (bugfixes) */
-inline constexpr uint32_t app_patch = 5;
+inline constexpr uint32_t app_patch = 0;
 
 /* date of release commit (for UI only) */
 inline constexpr uint32_t release_year = 2026;
