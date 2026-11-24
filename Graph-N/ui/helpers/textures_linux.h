@@ -14,6 +14,9 @@ class Textures_Linux final : public global::Textures
 public:
     Textures_Linux() noexcept = default;
     ~Textures_Linux() noexcept override = default;
+
+    ImTextureIDPtr upload_to_gpu(const byte* image_data, uint32_t width, uint32_t height, bool generate_mips) override;
+    bool update_gpu_texture(ImTextureIDPtr texture, const byte* image_data, uint32_t width, uint32_t height, bool generate_mips) override;
 };
 
 } // namespace platform

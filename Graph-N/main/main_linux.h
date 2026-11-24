@@ -6,6 +6,9 @@
 #ifdef __linux__
 #include "main.h"
 
+#include <chrono>
+#include <GLFW/glfw3.h>
+
 namespace platform
 {
 
@@ -23,14 +26,33 @@ private:
     */
 
     bool init() override;
-    int32_t run(flow_callback& callback, std::atomic_bool& request_focus) override;
+    int32_t run(const flow_callback& run_cb, const cleanup_callback& cleanup_cb, std::atomic_bool& request_focus) override;
     void stop_and_cleanup() override;
+
+    double get_frame_render_time() const noexcept override;
+    int64_t get_seconds_elapsed() const noexcept override;
+    bool get_ini_config_exists() const override;
 
     void wnd_restore() override;
     void wnd_minimize() override;
     void wnd_maximize() override;
     void wnd_show() override;
     void wnd_hide() override;
+    void wnd_toggle_fullscreen() override;
+
+    GLFWwindow* m_window = nullptr;
+    bool m_is_rendering = false;
+    double m_frame_render_time = 0.0;
+    int64_t m_seconds_elapsed = 0;
+    std::chrono::steady_clock::time_point m_second_tick;
+    bool m_ini_config_exists = false;
+
+    /* Windowed position/size remembered before switching to fullscreen,
+       so we can restore them instead of a hardcoded 1280x800 at (100,100). */
+    int32_t m_windowed_x = 100;
+    int32_t m_windowed_y = 100;
+    int32_t m_windowed_w = 1280;
+    int32_t m_windowed_h = 800;
 };
 
 } // namespace platform

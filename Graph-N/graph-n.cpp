@@ -373,7 +373,11 @@ bool GraphN::flow()
 
 bool GraphN::init()
 {
+#ifdef _WIN32
     _tzset();
+#else
+    tzset();
+#endif
 
     Log("Creating " APP_CAPTION " flow");
     m_graphn_flow = std::make_unique<ui::GraphN_Flow>();

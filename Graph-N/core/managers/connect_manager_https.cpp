@@ -22,7 +22,7 @@ void ConnectManager::send_https(std::shared_ptr<RequestData> req)
         LogErrorS("HTTP-Req-Ext#" << req->req_id << ". Failed: " << err << ", err " << LogApiERR);
     };
 
-    if (req->port != INTERNET_DEFAULT_HTTPS_PORT)
+    if (req->port != HTTPS_DEFAULT_PORT)
         return reply("invalid request");
 
     using InternetHandle = std::unique_ptr<void, decltype(&::WinHttpCloseHandle)>;
@@ -37,7 +37,7 @@ void ConnectManager::send_https(std::shared_ptr<RequestData> req)
         return reply("WinHttpOpen failed");
 
     const auto server = tools::str::utf8_to_wide(req->server);
-    InternetHandle hconnect(::WinHttpConnect(hsession.get(), server.c_str(), INTERNET_DEFAULT_HTTPS_PORT, 0), ::WinHttpCloseHandle);
+    InternetHandle hconnect(::WinHttpConnect(hsession.get(), server.c_str(), HTTPS_DEFAULT_PORT, 0), ::WinHttpCloseHandle);
     if (!hconnect)
         return reply("WinHttpConnect failed");
 
@@ -102,12 +102,14 @@ void ConnectManager::send_https(std::shared_ptr<RequestData> req)
 #else
 void ConnectManager::send_https(std::shared_ptr<RequestData> req)
 {
-    if (req->port != INTERNET_DEFAULT_HTTPS_PORT)
+    if (req->port != HTTPS_DEFAULT_PORT)
     {
         req->status = HTTP_RESP_FAIL;
-        LogError("HTTP-Req-Ext#" << req->req_id << ". Failed: invalid request", );
+        LogError("HTTP-Req-Ext#" << req->req_id << ". Failed: invalid request");
         return;
     }
+
+    // HTTPS requests via WinINet are Windows-only; not implemented on Linux yet.
     req->status = HTTP_RESP_FAIL;
     Log("HTTP-Req-Ext#" << req->req_id << ". Failed: not implemented");
 }
